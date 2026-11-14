@@ -14,6 +14,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const g = await p.evaluate(() => ({ homes: W.homes.length, cracks: W.cracks.length, R: CITY.R, mk: W.markets.length, vt: W.vaults.length, mtn: W.mountains.length, br: W.bridges.length, fish: (W.dayFish||[]).length + (W.nightFish||[]).length, obs: !!CONFIG.resources.obsidian, wx: WEATHER_TYPES.filter((w) => w === 'storm' || w === 'rain').length, tiers: [...new Set(W.homes.map((h) => h.level))].length }));
   ok(g.homes > 15000, `metropolis homes generated: ${g.homes}`); ok(g.cracks > 10, 'crevices: ' + g.cracks); ok(g.mk === 0 && g.vt === 0, 'no bazaars or vaults on the map');
   ok(g.R >= 10000, 'big map radius ' + g.R); ok(g.mtn > 100, 'mountains: ' + g.mtn); ok(g.br > 20, 'bridges over crevices: ' + g.br);
+  const v2 = await p.evaluate(() => ({ op: W.outposts.length, falls: !!W.lakeFalls, pass: !!W.pass, rivers: W.rivers.length - 1, stairs: W.stairs.length, fields: W.sets.length, onCliff: W.homes.filter((h) => onCliff(h.x, h.y, 0)).length, plateau: W.homes.filter((h) => plateauDist(h.x, h.y) < 0).length, radial: W.radial.length }));
+  ok(v2.plateau > 3500 && v2.onCliff === 0, `Hollow on a raised plateau: ${v2.plateau} homes up top, ${v2.onCliff} on the cliffs, ${v2.stairs} stairways down`); ok(v2.stairs >= 4, 'stairs down the cliffs');
+  ok(v2.radial >= 12, 'cracks spread out from the plateau: ' + v2.radial); ok(v2.op >= 6 && v2.fields > 20, `frontier outposts ${v2.op} with ${v2.fields} farm patches`);
+  ok(v2.falls && v2.pass, 'Lake Falls Town and the Rift Pass placed'); ok(v2.rivers >= 4, 'rivers pouring into cracks: ' + v2.rivers);
   ok(g.fish === 0, 'no flying fish'); ok(g.wx === 0, 'no storms or rain in weather table'); ok(g.obs, 'obsidian resource still in economy');
   // canvas non-blank
   const varied = await p.evaluate(() => { const c = document.getElementById('cityCanvas'), x = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; const set = new Set(); for (let i = 0; i < x.length; i += 4 * 997) set.add((x[i] >> 4) + ',' + (x[i + 1] >> 4) + ',' + (x[i + 2] >> 4)); return set.size; });
@@ -63,6 +67,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   // NPC + landmark + region
   await p.evaluate(() => { const L = W.landmarks[0]; CityMap.flyTo(L.x, L.y, 1.2, true); CityMap.handleTap(...CityMap.w2s(L.x, L.y)); }); await p.waitForTimeout(300);
   ok((await p.textContent('#modalBody')).length > 80, 'landmark lore card'); await p.evaluate(() => closeModalQuiet());
+  for (const k of ['lakeFalls', 'pass']) { await p.evaluate((k) => { const L = W[k]; CityMap.flyTo(L.x, L.y - L.r, 0.5, true); CityMap.handleTap(...CityMap.w2s(L.x, L.y - L.r * 0.6)); }, k); await p.waitForTimeout(300);
+    ok(/Lake Falls|Rift Pass/.test(await p.textContent('#modalBody')), k + ' card opens'); await p.evaluate(() => closeModalQuiet()); }
+  await p.evaluate(() => { const L = W.outposts[0]; CityMap.flyTo(L.x, L.y, 1, true); CityMap.handleTap(...CityMap.w2s(L.x, L.y)); }); await p.waitForTimeout(300);
+  ok(/outpost|crack/i.test(await p.textContent('#modalBody')), 'outpost card opens'); await p.evaluate(() => closeModalQuiet());
   // Ticker
   ok((await p.textContent('#ticker')).length > 10, 'rumor ticker shows: ' + (await p.textContent('#ticker')).trim());
   // other tabs still work

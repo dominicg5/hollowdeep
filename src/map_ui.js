@@ -242,7 +242,7 @@ const CityMap = (() => {
       G(Math.cos(a) * rr, Math.sin(a) * rr, 380, 'rgba(180,210,255,.9)', 0.7 * fl); if (inV(0, 0, 800)) { c.strokeStyle = `rgba(220,235,255,${0.9 * fl})`; c.lineWidth = 2.5 * dpr; c.beginPath(); let [bx, by] = [Math.cos(a) * rr, Math.sin(a) * rr]; let [sx, sy] = S2(bx, by); c.moveTo(sx, sy);
         for (let i = 0; i < 7; i++) { bx += (hash2(seg, i) - 0.5) * 120; by += (hash2(i, seg) - 0.5) * 120; [sx, sy] = S2(bx, by); c.lineTo(sx, sy); } c.stroke(); } } }
     // drifting Lumen motes rising out of the Hollow
-    if (inV(0, 0, 1000)) for (const m of W.motes) { const u = (t * m.sp + m.off) % 1, rr = 40 + u * CITY.hollowR * 1.05, a = m.a + Math.sin(t * 0.3 + m.wob) * 0.1; G(Math.cos(a) * rr, Math.sin(a) * rr - u * 40, m.sz * 2.4, 'rgba(255,220,120,.95)', Math.sin(u * Math.PI) * (0.5 + night * 0.5)); }
+    if (inV(0, 0, CITY.hollowR * 1.4)) for (const m of W.motes) { const u = (t * m.sp + m.off) % 1, rr = 40 + u * CITY.hollowR * 1.05, a = m.a + Math.sin(t * 0.3 + m.wob) * 0.1; G(Math.cos(a) * rr, Math.sin(a) * rr - u * 40, m.sz * 2.4, 'rgba(255,220,120,.95)', Math.sin(u * Math.PI) * (0.5 + night * 0.5)); }
     // updraft weather: a spiral column of motes at the rim
     if (wx.type === 'updraft' && inV(wx.x, wx.y, 300)) for (let i = 0; i < 50; i++) { const u = (t * 0.25 + i / 50) % 1, a = i * 0.7 + t * 2, rr = 30 + u * 220; G(wx.x + Math.cos(a) * rr * 0.5, wx.y + Math.sin(a) * rr * 0.5 - u * 120, 10, 'rgba(255,240,200,.9)', (1 - u) * wx.fade * 0.8); }
     // crystals, kilns, lantern posts, promenade lamps, home lanterns
@@ -252,7 +252,7 @@ const CityMap = (() => {
     // far out: Lumen breathing out of the rifts, lava seeping from the Emberwound
     { const stp = z > 0.3 ? 2 : z > 0.12 ? 4 : z > 0.05 ? 8 : 16, fl = 0.85 + 0.15 * Math.sin(t * 1.3);
       const vb = (b) => b[2] >= view.x0 && b[0] <= view.x1 && b[3] >= view.y0 && b[1] <= view.y1;
-      for (const ck of W.cracks) { if (!(ck.glow || ck.lava) || !vb(ck.bbox)) continue; const mw = Math.max(...ck.ws);
+      for (const ck of W.cracks) { if (!ck.lava || !vb(ck.bbox)) continue; /* no blue Lumen lines in the crevices */ const mw = Math.max(...ck.ws);
         for (let i = 0; i < ck.pts.length; i += stp) { const p = ck.pts[i], w = ck.ws[i]; const rr = Math.max(stp * 30, w * 1.4); if (ck.lava) G(p[0], p[1] + 8, rr, 'rgba(255,110,30,.95)', (0.22 + night * 0.55) * fl);
           else G(p[0], p[1] + 10, Math.max(stp * 28, w * 1.1), 'rgba(120,220,255,.9)', (0.08 + night * 0.36) * (stp > 4 ? 0.7 : 1) * (0.75 + 0.25 * Math.sin(t * 0.8 + i * 0.3))); } }
       for (let fi = 0; fi < W.lavaFlows.length; fi++) { const f = W.lavaFlows[fi]; if ((z < 0.06 && fi % 4) || !vb(f.bbox)) continue; for (let i = 0; i < f.pts.length; i += stp) { const p = f.pts[i]; G(p[0], p[1], Math.max(stp * 18, f.ws[i] * 2), 'rgba(255,120,40,.9)', (0.14 + night * 0.5) * (0.8 + 0.2 * Math.sin(t * 2 + f.ph + i * 0.4))); } }
@@ -344,7 +344,7 @@ const CityMap = (() => {
     if (frostLevel() > 0) out.push({ w: 2, s: '❄️ Frost is creeping down from the mountains. Quarry crews are wrapping their hands.' });
     const tk = S.hero.task; if (tk && tk.type === 'expedition' && tk.end - S.gameTime < 1.5 * HOUR) out.push({ w: 3, s: `🧗 Word on the Promenade: ${CONFIG.hero.name} is climbing back up the Tether.` });
     const nw = weatherNow(t + CITY.weatherSeconds); if (nw.type !== 'clear') out.push({ w: 1, s: `🌦️ Weather-watchers say: ${weatherLabel(nw).replace(/^\S+\s/, '')} soon.` });
-    if (isDusk()) out.push({ w: 1, s: '🕯️ Pell is lighting the Promenade lamps. The crevices will glow soon.' });
+    if (isDusk()) out.push({ w: 1, s: '🕯️ Pell is lighting the Promenade lamps. The lamps are coming on all over the plateau.' });
     RUMORS.forEach((r) => out.push({ w: 1, s: '💬 ' + r }));
     return out;
   }
@@ -361,8 +361,8 @@ const CityMap = (() => {
   function buildLegend() {
     $('#legend').innerHTML = `<div class="row between"><b>🗺️ Rim City</b><button class="btn ghost sm" data-city="legend">✕</button></div>
       <div class="legrow" data-city="home"><span class="sw" style="background:#ffd46b"></span><div><b>★ Your ${CITY.homeTerm}</b><br><span class="dim">Tap to fly home.</span></div></div>
-      <div class="legrow"><span class="sw" style="background:#18203a"></span><div><b>🕳️ The Hollow</b><br><span class="dim">Tether lifts and the great scaffold drop into it.</span></div></div>
-      <div class="legrow"><span class="sw" style="background:#3a3430"></span><div><b>Crevices</b><br><span class="dim">Cracks in the earth between the districts. Some breathe Lumen; ${W.rifts.length} rift mouths may lead back down.</span></div></div>
+      <div class="legrow"><span class="sw" style="background:#18203a"></span><div><b>🕳️ The Hollow</b><br><span class="dim">Tether lifts drop into it from the lip.</span></div></div>
+      <div class="legrow"><span class="sw" style="background:#3a3430"></span><div><b>Crevices</b><br><span class="dim">Deep cracks spreading out across the lowlands below the plateau; ${W.rifts.length} rift mouths may lead back down.</span></div></div>
       <div class="legrow"><span class="sw" style="background:#8a8a84"></span><div><b>⛰️ Mountains</b><br><span class="dim">Ring the city's edge and split the outer districts.</span></div></div>
       <div class="dim" style="margin-top:6px">${W.homes.length.toLocaleString()} ${CITY.homeTerm}s · tap any home to see who lives there.</div>`;
   }
@@ -398,8 +398,9 @@ const CityMap = (() => {
     const mole = currentMole(); if (mole && Math.hypot(mole.x - x, mole.y - y) < Math.max(50, tapR)) return moleCard(mole);
     if (Math.hypot(W.player.x - x, W.player.y - y) < Math.max(W.player.size, tapR)) return playerCard();
     let best = null, bd = 1e9;
-    for (const o of queryObjs(x - 80, y - 80, x + 80, y + 80, 80)) { if (!['home', 'market', 'vault', 'lift', 'statue', 'memorial', 'gate', 'rift'].includes(o.type)) continue; const d = Math.hypot(o.x - x, o.y - y) - (o.r || 20); if (d < bd) { bd = d; best = o; } }
+    for (const o of queryObjs(x - 80, y - 80, x + 80, y + 80, 80)) { if (!['home', 'market', 'vault', 'lift', 'statue', 'memorial', 'gate', 'rift', 'outpost'].includes(o.type)) continue; const d = Math.hypot(o.x - x, o.y - y) - (o.r || 20); if (d < bd) { bd = d; best = o; } }
     if (best && bd < Math.max(8, tapR * 0.6)) { if (best.type === 'home') return homeCard(best); if (best.type === 'market') return marketCard(best); if (best.type === 'vault') return vaultCard(best); if (best.type === 'lift') return liftCard(best); if (best.type === 'rift') return riftCard(best); return loreCard(best); }
+    for (const m of [W.lakeFalls, W.pass]) if (m && Math.abs(x - m.x) < m.r * 1.1 && y < m.y + m.r * 0.3 && y > m.y - m.r * 2.2) return loreCard(m);
     if (hollowDist(x, y) < 0) return hollowCard();
     void regionCard; // the land itself has no card: no regions to reveal
   }
@@ -456,10 +457,10 @@ const CityMap = (() => {
     openModal(`<h2>🧵 ${L.name}</h2><p class="small">A public Tether lift on the lip of the Hollow. Cages go down to the Terraces and back all day. Your own Spine is the Tether Lift in your capital (Lv ${S.buildings.lift}, reaches layer ${liftReach()}).</p>
       ${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">🕳️ Go to the Hollow</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
-  function loreCard(o) { const L = LORE[o.type]; openModal(`<h2>${o.type === 'statue' ? '🗿' : o.type === 'memorial' ? '🕯️' : '🚪'} ${L.title}</h2><p>${L.text}</p>${o.type === 'memorial' ? `<p class="dim">${S.stats.expeditions} of your expeditions have returned. Wren's name is not on the Wall.</p>` : ''}${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
+  function loreCard(o) { const L = LORE[o.type]; openModal(`<h2>${L.icon || (o.type === 'statue' ? '🗿' : o.type === 'memorial' ? '🕯️' : '🚪')} ${o.type === 'outpost' ? o.name : L.title}</h2><p>${L.text}</p>${o.type === 'memorial' ? `<p class="dim">${S.stats.expeditions} of your expeditions have returned. Wren's name is not on the Wall.</p>` : ''}${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function riftCard(o) { discoverRegion(o.region); const d = Math.round(Math.hypot(o.x, o.y) / 100) / 10;
     openModal(`<h2>✨ ${o.name}</h2><p class="small">A fissure far out in the lands, ${d} leagues from the Hollow's lip. Cold air breathes out of it, and deep down the walls glow with the same Lumen as the Hollow. Delvers swear the cracks out here all run back to it underground, and that a brave rope team could go down this way.</p><p class="dim">Nobody has charted a way through yet.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">🕳️ Go to the Hollow</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
-  function hollowCard() { openModal(`<h2>🕳️ The Hollow</h2><p class="small">A chasm with no bottom anyone has seen. Lumen glows in its depths; the layers step down like terraces: ${CONFIG.layers.map((l) => l.name).join(' → ')} → …</p><p class="dim">Sky-fish surge out of it at nightfall. Lightning sometimes flickers far below.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">Send Wren down</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
+  function hollowCard() { openModal(`<h2>🕳️ The Hollow</h2><p class="small">A chasm with no bottom anyone has seen. Lumen glows in its depths; the layers step down like terraces: ${CONFIG.layers.map((l) => l.name).join(' → ')} → …</p><p class="dim">It sits on the summit of the old mountain; the whole cracked land below drains toward it. At night the Lumen breathes up out of it.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">Send Wren down</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function regionCard(i) {
     const R = REGIONS[i];
     if (!isDiscovered(i)) return openModal(`<h2>❔ Unexplored lands</h2><p class="small">Nobody you know has mapped this stretch of the Rim yet. Linger here with the map zoomed in, raid a Lanternhold, or fight what digs up out of the ground to learn what the land holds.</p><div class="wrapgap"><span class="tag">??? resources</span><span class="tag">??? bazaar</span></div>${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');

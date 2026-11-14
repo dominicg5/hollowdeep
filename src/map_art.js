@@ -6,10 +6,10 @@
    ===================================================================== */
 const ART = { ok: false, ready: false, failed: false, atlas: [], tex: {}, mips: {}, pats: {}, hollow: null, sil: {}, progress: 0 };
 const ART_BASE = 'assets/';
-const CROPS = ['wheat', 'cabbage', 'pumpkin', 'lavender', 'corn', 'vines', 'furrows', 'sunflower'];
-const TEX_KEYS = ['grass', 'sand', 'rock', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff'];
+const CROPS = ['wheat', 'cabbage', 'corn', 'furrows', 'wheat', 'corn', 'furrows', 'wheat'];
+const TEX_KEYS = ['grass', 'sand', 'rock', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff', 'bluff', 'wheat', 'corn', 'cabbage', 'furrows'];
 // world units covered by one 512px texture tile
-const TEX_WORLD = { grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120, wall: 640, cliff: 70, lava: 300, wheat: 70, cabbage: 60, pumpkin: 70, lavender: 60, corn: 70, vines: 70, furrows: 70, sunflower: 60 };
+const TEX_WORLD = { bluff: 300, grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120, wall: 640, cliff: 70, lava: 300, wheat: 70, cabbage: 60, pumpkin: 70, lavender: 60, corn: 70, vines: 70, furrows: 70, sunflower: 60 };
 const REGION_TEX = { docks: 'grass', dunes: 'sand', bluffs: 'rock', wood: 'forest', crystal: 'crystal', farms: 'grass', badlands: 'badlands', moss: 'moss', amber: 'orchard', lava: 'lava' };
 const REGION_BLD = { docks: 'b_lake', dunes: 'b_sand', bluffs: 'b_cliff', wood: 'b_forest', crystal: 'b_crystal', farms: 'b_farm', badlands: 'b_forge', moss: 'b_garden', amber: 'b_orchard', lava: 'b_lava' };
 
@@ -113,9 +113,15 @@ function buildTerrainMaps() {
   // macro light/dark variation + fog beyond the rim
   const mc = mk(), mg = mc.getContext('2d'), mi = mg.createImageData(n, n), fc = mk(), fg = fc.getContext('2d'), fi = fg.createImageData(n, n);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const x = -RW + i * G, y = -RW + j * G, q = (j * n + i) * 4;
-    const v = Math.round(clamp(0.78 + vnoise(x / 520, y / 520) * 0.16 + vnoise(x / 150 + 3, y / 150) * 0.08, 0, 1) * 255); mi.data[q] = mi.data[q + 1] = mi.data[q + 2] = v; mi.data[q + 3] = 255;
+    const pa = Math.atan2(y, x), pd = Math.hypot(x, y) - plateauR(pa) - cliffW(pa), low = pd > 0 ? 1 : 0, sh = low ? Math.exp(-pd / 260) * clamp((Math.cos(pa) + Math.sin(pa)) / 1.41, 0, 1) * 0.4 : 0;
+    const v = Math.round(clamp((0.78 + vnoise(x / 520, y / 520) * 0.16 + vnoise(x / 150 + 3, y / 150) * 0.08) * (1 - low * 0.07) * (1 - sh), 0, 1) * 255); mi.data[q] = mi.data[q + 1] = mi.data[q + 2] = v; mi.data[q + 3] = 255;
     fi.data[q] = FOG[0]; fi.data[q + 1] = FOG[1]; fi.data[q + 2] = FOG[2]; fi.data[q + 3] = Math.round(clamp((Math.hypot(x, y) - (CITY.R - 250)) / 480, 0, 1) * 255); }
   mg.putImageData(mi, 0, 0); fg.putImageData(fi, 0, 0); TMAP.macro = mc; TMAP.fog = fc; TMAP.world = W;
+  // atmospheric haze: the lowlands lie far below the plateau, and fade into blue air with distance
+  const hc = mk(), hg = hc.getContext('2d'), hi = hg.createImageData(n, n);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const x = -RW + i * G, y = -RW + j * G, q = (j * n + i) * 4, pa = Math.atan2(y, x), r = Math.hypot(x, y), pd = r - plateauR(pa) - cliffW(pa);
+    hi.data[q] = 196; hi.data[q + 1] = 212; hi.data[q + 2] = 230; hi.data[q + 3] = Math.round(clamp(pd > 0 ? 0.05 + 0.17 * smooth01(0, CITY.R - 900 - plateauR(pa), pd) : 0, 0, 0.25) * 255 * smooth01(-20, 140, pd)); }
+  hg.putImageData(hi, 0, 0); TMAP.haze = hc;
 }
 // draw the part of a world-grid map covering [x0,x1]x[y0,y1] (with margin so bilinear edges stay off-tile)
 function drawMap(g, cv, x0, y0, x1, y1) {
@@ -156,6 +162,9 @@ function artWater(c, x0, y0, x1, y1, s) {
     c.fillStyle = g; c.fill(); c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 2.5; c.stroke();
   }
   c.lineCap = 'round'; c.lineJoin = 'round';
+  for (let i = 1; i < W.rivers.length; i++) { const rv = W.rivers[i]; if (!rv.bbox) rv.bbox = bboxOf(rv, 60); if (!boxHit(rv.bbox, x0, y0, x1, y1)) continue;
+    c.strokeStyle = texPattern(c, 'sand', s); c.lineWidth = 44; polyStroke(c, rv); c.strokeStyle = 'rgba(90,70,40,.25)'; c.lineWidth = 34; polyStroke(c, rv);
+    c.strokeStyle = texPattern(c, 'water', s); c.lineWidth = 30; polyStroke(c, rv); c.strokeStyle = 'rgba(200,240,255,.22)'; c.lineWidth = 9; polyStroke(c, rv); }
   c.strokeStyle = texPattern(c, 'sand', s); c.lineWidth = 60; polyStroke(c, W.river);
   c.strokeStyle = 'rgba(90,70,40,.25)'; c.lineWidth = 46; polyStroke(c, W.river);
   c.strokeStyle = texPattern(c, 'water', s); c.lineWidth = 42; polyStroke(c, W.river);
@@ -167,12 +176,12 @@ let HOLLOW_BITS = null;
 function hollowBits() {
   if (HOLLOW_BITS && HOLLOW_BITS.w === W) return HOLLOW_BITS.list;
   const rr = mulberry32(4242), list = [];
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < 160; i++) {
     const north = rr() < 0.78, a = north ? Math.PI * (1.08 + rr() * 0.84) : rr() * Math.PI, f = 0.5 + rr() * 0.42, k = rr();
     const kind = k < 0.16 ? 0 : k < 0.3 ? 1 : k < 0.46 ? 3 : k < 0.56 ? 6 : k < 0.68 ? 7 : k < 0.8 ? 8 : 5;
-    const R = hollowR(a) * f; list.push({ x: Math.cos(a) * R, y: Math.sin(a) * R, f, spr: 'hollow_bits_' + kind, w: (34 + rr() * 22) * (0.45 + f * 0.6), flip: rr() < 0.5 });
+    const R = hollowR(a) * f; list.push({ x: Math.cos(a) * R, y: Math.sin(a) * R, f, spr: 'hollow_bits_' + kind, w: (34 + rr() * 22) * (0.45 + f * 0.6) * 1.7, flip: rr() < 0.5 });
   }
-  for (let i = 0; i < 26; i++) { const a = Math.PI * (1.05 + rr() * 0.9), R = hollowR(a) * (0.965 + rr() * 0.02); list.push({ x: Math.cos(a) * R, y: Math.sin(a) * R, f: 0.99, spr: 'hollow_bits_2', w: 30 + rr() * 26, flip: rr() < 0.5, hang: true }); }
+  for (let i = 0; i < 60; i++) { const a = Math.PI * (1.05 + rr() * 0.9), R = hollowR(a) * (0.965 + rr() * 0.02); list.push({ x: Math.cos(a) * R, y: Math.sin(a) * R, f: 0.99, spr: 'hollow_bits_2', w: (30 + rr() * 26) * 1.6, flip: rr() < 0.5, hang: true }); }
   list.sort((p, q) => p.y - q.y); HOLLOW_BITS = { w: W, list }; return list;
 }
 function artHollow(c, s, bx0, by0, bx1, by1) {
@@ -244,7 +253,6 @@ function artCrack(c, k, s) {
     c.strokeStyle = 'rgba(235,90,20,.95)'; c.lineWidth = mw * 0.5; polyStroke(c, lp);
     c.strokeStyle = 'rgba(255,190,70,.9)'; c.lineWidth = Math.max(1.5, mw * 0.18); polyStroke(c, lp);
     c.strokeStyle = 'rgba(40,20,14,.55)'; c.lineWidth = Math.max(1, mw * 0.06); c.setLineDash([6, 11]); polyStroke(c, lp); c.setLineDash([]); }
-  else if (k.glow) { const lp = k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8]); c.strokeStyle = 'rgba(120,220,255,.28)'; c.lineWidth = mw * 0.32; polyStroke(c, lp); c.strokeStyle = 'rgba(210,250,255,.55)'; c.lineWidth = Math.max(1.2, mw * 0.07); polyStroke(c, lp); }
   else if (k.wide) { c.strokeStyle = 'rgba(255,200,110,.22)'; c.lineWidth = 3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8])); }
   c.restore();
   if (k.lava) { c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(255,110,30,.10)'; c.lineWidth = mw * 1.5; c.lineJoin = 'round'; c.lineCap = 'round'; polyStroke(c, k.pts); c.restore(); }
@@ -362,6 +370,9 @@ function artObj(c, o, s) {
   const tree = (name, w) => { softShadow(c, o.x + w * 0.16, o.y + w * 0.04, w * 0.42, w * 0.2, 0.85); drawSprite(c, name, o.x, o.y, w, 0.5, 0.9, sd > 0.5); };
   switch (o.type) {
     case 'home': return artHome(c, o, s);
+    case 'outpost': { const w = 300; softShadow(c, o.x + 20, o.y + 10, w * 0.5, w * 0.24, 0.6); drawSprite(c, 'sp_outpost_0', o.x, o.y, w, 0.5, 0.62); return; }
+    case 'falls': { const w = o.r * 2.7; softShadow(c, o.x + 30, o.y + 20, w * 0.5, w * 0.25, 0.6); drawSprite(c, 'sp_falls_0', o.x, o.y, w, 0.5, 0.86); return; }
+    case 'pass': { const w = o.r * 2.7; softShadow(c, o.x + w * 0.12, o.y, w * 0.5, w * 0.2, 0.7); drawSprite(c, 'sp_pass_0', o.x, o.y, w, 0.5, 0.9); return; }
     case 'mountain': { const w = o.r * 2.7; softShadow(c, o.x + w * 0.12, o.y + w * 0.02, w * 0.5, w * 0.2, 0.7); drawSprite(c, o.spr, o.x, o.y, w, 0.5, 0.86, o.seed > 0.5); return; }
     case 'tree': { if (o.autumn) return tree(pickOf(TREES.amber, sd), o.r * 2.9); const list = TREES[key] || TREES.def; return tree(pickOf(list, sd), o.r * 2.7); }
     case 'orchard': return tree(sd < 0.6 ? 'p_orchard_0' : 'p_orchard_3', o.r * 2.9);
@@ -423,6 +434,35 @@ function artDecal(c, o, s) {
     default: return drawDecal(c, o, s);
   }
 }
+// The Hollow's plateau: a ring of cliffs falling away to the lowlands. The south faces turn toward the camera and show
+// their full height; light comes from the top-left, so the south-east faces fall into shadow.
+function artPlateau(c, s, x0, y0, x1, y1) {
+  const P = W.plateauPts, C = W.cliffPts, n = P.length; c.save(); c.lineJoin = 'round';
+  // soft shadow the cliffs throw onto the lowland
+  c.beginPath(); P.forEach((p, i) => (i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]))); c.closePath(); for (let i = n - 1; i >= 0; i--) c.lineTo(C[i][0] + 26, C[i][1] + 30); c.closePath();
+  c.fillStyle = 'rgba(20,24,30,.28)'; c.fill('evenodd');
+  const band = (from, to, i0, i1) => { c.beginPath(); for (let i = i0; i <= i1; i++) { const k = i % n, p = from[k]; i === i0 ? c.moveTo(p[0], p[1]) : c.lineTo(p[0], p[1]); } for (let i = i1; i >= i0; i--) { const q = to[i % n]; c.lineTo(q[0], q[1]); } c.closePath(); };
+  const mid = P.map((p, i) => [(p[0] + C[i][0]) / 2, (p[1] + C[i][1]) / 2]);
+  const step = s < 0.05 ? 12 : 4;
+  for (let i0 = 0; i0 < n; i0 += step) { const i1 = i0 + step, a = Math.atan2(P[i0][1], P[i0][0]);
+    const bb = bboxOf([P[i0], P[i1 % n], C[i0], C[i1 % n]], 20); if (!boxHit(bb, x0, y0, x1, y1)) continue;
+    band(P, C, i0, i1); c.fillStyle = texPattern(c, 'bluff', s); c.fill();
+    const lit = -(Math.cos(a) + Math.sin(a)) / 1.41; // +1 faces the light
+    c.fillStyle = lit > 0 ? `rgba(255,226,170,${(lit * 0.14).toFixed(3)})` : `rgba(14,18,34,${(-lit * 0.42).toFixed(3)})`; c.fill();
+    band(mid, C, i0, i1); c.fillStyle = 'rgba(14,18,34,.22)'; c.fill(); // lower half of the face sits in the cliff's own shade
+  }
+  // lip highlight along the top edge, dark seam at the foot
+  const ring = (pts, dx, dy) => { c.beginPath(); pts.forEach((p, i) => (i ? c.lineTo(p[0] + dx, p[1] + dy) : c.moveTo(p[0] + dx, p[1] + dy))); c.closePath(); };
+  ring(P, 0, 0); c.strokeStyle = 'rgba(255,240,200,.45)'; c.lineWidth = 6; c.stroke(); c.strokeStyle = 'rgba(90,70,40,.5)'; c.lineWidth = 2; ring(P, 0, 4); c.stroke();
+  ring(C, 0, 0); c.strokeStyle = 'rgba(30,26,22,.45)'; c.lineWidth = 8; c.stroke();
+  // stairs and switchback ramps down the cliffs
+  c.lineCap = 'round';
+  for (const st of W.stairs) { if (!boxHit(st.bbox, x0, y0, x1, y1)) continue;
+    c.strokeStyle = 'rgba(30,22,14,.45)'; c.lineWidth = 34; polyStroke(c, st.pts.map((p) => [p[0] + 3, p[1] + 6]));
+    c.strokeStyle = '#7d705e'; c.lineWidth = 30; polyStroke(c, st.pts); c.strokeStyle = texPattern(c, 'cobble', s); c.lineWidth = 26; polyStroke(c, st.pts);
+    if (s > 0.15) { c.strokeStyle = 'rgba(60,45,30,.35)'; c.lineWidth = 26; c.setLineDash([2, 7]); polyStroke(c, st.pts); c.setLineDash([]); } }
+  c.restore();
+}
 function mtnHit(m, x0, y0, x1, y1) { const w = m.r * 2.7; return m.x + w / 2 > x0 && m.x - w / 2 < x1 && m.y + m.r * 0.6 > y0 && m.y - w * 1.1 < y1; }
 function artRingStreet(c, s) { // cobbled ring street round the lip of the Hollow
   if (!W.ringPts) W.ringPts = W.hollowPts.map((p) => { const a = Math.atan2(p[1], p[0]), r = Math.hypot(p[0], p[1]) + 92; return [Math.cos(a) * r, Math.sin(a) * r]; });
@@ -432,6 +472,7 @@ function artRingStreet(c, s) { // cobbled ring street round the lip of the Hollo
 }
 function artStatic(c, x0, y0, x1, y1, s) {
   drawTerrain(c, x0, y0, x1, y1, s);
+  { const e = CITY.plateauR * 1.25 + 400; if (x1 > -e && x0 < e && y1 > -e && y0 < e) artPlateau(c, s, x0, y0, x1, y1); }
   { const e = CITY.hollowR * 1.3 + 200; if (x1 > -e && x0 < e && y1 > -e && y0 < e) artRingStreet(c, s); }
   const objs = queryObjs(x0, y0, x1, y1, 160, 150);
   for (const o of objs) if (o.layer === 0) artDecal(c, o, s);
@@ -442,14 +483,16 @@ function artStatic(c, x0, y0, x1, y1, s) {
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
   for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s);
-  if (boxHit([-1200, -1200, 1200, 1200], x0, y0, x1, y1) && ART_MANIFEST.s.scaffold_0) { const sw = 400; softShadow(c, -40, 160, 190, 44, 0.35); drawSprite(c, 'scaffold_0', -50, 200, sw, 0.5, 0.97); }
+  for (const f of W.falls) if (boxHit([f.x - 80, f.y - 60, f.x + 80, f.y + 140], x0, y0, x1, y1)) { softShadow(c, f.x + 6, f.y + 40, 30, 14, 0.7); drawSprite(c, 'props2_2', f.x, f.y, 62, 0.42, 0.1); }
   if (s < 0.05) { for (const m of W.mountains) if (mtnHit(m, x0, y0, x1, y1)) artObj(c, m, s); // far LOD: settlements read as warm roof specks, big features only
     for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9), rc = ROOF_SPECK[roofVar(o)]; c.fillStyle = rc[0]; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = rc[1]; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
       else if (o.layer === 1 && o.type !== 'rock' && o.type !== 'tree' && (o.r || 0) >= (s < 0.035 ? 26 : 18)) artObj(c, o, s); }
-    return; }
+    artHaze(c, x0, y0, x1, y1); return; }
   const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer); for (const m of W.mountains) if (mtnHit(m, x0, y0, x1, y1)) l1.push(m); l1.sort((a, b) => a.y - b.y);
   for (const o of l1) artObj(c, o, s);
+  artHaze(c, x0, y0, x1, y1);
 }
+function artHaze(c, x0, y0, x1, y1) { if (Math.max(Math.hypot(x0, y0), Math.hypot(x1, y0), Math.hypot(x0, y1), Math.hypot(x1, y1)) < CITY.plateauR * 0.9) return; if (TMAP.haze) drawMap(c, TMAP.haze, x0, y0, x1, y1); }
 
 /* ---------- living sprites ---------- */
 const PEOPLE_N = 16;
@@ -503,8 +546,8 @@ function artSkyFish(c, kind, x, y, ang, size, t, ph, glowOn, alpha, shadow) {
 let HDEPTH = null;
 function hollowDepthInit() {
   const rnd = mulberry32(777), lights = [], mist = [];
-  for (let i = 0; i < 28; i++) lights.push({ a: rnd() * TAU, sp: 0.004 + rnd() * 0.01, ph: rnd(), sw: (rnd() - 0.5) * 0.6, warm: rnd() < 0.8 });
-  for (let i = 0; i < 7; i++) mist.push({ a: rnd() * TAU, f: 0.3 + rnd() * 0.3, r: 110 + rnd() * 90, sp: (rnd() - 0.5) * 0.02, d: 0.25 + rnd() * 0.5 });
+  for (let i = 0; i < 60; i++) lights.push({ a: rnd() * TAU, sp: 0.004 + rnd() * 0.01, ph: rnd(), sw: (rnd() - 0.5) * 0.6, warm: rnd() < 0.8 });
+  for (let i = 0; i < 7; i++) mist.push({ a: rnd() * TAU, f: 0.3 + rnd() * 0.3, r: (110 + rnd() * 90) * CITY.hollowR / 700, sp: (rnd() - 0.5) * 0.02, d: 0.25 + rnd() * 0.5 });
   HDEPTH = { lights, mist };
 }
 function drawHollowDepth(c, t, inV, camx, camy, z, night, glow) {

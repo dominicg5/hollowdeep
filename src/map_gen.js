@@ -5,7 +5,7 @@
 const CITY = {
   homeTerm: 'Lanternhold', functional: false,              // in-world name for each player's capital
   seed: 20261114,
-  R: 11000, hollowR: 700,                // world radius, hollow base radius (world units)
+  R: 11000, hollowR: 1800, plateauR: 4500, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
   tilePx: 256, levels: [0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 300,
   zoomMin: 0.018, zoomMax: 3.2, startZoom: 1.05,
@@ -116,6 +116,11 @@ function regionAngle(i) { return ((i + 0.5) / NREG_IN) * TAU - Math.PI; }
 function hollowR(a) { let r = 1; for (const [k, amp, ph] of W.hTerms) r += amp * Math.sin(k * a + ph); return CITY.hollowR * r; }
 function hollowDist(x, y) { return Math.hypot(x, y) - hollowR(Math.atan2(y, x)); } // >0 outside
 function ringR(i, a) { const [p1, p2] = W.ringPh[i]; return CITY.ringRoads[i] + 40 * Math.sin(3 * a + p1) + 22 * Math.sin(5 * a + p2); }
+function plateauR(a) { let r = 1; for (const [k, amp, ph] of W.pTerms) r += amp * Math.sin(k * a + ph); return CITY.plateauR * r; }
+function cliffW(a) { return 120 + 170 * Math.max(0, Math.sin(a)) + 30 * Math.sin(a * 7 + 1); } // visible cliff face: tallest on the south side, which faces the camera
+function plateauDist(x, y) { return Math.hypot(x, y) - plateauR(Math.atan2(y, x)); } // >0 off the plateau top
+function onCliff(x, y, m) { const a = Math.atan2(y, x), d = Math.hypot(x, y) - plateauR(a); return d > -(m || 0) - 10 && d < cliffW(a) + (m || 0); }
+function lowland(x, y) { const a = Math.atan2(y, x); return Math.hypot(x, y) > plateauR(a) + cliffW(a); }
 function lakeR(a) { let r = 1; for (const [k, amp, ph] of W.lakeTerms) r += amp * Math.sin(k * a + ph); return W.lake.r * r; }
 function inLake(x, y, m) { const dx = x - W.lake.x, dy = y - W.lake.y; return Math.hypot(dx, dy) < lakeR(Math.atan2(dy, dx)) + (m || 0); }
 
@@ -182,11 +187,13 @@ function generateCity() {
   W.hTerms = [[2, 0.05, rnd() * TAU], [3, 0.07, rnd() * TAU], [5, 0.045, rnd() * TAU], [8, 0.03, rnd() * TAU], [13, 0.018, rnd() * TAU], [21, 0.01, rnd() * TAU]];
   W.hollowPts = []; for (let i = 0; i < 240; i++) { const a = (i / 240) * TAU - Math.PI; W.hollowPts.push(polar(hollowR(a), a)); }
   W.ringPh = CITY.ringRoads.map(() => [rnd() * TAU, rnd() * TAU]);
+  W.pTerms = [[3, 0.05, rnd() * TAU], [5, 0.035, rnd() * TAU], [9, 0.02, rnd() * TAU], [17, 0.008, rnd() * TAU]];
+  W.plateauPts = []; W.cliffPts = []; for (let i = 0; i < 360; i++) { const a = (i / 360) * TAU - Math.PI, r = plateauR(a); W.plateauPts.push(polar(r, a)); W.cliffPts.push(polar(r + cliffW(a), a)); }
   occInit();
 
   // Lake (Mirrorlake Docks) + river spilling into the Hollow
   const la = regionAngle(0) + 0.05;
-  W.lake = { x: Math.cos(la) * 1330, y: Math.sin(la) * 1330, r: 250 };
+  W.lake = { x: Math.cos(la) * (CITY.hollowR + 650), y: Math.sin(la) * (CITY.hollowR + 650), r: 250 };
   W.lakeTerms = [[2, 0.12, rnd() * TAU], [3, 0.08, rnd() * TAU], [5, 0.05, rnd() * TAU]];
   W.lakePts = []; for (let i = 0; i < 90; i++) { const a = (i / 90) * TAU; const r = lakeR(a); W.lakePts.push([W.lake.x + Math.cos(a) * r, W.lake.y + Math.sin(a) * r]); }
   W.river = []; { let p = [W.lake.x * 0.82, W.lake.y * 0.82]; const end = polar(hollowR(la - 0.03) - 30, la - 0.03); for (let i = 0; i <= 12; i++) { const u = i / 12; W.river.push([p[0] + (end[0] - p[0]) * u + Math.sin(u * 9) * 22 * (1 - u), p[1] + (end[1] - p[1]) * u + Math.cos(u * 7) * 18 * (1 - u)]); } }
@@ -207,14 +214,19 @@ function generateCity() {
   const wideAt = [regionAngle(2) + 0.1, regionAngle(4) - 0.05, regionAngle(6) + 0.12];
   // the great chasms run from the Hollow far out into the lands
   for (const a of wideAt) { crackAngles.push(a); addCrack(...polar(hollowR(a) - 30, a), a, 4200 + rnd() * 2600, 130 + rnd() * 30, 30, 0, { glow: true }); }
-  for (let i = 0; i < 10; i++) { let a; do { a = rnd() * TAU - Math.PI; } while (crackAngles.some((b) => Math.abs(((a - b + 3 * Math.PI) % TAU) - Math.PI) < 0.22) || Math.abs(((a - la + 3 * Math.PI) % TAU) - Math.PI) < 0.3);
-    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 700 + rnd() * 1600, 22 + rnd() * 22, 3, 0); }
+  for (let i = 0; i < 4; i++) { let a; do { a = rnd() * TAU - Math.PI; } while (crackAngles.some((b) => Math.abs(((a - b + 3 * Math.PI) % TAU) - Math.PI) < 0.22) || Math.abs(((a - la + 3 * Math.PI) % TAU) - Math.PI) < 0.3);
+    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 500 + rnd() * 700, 22 + rnd() * 18, 3, 0); }
   // out in the far lands the earth is splitting open: fissure systems that point back toward the Hollow; some breathe Lumen
   W.rifts = [];
-  for (let i = 0, made = 0; i < 400 && made < 34; i++) { const a = rnd() * TAU - Math.PI, r = 4200 + Math.sqrt(rnd()) * (R - 5200), [x, y] = polar(r, a);
-    if (W.cracks.some((c) => c.depth === 0 && Math.hypot(c.pts[0][0] - x, c.pts[0][1] - y) < 1500)) continue; made++;
-    const inward = rnd() < 0.6, glow = rnd() < 0.4, w0 = 34 + rnd() * 48;
-    addCrack(x, y, a + (inward ? Math.PI : 0) + (rnd() - 0.5) * 0.6, 1100 + rnd() * 2200, w0, 4, 0, { inward, glow, bias: 0.08, outer: true }); }
+  // the lowlands below the plateau are split by cracks that spread out from the foot of the cliffs in every direction,
+  // cutting the land into plateaus; cross-cracks link them up. Frontier outposts sit where the outermost ones are still opening.
+  W.radial = [];
+  for (let i = 0; i < 22; i++) { const a = (i / 22) * TAU - Math.PI + (rnd() - 0.5) * 0.12; if (crackAngles.some((b) => Math.abs(((a - b + 3 * Math.PI) % TAU) - Math.PI) < 0.1)) continue;
+    const r0 = plateauR(a) + cliffW(a) + 20, [x, y] = polar(r0, a); const len = (R - 900 - r0) * (0.55 + rnd() * 0.45);
+    const c = addCrack(x, y, a, len, 64 + rnd() * 40, 16 + rnd() * 10, 0, { glow: rnd() < 0.45, bias: 0.1 }); c.radial = true; W.radial.push(c); }
+  for (let i = 0, made = 0; i < 300 && made < 18; i++) { const a = rnd() * TAU - Math.PI, r = plateauR(a) + 900 + rnd() * (R - 2600 - plateauR(a)), [x, y] = polar(r, a);
+    if (chasmDist(x, y) < 300) continue; made++;
+    addCrack(x, y, a + (rnd() < 0.5 ? 1 : -1) * Math.PI / 2 + (rnd() - 0.5) * 0.5, 900 + rnd() * 1600, 30 + rnd() * 34, 6, 1, { glow: rnd() < 0.4, bias: 0, outer: true }); }
   // lava: cracks that run through the Emberwound fill with molten rock, which seeps out across the ground in flows
   W.lavaFlows = [];
   const lavaFlow = (x, y, a, len, w0, stopOcc) => { const pts = [[x, y]], ws = [w0]; const n = Math.ceil(len / 22);
@@ -223,12 +235,19 @@ function generateCity() {
   for (const c of W.cracks) { let nl = 0; for (const p of c.pts) if (regionAt(p[0], p[1]) === OUTER.LAVA) nl++; c.lava = false && nl > c.pts.length * 0.4; if (c.lava) { c.glow = false;
       const nf = 1 + Math.floor(rnd() * 3 + c.pts.length / 30); for (let k = 0; k < nf; k++) { const j = 1 + Math.floor(rnd() * (c.pts.length - 2)), p = c.pts[j], q = c.pts[j + 1]; const ang = Math.atan2(q[1] - p[1], q[0] - p[0]) + (rnd() < 0.5 ? 1 : -1) * (1.2 + rnd() * 0.6), off = c.ws[j] / 2 + 2;
         lavaFlow(p[0] + Math.cos(ang) * off, p[1] + Math.sin(ang) * off, ang, 160 + rnd() * 420, 9 + rnd() * 10); } } }
+  // rivers run down from the mountains and pour into the cracks as waterfalls
+  W.rivers = [W.river]; W.falls = [];
+  for (let i = 0, made = 0; i < 40 && made < 7; i++) { let a = rnd() * TAU - Math.PI, r = R - 1150 - rnd() * 500; const pts = [polar(r, a)]; let ok = false, dir = a + Math.PI + (rnd() - 0.5) * 0.6;
+    for (let k = 0; k < 140; k++) { const [px, py] = pts[pts.length - 1]; const toC = Math.atan2(-py, -px); let d = toC - dir; d = ((d + 3 * Math.PI) % TAU) - Math.PI; dir += d * 0.08 + (rnd() - 0.5) * 0.5;
+      const q = [px + Math.cos(dir) * 40, py + Math.sin(dir) * 40]; pts.push(q); if (chasmDist(q[0], q[1]) < 4) { ok = true; break; } if (!lowland(q[0], q[1])) break; }
+    if (!ok || pts.length < 12) continue; made++; W.rivers.push(pts); const e = pts[pts.length - 1], f = pts[pts.length - 3]; W.falls.push({ x: e[0], y: e[1], a: Math.atan2(e[1] - f[1], e[0] - f[0]) });
+    for (let k = 0; k < pts.length - 1; k++) segGridAdd(W.riverGrid, { x1: pts[k][0], y1: pts[k][1], x2: pts[k + 1][0], y2: pts[k + 1][1], w: 30, w1: 30, w2: 30 }, 160); }
   W.bridges = [];
   for (const c of W.cracks) { if (c.depth > 1) continue; for (let i = 6; i < c.pts.length - 4; i += 12 + Math.floor(rnd() * 6)) { const w = c.ws[i]; if (w < 18 || Math.hypot(c.pts[i][0], c.pts[i][1]) < CITY.hollowR + 200) continue;
     const p = c.pts[i - 1], q = c.pts[i + 1], ang = Math.atan2(q[1] - p[1], q[0] - p[0]) + Math.PI / 2, L = w / 2 + 22, m = c.pts[i];
     W.bridges.push({ p: [m[0] - Math.cos(ang) * L, m[1] - Math.sin(ang) * L], q: [m[0] + Math.cos(ang) * L, m[1] + Math.sin(ang) * L], w: Math.min(26, 14 + w * 0.08) }); } }
   for (const b of W.bridges) { b.bbox = bboxOf([b.p, b.q], 30); occMark(OCC.obj, b.p[0], b.p[1], 18); occMark(OCC.obj, b.q[0], b.q[1], 18); }
-  W.rifts = W.cracks.filter((c) => c.outer && c.depth === 0 && c.glow && !c.lava && c.pts.length > 6).slice(0, 10);
+  W.rifts = W.cracks.filter((c) => c.outer && c.glow && !c.lava && c.pts.length > 6).slice(0, 10);
   // Polygon outlines for cracks
   for (const c of W.cracks) { const L = [], Rr = []; for (let i = 0; i < c.pts.length; i++) { const p = c.pts[i], q = c.pts[Math.min(i + 1, c.pts.length - 1)], o = c.pts[Math.max(i - 1, 0)];
       const ang = Math.atan2(q[1] - o[1], q[0] - o[0]), nx = -Math.sin(ang), ny = Math.cos(ang), w = c.ws[i] / 2 * (0.85 + hash2(i, c.pts.length) * 0.3);
@@ -276,11 +295,28 @@ function generateCity() {
   W.rifts.forEach((c, i) => { const p = c.pts[0], q = c.pts[2]; const ang = Math.atan2(p[1] - q[1], p[0] - q[0]); const x = p[0] + Math.cos(ang) * 40, y = p[1] + Math.sin(ang) * 40;
     const lm = { type: 'rift', x, y, r: 30, name: riftNames[i % riftNames.length], a: ang, crack: c, region: regionAt(x, y) }; c.mouth = lm; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 60); });
 
+  // Set pieces from the concept art: frontier outposts at the open ends of the radial cracks (farm patches round them),
+  // Lake Falls Town draining into a fresh chasm, and the Rift Pass cleaving the mountain wall; plus stairs down the plateau cliffs
+  W.outposts = []; W.sets = [];
+  const opNames = ['Firstrope Camp', 'Headframe Hill', 'Brightcrack Post', 'Winchwater', 'Splitfield Camp', 'Tallow Rest', 'Newmouth Post', 'Gloamfurrow', 'Ropeyard', 'Lastlight Camp', 'Breakfield', 'Cobbler\'s Drop'];
+  for (const c of W.radial) { if (W.outposts.length >= 12) break; const e = c.pts[c.pts.length - 1], q = c.pts[c.pts.length - 3]; const ang = Math.atan2(e[1] - q[1], e[0] - q[0]);
+    const side = rnd() < 0.5 ? 1 : -1, x = e[0] + Math.cos(ang) * 30 + Math.cos(ang + side * Math.PI / 2) * 95, y = e[1] + Math.sin(ang) * 30 + Math.sin(ang + side * Math.PI / 2) * 95;
+    if (Math.hypot(x, y) > R - 1000 || chasmDist(x, y) < 50) continue; c.glow = true; c.frontier = true;
+    const lm = { type: 'outpost', x, y, r: 80, a: ang, name: opNames[W.outposts.length], region: regionAt(x, y), layer: 1 }; W.outposts.push(lm); W.landmarks = W.landmarks || []; occMark(OCC.obj, x, y, 120);
+    for (let k = 0; k < 9; k++) { const fa = rnd() * TAU, fr = 150 + rnd() * 230, fx = x + Math.cos(fa) * fr, fy = y + Math.sin(fa) * fr, rr = 50 + rnd() * 26; if (chasmDist(fx, fy) < rr + 10 || !occFree(OCC.obj, fx, fy, rr * 0.9)) continue;
+      W.sets.push({ type: 'field', x: fx, y: fy, r: rr, a: ang + (rnd() < 0.5 ? 0 : Math.PI / 2) + (rnd() - 0.5) * 0.3, c: rnd(), layer: 0, seed: rnd(), region: 0 }); occMark(OCC.obj, fx, fy, rr * 0.9); } }
+  { let best = null; for (let i = 0; i < 400; i++) { const a = rnd() * TAU - Math.PI, r = 5600 + rnd() * 1800, [x, y] = polar(r, a); const d = chasmDist(x, y); if (d < 420 || isWet(x, y, 400)) continue; if (!best || d > best[2]) best = [x, y, d]; if (d > 700) break; }
+    if (best) { W.lakeFalls = { type: 'falls', x: best[0], y: best[1], r: 300, name: 'Lake Falls Town', layer: 1, region: regionAt(best[0], best[1]) }; occMark(OCC.obj, best[0], best[1] - 40, 330); } }
+  { const a = -Math.PI / 2 + 0.35 + (rnd() - 0.5) * 0.4, [x, y] = polar(R - 900, a); W.pass = { type: 'pass', x, y, r: 420, name: 'The Rift Pass', layer: 1, region: regionAt(x, y) }; occMark(OCC.obj, x, y - 200, 480); }
+  W.stairs = [];
+  for (let i = 0; i < 7; i++) { const a = (i / 7) * TAU - Math.PI + 0.2 + (rnd() - 0.5) * 0.2, r0 = plateauR(a) - 30, r1 = plateauR(a) + cliffW(a) + 50, n = 5 + Math.round(cliffW(a) / 60), pts = [];
+    for (let k = 0; k <= n; k++) { const u = k / n, r = r0 + (r1 - r0) * u, off = (k === 0 || k === n) ? 0 : (k % 2 ? 1 : -1) * 70; const t = a + off / r; pts.push(polar(r, t)); }
+    if (pts.some((p) => chasmDist(p[0], p[1]) < 40)) continue; W.stairs.push({ pts, a, bbox: bboxOf(pts, 40) }); for (const p of pts) occMark(OCC.obj, p[0], p[1], 34); }
   // Mountains: a ring of peaks round the edge of the world and a few ridges that split the outer districts
   W.mountains = [];
-  const addMtn = (x, y, r) => { if (hollowDist(x, y) < 900 || chasmDist(x, y) < r * 0.5 || isWet(x, y, r)) return; const m = { type: 'mountain', x, y, r, layer: 1, seed: rnd(), spr: 'mtn_' + Math.floor(rnd() * 9) }; W.mountains.push(m); occMark(OCC.obj, x, y, r * 0.8); };
+  const addMtn = (x, y, r) => { if (hollowDist(x, y) < 900 || !lowland(x, y) || onCliff(x, y, r) || (W.pass && Math.hypot(x - W.pass.x, y - W.pass.y) < 700) || chasmDist(x, y) < r * 0.5 || isWet(x, y, r)) return; const m = { type: 'mountain', x, y, r, layer: 1, seed: rnd(), spr: 'mtn_' + Math.floor(rnd() * 9) }; W.mountains.push(m); occMark(OCC.obj, x, y, r * 0.8); };
   for (let row = 0; row < 3; row++) { const rr = R - 260 - row * 520, n = Math.floor(TAU * rr / (420 + row * 60)); for (let i = 0; i < n; i++) { if (row === 2 && rnd() < 0.45) continue; const a = (i + rnd() * 0.6) / n * TAU; addMtn(Math.cos(a) * (rr + (rnd() - 0.5) * 200), Math.sin(a) * (rr + (rnd() - 0.5) * 200), 200 + rnd() * 140 - row * 25); } }
-  for (let k = 0; k < 9; k++) { let a = rnd() * TAU, r = 4600 + rnd() * 4400; const da = (rnd() < 0.5 ? 1 : -1) * (0.04 + rnd() * 0.03), dr = (rnd() - 0.5) * 120, n = 6 + Math.floor(rnd() * 10);
+  for (let k = 0; k < 6; k++) { let a = rnd() * TAU, r = 5600 + rnd() * 4400; const da = (rnd() < 0.5 ? 1 : -1) * (0.04 + rnd() * 0.03), dr = (rnd() - 0.5) * 120, n = 6 + Math.floor(rnd() * 10);
     for (let i = 0; i < n; i++) { a += da; r += dr; addMtn(Math.cos(a) * r + (rnd() - 0.5) * 120, Math.sin(a) * r + (rnd() - 0.5) * 120, 150 + rnd() * 120); } }
   W.mountains.sort((p, q) => p.y - q.y);
 
@@ -289,7 +325,7 @@ function generateCity() {
   const addHome = (x, y, face, lvlBias) => {
     const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3 + (lvlBias || 0)))));
     const size = 22 + level * 0.55 + rnd() * 6, rad = size * 0.62;
-    if (hollowDist(x, y) < 150 || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, rad + 3)) return null;
+    if (hollowDist(x, y) < 150 || onCliff(x, y, rad + 14) || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, rad + 3)) return null;
     const region = regionAt(x, y), reg = REGIONS[region];
     const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
     const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
@@ -308,13 +344,13 @@ function generateCity() {
   for (let gx = -R; gx < R; gx += 60) for (let gy = -R; gy < R; gy += 60) {
     const x = gx + rnd() * 34, y = gy + rnd() * 34, r = Math.hypot(x, y), q = rnd(); if (r > R - 300) continue;
     const dist = vnoise(x / 1300 + 3, y / 1300 - 8), lane = vnoise(x / 260 + 40, y / 260);
-    let p = r < 3800 ? 0.92 : 0.12 + 0.8 * smooth01g(0.36, 0.56, dist);
+    const pd = plateauDist(x, y); let p = pd < -40 ? 0.93 : 0.03 + 0.85 * smooth01g(0.44, 0.6, dist);
     if (lane < 0.22) p *= 0.35; // little squares and gaps
     if (q > p) continue;
-    addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.8, r < 1700 ? -1.3 : r < 3000 ? -0.6 : 0.3);
+    addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.8, r < CITY.hollowR + 1000 ? -1.3 : r < CITY.hollowR + 2300 ? -0.6 : 0.3);
   }
   // The player's Lanternhold: Lanternmoss Gardens, near the second ring
-  { const ra = regionAngle(7); let best = null, bd = 1e9; for (const h of W.homes) { if (h.region !== 7) continue; const d = Math.abs(Math.hypot(h.x, h.y) - 1580) + Math.abs(((Math.atan2(h.y, h.x) - ra + 3 * Math.PI) % TAU) - Math.PI) * 900; if (d < bd) { bd = d; best = h; } }
+  { const ra = regionAngle(7); let best = null, bd = 1e9; for (const h of W.homes) { if (h.region !== 7) continue; const d = Math.abs(Math.hypot(h.x, h.y) - (CITY.hollowR + 880)) + Math.abs(((Math.atan2(h.y, h.x) - ra + 3 * Math.PI) % TAU) - Math.PI) * 900; if (d < bd) { bd = d; best = h; } }
     best.isPlayer = true; best.owner = 'You'; best.name = 'Your ' + CITY.homeTerm; best.size = 40; best.style = 3; best.wing = 1; best.tower = true; W.player = best; }
 
   // Region scenery (decals on the ground + objects)
@@ -343,6 +379,12 @@ function generateCity() {
   void decorAt; // regional scenery retired: flat grass and only a handful of trees
   for (let gx = -R; gx < R; gx += 90) for (let gy = -R; gy < R; gy += 90) { const x = gx + rnd() * 80, y = gy + rnd() * 80, q = rnd(); if (q > 0.012 || Math.hypot(x, y) > R - 200 || hollowDist(x, y) < 150 || chasmDist(x, y) < 14 || isWet(x, y, 8)) continue;
     const r0 = 16 + rnd() * 8; if (!occFree(OCC.obj, x, y, r0)) continue; W.objs.push({ type: 'tree', x, y, r: r0, layer: 1, region: 0, seed: rnd() }); occMark(OCC.obj, x, y, r0); }
+  for (let i = 0; i < 2600; i++) { const a = rnd() * TAU - Math.PI, top = rnd() < 0.45, r = top ? plateauR(a) - 30 - rnd() * 60 : plateauR(a) + cliffW(a) + 25 + rnd() * 120, [x, y] = polar(r, a);
+    if (chasmDist(x, y) < 20 || isWet(x, y, 8) || vnoise(x / 300 + 11, y / 300) < 0.5) continue; const r0 = 13 + rnd() * 8; if (!occFree(OCC.obj, x, y, r0)) continue;
+    W.objs.push({ type: 'tree', x, y, r: r0, layer: 1, region: 0, seed: rnd() }); occMark(OCC.obj, x, y, r0); }
+  for (const s0 of W.sets) W.objs.push(s0);
+  for (const o of W.outposts) { W.landmarks.push(o); W.civic.push(o); }
+  for (const o of [W.lakeFalls, W.pass]) if (o) { W.landmarks.push(o); W.mountains.push(o); } W.mountains.sort((p, q) => p.y - q.y); // big set pieces draw like mountains (no tile clipping)
   for (const v of W.vents) if (rnd() < 0.7) { const a = rnd() * TAU; lavaFlow(v.x + Math.cos(a) * (v.r + 6), v.y + Math.sin(a) * (v.r + 6), a, 90 + rnd() * 220, 7 + rnd() * 6, true); }
   // Flora is scattered at paint time from a world-seeded hash (see artFlora), so it costs no memory
   // Piers on the lake shore
