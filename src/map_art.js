@@ -47,8 +47,8 @@ function buildSilhouettes() {
 const artScratch = { c: null, g: null };
 function scratch(n) { if (!artScratch.c || artScratch.c.width !== n) { artScratch.c = document.createElement('canvas'); artScratch.c.width = artScratch.c.height = n; artScratch.g = artScratch.c.getContext('2d'); } return artScratch.g; }
 // a texture pattern whose texel density suits device scale s (device px per world unit)
-function texPattern(g, key, s) {
-  const mips = ART.mips[key], worldSz = TEX_WORLD[key];
+function texPattern(g, key, s, ws) {
+  const mips = ART.mips[key], worldSz = ws || TEX_WORLD[key];
   const want = worldSz * s; let i = 0; while (i < mips.length - 1 && mips[i + 1].width >= want) i++;
   const img = mips[i], id = key + ':' + i;
   let p = ART.pats[id]; if (!p) { p = g.createPattern(img, 'repeat'); ART.pats[id] = p; }
@@ -149,9 +149,9 @@ function artHollow(c, s) {
   c.strokeStyle = 'rgba(60,50,40,.35)'; c.lineWidth = 6; c.stroke();
   pathPoly(c, W.hollowPts); c.clip();
   const R = mr * 1.06; c.imageSmoothingEnabled = true; c.drawImage(ART.hollow, -R, -R + 18, R * 2, R * 2);
+  if (s > 0.3) { c.save(); c.globalCompositeOperation = 'soft-light'; c.globalAlpha = Math.min(0.55, (s - 0.3) * 1.2); c.fillStyle = texPattern(c, 'rock', s, 120); c.fillRect(-R, -R, R * 2, R * 2); c.globalCompositeOperation = 'overlay'; c.globalAlpha *= 0.5; c.fillStyle = texPattern(c, 'moss', s, 140); c.fillRect(-R, -R, R * 2, R * 2); c.restore(); }
   // inner shadow under the lip (light from top-left)
-  c.lineJoin = 'round'; c.strokeStyle = 'rgba(8,10,24,.55)'; c.lineWidth = 46; pathPoly(c, W.hollowPts.map((p) => [p[0] + 10, p[1] + 14])); c.stroke();
-  c.strokeStyle = 'rgba(8,10,24,.35)'; c.lineWidth = 90; c.stroke();
+  c.lineJoin = 'round'; pathPoly(c, W.hollowPts.map((p) => [p[0] + 8, p[1] + 12])); for (let i = 0; i < 9; i++) { c.strokeStyle = 'rgba(8,10,24,.085)'; c.lineWidth = 16 + i * 14; c.stroke(); }
   // warm deep glow + distant delvers' lights
   const g = c.createRadialGradient(0, 40, 10, 0, 40, CITY.hollowR * 0.5); g.addColorStop(0, 'rgba(255,214,120,.35)'); g.addColorStop(1, 'rgba(255,190,90,0)');
   c.fillStyle = g; c.beginPath(); c.arc(0, 40, CITY.hollowR * 0.5, 0, TAU); c.fill();
@@ -285,7 +285,7 @@ function artStatic(c, x0, y0, x1, y1, s) {
   const objs = queryObjs(x0, y0, x1, y1, 150);
   for (const o of objs) if (o.layer === 0) artDecal(c, o, s);
   artWater(c, x0, y0, x1, y1, s);
-  if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) artHollow(c, s);
+  if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) { artHollow(c, s); const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), e = [e0[0] + e0[0] / d * 50, e0[1] + e0[1] / d * 50]; softShadow(c, e[0] + 8, e[1] + 60, 46, 22, 0.8); drawSprite(c, 'props2_2', e[0], e[1], 92, 0.42, 0.1); }
   for (const k of W.cracks) if (boxHit(k.bbox, x0, y0, x1, y1)) artCrack(c, k, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }

@@ -11,7 +11,7 @@ const URL = process.env.URL || 'http://localhost:8765/hollowdeep-prototype.html'
   const list = JSON.parse(process.argv[2]);
   for (const [name, what, z, pre] of list) {
     if (pre) await p.evaluate((pre) => { CityMap.onAct('season', { id: pre }); closeModalQuiet(); }, pre);
-    const q = await p.evaluate((what) => { if (Array.isArray(what)) return what; if (what === 'player') return [W.player.x, W.player.y]; const [k, i] = what.split(':'); if (k === 'region') { const hs = W.homes.filter((h) => h.region === +i); const h = hs[Math.floor(hs.length / 2)]; return [h.x, h.y]; } const o = W[k][+i]; return [o.x, o.y]; }, what);
+    const q = await p.evaluate((what) => { if (Array.isArray(what)) return what; if (what === 'player') return [W.player.x, W.player.y]; const [k, i] = what.split(':'); if (k === 'region') { const hs = W.homes.filter((h) => h.region === +i); const h = hs[Math.floor(hs.length / 2)]; return [h.x, h.y]; } const o = W[k][+i]; return Array.isArray(o) ? o : [o.x, o.y]; }, what);
     await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [q[0], q[1], z]); await p.waitForTimeout(1800);
     await p.screenshot({ path: 'test/rev-' + name + '.png' });
   }
