@@ -316,10 +316,22 @@ const FLORA = {
   lava: ['p_lava_7', 'p_lava_7', 'p_lava_4', 'p_rocks_8', 'p_rocks_2'],
 };
 const TREES = { docks: ['p_forest_0', 'p_forest_5', 'p_forest_4'], wood: ['p_forest_0', 'p_forest_0', 'p_forest_4', 'p_forest_5', 'p_forest_7'], moss: ['p_garden_8', 'p_forest_4', 'p_forest_0', 'p_garden_8'], farms: ['p_forest_0', 'p_forest_5'], amber: ['p_orchard_1', 'p_orchard_2', 'p_orchard_4'], def: ['p_forest_0'] };
-function homeTier(level) { return level <= 3 ? 0 : level <= 7 ? 1 : level <= 13 ? 2 : level <= 20 ? 3 : level <= 29 ? 4 : 5; }
+// One cohesive house style for every land: eight tiers grow from a one-room hut to a towered guild hall.
+// Lands differ only in roof colour (clay red, slate, umber) and yard props.
+const HOME_TIERS = [
+  { name: 'Rimside Hut', from: 1 }, { name: 'Lantern Croft', from: 3 }, { name: 'Ropewalk Cottage', from: 7 }, { name: 'Tetherwright House', from: 12 },
+  { name: 'Ladderstack', from: 17 }, { name: 'Spinehouse', from: 23 }, { name: 'Lumenworks', from: 29 }, { name: 'Deepwarden Hall', from: 35 },
+];
+const TIER_WF = [0.92, 0.98, 1.08, 1.1, 1.0, 1.18, 1.3, 1.42], TIER_AY = [0.8, 0.8, 0.8, 0.82, 0.88, 0.84, 0.85, 0.83];
+const ROOF_VAR = { docks: 'home2', bluffs: 'home2', crystal: 'home2', lava: 'home2', wood: 'home3', badlands: 'home3' };
+const ROOF_SPECK = { home: ['#8e3b28', '#c4634a'], home2: ['#3d4c62', '#6a7d96'], home3: ['#5a4030', '#86644a'] };
+function homeTier(level) { let t = 0; for (let i = 0; i < HOME_TIERS.length; i++) if (level >= HOME_TIERS[i].from) t = i; return t; }
+function playerTier() { return Math.min(7, Math.max(0, Math.round(((typeof S !== 'undefined' && S ? S.buildings.hall : 1) - 1) * 7 / 9))); }
+function tierOf(h) { return h === W.player ? playerTier() : homeTier(h.level); }
+function tierName(h) { return HOME_TIERS[tierOf(h)].name; }
 function homeSeed(h) { return ((h.lanternPhase || 0) / TAU) % 1; }
-// two painted designs per region and size; mirrored ones face the other way
-function homeSprite(h) { const k = REGION_BLD[REGIONS[h.region].key], t = h === W.player ? Math.min(5, Math.floor(h.level / 2)) : homeTier(h.level); const alt = h !== W.player && (homeSeed(h) * 7.31) % 1 < 0.5; const n = (alt ? k.replace('b_', 'b2_') : k) + '_' + t; return ART_MANIFEST.s[n] ? n : k + '_' + t; }
+function roofVar(h) { return h === W.player ? 'home' : ROOF_VAR[REGIONS[h.region].key] || 'home'; }
+function homeSprite(h) { return roofVar(h) + '_' + tierOf(h); }
 function homeFlip(h) { return h !== W.player && (homeSeed(h) * 13.7) % 1 < 0.5; }
 // little yard details around homes: laundry, fences, vegetable plots, woodpiles, coops, wells, benches, herb beds, barrels
 const YARD = { docks: [0, 1, 8, 6], dunes: [8, 6, 7], bluffs: [7, 1, 5, 2], wood: [3, 3, 0, 8], crystal: [3, 8, 5], farms: [2, 4, 1, 0, 2], badlands: [8, 3, 5], moss: [7, 1, 2, 6], amber: [2, 8, 1, 4], lava: [8, 3, 5] };
@@ -331,13 +343,13 @@ function homeYard(h, w) {
     out.push({ spr: 'yard_' + k, x: h.x + Math.cos(a) * w * 0.62, y: h.y + Math.sin(a) * w * 0.32 + w * 0.06, w: YARD_W[k] * (0.9 + r * 0.3), flip: r > 0.5 }); }
   return out;
 }
-function homeW(h, tier) { if (tier == null) tier = h === W.player ? Math.min(5, Math.floor(h.level / 2)) : homeTier(h.level); return (h.size * (1.55 + tier * 0.09) + 8) * 1.22; }
+function homeW(h, tier) { if (tier == null) tier = tierOf(h); return (h.size * 1.5 + 8) * 1.22 * TIER_WF[tier]; } function homeWOld(h, tier) { return (h.size * (1.55 + tier * 0.09) + 8) * 1.22; }
 function artHome(c, h, s) {
-  const tier = h === W.player ? Math.min(5, Math.floor(h.level / 2)) : homeTier(h.level), w = homeW(h, tier);
+  const tier = tierOf(h), w = homeW(h, tier);
   softShadow(c, h.x + w * 0.1, h.y + w * 0.05, w * 0.55, w * 0.3, 0.9);
   const yard = s > 0.09 ? homeYard(h, w) : [];
   for (const y of yard) if (y.y < h.y) drawSprite(c, y.spr, y.x, y.y, y.w, 0.5, 0.8, y.flip);
-  drawSprite(c, homeSprite(h), h.x, h.y, w, 0.5, 0.74, homeFlip(h));
+  drawSprite(c, homeSprite(h), h.x, h.y, w, 0.5, TIER_AY[tier], homeFlip(h));
   for (const y of yard) if (y.y >= h.y) { softShadow(c, y.x + 2, y.y, y.w * 0.4, y.w * 0.14, 0.5); drawSprite(c, y.spr, y.x, y.y, y.w, 0.5, 0.8, y.flip); }
   if (s > 0.28) {
     const top = h.y - w * 0.55;
@@ -366,12 +378,12 @@ function artObj(c, o, s) {
     case 'hay': drawSprite(c, 'props2_4', o.x, o.y, 20, 0.5, 0.75); return;
     case 'windmill': softShadow(c, o.x + 8, o.y + 4, 22, 11, 0.9); drawSprite(c, 'props_0', o.x, o.y, 58, 0.55, 0.86); return;
     case 'logs': drawSprite(c, 'props_6', o.x, o.y, 28, 0.5, 0.75); return;
-    case 'sawmill': softShadow(c, o.x + 6, o.y + 4, 30, 14, 0.8); drawSprite(c, 'b_forest_0', o.x, o.y, 54, 0.5, 0.74); drawSprite(c, 'props_6', o.x + 30, o.y + 14, 26, 0.5, 0.75); drawSprite(c, 'props_5', o.x - 28, o.y + 16, 24, 0.5, 0.75); return;
+    case 'sawmill': softShadow(c, o.x + 6, o.y + 4, 30, 14, 0.8); drawSprite(c, 'home3_1', o.x, o.y, 50, 0.5, 0.8); drawSprite(c, 'props_6', o.x + 30, o.y + 14, 26, 0.5, 0.75); drawSprite(c, 'props_5', o.x - 28, o.y + 16, 24, 0.5, 0.75); return;
     case 'post': drawSprite(c, 'props2_8', o.x, o.y, 15, 0.6, 0.97); return;
     case 'flora': { const w = o.r * 2.6 * (o.spr.startsWith('p_crystal') ? 0.62 : o.spr === 'p_desert_2' ? 1.25 : 1); if (w > 12) softShadow(c, o.x + w * 0.12, o.y + w * 0.02, w * 0.4, w * 0.16, 0.6); drawSprite(c, o.spr, o.x, o.y, w, 0.5, 0.82, sd > 0.5); return; }
-    case 'market': softShadow(c, o.x + 10, o.y + 12, o.r * 1.35, o.r * 0.9, 0.7); drawSprite(c, 'civic_market_0', o.x, o.y, o.r * 2.6, 0.5, 0.52); return;
-    case 'vault': softShadow(c, o.x + 10, o.y + 6, o.r * 1.2, o.r * 0.6, 0.9); drawSprite(c, 'civic_vault_0', o.x, o.y, o.r * 2.5, 0.5, 0.8); return;
-    case 'lift': softShadow(c, o.x + 10, o.y + 4, 20, 10, 0.9); drawSprite(c, 'civic_vault_1', o.x, o.y, 40, 0.5, 0.94); return;
+    case 'market': softShadow(c, o.x + 10, o.y + 12, o.r * 1.35, o.r * 0.9, 0.7); drawSprite(c, 'civ_market', o.x, o.y, o.r * 2.5, 0.5, 0.62); return;
+    case 'vault': softShadow(c, o.x + 10, o.y + 6, o.r * 1.2, o.r * 0.6, 0.9); drawSprite(c, 'civ_vault', o.x, o.y, o.r * 2.3, 0.5, 0.82); return;
+    case 'lift': softShadow(c, o.x + 10, o.y + 4, 20, 10, 0.9); drawSprite(c, 'civ_lift', o.x, o.y, 34, 0.5, 0.95); return;
     case 'statue': softShadow(c, o.x + 8, o.y + 6, o.r * 1.3, o.r * 0.7, 0.8); drawSprite(c, 'landmarks_0', o.x, o.y, o.r * 2.8, 0.5, 0.78); return;
     case 'memorial': softShadow(c, o.x + 8, o.y + 6, 50, 18, 0.8); drawSprite(c, 'landmarks_1', o.x, o.y, 96, 0.5, 0.78); return;
     case 'gate': softShadow(c, o.x + 8, o.y + 6, o.r * 1.4, o.r * 0.7, 0.9); drawSprite(c, 'landmarks_2', o.x, o.y, o.r * 3.2, 0.5, 0.82); return;
@@ -381,11 +393,11 @@ function artObj(c, o, s) {
     case 'pond': { blob(c, o.x, o.y, o.r, o.seed); c.lineWidth = 6; c.strokeStyle = texPattern(c, 'dirt', s); c.stroke(); c.fillStyle = texPattern(c, 'water', s); c.fill(); c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1.5; c.stroke(); drawSprite(c, 'p_garden_6', o.x + o.r * 0.9, o.y + o.r * 0.6, 18, 0.5, 0.8); return; }
     case 'pier': { c.save(); c.translate(o.x, o.y); c.rotate(o.a); c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(3, -3, 52, 12); const pl = ['#9a7048', '#8a6240', '#a47a50']; for (let d = 0; d < 52; d += 3.6) { c.fillStyle = pl[(d * 3 | 0) % 3]; c.fillRect(d, -6, 3.3, 12); } c.fillStyle = '#4b3420'; for (let d = 6; d < 52; d += 14) { c.fillRect(d, -8, 3, 3); c.fillRect(d, 6, 3, 3); } c.restore();
       if (o.seed < 0.45) drawSprite(c, 'props2_6', o.x + Math.cos(o.a) * 58, o.y + Math.sin(o.a) * 58, 34, 0.5, 0.8); return; }
-    case 'kiln': softShadow(c, o.x + 5, o.y + 3, o.r, o.r * 0.5, 0.8); drawSprite(c, 'b_sand_0', o.x, o.y, o.r * 2.6, 0.5, 0.74); return;
+    case 'kiln': softShadow(c, o.x + 5, o.y + 3, o.r, o.r * 0.5, 0.8); drawSprite(c, 'home_0', o.x, o.y, o.r * 2.4, 0.5, 0.8, o.seed > 0.5); return;
     case 'chimney': softShadow(c, o.x + 5, o.y + 3, 14, 7, 0.8); c.fillStyle = '#6e3a28'; c.fillRect(o.x - 6, o.y - 30, 12, 32); c.fillStyle = '#8a4a32'; c.fillRect(o.x - 6, o.y - 30, 5, 32); c.fillStyle = '#2a1e1a'; c.fillRect(o.x - 7, o.y - 33, 14, 4); return;
     case 'mine': { c.strokeStyle = '#4a3a2a'; c.lineWidth = 1.6; const dx = Math.cos(o.a), dy = Math.sin(o.a), nx = -dy * 3, ny = dx * 3; c.beginPath(); c.moveTo(o.x + nx, o.y + ny); c.lineTo(o.x + nx + dx * 70, o.y + ny + dy * 70); c.moveTo(o.x - nx, o.y - ny); c.lineTo(o.x - nx + dx * 70, o.y - ny + dy * 70); c.stroke();
       c.strokeStyle = '#6a4a2a'; for (let d = 4; d < 70; d += 6) { c.beginPath(); c.moveTo(o.x + dx * d + nx * 1.6, o.y + dy * d + ny * 1.6); c.lineTo(o.x + dx * d - nx * 1.6, o.y + dy * d - ny * 1.6); c.stroke(); }
-      softShadow(c, o.x + 5, o.y + 4, 26, 12, 0.8); drawSprite(c, 'b_crystal_5', o.x, o.y, 64, 0.5, 0.74); return; }
+      softShadow(c, o.x + 5, o.y + 4, 26, 12, 0.8); drawSprite(c, 'home2_3', o.x, o.y, 54, 0.5, 0.82); return; }
     case 'quarry': { for (let i = 0; i < 4; i++) { c.fillStyle = `rgba(${120 - i * 18},${116 - i * 18},${104 - i * 16},1)`; c.fillRect(o.x - o.r + i * 7, o.y - o.r * 0.7 + i * 5, (o.r - i * 7) * 2, (o.r * 0.7 - i * 5) * 2); } drawSprite(c, 'p_rocks_7', o.x + o.r * 0.7, o.y + o.r * 0.5, 30, 0.5, 0.75); return; }
   }
 }
@@ -422,7 +434,7 @@ function artStatic(c, x0, y0, x1, y1, s) {
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
   if (s < 0.05) { // far LOD: settlements read as warm roof specks, big features only
-    for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9); c.fillStyle = o.roofD; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = o.roofL; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
+    for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9), rc = ROOF_SPECK[roofVar(o)]; c.fillStyle = rc[0]; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = rc[1]; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
       else if (o.layer === 1 && o.type !== 'rock' && (o.r || 0) >= (s < 0.035 ? 26 : 18)) artObj(c, o, s); }
     return; }
   artFlora(c, x0, y0, x1, y1, s < 0.1 ? 6 : 0);

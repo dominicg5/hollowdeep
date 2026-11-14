@@ -413,7 +413,7 @@ const CityMap = (() => {
   }
   function homeCard(h) {
     const R = REGIONS[h.region], sh = (S.mapShields[h.id] || 0) > S.gameTime, est = starsFor(attackPower() / h.power);
-    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${isDiscovered(h.region) ? `${R.icon} ${R.name}` : '❔ Unexplored lands'}</div>
+    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} ${typeof tierName === 'function' ? tierName(h) : ''} · ${isDiscovered(h.region) ? `${R.icon} ${R.name}` : '❔ Unexplored lands'}</div>
       <div class="wrapgap" style="margin-top:6px"><span class="tag">🛡️ Power ${h.power}</span><span class="tag">⚔️ You ${Math.round(attackPower())}</span><span class="tag ${est >= 2 ? 'good' : est === 0 ? 'bad' : ''}">Likely ${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span></div>
       <div class="small" style="margin-top:6px">Resources nearby: ${isDiscovered(h.region) ? R.res.join(' · ') : '??? (explore or raid here to find out)'}</div>
       <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level, h.region))}</div>
@@ -423,7 +423,7 @@ const CityMap = (() => {
       ${!heroHome() ? '<div class="dim" style="margin-top:6px">Your hero is away, so raids wait until she returns.</div>' : ''}`, 'city');
   }
   function playerCard() {
-    openModal(`<h2>★ Your ${CITY.homeTerm}</h2><div class="small">Lantern Hall Lv ${S.buildings.hall} · ${REGIONS[W.player.region].icon} ${REGIONS[W.player.region].name} · 🛡️ Defense ${Math.round(defensePower())}</div>
+    openModal(`<h2>★ Your ${CITY.homeTerm}</h2><div class="small">Lantern Hall Lv ${S.buildings.hall} · ${typeof tierName === 'function' ? tierName(W.player) : ''} · ${REGIONS[W.player.region].icon} ${REGIONS[W.player.region].name} · 🛡️ Defense ${Math.round(defensePower())}</div>
       ${historyLines(W.player, true)}
       <div class="dim" style="margin-top:6px">Everything here reflects your real game: banners for the deepest layer ${CONFIG.hero.name} returned from, a skull for each Rim Mole beaten, cracks after a lost defense, and your equipped pets.</div>
       ${btnRow(`<button class="btn" data-act="gotab" data-id="capital">🏰 Open Capital</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
