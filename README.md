@@ -32,13 +32,14 @@ One self-contained file: `hollowdeep-prototype.html`. It has no dependencies and
 Every number lives in the `CONFIG` object at the top of the `<script>`: layers, loot, timers, costs, the tap curve, Pull weights, raid odds, and pets.
 
 ## Dev
-- Source pieces are in `src/`: `head.html`, `game.js`, `ui.js`, and the Rim City map files `map_gen.js` (seeded generation), `map_draw.js` (cached static tiles), `map_life.js` (time, seasons, agents) and `map_ui.js` (camera, input, overlays, cards). Rebuild with `./build.sh` or:
-  `{ cat src/head.html; echo '<script>'; cat src/game.js src/ui.js src/map_gen.js src/map_draw.js src/map_life.js src/map_ui.js; echo '</script>'; echo '</body></html>'; } > hollowdeep-prototype.html`
+- Source pieces are in `src/`: `head.html`, `game.js`, `ui.js`, and the Rim City map files `map_gen.js` (seeded generation), `map_draw.js` (procedural fallback painter), `art_manifest.js` + `map_art.js` (painted-art renderer), `map_life.js` (time, seasons, agents) and `map_ui.js` (camera, input, overlays, cards). Rebuild `index.html` with `./build.sh`.
+- Painted art lives in `assets/` (about 3.7 MB of WebP): three sprite atlases (166 painted sprites: 54 homes in 9 regional styles x 6 sizes, bazaars and stalls, vaults, lifts, cranes, landmarks, about 55 plants and rocks, props, 16 townsfolk, pets, the Rim Mole, sky-fish), 13 seamless ground textures and the Hollow itself. It loads behind a progress screen. If any file fails to load, the map falls back to the old procedural painter.
+- Because of the image assets, serve the folder over http for local testing (for example `python3 -m http.server 8765`). `test/city.js` defaults to `http://localhost:8765/index.html`. `test/shots.js` takes quick review screenshots.
 - Headless tests: `cd test && node test.js` (Playwright-core + system Chrome; about 100s because it waits for a real 1-hour test-mode expedition and the tutorial raid), and `node city.js` for the map (mobile viewport: render, drag, wheel, pinch, tap a home then raid, market, vault, lore, ticker, tabs, screenshots).
 - The map is Canvas 2D. The static world is pre-rendered into 256px tiles at 6 zoom levels (an LRU cache with a per-frame render budget). Everything alive is a deterministic function of time, so there is no per-agent state. The map is seeded (`CITY.seed`), so every player sees the same city.
 
 ## Known limitations
-- 2D only: painterly CSS/SVG with emoji placeholders, no 3D and no sound.
+- 2D only, no 3D and no sound. The Rim City map uses painted sprites. The other tabs still use CSS and emoji placeholders. Sprites are not rotated, so homes all face the camera. The Hollow is a single painted image, so it softens at the closest zoom.
 - Single-player: rivals, raiders and every Rim City Lanternhold are simulated AI. No server and no real PvP. Bazaar prices are local.
 - Saves are per browser/device (localStorage). Clearing site data wipes them.
 - The balance is a first pass and untested with real players.
