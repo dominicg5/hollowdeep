@@ -4,7 +4,8 @@
    ===================================================================== */
 const CityMap = (() => {
   let cv, ctx, mm, mctx, wrap, dpr = 1, Wc = 0, Hc = 0, running = false, raf = 0;
-  const cam = { x: 0, y: 0, z: CITY.startZoom, vx: 0, vy: 0, fly: null };
+  const cam = { x: 0, y: 0, z: CITY.startZoom, vx: 0, vy: 0, fly: null, rot: 0, tilt: 55 };
+  const is3d = () => typeof M3 !== 'undefined' && M3.st.ok;
   const tiles = new Map(); let tileUse = 0;
   const ptrs = new Map(); let gesture = null;
   let tickerI = 0, tickerT = 0, lastFrame = 0, fps = 60, frameN = 0, mmBase = null;
@@ -23,7 +24,8 @@ const CityMap = (() => {
   function mount() {
     wrap = $('#city'); cv = $('#cityCanvas'); ctx = cv.getContext('2d'); mm = $('#miniMap'); mctx = mm.getContext('2d');
     if (!W.ready) generateCity();
-    if (!S.cityCam) { cam.x = W.player.x; cam.y = W.player.y; cam.z = CITY.startZoom; } else Object.assign(cam, S.cityCam, { vx: 0, vy: 0, fly: null });
+    if (!S.cityCam) { cam.x = W.player.x; cam.y = W.player.y; cam.z = CITY.startZoom; } else Object.assign(cam, S.cityCam, { vx: 0, vy: 0, fly: null }); if (cam.rot == null) cam.rot = 0; if (!cam.tilt) cam.tilt = 55;
+    cv.addEventListener('contextmenu', (e) => e.preventDefault());
     cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointermove', onMove); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onUp);
     cv.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
     mm.addEventListener('pointerdown', (e) => { e.stopPropagation(); const r = mm.getBoundingClientRect(); const s = (CITY.R * 2) / r.width; flyTo((e.clientX - r.left) * s - CITY.R, (e.clientY - r.top) * s - CITY.R, Math.max(cam.z, 0.35)); });
@@ -32,30 +34,37 @@ const CityMap = (() => {
     $('#cityCount').textContent = `· ${W.homes.length.toLocaleString()} ${CITY.homeTerm}s`;
     buildLegend(); buildMinimapBase(); resize();
     mount.done = true;
+    if (typeof M3 !== 'undefined') M3.init(wrap, (p) => { showLoader(p == null ? null : p); if (p == null) { resize(); M3.place(cam, true); } });
   }
   function layout() { const top = $('#top').offsetHeight, bot = $('#tabs').offsetHeight; wrap.style.top = top + 'px'; wrap.style.bottom = bot + 'px'; }
-  function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; }
+  function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
   function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); if (p != null) { L.querySelector('i').style.width = Math.round(p * 100) + '%'; L.querySelector('.ldPct').textContent = Math.round(p * 100) + '%'; } }
   function show() {
     if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Rim City art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
     if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
-  function hide() { if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z }; }
+  function hide() { if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
 
   /* ---------- camera ---------- */
   const kpx = () => cam.z * dpr;
-  function s2w(sx, sy) { return [cam.x + (sx * dpr - Wc / 2) / kpx(), cam.y + (sy * dpr - Hc / 2) / kpx()]; }
-  function w2s(x, y) { return [((x - cam.x) * kpx() + Wc / 2) / dpr, ((y - cam.y) * kpx() + Hc / 2) / dpr]; }
+  function s2w(sx, sy) { if (is3d()) { M3.place(cam, 'keep'); return M3.unproject(sx, sy); } return [cam.x + (sx * dpr - Wc / 2) / kpx(), cam.y + (sy * dpr - Hc / 2) / kpx()]; }
+  function w2s(x, y, up) { if (is3d()) { M3.place(cam, 'keep'); return M3.project(x, y, up || 0); } return [((x - cam.x) * kpx() + Wc / 2) / dpr, ((y - cam.y) * kpx() + Hc / 2) / dpr]; }
   function clampCam() { cam.z = clamp(cam.z, CITY.zoomMin, CITY.zoomMax); const r = Math.hypot(cam.x, cam.y), m = CITY.R + 200; if (r > m) { cam.x *= m / r; cam.y *= m / r; } }
-  function zoomAt(sx, sy, f) { const [wx, wy] = s2w(sx, sy); cam.z = clamp(cam.z * f, CITY.zoomMin, CITY.zoomMax); const [nx, ny] = s2w(sx, sy); cam.x += wx - nx; cam.y += wy - ny; cam.fly = null; clampCam(); }
-  function flyTo(x, y, z, now) { if (now) { cam.x = x; cam.y = y; if (z) cam.z = z; cam.fly = null; cam.vx = cam.vy = 0; clampCam(); return; } cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x, y, z: z || cam.z, t0: performance.now(), d: 900 }; }
+  function zoomAt(sx, sy, f) { if (is3d()) { M3.place(cam, true); const [wx, wy] = s2w(sx, sy); cam.z = clamp(cam.z * f, CITY.zoomMin, CITY.zoomMax); M3.place(cam, true); const [nx, ny] = s2w(sx, sy); cam.x += wx - nx; cam.y += wy - ny; cam.fly = null; clampCam(); return; } const [wx, wy] = s2w(sx, sy); cam.z = clamp(cam.z * f, CITY.zoomMin, CITY.zoomMax); const [nx, ny] = s2w(sx, sy); cam.x += wx - nx; cam.y += wy - ny; cam.fly = null; clampCam(); }
+  function flyTo(x, y, z, now) { if (now) { cam.x = x; cam.y = y; if (z) cam.z = z; cam.fly = null; cam.vx = cam.vy = 0; clampCam(); if (is3d()) M3.place(cam, true); return; } cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x, y, z: z || cam.z, t0: performance.now(), d: 900 }; }
 
   /* ---------- input ---------- */
+  // pan by a screen drag (css px): in 3D the drag is turned by the camera yaw and stretched by the tilt
+  function panBy(dx, dy) { if (!is3d()) { cam.x -= dx / cam.z; cam.y -= dy / cam.z; return [-dx / cam.z, -dy / cam.z]; }
+    const r = cam.rot, sp = Math.sin((cam.tilt * Math.PI) / 180), ux = -dx / cam.z, uy = -dy / cam.z / sp; const mx = Math.cos(r) * ux + Math.sin(r) * uy, my = -Math.sin(r) * ux + Math.cos(r) * uy; cam.x += mx; cam.y += my; return [mx, my]; }
+  function rotTilt(dr, dt) { cam.rot = (cam.rot + dr) % TAU; cam.tilt = clamp(cam.tilt + dt, 35, 70); cam.fly = null; }
   function onDown(e) { if (e.isPrimary) ptrs.clear(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); cam.vx = cam.vy = 0; cam.fly = null;
-    gesture = ptrs.size === 1 ? { tap: true } : { tap: false, pinch: pinchState() }; }
-  function pinchState() { const p = [...ptrs.values()]; return { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2 }; }
+    gesture = ptrs.size === 1 ? { tap: true, orbit: e.button === 2 || e.ctrlKey } : { tap: false, pinch: pinchState() }; }
+  function pinchState() { const p = [...ptrs.values()]; return { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2, a: Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x) }; }
   function onMove(e) { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY;
-    if (ptrs.size === 1) { if (Math.hypot(p.x - p.x0, p.y - p.y0) > 8) gesture.tap = false; cam.x -= dx / cam.z; cam.y -= dy / cam.z; cam.vx = -dx / cam.z; cam.vy = -dy / cam.z; clampCam(); }
-    else if (ptrs.size === 2 && gesture && gesture.pinch) { const n = pinchState(); zoomAt(n.mx, n.my, n.d / Math.max(1, gesture.pinch.d)); cam.x -= (n.mx - gesture.pinch.mx) / cam.z; cam.y -= (n.my - gesture.pinch.my) / cam.z; gesture.pinch = n; clampCam(); } }
+    if (ptrs.size === 1) { if (Math.hypot(p.x - p.x0, p.y - p.y0) > 8) gesture.tap = false; if (gesture && gesture.orbit && is3d()) { rotTilt(dx * 0.006, -dy * 0.25); return; } const [mx, my] = panBy(dx, dy); cam.vx = mx; cam.vy = my; clampCam(); }
+    else if (ptrs.size === 2 && gesture && gesture.pinch) { const n = pinchState(), o = gesture.pinch; zoomAt(n.mx, n.my, n.d / Math.max(1, o.d));
+      if (is3d()) { let da = n.a - o.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; rotTilt(-da, -(n.my - o.my) * 0.3); }
+      else { cam.x -= (n.mx - o.mx) / cam.z; cam.y -= (n.my - o.my) / cam.z; } gesture.pinch = n; clampCam(); } }
   function onUp(e) { const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId);
     if (p && gesture && gesture.tap && ptrs.size === 0 && performance.now() - p.t0 < 600) { cam.vx = cam.vy = 0; handleTap(e.offsetX, e.offsetY); }
     if (ptrs.size === 1) gesture = { tap: false }; if (ptrs.size === 0) gesture = null; }
@@ -99,18 +108,27 @@ const CityMap = (() => {
   function frame(now) {
     if (!running) return; raf = requestAnimationFrame(frame);
     const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; fps = fps * 0.95 + (1 / Math.max(dt, 0.001)) * 0.05; frameN++;
-    if (cam.fly) { const u = clamp((now - cam.fly.t0) / cam.fly.d, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; cam.x = cam.fly.x0 + (cam.fly.x - cam.fly.x0) * e; cam.y = cam.fly.y0 + (cam.fly.y - cam.fly.y0) * e; cam.z = cam.fly.z0 * Math.pow(cam.fly.z / cam.fly.z0, e); if (u >= 1) cam.fly = null; }
+    if (cam.fly) { const u = clamp((now - cam.fly.t0) / cam.fly.d, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; cam.x = cam.fly.x0 + (cam.fly.x - cam.fly.x0) * e; cam.y = cam.fly.y0 + (cam.fly.y - cam.fly.y0) * e; cam.z = cam.fly.z0 * Math.pow(cam.fly.z / cam.fly.z0, e); if (cam.fly.r1 != null) cam.rot = cam.fly.r0 + (cam.fly.r1 - cam.fly.r0) * e; if (u >= 1) cam.fly = null; }
     else if (!ptrs.size && (Math.abs(cam.vx) > 0.05 || Math.abs(cam.vy) > 0.05)) { cam.x += cam.vx; cam.y += cam.vy; cam.vx *= 0.92; cam.vy *= 0.92; clampCam(); }
     // exploration: lingering zoomed-in over a land maps it
     if (false && cam.z > 0.42 && !cam.fly && Math.hypot(cam.x, cam.y) < CITY.R && hollowDist(cam.x, cam.y) > 0) { const ri = regionAt(cam.x, cam.y); if (ri === dwell.ri) { dwell.t += dt; if (dwell.t > 2.5 && discoverRegion(ri)) buildLegend(); } else { dwell.ri = ri; dwell.t = 0; } } else dwell.t = 0;
     const t = now / 1000, c = ctx, k = kpx();
+    if (frameN % 90 === 0 && typeof relocatePlayer === 'function' && relocatePlayer()) { if (is3d()) M3.refresh(); buildMinimapBase(); }
+    if (is3d()) { M3.render(t, cam); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, Wc, Hc);
+      const vb = M3.viewBox(), view = { x0: vb.x0 - 60, y0: vb.y0 - 60, x1: vb.x1 + 60, y1: vb.y1 + 60, pts: vb.pts };
+      const inV = (x, y, m) => { const [sx, sy] = M3.project(x, y, 0); const mm2 = (m || 0) * cam.z + 40; return sx > -mm2 && sx < Wc / dpr + mm2 && sy > -mm2 && sy < Hc / dpr + mm2; };
+      const S2 = (x, y, u2, u3, abs) => { const [sx, sy] = M3.project(x, y, u3 || 0, abs); return [sx * dpr, sy * dpr]; };
+      drawLabels(c, t, view, inV, S2); st.view = view;
+      if (frameN % 4 === 0) drawMinimap(view);
+      if (t - tickerT > 7 || !tickerT) { tickerT = t; updateTicker(); }
+      if (frameN % 15 === 0) updateInfo(t); st.frames++; st.lastDraw = now; return; }
     const vx0 = cam.x - Wc / 2 / k, vy0 = cam.y - Hc / 2 / k, vx1 = cam.x + Wc / 2 / k, vy1 = cam.y + Hc / 2 / k;
     c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = `rgb(${FOG.join(',')})`; c.fillRect(0, 0, Wc, Hc);
     drawTiles(c, vx0, vy0, vx1, vy1);
     c.setTransform(k, 0, 0, k, Wc / 2 - cam.x * k, Hc / 2 - cam.y * k);
     const view = { x0: vx0 - 60, y0: vy0 - 60, x1: vx1 + 60, y1: vy1 + 60 }, inV = (x, y, m) => x > view.x0 - (m || 0) && x < view.x1 + (m || 0) && y > view.y0 - (m || 0) && y < view.y1 + (m || 0);
     if (ART.ok) drawHollowDepth(c, t, inV, cam.x, cam.y, cam.z, nightFactor(), glow);
-    drawLife(c, t, view, inV);
+    if (!CITY.base) drawLife(c, t, view, inV);
     c.setTransform(1, 0, 0, 1, 0, 0);
     drawOverlay(c, t, view, inV);
     if (frameN % 4 === 0) drawMinimap();
@@ -176,7 +194,7 @@ const CityMap = (() => {
       if (sl) { x = h.x + Math.cos(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); y = h.y + Math.sin(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); a = h.ang; }
       else { x = h.x + Math.cos(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); y = h.y + Math.sin(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); a = h.ang; }
       drawPet(c, h.pet, x, y, a, t, h.petPhase, sl); }
-    // the player's own Lanternhold, painted live from game state
+    // the player's own Ledge, painted live from game state
     drawPlayerHome(c, t, z, inV);
     // people
     const storm = (wx.type === 'storm' || wx.type === 'rain') && wx.fade > 0.3 ? wx : null; const mole = currentMole();
@@ -219,7 +237,7 @@ const CityMap = (() => {
 
   /* ---------- overlay: night, glows, weather, labels (screen space) ---------- */
   function drawOverlay(c, t, view, inV) {
-    const k = kpx(), z = cam.z, night = nightFactor(), fest = festival(), wx = weatherNow(t), S2 = (x, y) => [(x - cam.x) * k + Wc / 2, (y - cam.y) * k + Hc / 2];
+    const k = kpx(), z = cam.z, night = nightFactor(), fest = festival(), wx = weatherNow(t), S2 = (x, y, u2) => [(x - cam.x) * k + Wc / 2, (y - (u2 || 0) - cam.y) * k + Hc / 2];
     const season = SEASONS[seasonInfo().idx]; c.fillStyle = season.tint; c.fillRect(0, 0, Wc, Hc);
     // weather cloud shadow & rain (before night so rain is visible at dusk)
     if (wx.type !== 'clear' && wx.type !== 'updraft' && inV(wx.x, wx.y, wx.r)) {
@@ -299,27 +317,27 @@ const CityMap = (() => {
     const z = cam.z, rects = hudRects.slice();
     const free = (r) => { for (const q of rects) if (r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1]) return false; rects.push(r); return true; };
     // player label always
-    { const h = W.player, [sx, sy] = S2(h.x, h.y - h.size); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · ${CITY.homeTerm} Lv ${S.buildings.hall}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
+    { const h = W.player, [sx, sy] = S2(h.x, h.y, h.size, homeW(h) * 1.05); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · Deepest Lv ${W.player.deepest} · Rank #${rimRank(W.player)}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
     // mole
-    const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y - 40); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
+    const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y, 40, 110); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
     // region names at far zoom
     const ra = clamp((0.5 - z) / 0.15, 0, 1);
     // region names are not shown: the lands are discovered by exploring
-    if (ra > 0) { const [sx, sy] = S2(0, 0); if (!hudHit([sx - 70 * dpr, sy - 18 * dpr, 140 * dpr, 24 * dpr])) { c.font = `700 ${16 * dpr}px Georgia,serif`; c.globalAlpha = ra; c.fillStyle = '#ffe9a8'; c.textAlign = 'center'; c.fillText('THE HOLLOW', sx, sy); c.globalAlpha = 1; } }
+    if (false && ra > 0) { /* no title over the pit */ const [sx, sy] = S2(0, 0, 0, 760, true); if (!hudHit([sx - 70 * dpr, sy - 18 * dpr, 140 * dpr, 24 * dpr])) { c.font = `700 ${16 * dpr}px Georgia,serif`; c.globalAlpha = ra; c.fillStyle = '#ffe9a8'; c.textAlign = 'center'; c.fillText('THE HOLLOW', sx, sy); c.globalAlpha = 1; } }
     // civic labels
     const ca = clamp((z - 0.28) / 0.12, 0, 1);
-    if (ca > 0) for (const o of W.civic) { if (!inV(o.x, o.y, 40) || o.type === 'plaza') continue; const [sx, sy] = S2(o.x, o.y + (o.r || 20) + 8);
-      const label = o.type === 'market' ? `🏪 ${o.name}${marketSpike(o.idx) ? ' 📈' : ''}` : o.type === 'vault' ? `🏦 ${o.name}` : o.type === 'lift' ? `🧵 ${o.name}` : o.type === 'statue' ? '🗿 Aurel Vane' : o.type === 'memorial' ? '🕯️ Wall of Lanterns Out' : o.type === 'gate' ? '🚪 The Undergate' : o.type === 'rift' ? `✨ ${o.name}` : '';
+    if (ca > 0) for (const o of W.civic) { if (!inV(o.x, o.y, 40) || o.type === 'plaza') continue; const [sx, sy] = S2(o.x, o.y, -((o.r || 20) + 8), 0);
+      const label = o.type === 'exchange' ? '⚖️ The Exchange' : o.type === 'market' ? `🏪 ${o.name}${marketSpike(o.idx) ? ' 📈' : ''}` : o.type === 'vault' ? `🏦 ${o.name}` : o.type === 'lift' ? `🧵 ${o.name}` : o.type === 'statue' ? '🗿 Aurel Vane' : o.type === 'memorial' ? '🕯️ Wall of Lanterns Out' : o.type === 'gate' ? '🚪 The Undergate' : o.type === 'rift' ? `✨ ${o.name}` : '';
       if (!label) continue; const r = pill(c, sx, sy + 14 * dpr, label, { a: ca, bg: 'rgba(36,50,74,.85)', color: '#fff3d0', fs: 10.5 }); rects.push(r); }
     // NPC names + speech bubbles
-    if (z > 0.45) for (const n of W.npcs) { if (n.sx == null || !inV(n.sx, n.sy, 20)) continue; const [sx, sy] = S2(n.sx, n.sy);
+    if (z > 0.45 && !is3d()) for (const n of W.npcs) { if (n.sx == null || !inV(n.sx, n.sy, 20)) continue; const [sx, sy] = S2(n.sx, n.sy);
       if (z > 0.75) rects.push(pill(c, sx, sy - 9 * dpr, `${n.npc.icon} ${n.npc.name}`, { bg: 'rgba(255,230,160,.95)', fs: 10, bold: true, a: clamp((z - 0.75) / 0.2, 0, 1) }));
       const b = npcBubble(n, t); if (b) { const r = pill(c, sx, sy - (z > 0.75 ? 26 : 10) * dpr, b, { bg: '#fffdf4', fs: 10.5, border: 'rgba(110,80,40,.4)', a: clamp((z - 0.45) / 0.2, 0, 1) }); rects.push(r); } }
     // home labels (level-of-detail, decluttered)
     if (z > 0.6) { const homes = queryObjs(view.x0, view.y0, view.x1, view.y1, 20).filter((o) => o.type === 'home' && !o.isPlayer).sort((a, b) => (lblShown.has(b.id) - lblShown.has(a.id)) || b.level - a.level); const nowShown = new Set();
       for (const h of homes) { const need = Math.max(0.75, 1.3 - h.level / 45); const a = clamp((z - need) / 0.25, 0, 1); if (a <= 0.02) continue;
-        const [sx, sy] = S2(h.x, h.y - h.size * 0.55); const fs = 10.5; c.font = `600 ${fs * dpr}px system-ui`; const w = c.measureText(h.owner).width + 34 * dpr, hh = (fs + 6) * dpr; const r = [sx - w / 2, sy - hh, w, hh];
-        if (!free(r)) continue; const sh = (S.mapShields[h.id] || 0) > S.gameTime; pill(c, sx, sy, `${h.owner} · ${h.level}${sh ? ' 🛡️' : ''}`, { a, fs }); st.labels.push({ name: h.owner, wx: h.x, wy: h.y - h.size * 0.55, sx: sx / dpr, sy: sy / dpr }); nowShown.add(h.id); } lblShown = nowShown; }
+        const up3 = homeW(h) * 0.95, [sx, sy] = S2(h.x, h.y, h.size * 0.55, up3); const fs = 10.5; c.font = `600 ${fs * dpr}px system-ui`; const ltxt = `${h.name} · Deepest Lv ${h.deepest}`, w = c.measureText(ltxt).width + 22 * dpr, hh = (fs + 6) * dpr; const r = [sx - w / 2, sy - hh, w, hh];
+        if (!free(r)) continue; pill(c, sx, sy, ltxt, { a, fs }); st.labels.push({ name: h.owner, wx: h.x, wy: is3d() ? h.y : h.y - h.size * 0.55, up: is3d() ? up3 : 0, sx: sx / dpr, sy: sy / dpr }); nowShown.add(h.id); } lblShown = nowShown; }
   }
   function npcBubble(n, t) {
     const b = bubbles.get(n.npc.id); if (b && b.until > t) return b.text;
@@ -350,13 +368,14 @@ const CityMap = (() => {
     RUMORS.forEach((r) => out.push({ w: 1, s: '💬 ' + r }));
     return out;
   }
-  function updateTicker() {
+  function updateTicker() { if (CITY.base) return;
     const pool = rumorPool(); const real = pool.filter((p) => p.w > 1); const pickFrom = real.length && tickerI % 2 === 0 ? real : pool; currentRumor = pickFrom[tickerI % pickFrom.length].s; tickerI++;
     const el = $('#ticker span'); if (el) { el.classList.remove('slide'); void el.offsetWidth; el.textContent = currentRumor; el.classList.add('slide'); }
   }
   function updateInfo(t) {
     const si = seasonInfo(), s = SEASONS[si.idx], h = hourOfDay(), f = festival(), wx = weatherNow(t);
     const hh = Math.floor(h), mm = Math.floor((h % 1) * 60);
+    if (CITY.base) { const t2 = `${h >= 6 && h < 18 ? '☀️' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · Rim rank #${rimRank(W.player)} of ${W.homes.length}`; const e2 = $('#cityInfo'); if (e2 && e2.textContent !== t2) e2.textContent = t2; return; }
     const txt = `${s.icon} ${s.name}${f ? (f === 'lumen' ? ' · 🏮 Lumen Festival' : ' · 🌾 Harvest Fair') : ''} · ${h >= 6 && h < 18 ? '☀️' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${weatherLabel(wx)}`;
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
@@ -374,19 +393,24 @@ const CityMap = (() => {
     const tmp = document.createElement('canvas'); tmp.width = tmp.height = N; tmp.getContext('2d').putImageData(img, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, N * 2, N * 2);
     const sc = (N * 2) / (CITY.R * 2); g.fillStyle = 'rgba(150,60,40,.5)'; for (const h of W.homes) g.fillRect((h.x + CITY.R) * sc - 0.5, (h.y + CITY.R) * sc - 0.5, 1, 1); g.fillStyle = 'rgba(130,128,120,.95)'; for (const m of W.mountains) { g.beginPath(); g.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, Math.max(1.5, m.r * sc * 0.9), 0, TAU); g.fill(); }
   }
-  function drawMinimap() {
+  function drawMinimap(view3) {
     if (!mmBase) return; const s = mm.width; if (mm.width !== 240) { mm.width = mm.height = 240; }
     mctx.clearRect(0, 0, 240, 240); mctx.save(); mctx.beginPath(); mctx.arc(120, 120, 118, 0, TAU); mctx.clip(); mctx.drawImage(mmBase, 0, 0, 240, 240);
-    const sc = 240 / (CITY.R * 2), k = kpx(); const vw = Wc / k, vh = Hc / k; mctx.strokeStyle = '#fff'; mctx.lineWidth = 2; mctx.strokeRect((cam.x - vw / 2 + CITY.R) * sc, (cam.y - vh / 2 + CITY.R) * sc, vw * sc, vh * sc);
+    const sc = 240 / (CITY.R * 2), k = kpx(); const vw = Wc / k, vh = Hc / k; mctx.strokeStyle = '#fff'; mctx.lineWidth = 2;
+    if (view3 && view3.pts) { const P = view3.pts; mctx.beginPath(); [P[0], P[1], P[3], P[2]].forEach(([x, y], i) => (i ? mctx.lineTo : mctx.moveTo).call(mctx, (x + CITY.R) * sc, (y + CITY.R) * sc)); mctx.closePath(); mctx.stroke(); }
+    else mctx.strokeRect((cam.x - vw / 2 + CITY.R) * sc, (cam.y - vh / 2 + CITY.R) * sc, vw * sc, vh * sc);
     const p = W.player; mctx.fillStyle = '#ffd46b'; mctx.strokeStyle = '#7a4a1c'; mctx.beginPath(); mctx.arc((p.x + CITY.R) * sc, (p.y + CITY.R) * sc, 5, 0, TAU); mctx.fill(); mctx.stroke();
     const m = currentMole(); if (m) { mctx.fillStyle = '#c8634c'; mctx.beginPath(); mctx.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, 4.5, 0, TAU); mctx.fill(); }
     mctx.restore(); void s;
   }
   function cityButton(b) {
+    if (b === 'rotl' || b === 'rotr') { if (is3d()) cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x: cam.x, y: cam.y, z: cam.z, r0: cam.rot, r1: cam.rot + (b === 'rotl' ? -1 : 1) * Math.PI / 4, t0: performance.now(), d: 500 }; return; }
+    if (b === 'tilt') { if (is3d()) cam.tilt = cam.tilt < 45 ? 55 : cam.tilt < 62 ? 70 : 38; return; }
     if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
     if (b === 'home') return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
     if (b === 'overview') return flyTo(0, 0, Math.min(Wc, Hc) / dpr / (CITY.R * 2.1));
+    if (b === 'board') return boardModal();
     if (b === 'legend') { buildLegend(); return $('#legend').classList.toggle('hidden'); }
     if (b === 'journal') return journalModal();
     if (b === 'season') return seasonModal();
@@ -394,7 +418,18 @@ const CityMap = (() => {
   }
 
   /* ---------- taps & cards ---------- */
+  function openFor(best) { if (best.type === 'home') return homeCard(best); if (best.type === 'market') return marketCard(best); if (best.type === 'vault') return vaultCard(best); if (best.type === 'lift') return liftCard(best); if (best.type === 'rift') return riftCard(best); return loreCard(best); }
+  function handleTap3d(sx, sy) {
+    const [x, y] = s2w(sx, sy), z = cam.z, R = Math.max(160, 260 / z);
+    const mole = currentMole(); if (mole && M3.tapSprites(sx, sy, [{ x: mole.x, y: mole.y, hgt: 90, wf: 0.6, o: mole }])) return moleCard(mole);
+    const P = W.player; const cands = [{ x: P.x, y: P.y, hgt: homeW(P) * 0.9, wf: 0.4, o: P }]; if (W.exchange) cands.push({ x: W.exchange.x, y: W.exchange.y, hgt: 190, wf: 0.5, o: W.exchange }); for (const o of queryObjs(x - R, y - R, x + R, y + R, 80)) { if (!['home', 'lift', 'statue', 'memorial', 'gate', 'rift', 'outpost'].includes(o.type) || o.isPlayer) continue; cands.push({ x: o.x, y: o.y, hgt: o.type === 'home' ? homeW(o) * 0.85 : o.type === 'outpost' ? 140 : 50, wf: 0.4, o }); }
+    // nearest-to-camera first so front buildings win
+    const cp = M3.project(x, y, 0); const best = M3.tapSprites(sx, sy, cands); if (best === P) return playerCard(); if (best && best.type === 'exchange') return exchangeCard(); if (best) return openFor(best);
+    for (const m of [W.lakeFalls, W.pass]) if (m && M3.tapSprites(sx, sy, [{ x: m.x, y: m.y, hgt: m.r * 2.2, wf: 0.5, o: m }])) return loreCard(m);
+    void cp; if (hollowDist(x, y) < 0) return hollowCard();
+  }
   function handleTap(sx, sy) {
+    if (is3d()) return handleTap3d(sx, sy);
     const [x, y] = s2w(sx, sy), z = cam.z, t = performance.now() / 1000, tapR = 16 / z;
     for (const n of W.npcs) { const [nx, ny] = npcPos(n, t); if (Math.hypot(nx - x, ny - y) < Math.max(14, tapR)) return npcCard(n, t); }
     const mole = currentMole(); if (mole && Math.hypot(mole.x - x, mole.y - y) < Math.max(50, tapR)) return moleCard(mole);
@@ -416,21 +451,51 @@ const CityMap = (() => {
     if (real) equippedPets().forEach((p) => L.push(`${CONFIG.pets[p.id].icon} ${CONFIG.pets[p.id].name} ${!heroHome() || nightFactor() > 0.5 ? 'sleeps on the porch' : 'plays in the yard'}`));
     return L.length ? `<div class="small" style="margin-top:6px">${L.join('<br>')}</div>` : '<div class="dim" style="margin-top:6px">No trophies yet. A fresh start.</div>';
   }
+  function rimLines(h) { const rk = rimRank(h), N = W.homes.length;
+    return `<div class="wrapgap" style="margin-top:6px"><span class="tag">⤓ Deepest: Lv ${h.deepest} / ${CITY.maxDepth}</span><span class="tag">🏆 Rim rank #${rk} of ${N}</span><span class="tag">◎ Ring ${rimRing(h)}</span></div>
+      <div class="small" style="margin-top:4px">Perks: <span class="dim">(coming soon)</span></div>`; }
   function homeCard(h) {
-    const R = REGIONS[h.region], sh = (S.mapShields[h.id] || 0) > S.gameTime, est = starsFor(attackPower() / h.power);
-    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${typeof tierName === 'function' ? tierName(h) : ''}</div>
-      <div class="wrapgap" style="margin-top:6px"><span class="tag">🛡️ Power ${h.power}</span><span class="tag">⚔️ You ${Math.round(attackPower())}</span><span class="tag ${est >= 2 ? 'good' : est === 0 ? 'bad' : ''}">Likely ${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span></div>
-      <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level, h.region))}</div>
-      ${historyLines(h, false)}
-      ${btnRow(`${sh ? `<span class="tag">🛡️ Shielded ${countdown(S.mapShields[h.id])}</span>` : `<button class="btn red" data-act="mapraid" data-id="${h.id}" ${!heroHome() || S.res.lumen < CONFIG.mapRaid.lumen ? 'disabled' : ''}>⚔️ Raid (${CONFIG.mapRaid.lumen} 🏮)</button>`}
-        <button class="btn ghost" data-act="mapvisit" data-id="${h.id}">👋 Visit</button><button class="btn ghost" data-act="close">Close</button>`)}
-      ${!heroHome() ? '<div class="dim" style="margin-top:6px">Your hero is away, so raids wait until she returns.</div>' : ''}`, 'city');
+    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · ${typeof tierName === 'function' ? tierName(h) : ''}</div>
+      ${rimLines(h)}
+      <div class="dim" style="margin-top:6px">The Rim is a safe place: homes nearer the Hollow belong to those who have delved deepest.</div>
+      ${btnRow(`<button class="btn" data-act="mapvisit" data-id="${h.id}">👋 Visit</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
   }
+  function boardModal() { const B = rimBoard(), me = B.indexOf(W.player);
+    const row = (h, i, pin) => `<tr class="${h.isPlayer ? 'me' : ''}"${h.isPlayer ? ` style="background:#ffe7a3;font-weight:700${pin ? ';position:sticky;top:0;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.15)' : ''}"` : ''}><td>#${i + 1}</td><td>${esc(h.isPlayer ? 'You' : h.owner)}${pin ? ' 📌' : ''}</td><td>Lv ${h.deepest}</td><td>${rimRing(h)}</td></tr>`;
+    openModal(`<h2>🏆 Rim Leaderboard</h2><div class="small">Ranked by deepest Hollow level reached; the deepest delvers live closest to the rim. Perks for rim proximity: <span class="dim">(coming soon)</span></div>
+      <table class="board" style="width:100%;margin-top:6px;border-collapse:collapse;font-size:13px"><thead><tr><th align="left">Rank</th><th align="left">Player</th><th align="left">Deepest</th><th align="left">Ring</th></tr></thead>
+      <tbody id="boardPin">${row(W.player, me, true)}</tbody><tbody><tr><td colspan="4"><hr style="margin:4px 0"></td></tr>${B.slice(0, 100).map((h, i) => row(h, i)).join('')}</tbody></table>
+      ${me >= 100 ? `<div class="dim small">… you are #${me + 1} of ${B.length}</div>` : ''}${btnRow('<button class="btn" data-act="mapgohome">🏠 Fly to my home</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+  }
+  /* ---------- the Exchange: a free player market, resources for Lumen at player-set prices (simple order-book stub) ---------- */
+  const EX_RES = ['stone', 'timber', 'moss', 'iron', 'coal', 'steel', 'amber', 'obsidian'], EX_BASE = { stone: 0.4, timber: 0.45, moss: 0.6, iron: 0.9, coal: 0.8, steel: 2.2, amber: 3, obsidian: 3.5 };
+  function exState() { if (!S.exchange) S.exchange = { bought: {}, mine: [], nextId: 1 }; return S.exchange; }
+  function exListings() { const day = Math.floor(gTime() / (6 * HOUR)), rr = mulberry32(day * 977 + 5), out = [], ex = exState(), AI = W.homes.filter((h) => !h.isPlayer);
+    for (let i = 0; i < 14; i++) { const k = EX_RES[Math.floor(rr() * EX_RES.length)], h = AI[Math.floor(rr() * AI.length)], qty = 10 * (1 + Math.floor(rr() * 12)), price = Math.max(0.1, Math.round(EX_BASE[k] * (0.7 + rr() * 0.8) * 10) / 10), id = day + ':' + i;
+      if (!ex.bought[id]) out.push({ id, k, seller: h.owner, qty, price }); }
+    return out.sort((a, b) => a.k.localeCompare(b.k) || a.price - b.price); }
+  function exchangeCard() { const ex = exState(), L = exListings(), R = CONFIG.resources;
+    openModal(`<h2>⚖️ The Exchange</h2><div class="small">A free market by the Hollow: players sell resources for Lumen at their own prices. You have <b>${fmt(S.res.lumen || 0)} 🏮</b>.</div>
+      <h3 style="margin:8px 0 4px">Listings</h3>
+      <table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th align="left">Item</th><th align="left">Seller</th><th align="right">Qty</th><th align="right">Price</th><th></th></tr>
+      ${L.map((o) => `<tr><td>${R[o.k].icon} ${R[o.k].name}</td><td>${esc(o.seller)}</td><td align="right">${o.qty}</td><td align="right">${o.price} 🏮/u</td><td align="right"><button class="btn small" data-act="exbuy" data-id="${o.id}" ${(S.res.lumen || 0) < o.qty * o.price ? 'disabled' : ''}>Buy ${fmt(Math.ceil(o.qty * o.price))} 🏮</button></td></tr>`).join('')}</table>
+      <h3 style="margin:10px 0 4px">Sell</h3>
+      <div class="wrapgap"><select id="exK">${EX_RES.map((k) => `<option value="${k}">${R[k].icon} ${R[k].name} (${fmt(S.res[k] || 0)})</option>`).join('')}</select>
+        <input id="exQ" type="number" min="1" value="10" style="width:64px" aria-label="Quantity"> × <input id="exP" type="number" min="0.1" step="0.1" value="1" style="width:64px" aria-label="Price per unit in Lumen"> 🏮/u
+        <button class="btn" data-act="exsell">Post listing</button></div>
+      ${ex.mine.length ? `<h3 style="margin:10px 0 4px">Your listings</h3>${ex.mine.map((m) => `<div class="small">${R[m.k].icon} ${m.qty} ${R[m.k].name} @ ${m.price} 🏮/u <button class="btn ghost small" data-act="excancel" data-id="${m.id}">Cancel</button></div>`).join('')}<div class="dim small">Buyers for player listings are coming soon; cancelling returns the goods.</div>` : ''}
+      ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+  }
+  function exAct(act, ds) { const ex = exState();
+    if (act === 'exbuy') { const o = exListings().find((x) => x.id === ds.id); if (!o) return; const cost = Math.ceil(o.qty * o.price); if ((S.res.lumen || 0) < cost) return toast('Not enough Lumen.'); S.res.lumen -= cost; addRes(o.k, o.qty); ex.bought[o.id] = 1; toast(`⚖️ Bought ${o.qty} ${CONFIG.resources[o.k].name} from ${o.seller} for ${cost} 🏮`); }
+    if (act === 'exsell') { const k = $('#exK').value, q = Math.floor(+$('#exQ').value), pr = Math.round(+$('#exP').value * 10) / 10; if (!(q > 0) || !(pr > 0)) return toast('Set a quantity and a price.'); if ((S.res[k] || 0) < q) return toast('You do not have that much.'); S.res[k] -= q; ex.mine.push({ id: ex.nextId++, k, qty: q, price: pr }); toast(`⚖️ Listed ${q} ${CONFIG.resources[k].name} at ${pr} 🏮 each`); }
+    if (act === 'excancel') { const i = ex.mine.findIndex((m) => m.id === +ds.id); if (i >= 0) { const m = ex.mine[i]; ex.mine.splice(i, 1); addRes(m.k, m.qty); } }
+    exchangeCard(); }
   function playerCard() {
-    openModal(`<h2>★ Your ${CITY.homeTerm}</h2><div class="small">Lantern Hall Lv ${S.buildings.hall} · ${typeof tierName === 'function' ? tierName(W.player) : ''} · ${REGIONS[W.player.region].icon} ${REGIONS[W.player.region].name} · 🛡️ Defense ${Math.round(defensePower())}</div>
-      ${historyLines(W.player, true)}
-      <div class="dim" style="margin-top:6px">Everything here reflects your real game: banners for the deepest layer ${CONFIG.hero.name} returned from, a skull for each Rim Mole beaten, cracks after a lost defense, and your equipped pets.</div>
-      ${btnRow(`<button class="btn" data-act="gotab" data-id="capital">🏰 Open Capital</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
+    openModal(`<h2>★ Your ${CITY.homeTerm}</h2><div class="small">Lantern Hall Lv ${S.buildings.hall} · ${typeof tierName === 'function' ? tierName(W.player) : ''}</div>
+      ${rimLines(W.player)}
+      <div class="dim" style="margin-top:6px">Reach deeper Hollow levels and your home moves to an inner ring, closer to the rim.</div>
+      ${btnRow('<button class="btn" data-act="mapboard">🏆 Rim Leaderboard</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function marketCard(m) {
     const R = REGIONS[m.region], spike = marketSpike(m.idx), mult = spike ? CITY.spikeMult : 1, P = CONFIG.market, lot = P.lot;
@@ -502,7 +567,10 @@ const CityMap = (() => {
   function onAct(act, ds) {
     switch (act) {
       case 'mapraid': { const h = W.homes[+ds.id]; closeModalQuiet(); discoverRegion(h.region); return startMapRaid(h); }
-      case 'mapvisit': { const h = W.homes[+ds.id]; toast(`👋 ${h.owner} waves from the window. (Visiting is coming soon.)`); return; }
+      case 'mapvisit': { const h = W.homes[+ds.id]; toast(`👋 Visiting ${h.owner} is coming soon.`); return; }
+      case 'exbuy': case 'exsell': case 'excancel': return exAct(act, ds);
+      case 'mapboard': return boardModal();
+      case 'mapgohome': closeModalQuiet(); return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
       case 'mbuy': marketBuy(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
       case 'msell': marketSell(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
       case 'mopen': return marketCard(W.markets[+ds.id]);
@@ -519,5 +587,5 @@ const CityMap = (() => {
     }
     return false;
   }
-  return { show, hide, onAct, flyTo, cam, st, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
+  return { boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
 })();

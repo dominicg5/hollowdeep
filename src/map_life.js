@@ -56,7 +56,7 @@ function seasonInfo() {
   if (S && S.seasonOverride != null) return { idx: S.seasonOverride, prog: S.festivalOverride ? 0.8 : 0.5, forced: true };
   const L = seasonLen(), t = gTime(); return { idx: Math.floor(t / L) % 4, prog: (t % L) / L, nextIn: L - (t % L) };
 }
-function festival() { const s = seasonInfo(); if (s.idx === 1 && (s.prog > 0.6 || (s.forced && S.festivalOverride))) return 'lumen'; if (s.idx === 2 && ((s.prog > 0.25 && s.prog < 0.75) || (s.forced && S.festivalOverride))) return 'harvest'; return null; }
+function festival() { if (CITY.base) return null; const s = seasonInfo(); if (s.idx === 1 && (s.prog > 0.6 || (s.forced && S.festivalOverride))) return 'lumen'; if (s.idx === 2 && ((s.prog > 0.25 && s.prog < 0.75) || (s.forced && S.festivalOverride))) return 'harvest'; return null; }
 function frostLevel() { const s = seasonInfo(); return s.idx === 3 ? clamp(s.prog * 1.4, 0.15, 1) : 0; }
 /* Mole surfacings: deterministic windows of game time */
 function moleEvent(k) {
@@ -66,7 +66,7 @@ function moleEvent(k) {
   const off = c.ws[pi] / 2 + 34, ang = Math.atan2(p[1], p[0]) + Math.PI / 2; const x = p[0] + Math.cos(ang) * off, y = p[1] + Math.sin(ang) * off;
   return { k, start, end, x, y, region: regionAt(x, y), power: 0 };
 }
-function currentMole() { const k = Math.floor(gTime() / (CITY.moleWindowHours * HOUR)); for (const kk of [k, k - 1]) { const e = moleEvent(kk); if (e && gTime() >= e.start && gTime() < e.end && !(S.moleDone && S.moleDone[e.k])) return e; } return null; }
+function currentMole() { if (CITY.base) return null; const k = Math.floor(gTime() / (CITY.moleWindowHours * HOUR)); for (const kk of [k, k - 1]) { const e = moleEvent(kk); if (e && gTime() >= e.start && gTime() < e.end && !(S.moleDone && S.moleDone[e.k])) return e; } return null; }
 function nextMole() { const k = Math.floor(gTime() / (CITY.moleWindowHours * HOUR)); for (let kk = k; kk < k + 4; kk++) { const e = moleEvent(kk); if (e && e.start > gTime()) return e; } return null; }
 function molePower() { return Math.round(18 + 7 * S.hero.level); }
 /* Market price spikes */
@@ -106,7 +106,7 @@ function genLife(rnd) {
   W.npcs = [
     mk('maddox', L0.x + 18, L0.y + 10),
     mk('pell', (W.lifts[3] || L0).x - 22, (W.lifts[3] || L0).y + 14),
-    mk('greta', W.piers[0] ? W.piers[0].x + Math.cos(W.piers[0].a) * 0 : docksM.x, W.piers[0] ? W.piers[0].y : docksM.y),
+    mk('greta', W.piers[0] ? W.piers[0].x : (docksM || W.player).x + 40, W.piers[0] ? W.piers[0].y : (docksM || W.player).y - 30),
     mk('ilse', memo.x + 14, memo.y + 20),
     mk('kip', W.player.x + 46, W.player.y + 30),
   ];

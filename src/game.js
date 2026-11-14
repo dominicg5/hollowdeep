@@ -49,7 +49,7 @@ const CONFIG = {
     kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
                  desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
     vault:     { name: 'Rim Vault',       icon: '🏦', max: 8, start: 0, base: { crowns: 260, stone: 220 }, growth: 1.6, minutes: 30,
-                 desc: 'Deep stone vaults under your Lanternhold. +30% storage cap and +3% raid protection per level. (Public Vaults dot Rim City.)' },
+                 desc: 'Deep stone vaults under your Ledge. +30% storage cap and +3% raid protection per level. (Public Vaults dot Rim City.)' },
     forge:     { name: 'Rim Forge',       icon: '⚒️', max: 8, start: 0, base: { crowns: 200, stone: 150, timber: 60 }, growth: 1.6, minutes: 25,
                  desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel at the Rim. Works, but hauling raw ore up costs a lot of Lumen.' },
   },
@@ -487,12 +487,12 @@ function resolveAttack(i) {
   S.rivals[i] = makeRival(i); S.rivals[i].shieldUntil = S.gameTime + CONFIG.raids.rivalShieldHours * HOUR;
   if (!ui.collecting) showAttackReport(report);
 }
-/* ---- raids on Rim City Lanternholds (AI players on the map) ---- */
+/* ---- raids on Rim City Ledges (AI players on the map) ---- */
 function mapRaidLoot(level, region) { const L = { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level };
   if (typeof REGIONS !== 'undefined' && REGIONS[region] && REGIONS[region].key === 'lava') L.obsidian = 2 + Math.round(level * 0.35); return L; }
 function startMapRaid(h) {
   if (!heroHome()) return toast('Your hero is busy');
-  if ((S.mapShields[h.id] || 0) > S.gameTime) return toast('That Lanternhold is shielded');
+  if ((S.mapShields[h.id] || 0) > S.gameTime) return toast('That Ledge is shielded');
   if (!pay({ lumen: CONFIG.mapRaid.lumen })) return toast(`Needs ${CONFIG.mapRaid.lumen} Lumen`);
   S.hero.task = { type: 'raid', map: { id: h.id, owner: h.owner, name: h.name, level: h.level, power: h.power, region: h.region }, start: S.gameTime, end: S.gameTime + CONFIG.mapRaid.marchMinutes * MIN };
   toast(`⚔️ Marching on ${h.owner}'s ${h.name}…`); rerender(true);

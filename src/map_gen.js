@@ -3,7 +3,11 @@
    RIM CITY — procedural, seeded world around the Hollow
    ===================================================================== */
 const CITY = {
-  homeTerm: 'Lanternhold', functional: false,              // in-world name for each player's capital
+  homeTerm: 'Ledge', functional: false, water: false,
+  base: true,       // approved base only: terrain, homes, the Exchange, trees, day/night, clouds (no events, NPCs, landmarks...)
+  maxDepth: 99,     // the Hollow's depth levels (99 is the far goalpost)
+  homeCount: 240,   // total homes on the map: raise this later (performance first for now)
+  lipShare: 0.7,    // share of homes ringing the Hollow lip; the rest form small lowland towns              // in-world name for each player's capital
   seed: 20261114,
   R: 11000, hollowR: 1800, plateauR: 4500, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
@@ -197,7 +201,9 @@ function generateCity() {
   W.lakeTerms = [[2, 0.12, rnd() * TAU], [3, 0.08, rnd() * TAU], [5, 0.05, rnd() * TAU]];
   W.lakePts = []; for (let i = 0; i < 90; i++) { const a = (i / 90) * TAU; const r = lakeR(a); W.lakePts.push([W.lake.x + Math.cos(a) * r, W.lake.y + Math.sin(a) * r]); }
   W.river = []; { let p = [W.lake.x * 0.82, W.lake.y * 0.82]; const end = polar(hollowR(la - 0.03) - 30, la - 0.03); for (let i = 0; i <= 12; i++) { const u = i / 12; W.river.push([p[0] + (end[0] - p[0]) * u + Math.sin(u * 9) * 22 * (1 - u), p[1] + (end[1] - p[1]) * u + Math.cos(u * 7) * 18 * (1 - u)]); } }
-  W.riverGrid = new Map(); for (let i = 0; i < W.river.length - 1; i++) segGridAdd(W.riverGrid, { x1: W.river[i][0], y1: W.river[i][1], x2: W.river[i + 1][0], y2: W.river[i + 1][1], w: 40, w1: 40, w2: 46 }, 160);
+  // no water features for now: the lake and rivers are parked far off the map (the land fills their place)
+  W.lake = { x: 1e7, y: 1e7, r: 1 }; W.lakePts = [[1e7, 1e7], [1e7 + 1, 1e7], [1e7, 1e7 + 1]]; W.river = [[1e7, 1e7], [1e7 + 2, 1e7], [1e7 + 4, 1e7]];
+  W.riverGrid = new Map(); for (let i = 0; i < 0; i++) segGridAdd(W.riverGrid, { x1: W.river[i][0], y1: W.river[i][1], x2: W.river[i + 1][0], y2: W.river[i + 1][1], w: 40, w1: 40, w2: 46 }, 160);
 
   // Cracks: wide side-chasms + narrow fissures, branching outward
   W.cracks = []; W.crackGrid = new Map();
@@ -237,7 +243,7 @@ function generateCity() {
         lavaFlow(p[0] + Math.cos(ang) * off, p[1] + Math.sin(ang) * off, ang, 160 + rnd() * 420, 9 + rnd() * 10); } } }
   // rivers run down from the mountains and pour into the cracks as waterfalls
   W.rivers = [W.river]; W.falls = [];
-  for (let i = 0, made = 0; i < 40 && made < 7; i++) { let a = rnd() * TAU - Math.PI, r = R - 1150 - rnd() * 500; const pts = [polar(r, a)]; let ok = false, dir = a + Math.PI + (rnd() - 0.5) * 0.6;
+  for (let i = 0, made = 0; i < 0 && made < 7; i++) { let a = rnd() * TAU - Math.PI, r = R - 1150 - rnd() * 500; const pts = [polar(r, a)]; let ok = false, dir = a + Math.PI + (rnd() - 0.5) * 0.6;
     for (let k = 0; k < 140; k++) { const [px, py] = pts[pts.length - 1]; const toC = Math.atan2(-py, -px); let d = toC - dir; d = ((d + 3 * Math.PI) % TAU) - Math.PI; dir += d * 0.08 + (rnd() - 0.5) * 0.5;
       const q = [px + Math.cos(dir) * 40, py + Math.sin(dir) * 40]; pts.push(q); if (chasmDist(q[0], q[1]) < 4) { ok = true; break; } if (!lowland(q[0], q[1])) break; }
     if (!ok || pts.length < 12) continue; made++; W.rivers.push(pts); const e = pts[pts.length - 1], f = pts[pts.length - 3]; W.falls.push({ x: e[0], y: e[1], a: Math.atan2(e[1] - f[1], e[0] - f[0]) });
@@ -306,12 +312,19 @@ function generateCity() {
     for (let k = 0; k < 9; k++) { const fa = rnd() * TAU, fr = 150 + rnd() * 230, fx = x + Math.cos(fa) * fr, fy = y + Math.sin(fa) * fr, rr = 50 + rnd() * 26; if (chasmDist(fx, fy) < rr + 10 || !occFree(OCC.obj, fx, fy, rr * 0.9)) continue;
       W.sets.push({ type: 'field', x: fx, y: fy, r: rr, a: ang + (rnd() < 0.5 ? 0 : Math.PI / 2) + (rnd() - 0.5) * 0.3, c: rnd(), layer: 0, seed: rnd(), region: 0 }); occMark(OCC.obj, fx, fy, rr * 0.9); } }
   { let best = null; for (let i = 0; i < 400; i++) { const a = rnd() * TAU - Math.PI, r = 5600 + rnd() * 1800, [x, y] = polar(r, a); const d = chasmDist(x, y); if (d < 420 || isWet(x, y, 400)) continue; if (!best || d > best[2]) best = [x, y, d]; if (d > 700) break; }
-    if (best) { W.lakeFalls = { type: 'falls', x: best[0], y: best[1], r: 300, name: 'Lake Falls Town', layer: 1, region: regionAt(best[0], best[1]) }; occMark(OCC.obj, best[0], best[1] - 40, 330); } }
+    if (best && CITY.water) { W.lakeFalls = { type: 'falls', x: best[0], y: best[1], r: 300, name: 'Lake Falls Town', layer: 1, region: regionAt(best[0], best[1]) }; occMark(OCC.obj, best[0], best[1] - 40, 330); } }
   { const a = -Math.PI / 2 + 0.35 + (rnd() - 0.5) * 0.4, [x, y] = polar(R - 900, a); W.pass = { type: 'pass', x, y, r: 420, name: 'The Rift Pass', layer: 1, region: regionAt(x, y) }; occMark(OCC.obj, x, y - 200, 480); }
   W.stairs = [];
   for (let i = 0; i < 7; i++) { const a = (i / 7) * TAU - Math.PI + 0.2 + (rnd() - 0.5) * 0.2, r0 = plateauR(a) - 30, r1 = plateauR(a) + cliffW(a) + 50, n = 5 + Math.round(cliffW(a) / 60), pts = [];
     for (let k = 0; k <= n; k++) { const u = k / n, r = r0 + (r1 - r0) * u, off = (k === 0 || k === n) ? 0 : (k % 2 ? 1 : -1) * 70; const t = a + off / r; pts.push(polar(r, t)); }
     if (pts.some((p) => chasmDist(p[0], p[1]) < 40)) continue; W.stairs.push({ pts, a, bbox: bboxOf(pts, 40) }); for (const p of pts) occMark(OCC.obj, p[0], p[1], 34); }
+  if (CITY.base) { // approved base only: no lifts, cranes, landmarks, rift mouths, outposts, farm sets, pass, bridges or stairs
+    W.lifts = []; W.cranes = []; W.landmarks = []; W.rifts = []; W.outposts = []; W.sets = []; W.pass = null; W.lakeFalls = null; W.bridges = []; W.stairs = []; W.civic = [];
+    for (const c of W.cracks) { c.mouth = null; c.frontier = false; } }
+  // The Exchange: one grand market hall near the Hollow, where players trade resources for Lumen
+  { const a0 = regionAngle(7) + 0.42; let ex = null;
+    for (let k = 0; k < 200 && !ex; k++) { const a = a0 + (k % 2 ? 1 : -1) * k * 0.01, [x, y] = polar(hollowR(a) + 430, a); if (chasmDist(x, y) < 120 || plateauDist(x, y) > -150 || !occFree(OCC.obj, x, y, 110)) continue; ex = { type: 'exchange', x, y, r: 70, name: 'The Exchange', layer: 1, region: regionAt(x, y) }; }
+    W.exchange = ex; if (ex) { W.civic.push(ex); occMark(OCC.obj, ex.x, ex.y, 130); } }
   // Mountains: a ring of peaks round the edge of the world and a few ridges that split the outer districts
   W.mountains = [];
   const addMtn = (x, y, r) => { if (hollowDist(x, y) < 900 || !lowland(x, y) || onCliff(x, y, r) || (W.pass && Math.hypot(x - W.pass.x, y - W.pass.y) < 700) || chasmDist(x, y) < r * 0.5 || isWet(x, y, r)) return; const m = { type: 'mountain', x, y, r, layer: 1, seed: rnd(), spr: 'mtn_' + Math.floor(rnd() * 9) }; W.mountains.push(m); occMark(OCC.obj, x, y, r * 0.8); };
@@ -320,7 +333,7 @@ function generateCity() {
     for (let i = 0; i < n; i++) { a += da; r += dr; addMtn(Math.cos(a) * r + (rnd() - 0.5) * 120, Math.sin(a) * r + (rnd() - 0.5) * 120, 150 + rnd() * 120); } }
   W.mountains.sort((p, q) => p.y - q.y);
 
-  // Homes (Lanternholds): a dense old city around the Hollow that thins outward, plus villages in the far lands
+  // Homes (Ledges): a dense old city around the Hollow that thins outward, plus villages in the far lands
   W.homes = []; const used = new Set();
   const addHome = (x, y, face, lvlBias) => {
     const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3 + (lvlBias || 0)))));
@@ -331,27 +344,27 @@ function generateCity() {
     const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
     const h = { id: W.homes.length, x, y, ang: face, size, level, region, style,
       roofL: shade(base, lf * 1.12), roofD: shade(base, lf * 0.78), roof: shade(base, lf),
-      owner: makeOwner(rnd, used), name: NM.pa[Math.floor(rnd() * NM.pa.length)] + NM.pb[Math.floor(rnd() * NM.pb.length)] + ' ' + CITY.homeTerm,
+      owner: makeOwner(rnd, used), name: '', nm2: NM.pa[Math.floor(rnd() * NM.pa.length)] + NM.pb[Math.floor(rnd() * NM.pb.length)],
       power: Math.round((10 + level * 9) * (0.85 + rnd() * 0.3)),
       banners: Math.min(4, Math.floor(level / 8 + rnd() * 1.5)), trophies: rnd() < 0.25 + level / 80 ? 1 + Math.floor(rnd() * Math.min(5, level / 6 + 1)) : 0,
       battered: rnd() < 0.12, pet: rnd() < CITY.homePetShare ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, petPhase: rnd() * TAU, petSleep: true,
       lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
-    W.homes.push(h); occMark(OCC.obj, x, y, rad + 2); return h;
+    h.name = ledgeName(h.owner); W.homes.push(h); occMark(OCC.obj, x, y, rad + 2); return h;
   };
   // the metropolis: homes packed shoulder to shoulder around the Hollow, thinning into dense districts between the
   // mountains and crevices of the outer lands. Tall, high-level homes crowd the lip.
   W.villages = [];
-  for (let gx = -R; gx < R; gx += 60) for (let gy = -R; gy < R; gy += 60) {
-    const x = gx + rnd() * 34, y = gy + rnd() * 34, r = Math.hypot(x, y), q = rnd(); if (r > R - 300) continue;
-    const dist = vnoise(x / 1300 + 3, y / 1300 - 8), lane = vnoise(x / 260 + 40, y / 260);
-    const pd = plateauDist(x, y); let p = pd < -40 ? 0.93 : 0.03 + 0.85 * smooth01g(0.44, 0.6, dist);
-    if (lane < 0.22) p *= 0.35; // little squares and gaps
-    if (q > p) continue;
-    addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.8, r < CITY.hollowR + 1000 ? -1.3 : r < CITY.hollowR + 2300 ? -0.6 : 0.3);
-  }
-  // The player's Lanternhold: Lanternmoss Gardens, near the second ring
-  { const ra = regionAngle(7); let best = null, bd = 1e9; for (const h of W.homes) { if (h.region !== 7) continue; const d = Math.abs(Math.hypot(h.x, h.y) - (CITY.hollowR + 880)) + Math.abs(((Math.atan2(h.y, h.x) - ra + 3 * Math.PI) % TAU) - Math.PI) * 900; if (d < bd) { bd = d; best = h; } }
-    best.isPlayer = true; best.owner = 'You'; best.name = 'Your ' + CITY.homeTerm; best.size = 40; best.style = 3; best.wing = 1; best.tower = true; W.player = best; }
+  // Every home sits on a ring set by its owner's DEEPEST level reached in the Hollow: the deepest delvers live on the
+  // lip, shallower ones further out. AI depths: most shallow, a few deep, none near the 99 goalpost.
+  { const N = CITY.homeCount - 1, depths = [];
+    for (let i = 0; i < N; i++) depths.push(Math.max(1, Math.min(72, 1 + Math.floor(-Math.log(1 - rnd() * 0.9999) * 9))));
+    depths.sort((a, b) => b - a);
+    for (let i = 0; i < N; i++) { const q = (i + 0.5) / N; let h = null;
+      for (let k = 0; k < 120 && !h; k++) { const a = rnd() * TAU - Math.PI, [x, y] = polar(rimRadiusQ(q, a) + (rnd() - 0.5) * (80 + k * 4), a); if (q < CITY.lipShare ? plateauDist(x, y) > -60 : !lowland(x, y)) continue; h = addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.6, q < 0.3 ? -1.3 : q < CITY.lipShare ? -0.6 : 0.3); }
+      if (h) { h.deepest = depths[i]; h.battered = false; h.banners = 0; h.trophies = 0; h.pet = null; } }
+    // the player's home: placed by their own record (see relocatePlayer)
+    let P = null; for (let k = 0; k < 400 && !P; k++) { const a = regionAngle(7) + (rnd() - 0.5) * 0.6, [x, y] = polar(CITY.plateauR + 900 + rnd() * 800, a); P = addHome(x, y, Math.atan2(-y, -x), 0); }
+    P.isPlayer = true; P.owner = 'You'; P.name = 'Your ' + CITY.homeTerm; P.size = 40; P.style = 3; P.wing = 1; P.tower = true; P.deepest = 0; P.battered = false; P.banners = 0; P.trophies = 0; P.pet = null; W.player = P; }
 
   // Region scenery (decals on the ground + objects)
   W.objs = [];
@@ -388,19 +401,40 @@ function generateCity() {
   for (const v of W.vents) if (rnd() < 0.7) { const a = rnd() * TAU; lavaFlow(v.x + Math.cos(a) * (v.r + 6), v.y + Math.sin(a) * (v.r + 6), a, 90 + rnd() * 220, 7 + rnd() * 6, true); }
   // Flora is scattered at paint time from a world-seeded hash (see artFlora), so it costs no memory
   // Piers on the lake shore
-  for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
+  for (let i = 0; i < (CITY.water ? 9 : 0); i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
 
   // Spatial index for drawing & hit tests
   W.bucket = 256; W.buckets = new Map();
   const put = (o) => { const k = Math.floor(o.x / W.bucket) + ',' + Math.floor(o.y / W.bucket); (W.buckets.get(k) || W.buckets.set(k, []).get(k)).push(o); };
-  W.homes.forEach((h) => { h.type = 'home'; h.layer = 1; h.r = h.size * 0.75; put(h); });
+  W.homes.forEach((h) => { h.type = 'home'; h.layer = 1; h.r = h.size * 0.75; put(h); }); W.put = put;
   W.objs.forEach(put); W.civic.forEach((c) => { c.layer = 1; put(c); });
 
   // Ambient life
-  genLife(rnd);
+  if (CITY.base) { W.npcs = []; W.caravans = []; W.dayFish = []; W.nightFish = []; W.motes = []; W.visitors = []; W.walkers = []; } else genLife(rnd);
+  relocatePlayer(true);
   W.genMs = Math.round(performance.now() - t0);
   W.ready = true;
 }
+// ring radius for a rim-proximity percentile q (0 = deepest delver, on the lip; 1 = shallowest, far out in the lowlands)
+// every home is a Ledge (like a portaledge), named after its owner
+function ledgeName(owner) { return `${owner}'s ${CITY.homeTerm}`; }
+function rimRadiusQ(q, a) { const L = CITY.lipShare; if (q < L) return hollowR(a) + 170 + (q / L) * Math.min(1150, plateauR(a) - hollowR(a) - 420);
+  return plateauR(a) + cliffW(a) + 320 + ((q - L) / (1 - L)) * (CITY.R - 1600 - plateauR(a) - cliffW(a)); }
+// the player's deepest Hollow level on the 1..99 scale: each layer the hero has reached counts as six levels (placeholder mapping)
+function playerDeepest() { const d = (typeof S !== 'undefined' && S && S.stats) ? (S.stats.deepest || 0) : 0; return Math.max(1, Math.min(CITY.maxDepth - 1, 1 + d * 6)); }
+// rim ranking: deeper record first, then nearer the rim
+function rimBoard() { return W.homes.slice().sort((a, b) => (b.deepest - a.deepest) || (hollowDist(a.x, a.y) - hollowDist(b.x, b.y))); }
+function rimRank(h) { if (!W.rankOf || W.rankStamp !== W.player.deepest) { W.rankOf = new Map(); rimBoard().forEach((o, i) => W.rankOf.set(o, i + 1)); W.rankStamp = W.player.deepest; } return W.rankOf.get(h); }
+function rimRing(h) { return 1 + Math.floor(Math.max(0, hollowDist(h.x, h.y)) / 450); }
+// move the player's home to the ring that matches their record (called on load and whenever the record improves)
+function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P || (!force && P.deepest === d)) return false;
+  const others = W.homes.filter((h) => !h.isPlayer), q = clamp(others.filter((h) => h.deepest > d).length / Math.max(1, others.length), 0, 0.999), rr = mulberry32(d * 7919 + 13);
+  let spot = null; for (let k = 0; k < 400 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), [x, y] = polar(rimRadiusQ(q, a) + (rr() - 0.5) * (60 + k * 3), a), rad = P.size * 0.62;
+    if (hollowDist(x, y) < 150 || onCliff(x, y, rad + 14) || chasmDist(x, y) < rad + 8 || (q < CITY.lipShare ? plateauDist(x, y) > -60 : !lowland(x, y))) continue;
+    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (W.exchange && Math.hypot(W.exchange.x - x, W.exchange.y - y) < 150)) continue; spot = [x, y]; }
+  if (!spot) return false;
+  if (W.buckets) { const k = Math.floor(P.x / W.bucket) + ',' + Math.floor(P.y / W.bucket), L = W.buckets.get(k); if (L) { const i = L.indexOf(P); if (i >= 0) L.splice(i, 1); } }
+  P.x = spot[0]; P.y = spot[1]; P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.deepest = d; if (W.put) W.put(P); W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }
 function bboxOf(pts, pad) { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const p of pts) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); } return [x0 - pad, y0 - pad, x1 + pad, y1 + pad]; }
 function segIndex(rd, s) { let lo = 0, hi = rd.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (rd.cum[m] <= s) lo = m; else hi = m; } return lo; }
 function roadPos(rd, s) {

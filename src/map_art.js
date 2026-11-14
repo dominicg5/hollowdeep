@@ -477,13 +477,16 @@ function artStatic(c, x0, y0, x1, y1, s) {
   const objs = queryObjs(x0, y0, x1, y1, 160, 150);
   for (const o of objs) if (o.layer === 0) artDecal(c, o, s);
   artWater(c, x0, y0, x1, y1, s);
-  if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) { artHollow(c, s, x0, y0, x1, y1); const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), e = [e0[0] + e0[0] / d * 50, e0[1] + e0[1] / d * 50]; softShadow(c, e[0] + 8, e[1] + 60, 46, 22, 0.8); drawSprite(c, 'props2_2', e[0], e[1], 92, 0.42, 0.1); }
+  if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) { artHollow(c, s, x0, y0, x1, y1); if (CITY.water) { const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), e = [e0[0] + e0[0] / d * 50, e0[1] + e0[1] / d * 50]; softShadow(c, e[0] + 8, e[1] + 60, 46, 22, 0.8); drawSprite(c, 'props2_2', e[0], e[1], 92, 0.42, 0.1); } }
   for (const k of W.cracks) if (boxHit(k.bbox, x0, y0, x1, y1)) artCrack(c, k, s);
   for (const f of W.lavaFlows) if (boxHit(f.bbox, x0, y0, x1, y1)) artLavaFlow(c, f, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
   for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s);
   for (const f of W.falls) if (boxHit([f.x - 80, f.y - 60, f.x + 80, f.y + 140], x0, y0, x1, y1)) { softShadow(c, f.x + 6, f.y + 40, 30, 14, 0.7); drawSprite(c, 'props2_2', f.x, f.y, 62, 0.42, 0.1); }
+  if (ART.ground3d) { // ground texture for the 3D map: only footprints/shadows here, buildings and trees stand up as billboards
+    for (const o of objs) { if (o.layer !== 1 || o.isPlayer) continue; if (o.type === 'home') { const w = homeW(o); softShadow(c, o.x + w * 0.12, o.y + w * 0.06, w * 0.5, w * 0.3, 0.75); } else if (o.type === 'tree') softShadow(c, o.x + o.r * 0.5, o.y + o.r * 0.2, o.r * 1.3, o.r * 0.7, 0.7); }
+    return; }
   if (s < 0.05) { for (const m of W.mountains) if (mtnHit(m, x0, y0, x1, y1)) artObj(c, m, s); // far LOD: settlements read as warm roof specks, big features only
     for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9), rc = ROOF_SPECK[roofVar(o)]; c.fillStyle = rc[0]; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = rc[1]; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
       else if (o.layer === 1 && o.type !== 'rock' && o.type !== 'tree' && (o.r || 0) >= (s < 0.035 ? 26 : 18)) artObj(c, o, s); }
