@@ -17,7 +17,7 @@ const URL = process.env.URL || 'http://localhost:8765/hollowdeep-prototype.html'
     ['v2-outpost.png', ...P.o, 0.8], ['v2-falls.png', ...P.f, 0.4, 3000], ['v2-pass.png', ...P.ps, 0.25, 3500], ['v2-river.png', ...P.rf, 0.6], ['v2-home.png', ...P.pl, 1.1]];
   for (const s of S) if (!only || s[0].includes(only)) await shot(...s);
   await p.evaluate(() => { CityMap.onAct('season', { id: 'deep' }); closeModalQuiet(); }); await p.waitForTimeout(400);
-  for (const s of [['v2-n-hollow.png', 0, 100, 0.13, 3000], ['v2-n-over.png', 0, 1500, 0.06, 4000]]) if (!only || s[0].includes(only)) await shot(...s);
+  for (const s of [['v2-n-hollow.png', 0, 100, 0.13, 3000], ['v2-n-lip.png', 0, 2200, 0.4, 3000], ['v2-n-city.png', 1800, 2600, 0.9, 2500], ['v2-n-over.png', 0, 1500, 0.05, 4000]]) if (!only || s[0].includes(only)) await shot(...s);
   console.log('errors', errs.length, errs.slice(0, 3).join(' | '));
   await b.close();
 })();
