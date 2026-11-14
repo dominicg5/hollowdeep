@@ -11,7 +11,7 @@ const CONFIG = {
   simStepMinutes: 5,                              // simulation granularity (game minutes)
   awayThresholdRealSec: 45,                       // gap that triggers "While you were away"
 
-  start: { crowns: 250, stone: 150, timber: 150, lumen: 80, moss: 0, iron: 0, coal: 10, steel: 0, amber: 2 },
+  start: { crowns: 250, stone: 150, timber: 150, lumen: 80, moss: 0, iron: 0, coal: 10, steel: 0, amber: 2, obsidian: 0 },
 
   resources: {   // weight = how heavy it is to haul up the Tether (The Pull)
     crowns: { icon: '👑', name: 'Crowns',     weight: 0.05 },
@@ -23,8 +23,9 @@ const CONFIG = {
     coal:   { icon: '⚫', name: 'Breathcoal', weight: 1.0 },
     steel:  { icon: '🔩', name: 'Steel',      weight: 0.3 },
     amber:  { icon: '🟠', name: 'Amber',      weight: 0.1 },
+    obsidian: { icon: '🖤', name: 'Obsidian', weight: 0.4 },   // black glass from the lava fields of the far lands
   },
-  refined: ['crowns', 'lumen', 'steel', 'amber'],   // what "ship refined only" sends
+  refined: ['crowns', 'lumen', 'steel', 'amber', 'obsidian'],   // what "ship refined only" sends
 
   storage: { base: 600, growth: 1.5, protectBase: 0.30, protectPerLevel: 0.04 },
 
@@ -43,7 +44,7 @@ const CONFIG = {
                  desc: 'Hero power +3 per level, and the hero spars for idle XP while home.' },
     lift:      { name: 'Tether Lift',     icon: '🧵', max: 6, base: { crowns: 150, stone: 100, timber: 80 }, growth: 1.7, minutes: 30, steelFrom: 3, steelPer: 12,
                  desc: 'Your Spine. Sets how deep outposts can anchor, how much cargo lifts per hour, and cuts the Pull.' },
-    wall:      { name: 'Guardian Wall',   icon: '🗿', max: 10, base: { crowns: 110, stone: 140 }, growth: 1.55, minutes: 20, steelFrom: 4, steelPer: 8,
+    wall:      { name: 'Guardian Wall',   icon: '🗿', max: 10, base: { crowns: 110, stone: 140 }, growth: 1.55, minutes: 20, steelFrom: 4, steelPer: 8, obsidianFrom: 6, obsidianPer: 4,
                  desc: 'Looks like a wall. It is not. Rock golems sleep in its columns and stand up when raiders come.' },
     kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
                  desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
@@ -60,7 +61,7 @@ const CONFIG = {
   forgePerLevel: 1.5,
   vault: { capPerLevel: 0.30, protectPerLevel: 0.03 },
   // Rim City market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
-  market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
+  market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8, obsidian: 16 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
   mapRaid: { lumen: 10, marchMinutes: 30, shieldHours: 6 },                                                 // steel per game hour per level
 
   // The Hollow. Expedition: hours, lumen cost, recommended power, base risk, xp, loot ranges, pet egg.
@@ -76,7 +77,7 @@ const CONFIG = {
       hours: 6, lumen: 20, rec: 80, risk: 0.22, xp: 200, loot: { timber: [30, 60], amber: [2, 5], iron: [10, 20], steel: [3, 6] }, pet: 'moth', egg: 0.10, burn: 2, pull: 1.6,
       veins: [ { id: 'l3wood', name: 'Heartwood Grove', prod: { timber: 10 } }, { id: 'l3amber', name: 'Amber Weep', prod: { amber: 0.8, timber: 3 } } ] },
     { id: 4, name: 'The Bellows', color: '#b0573a', flavor: 'The Hollow breathes here. Iron, Breathcoal, and hot wind.',
-      hours: 10, lumen: 35, rec: 130, risk: 0.32, xp: 420, loot: { iron: [30, 60], coal: [20, 40], steel: [6, 12], amber: [3, 6] }, pet: 'ferret', egg: 0.10, burn: 3, pull: 2.0,
+      hours: 10, lumen: 35, rec: 130, risk: 0.32, xp: 420, loot: { iron: [30, 60], coal: [20, 40], steel: [6, 12], amber: [3, 6], obsidian: [1, 4] }, pet: 'ferret', egg: 0.10, burn: 3, pull: 2.0,
       veins: [ { id: 'l4iron', name: 'Iron Seam', prod: { iron: 8, coal: 2 } }, { id: 'l4coal', name: 'Breathcoal Vent', prod: { coal: 8, iron: 2 } } ] },
   ],
   veinDecayPerDay: 0.04, veinMin: 0.35, veinRegenPerDay: 0.08,
@@ -229,6 +230,7 @@ function buildCost(id) {
   const c = {}; for (const k in b.base) c[k] = Math.round(b.base[k] * mult);
   if (b.steelFrom && target >= b.steelFrom) c.steel = b.steelPer * (target - b.steelFrom + 1);
   if (b.amberFrom && target >= b.amberFrom) c.amber = b.amberPer * (target - b.amberFrom + 1);
+  if (b.obsidianFrom && target >= b.obsidianFrom) c.obsidian = b.obsidianPer * (target - b.obsidianFrom + 1);
   return c;
 }
 function buildTime(id) { const b = CONFIG.buildings[id], target = S.buildings[id] + 1; return b.minutes * MIN * Math.pow(CONFIG.buildTimeGrowth, Math.max(0, target - 2)); }
@@ -486,17 +488,18 @@ function resolveAttack(i) {
   if (!ui.collecting) showAttackReport(report);
 }
 /* ---- raids on Rim City Lanternholds (AI players on the map) ---- */
-function mapRaidLoot(level) { return { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level }; }
+function mapRaidLoot(level, region) { const L = { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level };
+  if (typeof REGIONS !== 'undefined' && REGIONS[region] && REGIONS[region].key === 'lava') L.obsidian = 2 + Math.round(level * 0.35); return L; }
 function startMapRaid(h) {
   if (!heroHome()) return toast('Your hero is busy');
   if ((S.mapShields[h.id] || 0) > S.gameTime) return toast('That Lanternhold is shielded');
   if (!pay({ lumen: CONFIG.mapRaid.lumen })) return toast(`Needs ${CONFIG.mapRaid.lumen} Lumen`);
-  S.hero.task = { type: 'raid', map: { id: h.id, owner: h.owner, name: h.name, level: h.level, power: h.power }, start: S.gameTime, end: S.gameTime + CONFIG.mapRaid.marchMinutes * MIN };
+  S.hero.task = { type: 'raid', map: { id: h.id, owner: h.owner, name: h.name, level: h.level, power: h.power, region: h.region }, start: S.gameTime, end: S.gameTime + CONFIG.mapRaid.marchMinutes * MIN };
   toast(`⚔️ Marching on ${h.owner}'s ${h.name}…`); rerender(true);
 }
 function resolveMapRaid(m) {
   const ratio = (attackPower() / Math.max(1, m.power)) * rand(0.85, 1.15), stars = starsFor(ratio);
-  const full = mapRaidLoot(m.level), got = {};
+  const full = mapRaidLoot(m.level, m.region), got = {};
   for (const k in full) { got[k] = Math.round(full[k] * stars / 3); addRes(k, got[k]); }
   const xp = gainXp(20 * m.level * (stars + 1) / 2);
   if (stars > 0) S.stats.raidsWon++;
@@ -639,6 +642,6 @@ function simulateAway(dtGame) {
 /* ---------------- save / load ---------------- */
 function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(S)); } catch (e) { /* storage full or blocked */ } }
 function load() {
-  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); return Object.assign(d, s); } catch (e) { return null; }
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); return Object.assign(d, s); } catch (e) { return null; }
 }
 function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }

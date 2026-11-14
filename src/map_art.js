@@ -7,11 +7,11 @@
 const ART = { ok: false, ready: false, failed: false, atlas: [], tex: {}, mips: {}, pats: {}, hollow: null, sil: {}, progress: 0 };
 const ART_BASE = 'assets/';
 const CROPS = ['wheat', 'cabbage', 'pumpkin', 'lavender', 'corn', 'vines', 'furrows', 'sunflower'];
-const TEX_KEYS = ['grass', 'sand', 'rock', 'forest', 'crystal', 'farm', 'badlands', 'moss', 'orchard', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff'].concat(CROPS);
+const TEX_KEYS = ['grass', 'sand', 'rock', 'forest', 'crystal', 'farm', 'badlands', 'moss', 'orchard', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff', 'lava'].concat(CROPS);
 // world units covered by one 512px texture tile
-const TEX_WORLD = { grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120, wall: 640, cliff: 70, wheat: 70, cabbage: 60, pumpkin: 70, lavender: 60, corn: 70, vines: 70, furrows: 70, sunflower: 60 };
-const REGION_TEX = { docks: 'grass', dunes: 'sand', bluffs: 'rock', wood: 'forest', crystal: 'crystal', farms: 'grass', badlands: 'badlands', moss: 'moss', amber: 'orchard' };
-const REGION_BLD = { docks: 'b_lake', dunes: 'b_sand', bluffs: 'b_cliff', wood: 'b_forest', crystal: 'b_crystal', farms: 'b_farm', badlands: 'b_forge', moss: 'b_garden', amber: 'b_orchard' };
+const TEX_WORLD = { grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120, wall: 640, cliff: 70, lava: 300, wheat: 70, cabbage: 60, pumpkin: 70, lavender: 60, corn: 70, vines: 70, furrows: 70, sunflower: 60 };
+const REGION_TEX = { docks: 'grass', dunes: 'sand', bluffs: 'rock', wood: 'forest', crystal: 'crystal', farms: 'grass', badlands: 'badlands', moss: 'moss', amber: 'orchard', lava: 'lava' };
+const REGION_BLD = { docks: 'b_lake', dunes: 'b_sand', bluffs: 'b_cliff', wood: 'b_forest', crystal: 'b_crystal', farms: 'b_farm', badlands: 'b_forge', moss: 'b_garden', amber: 'b_orchard', lava: 'b_lava' };
 
 function loadArt(onProgress, onDone) {
   if (ART.loading) return; ART.loading = true;
@@ -79,20 +79,18 @@ const pickOf = (arr, seed) => arr[Math.floor(seed * 9973) % arr.length];
 const TG = 17; const maskCv = document.createElement('canvas'); maskCv.width = maskCv.height = TG; const maskCtx = maskCv.getContext('2d'); const maskImg = maskCtx.createImageData(TG, TG);
 const smooth01 = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 function terrainWeights(x, y, out) {
-  const f = regionF(x, y), i = Math.floor(f) % NREG, fr = f - Math.floor(f), edge = 0.12;
-  let wi = 1, wn = 0, n = -1;
-  if (fr > 1 - edge) { n = (i + 1) % NREG; wn = smooth01(1 - edge, 1 + edge, fr) ; wi = 1 - wn; }
-  else if (fr < edge) { n = (i + NREG - 1) % NREG; wn = 1 - smooth01(-edge, edge, fr); wi = 1 - wn; }
+  const M = regionMix(x, y);
   const add = (k, w) => { if (w > 0) out[k] = (out[k] || 0) + w; };
   const put = (ri, w) => {
     const key = REGIONS[ri].key, tk = REGION_TEX[key];
     if (key === 'farms') { const m = smooth01(0.42, 0.58, vnoise(x / 260 + 7, y / 260)); add('farm', w * m); add('grass', w * (1 - m)); }
     else if (key === 'wood') { const m = smooth01(0.5, 0.75, vnoise(x / 180, y / 180 + 3)); add('grass', w * m * 0.7); add('forest', w * (1 - m * 0.7)); }
     else if (key === 'moss') { const m = smooth01(0.55, 0.8, vnoise(x / 200 + 2, y / 200)); add('grass', w * m * 0.6); add('moss', w * (1 - m * 0.6)); }
+    else if (key === 'lava') { const m = smooth01(0.5, 0.72, vnoise(x / 230 + 5, y / 230 - 2)); add('badlands', w * m * 0.6); add('lava', w * (1 - m * 0.6)); }
     else if (key === 'bluffs') { const m = smooth01(0.45, 0.7, vnoise(x / 160 + 4, y / 160)); add('grass', w * m * 0.55); add('rock', w * (1 - m * 0.55)); }
     else add(tk, w);
   };
-  put(i, wi); if (n >= 0) put(n, wn);
+  for (let q = 0; q < 8; q += 2) if (M[q + 1] > 0) put(M[q], M[q + 1]);
   // sandy-dirt lip around the Hollow and along cracks
   const hd = hollowDist(x, y); const lip = clamp(1 - hd / 150, 0, 1) * 0.75;
   if (lip > 0) { for (const k in out) out[k] *= (1 - lip); add('dirt', lip); }
@@ -100,7 +98,7 @@ function terrainWeights(x, y, out) {
 }
 /* World-anchored terrain maps: weights are sampled ONCE on a fixed world grid, so every zoom level and
    every tile blends regions identically (no borders shifting or textures popping while zooming). */
-const TMAP = { G: 32, n: 0, RW: 0, keys: ['grass', 'farm', 'forest', 'moss', 'rock', 'sand', 'badlands', 'crystal', 'orchard', 'dirt'], w: {}, mask: {}, macro: null, fog: null };
+const TMAP = { G: 44, n: 0, RW: 0, keys: ['grass', 'farm', 'forest', 'moss', 'rock', 'sand', 'badlands', 'crystal', 'orchard', 'lava', 'dirt'], w: {}, mask: {}, macro: null, fog: null };
 function buildTerrainMaps() {
   const G = TMAP.G, RW = CITY.R + 640, n = Math.ceil((2 * RW) / G) + 1; TMAP.n = n; TMAP.RW = RW;
   for (const k of TMAP.keys) TMAP.w[k] = new Float32Array(n * n);
@@ -241,7 +239,22 @@ function artCrack(c, k, s) {
   for (let i = 0; i < 4; i++) { pathPoly(c, k.poly.map((p) => [p[0], p[1] + d * (0.55 + i * 0.12)])); c.fillStyle = 'rgba(8,8,20,.16)'; c.fill(); }
   c.lineCap = 'round';
   c.strokeStyle = 'rgba(6,6,18,.6)'; c.lineWidth = mw * 0.3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8]));
-  if (k.wide) { c.strokeStyle = 'rgba(255,200,110,.22)'; c.lineWidth = 3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8])); }
+  if (k.lava) { // molten floor: crusted edges, orange body, bright seam
+    const lp = k.pts.map((p) => [p[0] + 1, p[1] + d * 0.62]);
+    c.strokeStyle = 'rgba(120,30,10,.95)'; c.lineWidth = mw * 0.72; polyStroke(c, lp);
+    c.strokeStyle = 'rgba(235,90,20,.95)'; c.lineWidth = mw * 0.5; polyStroke(c, lp);
+    c.strokeStyle = 'rgba(255,190,70,.9)'; c.lineWidth = Math.max(1.5, mw * 0.18); polyStroke(c, lp);
+    c.strokeStyle = 'rgba(40,20,14,.55)'; c.lineWidth = Math.max(1, mw * 0.06); c.setLineDash([6, 11]); polyStroke(c, lp); c.setLineDash([]); }
+  else if (k.glow) { const lp = k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8]); c.strokeStyle = 'rgba(120,220,255,.28)'; c.lineWidth = mw * 0.32; polyStroke(c, lp); c.strokeStyle = 'rgba(210,250,255,.55)'; c.lineWidth = Math.max(1.2, mw * 0.07); polyStroke(c, lp); }
+  else if (k.wide) { c.strokeStyle = 'rgba(255,200,110,.22)'; c.lineWidth = 3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8])); }
+  c.restore();
+  if (k.lava) { c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(255,110,30,.10)'; c.lineWidth = mw * 1.5; c.lineJoin = 'round'; c.lineCap = 'round'; polyStroke(c, k.pts); c.restore(); }
+}
+function artLavaFlow(c, f, s) {
+  c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
+  const seg = (col, wf, add, dy) => { c.strokeStyle = col; for (let i = 0; i < f.pts.length - 1; i++) { c.lineWidth = Math.max(0.8, f.ws[i] * wf + add); c.beginPath(); c.moveTo(f.pts[i][0], f.pts[i][1] + (dy || 0)); c.lineTo(f.pts[i + 1][0], f.pts[i + 1][1] + (dy || 0)); c.stroke(); } };
+  seg('rgba(25,14,10,.55)', 1, 8, 2); seg('rgba(70,30,20,1)', 1, 5); seg('rgba(200,60,15,1)', 1, 0); seg('rgba(255,140,40,.95)', 0.6, 0); seg('rgba(255,220,120,.8)', 0.22, 0);
+  if (s > 0.2) { c.setLineDash([3, 9]); seg('rgba(50,24,16,.7)', 0.12, 0.6); c.setLineDash([]); }
   c.restore();
 }
 function artRoad(c, rd, s, x0, y0, x1, y1) {
@@ -300,6 +313,7 @@ const FLORA = {
   badlands: ['p_rocks_2', 'p_rocks_3', 'p_rocks_8', 'p_rocks_5', 'p_rocks_1'],
   moss: ['p_garden_0', 'p_garden_1', 'p_garden_6', 'p_garden_7', 'p_garden_4', 'p_garden_2', 'p_garden_0'],
   amber: ['p_orchard_5', 'p_orchard_7', 'p_orchard_8', 'p_orchard_6', 'p_orchard_5'],
+  lava: ['p_lava_7', 'p_lava_7', 'p_lava_4', 'p_rocks_8', 'p_rocks_2'],
 };
 const TREES = { docks: ['p_forest_0', 'p_forest_5', 'p_forest_4'], wood: ['p_forest_0', 'p_forest_0', 'p_forest_4', 'p_forest_5', 'p_forest_7'], moss: ['p_garden_8', 'p_forest_4', 'p_forest_0', 'p_garden_8'], farms: ['p_forest_0', 'p_forest_5'], amber: ['p_orchard_1', 'p_orchard_2', 'p_orchard_4'], def: ['p_forest_0'] };
 function homeTier(level) { return level <= 3 ? 0 : level <= 7 ? 1 : level <= 13 ? 2 : level <= 20 ? 3 : level <= 29 ? 4 : 5; }
@@ -308,7 +322,7 @@ function homeSeed(h) { return ((h.lanternPhase || 0) / TAU) % 1; }
 function homeSprite(h) { const k = REGION_BLD[REGIONS[h.region].key], t = h === W.player ? Math.min(5, Math.floor(h.level / 2)) : homeTier(h.level); const alt = h !== W.player && (homeSeed(h) * 7.31) % 1 < 0.5; const n = (alt ? k.replace('b_', 'b2_') : k) + '_' + t; return ART_MANIFEST.s[n] ? n : k + '_' + t; }
 function homeFlip(h) { return h !== W.player && (homeSeed(h) * 13.7) % 1 < 0.5; }
 // little yard details around homes: laundry, fences, vegetable plots, woodpiles, coops, wells, benches, herb beds, barrels
-const YARD = { docks: [0, 1, 8, 6], dunes: [8, 6, 7], bluffs: [7, 1, 5, 2], wood: [3, 3, 0, 8], crystal: [3, 8, 5], farms: [2, 4, 1, 0, 2], badlands: [8, 3, 5], moss: [7, 1, 2, 6], amber: [2, 8, 1, 4] };
+const YARD = { docks: [0, 1, 8, 6], dunes: [8, 6, 7], bluffs: [7, 1, 5, 2], wood: [3, 3, 0, 8], crystal: [3, 8, 5], farms: [2, 4, 1, 0, 2], badlands: [8, 3, 5], moss: [7, 1, 2, 6], amber: [2, 8, 1, 4], lava: [8, 3, 5] };
 const YARD_W = [26, 22, 24, 18, 22, 16, 14, 18, 12];
 function homeYard(h, w) {
   if (h === W.player) return [];
@@ -341,9 +355,13 @@ function artObj(c, o, s) {
     case 'orchard': return tree(sd < 0.6 ? 'p_orchard_0' : 'p_orchard_3', o.r * 2.9);
     case 'pine': return tree(sd < 0.55 ? 'p_forest_1' : 'p_forest_2', o.r * 2.3);
     case 'palm': return tree(sd < 0.45 ? 'p_desert_0' : sd < 0.75 ? 'p_desert_1' : 'p_desert_2', o.r * 2.8);
-    case 'deadtree': return tree(pickOf(['p_rocks_0', 'p_rocks_1', 'p_rocks_2'], sd), o.r * 3.8);
+    case 'deadtree': if (key === 'lava') return tree('p_lava_3', o.r * 4.2); return tree(pickOf(['p_rocks_0', 'p_rocks_1', 'p_rocks_2'], sd), o.r * 3.8);
     case 'rock': case 'boulder': { const name = key === 'badlands' ? pickOf(['p_rocks_3', 'p_rocks_4'], sd) : key === 'crystal' ? 'p_crystal_8' : key === 'dunes' ? 'p_desert_7' : pickOf(['p_rocks_6', 'p_rocks_7'], sd); softShadow(c, o.x + o.r * 0.3, o.y + o.r * 0.15, o.r * 1.2, o.r * 0.55, 0.8); drawSprite(c, name, o.x, o.y, o.r * 2.5, 0.5, 0.75, sd > 0.5); return; }
     case 'crystal': softShadow(c, o.x + 4, o.y + 2, o.r * 1.1, o.r * 0.5, 0.7); drawSprite(c, pickOf(['p_crystal_0', 'p_crystal_1', 'p_crystal_2', 'p_crystal_3', 'p_crystal_4', 'p_crystal_6', 'p_crystal_7'], sd), o.x, o.y, o.r * 2.5, 0.5, 0.78, sd > 0.5); return;
+    case 'vent': softShadow(c, o.x + 6, o.y + 3, o.r * 1.3, o.r * 0.55, 0.8); drawSprite(c, sd < 0.6 ? 'p_lava_1' : 'p_lava_6', o.x, o.y, o.r * 3, 0.5, 0.8, sd > 0.8); return;
+    case 'obsidian': softShadow(c, o.x + 4, o.y + 2, o.r * 1.1, o.r * 0.45, 0.8); drawSprite(c, sd < 0.5 ? 'p_lava_0' : 'p_lava_4', o.x, o.y, o.r * 2.4, 0.5, 0.82, sd > 0.75); return;
+    case 'basalt': softShadow(c, o.x + 5, o.y + 3, o.r * 1.2, o.r * 0.5, 0.8); drawSprite(c, sd < 0.5 ? 'p_lava_2' : 'p_lava_8', o.x, o.y, o.r * 2.5, 0.5, 0.8, sd > 0.7); return;
+    case 'rift': softShadow(c, o.x + 8, o.y + 6, o.r * 1.4, o.r * 0.7, 0.9); drawSprite(c, 'landmarks_2', o.x, o.y, o.r * 3, 0.5, 0.82); return;
     case 'slag': softShadow(c, o.x + 4, o.y + 2, o.r * 1.1, o.r * 0.5, 0.7); drawSprite(c, 'p_rocks_5', o.x, o.y, o.r * 2.3, 0.5, 0.7, sd > 0.5); return;
     case 'hay': drawSprite(c, 'props2_4', o.x, o.y, 20, 0.5, 0.75); return;
     case 'windmill': softShadow(c, o.x + 8, o.y + 4, 22, 11, 0.9); drawSprite(c, 'props_0', o.x, o.y, 58, 0.55, 0.86); return;
@@ -388,6 +406,7 @@ function artDecal(c, o, s) {
       c.strokeStyle = 'rgba(255,238,200,.16)'; c.lineWidth = o.r * 0.14; c.beginPath(); c.arc(0, 0, o.r, Math.PI * 1.2, Math.PI * 1.8); c.stroke(); c.restore(); return; }
     case 'cracked': c.save(); c.globalAlpha = 0.55; drawDecal(c, o, s); c.restore(); return;
     case 'slag': softShadow(c, o.x + o.r * 0.3, o.y + o.r * 0.15, o.r, o.r * 0.45, 0.6); drawSprite(c, 'p_rocks_5', o.x, o.y, o.r * 1.9, 0.5, 0.7, o.seed > 0.5); return;
+    case 'lavapool': softShadow(c, o.x + 4, o.y + 4, o.r * 1.2, o.r * 0.6, 0.6); drawSprite(c, 'p_lava_5', o.x, o.y, o.r * 2.3, 0.5, 0.6, o.seed > 0.5); return;
     case 'mosspatch': drawSprite(c, 'p_garden_0', o.x, o.y, o.r * 0.9, 0.5, 0.7, o.seed > 0.5); return;
     default: return drawDecal(c, o, s);
   }
@@ -399,11 +418,12 @@ function artStatic(c, x0, y0, x1, y1, s) {
   artWater(c, x0, y0, x1, y1, s);
   if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) { artHollow(c, s, x0, y0, x1, y1); const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), e = [e0[0] + e0[0] / d * 50, e0[1] + e0[1] / d * 50]; softShadow(c, e[0] + 8, e[1] + 60, 46, 22, 0.8); drawSprite(c, 'props2_2', e[0], e[1], 92, 0.42, 0.1); }
   for (const k of W.cracks) if (boxHit(k.bbox, x0, y0, x1, y1)) artCrack(c, k, s);
+  for (const f of W.lavaFlows) if (boxHit(f.bbox, x0, y0, x1, y1)) artLavaFlow(c, f, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
   if (s < 0.05) { // far LOD: settlements read as warm roof specks, big features only
     for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9); c.fillStyle = o.roofD; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = o.roofL; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
-      else if (o.layer === 1 && o.type !== 'rock' && (o.r || 0) >= 18) artObj(c, o, s); }
+      else if (o.layer === 1 && o.type !== 'rock' && (o.r || 0) >= (s < 0.035 ? 26 : 18)) artObj(c, o, s); }
     return; }
   artFlora(c, x0, y0, x1, y1, s < 0.1 ? 6 : 0);
   const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer).sort((a, b) => a.y - b.y);

@@ -267,7 +267,7 @@ const CONFIG = {
   simStepMinutes: 5,                              // simulation granularity (game minutes)
   awayThresholdRealSec: 45,                       // gap that triggers "While you were away"
 
-  start: { crowns: 250, stone: 150, timber: 150, lumen: 80, moss: 0, iron: 0, coal: 10, steel: 0, amber: 2 },
+  start: { crowns: 250, stone: 150, timber: 150, lumen: 80, moss: 0, iron: 0, coal: 10, steel: 0, amber: 2, obsidian: 0 },
 
   resources: {   // weight = how heavy it is to haul up the Tether (The Pull)
     crowns: { icon: '👑', name: 'Crowns',     weight: 0.05 },
@@ -279,8 +279,9 @@ const CONFIG = {
     coal:   { icon: '⚫', name: 'Breathcoal', weight: 1.0 },
     steel:  { icon: '🔩', name: 'Steel',      weight: 0.3 },
     amber:  { icon: '🟠', name: 'Amber',      weight: 0.1 },
+    obsidian: { icon: '🖤', name: 'Obsidian', weight: 0.4 },   // black glass from the lava fields of the far lands
   },
-  refined: ['crowns', 'lumen', 'steel', 'amber'],   // what "ship refined only" sends
+  refined: ['crowns', 'lumen', 'steel', 'amber', 'obsidian'],   // what "ship refined only" sends
 
   storage: { base: 600, growth: 1.5, protectBase: 0.30, protectPerLevel: 0.04 },
 
@@ -299,7 +300,7 @@ const CONFIG = {
                  desc: 'Hero power +3 per level, and the hero spars for idle XP while home.' },
     lift:      { name: 'Tether Lift',     icon: '🧵', max: 6, base: { crowns: 150, stone: 100, timber: 80 }, growth: 1.7, minutes: 30, steelFrom: 3, steelPer: 12,
                  desc: 'Your Spine. Sets how deep outposts can anchor, how much cargo lifts per hour, and cuts the Pull.' },
-    wall:      { name: 'Guardian Wall',   icon: '🗿', max: 10, base: { crowns: 110, stone: 140 }, growth: 1.55, minutes: 20, steelFrom: 4, steelPer: 8,
+    wall:      { name: 'Guardian Wall',   icon: '🗿', max: 10, base: { crowns: 110, stone: 140 }, growth: 1.55, minutes: 20, steelFrom: 4, steelPer: 8, obsidianFrom: 6, obsidianPer: 4,
                  desc: 'Looks like a wall. It is not. Rock golems sleep in its columns and stand up when raiders come.' },
     kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
                  desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
@@ -316,7 +317,7 @@ const CONFIG = {
   forgePerLevel: 1.5,
   vault: { capPerLevel: 0.30, protectPerLevel: 0.03 },
   // Rim City market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
-  market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
+  market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8, obsidian: 16 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
   mapRaid: { lumen: 10, marchMinutes: 30, shieldHours: 6 },                                                 // steel per game hour per level
 
   // The Hollow. Expedition: hours, lumen cost, recommended power, base risk, xp, loot ranges, pet egg.
@@ -332,7 +333,7 @@ const CONFIG = {
       hours: 6, lumen: 20, rec: 80, risk: 0.22, xp: 200, loot: { timber: [30, 60], amber: [2, 5], iron: [10, 20], steel: [3, 6] }, pet: 'moth', egg: 0.10, burn: 2, pull: 1.6,
       veins: [ { id: 'l3wood', name: 'Heartwood Grove', prod: { timber: 10 } }, { id: 'l3amber', name: 'Amber Weep', prod: { amber: 0.8, timber: 3 } } ] },
     { id: 4, name: 'The Bellows', color: '#b0573a', flavor: 'The Hollow breathes here. Iron, Breathcoal, and hot wind.',
-      hours: 10, lumen: 35, rec: 130, risk: 0.32, xp: 420, loot: { iron: [30, 60], coal: [20, 40], steel: [6, 12], amber: [3, 6] }, pet: 'ferret', egg: 0.10, burn: 3, pull: 2.0,
+      hours: 10, lumen: 35, rec: 130, risk: 0.32, xp: 420, loot: { iron: [30, 60], coal: [20, 40], steel: [6, 12], amber: [3, 6], obsidian: [1, 4] }, pet: 'ferret', egg: 0.10, burn: 3, pull: 2.0,
       veins: [ { id: 'l4iron', name: 'Iron Seam', prod: { iron: 8, coal: 2 } }, { id: 'l4coal', name: 'Breathcoal Vent', prod: { coal: 8, iron: 2 } } ] },
   ],
   veinDecayPerDay: 0.04, veinMin: 0.35, veinRegenPerDay: 0.08,
@@ -485,6 +486,7 @@ function buildCost(id) {
   const c = {}; for (const k in b.base) c[k] = Math.round(b.base[k] * mult);
   if (b.steelFrom && target >= b.steelFrom) c.steel = b.steelPer * (target - b.steelFrom + 1);
   if (b.amberFrom && target >= b.amberFrom) c.amber = b.amberPer * (target - b.amberFrom + 1);
+  if (b.obsidianFrom && target >= b.obsidianFrom) c.obsidian = b.obsidianPer * (target - b.obsidianFrom + 1);
   return c;
 }
 function buildTime(id) { const b = CONFIG.buildings[id], target = S.buildings[id] + 1; return b.minutes * MIN * Math.pow(CONFIG.buildTimeGrowth, Math.max(0, target - 2)); }
@@ -742,17 +744,18 @@ function resolveAttack(i) {
   if (!ui.collecting) showAttackReport(report);
 }
 /* ---- raids on Rim City Lanternholds (AI players on the map) ---- */
-function mapRaidLoot(level) { return { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level }; }
+function mapRaidLoot(level, region) { const L = { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level };
+  if (typeof REGIONS !== 'undefined' && REGIONS[region] && REGIONS[region].key === 'lava') L.obsidian = 2 + Math.round(level * 0.35); return L; }
 function startMapRaid(h) {
   if (!heroHome()) return toast('Your hero is busy');
   if ((S.mapShields[h.id] || 0) > S.gameTime) return toast('That Lanternhold is shielded');
   if (!pay({ lumen: CONFIG.mapRaid.lumen })) return toast(`Needs ${CONFIG.mapRaid.lumen} Lumen`);
-  S.hero.task = { type: 'raid', map: { id: h.id, owner: h.owner, name: h.name, level: h.level, power: h.power }, start: S.gameTime, end: S.gameTime + CONFIG.mapRaid.marchMinutes * MIN };
+  S.hero.task = { type: 'raid', map: { id: h.id, owner: h.owner, name: h.name, level: h.level, power: h.power, region: h.region }, start: S.gameTime, end: S.gameTime + CONFIG.mapRaid.marchMinutes * MIN };
   toast(`⚔️ Marching on ${h.owner}'s ${h.name}…`); rerender(true);
 }
 function resolveMapRaid(m) {
   const ratio = (attackPower() / Math.max(1, m.power)) * rand(0.85, 1.15), stars = starsFor(ratio);
-  const full = mapRaidLoot(m.level), got = {};
+  const full = mapRaidLoot(m.level, m.region), got = {};
   for (const k in full) { got[k] = Math.round(full[k] * stars / 3); addRes(k, got[k]); }
   const xp = gainXp(20 * m.level * (stars + 1) / 2);
   if (stars > 0) S.stats.raidsWon++;
@@ -895,7 +898,7 @@ function simulateAway(dtGame) {
 /* ---------------- save / load ---------------- */
 function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(S)); } catch (e) { /* storage full or blocked */ } }
 function load() {
-  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); return Object.assign(d, s); } catch (e) { return null; }
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); return Object.assign(d, s); } catch (e) { return null; }
 }
 function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }
 
@@ -903,7 +906,7 @@ function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); 
    UI
    ===================================================================== */
 /* painted UI art (assets/ui) */
-const UIA = 'assets/ui/', UI_HAS = new Set('amber coal crowns iron lumen moss steel stone timber hall storehouse training lift wall kennel vault forge still still2 smelter strider drill golem golem_sleep dummy rival0 rival1 rival2 wisp pup moth ferret wren wren_a wren_b wren_c capital molebg layers'.split(' '));
+const UIA = 'assets/ui/', UI_HAS = new Set('obsidian amber coal crowns iron lumen moss steel stone timber hall storehouse training lift wall kennel vault forge still still2 smelter strider drill golem golem_sleep dummy rival0 rival1 rival2 wisp pup moth ferret wren wren_a wren_b wren_c capital molebg layers'.split(' '));
 function pic(k, cls, alt) { return `<img class="pic ${cls || ''}" src="${UIA}${k}.webp" alt="${alt || ''}" decoding="async" draggable="false">`; }
 function rIco(k) { return UI_HAS.has(k) ? pic(k, 'ri', CONFIG.resources[k].name) : CONFIG.resources[k].icon; }
 function petIco(id, cls) { return UI_HAS.has(id) ? pic(id, cls || 'pi', CONFIG.pets[id].name) : CONFIG.pets[id].icon; }
@@ -1372,7 +1375,7 @@ function init() {
 window.HD = { get S() { return S; }, CONFIG, simulate, simulateAway, startExpedition, startBuild, doTap, save, load, boostPct, weekTaps, aiRaid, shipAll, startMove, installModule, setTab, attackPower, defensePower };
 document.addEventListener('DOMContentLoaded', init);
 /* generated by art/pack.py */
-const ART_MANIFEST = {"v":1794688306,"atlases":4,"s":{"civic_vault_1":[0,0,0,216,466,270,583],"civic_market_0":[0,218,0,598,433,630,456],"civic_vault_0":[0,818,0,320,420,400,525],"landmarks_2":[0,1140,0,361,414,451,517],"b_cliff_5":[0,1503,0,316,405,395,506],"b2_lake_5":[0,0,468,318,390,397,487],"b2_cliff_5":[0,320,468,310,386,387,482],"b2_forge_5":[0,632,468,354,378,443,473],"b_sand_5":[0,988,468,330,377,412,471],"civic_vault_2":[0,1320,468,323,377,404,471],"landmarks_0":[0,1645,468,297,374,371,467],"b_forest_5":[0,0,860,335,372,419,465],"b_lake_5":[0,337,860,320,371,400,464],"b_forge_5":[0,659,860,358,370,448,463],"b2_crystal_5":[0,1019,860,346,361,433,451],"b_garden_5":[0,1367,860,349,360,436,450],"b_crystal_5":[0,0,1234,347,356,434,445],"b2_forest_5":[0,349,1234,342,346,428,433],"b2_garden_5":[0,693,1234,372,345,465,431],"b2_sand_5":[0,1067,1234,333,344,416,430],"b_cliff_4":[0,1402,1234,287,341,359,426],"b2_forge_3":[0,1691,1234,288,339,360,424],"b2_cliff_4":[0,0,1592,291,338,364,423],"b_forest_4":[0,293,1592,232,338,290,423],"creatures_3":[0,527,1592,356,335,593,558],"b_forge_3":[0,885,1592,288,333,360,416],"b2_lake_4":[0,1175,1592,264,330,330,412],"b2_farm_5":[0,1441,1592,374,329,468,411],"b2_forge_4":[1,0,0,287,326,359,407],"b2_orchard_5":[1,289,0,356,322,445,403],"b_farm_5":[1,647,0,368,318,460,397],"b_forge_4":[1,1017,0,288,318,360,397],"b2_garden_4":[1,1307,0,235,313,294,391],"b_cliff_3":[1,1544,0,273,311,341,389],"b_forest_3":[1,0,328,295,310,369,387],"b2_crystal_4":[1,297,328,283,306,354,383],"b_crystal_4":[1,582,328,286,304,357,380],"b2_forge_2":[1,870,328,322,298,402,372],"b2_cliff_3":[1,1194,328,269,297,336,371],"b2_forge_1":[1,1465,328,298,296,372,370],"b_orchard_5":[1,0,640,361,296,451,370],"b2_forest_4":[1,363,640,241,294,301,368],"b2_sand_4":[1,606,640,283,294,354,368],"b_forge_1":[1,891,640,306,294,382,367],"b_forge_2":[1,1199,640,322,294,403,368],"b_cliff_2":[1,1523,640,264,292,330,365],"b2_cliff_2":[1,0,938,262,286,328,357],"b_forest_2":[1,264,938,275,286,344,357],"b_garden_4":[1,541,938,279,285,349,356],"b_garden_2":[1,822,938,300,282,375,352],"b_sand_4":[1,1124,938,290,282,363,353],"b2_crystal_2":[1,1416,938,296,279,370,349],"b2_garden_2":[1,1714,938,290,277,362,346],"b2_lake_3":[1,0,1226,249,277,311,346],"b2_sand_1":[1,251,1226,285,277,356,346],"b_sand_2":[1,538,1226,298,274,372,342],"b2_forest_2":[1,838,1226,271,273,339,341],"b_farm_4":[1,1111,1226,297,272,371,340],"b_garden_1":[1,1410,1226,253,272,316,340],"b2_crystal_3":[1,1665,1226,271,271,339,339],"b_crystal_2":[1,0,1505,299,271,374,339],"b_crystal_3":[1,301,1505,274,270,342,338],"b_forest_1":[1,577,1505,266,270,333,337],"b_garden_3":[1,845,1505,250,270,312,338],"b_lake_4":[1,1097,1505,262,270,328,338],"b_lake_3":[1,1361,1505,256,268,320,335],"b2_farm_4":[1,1619,1505,289,266,361,332],"landmarks_1":[1,0,1778,300,260,375,325],"b_sand_1":[1,302,1778,286,259,357,324],"b2_garden_3":[1,590,1778,241,258,301,322],"b2_lake_2":[1,833,1778,271,257,339,321],"b_farm_2":[1,1106,1778,318,257,397,321],"b_sand_3":[1,1426,1778,268,257,335,321],"b2_orchard_3":[1,1696,1778,263,254,329,318],"b_farm_1":[2,0,0,295,254,369,317],"b_farm_3":[2,297,0,258,254,323,317],"b2_orchard_4":[2,557,0,274,253,342,316],"b_forest_0":[2,833,0,250,252,312,315],"b_orchard_3":[2,1085,0,263,252,329,315],"b_orchard_4":[2,1350,0,275,251,344,314],"b2_cliff_1":[2,1627,0,239,250,299,313],"b2_crystal_1":[2,0,256,250,250,313,312],"b2_garden_1":[2,252,256,260,250,325,312],"b_lake_2":[2,514,256,276,250,345,313],"b2_sand_3":[2,792,256,267,248,334,310],"b_cliff_1":[2,1061,256,241,248,301,310],"b2_sand_2":[2,1304,256,287,247,359,309],"b2_orchard_2":[2,1593,256,292,246,365,308],"b_crystal_1":[2,0,508,261,246,326,308],"b_orchard_2":[2,263,508,294,246,367,308],"b2_farm_2":[2,559,508,307,244,384,305],"b2_forest_1":[2,868,508,242,244,302,305],"b2_lake_1":[2,1112,508,242,243,302,304],"b2_farm_3":[2,1356,508,249,242,311,303],"b2_forest_3":[2,1607,508,255,242,319,303],"b_lake_1":[2,0,756,245,242,306,302],"b_cliff_0":[2,247,756,207,239,259,299],"b2_forge_0":[2,456,756,227,238,284,298],"b2_farm_1":[2,685,756,266,235,333,294],"b_forge_0":[2,953,756,226,235,282,294],"b2_orchard_1":[2,1181,756,265,230,331,287],"b_orchard_1":[2,1448,756,265,228,331,285],"skyfish_2":[2,1715,756,58,226,97,377],"b2_cliff_0":[2,1775,756,204,225,255,281],"b_lake_0":[2,0,1000,219,222,274,278],"b2_forest_0":[2,221,1000,230,219,287,274],"b2_garden_0":[2,453,1000,206,218,258,273],"b2_lake_0":[2,661,1000,207,218,259,272],"b_crystal_0":[2,870,1000,208,216,260,270],"skyfish_1":[2,1080,1000,95,212,159,353],"b_garden_0":[2,1177,1000,200,210,250,263],"b2_farm_0":[2,1379,1000,229,207,286,259],"skyfish_4":[2,1610,1000,88,207,147,345],"b2_crystal_0":[2,1700,1000,191,206,239,257],"skyfish_0":[2,0,1224,212,202,353,336],"b_farm_0":[2,214,1224,230,200,288,250],"b_sand_0":[2,446,1224,216,200,270,250],"b2_orchard_0":[2,664,1224,209,199,261,249],"b_orchard_0":[2,875,1224,209,199,261,249],"skyfish_3":[2,1086,1224,208,199,346,332],"b2_sand_0":[2,1296,1224,218,198,272,248],"hollow_bits_2":[2,1516,1224,120,196,200,326],"hollow_bits_7":[2,1638,1224,117,193,195,321],"p_orchard_2":[2,1757,1224,157,189,285,343],"hollow_bits_8":[2,0,1428,175,188,291,313],"props_0":[2,177,1428,145,184,264,335],"p_forest_5":[2,324,1428,148,181,269,329],"hollow_bits_0":[2,474,1428,176,179,293,298],"props2_6":[2,652,1428,161,177,292,321],"hollow_bits_6":[2,815,1428,170,176,283,294],"p_desert_0":[2,987,1428,151,176,274,320],"hollow_bits_1":[2,1140,1428,172,173,286,289],"props_2":[2,1314,1428,128,172,233,312],"civic_market_4":[2,1444,1428,179,169,298,281],"p_crystal_2":[2,1625,1428,123,169,223,307],"props2_8":[2,1750,1428,80,169,145,308],"props_7":[2,1832,1428,41,169,75,308],"props_8":[2,1875,1428,125,169,227,307],"civic_market_3":[2,0,1618,178,168,296,280],"p_forest_1":[2,180,1618,109,168,198,305],"p_crystal_0":[2,291,1618,134,167,244,303],"p_crystal_7":[2,427,1618,121,166,220,301],"p_orchard_1":[2,550,1618,175,166,319,301],"p_forest_4":[2,727,1618,155,164,281,299],"p_orchard_0":[2,884,1618,168,164,306,298],"hollow_bits_3":[2,1054,1618,186,163,310,272],"p_orchard_3":[2,1242,1618,170,163,310,296],"p_orchard_4":[2,1414,1618,172,163,313,297],"p_crystal_6":[2,1588,1618,128,162,233,295],"p_forest_0":[2,1718,1618,176,162,320,295],"p_forest_3":[2,0,1788,152,162,277,295],"p_rocks_7":[2,154,1788,163,162,297,295],"props2_7":[2,319,1788,111,162,201,294],"p_desert_2":[2,432,1788,75,161,136,292],"p_forest_2":[2,509,1788,111,161,201,292],"p_rocks_6":[2,622,1788,169,161,307,292],"p_rocks_1":[2,793,1788,166,160,301,291],"p_rocks_0":[2,961,1788,157,157,286,286],"p_rocks_3":[2,1120,1788,143,157,260,286],"props2_2":[2,1265,1788,157,155,285,282],"props2_3":[2,1424,1788,130,154,237,280],"p_garden_8":[2,1556,1788,147,153,267,278],"p_crystal_4":[2,1705,1788,93,152,169,276],"civic_market_1":[2,1800,1788,166,151,277,252],"civic_market_2":[3,0,0,169,151,282,252],"hollow_bits_4":[3,171,0,74,151,123,252],"props2_0":[3,247,0,172,151,312,274],"p_garden_7":[3,421,0,153,150,279,272],"p_rocks_4":[3,576,0,164,150,299,272],"p_orchard_6":[3,742,0,173,148,315,269],"p_crystal_3":[3,917,0,130,147,236,268],"p_garden_1":[3,1049,0,116,144,210,262],"props2_4":[3,1167,0,150,144,272,261],"p_forest_6":[3,1319,0,157,142,286,259],"p_crystal_8":[3,1478,0,125,140,228,254],"props2_5":[3,1605,0,108,140,197,254],"p_orchard_5":[3,1715,0,156,139,284,252],"yard_4":[3,1873,0,112,138,225,277],"yard_5":[3,0,153,102,138,205,277],"p_garden_6":[3,104,153,155,137,281,249],"p_orchard_7":[3,261,153,167,136,303,247],"props2_1":[3,430,153,183,136,332,247],"props_6":[3,615,153,150,136,273,247],"p_desert_1":[3,767,153,144,135,262,245],"p_rocks_2":[3,913,153,162,135,294,246],"hollow_bits_5":[3,1077,153,217,134,361,224],"p_desert_4":[3,1296,153,136,134,248,243],"p_garden_4":[3,1434,153,148,133,270,242],"props_3":[3,1584,153,146,133,266,242],"p_crystal_1":[3,1732,153,107,132,194,240],"p_desert_7":[3,1841,153,151,130,275,237],"props_4":[3,0,293,144,130,261,237],"p_forest_7":[3,146,293,138,129,250,235],"p_garden_2":[3,286,293,144,127,261,230],"yard_8":[3,432,293,114,126,227,252],"p_garden_5":[3,548,293,129,125,235,228],"yard_0":[3,679,293,152,124,304,249],"yard_6":[3,833,293,129,124,258,248],"p_desert_6":[3,964,293,149,123,271,223],"p_desert_8":[3,1115,293,135,123,246,223],"p_rocks_5":[3,1252,293,164,123,298,224],"yard_2":[3,1418,293,161,121,322,242],"p_garden_3":[3,1581,293,152,119,276,216],"p_orchard_8":[3,1735,293,158,119,288,216],"yard_7":[3,0,425,160,118,319,237],"p_forest_8":[3,162,425,85,116,154,210],"p_garden_0":[3,249,425,157,116,286,211],"p_rocks_8":[3,408,425,158,116,288,211],"props_5":[3,568,425,144,116,262,210],"props_1":[3,714,425,125,114,227,208],"yard_3":[3,841,425,134,114,269,229],"p_desert_3":[3,977,425,121,113,220,206],"p_desert_5":[3,1100,425,126,112,229,204],"p_crystal_5":[3,1228,425,130,108,237,196],"people_15":[3,1360,425,57,99,127,221],"people_11":[3,1419,425,46,97,103,215],"people_8":[3,1467,425,47,96,104,214],"people_9":[3,1516,425,45,96,101,214],"people_14":[3,1563,425,40,95,88,212],"people_10":[3,1605,425,56,94,124,209],"people_12":[3,1663,425,59,94,131,210],"people_13":[3,1724,425,40,94,88,208],"people_2":[3,1766,425,71,94,158,210],"yard_1":[3,1839,425,126,94,252,188],"people_4":[3,1967,425,55,92,122,205],"people_5":[3,0,545,38,92,84,205],"people_3":[3,40,545,51,91,113,202],"people_7":[3,93,545,56,91,125,202],"skyfish_5":[3,151,545,58,89,96,148],"people_6":[3,211,545,52,87,115,194],"people_0":[3,265,545,55,84,123,187],"people_1":[3,322,545,52,83,116,184],"creatures_1":[3,376,545,46,79,122,207],"creatures_0":[3,424,545,62,72,164,189],"creatures_2":[3,488,545,93,71,246,188],"creatures_6":[3,583,545,54,70,142,185],"creatures_5":[3,639,545,71,60,186,157],"creatures_4":[3,712,545,84,56,222,147]}};
+const ART_MANIFEST = {"v":1794691957,"atlases":4,"s":{"civic_vault_1":[0,0,0,216,466,270,583],"civic_market_0":[0,218,0,598,433,630,456],"civic_vault_0":[0,818,0,320,420,400,525],"landmarks_2":[0,1140,0,361,414,451,517],"b_cliff_5":[0,1503,0,316,405,395,506],"b2_lake_5":[0,0,468,318,390,397,487],"b2_cliff_5":[0,320,468,310,386,387,482],"b2_forge_5":[0,632,468,354,378,443,473],"b_sand_5":[0,988,468,330,377,412,471],"civic_vault_2":[0,1320,468,323,377,404,471],"landmarks_0":[0,1645,468,297,374,371,467],"b_forest_5":[0,0,860,335,372,419,465],"b_lake_5":[0,337,860,320,371,400,464],"b_forge_5":[0,659,860,358,370,448,463],"b_lava_5":[0,1019,860,348,368,435,460],"b2_crystal_5":[0,1369,860,346,361,433,451],"b_garden_5":[0,0,1234,349,360,436,450],"b_crystal_5":[0,351,1234,347,356,434,445],"b2_forest_5":[0,700,1234,342,346,428,433],"b2_garden_5":[0,1044,1234,372,345,465,431],"b2_sand_5":[0,1418,1234,333,344,416,430],"b_cliff_4":[0,1753,1234,287,341,359,426],"b2_forge_3":[0,0,1596,288,339,360,424],"b2_cliff_4":[0,290,1596,291,338,364,423],"b_forest_4":[0,583,1596,232,338,290,423],"creatures_3":[0,817,1596,356,335,593,558],"b_forge_3":[0,1175,1596,288,333,360,416],"b2_lake_4":[0,1465,1596,264,330,330,412],"b2_farm_5":[1,0,0,374,329,468,411],"b2_forge_4":[1,376,0,287,326,359,407],"b2_orchard_5":[1,665,0,356,322,445,403],"b_farm_5":[1,1023,0,368,318,460,397],"b_forge_4":[1,1393,0,288,318,360,397],"b2_garden_4":[1,1683,0,235,313,294,391],"b_lava_3":[1,0,331,273,312,341,390],"b_cliff_3":[1,275,331,273,311,341,389],"b_forest_3":[1,550,331,295,310,369,387],"b2_crystal_4":[1,847,331,283,306,354,383],"b_crystal_4":[1,1132,331,286,304,357,380],"b_lava_4":[1,1420,331,284,302,355,377],"b2_forge_2":[1,1706,331,322,298,402,372],"b2_cliff_3":[1,0,645,269,297,336,371],"b2_forge_1":[1,271,645,298,296,372,370],"b_orchard_5":[1,571,645,361,296,451,370],"b2_forest_4":[1,934,645,241,294,301,368],"b2_sand_4":[1,1177,645,283,294,354,368],"b_forge_1":[1,1462,645,306,294,382,367],"b_forge_2":[1,0,944,322,294,403,368],"b_cliff_2":[1,324,944,264,292,330,365],"b_lava_2":[1,590,944,307,290,384,362],"b2_cliff_2":[1,899,944,262,286,328,357],"b_forest_2":[1,1163,944,275,286,344,357],"b_garden_4":[1,1440,944,279,285,349,356],"b_garden_2":[1,1721,944,300,282,375,352],"b_sand_4":[1,0,1240,290,282,363,353],"b2_crystal_2":[1,292,1240,296,279,370,349],"b2_garden_2":[1,590,1240,290,277,362,346],"b2_lake_3":[1,882,1240,249,277,311,346],"b2_sand_1":[1,1133,1240,285,277,356,346],"b_sand_2":[1,1420,1240,298,274,372,342],"b2_forest_2":[1,1720,1240,271,273,339,341],"b_farm_4":[1,0,1524,297,272,371,340],"b_garden_1":[1,299,1524,253,272,316,340],"b2_crystal_3":[1,554,1524,271,271,339,339],"b_crystal_2":[1,827,1524,299,271,374,339],"b_crystal_3":[1,1128,1524,274,270,342,338],"b_forest_1":[1,1404,1524,266,270,333,337],"b_garden_3":[1,1672,1524,250,270,312,338],"b_lake_4":[2,0,0,262,270,328,338],"b_lake_3":[2,264,0,256,268,320,335],"b2_farm_4":[2,522,0,289,266,361,332],"b_lava_1":[2,813,0,268,265,335,331],"landmarks_1":[2,1083,0,300,260,375,325],"b_sand_1":[2,1385,0,286,259,357,324],"b2_garden_3":[2,1673,0,241,258,301,322],"b2_lake_2":[2,0,272,271,257,339,321],"b_farm_2":[2,273,272,318,257,397,321],"b_sand_3":[2,593,272,268,257,335,321],"b2_orchard_3":[2,863,272,263,254,329,318],"b_farm_1":[2,1128,272,295,254,369,317],"b_farm_3":[2,1425,272,258,254,323,317],"b2_orchard_4":[2,1685,272,274,253,342,316],"b_forest_0":[2,0,531,250,252,312,315],"b_orchard_3":[2,252,531,263,252,329,315],"b_orchard_4":[2,517,531,275,251,344,314],"b2_cliff_1":[2,794,531,239,250,299,313],"b2_crystal_1":[2,1035,531,250,250,313,312],"b2_garden_1":[2,1287,531,260,250,325,312],"b_lake_2":[2,1549,531,276,250,345,313],"b2_sand_3":[2,0,785,267,248,334,310],"b_cliff_1":[2,269,785,241,248,301,310],"b2_sand_2":[2,512,785,287,247,359,309],"b2_orchard_2":[2,801,785,292,246,365,308],"b_crystal_1":[2,1095,785,261,246,326,308],"b_orchard_2":[2,1358,785,294,246,367,308],"b2_farm_2":[2,1654,785,307,244,384,305],"b2_forest_1":[2,0,1035,242,244,302,305],"b2_lake_1":[2,244,1035,242,243,302,304],"b2_farm_3":[2,488,1035,249,242,311,303],"b2_forest_3":[2,739,1035,255,242,319,303],"b_lake_1":[2,996,1035,245,242,306,302],"b_cliff_0":[2,1243,1035,207,239,259,299],"b2_forge_0":[2,1452,1035,227,238,284,298],"b2_farm_1":[2,1681,1035,266,235,333,294],"b_forge_0":[2,0,1281,226,235,282,294],"b2_orchard_1":[2,228,1281,265,230,331,287],"b_orchard_1":[2,495,1281,265,228,331,285],"skyfish_2":[2,762,1281,58,226,97,377],"b2_cliff_0":[2,822,1281,204,225,255,281],"b_lake_0":[2,1028,1281,219,222,274,278],"b2_forest_0":[2,1249,1281,230,219,287,274],"b2_garden_0":[2,1481,1281,206,218,258,273],"b2_lake_0":[2,1689,1281,207,218,259,272],"b_lava_0":[2,0,1518,210,217,263,271],"b_crystal_0":[2,212,1518,208,216,260,270],"skyfish_1":[2,422,1518,95,212,159,353],"b_garden_0":[2,519,1518,200,210,250,263],"b2_farm_0":[2,721,1518,229,207,286,259],"skyfish_4":[2,952,1518,88,207,147,345],"b2_crystal_0":[2,1042,1518,191,206,239,257],"skyfish_0":[2,1235,1518,212,202,353,336],"b_farm_0":[2,1449,1518,230,200,288,250],"b_sand_0":[2,1681,1518,216,200,270,250],"b2_orchard_0":[2,0,1737,209,199,261,249],"b_orchard_0":[2,211,1737,209,199,261,249],"skyfish_3":[2,422,1737,208,199,346,332],"b2_sand_0":[2,632,1737,218,198,272,248],"hollow_bits_2":[2,852,1737,120,196,200,326],"hollow_bits_7":[2,974,1737,117,193,195,321],"p_orchard_2":[2,1093,1737,157,189,285,343],"hollow_bits_8":[2,1252,1737,175,188,291,313],"props_0":[2,1429,1737,145,184,264,335],"p_forest_5":[2,1576,1737,148,181,269,329],"hollow_bits_0":[2,1726,1737,176,179,293,298],"props2_6":[3,0,0,161,177,292,321],"hollow_bits_6":[3,163,0,170,176,283,294],"p_desert_0":[3,335,0,151,176,274,320],"hollow_bits_1":[3,488,0,172,173,286,289],"props_2":[3,662,0,128,172,233,312],"civic_market_4":[3,792,0,179,169,298,281],"p_crystal_2":[3,973,0,123,169,223,307],"props2_8":[3,1098,0,80,169,145,308],"props_7":[3,1180,0,41,169,75,308],"props_8":[3,1223,0,125,169,227,307],"civic_market_3":[3,1350,0,178,168,296,280],"p_forest_1":[3,1530,0,109,168,198,305],"p_crystal_0":[3,1641,0,134,167,244,303],"p_crystal_7":[3,1777,0,121,166,220,301],"p_orchard_1":[3,0,179,175,166,319,301],"p_forest_4":[3,177,179,155,164,281,299],"p_orchard_0":[3,334,179,168,164,306,298],"hollow_bits_3":[3,504,179,186,163,310,272],"p_orchard_3":[3,692,179,170,163,310,296],"p_orchard_4":[3,864,179,172,163,313,297],"p_crystal_6":[3,1038,179,128,162,233,295],"p_forest_0":[3,1168,179,176,162,320,295],"p_forest_3":[3,1346,179,152,162,277,295],"p_lava_6":[3,1500,179,142,162,258,295],"p_rocks_7":[3,1644,179,163,162,297,295],"props2_7":[3,1809,179,111,162,201,294],"p_desert_2":[3,1922,179,75,161,136,292],"p_forest_2":[3,0,347,111,161,201,292],"p_rocks_6":[3,113,347,169,161,307,292],"p_rocks_1":[3,284,347,166,160,301,291],"p_lava_0":[3,452,347,125,158,228,287],"p_rocks_0":[3,579,347,157,157,286,286],"p_rocks_3":[3,738,347,143,157,260,286],"props2_2":[3,883,347,157,155,285,282],"props2_3":[3,1042,347,130,154,237,280],"p_garden_8":[3,1174,347,147,153,267,278],"p_crystal_4":[3,1323,347,93,152,169,276],"civic_market_1":[3,1418,347,166,151,277,252],"civic_market_2":[3,1586,347,169,151,282,252],"hollow_bits_4":[3,1757,347,74,151,123,252],"props2_0":[3,1833,347,172,151,312,274],"p_garden_7":[3,0,510,153,150,279,272],"p_rocks_4":[3,155,510,164,150,299,272],"p_lava_3":[3,321,510,133,148,242,270],"p_orchard_6":[3,456,510,173,148,315,269],"p_crystal_3":[3,631,510,130,147,236,268],"p_garden_1":[3,763,510,116,144,210,262],"props2_4":[3,881,510,150,144,272,261],"p_forest_6":[3,1033,510,157,142,286,259],"p_crystal_8":[3,1192,510,125,140,228,254],"p_lava_8":[3,1319,510,136,140,247,254],"props2_5":[3,1457,510,108,140,197,254],"p_orchard_5":[3,1567,510,156,139,284,252],"p_lava_4":[3,1725,510,136,138,248,251],"yard_4":[3,1863,510,112,138,225,277],"yard_5":[3,0,662,102,138,205,277],"p_garden_6":[3,104,662,155,137,281,249],"p_orchard_7":[3,261,662,167,136,303,247],"props2_1":[3,430,662,183,136,332,247],"props_6":[3,615,662,150,136,273,247],"p_desert_1":[3,767,662,144,135,262,245],"p_lava_7":[3,913,662,146,135,265,246],"p_rocks_2":[3,1061,662,162,135,294,246],"hollow_bits_5":[3,1225,662,217,134,361,224],"p_desert_4":[3,1444,662,136,134,248,243],"p_garden_4":[3,1582,662,148,133,270,242],"p_lava_1":[3,1732,662,138,133,250,242],"props_3":[3,1872,662,146,133,266,242],"p_crystal_1":[3,0,802,107,132,194,240],"p_lava_2":[3,109,802,144,131,261,238],"p_desert_7":[3,255,802,151,130,275,237],"props_4":[3,408,802,144,130,261,237],"p_forest_7":[3,554,802,138,129,250,235],"p_garden_2":[3,694,802,144,127,261,230],"yard_8":[3,840,802,114,126,227,252],"p_garden_5":[3,956,802,129,125,235,228],"yard_0":[3,1087,802,152,124,304,249],"yard_6":[3,1241,802,129,124,258,248],"p_desert_6":[3,1372,802,149,123,271,223],"p_desert_8":[3,1523,802,135,123,246,223],"p_rocks_5":[3,1660,802,164,123,298,224],"yard_2":[3,1826,802,161,121,322,242],"p_garden_3":[3,0,936,152,119,276,216],"p_orchard_8":[3,154,936,158,119,288,216],"yard_7":[3,314,936,160,118,319,237],"p_forest_8":[3,476,936,85,116,154,210],"p_garden_0":[3,563,936,157,116,286,211],"p_rocks_8":[3,722,936,158,116,288,211],"props_5":[3,882,936,144,116,262,210],"p_lava_5":[3,1028,936,155,114,281,207],"props_1":[3,1185,936,125,114,227,208],"yard_3":[3,1312,936,134,114,269,229],"p_desert_3":[3,1448,936,121,113,220,206],"p_desert_5":[3,1571,936,126,112,229,204],"p_crystal_5":[3,1699,936,130,108,237,196],"people_15":[3,1831,936,57,99,127,221],"people_11":[3,1890,936,46,97,103,215],"people_8":[3,1938,936,47,96,104,214],"people_9":[3,1987,936,45,96,101,214],"people_14":[3,0,1057,40,95,88,212],"people_10":[3,42,1057,56,94,124,209],"people_12":[3,100,1057,59,94,131,210],"people_13":[3,161,1057,40,94,88,208],"people_2":[3,203,1057,71,94,158,210],"yard_1":[3,276,1057,126,94,252,188],"people_4":[3,404,1057,55,92,122,205],"people_5":[3,461,1057,38,92,84,205],"people_3":[3,501,1057,51,91,113,202],"people_7":[3,554,1057,56,91,125,202],"skyfish_5":[3,612,1057,58,89,96,148],"people_6":[3,672,1057,52,87,115,194],"people_0":[3,726,1057,55,84,123,187],"people_1":[3,783,1057,52,83,116,184],"creatures_1":[3,837,1057,46,79,122,207],"creatures_0":[3,885,1057,62,72,164,189],"creatures_2":[3,949,1057,93,71,246,188],"creatures_6":[3,1044,1057,54,70,142,185],"creatures_5":[3,1100,1057,71,60,186,157],"creatures_4":[3,1173,1057,84,56,222,147]}};
 
 /* =====================================================================
    RIM CITY — procedural, seeded world around the Hollow
@@ -1380,10 +1383,10 @@ const ART_MANIFEST = {"v":1794688306,"atlases":4,"s":{"civic_vault_1":[0,0,0,216
 const CITY = {
   homeTerm: 'Lanternhold',              // in-world name for each player's capital
   seed: 20261114,
-  R: 3300, hollowR: 700,                // world radius, hollow base radius (world units)
+  R: 11000, hollowR: 700,                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
-  tilePx: 256, levels: [0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 280,
-  zoomMin: 0.065, zoomMax: 3.2, startZoom: 1.05,
+  tilePx: 256, levels: [0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 300,
+  zoomMin: 0.018, zoomMax: 3.2, startZoom: 1.05,
   homePetShare: 0.12, innerR: 3150,
   villageP: { docks: 0.6, dunes: 0.4, bluffs: 0.45, wood: 0.5, crystal: 0.35, farms: 0.7, badlands: 0.35, moss: 0.6, amber: 0.6, lava: 0.15 },
   seasonDays: 7, testSeasonDays: 1,     // game days per season (test mode uses testSeasonDays)
@@ -1419,7 +1422,11 @@ const REGIONS = [
   { key: 'amber', name: 'Amberfall Orchards', icon: '🍂', res: ['🟠 Amber', '🍎 Fruit', '🪵 Heartwood'], sells: ['amber', 'timber'],
     blurb: 'Autumn orchards whose trees weep amber. Sweet air, sticky boots.',
     ground: [200, 152, 94], roofs: ['#b0573a', '#c46a40', '#9a4a30'], wall: '#f0dcc0', styles: [0, 1] },
+  { key: 'lava', name: 'The Emberwound', icon: '🌋', res: ['🖤 Obsidian', '🔥 Magma', '🪨 Basalt'], sells: ['obsidian'], outer: true,
+    blurb: 'Far out where the earth is splitting open, molten rock seeps up through the cracks. Smiths pay dearly for the black glass it leaves behind.',
+    ground: [92, 70, 62], roofs: ['#4a3a36', '#5a4038', '#3a2e2c'], wall: '#8a7a70', styles: [2] },
 ];
+const NREG_IN = 9; // the original lands ring the Hollow; outer patchwork lands can also be any of these, or lava
 const NREG = REGIONS.length;
 const smooth01g = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
@@ -1444,14 +1451,46 @@ const W = { ready: false };
 function regionF(x, y) {
   const a = (Math.atan2(y, x) + Math.PI) / TAU;
   const w = (vnoise(x / 700 + 50, y / 700) - 0.5) * 0.55 + (vnoise(x / 240, y / 240 + 9) - 0.5) * 0.14;
-  return (((a * NREG + w) % NREG) + NREG) % NREG;
+  return (((a * NREG_IN + w) % NREG_IN) + NREG_IN) % NREG_IN;
+}
+/* Outer lands: a domain-warped patchwork of lands (jittered Voronoi), blended in beyond the old city. */
+const OUTER = { cell: 2500, r0: 3000, r1: 3800, sites: null, off: 0, n: 0, LAVA: REGIONS.findIndex((r) => r.key === 'lava') };
+function outerSites() {
+  if (OUTER.sites) return OUTER.sites;
+  const c = OUTER.cell, n = Math.ceil((CITY.R + 1600) / c) + 1, sites = []; OUTER.off = n; OUTER.n = n * 2 + 1;
+  for (let gy = -n; gy <= n; gy++) for (let gx = -n; gx <= n; gx++) {
+    const sx = (gx + 0.15 + hash2(gx * 3 + 1, gy * 5 + 2) * 0.7) * c, sy = (gy + 0.15 + hash2(gx * 7 - 3, gy * 11 + 4) * 0.7) * c, r = Math.hypot(sx, sy), q = hash2(gx + 71, gy - 33);
+    const lavaP = 0.02 + smooth01g(5000, 10000, r) * 0.2; let ri;
+    if (q < lavaP) ri = OUTER.LAVA; else if (q < lavaP + 0.5) ri = Math.floor(regionF(sx, sy)) % NREG_IN; else ri = Math.floor(hash2(gx - 5, gy + 9) * NREG_IN) % NREG_IN;
+    sites.push([sx, sy, ri]);
+  }
+  // a lava field always smoulders beyond the Cinderreach, close enough to find
+  { const [tx, ty] = polar(5600, regionAngle(6)); let best = null, bd = 1e18; for (const s of sites) { const d = (s[0] - tx) ** 2 + (s[1] - ty) ** 2; if (d < bd) { bd = d; best = s; } } best[2] = OUTER.LAVA; }
+  OUTER.sites = sites; return sites;
+}
+const RMIX = [0, 0, 0, 0, 0, 0, 0, 0];
+// up to four (region, weight) pairs for a point: angular inner lands, patchwork outer lands, soft borders
+function regionMix(x, y) {
+  const M = RMIX, r = Math.hypot(x, y), t = smooth01g(OUTER.r0, OUTER.r1, r);
+  M[1] = M[3] = M[5] = M[7] = 0;
+  if (t < 1) { const f = regionF(x, y), i = Math.floor(f) % NREG_IN, fr = f - Math.floor(f), edge = 0.12; let wn = 0, n = i;
+    if (fr > 1 - edge) { n = (i + 1) % NREG_IN; wn = smooth01g(1 - edge, 1 + edge, fr); } else if (fr < edge) { n = (i + NREG_IN - 1) % NREG_IN; wn = 1 - smooth01g(-edge, edge, fr); }
+    M[0] = i; M[1] = (1 - wn) * (1 - t); M[2] = n; M[3] = wn * (1 - t); }
+  if (t > 0) { const S = outerSites(), c = OUTER.cell;
+    const wx = x + (vnoise(x / 1300 + 20, y / 1300) - 0.5) * 1500 + (vnoise(x / 320, y / 320 + 40) - 0.5) * 260, wy = y + (vnoise(x / 1300, y / 1300 + 60) - 0.5) * 1500 + (vnoise(x / 320 + 80, y / 320) - 0.5) * 260;
+    const gx = Math.floor(wx / c), gy = Math.floor(wy / c); let d1 = 1e18, d2 = 1e18, s1 = null, s2 = null;
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const X = gx + i + OUTER.off, Y = gy + j + OUTER.off; if (X < 0 || Y < 0 || X >= OUTER.n || Y >= OUTER.n) continue; const s = S[Y * OUTER.n + X], d = (s[0] - wx) ** 2 + (s[1] - wy) ** 2;
+      if (d < d1) { d2 = d1; s2 = s1; d1 = d; s1 = s; } else if (d < d2) { d2 = d; s2 = s; } }
+    if (s1) { const gap = Math.sqrt(d2) - Math.sqrt(d1), w2 = s2 && s2[2] !== s1[2] ? 0.5 * (1 - smooth01g(0, 420, gap)) : 0;
+      M[4] = s1[2]; M[5] = (1 - w2) * t; M[6] = s2 ? s2[2] : s1[2]; M[7] = w2 * t; } }
+  return M;
 }
 /* discovery: region names and resources stay hidden until the player explores them */
 function isDiscovered(i) { return !!(W.player && W.player.region === i) || !!(typeof S !== 'undefined' && S && S.discovered && S.discovered[i]); }
 function discoverRegion(i, quiet) { if (isDiscovered(i)) return false; S.discovered = S.discovered || {}; S.discovered[i] = true; if (!quiet && typeof toast === 'function') toast(`🗺️ Discovered ${REGIONS[i].icon} ${REGIONS[i].name}!`); if (typeof save === 'function') save(); return true; }
 function regionName(i) { return isDiscovered(i) ? REGIONS[i].name : 'the unexplored lands'; }
-function regionAt(x, y) { return Math.floor(regionF(x, y)) % NREG; }
-function regionAngle(i) { return ((i + 0.5) / NREG) * TAU - Math.PI; }
+function regionAt(x, y) { const M = regionMix(x, y); let b = M[0], bw = M[1]; for (let k = 2; k < 8; k += 2) if (M[k + 1] > bw) { bw = M[k + 1]; b = M[k]; } return b; }
+function regionAngle(i) { return ((i + 0.5) / NREG_IN) * TAU - Math.PI; }
 function hollowR(a) { let r = 1; for (const [k, amp, ph] of W.hTerms) r += amp * Math.sin(k * a + ph); return CITY.hollowR * r; }
 function hollowDist(x, y) { return Math.hypot(x, y) - hollowR(Math.atan2(y, x)); } // >0 outside
 function ringR(i, a) { const [p1, p2] = W.ringPh[i]; return CITY.ringRoads[i] + 40 * Math.sin(3 * a + p1) + 22 * Math.sin(5 * a + p2); }
@@ -1533,20 +1572,36 @@ function generateCity() {
 
   // Cracks: wide side-chasms + narrow fissures, branching outward
   W.cracks = []; W.crackGrid = new Map();
-  const addCrack = (x, y, ang, len, w0, w1, depth) => {
-    const step = 36, n = Math.max(3, Math.ceil(len / step)); const pts = [[x, y]], ws = [w0]; let a = ang, cx = x, cy = y;
-    for (let i = 1; i <= n; i++) { const rad = Math.atan2(cy, cx); a += (rnd() - 0.5) * 0.55; { let d = rad - a; d = ((d + 3 * Math.PI) % TAU) - Math.PI; a += d * 0.15; } cx += Math.cos(a) * step; cy += Math.sin(a) * step;
-      if (Math.hypot(cx, cy) > R - 60) break; pts.push([cx, cy]); ws.push(w0 + (w1 - w0) * (i / n)); }
-    const c = { pts, ws, wide: w0 > 60, depth }; W.cracks.push(c);
+  const addCrack = (x, y, ang, len, w0, w1, depth, o) => {
+    o = o || {}; const step = 36, n = Math.max(3, Math.ceil(len / step)); const pts = [[x, y]], ws = [w0]; let a = ang, cx = x, cy = y;
+    for (let i = 1; i <= n; i++) { const rad = Math.atan2(cy, cx) + (o.inward ? Math.PI : 0); a += (rnd() - 0.5) * 0.55; { let d = rad - a; d = ((d + 3 * Math.PI) % TAU) - Math.PI; a += d * (o.bias == null ? 0.15 : o.bias); } cx += Math.cos(a) * step; cy += Math.sin(a) * step;
+      if (Math.hypot(cx, cy) > R - 140 || (o.inward && hollowDist(cx, cy) < 160)) break; pts.push([cx, cy]); ws.push(w0 + (w1 - w0) * (i / n)); }
+    const c = { pts, ws, wide: w0 > 60, depth, glow: !!o.glow, outer: !!o.outer }; W.cracks.push(c);
     for (let i = 0; i < pts.length - 1; i++) segGridAdd(W.crackGrid, { x1: pts[i][0], y1: pts[i][1], x2: pts[i + 1][0], y2: pts[i + 1][1], w: Math.max(ws[i], ws[i + 1]), w1: ws[i], w2: ws[i + 1] }, 160);
-    if (depth < 2) { const nb = c.wide ? 3 : 1; for (let b = 0; b < nb; b++) if (rnd() < 0.7 && pts.length > 6) { const j = Math.floor(pts.length * (0.3 + rnd() * 0.5)); const side = rnd() < 0.5 ? -1 : 1; addCrack(pts[j][0], pts[j][1], a + side * (0.6 + rnd() * 0.6), len * (0.3 + rnd() * 0.3), ws[j] * 0.45, 2, depth + 1); } }
+    if (depth < 2) { const nb = c.wide ? 3 : 1; for (let b = 0; b < nb; b++) if (rnd() < 0.7 && pts.length > 6) { const j = Math.floor(pts.length * (0.3 + rnd() * 0.5)); const side = rnd() < 0.5 ? -1 : 1; addCrack(pts[j][0], pts[j][1], a + side * (0.6 + rnd() * 0.6), len * (0.3 + rnd() * 0.3), ws[j] * 0.45, 2, depth + 1, { glow: o.glow, bias: o.bias }); } }
     return c;
   };
   const crackAngles = [];
   const wideAt = [regionAngle(2) + 0.1, regionAngle(4) - 0.05, regionAngle(6) + 0.12];
-  for (const a of wideAt) { crackAngles.push(a); addCrack(...polar(hollowR(a) - 30, a), a, 1350 + rnd() * 350, 120 + rnd() * 30, 26, 0); }
+  // the great chasms run from the Hollow far out into the lands
+  for (const a of wideAt) { crackAngles.push(a); addCrack(...polar(hollowR(a) - 30, a), a, 4200 + rnd() * 2600, 130 + rnd() * 30, 30, 0, { glow: true }); }
   for (let i = 0; i < 10; i++) { let a; do { a = rnd() * TAU - Math.PI; } while (crackAngles.some((b) => Math.abs(((a - b + 3 * Math.PI) % TAU) - Math.PI) < 0.22) || Math.abs(((a - la + 3 * Math.PI) % TAU) - Math.PI) < 0.3);
-    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 450 + rnd() * 800, 22 + rnd() * 22, 3, 0); }
+    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 700 + rnd() * 1600, 22 + rnd() * 22, 3, 0); }
+  // out in the far lands the earth is splitting open: fissure systems that point back toward the Hollow; some breathe Lumen
+  W.rifts = [];
+  for (let i = 0, made = 0; i < 400 && made < 34; i++) { const a = rnd() * TAU - Math.PI, r = 4200 + Math.sqrt(rnd()) * (R - 5200), [x, y] = polar(r, a);
+    if (W.cracks.some((c) => c.depth === 0 && Math.hypot(c.pts[0][0] - x, c.pts[0][1] - y) < 1500)) continue; made++;
+    const inward = rnd() < 0.6, glow = rnd() < 0.4, w0 = 34 + rnd() * 48;
+    addCrack(x, y, a + (inward ? Math.PI : 0) + (rnd() - 0.5) * 0.6, 1100 + rnd() * 2200, w0, 4, 0, { inward, glow, bias: 0.08, outer: true }); }
+  // lava: cracks that run through the Emberwound fill with molten rock, which seeps out across the ground in flows
+  W.lavaFlows = [];
+  const lavaFlow = (x, y, a, len, w0, stopOcc) => { const pts = [[x, y]], ws = [w0]; const n = Math.ceil(len / 22);
+    for (let i = 1; i <= n; i++) { a += (rnd() - 0.5) * 0.7; const nx = x + Math.cos(a) * 22, ny = y + Math.sin(a) * 22; if (regionAt(nx, ny) !== OUTER.LAVA || Math.hypot(nx, ny) > R - 160 || (stopOcc && !occFree(OCC.obj, nx, ny, 4))) break; x = nx; y = ny; pts.push([x, y]); ws.push(w0 * (1 - 0.8 * i / n) + 2); }
+    if (pts.length < 3) return null; const f = { pts, ws, bbox: bboxOf(pts, w0 + 30), ph: rnd() * TAU }; W.lavaFlows.push(f); for (const p of pts) occMark(OCC.obj, p[0], p[1], w0 * 0.6 + 4); return f; };
+  for (const c of W.cracks) { let nl = 0; for (const p of c.pts) if (regionAt(p[0], p[1]) === OUTER.LAVA) nl++; c.lava = nl > c.pts.length * 0.4; if (c.lava) { c.glow = false;
+      const nf = 1 + Math.floor(rnd() * 3 + c.pts.length / 30); for (let k = 0; k < nf; k++) { const j = 1 + Math.floor(rnd() * (c.pts.length - 2)), p = c.pts[j], q = c.pts[j + 1]; const ang = Math.atan2(q[1] - p[1], q[0] - p[0]) + (rnd() < 0.5 ? 1 : -1) * (1.2 + rnd() * 0.6), off = c.ws[j] / 2 + 2;
+        lavaFlow(p[0] + Math.cos(ang) * off, p[1] + Math.sin(ang) * off, ang, 160 + rnd() * 420, 9 + rnd() * 10); } } }
+  W.rifts = W.cracks.filter((c) => c.outer && c.depth === 0 && c.glow && !c.lava && c.pts.length > 6).slice(0, 10);
   // Polygon outlines for cracks
   for (const c of W.cracks) { const L = [], Rr = []; for (let i = 0; i < c.pts.length; i++) { const p = c.pts[i], q = c.pts[Math.min(i + 1, c.pts.length - 1)], o = c.pts[Math.max(i - 1, 0)];
       const ang = Math.atan2(q[1] - o[1], q[0] - o[0]), nx = -Math.sin(ang), ny = Math.cos(ang), w = c.ws[i] / 2 * (0.85 + hash2(i, c.pts.length) * 0.3);
@@ -1562,6 +1617,11 @@ function generateCity() {
       const m = { type: 'market', x, y, r: 66, region: ri, name: `${reg.name.split(' ')[0]} Bazaar`, idx: W.markets.length, stalls: [] };
       for (let k = 0; k < 10; k++) { const ang = (k / 10) * TAU + rnd() * 0.2; m.stalls.push({ a: ang, c: ['#c8634c', '#e2b04a', '#4f8c8a', '#7a5fa0', '#d98a3a'][Math.floor(rnd() * 5)] }); }
       W.markets.push(m); W.civic.push(m); occMark(OCC.obj, x, y, 80); break; } });
+  { const best = outerSites().filter((s) => s[2] === OUTER.LAVA && Math.hypot(s[0], s[1]) > 4300).sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]))[0];
+    for (let tries = 0; best && tries < 160; tries++) { const x = best[0] + (rnd() - 0.5) * 1800, y = best[1] + (rnd() - 0.5) * 1800; if (regionAt(x, y) !== OUTER.LAVA || Math.hypot(x, y) > R - 300 || !siteOK(x, y, 80)) continue;
+      const m = { type: 'market', x, y, r: 66, region: OUTER.LAVA, name: 'Cinderglass Bazaar', idx: W.markets.length, stalls: [] };
+      for (let k = 0; k < 10; k++) m.stalls.push({ a: (k / 10) * TAU + rnd() * 0.2, c: ['#c8634c', '#e2b04a', '#3a2e2c', '#d98a3a'][Math.floor(rnd() * 4)] });
+      W.markets.push(m); W.civic.push(m); occMark(OCC.obj, x, y, 80); break; } }
   const vaultNames = ['The Deepcoin Vault', 'Old Ledger Vault', 'Gullwing Strongrooms', 'The Amber Coffers', 'Marrow & Daughters Vault', 'Undercliff Depository'];
   for (let k = 0; k < 6; k++) for (let tries = 0; tries < 40; tries++) { const a = rnd() * TAU - Math.PI, r = (rnd() < 0.5 ? 1100 : 2600) + rnd() * 200, [x, y] = polar(r, a); if (!siteOK(x, y, 58)) continue;
     const v = { type: 'vault', x, y, r: 44, region: regionAt(x, y), name: vaultNames[k], idx: W.vaults.length }; W.vaults.push(v); W.civic.push(v); occMark(OCC.obj, x, y, 58); break; }
@@ -1582,6 +1642,10 @@ function generateCity() {
   lmAt(regionAngle(8) - 0.2, 150, 'memorial', 'The Wall of Lanterns Out', 40);
   { const c = W.cracks.find((k) => k.wide && k.pts.length > 10); const e = c.pts[c.pts.length - 1], q = c.pts[c.pts.length - 3]; const ang = Math.atan2(e[1] - q[1], e[0] - q[0]);
     const x = e[0] + Math.cos(ang) * 46, y = e[1] + Math.sin(ang) * 46; const lm = { type: 'gate', x, y, r: 34, name: 'The Undergate', a: ang, region: regionAt(x, y) }; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 52); }
+
+  const riftNames = ['The Lumen Throat', 'Glimmerdrop', 'The Breathing Rift', 'Old Delver\'s Mouth', 'The Pale Stair', 'Moth Rift', 'Wickfall Cleft', 'The Second Hollow?', 'Murmur Gap', 'Lanternfall Rift'];
+  W.rifts.forEach((c, i) => { const p = c.pts[0], q = c.pts[2]; const ang = Math.atan2(p[1] - q[1], p[0] - q[0]); const x = p[0] + Math.cos(ang) * 40, y = p[1] + Math.sin(ang) * 40;
+    const lm = { type: 'rift', x, y, r: 30, name: riftNames[i % riftNames.length], a: ang, crack: c, region: regionAt(x, y) }; c.mouth = lm; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 60); });
 
   // Homes (Lanternholds): a dense old city around the Hollow that thins outward, plus villages in the far lands
   W.homes = []; const used = new Set();
@@ -1612,8 +1676,8 @@ function generateCity() {
   // far lands: villages and lone farmsteads
   W.villages = [];
   const VP = CITY.villageP;
-  for (let gx = -CITY.R; gx < CITY.R; gx += 900) for (let gy = -CITY.R; gy < CITY.R; gy += 900) {
-    const cx = gx + 150 + rnd() * 600, cy = gy + 150 + rnd() * 600, r = Math.hypot(cx, cy), q = rnd(), vr = 140 + rnd() * 280, n = Math.round(6 + rnd() * 34);
+  for (let gx = -CITY.R; gx < CITY.R; gx += 800) for (let gy = -CITY.R; gy < CITY.R; gy += 800) {
+    const cx = gx + 130 + rnd() * 540, cy = gy + 130 + rnd() * 540, r = Math.hypot(cx, cy), q = rnd(), vr = 150 + rnd() * 300, n = Math.round(8 + rnd() * 52);
     if (r < INNER + 250 || r > CITY.R - 400) continue; const k = REGIONS[regionAt(cx, cy)].key; if (q > (VP[k] || 0.4)) continue;
     const v = { x: cx, y: cy, r: vr, n: 0 }; W.villages.push(v);
     for (let i = 0; i < n * 2 && v.n < n; i++) { const a = i * 2.39996 + rnd() * 0.5, d = vr * Math.sqrt((i + 0.5) / (n * 2)) * (0.85 + rnd() * 0.3); if (addHome(cx + Math.cos(a) * d, cy + Math.sin(a) * d, a + Math.PI + (rnd() - 0.5) * 0.8, 0.6)) v.n++; }
@@ -1627,11 +1691,11 @@ function generateCity() {
   W.objs = [];
   const add = (o) => { W.objs.push(o); return o; };
   W.windmills = []; W.chimneys = []; W.crystals = []; W.mines = []; W.posts = []; W.kilns = []; W.piers = [];
-  for (let gx = -R; gx < R; gx += 52) for (let gy = -R; gy < R; gy += 52) {
-    const x = gx + rnd() * 46, y = gy + rnd() * 46, r = Math.hypot(x, y);
-    if (r > R - 20 || hollowDist(x, y) < 45 || chasmDist(x, y) < 10) continue;
+  W.vents = []; W.lavaPools = [];
+  const decorAt = (x, y) => { const r = Math.hypot(x, y);
+    if (r > R - 60 || hollowDist(x, y) < 45 || chasmDist(x, y) < 10) return;
     const ri = regionAt(x, y), k = REGIONS[ri].key, q = rnd();
-    const wet = isWet(x, y, 6); if (wet) continue;
+    const wet = isWet(x, y, 6); if (wet) return;
     const free = (rr) => occFree(OCC.road, x, y, rr * 0.7) && occFree(OCC.obj, x, y, rr);
     const deco = (o) => { if (occFree(OCC.road, x, y, (o.r || 20) * 0.5)) add(Object.assign({ x, y, layer: 0, region: ri, seed: rnd() }, o)); };
     const obj = (o) => { if (free(o.r)) { add(Object.assign({ x, y, layer: 1, region: ri, seed: rnd() }, o)); occMark(OCC.obj, x, y, o.r); return true; } return false; };
@@ -1643,8 +1707,12 @@ function generateCity() {
     else if (k === 'farms') { if (q < 0.36) deco({ type: 'field', r: 46 + rnd() * 18, a: rnd() * Math.PI, c: rnd() }); else if (q < 0.41) obj({ type: 'hay', r: 7 }); else if (q < 0.425) { if (obj({ type: 'windmill', r: 18 })) W.windmills.push(W.objs[W.objs.length - 1]); } else if (q < 0.46) obj({ type: 'tree', r: 13 }); }
     else if (k === 'badlands') { if (q < 0.26) deco({ type: 'cracked', r: 36, a: rnd() * TAU }); else if (q < 0.32) obj({ type: 'slag', r: 18 + rnd() * 8 }); else if (q < 0.335) { if (obj({ type: 'chimney', r: 14 })) W.chimneys.push(W.objs[W.objs.length - 1]); } else if (q < 0.43) obj({ type: 'rock', r: 10 }); else if (q < 0.46) obj({ type: 'deadtree', r: 10 }); }
     else if (k === 'moss') { if (q < 0.3) deco({ type: 'mosspatch', r: 34 + rnd() * 20 }); else if (q < 0.37) { if (obj({ type: 'post', r: 6 })) W.posts.push(W.objs[W.objs.length - 1]); } else if (q < 0.53) obj({ type: 'tree', r: 14 + rnd() * 5, mossy: 1 }); else if (q < 0.55) obj({ type: 'pond', r: 22 }); }
+    else if (k === 'lava') { if (q < 0.022) { deco({ type: 'lavapool', r: 26 + rnd() * 14 }); W.lavaPools.push(W.objs[W.objs.length - 1]); } else if (q < 0.07) obj({ type: 'basalt', r: 16 + rnd() * 10 }); else if (q < 0.085) { if (obj({ type: 'vent', r: 18 + rnd() * 8 })) W.vents.push(W.objs[W.objs.length - 1]); } else if (q < 0.12) obj({ type: 'obsidian', r: 14 + rnd() * 8 }); else if (q < 0.15) obj({ type: 'deadtree', r: 10 }); else if (q < 0.2) deco({ type: 'cracked', r: 36, a: rnd() * TAU }); }
     else if (k === 'amber') { if (q < 0.3) obj({ type: 'orchard', r: 12 }); else if (q < 0.42) obj({ type: 'tree', r: 15, autumn: 1 }); else if (q < 0.45) obj({ type: 'rock', r: 8 }); else if (q < 0.5) deco({ type: 'leaves', r: 26 }); }
-  }
+  };
+  for (let gx = -3500; gx < 3500; gx += 52) for (let gy = -3500; gy < 3500; gy += 52) { const x = gx + rnd() * 46, y = gy + rnd() * 46; if (Math.hypot(x, y) < 3400) decorAt(x, y); }
+  for (let gx = -R; gx < R; gx += 66) for (let gy = -R; gy < R; gy += 66) { const x = gx + rnd() * 58, y = gy + rnd() * 58; if (Math.hypot(x, y) >= 3400) decorAt(x, y); }
+  for (const v of W.vents) if (rnd() < 0.7) { const a = rnd() * TAU; lavaFlow(v.x + Math.cos(a) * (v.r + 6), v.y + Math.sin(a) * (v.r + 6), a, 90 + rnd() * 220, 7 + rnd() * 6, true); }
   // Flora is scattered at paint time from a world-seeded hash (see artFlora), so it costs no memory
   // Piers on the lake shore
   for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
@@ -1678,11 +1746,9 @@ function queryObjs(x0, y0, x1, y1, pad, ext) {
    ===================================================================== */
 const FOG = [62, 88, 84];
 function groundRGB(x, y) {
-  const f = regionF(x, y), i = Math.floor(f) % NREG, fr = f - Math.floor(f);
-  let c = REGIONS[i].ground;
-  const edge = 0.14;
-  if (fr > 1 - edge) { const n = REGIONS[(i + 1) % NREG].ground, t = (fr - (1 - edge)) / (2 * edge); c = mix(c, n, t); }
-  else if (fr < edge) { const p = REGIONS[(i + NREG - 1) % NREG].ground, t = (edge - fr) / (2 * edge); c = mix(c, p, t); }
+  const M = regionMix(x, y); let c = [0, 0, 0], sw = 0;
+  for (let q = 0; q < 8; q += 2) { const w = M[q + 1]; if (w <= 0) continue; const g = REGIONS[M[q]].ground; c[0] += g[0] * w; c[1] += g[1] * w; c[2] += g[2] * w; sw += w; }
+  c = [c[0] / sw, c[1] / sw, c[2] / sw];
   const n = 0.9 + vnoise(x / 140, y / 140) * 0.14 + vnoise(x / 40, y / 40) * 0.05;
   c = [c[0] * n, c[1] * n, c[2] * n];
   const hd = hollowDist(x, y); if (hd < 140) c = mix(c, [205, 182, 138], clamp(1 - hd / 140, 0, 1) * 0.55);
@@ -1918,11 +1984,11 @@ function drawHome(c, h, s) {
 const ART = { ok: false, ready: false, failed: false, atlas: [], tex: {}, mips: {}, pats: {}, hollow: null, sil: {}, progress: 0 };
 const ART_BASE = 'assets/';
 const CROPS = ['wheat', 'cabbage', 'pumpkin', 'lavender', 'corn', 'vines', 'furrows', 'sunflower'];
-const TEX_KEYS = ['grass', 'sand', 'rock', 'forest', 'crystal', 'farm', 'badlands', 'moss', 'orchard', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff'].concat(CROPS);
+const TEX_KEYS = ['grass', 'sand', 'rock', 'forest', 'crystal', 'farm', 'badlands', 'moss', 'orchard', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff', 'lava'].concat(CROPS);
 // world units covered by one 512px texture tile
-const TEX_WORLD = { grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120, wall: 640, cliff: 70, wheat: 70, cabbage: 60, pumpkin: 70, lavender: 60, corn: 70, vines: 70, furrows: 70, sunflower: 60 };
-const REGION_TEX = { docks: 'grass', dunes: 'sand', bluffs: 'rock', wood: 'forest', crystal: 'crystal', farms: 'grass', badlands: 'badlands', moss: 'moss', amber: 'orchard' };
-const REGION_BLD = { docks: 'b_lake', dunes: 'b_sand', bluffs: 'b_cliff', wood: 'b_forest', crystal: 'b_crystal', farms: 'b_farm', badlands: 'b_forge', moss: 'b_garden', amber: 'b_orchard' };
+const TEX_WORLD = { grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120, wall: 640, cliff: 70, lava: 300, wheat: 70, cabbage: 60, pumpkin: 70, lavender: 60, corn: 70, vines: 70, furrows: 70, sunflower: 60 };
+const REGION_TEX = { docks: 'grass', dunes: 'sand', bluffs: 'rock', wood: 'forest', crystal: 'crystal', farms: 'grass', badlands: 'badlands', moss: 'moss', amber: 'orchard', lava: 'lava' };
+const REGION_BLD = { docks: 'b_lake', dunes: 'b_sand', bluffs: 'b_cliff', wood: 'b_forest', crystal: 'b_crystal', farms: 'b_farm', badlands: 'b_forge', moss: 'b_garden', amber: 'b_orchard', lava: 'b_lava' };
 
 function loadArt(onProgress, onDone) {
   if (ART.loading) return; ART.loading = true;
@@ -1990,20 +2056,18 @@ const pickOf = (arr, seed) => arr[Math.floor(seed * 9973) % arr.length];
 const TG = 17; const maskCv = document.createElement('canvas'); maskCv.width = maskCv.height = TG; const maskCtx = maskCv.getContext('2d'); const maskImg = maskCtx.createImageData(TG, TG);
 const smooth01 = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 function terrainWeights(x, y, out) {
-  const f = regionF(x, y), i = Math.floor(f) % NREG, fr = f - Math.floor(f), edge = 0.12;
-  let wi = 1, wn = 0, n = -1;
-  if (fr > 1 - edge) { n = (i + 1) % NREG; wn = smooth01(1 - edge, 1 + edge, fr) ; wi = 1 - wn; }
-  else if (fr < edge) { n = (i + NREG - 1) % NREG; wn = 1 - smooth01(-edge, edge, fr); wi = 1 - wn; }
+  const M = regionMix(x, y);
   const add = (k, w) => { if (w > 0) out[k] = (out[k] || 0) + w; };
   const put = (ri, w) => {
     const key = REGIONS[ri].key, tk = REGION_TEX[key];
     if (key === 'farms') { const m = smooth01(0.42, 0.58, vnoise(x / 260 + 7, y / 260)); add('farm', w * m); add('grass', w * (1 - m)); }
     else if (key === 'wood') { const m = smooth01(0.5, 0.75, vnoise(x / 180, y / 180 + 3)); add('grass', w * m * 0.7); add('forest', w * (1 - m * 0.7)); }
     else if (key === 'moss') { const m = smooth01(0.55, 0.8, vnoise(x / 200 + 2, y / 200)); add('grass', w * m * 0.6); add('moss', w * (1 - m * 0.6)); }
+    else if (key === 'lava') { const m = smooth01(0.5, 0.72, vnoise(x / 230 + 5, y / 230 - 2)); add('badlands', w * m * 0.6); add('lava', w * (1 - m * 0.6)); }
     else if (key === 'bluffs') { const m = smooth01(0.45, 0.7, vnoise(x / 160 + 4, y / 160)); add('grass', w * m * 0.55); add('rock', w * (1 - m * 0.55)); }
     else add(tk, w);
   };
-  put(i, wi); if (n >= 0) put(n, wn);
+  for (let q = 0; q < 8; q += 2) if (M[q + 1] > 0) put(M[q], M[q + 1]);
   // sandy-dirt lip around the Hollow and along cracks
   const hd = hollowDist(x, y); const lip = clamp(1 - hd / 150, 0, 1) * 0.75;
   if (lip > 0) { for (const k in out) out[k] *= (1 - lip); add('dirt', lip); }
@@ -2011,7 +2075,7 @@ function terrainWeights(x, y, out) {
 }
 /* World-anchored terrain maps: weights are sampled ONCE on a fixed world grid, so every zoom level and
    every tile blends regions identically (no borders shifting or textures popping while zooming). */
-const TMAP = { G: 32, n: 0, RW: 0, keys: ['grass', 'farm', 'forest', 'moss', 'rock', 'sand', 'badlands', 'crystal', 'orchard', 'dirt'], w: {}, mask: {}, macro: null, fog: null };
+const TMAP = { G: 44, n: 0, RW: 0, keys: ['grass', 'farm', 'forest', 'moss', 'rock', 'sand', 'badlands', 'crystal', 'orchard', 'lava', 'dirt'], w: {}, mask: {}, macro: null, fog: null };
 function buildTerrainMaps() {
   const G = TMAP.G, RW = CITY.R + 640, n = Math.ceil((2 * RW) / G) + 1; TMAP.n = n; TMAP.RW = RW;
   for (const k of TMAP.keys) TMAP.w[k] = new Float32Array(n * n);
@@ -2152,7 +2216,22 @@ function artCrack(c, k, s) {
   for (let i = 0; i < 4; i++) { pathPoly(c, k.poly.map((p) => [p[0], p[1] + d * (0.55 + i * 0.12)])); c.fillStyle = 'rgba(8,8,20,.16)'; c.fill(); }
   c.lineCap = 'round';
   c.strokeStyle = 'rgba(6,6,18,.6)'; c.lineWidth = mw * 0.3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8]));
-  if (k.wide) { c.strokeStyle = 'rgba(255,200,110,.22)'; c.lineWidth = 3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8])); }
+  if (k.lava) { // molten floor: crusted edges, orange body, bright seam
+    const lp = k.pts.map((p) => [p[0] + 1, p[1] + d * 0.62]);
+    c.strokeStyle = 'rgba(120,30,10,.95)'; c.lineWidth = mw * 0.72; polyStroke(c, lp);
+    c.strokeStyle = 'rgba(235,90,20,.95)'; c.lineWidth = mw * 0.5; polyStroke(c, lp);
+    c.strokeStyle = 'rgba(255,190,70,.9)'; c.lineWidth = Math.max(1.5, mw * 0.18); polyStroke(c, lp);
+    c.strokeStyle = 'rgba(40,20,14,.55)'; c.lineWidth = Math.max(1, mw * 0.06); c.setLineDash([6, 11]); polyStroke(c, lp); c.setLineDash([]); }
+  else if (k.glow) { const lp = k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8]); c.strokeStyle = 'rgba(120,220,255,.28)'; c.lineWidth = mw * 0.32; polyStroke(c, lp); c.strokeStyle = 'rgba(210,250,255,.55)'; c.lineWidth = Math.max(1.2, mw * 0.07); polyStroke(c, lp); }
+  else if (k.wide) { c.strokeStyle = 'rgba(255,200,110,.22)'; c.lineWidth = 3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8])); }
+  c.restore();
+  if (k.lava) { c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(255,110,30,.10)'; c.lineWidth = mw * 1.5; c.lineJoin = 'round'; c.lineCap = 'round'; polyStroke(c, k.pts); c.restore(); }
+}
+function artLavaFlow(c, f, s) {
+  c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
+  const seg = (col, wf, add, dy) => { c.strokeStyle = col; for (let i = 0; i < f.pts.length - 1; i++) { c.lineWidth = Math.max(0.8, f.ws[i] * wf + add); c.beginPath(); c.moveTo(f.pts[i][0], f.pts[i][1] + (dy || 0)); c.lineTo(f.pts[i + 1][0], f.pts[i + 1][1] + (dy || 0)); c.stroke(); } };
+  seg('rgba(25,14,10,.55)', 1, 8, 2); seg('rgba(70,30,20,1)', 1, 5); seg('rgba(200,60,15,1)', 1, 0); seg('rgba(255,140,40,.95)', 0.6, 0); seg('rgba(255,220,120,.8)', 0.22, 0);
+  if (s > 0.2) { c.setLineDash([3, 9]); seg('rgba(50,24,16,.7)', 0.12, 0.6); c.setLineDash([]); }
   c.restore();
 }
 function artRoad(c, rd, s, x0, y0, x1, y1) {
@@ -2211,6 +2290,7 @@ const FLORA = {
   badlands: ['p_rocks_2', 'p_rocks_3', 'p_rocks_8', 'p_rocks_5', 'p_rocks_1'],
   moss: ['p_garden_0', 'p_garden_1', 'p_garden_6', 'p_garden_7', 'p_garden_4', 'p_garden_2', 'p_garden_0'],
   amber: ['p_orchard_5', 'p_orchard_7', 'p_orchard_8', 'p_orchard_6', 'p_orchard_5'],
+  lava: ['p_lava_7', 'p_lava_7', 'p_lava_4', 'p_rocks_8', 'p_rocks_2'],
 };
 const TREES = { docks: ['p_forest_0', 'p_forest_5', 'p_forest_4'], wood: ['p_forest_0', 'p_forest_0', 'p_forest_4', 'p_forest_5', 'p_forest_7'], moss: ['p_garden_8', 'p_forest_4', 'p_forest_0', 'p_garden_8'], farms: ['p_forest_0', 'p_forest_5'], amber: ['p_orchard_1', 'p_orchard_2', 'p_orchard_4'], def: ['p_forest_0'] };
 function homeTier(level) { return level <= 3 ? 0 : level <= 7 ? 1 : level <= 13 ? 2 : level <= 20 ? 3 : level <= 29 ? 4 : 5; }
@@ -2219,7 +2299,7 @@ function homeSeed(h) { return ((h.lanternPhase || 0) / TAU) % 1; }
 function homeSprite(h) { const k = REGION_BLD[REGIONS[h.region].key], t = h === W.player ? Math.min(5, Math.floor(h.level / 2)) : homeTier(h.level); const alt = h !== W.player && (homeSeed(h) * 7.31) % 1 < 0.5; const n = (alt ? k.replace('b_', 'b2_') : k) + '_' + t; return ART_MANIFEST.s[n] ? n : k + '_' + t; }
 function homeFlip(h) { return h !== W.player && (homeSeed(h) * 13.7) % 1 < 0.5; }
 // little yard details around homes: laundry, fences, vegetable plots, woodpiles, coops, wells, benches, herb beds, barrels
-const YARD = { docks: [0, 1, 8, 6], dunes: [8, 6, 7], bluffs: [7, 1, 5, 2], wood: [3, 3, 0, 8], crystal: [3, 8, 5], farms: [2, 4, 1, 0, 2], badlands: [8, 3, 5], moss: [7, 1, 2, 6], amber: [2, 8, 1, 4] };
+const YARD = { docks: [0, 1, 8, 6], dunes: [8, 6, 7], bluffs: [7, 1, 5, 2], wood: [3, 3, 0, 8], crystal: [3, 8, 5], farms: [2, 4, 1, 0, 2], badlands: [8, 3, 5], moss: [7, 1, 2, 6], amber: [2, 8, 1, 4], lava: [8, 3, 5] };
 const YARD_W = [26, 22, 24, 18, 22, 16, 14, 18, 12];
 function homeYard(h, w) {
   if (h === W.player) return [];
@@ -2252,9 +2332,13 @@ function artObj(c, o, s) {
     case 'orchard': return tree(sd < 0.6 ? 'p_orchard_0' : 'p_orchard_3', o.r * 2.9);
     case 'pine': return tree(sd < 0.55 ? 'p_forest_1' : 'p_forest_2', o.r * 2.3);
     case 'palm': return tree(sd < 0.45 ? 'p_desert_0' : sd < 0.75 ? 'p_desert_1' : 'p_desert_2', o.r * 2.8);
-    case 'deadtree': return tree(pickOf(['p_rocks_0', 'p_rocks_1', 'p_rocks_2'], sd), o.r * 3.8);
+    case 'deadtree': if (key === 'lava') return tree('p_lava_3', o.r * 4.2); return tree(pickOf(['p_rocks_0', 'p_rocks_1', 'p_rocks_2'], sd), o.r * 3.8);
     case 'rock': case 'boulder': { const name = key === 'badlands' ? pickOf(['p_rocks_3', 'p_rocks_4'], sd) : key === 'crystal' ? 'p_crystal_8' : key === 'dunes' ? 'p_desert_7' : pickOf(['p_rocks_6', 'p_rocks_7'], sd); softShadow(c, o.x + o.r * 0.3, o.y + o.r * 0.15, o.r * 1.2, o.r * 0.55, 0.8); drawSprite(c, name, o.x, o.y, o.r * 2.5, 0.5, 0.75, sd > 0.5); return; }
     case 'crystal': softShadow(c, o.x + 4, o.y + 2, o.r * 1.1, o.r * 0.5, 0.7); drawSprite(c, pickOf(['p_crystal_0', 'p_crystal_1', 'p_crystal_2', 'p_crystal_3', 'p_crystal_4', 'p_crystal_6', 'p_crystal_7'], sd), o.x, o.y, o.r * 2.5, 0.5, 0.78, sd > 0.5); return;
+    case 'vent': softShadow(c, o.x + 6, o.y + 3, o.r * 1.3, o.r * 0.55, 0.8); drawSprite(c, sd < 0.6 ? 'p_lava_1' : 'p_lava_6', o.x, o.y, o.r * 3, 0.5, 0.8, sd > 0.8); return;
+    case 'obsidian': softShadow(c, o.x + 4, o.y + 2, o.r * 1.1, o.r * 0.45, 0.8); drawSprite(c, sd < 0.5 ? 'p_lava_0' : 'p_lava_4', o.x, o.y, o.r * 2.4, 0.5, 0.82, sd > 0.75); return;
+    case 'basalt': softShadow(c, o.x + 5, o.y + 3, o.r * 1.2, o.r * 0.5, 0.8); drawSprite(c, sd < 0.5 ? 'p_lava_2' : 'p_lava_8', o.x, o.y, o.r * 2.5, 0.5, 0.8, sd > 0.7); return;
+    case 'rift': softShadow(c, o.x + 8, o.y + 6, o.r * 1.4, o.r * 0.7, 0.9); drawSprite(c, 'landmarks_2', o.x, o.y, o.r * 3, 0.5, 0.82); return;
     case 'slag': softShadow(c, o.x + 4, o.y + 2, o.r * 1.1, o.r * 0.5, 0.7); drawSprite(c, 'p_rocks_5', o.x, o.y, o.r * 2.3, 0.5, 0.7, sd > 0.5); return;
     case 'hay': drawSprite(c, 'props2_4', o.x, o.y, 20, 0.5, 0.75); return;
     case 'windmill': softShadow(c, o.x + 8, o.y + 4, 22, 11, 0.9); drawSprite(c, 'props_0', o.x, o.y, 58, 0.55, 0.86); return;
@@ -2299,6 +2383,7 @@ function artDecal(c, o, s) {
       c.strokeStyle = 'rgba(255,238,200,.16)'; c.lineWidth = o.r * 0.14; c.beginPath(); c.arc(0, 0, o.r, Math.PI * 1.2, Math.PI * 1.8); c.stroke(); c.restore(); return; }
     case 'cracked': c.save(); c.globalAlpha = 0.55; drawDecal(c, o, s); c.restore(); return;
     case 'slag': softShadow(c, o.x + o.r * 0.3, o.y + o.r * 0.15, o.r, o.r * 0.45, 0.6); drawSprite(c, 'p_rocks_5', o.x, o.y, o.r * 1.9, 0.5, 0.7, o.seed > 0.5); return;
+    case 'lavapool': softShadow(c, o.x + 4, o.y + 4, o.r * 1.2, o.r * 0.6, 0.6); drawSprite(c, 'p_lava_5', o.x, o.y, o.r * 2.3, 0.5, 0.6, o.seed > 0.5); return;
     case 'mosspatch': drawSprite(c, 'p_garden_0', o.x, o.y, o.r * 0.9, 0.5, 0.7, o.seed > 0.5); return;
     default: return drawDecal(c, o, s);
   }
@@ -2310,11 +2395,12 @@ function artStatic(c, x0, y0, x1, y1, s) {
   artWater(c, x0, y0, x1, y1, s);
   if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) { artHollow(c, s, x0, y0, x1, y1); const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), e = [e0[0] + e0[0] / d * 50, e0[1] + e0[1] / d * 50]; softShadow(c, e[0] + 8, e[1] + 60, 46, 22, 0.8); drawSprite(c, 'props2_2', e[0], e[1], 92, 0.42, 0.1); }
   for (const k of W.cracks) if (boxHit(k.bbox, x0, y0, x1, y1)) artCrack(c, k, s);
+  for (const f of W.lavaFlows) if (boxHit(f.bbox, x0, y0, x1, y1)) artLavaFlow(c, f, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
   if (s < 0.05) { // far LOD: settlements read as warm roof specks, big features only
     for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9); c.fillStyle = o.roofD; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = o.roofL; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
-      else if (o.layer === 1 && o.type !== 'rock' && (o.r || 0) >= 18) artObj(c, o, s); }
+      else if (o.layer === 1 && o.type !== 'rock' && (o.r || 0) >= (s < 0.035 ? 26 : 18)) artObj(c, o, s); }
     return; }
   artFlora(c, x0, y0, x1, y1, s < 0.1 ? 6 : 0);
   const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer).sort((a, b) => a.y - b.y);
@@ -2668,7 +2754,7 @@ const CityMap = (() => {
     const t0 = performance.now();
     for (const [tx, ty] of need) { if (performance.now() - t0 > 9) break; putTile(L, tx, ty, renderTile(L, tx, ty)); }
     if (!need.length) { // prewarm the coarse levels for instant zoom-outs
-      for (const L2 of [0.0625, 0.125]) { const ws2 = CITY.tilePx / L2, n = Math.ceil((CITY.R + 300) / ws2); for (let tx = -n; tx < n; tx++) for (let ty = -n; ty < n; ty++) if (!tiles.has(tileKey(L2, tx, ty))) { putTile(L2, tx, ty, renderTile(L2, tx, ty)); return need.length; } }
+      for (const L2 of [0.015625, 0.03125]) { const ws2 = CITY.tilePx / L2, n = Math.ceil((CITY.R + 300) / ws2); for (let tx = -n; tx < n; tx++) for (let ty = -n; ty < n; ty++) if (!tiles.has(tileKey(L2, tx, ty))) { putTile(L2, tx, ty, renderTile(L2, tx, ty)); return need.length; } }
     }
     return need.length;
   }
@@ -2740,6 +2826,7 @@ const CityMap = (() => {
     // windmills, smoke, carts
     for (const m of W.windmills) { if (ART.ok || !inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
       for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
+    if (z > 0.3) for (const v of W.vents) { if (!inV(v.x, v.y, 90)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.2 + k / 5 + v.seed) % 1; glow(c, v.x + u * 26 + Math.sin(u * 4 + v.seed * 9) * 5, v.y - v.r * 2 - u * 60, 5 + u * 18, 'rgba(110,100,100,.9)', Math.min(1, u * 6) * (1 - u) * 0.4); } }
     for (const ch of W.chimneys) { if (!inV(ch.x, ch.y, 80)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.25 + k / 5 + ch.seed) % 1; glow(c, ch.x + u * 40, ch.y - u * 50, 6 + u * 16, 'rgba(90,85,85,.9)', (1 - u) * 0.45); } }
     if (ART.ok && z > 0.45) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!(REGIONS[h.region].key === 'badlands' ? (sd * 3.7) % 1 < 0.5 : (sd * 3.7) % 1 < 0.12)) continue;
       const w = homeW(h), fx = h.x + w * 0.18 * (homeFlip(h) ? 1 : -1), fy = h.y - w * 0.78;
@@ -2824,10 +2911,21 @@ const CityMap = (() => {
     // updraft weather: a spiral column of motes at the rim
     if (wx.type === 'updraft' && inV(wx.x, wx.y, 300)) for (let i = 0; i < 50; i++) { const u = (t * 0.25 + i / 50) % 1, a = i * 0.7 + t * 2, rr = 30 + u * 220; G(wx.x + Math.cos(a) * rr * 0.5, wx.y + Math.sin(a) * rr * 0.5 - u * 120, 10, 'rgba(255,240,200,.9)', (1 - u) * wx.fade * 0.8); }
     // crystals, kilns, lantern posts, promenade lamps, home lanterns
-    for (const o of W.crystals) G(o.x, o.y, 46, 'rgba(180,150,255,.9)', 0.18 + 0.18 * Math.sin(t * 1.5 + o.seed * 20) + night * 0.25);
-    for (const o of W.kilns) G(o.x, o.y, 30, 'rgba(255,150,60,.9)', 0.25 + night * 0.4 + 0.1 * Math.sin(t * 3 + o.seed * 9));
-    for (const o of W.posts) G(o.x, o.y, 22, 'rgba(255,212,107,.95)', (0.25 + night * 0.65) * (0.75 + 0.25 * Math.sin(t * 3 + o.seed * 30)));
-    if (z > (ART.ok ? 0.1 : 0.35) && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if (ART.ok && z <= 0.35) { G(h.x, h.y - 8, homeW(h) * 0.75, 'rgba(255,190,100,.95)', night * 0.75); continue; } if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); G(h.x, h.y + w * 0.05, w * 0.55, 'rgba(255,150,60,.9)', night * 0.35 * fl); const sd = h.lanternPhase || 0; for (let i = 0; i < 3; i++) { const wx = h.x + (((sd * 7.3 + i * 0.37) % 1) - 0.5) * w * 0.55, wy = h.y - w * (0.12 + ((sd * 3.1 + i * 0.29) % 1) * 0.25); G(wx, wy, w * 0.14, 'rgba(255,200,110,.95)', night * 0.9 * fl); G(wx, wy, 2.2, 'rgba(255,245,200,1)', night * 0.9); } } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
+    if (z > 0.06) for (const o of W.crystals) G(o.x, o.y, 46, 'rgba(180,150,255,.9)', 0.18 + 0.18 * Math.sin(t * 1.5 + o.seed * 20) + night * 0.25);
+    if (z > 0.06) for (const o of W.kilns) G(o.x, o.y, 30, 'rgba(255,150,60,.9)', 0.25 + night * 0.4 + 0.1 * Math.sin(t * 3 + o.seed * 9));
+    if (z > 0.06) for (const o of W.posts) G(o.x, o.y, 22, 'rgba(255,212,107,.95)', (0.25 + night * 0.65) * (0.75 + 0.25 * Math.sin(t * 3 + o.seed * 30)));
+    // far out: Lumen breathing out of the rifts, lava seeping from the Emberwound
+    { const stp = z > 0.3 ? 2 : z > 0.12 ? 4 : z > 0.05 ? 8 : 16, fl = 0.85 + 0.15 * Math.sin(t * 1.3);
+      const vb = (b) => b[2] >= view.x0 && b[0] <= view.x1 && b[3] >= view.y0 && b[1] <= view.y1;
+      for (const ck of W.cracks) { if (!(ck.glow || ck.lava) || !vb(ck.bbox)) continue; const mw = Math.max(...ck.ws);
+        for (let i = 0; i < ck.pts.length; i += stp) { const p = ck.pts[i], w = ck.ws[i]; const rr = Math.max(stp * 30, w * 1.4); if (ck.lava) G(p[0], p[1] + 8, rr, 'rgba(255,110,30,.95)', (0.22 + night * 0.55) * fl);
+          else G(p[0], p[1] + 10, Math.max(stp * 28, w * 1.1), 'rgba(120,220,255,.9)', (0.08 + night * 0.36) * (stp > 4 ? 0.7 : 1) * (0.75 + 0.25 * Math.sin(t * 0.8 + i * 0.3))); } }
+      for (let fi = 0; fi < W.lavaFlows.length; fi++) { const f = W.lavaFlows[fi]; if ((z < 0.06 && fi % 4) || !vb(f.bbox)) continue; for (let i = 0; i < f.pts.length; i += stp) { const p = f.pts[i]; G(p[0], p[1], Math.max(stp * 18, f.ws[i] * 2), 'rgba(255,120,40,.9)', (0.14 + night * 0.5) * (0.8 + 0.2 * Math.sin(t * 2 + f.ph + i * 0.4))); } }
+      if (z > 0.06) { for (const v of W.vents) G(v.x, v.y - v.r, v.r * 2.2, 'rgba(255,120,40,.95)', (0.2 + night * 0.5) * (0.75 + 0.25 * Math.sin(t * 3 + v.seed * 20))); for (const o of W.lavaPools) G(o.x, o.y, o.r * 1.8, 'rgba(255,130,40,.9)', (0.18 + night * 0.5) * fl); }
+      for (const m of W.rifts) { const lm = m.mouth; if (lm) G(lm.x, lm.y, 90, 'rgba(140,230,255,.9)', (0.12 + night * 0.35) * (0.7 + 0.3 * Math.sin(t * 1.1 + lm.x))); } }
+    if (night > 0.15 && z <= 0.2) { if (!W.glowCells) { const C = 600, m = new Map(); for (const h of W.homes) { const k = Math.floor(h.x / C) + ',' + Math.floor(h.y / C); let e = m.get(k); if (!e) { e = { x: 0, y: 0, n: 0 }; m.set(k, e); } e.x += h.x; e.y += h.y; e.n++; } W.glowCells = [...m.values()].map((e) => ({ x: e.x / e.n, y: e.y / e.n, n: e.n })); }
+      for (const g of W.glowCells) G(g.x, g.y, 300 + Math.sqrt(g.n) * 55, 'rgba(255,190,100,.95)', night * Math.min(0.45, 0.06 + g.n * 0.012)); }
+    if (z > 0.2 && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if (ART.ok && z <= 0.35) { G(h.x, h.y - 8, homeW(h) * 0.75, 'rgba(255,190,100,.95)', night * 0.75); continue; } if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); G(h.x, h.y + w * 0.05, w * 0.55, 'rgba(255,150,60,.9)', night * 0.35 * fl); const sd = h.lanternPhase || 0; for (let i = 0; i < 3; i++) { const wx = h.x + (((sd * 7.3 + i * 0.37) % 1) - 0.5) * w * 0.55, wy = h.y - w * (0.12 + ((sd * 3.1 + i * 0.29) % 1) * 0.25); G(wx, wy, w * 0.14, 'rgba(255,200,110,.95)', night * 0.9 * fl); G(wx, wy, 2.2, 'rgba(255,245,200,1)', night * 0.9); } } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
     // sky-fish at night: the nightfall school surges out of the chasm, then a few roam
     if (night > 0.05) { const h = hourOfDay(); const surge = h >= 17.5 && h < 21 ? clamp((h - 17.5) / 3.5, 0, 1) : -1;
       W.nightFish.forEach((f, i) => { let x, y, a, al;
@@ -2874,7 +2972,7 @@ const CityMap = (() => {
     // civic labels
     const ca = clamp((z - 0.28) / 0.12, 0, 1);
     if (ca > 0) for (const o of W.civic) { if (!inV(o.x, o.y, 40) || o.type === 'plaza') continue; const [sx, sy] = S2(o.x, o.y + (o.r || 20) + 8);
-      const label = o.type === 'market' ? `🏪 ${o.name}${marketSpike(o.idx) ? ' 📈' : ''}` : o.type === 'vault' ? `🏦 ${o.name}` : o.type === 'lift' ? `🧵 ${o.name}` : o.type === 'statue' ? '🗿 Aurel Vane' : o.type === 'memorial' ? '🕯️ Wall of Lanterns Out' : o.type === 'gate' ? '🚪 The Undergate' : '';
+      const label = o.type === 'market' ? `🏪 ${o.name}${marketSpike(o.idx) ? ' 📈' : ''}` : o.type === 'vault' ? `🏦 ${o.name}` : o.type === 'lift' ? `🧵 ${o.name}` : o.type === 'statue' ? '🗿 Aurel Vane' : o.type === 'memorial' ? '🕯️ Wall of Lanterns Out' : o.type === 'gate' ? '🚪 The Undergate' : o.type === 'rift' ? `✨ ${o.name}` : '';
       if (!label) continue; const r = pill(c, sx, sy + 14 * dpr, label, { a: ca, bg: 'rgba(36,50,74,.85)', color: '#fff3d0', fs: 10.5 }); rects.push(r); }
     // NPC names + speech bubbles
     if (z > 0.45) for (const n of W.npcs) { if (n.sx == null || !inV(n.sx, n.sy, 20)) continue; const [sx, sy] = S2(n.sx, n.sy);
@@ -2932,7 +3030,7 @@ const CityMap = (() => {
       `<div class="dim" style="margin-top:6px">🏪 Bazaars trade resources · 🏦 Vaults add storage · 🧵 Tether lifts drop into the Hollow · ★ is your ${CITY.homeTerm}.</div>`;
   }
   function buildMinimapBase() {
-    const N = 120; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
+    const N = 160; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = (i / N) * 2 * CITY.R - CITY.R, y = (j / N) * 2 * CITY.R - CITY.R; let col = groundRGB(x, y); if (hollowDist(x, y) < 0) col = [24, 30, 52]; else if (inLake(x, y)) col = [93, 155, 179]; else if (chasmDist(x, y) < 6) col = [30, 32, 48]; const o = (j * N + i) * 4; img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255; }
     const tmp = document.createElement('canvas'); tmp.width = tmp.height = N; tmp.getContext('2d').putImageData(img, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, N * 2, N * 2);
     g.fillStyle = 'rgba(60,40,20,.55)'; const sc = (N * 2) / (CITY.R * 2); for (const h of W.homes) g.fillRect((h.x + CITY.R) * sc - 0.5, (h.y + CITY.R) * sc - 0.5, 1.2, 1.2);
@@ -2963,8 +3061,8 @@ const CityMap = (() => {
     const mole = currentMole(); if (mole && Math.hypot(mole.x - x, mole.y - y) < Math.max(50, tapR)) return moleCard(mole);
     if (Math.hypot(W.player.x - x, W.player.y - y) < Math.max(W.player.size, tapR)) return playerCard();
     let best = null, bd = 1e9;
-    for (const o of queryObjs(x - 80, y - 80, x + 80, y + 80, 80)) { if (!['home', 'market', 'vault', 'lift', 'statue', 'memorial', 'gate'].includes(o.type)) continue; const d = Math.hypot(o.x - x, o.y - y) - (o.r || 20); if (d < bd) { bd = d; best = o; } }
-    if (best && bd < Math.max(8, tapR * 0.6)) { if (best.type === 'home') return homeCard(best); if (best.type === 'market') return marketCard(best); if (best.type === 'vault') return vaultCard(best); if (best.type === 'lift') return liftCard(best); return loreCard(best); }
+    for (const o of queryObjs(x - 80, y - 80, x + 80, y + 80, 80)) { if (!['home', 'market', 'vault', 'lift', 'statue', 'memorial', 'gate', 'rift'].includes(o.type)) continue; const d = Math.hypot(o.x - x, o.y - y) - (o.r || 20); if (d < bd) { bd = d; best = o; } }
+    if (best && bd < Math.max(8, tapR * 0.6)) { if (best.type === 'home') return homeCard(best); if (best.type === 'market') return marketCard(best); if (best.type === 'vault') return vaultCard(best); if (best.type === 'lift') return liftCard(best); if (best.type === 'rift') return riftCard(best); return loreCard(best); }
     if (hollowDist(x, y) < 0) return hollowCard();
     if (Math.hypot(x, y) < CITY.R) return regionCard(regionAt(x, y));
   }
@@ -2983,7 +3081,7 @@ const CityMap = (() => {
     openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${isDiscovered(h.region) ? `${R.icon} ${R.name}` : '❔ Unexplored lands'}</div>
       <div class="wrapgap" style="margin-top:6px"><span class="tag">🛡️ Power ${h.power}</span><span class="tag">⚔️ You ${Math.round(attackPower())}</span><span class="tag ${est >= 2 ? 'good' : est === 0 ? 'bad' : ''}">Likely ${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span></div>
       <div class="small" style="margin-top:6px">Resources nearby: ${isDiscovered(h.region) ? R.res.join(' · ') : '??? (explore or raid here to find out)'}</div>
-      <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level))}</div>
+      <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level, h.region))}</div>
       ${historyLines(h, false)}
       ${btnRow(`${sh ? `<span class="tag">🛡️ Shielded ${countdown(S.mapShields[h.id])}</span>` : `<button class="btn red" data-act="mapraid" data-id="${h.id}" ${!heroHome() || S.res.lumen < CONFIG.mapRaid.lumen ? 'disabled' : ''}>⚔️ Raid (${CONFIG.mapRaid.lumen} 🏮)</button>`}
         <button class="btn ghost" data-act="mapvisit" data-id="${h.id}">👋 Visit</button><button class="btn ghost" data-act="close">Close</button>`)}
@@ -3023,6 +3121,8 @@ const CityMap = (() => {
       ${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">🕳️ Go to the Hollow</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function loreCard(o) { const L = LORE[o.type]; openModal(`<h2>${o.type === 'statue' ? '🗿' : o.type === 'memorial' ? '🕯️' : '🚪'} ${L.title}</h2><p>${L.text}</p>${o.type === 'memorial' ? `<p class="dim">${S.stats.expeditions} of your expeditions have returned. Wren's name is not on the Wall.</p>` : ''}${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
+  function riftCard(o) { discoverRegion(o.region); const d = Math.round(Math.hypot(o.x, o.y) / 100) / 10;
+    openModal(`<h2>✨ ${o.name}</h2><p class="small">A fissure far out in the lands, ${d} leagues from the Hollow's lip. Cold air breathes out of it, and deep down the walls glow with the same Lumen as the Hollow. Delvers swear the cracks out here all run back to it underground, and that a brave rope team could go down this way.</p><p class="dim">Nobody has charted a way through yet.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">🕳️ Go to the Hollow</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function hollowCard() { openModal(`<h2>🕳️ The Hollow</h2><p class="small">A chasm with no bottom anyone has seen. Lumen glows in its depths; the layers step down like terraces: ${CONFIG.layers.map((l) => l.name).join(' → ')} → …</p><p class="dim">Sky-fish surge out of it at nightfall. Lightning sometimes flickers far below.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">Send Wren down</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function regionCard(i) {
     const R = REGIONS[i];

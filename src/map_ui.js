@@ -89,7 +89,7 @@ const CityMap = (() => {
     const t0 = performance.now();
     for (const [tx, ty] of need) { if (performance.now() - t0 > 9) break; putTile(L, tx, ty, renderTile(L, tx, ty)); }
     if (!need.length) { // prewarm the coarse levels for instant zoom-outs
-      for (const L2 of [0.0625, 0.125]) { const ws2 = CITY.tilePx / L2, n = Math.ceil((CITY.R + 300) / ws2); for (let tx = -n; tx < n; tx++) for (let ty = -n; ty < n; ty++) if (!tiles.has(tileKey(L2, tx, ty))) { putTile(L2, tx, ty, renderTile(L2, tx, ty)); return need.length; } }
+      for (const L2 of [0.015625, 0.03125]) { const ws2 = CITY.tilePx / L2, n = Math.ceil((CITY.R + 300) / ws2); for (let tx = -n; tx < n; tx++) for (let ty = -n; ty < n; ty++) if (!tiles.has(tileKey(L2, tx, ty))) { putTile(L2, tx, ty, renderTile(L2, tx, ty)); return need.length; } }
     }
     return need.length;
   }
@@ -161,6 +161,7 @@ const CityMap = (() => {
     // windmills, smoke, carts
     for (const m of W.windmills) { if (ART.ok || !inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
       for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
+    if (z > 0.3) for (const v of W.vents) { if (!inV(v.x, v.y, 90)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.2 + k / 5 + v.seed) % 1; glow(c, v.x + u * 26 + Math.sin(u * 4 + v.seed * 9) * 5, v.y - v.r * 2 - u * 60, 5 + u * 18, 'rgba(110,100,100,.9)', Math.min(1, u * 6) * (1 - u) * 0.4); } }
     for (const ch of W.chimneys) { if (!inV(ch.x, ch.y, 80)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.25 + k / 5 + ch.seed) % 1; glow(c, ch.x + u * 40, ch.y - u * 50, 6 + u * 16, 'rgba(90,85,85,.9)', (1 - u) * 0.45); } }
     if (ART.ok && z > 0.45) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!(REGIONS[h.region].key === 'badlands' ? (sd * 3.7) % 1 < 0.5 : (sd * 3.7) % 1 < 0.12)) continue;
       const w = homeW(h), fx = h.x + w * 0.18 * (homeFlip(h) ? 1 : -1), fy = h.y - w * 0.78;
@@ -245,10 +246,21 @@ const CityMap = (() => {
     // updraft weather: a spiral column of motes at the rim
     if (wx.type === 'updraft' && inV(wx.x, wx.y, 300)) for (let i = 0; i < 50; i++) { const u = (t * 0.25 + i / 50) % 1, a = i * 0.7 + t * 2, rr = 30 + u * 220; G(wx.x + Math.cos(a) * rr * 0.5, wx.y + Math.sin(a) * rr * 0.5 - u * 120, 10, 'rgba(255,240,200,.9)', (1 - u) * wx.fade * 0.8); }
     // crystals, kilns, lantern posts, promenade lamps, home lanterns
-    for (const o of W.crystals) G(o.x, o.y, 46, 'rgba(180,150,255,.9)', 0.18 + 0.18 * Math.sin(t * 1.5 + o.seed * 20) + night * 0.25);
-    for (const o of W.kilns) G(o.x, o.y, 30, 'rgba(255,150,60,.9)', 0.25 + night * 0.4 + 0.1 * Math.sin(t * 3 + o.seed * 9));
-    for (const o of W.posts) G(o.x, o.y, 22, 'rgba(255,212,107,.95)', (0.25 + night * 0.65) * (0.75 + 0.25 * Math.sin(t * 3 + o.seed * 30)));
-    if (z > (ART.ok ? 0.1 : 0.35) && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if (ART.ok && z <= 0.35) { G(h.x, h.y - 8, homeW(h) * 0.75, 'rgba(255,190,100,.95)', night * 0.75); continue; } if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); G(h.x, h.y + w * 0.05, w * 0.55, 'rgba(255,150,60,.9)', night * 0.35 * fl); const sd = h.lanternPhase || 0; for (let i = 0; i < 3; i++) { const wx = h.x + (((sd * 7.3 + i * 0.37) % 1) - 0.5) * w * 0.55, wy = h.y - w * (0.12 + ((sd * 3.1 + i * 0.29) % 1) * 0.25); G(wx, wy, w * 0.14, 'rgba(255,200,110,.95)', night * 0.9 * fl); G(wx, wy, 2.2, 'rgba(255,245,200,1)', night * 0.9); } } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
+    if (z > 0.06) for (const o of W.crystals) G(o.x, o.y, 46, 'rgba(180,150,255,.9)', 0.18 + 0.18 * Math.sin(t * 1.5 + o.seed * 20) + night * 0.25);
+    if (z > 0.06) for (const o of W.kilns) G(o.x, o.y, 30, 'rgba(255,150,60,.9)', 0.25 + night * 0.4 + 0.1 * Math.sin(t * 3 + o.seed * 9));
+    if (z > 0.06) for (const o of W.posts) G(o.x, o.y, 22, 'rgba(255,212,107,.95)', (0.25 + night * 0.65) * (0.75 + 0.25 * Math.sin(t * 3 + o.seed * 30)));
+    // far out: Lumen breathing out of the rifts, lava seeping from the Emberwound
+    { const stp = z > 0.3 ? 2 : z > 0.12 ? 4 : z > 0.05 ? 8 : 16, fl = 0.85 + 0.15 * Math.sin(t * 1.3);
+      const vb = (b) => b[2] >= view.x0 && b[0] <= view.x1 && b[3] >= view.y0 && b[1] <= view.y1;
+      for (const ck of W.cracks) { if (!(ck.glow || ck.lava) || !vb(ck.bbox)) continue; const mw = Math.max(...ck.ws);
+        for (let i = 0; i < ck.pts.length; i += stp) { const p = ck.pts[i], w = ck.ws[i]; const rr = Math.max(stp * 30, w * 1.4); if (ck.lava) G(p[0], p[1] + 8, rr, 'rgba(255,110,30,.95)', (0.22 + night * 0.55) * fl);
+          else G(p[0], p[1] + 10, Math.max(stp * 28, w * 1.1), 'rgba(120,220,255,.9)', (0.08 + night * 0.36) * (stp > 4 ? 0.7 : 1) * (0.75 + 0.25 * Math.sin(t * 0.8 + i * 0.3))); } }
+      for (let fi = 0; fi < W.lavaFlows.length; fi++) { const f = W.lavaFlows[fi]; if ((z < 0.06 && fi % 4) || !vb(f.bbox)) continue; for (let i = 0; i < f.pts.length; i += stp) { const p = f.pts[i]; G(p[0], p[1], Math.max(stp * 18, f.ws[i] * 2), 'rgba(255,120,40,.9)', (0.14 + night * 0.5) * (0.8 + 0.2 * Math.sin(t * 2 + f.ph + i * 0.4))); } }
+      if (z > 0.06) { for (const v of W.vents) G(v.x, v.y - v.r, v.r * 2.2, 'rgba(255,120,40,.95)', (0.2 + night * 0.5) * (0.75 + 0.25 * Math.sin(t * 3 + v.seed * 20))); for (const o of W.lavaPools) G(o.x, o.y, o.r * 1.8, 'rgba(255,130,40,.9)', (0.18 + night * 0.5) * fl); }
+      for (const m of W.rifts) { const lm = m.mouth; if (lm) G(lm.x, lm.y, 90, 'rgba(140,230,255,.9)', (0.12 + night * 0.35) * (0.7 + 0.3 * Math.sin(t * 1.1 + lm.x))); } }
+    if (night > 0.15 && z <= 0.2) { if (!W.glowCells) { const C = 600, m = new Map(); for (const h of W.homes) { const k = Math.floor(h.x / C) + ',' + Math.floor(h.y / C); let e = m.get(k); if (!e) { e = { x: 0, y: 0, n: 0 }; m.set(k, e); } e.x += h.x; e.y += h.y; e.n++; } W.glowCells = [...m.values()].map((e) => ({ x: e.x / e.n, y: e.y / e.n, n: e.n })); }
+      for (const g of W.glowCells) G(g.x, g.y, 300 + Math.sqrt(g.n) * 55, 'rgba(255,190,100,.95)', night * Math.min(0.45, 0.06 + g.n * 0.012)); }
+    if (z > 0.2 && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if (ART.ok && z <= 0.35) { G(h.x, h.y - 8, homeW(h) * 0.75, 'rgba(255,190,100,.95)', night * 0.75); continue; } if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); G(h.x, h.y + w * 0.05, w * 0.55, 'rgba(255,150,60,.9)', night * 0.35 * fl); const sd = h.lanternPhase || 0; for (let i = 0; i < 3; i++) { const wx = h.x + (((sd * 7.3 + i * 0.37) % 1) - 0.5) * w * 0.55, wy = h.y - w * (0.12 + ((sd * 3.1 + i * 0.29) % 1) * 0.25); G(wx, wy, w * 0.14, 'rgba(255,200,110,.95)', night * 0.9 * fl); G(wx, wy, 2.2, 'rgba(255,245,200,1)', night * 0.9); } } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
     // sky-fish at night: the nightfall school surges out of the chasm, then a few roam
     if (night > 0.05) { const h = hourOfDay(); const surge = h >= 17.5 && h < 21 ? clamp((h - 17.5) / 3.5, 0, 1) : -1;
       W.nightFish.forEach((f, i) => { let x, y, a, al;
@@ -295,7 +307,7 @@ const CityMap = (() => {
     // civic labels
     const ca = clamp((z - 0.28) / 0.12, 0, 1);
     if (ca > 0) for (const o of W.civic) { if (!inV(o.x, o.y, 40) || o.type === 'plaza') continue; const [sx, sy] = S2(o.x, o.y + (o.r || 20) + 8);
-      const label = o.type === 'market' ? `🏪 ${o.name}${marketSpike(o.idx) ? ' 📈' : ''}` : o.type === 'vault' ? `🏦 ${o.name}` : o.type === 'lift' ? `🧵 ${o.name}` : o.type === 'statue' ? '🗿 Aurel Vane' : o.type === 'memorial' ? '🕯️ Wall of Lanterns Out' : o.type === 'gate' ? '🚪 The Undergate' : '';
+      const label = o.type === 'market' ? `🏪 ${o.name}${marketSpike(o.idx) ? ' 📈' : ''}` : o.type === 'vault' ? `🏦 ${o.name}` : o.type === 'lift' ? `🧵 ${o.name}` : o.type === 'statue' ? '🗿 Aurel Vane' : o.type === 'memorial' ? '🕯️ Wall of Lanterns Out' : o.type === 'gate' ? '🚪 The Undergate' : o.type === 'rift' ? `✨ ${o.name}` : '';
       if (!label) continue; const r = pill(c, sx, sy + 14 * dpr, label, { a: ca, bg: 'rgba(36,50,74,.85)', color: '#fff3d0', fs: 10.5 }); rects.push(r); }
     // NPC names + speech bubbles
     if (z > 0.45) for (const n of W.npcs) { if (n.sx == null || !inV(n.sx, n.sy, 20)) continue; const [sx, sy] = S2(n.sx, n.sy);
@@ -353,7 +365,7 @@ const CityMap = (() => {
       `<div class="dim" style="margin-top:6px">🏪 Bazaars trade resources · 🏦 Vaults add storage · 🧵 Tether lifts drop into the Hollow · ★ is your ${CITY.homeTerm}.</div>`;
   }
   function buildMinimapBase() {
-    const N = 120; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
+    const N = 160; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = (i / N) * 2 * CITY.R - CITY.R, y = (j / N) * 2 * CITY.R - CITY.R; let col = groundRGB(x, y); if (hollowDist(x, y) < 0) col = [24, 30, 52]; else if (inLake(x, y)) col = [93, 155, 179]; else if (chasmDist(x, y) < 6) col = [30, 32, 48]; const o = (j * N + i) * 4; img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255; }
     const tmp = document.createElement('canvas'); tmp.width = tmp.height = N; tmp.getContext('2d').putImageData(img, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, N * 2, N * 2);
     g.fillStyle = 'rgba(60,40,20,.55)'; const sc = (N * 2) / (CITY.R * 2); for (const h of W.homes) g.fillRect((h.x + CITY.R) * sc - 0.5, (h.y + CITY.R) * sc - 0.5, 1.2, 1.2);
@@ -384,8 +396,8 @@ const CityMap = (() => {
     const mole = currentMole(); if (mole && Math.hypot(mole.x - x, mole.y - y) < Math.max(50, tapR)) return moleCard(mole);
     if (Math.hypot(W.player.x - x, W.player.y - y) < Math.max(W.player.size, tapR)) return playerCard();
     let best = null, bd = 1e9;
-    for (const o of queryObjs(x - 80, y - 80, x + 80, y + 80, 80)) { if (!['home', 'market', 'vault', 'lift', 'statue', 'memorial', 'gate'].includes(o.type)) continue; const d = Math.hypot(o.x - x, o.y - y) - (o.r || 20); if (d < bd) { bd = d; best = o; } }
-    if (best && bd < Math.max(8, tapR * 0.6)) { if (best.type === 'home') return homeCard(best); if (best.type === 'market') return marketCard(best); if (best.type === 'vault') return vaultCard(best); if (best.type === 'lift') return liftCard(best); return loreCard(best); }
+    for (const o of queryObjs(x - 80, y - 80, x + 80, y + 80, 80)) { if (!['home', 'market', 'vault', 'lift', 'statue', 'memorial', 'gate', 'rift'].includes(o.type)) continue; const d = Math.hypot(o.x - x, o.y - y) - (o.r || 20); if (d < bd) { bd = d; best = o; } }
+    if (best && bd < Math.max(8, tapR * 0.6)) { if (best.type === 'home') return homeCard(best); if (best.type === 'market') return marketCard(best); if (best.type === 'vault') return vaultCard(best); if (best.type === 'lift') return liftCard(best); if (best.type === 'rift') return riftCard(best); return loreCard(best); }
     if (hollowDist(x, y) < 0) return hollowCard();
     if (Math.hypot(x, y) < CITY.R) return regionCard(regionAt(x, y));
   }
@@ -404,7 +416,7 @@ const CityMap = (() => {
     openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${isDiscovered(h.region) ? `${R.icon} ${R.name}` : '❔ Unexplored lands'}</div>
       <div class="wrapgap" style="margin-top:6px"><span class="tag">🛡️ Power ${h.power}</span><span class="tag">⚔️ You ${Math.round(attackPower())}</span><span class="tag ${est >= 2 ? 'good' : est === 0 ? 'bad' : ''}">Likely ${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span></div>
       <div class="small" style="margin-top:6px">Resources nearby: ${isDiscovered(h.region) ? R.res.join(' · ') : '??? (explore or raid here to find out)'}</div>
-      <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level))}</div>
+      <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level, h.region))}</div>
       ${historyLines(h, false)}
       ${btnRow(`${sh ? `<span class="tag">🛡️ Shielded ${countdown(S.mapShields[h.id])}</span>` : `<button class="btn red" data-act="mapraid" data-id="${h.id}" ${!heroHome() || S.res.lumen < CONFIG.mapRaid.lumen ? 'disabled' : ''}>⚔️ Raid (${CONFIG.mapRaid.lumen} 🏮)</button>`}
         <button class="btn ghost" data-act="mapvisit" data-id="${h.id}">👋 Visit</button><button class="btn ghost" data-act="close">Close</button>`)}
@@ -444,6 +456,8 @@ const CityMap = (() => {
       ${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">🕳️ Go to the Hollow</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function loreCard(o) { const L = LORE[o.type]; openModal(`<h2>${o.type === 'statue' ? '🗿' : o.type === 'memorial' ? '🕯️' : '🚪'} ${L.title}</h2><p>${L.text}</p>${o.type === 'memorial' ? `<p class="dim">${S.stats.expeditions} of your expeditions have returned. Wren's name is not on the Wall.</p>` : ''}${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
+  function riftCard(o) { discoverRegion(o.region); const d = Math.round(Math.hypot(o.x, o.y) / 100) / 10;
+    openModal(`<h2>✨ ${o.name}</h2><p class="small">A fissure far out in the lands, ${d} leagues from the Hollow's lip. Cold air breathes out of it, and deep down the walls glow with the same Lumen as the Hollow. Delvers swear the cracks out here all run back to it underground, and that a brave rope team could go down this way.</p><p class="dim">Nobody has charted a way through yet.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">🕳️ Go to the Hollow</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function hollowCard() { openModal(`<h2>🕳️ The Hollow</h2><p class="small">A chasm with no bottom anyone has seen. Lumen glows in its depths; the layers step down like terraces: ${CONFIG.layers.map((l) => l.name).join(' → ')} → …</p><p class="dim">Sky-fish surge out of it at nightfall. Lightning sometimes flickers far below.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">Send Wren down</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function regionCard(i) {
     const R = REGIONS[i];

@@ -11,8 +11,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => typeof ART !== 'undefined' && ART.ready, null, { timeout: 30000 }); await p.waitForTimeout(2500);
   ok(await p.evaluate(() => ART.ok), 'painted art assets loaded');
   ok(await p.isVisible('#cityCanvas'), 'Rim City is default tab and canvas visible');
-  const g = await p.evaluate(() => ({ homes: W.homes.length, regions: REGIONS.length, cracks: W.cracks.length }));
-  ok(g.homes > 300, `homes generated: ${g.homes}`); ok(g.regions === 9, '9 regions'); ok(g.cracks > 10, 'cracks: ' + g.cracks);
+  const g = await p.evaluate(() => ({ homes: W.homes.length, regions: REGIONS.length, cracks: W.cracks.length, R: CITY.R, lavaHomes: W.homes.filter((h) => REGIONS[h.region].key === 'lava').length, flows: W.lavaFlows.length, lavaCracks: W.cracks.filter((c) => c.lava).length, rifts: W.rifts.length, glow: W.cracks.filter((c) => c.glow).length, obs: !!CONFIG.resources.obsidian, lavaMarket: W.markets.some((m) => REGIONS[m.region].key === 'lava' && REGIONS[m.region].sells.includes('obsidian')) }));
+  ok(g.homes > 3000, `homes generated: ${g.homes}`); ok(g.regions === 10, '10 regions (incl. lava)'); ok(g.cracks > 10, 'cracks: ' + g.cracks);
+  ok(g.R >= 10000, 'big map radius ' + g.R); ok(g.lavaHomes > 50 && g.flows > 20 && g.lavaCracks > 3, `lava lands: ${g.lavaHomes} homes, ${g.flows} flows, ${g.lavaCracks} lava cracks`);
+  ok(g.rifts >= 4 && g.glow >= 8, `glowing fissures ${g.glow}, rift mouths ${g.rifts}`); ok(g.obs && g.lavaMarket, 'obsidian resource + Cinderglass Bazaar');
   // canvas non-blank
   const varied = await p.evaluate(() => { const c = document.getElementById('cityCanvas'), x = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; const set = new Set(); for (let i = 0; i < x.length; i += 4 * 997) set.add((x[i] >> 4) + ',' + (x[i + 1] >> 4) + ',' + (x[i + 2] >> 4)); return set.size; });
   ok(varied > 40, 'map renders varied pixels: ' + varied);
@@ -84,7 +86,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const r = await p.evaluate(() => { const m = W.markets[4]; return [m.x, m.y]; }); await shot('city-mid.png', r[0], r[1], 0.45);
   const ph = await p.evaluate(() => [W.player.x + 40, W.player.y - 60]); await shot('city-close.png', ph[0], ph[1], 1.6);
   // region close-ups (painted plants & buildings)
-  for (const [i, nm] of [[0, 'docks'], [1, 'dunes'], [3, 'wood'], [4, 'crystal'], [5, 'farms'], [6, 'badlands'], [7, 'moss'], [8, 'amber'], [2, 'bluffs']]) {
+  for (const [i, nm] of [[0, 'docks'], [1, 'dunes'], [3, 'wood'], [4, 'crystal'], [5, 'farms'], [6, 'badlands'], [7, 'moss'], [8, 'amber'], [2, 'bluffs'], [9, 'lava']]) {
     const q = await p.evaluate((i) => { const hs = W.homes.filter((h) => h.region === i); const h = hs[Math.floor(hs.length / 2)]; return [h.x, h.y]; }, i);
     await shot('city-r-' + nm + '.png', q[0], q[1], 1.1, 1800);
   }

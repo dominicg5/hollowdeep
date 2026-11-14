@@ -3,7 +3,7 @@
    UI
    ===================================================================== */
 /* painted UI art (assets/ui) */
-const UIA = 'assets/ui/', UI_HAS = new Set('amber coal crowns iron lumen moss steel stone timber hall storehouse training lift wall kennel vault forge still still2 smelter strider drill golem golem_sleep dummy rival0 rival1 rival2 wisp pup moth ferret wren wren_a wren_b wren_c capital molebg layers'.split(' '));
+const UIA = 'assets/ui/', UI_HAS = new Set('obsidian amber coal crowns iron lumen moss steel stone timber hall storehouse training lift wall kennel vault forge still still2 smelter strider drill golem golem_sleep dummy rival0 rival1 rival2 wisp pup moth ferret wren wren_a wren_b wren_c capital molebg layers'.split(' '));
 function pic(k, cls, alt) { return `<img class="pic ${cls || ''}" src="${UIA}${k}.webp" alt="${alt || ''}" decoding="async" draggable="false">`; }
 function rIco(k) { return UI_HAS.has(k) ? pic(k, 'ri', CONFIG.resources[k].name) : CONFIG.resources[k].icon; }
 function petIco(id, cls) { return UI_HAS.has(id) ? pic(id, cls || 'pi', CONFIG.pets[id].name) : CONFIG.pets[id].icon; }

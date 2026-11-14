@@ -5,10 +5,10 @@
 const CITY = {
   homeTerm: 'Lanternhold',              // in-world name for each player's capital
   seed: 20261114,
-  R: 3300, hollowR: 700,                // world radius, hollow base radius (world units)
+  R: 11000, hollowR: 700,                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
-  tilePx: 256, levels: [0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 280,
-  zoomMin: 0.065, zoomMax: 3.2, startZoom: 1.05,
+  tilePx: 256, levels: [0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 300,
+  zoomMin: 0.018, zoomMax: 3.2, startZoom: 1.05,
   homePetShare: 0.12, innerR: 3150,
   villageP: { docks: 0.6, dunes: 0.4, bluffs: 0.45, wood: 0.5, crystal: 0.35, farms: 0.7, badlands: 0.35, moss: 0.6, amber: 0.6, lava: 0.15 },
   seasonDays: 7, testSeasonDays: 1,     // game days per season (test mode uses testSeasonDays)
@@ -44,7 +44,11 @@ const REGIONS = [
   { key: 'amber', name: 'Amberfall Orchards', icon: '🍂', res: ['🟠 Amber', '🍎 Fruit', '🪵 Heartwood'], sells: ['amber', 'timber'],
     blurb: 'Autumn orchards whose trees weep amber. Sweet air, sticky boots.',
     ground: [200, 152, 94], roofs: ['#b0573a', '#c46a40', '#9a4a30'], wall: '#f0dcc0', styles: [0, 1] },
+  { key: 'lava', name: 'The Emberwound', icon: '🌋', res: ['🖤 Obsidian', '🔥 Magma', '🪨 Basalt'], sells: ['obsidian'], outer: true,
+    blurb: 'Far out where the earth is splitting open, molten rock seeps up through the cracks. Smiths pay dearly for the black glass it leaves behind.',
+    ground: [92, 70, 62], roofs: ['#4a3a36', '#5a4038', '#3a2e2c'], wall: '#8a7a70', styles: [2] },
 ];
+const NREG_IN = 9; // the original lands ring the Hollow; outer patchwork lands can also be any of these, or lava
 const NREG = REGIONS.length;
 const smooth01g = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
@@ -69,14 +73,46 @@ const W = { ready: false };
 function regionF(x, y) {
   const a = (Math.atan2(y, x) + Math.PI) / TAU;
   const w = (vnoise(x / 700 + 50, y / 700) - 0.5) * 0.55 + (vnoise(x / 240, y / 240 + 9) - 0.5) * 0.14;
-  return (((a * NREG + w) % NREG) + NREG) % NREG;
+  return (((a * NREG_IN + w) % NREG_IN) + NREG_IN) % NREG_IN;
+}
+/* Outer lands: a domain-warped patchwork of lands (jittered Voronoi), blended in beyond the old city. */
+const OUTER = { cell: 2500, r0: 3000, r1: 3800, sites: null, off: 0, n: 0, LAVA: REGIONS.findIndex((r) => r.key === 'lava') };
+function outerSites() {
+  if (OUTER.sites) return OUTER.sites;
+  const c = OUTER.cell, n = Math.ceil((CITY.R + 1600) / c) + 1, sites = []; OUTER.off = n; OUTER.n = n * 2 + 1;
+  for (let gy = -n; gy <= n; gy++) for (let gx = -n; gx <= n; gx++) {
+    const sx = (gx + 0.15 + hash2(gx * 3 + 1, gy * 5 + 2) * 0.7) * c, sy = (gy + 0.15 + hash2(gx * 7 - 3, gy * 11 + 4) * 0.7) * c, r = Math.hypot(sx, sy), q = hash2(gx + 71, gy - 33);
+    const lavaP = 0.02 + smooth01g(5000, 10000, r) * 0.2; let ri;
+    if (q < lavaP) ri = OUTER.LAVA; else if (q < lavaP + 0.5) ri = Math.floor(regionF(sx, sy)) % NREG_IN; else ri = Math.floor(hash2(gx - 5, gy + 9) * NREG_IN) % NREG_IN;
+    sites.push([sx, sy, ri]);
+  }
+  // a lava field always smoulders beyond the Cinderreach, close enough to find
+  { const [tx, ty] = polar(5600, regionAngle(6)); let best = null, bd = 1e18; for (const s of sites) { const d = (s[0] - tx) ** 2 + (s[1] - ty) ** 2; if (d < bd) { bd = d; best = s; } } best[2] = OUTER.LAVA; }
+  OUTER.sites = sites; return sites;
+}
+const RMIX = [0, 0, 0, 0, 0, 0, 0, 0];
+// up to four (region, weight) pairs for a point: angular inner lands, patchwork outer lands, soft borders
+function regionMix(x, y) {
+  const M = RMIX, r = Math.hypot(x, y), t = smooth01g(OUTER.r0, OUTER.r1, r);
+  M[1] = M[3] = M[5] = M[7] = 0;
+  if (t < 1) { const f = regionF(x, y), i = Math.floor(f) % NREG_IN, fr = f - Math.floor(f), edge = 0.12; let wn = 0, n = i;
+    if (fr > 1 - edge) { n = (i + 1) % NREG_IN; wn = smooth01g(1 - edge, 1 + edge, fr); } else if (fr < edge) { n = (i + NREG_IN - 1) % NREG_IN; wn = 1 - smooth01g(-edge, edge, fr); }
+    M[0] = i; M[1] = (1 - wn) * (1 - t); M[2] = n; M[3] = wn * (1 - t); }
+  if (t > 0) { const S = outerSites(), c = OUTER.cell;
+    const wx = x + (vnoise(x / 1300 + 20, y / 1300) - 0.5) * 1500 + (vnoise(x / 320, y / 320 + 40) - 0.5) * 260, wy = y + (vnoise(x / 1300, y / 1300 + 60) - 0.5) * 1500 + (vnoise(x / 320 + 80, y / 320) - 0.5) * 260;
+    const gx = Math.floor(wx / c), gy = Math.floor(wy / c); let d1 = 1e18, d2 = 1e18, s1 = null, s2 = null;
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const X = gx + i + OUTER.off, Y = gy + j + OUTER.off; if (X < 0 || Y < 0 || X >= OUTER.n || Y >= OUTER.n) continue; const s = S[Y * OUTER.n + X], d = (s[0] - wx) ** 2 + (s[1] - wy) ** 2;
+      if (d < d1) { d2 = d1; s2 = s1; d1 = d; s1 = s; } else if (d < d2) { d2 = d; s2 = s; } }
+    if (s1) { const gap = Math.sqrt(d2) - Math.sqrt(d1), w2 = s2 && s2[2] !== s1[2] ? 0.5 * (1 - smooth01g(0, 420, gap)) : 0;
+      M[4] = s1[2]; M[5] = (1 - w2) * t; M[6] = s2 ? s2[2] : s1[2]; M[7] = w2 * t; } }
+  return M;
 }
 /* discovery: region names and resources stay hidden until the player explores them */
 function isDiscovered(i) { return !!(W.player && W.player.region === i) || !!(typeof S !== 'undefined' && S && S.discovered && S.discovered[i]); }
 function discoverRegion(i, quiet) { if (isDiscovered(i)) return false; S.discovered = S.discovered || {}; S.discovered[i] = true; if (!quiet && typeof toast === 'function') toast(`🗺️ Discovered ${REGIONS[i].icon} ${REGIONS[i].name}!`); if (typeof save === 'function') save(); return true; }
 function regionName(i) { return isDiscovered(i) ? REGIONS[i].name : 'the unexplored lands'; }
-function regionAt(x, y) { return Math.floor(regionF(x, y)) % NREG; }
-function regionAngle(i) { return ((i + 0.5) / NREG) * TAU - Math.PI; }
+function regionAt(x, y) { const M = regionMix(x, y); let b = M[0], bw = M[1]; for (let k = 2; k < 8; k += 2) if (M[k + 1] > bw) { bw = M[k + 1]; b = M[k]; } return b; }
+function regionAngle(i) { return ((i + 0.5) / NREG_IN) * TAU - Math.PI; }
 function hollowR(a) { let r = 1; for (const [k, amp, ph] of W.hTerms) r += amp * Math.sin(k * a + ph); return CITY.hollowR * r; }
 function hollowDist(x, y) { return Math.hypot(x, y) - hollowR(Math.atan2(y, x)); } // >0 outside
 function ringR(i, a) { const [p1, p2] = W.ringPh[i]; return CITY.ringRoads[i] + 40 * Math.sin(3 * a + p1) + 22 * Math.sin(5 * a + p2); }
@@ -158,20 +194,36 @@ function generateCity() {
 
   // Cracks: wide side-chasms + narrow fissures, branching outward
   W.cracks = []; W.crackGrid = new Map();
-  const addCrack = (x, y, ang, len, w0, w1, depth) => {
-    const step = 36, n = Math.max(3, Math.ceil(len / step)); const pts = [[x, y]], ws = [w0]; let a = ang, cx = x, cy = y;
-    for (let i = 1; i <= n; i++) { const rad = Math.atan2(cy, cx); a += (rnd() - 0.5) * 0.55; { let d = rad - a; d = ((d + 3 * Math.PI) % TAU) - Math.PI; a += d * 0.15; } cx += Math.cos(a) * step; cy += Math.sin(a) * step;
-      if (Math.hypot(cx, cy) > R - 60) break; pts.push([cx, cy]); ws.push(w0 + (w1 - w0) * (i / n)); }
-    const c = { pts, ws, wide: w0 > 60, depth }; W.cracks.push(c);
+  const addCrack = (x, y, ang, len, w0, w1, depth, o) => {
+    o = o || {}; const step = 36, n = Math.max(3, Math.ceil(len / step)); const pts = [[x, y]], ws = [w0]; let a = ang, cx = x, cy = y;
+    for (let i = 1; i <= n; i++) { const rad = Math.atan2(cy, cx) + (o.inward ? Math.PI : 0); a += (rnd() - 0.5) * 0.55; { let d = rad - a; d = ((d + 3 * Math.PI) % TAU) - Math.PI; a += d * (o.bias == null ? 0.15 : o.bias); } cx += Math.cos(a) * step; cy += Math.sin(a) * step;
+      if (Math.hypot(cx, cy) > R - 140 || (o.inward && hollowDist(cx, cy) < 160)) break; pts.push([cx, cy]); ws.push(w0 + (w1 - w0) * (i / n)); }
+    const c = { pts, ws, wide: w0 > 60, depth, glow: !!o.glow, outer: !!o.outer }; W.cracks.push(c);
     for (let i = 0; i < pts.length - 1; i++) segGridAdd(W.crackGrid, { x1: pts[i][0], y1: pts[i][1], x2: pts[i + 1][0], y2: pts[i + 1][1], w: Math.max(ws[i], ws[i + 1]), w1: ws[i], w2: ws[i + 1] }, 160);
-    if (depth < 2) { const nb = c.wide ? 3 : 1; for (let b = 0; b < nb; b++) if (rnd() < 0.7 && pts.length > 6) { const j = Math.floor(pts.length * (0.3 + rnd() * 0.5)); const side = rnd() < 0.5 ? -1 : 1; addCrack(pts[j][0], pts[j][1], a + side * (0.6 + rnd() * 0.6), len * (0.3 + rnd() * 0.3), ws[j] * 0.45, 2, depth + 1); } }
+    if (depth < 2) { const nb = c.wide ? 3 : 1; for (let b = 0; b < nb; b++) if (rnd() < 0.7 && pts.length > 6) { const j = Math.floor(pts.length * (0.3 + rnd() * 0.5)); const side = rnd() < 0.5 ? -1 : 1; addCrack(pts[j][0], pts[j][1], a + side * (0.6 + rnd() * 0.6), len * (0.3 + rnd() * 0.3), ws[j] * 0.45, 2, depth + 1, { glow: o.glow, bias: o.bias }); } }
     return c;
   };
   const crackAngles = [];
   const wideAt = [regionAngle(2) + 0.1, regionAngle(4) - 0.05, regionAngle(6) + 0.12];
-  for (const a of wideAt) { crackAngles.push(a); addCrack(...polar(hollowR(a) - 30, a), a, 1350 + rnd() * 350, 120 + rnd() * 30, 26, 0); }
+  // the great chasms run from the Hollow far out into the lands
+  for (const a of wideAt) { crackAngles.push(a); addCrack(...polar(hollowR(a) - 30, a), a, 4200 + rnd() * 2600, 130 + rnd() * 30, 30, 0, { glow: true }); }
   for (let i = 0; i < 10; i++) { let a; do { a = rnd() * TAU - Math.PI; } while (crackAngles.some((b) => Math.abs(((a - b + 3 * Math.PI) % TAU) - Math.PI) < 0.22) || Math.abs(((a - la + 3 * Math.PI) % TAU) - Math.PI) < 0.3);
-    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 450 + rnd() * 800, 22 + rnd() * 22, 3, 0); }
+    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 700 + rnd() * 1600, 22 + rnd() * 22, 3, 0); }
+  // out in the far lands the earth is splitting open: fissure systems that point back toward the Hollow; some breathe Lumen
+  W.rifts = [];
+  for (let i = 0, made = 0; i < 400 && made < 34; i++) { const a = rnd() * TAU - Math.PI, r = 4200 + Math.sqrt(rnd()) * (R - 5200), [x, y] = polar(r, a);
+    if (W.cracks.some((c) => c.depth === 0 && Math.hypot(c.pts[0][0] - x, c.pts[0][1] - y) < 1500)) continue; made++;
+    const inward = rnd() < 0.6, glow = rnd() < 0.4, w0 = 34 + rnd() * 48;
+    addCrack(x, y, a + (inward ? Math.PI : 0) + (rnd() - 0.5) * 0.6, 1100 + rnd() * 2200, w0, 4, 0, { inward, glow, bias: 0.08, outer: true }); }
+  // lava: cracks that run through the Emberwound fill with molten rock, which seeps out across the ground in flows
+  W.lavaFlows = [];
+  const lavaFlow = (x, y, a, len, w0, stopOcc) => { const pts = [[x, y]], ws = [w0]; const n = Math.ceil(len / 22);
+    for (let i = 1; i <= n; i++) { a += (rnd() - 0.5) * 0.7; const nx = x + Math.cos(a) * 22, ny = y + Math.sin(a) * 22; if (regionAt(nx, ny) !== OUTER.LAVA || Math.hypot(nx, ny) > R - 160 || (stopOcc && !occFree(OCC.obj, nx, ny, 4))) break; x = nx; y = ny; pts.push([x, y]); ws.push(w0 * (1 - 0.8 * i / n) + 2); }
+    if (pts.length < 3) return null; const f = { pts, ws, bbox: bboxOf(pts, w0 + 30), ph: rnd() * TAU }; W.lavaFlows.push(f); for (const p of pts) occMark(OCC.obj, p[0], p[1], w0 * 0.6 + 4); return f; };
+  for (const c of W.cracks) { let nl = 0; for (const p of c.pts) if (regionAt(p[0], p[1]) === OUTER.LAVA) nl++; c.lava = nl > c.pts.length * 0.4; if (c.lava) { c.glow = false;
+      const nf = 1 + Math.floor(rnd() * 3 + c.pts.length / 30); for (let k = 0; k < nf; k++) { const j = 1 + Math.floor(rnd() * (c.pts.length - 2)), p = c.pts[j], q = c.pts[j + 1]; const ang = Math.atan2(q[1] - p[1], q[0] - p[0]) + (rnd() < 0.5 ? 1 : -1) * (1.2 + rnd() * 0.6), off = c.ws[j] / 2 + 2;
+        lavaFlow(p[0] + Math.cos(ang) * off, p[1] + Math.sin(ang) * off, ang, 160 + rnd() * 420, 9 + rnd() * 10); } } }
+  W.rifts = W.cracks.filter((c) => c.outer && c.depth === 0 && c.glow && !c.lava && c.pts.length > 6).slice(0, 10);
   // Polygon outlines for cracks
   for (const c of W.cracks) { const L = [], Rr = []; for (let i = 0; i < c.pts.length; i++) { const p = c.pts[i], q = c.pts[Math.min(i + 1, c.pts.length - 1)], o = c.pts[Math.max(i - 1, 0)];
       const ang = Math.atan2(q[1] - o[1], q[0] - o[0]), nx = -Math.sin(ang), ny = Math.cos(ang), w = c.ws[i] / 2 * (0.85 + hash2(i, c.pts.length) * 0.3);
@@ -187,6 +239,11 @@ function generateCity() {
       const m = { type: 'market', x, y, r: 66, region: ri, name: `${reg.name.split(' ')[0]} Bazaar`, idx: W.markets.length, stalls: [] };
       for (let k = 0; k < 10; k++) { const ang = (k / 10) * TAU + rnd() * 0.2; m.stalls.push({ a: ang, c: ['#c8634c', '#e2b04a', '#4f8c8a', '#7a5fa0', '#d98a3a'][Math.floor(rnd() * 5)] }); }
       W.markets.push(m); W.civic.push(m); occMark(OCC.obj, x, y, 80); break; } });
+  { const best = outerSites().filter((s) => s[2] === OUTER.LAVA && Math.hypot(s[0], s[1]) > 4300).sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]))[0];
+    for (let tries = 0; best && tries < 160; tries++) { const x = best[0] + (rnd() - 0.5) * 1800, y = best[1] + (rnd() - 0.5) * 1800; if (regionAt(x, y) !== OUTER.LAVA || Math.hypot(x, y) > R - 300 || !siteOK(x, y, 80)) continue;
+      const m = { type: 'market', x, y, r: 66, region: OUTER.LAVA, name: 'Cinderglass Bazaar', idx: W.markets.length, stalls: [] };
+      for (let k = 0; k < 10; k++) m.stalls.push({ a: (k / 10) * TAU + rnd() * 0.2, c: ['#c8634c', '#e2b04a', '#3a2e2c', '#d98a3a'][Math.floor(rnd() * 4)] });
+      W.markets.push(m); W.civic.push(m); occMark(OCC.obj, x, y, 80); break; } }
   const vaultNames = ['The Deepcoin Vault', 'Old Ledger Vault', 'Gullwing Strongrooms', 'The Amber Coffers', 'Marrow & Daughters Vault', 'Undercliff Depository'];
   for (let k = 0; k < 6; k++) for (let tries = 0; tries < 40; tries++) { const a = rnd() * TAU - Math.PI, r = (rnd() < 0.5 ? 1100 : 2600) + rnd() * 200, [x, y] = polar(r, a); if (!siteOK(x, y, 58)) continue;
     const v = { type: 'vault', x, y, r: 44, region: regionAt(x, y), name: vaultNames[k], idx: W.vaults.length }; W.vaults.push(v); W.civic.push(v); occMark(OCC.obj, x, y, 58); break; }
@@ -207,6 +264,10 @@ function generateCity() {
   lmAt(regionAngle(8) - 0.2, 150, 'memorial', 'The Wall of Lanterns Out', 40);
   { const c = W.cracks.find((k) => k.wide && k.pts.length > 10); const e = c.pts[c.pts.length - 1], q = c.pts[c.pts.length - 3]; const ang = Math.atan2(e[1] - q[1], e[0] - q[0]);
     const x = e[0] + Math.cos(ang) * 46, y = e[1] + Math.sin(ang) * 46; const lm = { type: 'gate', x, y, r: 34, name: 'The Undergate', a: ang, region: regionAt(x, y) }; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 52); }
+
+  const riftNames = ['The Lumen Throat', 'Glimmerdrop', 'The Breathing Rift', 'Old Delver\'s Mouth', 'The Pale Stair', 'Moth Rift', 'Wickfall Cleft', 'The Second Hollow?', 'Murmur Gap', 'Lanternfall Rift'];
+  W.rifts.forEach((c, i) => { const p = c.pts[0], q = c.pts[2]; const ang = Math.atan2(p[1] - q[1], p[0] - q[0]); const x = p[0] + Math.cos(ang) * 40, y = p[1] + Math.sin(ang) * 40;
+    const lm = { type: 'rift', x, y, r: 30, name: riftNames[i % riftNames.length], a: ang, crack: c, region: regionAt(x, y) }; c.mouth = lm; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 60); });
 
   // Homes (Lanternholds): a dense old city around the Hollow that thins outward, plus villages in the far lands
   W.homes = []; const used = new Set();
@@ -237,8 +298,8 @@ function generateCity() {
   // far lands: villages and lone farmsteads
   W.villages = [];
   const VP = CITY.villageP;
-  for (let gx = -CITY.R; gx < CITY.R; gx += 900) for (let gy = -CITY.R; gy < CITY.R; gy += 900) {
-    const cx = gx + 150 + rnd() * 600, cy = gy + 150 + rnd() * 600, r = Math.hypot(cx, cy), q = rnd(), vr = 140 + rnd() * 280, n = Math.round(6 + rnd() * 34);
+  for (let gx = -CITY.R; gx < CITY.R; gx += 800) for (let gy = -CITY.R; gy < CITY.R; gy += 800) {
+    const cx = gx + 130 + rnd() * 540, cy = gy + 130 + rnd() * 540, r = Math.hypot(cx, cy), q = rnd(), vr = 150 + rnd() * 300, n = Math.round(8 + rnd() * 52);
     if (r < INNER + 250 || r > CITY.R - 400) continue; const k = REGIONS[regionAt(cx, cy)].key; if (q > (VP[k] || 0.4)) continue;
     const v = { x: cx, y: cy, r: vr, n: 0 }; W.villages.push(v);
     for (let i = 0; i < n * 2 && v.n < n; i++) { const a = i * 2.39996 + rnd() * 0.5, d = vr * Math.sqrt((i + 0.5) / (n * 2)) * (0.85 + rnd() * 0.3); if (addHome(cx + Math.cos(a) * d, cy + Math.sin(a) * d, a + Math.PI + (rnd() - 0.5) * 0.8, 0.6)) v.n++; }
@@ -252,11 +313,11 @@ function generateCity() {
   W.objs = [];
   const add = (o) => { W.objs.push(o); return o; };
   W.windmills = []; W.chimneys = []; W.crystals = []; W.mines = []; W.posts = []; W.kilns = []; W.piers = [];
-  for (let gx = -R; gx < R; gx += 52) for (let gy = -R; gy < R; gy += 52) {
-    const x = gx + rnd() * 46, y = gy + rnd() * 46, r = Math.hypot(x, y);
-    if (r > R - 20 || hollowDist(x, y) < 45 || chasmDist(x, y) < 10) continue;
+  W.vents = []; W.lavaPools = [];
+  const decorAt = (x, y) => { const r = Math.hypot(x, y);
+    if (r > R - 60 || hollowDist(x, y) < 45 || chasmDist(x, y) < 10) return;
     const ri = regionAt(x, y), k = REGIONS[ri].key, q = rnd();
-    const wet = isWet(x, y, 6); if (wet) continue;
+    const wet = isWet(x, y, 6); if (wet) return;
     const free = (rr) => occFree(OCC.road, x, y, rr * 0.7) && occFree(OCC.obj, x, y, rr);
     const deco = (o) => { if (occFree(OCC.road, x, y, (o.r || 20) * 0.5)) add(Object.assign({ x, y, layer: 0, region: ri, seed: rnd() }, o)); };
     const obj = (o) => { if (free(o.r)) { add(Object.assign({ x, y, layer: 1, region: ri, seed: rnd() }, o)); occMark(OCC.obj, x, y, o.r); return true; } return false; };
@@ -268,8 +329,12 @@ function generateCity() {
     else if (k === 'farms') { if (q < 0.36) deco({ type: 'field', r: 46 + rnd() * 18, a: rnd() * Math.PI, c: rnd() }); else if (q < 0.41) obj({ type: 'hay', r: 7 }); else if (q < 0.425) { if (obj({ type: 'windmill', r: 18 })) W.windmills.push(W.objs[W.objs.length - 1]); } else if (q < 0.46) obj({ type: 'tree', r: 13 }); }
     else if (k === 'badlands') { if (q < 0.26) deco({ type: 'cracked', r: 36, a: rnd() * TAU }); else if (q < 0.32) obj({ type: 'slag', r: 18 + rnd() * 8 }); else if (q < 0.335) { if (obj({ type: 'chimney', r: 14 })) W.chimneys.push(W.objs[W.objs.length - 1]); } else if (q < 0.43) obj({ type: 'rock', r: 10 }); else if (q < 0.46) obj({ type: 'deadtree', r: 10 }); }
     else if (k === 'moss') { if (q < 0.3) deco({ type: 'mosspatch', r: 34 + rnd() * 20 }); else if (q < 0.37) { if (obj({ type: 'post', r: 6 })) W.posts.push(W.objs[W.objs.length - 1]); } else if (q < 0.53) obj({ type: 'tree', r: 14 + rnd() * 5, mossy: 1 }); else if (q < 0.55) obj({ type: 'pond', r: 22 }); }
+    else if (k === 'lava') { if (q < 0.022) { deco({ type: 'lavapool', r: 26 + rnd() * 14 }); W.lavaPools.push(W.objs[W.objs.length - 1]); } else if (q < 0.07) obj({ type: 'basalt', r: 16 + rnd() * 10 }); else if (q < 0.085) { if (obj({ type: 'vent', r: 18 + rnd() * 8 })) W.vents.push(W.objs[W.objs.length - 1]); } else if (q < 0.12) obj({ type: 'obsidian', r: 14 + rnd() * 8 }); else if (q < 0.15) obj({ type: 'deadtree', r: 10 }); else if (q < 0.2) deco({ type: 'cracked', r: 36, a: rnd() * TAU }); }
     else if (k === 'amber') { if (q < 0.3) obj({ type: 'orchard', r: 12 }); else if (q < 0.42) obj({ type: 'tree', r: 15, autumn: 1 }); else if (q < 0.45) obj({ type: 'rock', r: 8 }); else if (q < 0.5) deco({ type: 'leaves', r: 26 }); }
-  }
+  };
+  for (let gx = -3500; gx < 3500; gx += 52) for (let gy = -3500; gy < 3500; gy += 52) { const x = gx + rnd() * 46, y = gy + rnd() * 46; if (Math.hypot(x, y) < 3400) decorAt(x, y); }
+  for (let gx = -R; gx < R; gx += 66) for (let gy = -R; gy < R; gy += 66) { const x = gx + rnd() * 58, y = gy + rnd() * 58; if (Math.hypot(x, y) >= 3400) decorAt(x, y); }
+  for (const v of W.vents) if (rnd() < 0.7) { const a = rnd() * TAU; lavaFlow(v.x + Math.cos(a) * (v.r + 6), v.y + Math.sin(a) * (v.r + 6), a, 90 + rnd() * 220, 7 + rnd() * 6, true); }
   // Flora is scattered at paint time from a world-seeded hash (see artFlora), so it costs no memory
   // Piers on the lake shore
   for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
