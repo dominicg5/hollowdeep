@@ -164,6 +164,54 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 .legrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(110,80,40,.2);cursor:pointer}
 .legrow .sw{width:22px;height:22px;border-radius:6px;flex:0 0 auto;border:1px solid rgba(0,0,0,.2)}
 #cityHint{position:absolute;left:128px;right:8px;bottom:12px;text-align:center;font-size:11.5px;color:#fff6dc;text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none}
+
+/* painted UI */
+.pic{display:inline-block;vertical-align:middle;-webkit-user-drag:none;user-select:none}
+.pic.ri{height:1.25em;width:auto;filter:drop-shadow(0 1px 1px rgba(40,25,5,.35));margin-right:1px}
+.res .pic.ri{height:19px}
+.tabi{height:26px;width:auto;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));transition:transform .15s}
+nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(255,212,107,.7))}
+.card{background:linear-gradient(rgba(252,246,230,.82),rgba(244,232,204,.86)),url(assets/t_paper.webp) center/320px;border:1px solid rgba(110,80,40,.35);box-shadow:0 6px 18px rgba(30,20,5,.18),inset 0 0 0 3px rgba(255,250,235,.35),inset 0 0 24px rgba(120,85,40,.18)}
+.bld{grid-template-columns:64px 1fr}
+.bld .ic{width:64px;height:64px;background:radial-gradient(circle at 50% 60%,rgba(255,240,200,.8),rgba(255,255,255,0) 70%)}
+.bld .ic .pic{max-width:64px;max-height:64px;filter:drop-shadow(0 3px 3px rgba(40,25,5,.35))}
+.scene.paint{position:relative;line-height:0;background:#2a2218}
+.scene.paint .bg{width:100%;height:auto;display:block}
+.capscene .win{position:absolute;width:1.4%;height:1.6%;border-radius:2px;background:#ffd46b;box-shadow:0 0 8px 3px rgba(255,200,90,.75);animation:flick 2.6s infinite alternate;mix-blend-mode:screen;opacity:.85}
+.capscene .eye{position:absolute;width:1%;height:1%;border-radius:50%;background:#fff1b8;box-shadow:0 0 7px 3px rgba(255,212,107,.9);animation:pulse 2.4s infinite;mix-blend-mode:screen}
+.capscene .smoke{position:absolute;left:52%;top:58%;width:7%;height:12%;border-radius:50%;background:radial-gradient(rgba(70,62,58,.55),rgba(70,62,58,0) 70%);animation:smoke 4s linear infinite}
+.capscene .smoke.s2{animation-delay:2s}
+.capscene .cage{position:absolute;left:81.6%;top:calc(52% + var(--d));width:1.6%;height:3%;background:#5a3e24;border:1px solid #2a1a0a;box-shadow:0 0 6px 2px rgba(255,200,90,.6);animation:cage 6s ease-in-out infinite alternate}
+.capscene .chips{position:absolute;left:8px;top:8px;right:8px;display:flex;flex-wrap:wrap;gap:4px;line-height:1.2}
+.capscene .chips span{font-size:11.5px;padding:2px 8px;border-radius:99px;background:rgba(24,18,10,.62);color:#fff3d0;backdrop-filter:blur(2px)}
+.capscene .cap{position:absolute;left:10px;bottom:8px;font:italic 12px Georgia,serif;color:#fff3d0;text-shadow:0 1px 3px #000;line-height:1.2}
+@keyframes flick{from{opacity:.55}to{opacity:.95}}
+@keyframes smoke{0%{transform:translate(0,0) scale(.5);opacity:0}20%{opacity:.9}100%{transform:translate(18%,-160%) scale(1.8);opacity:0}}
+@keyframes cage{from{transform:translateY(0)}to{transform:translateY(-120%)}}
+.herocard{position:relative;padding-left:76px;min-height:96px}
+.herocard .portrait{position:absolute;left:8px;bottom:6px;height:92px;width:auto;filter:drop-shadow(0 3px 4px rgba(40,25,5,.4))}
+.molescene{margin:8px 0;max-height:150px;overflow:hidden}
+.molescene .fighter{position:absolute;left:6%;bottom:2%;height:70%;width:auto;filter:drop-shadow(0 4px 6px rgba(0,0,0,.6));animation:lunge 1.4s ease-in-out infinite}
+@keyframes lunge{0%,100%{transform:translateX(0)}50%{transform:translateX(14px) rotate(2deg)}}
+.opart{float:right;height:86px;width:auto;margin:-4px -2px 4px 8px;filter:drop-shadow(0 4px 4px rgba(40,25,5,.35))}
+.pic.mi{height:22px}
+.golemrow{display:flex;gap:2px;margin:4px 0 2px;flex-wrap:wrap}
+.golemrow .gs{height:40px;width:auto;filter:drop-shadow(0 2px 2px rgba(40,25,5,.4))}
+.rival{position:relative;padding-left:76px;min-height:90px}
+.rival .rv{position:absolute;left:6px;top:8px;height:84px;width:auto;filter:drop-shadow(0 3px 4px rgba(40,25,5,.45))}
+.pic.pi{height:1.4em}
+.pic.petart{height:40px;width:auto;filter:drop-shadow(0 2px 2px rgba(40,25,5,.35))}
+.golem2{transform-box:fill-box;transform-origin:50% 100%}
+.golem2 .ga{opacity:0}
+.wake .golem2 .gs{animation:fadeout .3s forwards;animation-delay:calc(var(--i) * .18s + .3s)}
+.wake .golem2 .ga{animation:glow .3s forwards;animation-delay:calc(var(--i) * .18s + .3s)}
+.wake .golem2{animation:rise2 .8s cubic-bezier(.3,1.5,.5,1) forwards;animation-delay:calc(var(--i) * .18s)}
+@keyframes fadeout{to{opacity:0}}
+@keyframes rise2{0%{transform:translateY(0)}55%{transform:translateY(-10px) scale(1.04)}100%{transform:translateY(-3px)}}
+#tapzone .hint{color:#fff3d0;text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.6);font-weight:600}
+.lt{white-space:nowrap}
+#heroG image{filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+#dummyG image{filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
 </style>
 </head>
 <body>
@@ -195,12 +243,12 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
     <div id="cityHint">Drag to explore · pinch or scroll to zoom · tap anything</div>
   </div>
   <nav id="tabs"><div class="wrap">
-    <button data-tab="city"><span>🗺️</span>Rim City</button>
-    <button data-tab="capital"><span>🏰</span>Capital</button>
-    <button data-tab="hollow"><span>🕳️</span>Hollow</button>
-    <button data-tab="outposts"><span>🐢</span>Outposts</button>
-    <button data-tab="raids"><span>⚔️</span>Raids</button>
-    <button data-tab="training"><span>🗡️</span>Training</button>
+    <button data-tab="city"><span><img class="tabi" src="assets/ui/tab_city.webp" alt=""></span>Rim City</button>
+    <button data-tab="capital"><span><img class="tabi" src="assets/ui/tab_capital.webp" alt=""></span>Capital</button>
+    <button data-tab="hollow"><span><img class="tabi" src="assets/ui/tab_hollow.webp" alt=""></span>Hollow</button>
+    <button data-tab="outposts"><span><img class="tabi" src="assets/ui/tab_outposts.webp" alt=""></span>Outposts</button>
+    <button data-tab="raids"><span><img class="tabi" src="assets/ui/tab_raids.webp" alt=""></span>Raids</button>
+    <button data-tab="training"><span><img class="tabi" src="assets/ui/tab_training.webp" alt=""></span>Training</button>
   </div></nav>
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>

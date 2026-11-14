@@ -95,11 +95,14 @@ const CityMap = (() => {
   }
 
   /* ---------- frame ---------- */
+  const dwell = { ri: -1, t: 0 };
   function frame(now) {
     if (!running) return; raf = requestAnimationFrame(frame);
     const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; fps = fps * 0.95 + (1 / Math.max(dt, 0.001)) * 0.05; frameN++;
     if (cam.fly) { const u = clamp((now - cam.fly.t0) / cam.fly.d, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; cam.x = cam.fly.x0 + (cam.fly.x - cam.fly.x0) * e; cam.y = cam.fly.y0 + (cam.fly.y - cam.fly.y0) * e; cam.z = cam.fly.z0 * Math.pow(cam.fly.z / cam.fly.z0, e); if (u >= 1) cam.fly = null; }
     else if (!ptrs.size && (Math.abs(cam.vx) > 0.05 || Math.abs(cam.vy) > 0.05)) { cam.x += cam.vx; cam.y += cam.vy; cam.vx *= 0.92; cam.vy *= 0.92; clampCam(); }
+    // exploration: lingering zoomed-in over a land maps it
+    if (cam.z > 0.42 && !cam.fly && Math.hypot(cam.x, cam.y) < CITY.R && hollowDist(cam.x, cam.y) > 0) { const ri = regionAt(cam.x, cam.y); if (ri === dwell.ri) { dwell.t += dt; if (dwell.t > 2.5 && discoverRegion(ri)) buildLegend(); } else { dwell.ri = ri; dwell.t = 0; } } else dwell.t = 0;
     const t = now / 1000, c = ctx, k = kpx();
     const vx0 = cam.x - Wc / 2 / k, vy0 = cam.y - Hc / 2 / k, vx1 = cam.x + Wc / 2 / k, vy1 = cam.y + Hc / 2 / k;
     c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = `rgb(${FOG.join(',')})`; c.fillRect(0, 0, Wc, Hc);
@@ -140,7 +143,7 @@ const CityMap = (() => {
       c.globalAlpha = 1; glow(c, end[0], end[1], 70 + Math.sin(t * 2) * 8, 'rgba(255,255,255,.9)', 0.45); }
     // Hollow: mist banks, peekers, lightning flash
     if (hollowVis) {
-      for (const m of W.mist) { const a = m.a + t * m.w, x = Math.cos(a) * m.r, y = Math.sin(a) * m.r; glow(c, x, y, m.size, 'rgba(220,230,255,.9)', m.al * (wx.type === 'mist' ? 1.6 : 1)); }
+      if (!ART.ok) for (const m of W.mist) { const a = m.a + t * m.w, x = Math.cos(a) * m.r, y = Math.sin(a) * m.r; glow(c, x, y, m.size, 'rgba(220,230,255,.9)', m.al * (wx.type === 'mist' ? 1.6 : 1)); }
     }
     for (const p of W.peekers) { if (!inV(p.x, p.y, 30)) continue; const u = ((t + p.ph) % p.P) / p.P; if (u > 0.2) continue; const a = Math.sin((u / 0.2) * Math.PI);
       c.globalAlpha = a; c.fillStyle = 'rgba(10,8,20,.9)'; c.beginPath(); c.ellipse(p.x, p.y, 9, 6, 0, 0, TAU); c.fill();
@@ -159,25 +162,18 @@ const CityMap = (() => {
     for (const m of W.windmills) { if (ART.ok || !inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
       for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
     for (const ch of W.chimneys) { if (!inV(ch.x, ch.y, 80)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.25 + k / 5 + ch.seed) % 1; glow(c, ch.x + u * 40, ch.y - u * 50, 6 + u * 16, 'rgba(90,85,85,.9)', (1 - u) * 0.45); } }
-    if (ART.ok && z > 0.45) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!(REGIONS[h.region].key === 'badlands' || (sd * 3.7) % 1 < 0.4)) continue;
+    if (ART.ok && z > 0.45) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!(REGIONS[h.region].key === 'badlands' ? (sd * 3.7) % 1 < 0.5 : (sd * 3.7) % 1 < 0.12)) continue;
       const w = homeW(h), fx = h.x + w * 0.18 * (homeFlip(h) ? 1 : -1), fy = h.y - w * 0.78;
-      for (let k = 0; k < 4; k++) { const u = (t * 0.18 + k / 4 + sd) % 1; glow(c, fx + u * 14 + Math.sin(u * 5 + sd * 9) * 2, fy - u * 26, 2.5 + u * 8, 'rgba(225,222,215,.9)', Math.min(1, u * 5) * (1 - u) * 0.38); } }
+      for (let k = 0; k < 4; k++) { const u = (t * 0.18 + k / 4 + sd) % 1; glow(c, fx + u * 14 + Math.sin(u * 5 + sd * 9) * 2, fy - u * 26, 2.5 + u * 8, 'rgba(205,200,195,.9)', Math.min(1, u * 5) * (1 - u) * 0.22 * clamp((z - 0.45) / 0.3, 0, 1)); } }
     if (ART.ok && W.river.length) { const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), ex = e0[0] + e0[0] / d * 50, ey = e0[1] + e0[1] / d * 50, sp = ART_MANIFEST.s.props2_2;
       if (sp && inV(ex, ey, 160)) { const fh = 92 * sp[4] / sp[3], by = ey - fh * 0.1 + fh * 0.86; for (let k = 0; k < 7; k++) { const u = (t * 0.35 + k / 7) % 1; glow(c, ex - 30 + ((k * 37) % 60) + Math.sin(t + k) * 4, by - u * 22, 8 + u * 18, 'rgba(235,245,255,1)', (1 - u) * 0.3); } } }
     for (const m of W.mines) { if (!inV(m.x, m.y, 80)) continue; const u = (Math.sin(t * 0.5 + m.seed * 9) + 1) / 2, d = 14 + u * 52; const x = m.x + Math.cos(m.a) * d, y = m.y + Math.sin(m.a) * d;
       if (ART.ok) { drawSprite(c, 'props_4', x, y, 18, 0.5, 0.7, Math.cos(m.a) < 0); continue; } c.save(); c.translate(x, y); c.rotate(m.a); c.fillStyle = '#5a4a3a'; c.fillRect(-5, -4, 10, 8); c.fillStyle = '#b9a4ff'; c.beginPath(); c.arc(-1.5, 0, 1.6, 0, TAU); c.arc(2, 1, 1.4, 0, TAU); c.fill(); c.restore(); }
-    // market caravans (shellback-drawn carts)
-    W.caravans.forEach((cvn) => { const rd = W.roads[cvn.rd], m = W.markets[cvn.m]; const span = 520, u = ((t * 9 + cvn.phase * 7) % (span * 2)); const off = u < span ? span - u : u - span;
-      const dir = Math.sign(roadPos(rd, Math.min(rd.len, cvn.s + 30))[0] - roadPos(rd, cvn.s)[0]) || 1;
-      for (let i = 0; i < 3; i++) { const s = clamp(cvn.s + (off + i * 16) * (Math.hypot(...roadPos(rd, cvn.s).slice(0, 2)) < Math.hypot(m.x, m.y) ? -1 : 1), 0, rd.len); const [x, y, a] = roadPos(rd, s); if (!inV(x, y, 20)) continue;
-        if (ART.ok) { if (i === 0) { softShadow(c, x + 3, y + 1, 12, 4, 0.8); drawSprite(c, 'creatures_5', x, y, 24, 0.5, 0.9, Math.cos(a + (u < span ? Math.PI : 0)) < 0); } else drawSprite(c, 'props_5', x, y, 20, 0.5, 0.75, Math.cos(a) < 0); continue; }
-        if (i === 0) drawPet(c, 'tortoise', x, y, a + (u < span ? Math.PI : 0), t, 0, false);
-        else { c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = '#8a6440'; c.fillRect(-6, -4, 12, 8); c.fillStyle = ['#c8634c', '#e2b04a'][i % 2]; c.fillRect(-5, -3, 10, 6); c.restore(); } } void dir; });
     // homes: lanterns, pets
     const homes = z > 0.32 ? queryObjs(view.x0, view.y0, view.x1, view.y1, 40).filter((o) => o.type === 'home') : [];
     if (z > 0.5) for (const h of homes) { if (!h.pet || h.isPlayer) continue; let x, y, a, sl = h.petSleep || night > 0.6;
       if (sl) { x = h.x + Math.cos(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); y = h.y + Math.sin(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); a = h.ang; }
-      else { const p = h.petPhase, ang = p + Math.sin(t * 0.35 + p) * 1.8 + t * 0.08, rr = h.size * 0.62 + 10 + Math.sin(t * 0.9 + p) * 4; x = h.x + Math.cos(ang) * rr; y = h.y + Math.sin(ang) * rr; a = ang + Math.PI / 2 * Math.sign(Math.cos(t * 0.35 + p)); }
+      else { x = h.x + Math.cos(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); y = h.y + Math.sin(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); a = h.ang; }
       drawPet(c, h.pet, x, y, a, t, h.petPhase, sl); }
     // the player's own Lanternhold, painted live from game state
     drawPlayerHome(c, t, z, inV);
@@ -185,20 +181,7 @@ const CityMap = (() => {
     const storm = (wx.type === 'storm' || wx.type === 'rain') && wx.fade > 0.3 ? wx : null; const mole = currentMole();
     if (mole && inV(mole.x, mole.y, 120)) drawMole(c, mole, t);
     if (z > 0.3) {
-      const detail = z > 0.55; let gathered = 0;
-      W.walkers.forEach((w, i) => {
-        let [x, y, a, br] = walkerPos(w, t);
-        if (mole && Math.hypot(x - mole.x, y - mole.y) < 750) { const ga = (i * 2.399) % TAU, rr = 55 + (i % 4) * 11; x = mole.x + Math.cos(ga) * rr; y = mole.y + Math.sin(ga) * rr; a = ga + Math.PI; gathered++; }
-        else if (storm && w.shy < (storm.type === 'storm' ? 0.8 : 0.45) && Math.hypot(x - storm.x, y - storm.y) < storm.r) return; // streets empty in storms
-        if (!inV(x, y, 10)) return;
-        if (!detail) { c.fillStyle = w.cloak; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); return; }
-        drawPerson(c, x, y, a, w.cloak, w.skin, t, w.phase, { hat: w.hat, lantern: w.lantern && night > 0.3 });
-        if (w.pet) drawPet(c, w.pet, x - Math.cos(a) * 9 + Math.cos(a + 1.57) * 4, y - Math.sin(a) * 9 + Math.sin(a + 1.57) * 4, a, t, w.phase, false);
-      });
-      W.visitors.forEach((v) => { const m = W.markets[v.m]; if (v.extra && !(marketSpike(v.m) || (festival() === 'harvest' && REGIONS[m.region].key === 'farms'))) return;
-        const a = v.a0 + t * v.w + Math.sin(t * 0.5 + v.phase) * 0.3, x = m.x + Math.cos(a) * v.rr, y = m.y + Math.sin(a) * v.rr; if (!inV(x, y, 10)) return;
-        if (detail) drawPerson(c, x, y, a + Math.PI / 2 * Math.sign(v.w), v.cloak, v.skin, t, v.phase, {}); else { c.fillStyle = v.cloak; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); } });
-      for (const n of W.npcs) { const [x, y, a] = npcPos(n, t); if (!inV(x, y, 20)) continue; n.sx = x; n.sy = y; glow(c, x, y, 16, 'rgba(255,230,150,.9)', 0.4); drawPerson(c, x, y, a, n.npc.color, SKIN[0], t, 1, { hat: true, lantern: true, spr: NPC_SPR[n.npc.id], h: 17 }); }
+      for (const n of W.npcs) { const [x, y, a] = npcPos(n, t); if (!inV(x, y, 20)) continue; n.sx = x; n.sy = y; glow(c, x, y, 16, 'rgba(255,230,150,.9)', 0.4); drawPerson(c, x, y, a, n.npc.color, SKIN[0], t, 1, { hat: true, lantern: true, spr: NPC_SPR[n.npc.id], h: 17, idle: true }); }
     }
     // promenade lamps lit by Pell (glow added later in night pass)
     // sky-fish by day: big, slow, ground shadows; dive back into the Hollow
@@ -219,8 +202,8 @@ const CityMap = (() => {
     c.strokeStyle = `rgba(255,212,107,${0.5 + pulse * 0.4})`; c.lineWidth = 3 / Math.max(0.3, z); c.beginPath(); c.arc(h.x, h.y, h.size + 14 + pulse * 4, 0, TAU); c.stroke();
     drawHome(c, h, Math.max(0.3, z));
     const pets = equippedPets(); pets.forEach((p, i) => { const sl = !heroHome() || nightFactor() > 0.5; const a = h.ang + Math.PI / 2; const kind = p.id;
-      const x = sl ? h.x + Math.cos(a) * (h.size * 0.55 + 6) + Math.cos(h.ang) * (i * 9 - 4) : h.x + Math.cos(t * 0.3 + i * 3) * (h.size * 0.7 + 12), y = sl ? h.y + Math.sin(a) * (h.size * 0.55 + 6) + Math.sin(h.ang) * (i * 9 - 4) : h.y + Math.sin(t * 0.3 + i * 3) * (h.size * 0.7 + 12);
-      drawPet(c, kind, x, y, sl ? h.ang : t * 0.3 + i * 3 + Math.PI / 2, t, i, sl); });
+      const x = h.x + Math.cos(a) * (h.size * 0.55 + 6) + Math.cos(h.ang) * (i * 11 - 5), y = h.y + Math.sin(a) * (h.size * 0.55 + 6) + Math.sin(h.ang) * (i * 11 - 5);
+      drawPet(c, kind, x, y, h.ang, t, i, sl); });
   }
   function drawMole(c, m, t) {
     const bob = Math.sin(t * 3) * 3;
@@ -265,7 +248,6 @@ const CityMap = (() => {
     for (const o of W.crystals) G(o.x, o.y, 46, 'rgba(180,150,255,.9)', 0.18 + 0.18 * Math.sin(t * 1.5 + o.seed * 20) + night * 0.25);
     for (const o of W.kilns) G(o.x, o.y, 30, 'rgba(255,150,60,.9)', 0.25 + night * 0.4 + 0.1 * Math.sin(t * 3 + o.seed * 9));
     for (const o of W.posts) G(o.x, o.y, 22, 'rgba(255,212,107,.95)', (0.25 + night * 0.65) * (0.75 + 0.25 * Math.sin(t * 3 + o.seed * 30)));
-    for (const l of W.lamps) if (lampLit(l)) G(l.x, l.y, 26, 'rgba(255,200,110,.95)', 0.85 * (0.85 + 0.15 * Math.sin(t * 4 + l.phase)));
     if (z > (ART.ok ? 0.1 : 0.35) && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if (ART.ok && z <= 0.35) { G(h.x, h.y - 8, homeW(h) * 0.75, 'rgba(255,190,100,.95)', night * 0.75); continue; } if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); G(h.x, h.y + w * 0.05, w * 0.55, 'rgba(255,150,60,.9)', night * 0.35 * fl); const sd = h.lanternPhase || 0; for (let i = 0; i < 3; i++) { const wx = h.x + (((sd * 7.3 + i * 0.37) % 1) - 0.5) * w * 0.55, wy = h.y - w * (0.12 + ((sd * 3.1 + i * 0.29) % 1) * 0.25); G(wx, wy, w * 0.14, 'rgba(255,200,110,.95)', night * 0.9 * fl); G(wx, wy, 2.2, 'rgba(255,245,200,1)', night * 0.9); } } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
     // sky-fish at night: the nightfall school surges out of the chasm, then a few roam
     if (night > 0.05) { const h = hourOfDay(); const surge = h >= 17.5 && h < 21 ? clamp((h - 17.5) / 3.5, 0, 1) : -1;
@@ -296,6 +278,7 @@ const CityMap = (() => {
   function updateHud() { const now = performance.now(); if (now - hudAt < 400) return; hudAt = now; const base = wrap.getBoundingClientRect(); hudRects = ['.cityTitle', '#cityInfo', '#ticker', '.cityBtns', '#miniMap'].map((q) => wrap.querySelector(q)).filter((e) => e && e.offsetParent !== null).map((e) => { const r = e.getBoundingClientRect(); return [(r.left - base.left - 4) * dpr, (r.top - base.top - 4) * dpr, (r.width + 8) * dpr, (r.height + 8) * dpr]; }); }
   const ovl = (r, q) => r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1];
   function hudHit(r) { for (const q of hudRects) if (ovl(r, q)) return true; return false; }
+  let lblShown = new Set();
   function drawLabels(c, t, view, inV, S2) {
     updateHud();
     st.labels = [];
@@ -307,7 +290,7 @@ const CityMap = (() => {
     const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y - 40); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
     // region names at far zoom
     const ra = clamp((0.5 - z) / 0.15, 0, 1);
-    if (ra > 0) REGIONS.forEach((R, i) => { const a = regionAngle(i), [x, y] = polar(2050, a); const [sx, sy] = S2(x, y); c.font = `700 ${15 * dpr}px Georgia,serif`; { const hw = Math.max(c.measureText(`${R.icon} ${R.name}`).width, c.measureText(R.res.join('  ')).width * 0.75) / 2 + 4 * dpr; if (hudHit([sx - hw, sy - 12 * dpr, hw * 2, 40 * dpr])) return; } st.labels.push({ name: R.name, wx: x, wy: y, sx: sx / dpr, sy: sy / dpr }); c.textAlign = 'center'; c.textBaseline = 'middle'; c.globalAlpha = ra; c.lineWidth = 4 * dpr; c.strokeStyle = 'rgba(40,30,20,.65)'; c.strokeText(`${R.icon} ${R.name}`, sx, sy); c.fillStyle = '#fff6dc'; c.fillText(`${R.icon} ${R.name}`, sx, sy); c.font = `600 ${10.5 * dpr}px system-ui`; c.strokeText(R.res.join('  '), sx, sy + 16 * dpr); c.fillText(R.res.join('  '), sx, sy + 16 * dpr); c.globalAlpha = 1; });
+    // region names are not shown: the lands are discovered by exploring
     if (ra > 0) { const [sx, sy] = S2(0, 0); if (!hudHit([sx - 70 * dpr, sy - 18 * dpr, 140 * dpr, 24 * dpr])) { c.font = `700 ${16 * dpr}px Georgia,serif`; c.globalAlpha = ra; c.fillStyle = '#ffe9a8'; c.textAlign = 'center'; c.fillText('THE HOLLOW', sx, sy); c.globalAlpha = 1; } }
     // civic labels
     const ca = clamp((z - 0.28) / 0.12, 0, 1);
@@ -316,15 +299,13 @@ const CityMap = (() => {
       if (!label) continue; const r = pill(c, sx, sy + 14 * dpr, label, { a: ca, bg: 'rgba(36,50,74,.85)', color: '#fff3d0', fs: 10.5 }); rects.push(r); }
     // NPC names + speech bubbles
     if (z > 0.45) for (const n of W.npcs) { if (n.sx == null || !inV(n.sx, n.sy, 20)) continue; const [sx, sy] = S2(n.sx, n.sy);
-      if (z > 0.75) rects.push(pill(c, sx, sy - 9 * dpr, `${n.npc.icon} ${n.npc.name}`, { bg: 'rgba(255,230,160,.95)', fs: 10, bold: true }));
-      const b = npcBubble(n, t); if (b) { const r = pill(c, sx, sy - (z > 0.75 ? 26 : 10) * dpr, b, { bg: '#fffdf4', fs: 10.5, border: 'rgba(110,80,40,.4)' }); rects.push(r); } }
+      if (z > 0.75) rects.push(pill(c, sx, sy - 9 * dpr, `${n.npc.icon} ${n.npc.name}`, { bg: 'rgba(255,230,160,.95)', fs: 10, bold: true, a: clamp((z - 0.75) / 0.2, 0, 1) }));
+      const b = npcBubble(n, t); if (b) { const r = pill(c, sx, sy - (z > 0.75 ? 26 : 10) * dpr, b, { bg: '#fffdf4', fs: 10.5, border: 'rgba(110,80,40,.4)', a: clamp((z - 0.45) / 0.2, 0, 1) }); rects.push(r); } }
     // home labels (level-of-detail, decluttered)
-    if (z > 0.6) { const homes = queryObjs(view.x0, view.y0, view.x1, view.y1, 20).filter((o) => o.type === 'home' && !o.isPlayer).sort((a, b) => b.level - a.level);
-      for (const h of homes) { const need = Math.max(0.75, 1.3 - h.level / 45); const a = clamp((z - need) / 0.15 + 0.2, 0, 1); if (a <= 0.05) continue;
+    if (z > 0.6) { const homes = queryObjs(view.x0, view.y0, view.x1, view.y1, 20).filter((o) => o.type === 'home' && !o.isPlayer).sort((a, b) => (lblShown.has(b.id) - lblShown.has(a.id)) || b.level - a.level); const nowShown = new Set();
+      for (const h of homes) { const need = Math.max(0.75, 1.3 - h.level / 45); const a = clamp((z - need) / 0.25, 0, 1); if (a <= 0.02) continue;
         const [sx, sy] = S2(h.x, h.y - h.size * 0.55); const fs = 10.5; c.font = `600 ${fs * dpr}px system-ui`; const w = c.measureText(h.owner).width + 34 * dpr, hh = (fs + 6) * dpr; const r = [sx - w / 2, sy - hh, w, hh];
-        if (!free(r)) continue; const sh = (S.mapShields[h.id] || 0) > S.gameTime; pill(c, sx, sy, `${h.owner} · ${h.level}${sh ? ' 🛡️' : ''}`, { a, fs }); } }
-    // walker names when very close
-    if (z > 1.7) W.walkers.forEach((w) => { const [x, y] = walkerPos(w, t); if (!inV(x, y)) return; const [sx, sy] = S2(x, y - 7); const r = [sx - 30 * dpr, sy - 14 * dpr, 60 * dpr, 14 * dpr]; if (!free(r)) return; pill(c, sx, sy, w.name, { fs: 9, bg: 'rgba(255,255,255,.7)' }); });
+        if (!free(r)) continue; const sh = (S.mapShields[h.id] || 0) > S.gameTime; pill(c, sx, sy, `${h.owner} · ${h.level}${sh ? ' 🛡️' : ''}`, { a, fs }); st.labels.push({ name: h.owner, wx: h.x, wy: h.y - h.size * 0.55, sx: sx / dpr, sy: sy / dpr }); nowShown.add(h.id); } lblShown = nowShown; }
   }
   function npcBubble(n, t) {
     const b = bubbles.get(n.npc.id); if (b && b.until > t) return b.text;
@@ -341,8 +322,8 @@ const CityMap = (() => {
   function rumorPool() {
     const out = [], t = performance.now() / 1000;
     if (S.gameTime < S.nextRaidAt && S.nextRaidAt - S.gameTime < 3 * HOUR && S.gameTime >= S.shieldUntil) out.push({ w: 3, s: '🏴 Scouts saw raider banners on the east road. They\'re eyeing your Lanternhold.' });
-    const nm = nextMole(); if (nm && nm.start - S.gameTime < 4 * HOUR) out.push({ w: 3, s: `🫨 The ground's been trembling in ${REGIONS[nm.region].name}. Something big is digging.` });
-    const cm = currentMole(); if (cm) out.push({ w: 4, s: `⚠️ A Rim Mole broke the surface in ${REGIONS[cm.region].name}! Crowds are gathering to watch the fight.` });
+    const nm = nextMole(); if (nm && nm.start - S.gameTime < 4 * HOUR) out.push({ w: 3, s: `🫨 The ground's been trembling in ${regionName(nm.region)}. Something big is digging.` });
+    const cm = currentMole(); if (cm) out.push({ w: 4, s: `⚠️ A Rim Mole broke the surface in ${regionName(cm.region)}! Crowds are gathering to watch the fight.` });
     const w = Math.floor(S.gameTime / (CITY.spikeWindowHours * HOUR));
     W.markets.forEach((m, i) => { const res = REGIONS[m.region].sells[0]; if (marketSpike(i)) out.push({ w: 2, s: `📈 ${CONFIG.resources[res].name} prices are spiking at the ${m.name}! Traders are pouring in.` });
       else if (spikeAt(i, w + 1)) out.push({ w: 2, s: `🤫 Traders whisper ${CONFIG.resources[res].name} will be dear at the ${m.name} soon.` }); });
@@ -366,8 +347,10 @@ const CityMap = (() => {
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
   function buildLegend() {
-    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Regions of Rim City</b><button class="btn ghost sm" data-city="legend">✕</button></div>` + REGIONS.map((R, i) => `<div class="legrow" data-city="region:${i}"><span class="sw" style="background:rgb(${R.ground.join(',')})"></span><div><b>${R.icon} ${R.name}</b><br><span class="dim">${R.res.join(' · ')}</span></div></div>`).join('') +
-      `<div class="dim" style="margin-top:6px">🏪 Bazaars trade resources · 🏦 Vaults add storage · 🧵 Tether lifts drop into the Hollow · ★ is your ${CITY.homeTerm}. Tap a region to fly there.</div>`;
+    const known = REGIONS.map((R, i) => [R, i]).filter(([, i]) => isDiscovered(i)), unk = REGIONS.length - known.length;
+    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Lands you have explored</b><button class="btn ghost sm" data-city="legend">✕</button></div>` + known.map(([R, i]) => `<div class="legrow" data-city="region:${i}"><span class="sw" style="background:rgb(${R.ground.join(',')})"></span><div><b>${R.icon} ${R.name}</b><br><span class="dim">${R.res.join(' · ')}</span></div></div>`).join('') +
+      (unk ? `<div class="legrow"><span class="sw" style="background:#555"></span><div><b>❔ ${unk} unexplored land${unk > 1 ? 's' : ''}</b><br><span class="dim">Zoom in and linger somewhere new to map it.</span></div></div>` : '') +
+      `<div class="dim" style="margin-top:6px">🏪 Bazaars trade resources · 🏦 Vaults add storage · 🧵 Tether lifts drop into the Hollow · ★ is your ${CITY.homeTerm}.</div>`;
   }
   function buildMinimapBase() {
     const N = 120; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
@@ -388,10 +371,10 @@ const CityMap = (() => {
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
     if (b === 'home') return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
     if (b === 'overview') return flyTo(0, 0, Math.min(Wc, Hc) / dpr / (CITY.R * 2.1));
-    if (b === 'legend') return $('#legend').classList.toggle('hidden');
+    if (b === 'legend') { buildLegend(); return $('#legend').classList.toggle('hidden'); }
     if (b === 'journal') return journalModal();
     if (b === 'season') return seasonModal();
-    if (b.startsWith('region:')) { const i = +b.split(':')[1]; const [x, y] = polar(1900, regionAngle(i)); $('#legend').classList.add('hidden'); flyTo(x, y, 0.45); }
+    if (b.startsWith('region:')) { const i = +b.split(':')[1]; const hs = W.homes.filter((h) => h.region === i), hh = hs[Math.floor(hs.length / 2)] || W.player, x = hh.x, y = hh.y; $('#legend').classList.add('hidden'); flyTo(x, y, 0.45); }
   }
 
   /* ---------- taps & cards ---------- */
@@ -418,9 +401,9 @@ const CityMap = (() => {
   }
   function homeCard(h) {
     const R = REGIONS[h.region], sh = (S.mapShields[h.id] || 0) > S.gameTime, est = starsFor(attackPower() / h.power);
-    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${R.icon} ${R.name}</div>
+    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${isDiscovered(h.region) ? `${R.icon} ${R.name}` : '❔ Unexplored lands'}</div>
       <div class="wrapgap" style="margin-top:6px"><span class="tag">🛡️ Power ${h.power}</span><span class="tag">⚔️ You ${Math.round(attackPower())}</span><span class="tag ${est >= 2 ? 'good' : est === 0 ? 'bad' : ''}">Likely ${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span></div>
-      <div class="small" style="margin-top:6px">Resources nearby: ${R.res.join(' · ')}</div>
+      <div class="small" style="margin-top:6px">Resources nearby: ${isDiscovered(h.region) ? R.res.join(' · ') : '??? (explore or raid here to find out)'}</div>
       <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level))}</div>
       ${historyLines(h, false)}
       ${btnRow(`${sh ? `<span class="tag">🛡️ Shielded ${countdown(S.mapShields[h.id])}</span>` : `<button class="btn red" data-act="mapraid" data-id="${h.id}" ${!heroHome() || S.res.lumen < CONFIG.mapRaid.lumen ? 'disabled' : ''}>⚔️ Raid (${CONFIG.mapRaid.lumen} 🏮)</button>`}
@@ -436,10 +419,10 @@ const CityMap = (() => {
   function marketCard(m) {
     const R = REGIONS[m.region], spike = marketSpike(m.idx), mult = spike ? CITY.spikeMult : 1, P = CONFIG.market, lot = P.lot;
     const sellMult = (R.premium ? P.premiumSellMult : P.sellMult);
-    const buys = R.sells.map((k) => { const n = k === 'amber' ? 5 : lot, price = Math.ceil(P.prices[k] * n * P.buyMult * mult * (k === R.sells[0] ? 1 : 1.1)); return `<button class="btn alt sm" data-act="mbuy" data-id="${k}" data-n="${n}" data-m="${(price / (P.prices[k] * n)).toFixed(3)}">Buy ${n} ${CONFIG.resources[k].icon} · ${price} 👑</button>`; }).join('');
+    const buys = R.sells.map((k) => { const n = k === 'amber' ? 5 : lot, price = Math.ceil(P.prices[k] * n * P.buyMult * mult * (k === R.sells[0] ? 1 : 1.1)); return `<button class="btn alt sm" data-act="mbuy" data-id="${k}" data-n="${n}" data-m="${(price / (P.prices[k] * n)).toFixed(3)}">Buy ${n} ${rIco(k)} · ${price} 👑</button>`; }).join('');
     const sells = Object.keys(P.prices).filter((k) => k !== 'crowns').map((k) => { const n = k === 'amber' || k === 'steel' ? 5 : lot; const m2 = sellMult * (R.sells.includes(k) && spike ? CITY.spikeMult : 1) * (R.sells.includes(k) ? 0.8 : 1); const gain = Math.floor(P.prices[k] * n * m2);
-      return `<button class="btn ghost sm" data-act="msell" data-id="${k}" data-n="${n}" data-m="${m2.toFixed(3)}" ${(S.res[k] || 0) < n ? 'disabled' : ''}>Sell ${n} ${CONFIG.resources[k].icon} → ${gain} 👑</button>`; }).join('');
-    openModal(`<h2>🏪 ${m.name}</h2><div class="small">${R.icon} ${R.name} · stalls: ${R.res.join(' · ')}</div>
+      return `<button class="btn ghost sm" data-act="msell" data-id="${k}" data-n="${n}" data-m="${m2.toFixed(3)}" ${(S.res[k] || 0) < n ? 'disabled' : ''}>Sell ${n} ${rIco(k)} → ${gain} 👑</button>`; }).join('');
+    openModal(`<h2>🏪 ${m.name}</h2><div class="small">${isDiscovered(m.region) ? `${R.icon} ${R.name} · stalls: ${R.res.join(' · ')}` : '❔ A bazaar in unexplored lands'}</div>
       ${spike ? `<div class="tag bad" style="margin-top:6px">📈 Price spike! ${CONFIG.resources[R.sells[0]].name} costs ×${CITY.spikeMult}, and the square is packed.</div>` : `<div class="dim" style="margin-top:6px">Normal trading day.${R.premium ? ' Goldenstep traders pay premium Crowns for everything you sell.' : ''}</div>`}
       ${festival() === 'harvest' && R.key === 'farms' ? '<div class="tag good" style="margin-top:4px">🌾 Harvest Fair! Extra stalls and crowds.</div>' : ''}
       <div class="small" style="margin-top:8px"><b>Buy local goods</b></div>${btnRow(buys)}
@@ -450,7 +433,7 @@ const CityMap = (() => {
   }
   function vaultCard(v) {
     const lvl = S.buildings.vault || 0, block = buildBlock('vault'), cost = lvl < CONFIG.buildings.vault.max ? buildCost('vault') : null;
-    openModal(`<h2>🏦 ${v.name}</h2><div class="small">${REGIONS[v.region].icon} ${REGIONS[v.region].name}</div>
+    openModal(`<h2>🏦 ${v.name}</h2><div class="small">${isDiscovered(v.region) ? REGIONS[v.region].icon + ' ' + REGIONS[v.region].name : '❔ Unexplored lands'}</div>
       <p class="small">Vaults are cut into the old bedrock under the Rim. Building your own <b>Rim Vault</b> raises every storage cap by <b>+${Math.round(CONFIG.vault.capPerLevel * 100)}%</b> per level and keeps <b>+${Math.round(CONFIG.vault.protectPerLevel * 100)}%</b> more of your stock safe from raiders.</p>
       <div class="wrapgap"><span class="tag">Your Vault: Lv ${lvl}</span><span class="tag">Storage cap ${fmt(storageCap())}</span><span class="tag">Raid-safe ${Math.round(protectedShare() * 100)}%</span></div>
       ${cost ? `<div class="wrapgap" style="margin-top:8px">${costHtml(cost)}<span class="dim">⏱ ${gameDur(buildTime('vault'))}</span></div>` : ''}
@@ -463,7 +446,9 @@ const CityMap = (() => {
   function loreCard(o) { const L = LORE[o.type]; openModal(`<h2>${o.type === 'statue' ? '🗿' : o.type === 'memorial' ? '🕯️' : '🚪'} ${L.title}</h2><p>${L.text}</p>${o.type === 'memorial' ? `<p class="dim">${S.stats.expeditions} of your expeditions have returned. Wren's name is not on the Wall.</p>` : ''}${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function hollowCard() { openModal(`<h2>🕳️ The Hollow</h2><p class="small">A chasm with no bottom anyone has seen. Lumen glows in its depths; the layers step down like terraces: ${CONFIG.layers.map((l) => l.name).join(' → ')} → …</p><p class="dim">Sky-fish surge out of it at nightfall. Lightning sometimes flickers far below.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">Send Wren down</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function regionCard(i) {
-    const R = REGIONS[i], n = W.homes.filter((h) => h.region === i).length, m = W.markets.find((mm) => mm.region === i);
+    const R = REGIONS[i];
+    if (!isDiscovered(i)) return openModal(`<h2>❔ Unexplored lands</h2><p class="small">Nobody you know has mapped this stretch of the Rim yet. Linger here with the map zoomed in, raid a Lanternhold, or fight what digs up out of the ground to learn what the land holds.</p><div class="wrapgap"><span class="tag">??? resources</span><span class="tag">??? bazaar</span></div>${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+    const n = W.homes.filter((h) => h.region === i).length, m = W.markets.find((mm) => mm.region === i);
     openModal(`<h2>${R.icon} ${R.name}</h2><p class="small">${R.blurb}</p><div class="wrapgap">${R.res.map((r) => `<span class="tag">${r}</span>`).join('')}</div>
       <div class="dim" style="margin-top:6px">${n} ${CITY.homeTerm}s · Bazaar trades ${R.sells.map((k) => CONFIG.resources[k].icon + ' ' + CONFIG.resources[k].name).join(', ')}${R.key === 'bluffs' && frostLevel() > 0 ? ' · ❄️ frost is creeping in' : ''}</div>
       ${btnRow(`${m ? `<button class="btn alt" data-act="mopen" data-id="${m.idx}">🏪 Open ${m.name}</button>` : ''}<button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
@@ -477,7 +462,7 @@ const CityMap = (() => {
   }
   function moleCard(m) {
     const P = molePower(), ch = clamp(attackPower() / P, 0.15, 0.95);
-    openModal(`<h2>⚠️ A Rim Mole surfaced!</h2><p class="small">A house-sized mole has burst out of a fissure in <b>${REGIONS[m.region].name}</b>. Half the street has come out to watch. It digs back down in ${countdown(m.end)}.</p>
+    openModal(`<h2>⚠️ A Rim Mole surfaced!</h2><div class="scene paint molescene">${pic('molebg', 'bg')}${pic('wren_b', 'fighter')}</div><p class="small">A house-sized mole has burst out of a fissure in <b>${REGIONS[m.region].name}</b>. Half the street has come out to watch. It digs back down in ${countdown(m.end)}.</p>
       <div class="wrapgap"><span class="tag bad">Mole power ${P}</span><span class="tag">You ${Math.round(attackPower())}</span><span class="tag">~${Math.round(ch * 100)}% to win</span></div>
       <div class="dim" style="margin-top:6px">Win: Crowns, Amber, Iron, a skull trophy for your ${CITY.homeTerm} and big XP. Lose: Wren limps home with a little loot.</div>
       ${btnRow(`<button class="btn red" data-act="molefight" data-id="${m.k}" ${!heroHome() ? 'disabled' : ''}>⚔️ Join the fight</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
@@ -498,7 +483,7 @@ const CityMap = (() => {
   }
   function onAct(act, ds) {
     switch (act) {
-      case 'mapraid': { const h = W.homes[+ds.id]; closeModalQuiet(); return startMapRaid(h); }
+      case 'mapraid': { const h = W.homes[+ds.id]; closeModalQuiet(); discoverRegion(h.region); return startMapRaid(h); }
       case 'mapvisit': { const h = W.homes[+ds.id]; toast(`👋 ${h.owner} waves from the window. (Visiting is coming soon.)`); return; }
       case 'mbuy': marketBuy(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
       case 'msell': marketSell(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;

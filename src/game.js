@@ -165,7 +165,7 @@ function newState() {
     veins, nextShipAt: HOUR * CONFIG.pull.shipEveryHours, lastShip: null,
     nextRaidAt: CONFIG.raids.firstRaidHours * HOUR, shieldUntil: 0, raidCount: 0, lastRaid: null, pendingReveal: null,
     rivals: [], log: [], nextUid: 10, seen: {},
-    mapShields: {}, moleDone: {}, journal: [], seasonOverride: null, festivalOverride: false, cityCam: null,
+    mapShields: {}, moleDone: {}, discovered: {}, journal: [], seasonOverride: null, festivalOverride: false, cityCam: null,
     stats: { expeditions: 0, raidsWon: 0, defended: 0, tapsAll: 0, deepest: 0, moles: 0 },
   };
 }
@@ -510,12 +510,12 @@ function resolveMapRaid(m) {
 function startMoleFight(m) {
   if (!heroHome()) return toast('Your hero is busy');
   S.hero.task = { type: 'mole', k: m.k, region: m.region, power: molePower(), start: S.gameTime, end: S.gameTime + 20 * MIN };
-  S.moleDone[m.k] = true;
+  S.moleDone[m.k] = true; if (typeof discoverRegion === 'function') discoverRegion(m.region);
   toast('⚔️ Wren charges the Rim Mole! The crowd roars.'); rerender(true);
 }
 function resolveMoleFight(t) {
   const win = Math.random() < clamp(attackPower() / t.power, 0.15, 0.95);
-  const where = REGIONS[t.region].name;
+  const where = regionName(t.region);
   if (win) {
     const loot = { crowns: Math.round(60 * S.hero.level), amber: 3 + Math.floor(Math.random() * 4), iron: 20 + Math.floor(Math.random() * 20) }; grantLoot(loot);
     const xp = gainXp(40 * S.hero.level); S.stats.moles = (S.stats.moles || 0) + 1;

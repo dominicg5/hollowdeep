@@ -164,6 +164,54 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 .legrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(110,80,40,.2);cursor:pointer}
 .legrow .sw{width:22px;height:22px;border-radius:6px;flex:0 0 auto;border:1px solid rgba(0,0,0,.2)}
 #cityHint{position:absolute;left:128px;right:8px;bottom:12px;text-align:center;font-size:11.5px;color:#fff6dc;text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none}
+
+/* painted UI */
+.pic{display:inline-block;vertical-align:middle;-webkit-user-drag:none;user-select:none}
+.pic.ri{height:1.25em;width:auto;filter:drop-shadow(0 1px 1px rgba(40,25,5,.35));margin-right:1px}
+.res .pic.ri{height:19px}
+.tabi{height:26px;width:auto;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));transition:transform .15s}
+nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(255,212,107,.7))}
+.card{background:linear-gradient(rgba(252,246,230,.82),rgba(244,232,204,.86)),url(assets/t_paper.webp) center/320px;border:1px solid rgba(110,80,40,.35);box-shadow:0 6px 18px rgba(30,20,5,.18),inset 0 0 0 3px rgba(255,250,235,.35),inset 0 0 24px rgba(120,85,40,.18)}
+.bld{grid-template-columns:64px 1fr}
+.bld .ic{width:64px;height:64px;background:radial-gradient(circle at 50% 60%,rgba(255,240,200,.8),rgba(255,255,255,0) 70%)}
+.bld .ic .pic{max-width:64px;max-height:64px;filter:drop-shadow(0 3px 3px rgba(40,25,5,.35))}
+.scene.paint{position:relative;line-height:0;background:#2a2218}
+.scene.paint .bg{width:100%;height:auto;display:block}
+.capscene .win{position:absolute;width:1.4%;height:1.6%;border-radius:2px;background:#ffd46b;box-shadow:0 0 8px 3px rgba(255,200,90,.75);animation:flick 2.6s infinite alternate;mix-blend-mode:screen;opacity:.85}
+.capscene .eye{position:absolute;width:1%;height:1%;border-radius:50%;background:#fff1b8;box-shadow:0 0 7px 3px rgba(255,212,107,.9);animation:pulse 2.4s infinite;mix-blend-mode:screen}
+.capscene .smoke{position:absolute;left:52%;top:58%;width:7%;height:12%;border-radius:50%;background:radial-gradient(rgba(70,62,58,.55),rgba(70,62,58,0) 70%);animation:smoke 4s linear infinite}
+.capscene .smoke.s2{animation-delay:2s}
+.capscene .cage{position:absolute;left:81.6%;top:calc(52% + var(--d));width:1.6%;height:3%;background:#5a3e24;border:1px solid #2a1a0a;box-shadow:0 0 6px 2px rgba(255,200,90,.6);animation:cage 6s ease-in-out infinite alternate}
+.capscene .chips{position:absolute;left:8px;top:8px;right:8px;display:flex;flex-wrap:wrap;gap:4px;line-height:1.2}
+.capscene .chips span{font-size:11.5px;padding:2px 8px;border-radius:99px;background:rgba(24,18,10,.62);color:#fff3d0;backdrop-filter:blur(2px)}
+.capscene .cap{position:absolute;left:10px;bottom:8px;font:italic 12px Georgia,serif;color:#fff3d0;text-shadow:0 1px 3px #000;line-height:1.2}
+@keyframes flick{from{opacity:.55}to{opacity:.95}}
+@keyframes smoke{0%{transform:translate(0,0) scale(.5);opacity:0}20%{opacity:.9}100%{transform:translate(18%,-160%) scale(1.8);opacity:0}}
+@keyframes cage{from{transform:translateY(0)}to{transform:translateY(-120%)}}
+.herocard{position:relative;padding-left:76px;min-height:96px}
+.herocard .portrait{position:absolute;left:8px;bottom:6px;height:92px;width:auto;filter:drop-shadow(0 3px 4px rgba(40,25,5,.4))}
+.molescene{margin:8px 0;max-height:150px;overflow:hidden}
+.molescene .fighter{position:absolute;left:6%;bottom:2%;height:70%;width:auto;filter:drop-shadow(0 4px 6px rgba(0,0,0,.6));animation:lunge 1.4s ease-in-out infinite}
+@keyframes lunge{0%,100%{transform:translateX(0)}50%{transform:translateX(14px) rotate(2deg)}}
+.opart{float:right;height:86px;width:auto;margin:-4px -2px 4px 8px;filter:drop-shadow(0 4px 4px rgba(40,25,5,.35))}
+.pic.mi{height:22px}
+.golemrow{display:flex;gap:2px;margin:4px 0 2px;flex-wrap:wrap}
+.golemrow .gs{height:40px;width:auto;filter:drop-shadow(0 2px 2px rgba(40,25,5,.4))}
+.rival{position:relative;padding-left:76px;min-height:90px}
+.rival .rv{position:absolute;left:6px;top:8px;height:84px;width:auto;filter:drop-shadow(0 3px 4px rgba(40,25,5,.45))}
+.pic.pi{height:1.4em}
+.pic.petart{height:40px;width:auto;filter:drop-shadow(0 2px 2px rgba(40,25,5,.35))}
+.golem2{transform-box:fill-box;transform-origin:50% 100%}
+.golem2 .ga{opacity:0}
+.wake .golem2 .gs{animation:fadeout .3s forwards;animation-delay:calc(var(--i) * .18s + .3s)}
+.wake .golem2 .ga{animation:glow .3s forwards;animation-delay:calc(var(--i) * .18s + .3s)}
+.wake .golem2{animation:rise2 .8s cubic-bezier(.3,1.5,.5,1) forwards;animation-delay:calc(var(--i) * .18s)}
+@keyframes fadeout{to{opacity:0}}
+@keyframes rise2{0%{transform:translateY(0)}55%{transform:translateY(-10px) scale(1.04)}100%{transform:translateY(-3px)}}
+#tapzone .hint{color:#fff3d0;text-shadow:0 1px 3px #000,0 0 8px rgba(0,0,0,.6);font-weight:600}
+.lt{white-space:nowrap}
+#heroG image{filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+#dummyG image{filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
 </style>
 </head>
 <body>
@@ -195,12 +243,12 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
     <div id="cityHint">Drag to explore · pinch or scroll to zoom · tap anything</div>
   </div>
   <nav id="tabs"><div class="wrap">
-    <button data-tab="city"><span>🗺️</span>Rim City</button>
-    <button data-tab="capital"><span>🏰</span>Capital</button>
-    <button data-tab="hollow"><span>🕳️</span>Hollow</button>
-    <button data-tab="outposts"><span>🐢</span>Outposts</button>
-    <button data-tab="raids"><span>⚔️</span>Raids</button>
-    <button data-tab="training"><span>🗡️</span>Training</button>
+    <button data-tab="city"><span><img class="tabi" src="assets/ui/tab_city.webp" alt=""></span>Rim City</button>
+    <button data-tab="capital"><span><img class="tabi" src="assets/ui/tab_capital.webp" alt=""></span>Capital</button>
+    <button data-tab="hollow"><span><img class="tabi" src="assets/ui/tab_hollow.webp" alt=""></span>Hollow</button>
+    <button data-tab="outposts"><span><img class="tabi" src="assets/ui/tab_outposts.webp" alt=""></span>Outposts</button>
+    <button data-tab="raids"><span><img class="tabi" src="assets/ui/tab_raids.webp" alt=""></span>Raids</button>
+    <button data-tab="training"><span><img class="tabi" src="assets/ui/tab_training.webp" alt=""></span>Training</button>
   </div></nav>
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
@@ -373,7 +421,7 @@ function newState() {
     veins, nextShipAt: HOUR * CONFIG.pull.shipEveryHours, lastShip: null,
     nextRaidAt: CONFIG.raids.firstRaidHours * HOUR, shieldUntil: 0, raidCount: 0, lastRaid: null, pendingReveal: null,
     rivals: [], log: [], nextUid: 10, seen: {},
-    mapShields: {}, moleDone: {}, journal: [], seasonOverride: null, festivalOverride: false, cityCam: null,
+    mapShields: {}, moleDone: {}, discovered: {}, journal: [], seasonOverride: null, festivalOverride: false, cityCam: null,
     stats: { expeditions: 0, raidsWon: 0, defended: 0, tapsAll: 0, deepest: 0, moles: 0 },
   };
 }
@@ -718,12 +766,12 @@ function resolveMapRaid(m) {
 function startMoleFight(m) {
   if (!heroHome()) return toast('Your hero is busy');
   S.hero.task = { type: 'mole', k: m.k, region: m.region, power: molePower(), start: S.gameTime, end: S.gameTime + 20 * MIN };
-  S.moleDone[m.k] = true;
+  S.moleDone[m.k] = true; if (typeof discoverRegion === 'function') discoverRegion(m.region);
   toast('⚔️ Wren charges the Rim Mole! The crowd roars.'); rerender(true);
 }
 function resolveMoleFight(t) {
   const win = Math.random() < clamp(attackPower() / t.power, 0.15, 0.95);
-  const where = REGIONS[t.region].name;
+  const where = regionName(t.region);
   if (win) {
     const loot = { crowns: Math.round(60 * S.hero.level), amber: 3 + Math.floor(Math.random() * 4), iron: 20 + Math.floor(Math.random() * 20) }; grantLoot(loot);
     const xp = gainXp(40 * S.hero.level); S.stats.moles = (S.stats.moles || 0) + 1;
@@ -854,53 +902,41 @@ function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); 
 /* =====================================================================
    UI
    ===================================================================== */
+/* painted UI art (assets/ui) */
+const UIA = 'assets/ui/', UI_HAS = new Set('amber coal crowns iron lumen moss steel stone timber hall storehouse training lift wall kennel vault forge still still2 smelter strider drill golem golem_sleep dummy rival0 rival1 rival2 wisp pup moth ferret wren wren_a wren_b wren_c capital molebg layers'.split(' '));
+function pic(k, cls, alt) { return `<img class="pic ${cls || ''}" src="${UIA}${k}.webp" alt="${alt || ''}" decoding="async" draggable="false">`; }
+function rIco(k) { return UI_HAS.has(k) ? pic(k, 'ri', CONFIG.resources[k].name) : CONFIG.resources[k].icon; }
+function petIco(id, cls) { return UI_HAS.has(id) ? pic(id, cls || 'pi', CONFIG.pets[id].name) : CONFIG.pets[id].icon; }
+function lootHtml(l) { return Object.keys(l).filter((k) => l[k] > 0).map((k) => `<span class="lt">${rIco(k)}${fmt(l[k])}</span>`).join(' '); }
 function toast(msg) {
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
   const box = $('#toasts'); box.appendChild(el); while (box.children.length > 3) box.firstChild.remove();
   setTimeout(() => el.remove(), 3200);
 }
-function costHtml(cost) { return Object.keys(cost).map((k) => `<span class="cost ${(S.res[k] || 0) < cost[k] ? 'short' : ''}">${CONFIG.resources[k].icon}${fmt(cost[k])}</span>`).join(''); }
+function costHtml(cost) { return Object.keys(cost).map((k) => `<span class="cost ${(S.res[k] || 0) < cost[k] ? 'short' : ''}">${rIco(k)}${fmt(cost[k])}</span>`).join(''); }
 function pbar(start, end, cls) { const p = clamp((S.gameTime - start) / Math.max(1, end - start), 0, 1) * 100; return `<div class="bar ${cls || ''}"><i data-pstart="${start}" data-pend="${end}" style="width:${p}%"></i></div>`; }
 function countdown(end) { return `<span data-end="${end}">${realLeft(end)}</span>`; }
 
 function renderResbar() {
   const cap = storageCap();
-  $('#resbar').innerHTML = RES.map((k) => `<div class="res ${S.res[k] >= cap - 0.5 ? 'full' : ''}" title="${CONFIG.resources[k].name}">${CONFIG.resources[k].icon}<b>${fmt(S.res[k] || 0)}</b></div>`).join('');
+  $('#resbar').innerHTML = RES.map((k) => `<div class="res ${S.res[k] >= cap - 0.5 ? 'full' : ''}" title="${CONFIG.resources[k].name}">${rIco(k)}<b>${fmt(S.res[k] || 0)}</b></div>`).join('');
   const p = $('#speedPill'); p.className = 'pill' + (S.testMode ? ' test' : ''); p.textContent = S.testMode ? `⏩ TEST ×${speed()}` : 'Real time';
 }
 
 /* ---------- Capital ---------- */
 function capitalScene() {
-  const g = golemCount(), b = S.buildings;
-  const hallH = 34 + b.hall * 3, lights = [];
-  for (let i = 0; i < Math.min(8, b.hall + 2); i++) lights.push(`<circle class="pulse" style="animation-delay:${i * 0.3}s" cx="${120 + i * 22}" cy="${86 - (i % 3) * 6}" r="2.5" fill="#ffd46b"/>`);
-  let wall = ''; const W0 = 30, segW = 290 / (g + 1);
-  for (let i = 0; i <= g; i++) wall += `<rect x="${W0 + i * segW}" y="142" width="${segW - 4}" height="16" rx="3" fill="#9a8c74" stroke="#6d604c"/>`;
-  for (let i = 0; i < g; i++) { const x = W0 + (i + 1) * segW - 10; wall += `<g><rect x="${x}" y="128" width="16" height="30" rx="5" fill="#8e8069" stroke="#5e5240"/><circle cx="${x + 5}" cy="136" r="1.6" fill="#ffd46b" class="pulse"/><circle cx="${x + 11}" cy="136" r="1.6" fill="#ffd46b" class="pulse"/></g>`; }
-  const spineDepth = 170 + liftReach() * 12;
-  return `<div class="scene"><svg viewBox="0 0 360 230" aria-label="Your capital on the Rim">
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7e3b5"/><stop offset=".6" stop-color="#e9c99a"/><stop offset="1" stop-color="#c9a77a"/></linearGradient>
-    <linearGradient id="chasm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f7a7a"/><stop offset=".5" stop-color="#2d4258"/><stop offset="1" stop-color="#141a2a"/></linearGradient>
-    <radialGradient id="sun" cx=".8" cy=".2" r=".5"><stop offset="0" stop-color="#fff6d8"/><stop offset="1" stop-color="#fff6d8" stop-opacity="0"/></radialGradient>
-  </defs>
-  <rect width="360" height="230" fill="url(#sky)"/><rect width="360" height="230" fill="url(#sun)"/>
-  <path d="M0 60 Q60 40 120 55 T240 50 T360 58 L360 100 L0 100Z" fill="#b8c6a0" opacity=".55"/>
-  <path d="M0 158 L360 158 L360 170 Q300 175 260 172 L240 230 L120 230 L100 172 Q50 176 0 170Z" fill="#a08a64"/>
-  <path d="M100 172 Q180 182 260 172 L240 230 L120 230Z" fill="url(#chasm)"/>
-  <line x1="180" y1="150" x2="180" y2="${spineDepth}" stroke="#ffd46b" stroke-width="2" class="lumenglow"/>
-  ${S.outposts.map((o, i) => `<circle cx="${170 + (i % 2 ? 22 : -14)}" cy="${170 + o.layer * 12}" r="3" fill="${o.dark ? '#555' : '#ffd46b'}" class="pulse"/>`).join('')}
-  <!-- buildings -->
-  <g><rect x="150" y="${150 - hallH}" width="60" height="${hallH}" fill="#d8c3a0" stroke="#7a5f3c"/><path d="M144 ${150 - hallH} L180 ${120 - hallH} L216 ${150 - hallH}Z" fill="#b0573a"/><circle cx="180" cy="${132 - hallH}" r="5" fill="#ffd46b" class="pulse lumenglow"/></g>
-  <g><rect x="60" y="112" width="44" height="38" fill="#cdb48a" stroke="#7a5f3c"/><path d="M56 112 L82 92 L108 112Z" fill="#8a6b3a"/><text x="82" y="138" font-size="14" text-anchor="middle">📦</text></g>
-  <g><rect x="240" y="118" width="40" height="32" fill="#cdb48a" stroke="#7a5f3c"/><path d="M236 118 L260 100 L284 118Z" fill="#4f8c8a"/><text x="260" y="140" font-size="13" text-anchor="middle">🗡️</text></g>
-  <g><rect x="294" y="124" width="34" height="26" fill="#c9b08a" stroke="#7a5f3c"/><path d="M290 124 L311 108 L332 124Z" fill="#9a6a4a"/><text x="311" y="143" font-size="12" text-anchor="middle">🐾</text></g>
-  ${b.forge > 0 ? `<g><rect x="20" y="122" width="32" height="28" fill="#b9a07a" stroke="#6d5030"/><rect x="40" y="104" width="7" height="18" fill="#6d5030"/><circle cx="44" cy="98" r="5" fill="#ccc" opacity=".5" class="pulse"/></g>` : ''}
-  <g><rect x="170" y="150" width="20" height="8" fill="#6d5030"/><text x="180" y="166" font-size="9" text-anchor="middle" fill="#fff3d0">Lift ${b.lift}</text></g>
-  ${lights.join('')}
-  ${wall}
-  <text x="10" y="222" font-size="10" fill="#f3e6c8" opacity=".9">The Rim · the Hollow opens below ↓</text>
-  </svg></div>`;
+  const g = golemCount(), b = S.buildings, eyes = [], wins = [];
+  // statue eyes on the Guardian Wall light up per golem (4 painted statues)
+  [[48.3, 42.6], [54.2, 44.6], [60.0, 43.2], [65.4, 41.6]].forEach(([x, y], i) => { if (i < g) eyes.push(`<i class="eye" style="left:${x}%;top:${y}%;animation-delay:${i * 0.4}s"></i>`); });
+  // lit windows on the Lantern Hall: more as it levels up
+  const W0 = [[35, 10], [38, 10], [24.5, 32], [29.8, 31.5], [33.8, 41.6], [41, 41.6], [24.9, 37.8], [30.4, 37], [39.8, 26.6], [42.5, 25.5]];
+  W0.slice(0, Math.min(W0.length, b.hall + 1)).forEach(([x, y], i) => wins.push(`<i class="win" style="left:${x}%;top:${y}%;animation-delay:${(i * 0.37) % 2}s"></i>`));
+  const reach = liftReach();
+  return `<div class="scene paint capscene"><img class="bg" src="${UIA}capital.webp" alt="Your capital on the Rim" decoding="async">
+    ${wins.join('')}${eyes.join('')}${b.forge > 0 ? '<i class="smoke s1"></i><i class="smoke s2"></i>' : ''}
+    <i class="cage" style="--d:${10 + reach * 6}%"></i>
+    <div class="chips"><span>🏮 Hall ${b.hall}</span><span>🗿 ${g} golem${g === 1 ? '' : 's'}</span><span>🧵 Lift ${b.lift} · layer ${reach}</span>${S.outposts.length ? `<span>⚓ ${S.outposts.length} outpost${S.outposts.length > 1 ? 's' : ''}</span>` : ''}</div>
+    <div class="cap">The Rim · the Hollow opens below ↓</div></div>`;
 }
 function buildingEffect(id, lvl) {
   const H = CONFIG.hallPerLevel;
@@ -927,7 +963,7 @@ function viewCapital() {
   for (const id in CONFIG.buildings) {
     const b = CONFIG.buildings[id], lvl = S.buildings[id], block = buildBlock(id), cost = buildCost(id);
     const building = S.build && S.build.id === id;
-    h += `<div class="card bld"><div class="ic">${b.icon}</div><div>
+    h += `<div class="card bld"><div class="ic">${UI_HAS.has(id) ? pic(id, 'bi', b.name) : b.icon}</div><div>
       <div class="row between"><h3>${b.name}<span class="lvl">Lv ${lvl}</span></h3></div>
       <div class="dim">${b.desc}</div>
       <div class="small" style="margin:4px 0">Now: <b>${buildingEffect(id, lvl)}</b>${lvl < b.max ? `<br>Next: ${buildingEffect(id, lvl + 1)}` : ''}</div>
@@ -942,37 +978,39 @@ function viewCapital() {
 function ladderSvg() {
   const bands = CONFIG.layers.map((L, i) => {
     const y = 20 + i * 70, reach = L.id <= liftReach();
-    return `<rect x="0" y="${y}" width="360" height="70" fill="${L.color}" opacity="${0.35 + i * 0.12}"/>
-      <text x="10" y="${y + 18}" font-size="12" fill="${i > 1 ? '#fff3d0' : '#3a2e22'}" font-family="Georgia">${L.id}. ${L.name}${reach ? '' : ' 🔒'}</text>`;
+    return `<rect x="0" y="${y}" width="360" height="70" fill="${L.color}" opacity="${reach ? 0.12 : 0.3}"/>${reach ? '' : `<rect x="0" y="${y}" width="360" height="70" fill="#0b0d18" opacity=".35"/>`}
+      <line x1="0" y1="${y}" x2="360" y2="${y}" stroke="#fff3d0" stroke-opacity=".25" stroke-dasharray="3 5"/>
+      <text x="10" y="${y + 18}" font-size="12.5" fill="#fff3d0" stroke="#1a1208" stroke-width="3" paint-order="stroke" stroke-opacity=".75" font-family="Georgia" font-weight="700">${L.id}. ${L.name}${reach ? '' : ' 🔒'}</text>`;
   }).join('');
   const spineY = 20 + liftReach() * 70 - 10;
   const ops = S.outposts.map((o, i) => {
     const y = 20 + (o.layer - 1) * 70 + 42, x = 230 + i * 50;
     return `<line x1="180" y1="${y}" x2="${x}" y2="${y}" stroke="#ffd46b" stroke-width="1.5" stroke-dasharray="${o.state === 'anchored' ? '0' : '4 4'}"/>
-      <circle cx="${x}" cy="${y}" r="9" fill="${o.dark ? '#444' : '#ffd46b'}" class="${o.state === 'anchored' ? 'pulse lumenglow' : ''}"/>
-      <text x="${x}" y="${y + 4}" font-size="11" text-anchor="middle">${opType(o).icon}</text>`;
+      <circle cx="${x}" cy="${y}" r="13" fill="${o.dark ? '#444' : '#ffd46b'}" opacity=".35" class="${o.state === 'anchored' ? 'pulse lumenglow' : ''}"/>
+      <image href="${UIA}${o.type === 'drill' ? 'drill' : 'strider'}.webp" x="${x - 13}" y="${y - 26}" width="26" height="${o.type === 'drill' ? 44 : 31}" ${o.dark ? 'opacity=".55"' : ''}/>`;
   }).join('');
   let hero = '';
   const t = S.hero.task;
   if (t && (t.type === 'expedition' || t.type === 'stranded')) {
     const L = layerById(t.layer), p = t.type === 'expedition' ? clamp((S.gameTime - t.start) / (t.end - t.start), 0, 1) : 1;
     const depth = 20 + (t.layer - 1) * 70 + 40, y = 14 + (p < 0.5 ? p * 2 : (1 - p) * 2) * (depth - 14);
-    hero = `<g transform="translate(120 ${t.type === 'stranded' ? depth : y})"><circle r="11" fill="#fff3d0" stroke="#c9822f"/><text y="5" font-size="13" text-anchor="middle">${t.type === 'stranded' ? '🕯️' : '🧗'}</text></g>
+    hero = `<g transform="translate(120 ${t.type === 'stranded' ? depth : y})"><circle r="16" fill="#ffd46b" opacity=".3" class="pulse"/><image href="${UIA}wren.webp" x="-9" y="-21" width="18" height="42"/>${t.type === 'stranded' ? '<text x="12" y="-8" font-size="12">🕯️</text>' : ''}</g>
             <line x1="120" y1="0" x2="120" y2="${t.type === 'stranded' ? depth : y}" stroke="#d8c3a0" stroke-width="1" stroke-dasharray="2 3"/>`;
   }
   return `<div class="scene"><svg viewBox="0 0 360 ${20 + CONFIG.layers.length * 70}" aria-label="The Lantern Ladder">
-    <rect width="360" height="20" fill="#e9c99a"/><text x="180" y="14" font-size="10" text-anchor="middle" fill="#5a4528">🏰 Rim capital</text>
+    <image href="${UIA}layers.webp" x="0" y="0" width="360" height="${20 + CONFIG.layers.length * 70}" preserveAspectRatio="none"/>
+    <text x="180" y="14" font-size="10.5" text-anchor="middle" fill="#fff3d0" stroke="#1a1208" stroke-width="3" paint-order="stroke" font-family="Georgia">🏰 Rim capital</text>
     ${bands}<line x1="180" y1="16" x2="180" y2="${spineY}" stroke="#ffd46b" stroke-width="3" class="lumenglow"/>${ops}${hero}</svg></div>`;
 }
 function heroStatusCard() {
   const t = S.hero.task;
-  let s = `<div class="card"><div class="row between"><h2>🧗 ${CONFIG.hero.name}, Lv ${S.hero.level}</h2><span class="tag">⚔️ ${Math.round(attackPower())}</span></div>`;
+  let s = `<div class="card herocard">${pic('wren', 'portrait', CONFIG.hero.name)}<div class="row between"><h2>${CONFIG.hero.name}, Lv ${S.hero.level}</h2><span class="tag">⚔️ ${Math.round(attackPower())}</span></div>`;
   s += `<div class="bar xp"><i style="width:${(S.hero.xp / xpToNext()) * 100}%"></i></div><div class="dim">${fmt(S.hero.xp)} / ${fmt(xpToNext())} XP · training boost <b>+${fmt1(boostPct())}%</b> XP</div>`;
   if (!t) s += `<div class="small" style="margin-top:6px">Home at the Rim, sparring for idle XP. Ready to descend.</div>`;
   else if (t.type === 'expedition') s += `<div class="small" style="margin-top:6px">Exploring <b>${layerById(t.layer).name}</b> · back in ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   else if (t.type === 'stranded') s += `<div class="small" style="margin-top:6px">🕯️ Stranded in <b>${layerById(t.layer).name}</b>. Rescue line arrives in ${countdown(t.end)}</div>${pbar(t.start, t.end)}
       <button class="btn alt sm" data-act="rescue">Send rescue line now (${rescueCost()} 🏮)</button>`;
-  else if (t.type === 'mole') s += `<div class="small" style="margin-top:6px">🦴 Fighting a Rim Mole in <b>${REGIONS[t.region].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
+  else if (t.type === 'mole') s += `<div class="scene paint molescene">${pic('molebg', 'bg')}${pic('wren_c', 'fighter')}</div><div class="small" style="margin-top:6px">🦴 Fighting a Rim Mole in <b>${regionName(t.region)}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   else if (t.type === 'raid') s += `<div class="small" style="margin-top:6px">⚔️ Marching on <b>${t.map ? esc(t.map.owner + "'s " + t.map.name) : CONFIG.rivals[t.rival].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   return s + '</div>';
 }
@@ -980,12 +1018,12 @@ function viewHollow() {
   let h = ladderSvg() + heroStatusCard();
   for (const L of CONFIG.layers) {
     const ok = L.id <= expeditionReach(), ch = Math.round(successChance(L) * 100);
-    const lootRange = Object.keys(L.loot).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${L.loot[k][0]}–${L.loot[k][1]}</span>`).join('');
+    const lootRange = Object.keys(L.loot).map((k) => `<span class="cost">${rIco(k)}${L.loot[k][0]}–${L.loot[k][1]}</span>`).join('');
     h += `<div class="card layer ${ok ? '' : 'locked'}" style="--c:${L.color}">
       <div class="row between"><h3>${L.id}. ${L.name}</h3><span class="tag ${ch >= 75 ? 'good' : ch < 50 ? 'bad' : ''}">${ch}% safe return</span></div>
       <div class="dim">${L.flavor}</div>
       <div class="wrapgap small" style="margin:6px 0">⏱ ${gameDur(L.hours * HOUR)} · 🏮 ${L.lumen} · rec. power ${L.rec}</div>
-      <div class="wrapgap">${lootRange}<span class="tag">🥚 ${CONFIG.pets[L.pet].icon} ${Math.round(L.egg * 100)}%</span></div>
+      <div class="wrapgap">${lootRange}<span class="tag">🥚 ${petIco(L.pet)} ${Math.round(L.egg * 100)}%</span></div>
       <div style="margin-top:8px">${ok ? `<button class="btn deep sm" data-act="exp" data-id="${L.id}" ${!heroHome() || S.res.lumen < L.lumen ? 'disabled' : ''}>Descend</button>` : `<span class="tag">🔒 Upgrade Tether Lift to Lv ${L.id - 2} to scout here</span>`}</div>
     </div>`;
   }
@@ -999,24 +1037,24 @@ function viewOutposts() {
   let h = `<div class="card"><h2>The Pull</h2>
     <div class="small">Hauling goods up the Tether costs Lumen: <b>weight × layers climbed × layer pull</b>. Heavy raw ore is expensive. Refine it below and send light Steel up instead.</div>
     <div class="wrapgap small" style="margin-top:6px"><span class="tag">🧵 Lift capacity ${liftCapacity()} wt/h</span><span class="tag">⚓ Spine reaches layer ${liftReach()}</span><span class="tag">⏱ next lift ${countdown(S.nextShipAt)}</span></div>
-    ${S.lastShip ? `<div class="dim" style="margin-top:6px">Last lift: ${lootText(S.lastShip.got) || 'nothing'} · Pull paid ${fmt1(S.lastShip.cost)} 🏮</div>` : ''}
+    ${S.lastShip ? `<div class="dim" style="margin-top:6px">Last lift: ${lootHtml(S.lastShip.got) || 'nothing'} · Pull paid ${fmt1(S.lastShip.cost)} 🏮</div>` : ''}
   </div>`;
   for (const o of S.outposts) {
     const T = opType(o), v = veinById(o.vein), L = layerById(o.layer), r = outpostRates(o), tot = stockTotal(o);
     const pAll = shipPreview(o, 'all'), pRef = shipPreview(o, 'refined');
     h += `<div class="card layer" style="--c:${L.color}">
-      <div class="row between"><h3>${T.icon} ${esc(o.name)} <span class="dim">${T.name}</span></h3><span class="tag ${o.state === 'anchored' ? 'good' : 'lumen'}">${STATE_LABEL[o.state]}</span></div>
+      ${pic(o.type === 'drill' ? 'drill' : 'strider', 'opart', T.name)}<div class="row between"><h3>${esc(o.name)} <span class="dim">${T.name}</span></h3><span class="tag ${o.state === 'anchored' ? 'good' : 'lumen'}">${STATE_LABEL[o.state]}</span></div>
       <div class="small">${L.id}. ${L.name} · <b>${o.state === 'anchored' || o.state === 'settling' ? v.name : '→ ' + veinById(o.move.toVein).name}</b>
         ${o.dark ? '<span class="tag bad">🌑 dark (no Lumen)</span>' : ''} ${seasoned(o) ? '<span class="tag good">Seasoned +10%</span>' : ''} ${o.full ? '<span class="tag bad">Stockhold full</span>' : ''}</div>`;
     if (o.move) h += `<div class="small" style="margin-top:4px">${STATE_LABEL[o.state]} · ${countdown(o.move.phaseEnd)}</div>${pbar(o.move.phaseStart, o.move.phaseEnd)}`;
     if (o.state === 'anchored') {
       h += `<div class="small" style="margin-top:6px">Vein richness ${Math.round(S.veins[o.vein] * 100)}%</div><div class="bar rich"><i style="width:${S.veins[o.vein] * 100}%"></i></div>
-        <div class="wrapgap small">Makes: ${Object.keys(r).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${fmt1(r[k])}/h</span>`).join('')} <span class="dim">· burns ${burnRate(o)} 🏮/h</span></div>`;
+        <div class="wrapgap small">Makes: ${Object.keys(r).map((k) => `<span class="cost">${rIco(k)}${fmt1(r[k])}/h</span>`).join('')} <span class="dim">· burns ${burnRate(o)} 🏮/h</span></div>`;
     }
     h += `<div class="small" style="margin-top:6px">Stockhold ${fmt(tot)} / ${T.stockCap}</div><div class="bar"><i style="width:${(tot / T.stockCap) * 100}%"></i></div>
-      <div class="wrapgap">${Object.keys(o.stock).filter((k) => o.stock[k] >= 1).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${fmt(o.stock[k])}</span>`).join('') || '<span class="dim">empty</span>'}</div>
+      <div class="wrapgap">${Object.keys(o.stock).filter((k) => o.stock[k] >= 1).map((k) => `<span class="cost">${rIco(k)}${fmt(o.stock[k])}</span>`).join('') || '<span class="dim">empty</span>'}</div>
       <div class="dim" style="margin-top:4px">Lift everything now: ${fmt1(pAll.cost)} 🏮 · refined only: ${fmt1(pRef.cost)} 🏮</div>
-      <div style="margin-top:8px" class="small"><b>Module:</b> ${o.module ? `${CONFIG.modules[o.module].icon} ${CONFIG.modules[o.module].name} <span class="dim">(${CONFIG.modules[o.module].desc})</span>` : '<span class="dim">none</span>'}</div>
+      <div style="margin-top:8px" class="small"><b>Module:</b> ${o.module ? `${UI_HAS.has(o.module) ? pic(o.module, 'mi') : CONFIG.modules[o.module].icon} ${CONFIG.modules[o.module].name} <span class="dim">(${CONFIG.modules[o.module].desc})</span>` : '<span class="dim">none</span>'}</div>
       <div class="wrapgap" style="margin-top:4px">${Object.keys(CONFIG.modules).filter((m) => m !== o.module).map((m) => `<button class="btn ghost sm" data-act="module" data-uid="${o.uid}" data-id="${m}" ${canAfford(CONFIG.modules[m].cost) ? '' : 'disabled'}>${o.module ? 'Swap to' : '+'} ${CONFIG.modules[m].icon} ${CONFIG.modules[m].name} ${costHtml(CONFIG.modules[m].cost)}</button>`).join('')}</div>
       <div class="small" style="margin-top:8px"><b>Auto-ship each hour:</b></div>
       <div class="segs">${['all', 'refined', 'off'].map((m) => `<button class="btn sm ${o.ship === m ? 'alt' : 'ghost'}" data-act="shipmode" data-uid="${o.uid}" data-id="${m}">${m === 'all' ? 'Everything' : m === 'refined' ? 'Refined only' : 'Hold'}</button>`).join('')}</div>
@@ -1027,7 +1065,7 @@ function viewOutposts() {
   }
   const D = CONFIG.outpostTypes.drill;
   if (!S.outposts.some((o) => o.type === 'drill')) {
-    h += `<div class="card"><h3>⛏️ Build a Tetherdrill</h3><div class="dim">${D.desc} A second outpost lets you split a chain: one drill on iron, one on coal, and a Smelter pulls from both.</div>
+    h += `<div class="card">${pic('drill', 'opart')}<h3>Build a Tetherdrill</h3><div class="dim">${D.desc} A second outpost lets you split a chain: one drill on iron, one on coal, and a Smelter pulls from both.</div>
       <div class="wrapgap" style="margin:6px 0">${costHtml(D.cost)}</div>
       <button class="btn sm" data-act="drill" ${S.buildings.lift < D.needsLift || !canAfford(D.cost) ? 'disabled' : ''}>${S.buildings.lift < D.needsLift ? `Needs Tether Lift Lv ${D.needsLift}` : 'Lower it onto the Spine'}</button></div>`;
   }
@@ -1042,7 +1080,7 @@ function moveMenu(uidv) {
     h += `<div class="card layer ${reach ? '' : 'locked'}" style="--c:${L.color};margin-top:8px"><h3>${L.id}. ${L.name}</h3>`;
     for (const v of L.veins) {
       const taken = veinTaken(v.id, o.uid), here = o.vein === v.id, cost = moveCost(L.id);
-      h += `<div class="row between" style="margin-top:6px;gap:6px"><div class="small"><b>${v.name}</b> · ${Object.keys(v.prod).map((k) => CONFIG.resources[k].icon + fmt1(v.prod[k] * opType(o).mult) + '/h').join(' ')} · rich ${Math.round(S.veins[v.id] * 100)}%<br>
+      h += `<div class="row between" style="margin-top:6px;gap:6px"><div class="small"><b>${v.name}</b> · ${Object.keys(v.prod).map((k) => rIco(k) + fmt1(v.prod[k] * opType(o).mult) + '/h').join(' ')} · rich ${Math.round(S.veins[v.id] * 100)}%<br>
         <span class="dim">⏱ ${gameDur(moveTime(o, L.id))}</span> ${costHtml(cost)}</div>
         ${here ? '<span class="tag good">Here</span>' : taken ? '<span class="tag">Taken</span>' : !reach ? '<span class="tag">🔒</span>' : `<button class="btn sm" data-act="move" data-uid="${o.uid}" data-id="${v.id}" ${canAfford(cost) ? '' : 'disabled'}>Go</button>`}</div>`;
     }
@@ -1056,7 +1094,7 @@ function moveMenu(uidv) {
 function viewRaids() {
   ensureRivals();
   const gp = golemPower(), g = golemCount();
-  let h = `<div class="card"><h2>🗿 Your defense</h2>
+  let h = `<div class="card"><h2>🗿 Your defense</h2><div class="golemrow">${Array.from({ length: Math.min(g, 8) }, (_, i) => pic('golem_sleep', 'gs', 'sleeping golem')).join('')}</div>
     <div class="grid2" style="margin-top:6px">
       <div class="stat"><b>${g} × ${gp}</b><span>sleeping rock golems</span></div>
       <div class="stat"><b>${Math.round(petsPower() * CONFIG.raids.petDefense)}</b><span>pets on guard</span></div>
@@ -1070,9 +1108,9 @@ function viewRaids() {
   h += `<div class="card"><h2>⚔️ Rival bases</h2><div class="dim">Async and auto-resolved: your hero + pets vs their defense. Raiding costs ${CONFIG.raids.attackLumen} 🏮 and takes your hero ${gameDur(CONFIG.raids.marchMinutes * MIN)}.</div></div>`;
   CONFIG.rivals.forEach((d, i) => {
     const r = S.rivals[i], ratio = attackPower() / r.power, est = starsFor(ratio), shield = S.gameTime < r.shieldUntil;
-    h += `<div class="card"><div class="row between"><h3>${d.icon} ${d.name}</h3><span class="tag ${ratio >= 1 ? 'good' : ratio < 0.75 ? 'bad' : ''}">🛡️ ${r.power}</span></div>
+    h += `<div class="card rival">${pic('rival' + i, 'rv', d.name)}<div class="row between"><h3>${d.name}</h3><span class="tag ${ratio >= 1 ? 'good' : ratio < 0.75 ? 'bad' : ''}">🛡️ ${r.power}</span></div>
       <div class="dim">${d.lord}</div>
-      <div class="wrapgap small" style="margin:6px 0">Likely: <b>${'★'.repeat(est)}${'☆'.repeat(3 - est)}</b> · full loot ${lootText(rivalLoot(i))}</div>
+      <div class="wrapgap small" style="margin:6px 0">Likely: <b>${'★'.repeat(est)}${'☆'.repeat(3 - est)}</b> · full loot ${lootHtml(rivalLoot(i))}</div>
       ${shield ? `<span class="tag">🛡️ shielded ${countdown(r.shieldUntil)}</span>` : `<button class="btn red sm" data-act="attack" data-id="${i}" ${!heroHome() || S.res.lumen < CONFIG.raids.attackLumen ? 'disabled' : ''}>Raid</button>`}
     </div>`;
   });
@@ -1080,21 +1118,12 @@ function viewRaids() {
   return h;
 }
 function raidSceneSvg(g) {
-  let golems = '';
-  const segW = 300 / (g + 1);
-  for (let i = 0; i < g; i++) {
-    const x = 30 + (i + 1) * segW - 14;
-    golems += `<g class="golem" style="--i:${i}">
-      <rect x="${x}" y="78" width="28" height="56" rx="8" fill="#8e8069" stroke="#5e5240" stroke-width="2"/>
-      <rect x="${x + 4}" y="92" width="20" height="6" rx="2" fill="#7a6d58"/>
-      <rect class="arm" x="${x - 9}" y="96" width="9" height="26" rx="4" fill="#857760"/><rect class="arm" x="${x + 28}" y="96" width="9" height="26" rx="4" fill="#857760"/>
-      <circle class="eye" cx="${x + 9}" cy="86" r="3" fill="#ffd46b" style="filter:drop-shadow(0 0 4px #ffd46b)"/><circle class="eye" cx="${x + 19}" cy="86" r="3" fill="#ffd46b" style="filter:drop-shadow(0 0 4px #ffd46b)"/>
-    </g>`;
-  }
+  let golems = ''; const n = Math.min(g, 6), segW = 300 / (n + 1);
+  for (let i = 0; i < n; i++) { const x = 30 + (i + 1) * segW - 30;
+    golems += `<g class="golem2" style="--i:${i}"><image class="gs" href="${UIA}golem_sleep.webp" x="${x}" y="88" width="60" height="53"/><image class="ga" href="${UIA}golem.webp" x="${x - 2}" y="76" width="64" height="66"/></g>`; }
   let raiders = ''; for (let i = 0; i < 5; i++) raiders += `<text x="${-40 + (i % 3) * 14}" y="${120 + (i % 2) * 14}" font-size="16">🏴</text>`;
-  let blocks = ''; for (let i = 0; i <= g; i++) blocks += `<rect x="${30 + i * segW}" y="118" width="${segW - 18}" height="16" rx="3" fill="#9a8c74" stroke="#6d604c"/>`;
-  return `<svg viewBox="0 0 360 160"><defs><linearGradient id="rsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f5c"/><stop offset="1" stop-color="#c58a5a"/></linearGradient></defs>
-    <rect width="360" height="160" fill="url(#rsky)"/><rect y="134" width="360" height="26" fill="#6d5a40"/>${blocks}<g id="raiders" class="raiderwrap"><g class="raider">${raiders}</g></g>${golems}</svg>`;
+  return `<svg viewBox="0 0 360 160"><image href="${UIA}capital.webp" x="0" y="-40" width="360" height="203" preserveAspectRatio="xMidYMid slice" opacity=".85"/><rect width="360" height="160" fill="#2a1e30" opacity=".35"/>
+    <rect y="138" width="360" height="22" fill="#4a3a28" opacity=".7"/><g id="raiders" class="raiderwrap"><g class="raider">${raiders}</g></g>${golems}</svg>`;
 }
 function showReveal(r) {
   S.pendingReveal = null;
@@ -1102,8 +1131,8 @@ function showReveal(r) {
   const lines = [
     `🏴 <b>${esc(r.who)}</b> march on your wall… attack power ${r.atk}.`,
     `It looks like an ordinary wall. Then the columns <b>stand up</b>. ${r.golems} rock golems wake, eyes full of Lumen.`,
-    win ? `<span class="stars">☆☆☆</span><br><b>Raid repelled!</b> The golems hurl them back over the Rim. Spoils: ${lootText(r.gained)}`
-        : `<span class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</span><br>They broke through and took ${lootText(r.lost) || 'very little'}. ${Math.round(protectedShare() * 100)}% of your stock was safe in the Storehouse.`,
+    win ? `<span class="stars">☆☆☆</span><br><b>Raid repelled!</b> The golems hurl them back over the Rim. Spoils: ${lootHtml(r.gained)}`
+        : `<span class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</span><br>They broke through and took ${lootHtml(r.lost) || 'very little'}. ${Math.round(protectedShare() * 100)}% of your stock was safe in the Storehouse.`,
     `<span class="dim">Defense ${r.def} = golems ${r.golems}×${r.golemPower}${r.heroHome ? ' + hero' : ' (hero was away)'} + pets. Shield up for ${CONFIG.raids.shieldHours} game hours.${r.first ? ' (First raid: a tutorial raid you are meant to win.)' : ''}</span>`,
   ];
   openModal(`<h2>🗿 Raid on your capital!</h2><div class="raidscene" id="rscene">${raidSceneSvg(r.golems)}</div>
@@ -1122,7 +1151,7 @@ function showAttackReport(r) {
   openModal(`<h2>${r.icon} Raid on ${esc(r.name)}</h2>
     <div class="stars" style="text-align:center;margin:10px 0">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</div>
     <p>Your power ${r.atk} vs their defense ${r.def}.</p>
-    <p>${r.stars ? `Loot: ${lootText(r.got)}` : 'Their wall held. Nothing taken.'} · +${fmt(r.xp)} XP</p>
+    <p>${r.stars ? `Loot: ${lootHtml(r.got)}` : 'Their wall held. Nothing taken.'} · +${fmt(r.xp)} XP</p>
     <button class="btn" style="width:100%" data-act="close">Onward</button>`, 'report');
 }
 
@@ -1132,26 +1161,11 @@ function viewTraining() {
     <div class="dim">Every tap banks into a rolling 7-day boost to hero XP. Optional: idle play still gets you there, just slower.</div></div>
     <div id="tapzone" role="button" aria-label="Tap the training dummy">
       <svg viewBox="0 0 360 220">
-        <ellipse cx="180" cy="200" rx="150" ry="16" fill="#8fae73" opacity=".6"/>
-        <g id="heroG" transform="translate(115 98)">
-          <ellipse cx="0" cy="98" rx="26" ry="6" fill="#000" opacity=".15"/>
-          <rect x="-13" y="34" width="26" height="40" rx="9" fill="#4f8c8a"/>
-          <rect x="-10" y="72" width="8" height="26" rx="3" fill="#5a4528"/><rect x="2" y="72" width="8" height="26" rx="3" fill="#5a4528"/>
-          <circle cx="0" cy="20" r="16" fill="#f3d6b0"/>
-          <path d="M-17 16 Q0 -8 17 16 Q8 6 0 8 Q-8 6 -17 16Z" fill="#6b4a2a"/>
-          <circle cx="6" cy="20" r="2" fill="#3a2e22"/>
-          <path d="M-14 14 Q-24 26 -14 40" stroke="#c9822f" stroke-width="3" fill="none"/>
-          <circle cx="-16" cy="46" r="5" fill="#ffd46b" class="pulse lumenglow"/>
-          <g id="swordArm"><rect x="8" y="40" width="7" height="22" rx="3" fill="#f3d6b0"/><rect x="9" y="-4" width="5" height="46" rx="2" fill="#c9a77a" stroke="#7a5f3c"/><rect x="4" y="38" width="15" height="4" rx="2" fill="#7a5f3c"/></g>
-        </g>
-        <g id="dummyG">
-          <rect x="242" y="110" width="8" height="90" fill="#7a5f3c"/>
-          <ellipse cx="246" cy="132" rx="24" ry="30" fill="#d8b878" stroke="#8a6b3a" stroke-width="2"/>
-          <path d="M226 128 L266 136 M228 142 L264 124" stroke="#8a6b3a" stroke-width="2"/>
-          <circle cx="246" cy="92" r="15" fill="#e2c88f" stroke="#8a6b3a" stroke-width="2"/>
-          <rect x="216" y="122" width="60" height="7" rx="3" fill="#a7844e"/>
-          <circle cx="246" cy="132" r="8" fill="none" stroke="#b0473a" stroke-width="3"/>
-        </g>
+        <image href="${UIA}training.webp" x="-30" y="0" width="420" height="236" preserveAspectRatio="xMidYMid slice"/>
+        <ellipse cx="150" cy="206" rx="40" ry="7" fill="#000" opacity=".25"/><ellipse cx="248" cy="204" rx="30" ry="6" fill="#000" opacity=".25"/>
+        <g id="dummyG"><image href="${UIA}dummy.webp" x="206" y="92" width="84" height="111"/></g>
+        <g id="heroG"><image id="heroImg" href="${UIA}wren_a.webp" x="${150 - 39}" y="88" width="77" height="120"/></g>
+        <g id="swordArm"></g>
         <g id="sparks"></g>
       </svg>
       <div class="hint">Tap anywhere here (or hold Space on desktop)</div>
@@ -1176,7 +1190,7 @@ function petsCard() {
     <div class="dim">Equipped pets add power to raids and defense, and their bonus applies. Find more as eggs in the Hollow.</div>`;
   for (const p of S.pets) {
     const d = CONFIG.pets[p.id], on = S.slots.slice(0, n).includes(p.uid), cost = petUpCost(p);
-    h += `<div class="row between" style="margin-top:8px;gap:6px"><div><b>${d.icon} ${d.name}</b> <span class="lvl">Lv ${p.level}</span><br><span class="dim">power ${Math.round(petPower(p))} · ${d.bonus}</span></div>
+    h += `<div class="row between" style="margin-top:8px;gap:6px"><div class="row" style="gap:8px">${petIco(p.id, 'petart')}<div><b>${d.name}</b> <span class="lvl">Lv ${p.level}</span><br><span class="dim">power ${Math.round(petPower(p))} · ${d.bonus}</span></div></div>
       <div class="wrapgap" style="justify-content:flex-end"><button class="btn sm ${on ? 'alt' : 'ghost'}" data-act="equip" data-uid="${p.uid}">${on ? 'Equipped' : 'Equip'}</button>
       ${p.level < CONFIG.petMax ? `<button class="btn ghost sm" data-act="petup" data-uid="${p.uid}" ${canAfford(cost) ? '' : 'disabled'}>Feed ${costHtml(cost)}</button>` : ''}</div></div>`;
   }
@@ -1202,6 +1216,9 @@ function doTap(x, y) {
   S.taps.total++; S.stats.tapsAll++;
   const arm = document.getElementById('swordArm'), dm = document.getElementById('dummyG');
   if (arm) { arm.classList.remove('swing'); void arm.getBBox; arm.getBoundingClientRect(); arm.classList.add('swing'); }
+  const hi = document.getElementById('heroImg');
+  if (hi) { const pose = (k, w) => { hi.setAttribute('href', UIA + k + '.webp'); hi.setAttribute('width', w); hi.setAttribute('x', 150 - w / 2 + (k === 'wren_c' ? 14 : 0)); };
+    clearTimeout(hi._t1); clearTimeout(hi._t2); pose('wren_b', 91); hi._t1 = setTimeout(() => pose('wren_c', 108), 90); hi._t2 = setTimeout(() => pose('wren_a', 77), 300); }
   if (dm) { dm.classList.remove('hit'); dm.getBoundingClientRect(); dm.classList.add('hit'); }
   const zone = document.getElementById('tapzone');
   if (zone && x != null) {
@@ -1209,7 +1226,7 @@ function doTap(x, y) {
     f.className = 'float' + (mark ? ' mark' : ''); f.textContent = mark ? '+1 Spar Mark' : '+1';
     f.style.left = (x - r.left) + 'px'; f.style.top = (y - r.top - 10) + 'px'; zone.appendChild(f); setTimeout(() => f.remove(), 900);
     const sp = document.getElementById('sparks');
-    if (sp) { sp.insertAdjacentHTML('beforeend', `<g class="spark"><circle cx="${238 + Math.random() * 16}" cy="${124 + Math.random() * 16}" r="${3 + Math.random() * 3}" fill="#ffd46b"/></g>`); while (sp.children.length > 6) sp.firstChild.remove(); }
+    if (sp) { sp.insertAdjacentHTML('beforeend', `<g class="spark"><circle cx="${236 + Math.random() * 20}" cy="${128 + Math.random() * 22}" r="${3 + Math.random() * 3}" fill="#ffd46b"/></g>`); while (sp.children.length > 6) sp.firstChild.remove(); }
   }
   updateTrainingBinds();
   return true;
@@ -1231,7 +1248,7 @@ function settingsModal() {
 }
 function awayModal(sum, realMs) {
   const d = sum.delta;
-  const rows = Object.keys(d).map((k) => `<span class="cost ${d[k] < 0 ? 'short' : ''}">${CONFIG.resources[k].icon}${d[k] > 0 ? '+' : '−'}${fmt(Math.abs(d[k]))}</span>`).join('');
+  const rows = Object.keys(d).map((k) => `<span class="cost ${d[k] < 0 ? 'short' : ''}">${rIco(k)}${d[k] > 0 ? '+' : '−'}${fmt(Math.abs(d[k]))}</span>`).join('');
   const ev = sum.events.slice().reverse().slice(-14);
   const je = writeJournal(sum);
   openModal(`<h2>🏮 While you were away</h2>
@@ -1367,7 +1384,8 @@ const CITY = {
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
   tilePx: 256, levels: [0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 280,
   zoomMin: 0.065, zoomMax: 3.2, startZoom: 1.05,
-  walkers: 380, homePetShare: 0.3,
+  homePetShare: 0.12, innerR: 3150,
+  villageP: { docks: 0.6, dunes: 0.4, bluffs: 0.45, wood: 0.5, crystal: 0.35, farms: 0.7, badlands: 0.35, moss: 0.6, amber: 0.6, lava: 0.15 },
   seasonDays: 7, testSeasonDays: 1,     // game days per season (test mode uses testSeasonDays)
   moleWindowHours: 8, moleChance: 0.75, moleDurationHours: 1.5,
   spikeWindowHours: 3, spikeChance: 0.25, spikeMult: 1.6,
@@ -1403,6 +1421,7 @@ const REGIONS = [
     ground: [200, 152, 94], roofs: ['#b0573a', '#c46a40', '#9a4a30'], wall: '#f0dcc0', styles: [0, 1] },
 ];
 const NREG = REGIONS.length;
+const smooth01g = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
 /* ---------- seeded randomness & noise ---------- */
 function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -1427,6 +1446,10 @@ function regionF(x, y) {
   const w = (vnoise(x / 700 + 50, y / 700) - 0.5) * 0.55 + (vnoise(x / 240, y / 240 + 9) - 0.5) * 0.14;
   return (((a * NREG + w) % NREG) + NREG) % NREG;
 }
+/* discovery: region names and resources stay hidden until the player explores them */
+function isDiscovered(i) { return !!(W.player && W.player.region === i) || !!(typeof S !== 'undefined' && S && S.discovered && S.discovered[i]); }
+function discoverRegion(i, quiet) { if (isDiscovered(i)) return false; S.discovered = S.discovered || {}; S.discovered[i] = true; if (!quiet && typeof toast === 'function') toast(`🗺️ Discovered ${REGIONS[i].icon} ${REGIONS[i].name}!`); if (typeof save === 'function') save(); return true; }
+function regionName(i) { return isDiscovered(i) ? REGIONS[i].name : 'the unexplored lands'; }
 function regionAt(x, y) { return Math.floor(regionF(x, y)) % NREG; }
 function regionAngle(i) { return ((i + 0.5) / NREG) * TAU - Math.PI; }
 function hollowR(a) { let r = 1; for (const [k, amp, ph] of W.hTerms) r += amp * Math.sin(k * a + ph); return CITY.hollowR * r; }
@@ -1530,42 +1553,18 @@ function generateCity() {
       L.push([p[0] + nx * w, p[1] + ny * w]); Rr.push([p[0] - nx * w, p[1] - ny * w]); }
     c.poly = L.concat(Rr.reverse()); c.bbox = bboxOf(c.poly, 20); }
 
-  // Roads
-  W.roads = [];
-  const mkRoad = (pts, kind, loop) => {
-    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-    const bridge = []; for (let i = 0; i < pts.length - 1; i++) { const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; bridge.push(chasmDist(mx, my) < 4 || isWet(mx, my, 6) ? 1 : 0); }
-    const rd = { pts, cum, len: cum[cum.length - 1], kind, loop, bridge, idx: W.roads.length, bbox: bboxOf(pts, 30) }; W.roads.push(rd);
-    for (let i = 0; i < pts.length - 1; i++) { const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); for (let d = 0; d <= l; d += 8) { const u = d / l; occMark(OCC.road, pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u, kind === 'promenade' ? 22 : 18); } }
-    return rd;
-  };
-  { const pts = []; for (let i = 0; i <= 200; i++) { const a = (i / 200) * TAU - Math.PI; pts.push(polar(hollowR(a) + 85, a)); } mkRoad(pts, 'promenade', true); }
-  CITY.ringRoads.forEach((_, j) => { const pts = []; const n = 160 + j * 40; for (let i = 0; i <= n; i++) { const a = (i / n) * TAU - Math.PI; pts.push(polar(ringR(j, a), a)); } mkRoad(pts, 'ring', true); });
-  W.radialAngles = [];
-  for (let i = 0; i < CITY.radialRoads; i++) {
-    let a = (i / CITY.radialRoads) * TAU - Math.PI + (rnd() - 0.5) * 0.12; W.radialAngles.push(a);
-    const pts = []; let r = hollowR(a) + 85; const a0 = a;
-    while (r < R - 120) { pts.push(polar(r, a)); r += 44; a = a0 + Math.sin(r / 330 + i) * 0.03; }
-    mkRoad(pts, 'radial', false);
-  }
-
-  // Civic sites at radial × ring intersections
-  W.civic = []; W.markets = []; W.vaults = []; W.plazas = [];
-  const sites = [];
-  W.radialAngles.forEach((a, i) => CITY.ringRoads.forEach((_, j) => { const r = ringR(j, a); const [x, y] = polar(r, a); if (chasmDist(x, y) > 40 && !isWet(x, y, 60)) sites.push({ x, y, a, ring: j, region: regionAt(x, y), used: false }); }));
-  REGIONS.forEach((reg, ri) => {
-    const cands = sites.filter((s) => s.region === ri && !s.used && (s.ring === 1 || s.ring === 2));
-    if (!cands.length) return; cands.sort((p, q) => Math.abs(p.a - regionAngle(ri)) - Math.abs(q.a - regionAngle(ri)));
-    const s = cands[0]; s.used = true;
-    const m = { type: 'market', x: s.x, y: s.y, r: 66, region: ri, name: `${reg.name.split(' ')[0]} Bazaar`, idx: W.markets.length, stalls: [] };
-    for (let k = 0; k < 10; k++) { const ang = (k / 10) * TAU + rnd() * 0.2; m.stalls.push({ a: ang, c: ['#c8634c', '#e2b04a', '#4f8c8a', '#7a5fa0', '#d98a3a'][Math.floor(rnd() * 5)] }); }
-    W.markets.push(m); W.civic.push(m); occMark(OCC.obj, s.x, s.y, 80);
-  });
+  // No roads: the city grows organically in clusters around the Hollow and out across the lands
+  W.roads = []; W.lamps = []; W.plazas = [];
+  W.civic = []; W.markets = []; W.vaults = [];
+  const siteOK = (x, y, rr) => hollowDist(x, y) > 120 && chasmDist(x, y) > rr && !isWet(x, y, rr) && occFree(OCC.obj, x, y, rr);
+  REGIONS.forEach((reg, ri) => { if (reg.outer) return;
+    for (let tries = 0; tries < 40; tries++) { const a = regionAngle(ri) + (rnd() - 0.5) * 0.35, r = 1500 + rnd() * 700, [x, y] = polar(r, a); if (regionAt(x, y) !== ri || !siteOK(x, y, 80)) continue;
+      const m = { type: 'market', x, y, r: 66, region: ri, name: `${reg.name.split(' ')[0]} Bazaar`, idx: W.markets.length, stalls: [] };
+      for (let k = 0; k < 10; k++) { const ang = (k / 10) * TAU + rnd() * 0.2; m.stalls.push({ a: ang, c: ['#c8634c', '#e2b04a', '#4f8c8a', '#7a5fa0', '#d98a3a'][Math.floor(rnd() * 5)] }); }
+      W.markets.push(m); W.civic.push(m); occMark(OCC.obj, x, y, 80); break; } });
   const vaultNames = ['The Deepcoin Vault', 'Old Ledger Vault', 'Gullwing Strongrooms', 'The Amber Coffers', 'Marrow & Daughters Vault', 'Undercliff Depository'];
-  for (let k = 0; k < 6; k++) { const cands = sites.filter((s) => !s.used && (s.ring === 0 || s.ring === 3)); if (!cands.length) break; const s = cands[Math.floor(rnd() * cands.length)]; s.used = true;
-    const v = { type: 'vault', x: s.x + Math.cos(s.a + 1.2) * 0, y: s.y, r: 44, region: s.region, name: vaultNames[k], idx: W.vaults.length }; W.vaults.push(v); W.civic.push(v); occMark(OCC.obj, s.x, s.y, 58); }
-  for (const s of sites) if (!s.used && rnd() < 0.55) { s.used = true; const p = { type: 'plaza', x: s.x, y: s.y, r: 30, region: s.region, fountain: rnd() < 0.6 }; W.plazas.push(p); W.civic.push(p); occMark(OCC.obj, s.x, s.y, 38); }
-
+  for (let k = 0; k < 6; k++) for (let tries = 0; tries < 40; tries++) { const a = rnd() * TAU - Math.PI, r = (rnd() < 0.5 ? 1100 : 2600) + rnd() * 200, [x, y] = polar(r, a); if (!siteOK(x, y, 58)) continue;
+    const v = { type: 'vault', x, y, r: 44, region: regionAt(x, y), name: vaultNames[k], idx: W.vaults.length }; W.vaults.push(v); W.civic.push(v); occMark(OCC.obj, x, y, 58); break; }
   // Tether lift towers on the lip, cables into the Hollow
   W.lifts = []; const liftNames = ['North Spine', 'Gullhook Lift', 'Old Maddox\'s Lift', 'Lantern Ladder', 'Cinder Drop', 'Saltline', 'Mothwing Lift', 'Greystone Spine', 'Rootfall Express', 'Brindle Drop', 'Amber Spine', 'The Long Rope', 'Hushline', 'Glassline'];
   for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU - Math.PI + (rnd() - 0.5) * 0.15; const [x, y] = polar(hollowR(a) + 28, a);
@@ -1584,36 +1583,42 @@ function generateCity() {
   { const c = W.cracks.find((k) => k.wide && k.pts.length > 10); const e = c.pts[c.pts.length - 1], q = c.pts[c.pts.length - 3]; const ang = Math.atan2(e[1] - q[1], e[0] - q[0]);
     const x = e[0] + Math.cos(ang) * 46, y = e[1] + Math.sin(ang) * 46; const lm = { type: 'gate', x, y, r: 34, name: 'The Undergate', a: ang, region: regionAt(x, y) }; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 52); }
 
-  // Promenade lamp posts (lit by the lamplighter at dusk)
-  W.lamps = []; { const pr = W.roads[0]; for (let s = 0; s < pr.len; s += 110) { const [x, y, ang] = roadPos(pr, s); const ox = Math.cos(ang + Math.PI / 2) * 20, oy = Math.sin(ang + Math.PI / 2) * 20; if (chasmDist(x + ox, y + oy) < 6) continue; W.lamps.push({ x: x + ox, y: y + oy, s, phase: rnd() * TAU }); } }
-
-  // Homes (Lanternholds) along the roads
+  // Homes (Lanternholds): a dense old city around the Hollow that thins outward, plus villages in the far lands
   W.homes = []; const used = new Set();
-  for (const rd of W.roads) {
-    for (let s = 30; s < rd.len - 20; s += 62 + rnd() * 30) {
-      const [px, py, ang] = roadPos(rd, s); const seg = segIndex(rd, s); if (rd.bridge[seg]) continue;
-      for (const side of [-1, 1]) {
-        if (rnd() < 0.42) continue;
-        const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3))));
-        const size = 22 + level * 0.55 + rnd() * 6, off = (rd.kind === 'promenade' ? 30 : 26) + size * 0.55 + rnd() * 12;
-        const x = px + Math.cos(ang + side * Math.PI / 2) * off, y = py + Math.sin(ang + side * Math.PI / 2) * off;
-        const rad = size * 0.62;
-        if (hollowDist(x, y) < 70 || Math.hypot(x, y) > R - 70 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6)) continue;
-        if (!occFree(OCC.road, x, y, rad * 0.8) || !occFree(OCC.obj, x, y, rad + 3)) continue;
-        const region = regionAt(x, y), reg = REGIONS[region];
-        const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
-        const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
-        const h = { id: W.homes.length, x, y, ang: ang + (side > 0 ? Math.PI : 0), size, level, region, style,
-          roofL: shade(base, lf * 1.12), roofD: shade(base, lf * 0.78), roof: shade(base, lf),
-          owner: makeOwner(rnd, used), name: NM.pa[Math.floor(rnd() * NM.pa.length)] + NM.pb[Math.floor(rnd() * NM.pb.length)] + ' ' + CITY.homeTerm,
-          power: Math.round((10 + level * 9) * (0.85 + rnd() * 0.3)),
-          banners: Math.min(4, Math.floor(level / 8 + rnd() * 1.5)), trophies: rnd() < 0.25 + level / 80 ? 1 + Math.floor(rnd() * Math.min(5, level / 6 + 1)) : 0,
-          battered: rnd() < 0.12, pet: rnd() < CITY.homePetShare ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, petPhase: rnd() * TAU, petSleep: rnd() < 0.4,
-          lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
-        W.homes.push(h); occMark(OCC.obj, x, y, rad + 2);
-      }
-    }
+  const addHome = (x, y, face, lvlBias) => {
+    const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3 + (lvlBias || 0)))));
+    const size = 22 + level * 0.55 + rnd() * 6, rad = size * 0.62;
+    if (hollowDist(x, y) < 70 || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, rad + 3)) return null;
+    const region = regionAt(x, y), reg = REGIONS[region];
+    const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
+    const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
+    const h = { id: W.homes.length, x, y, ang: face, size, level, region, style,
+      roofL: shade(base, lf * 1.12), roofD: shade(base, lf * 0.78), roof: shade(base, lf),
+      owner: makeOwner(rnd, used), name: NM.pa[Math.floor(rnd() * NM.pa.length)] + NM.pb[Math.floor(rnd() * NM.pb.length)] + ' ' + CITY.homeTerm,
+      power: Math.round((10 + level * 9) * (0.85 + rnd() * 0.3)),
+      banners: Math.min(4, Math.floor(level / 8 + rnd() * 1.5)), trophies: rnd() < 0.25 + level / 80 ? 1 + Math.floor(rnd() * Math.min(5, level / 6 + 1)) : 0,
+      battered: rnd() < 0.12, pet: rnd() < CITY.homePetShare ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, petPhase: rnd() * TAU, petSleep: true,
+      lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
+    W.homes.push(h); occMark(OCC.obj, x, y, rad + 2); return h;
+  };
+  // old city: jittered grid, density falls off with distance and breaks into neighbourhood clumps
+  const INNER = CITY.innerR;
+  for (let gx = -INNER; gx < INNER; gx += 78) for (let gy = -INNER; gy < INNER; gy += 78) {
+    const x = gx + rnd() * 60, y = gy + rnd() * 60, r = Math.hypot(x, y), q = rnd(); if (r > INNER) continue;
+    const clump = vnoise(x / 420 + 11, y / 420 - 4), fall = clamp(1.15 - (r - CITY.hollowR) / (INNER - CITY.hollowR) * 0.75, 0.25, 1);
+    if (q > fall * (0.3 + 0.7 * smooth01g(0.3, 0.6, clump))) continue;
+    addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 1.2);
   }
+  // far lands: villages and lone farmsteads
+  W.villages = [];
+  const VP = CITY.villageP;
+  for (let gx = -CITY.R; gx < CITY.R; gx += 900) for (let gy = -CITY.R; gy < CITY.R; gy += 900) {
+    const cx = gx + 150 + rnd() * 600, cy = gy + 150 + rnd() * 600, r = Math.hypot(cx, cy), q = rnd(), vr = 140 + rnd() * 280, n = Math.round(6 + rnd() * 34);
+    if (r < INNER + 250 || r > CITY.R - 400) continue; const k = REGIONS[regionAt(cx, cy)].key; if (q > (VP[k] || 0.4)) continue;
+    const v = { x: cx, y: cy, r: vr, n: 0 }; W.villages.push(v);
+    for (let i = 0; i < n * 2 && v.n < n; i++) { const a = i * 2.39996 + rnd() * 0.5, d = vr * Math.sqrt((i + 0.5) / (n * 2)) * (0.85 + rnd() * 0.3); if (addHome(cx + Math.cos(a) * d, cy + Math.sin(a) * d, a + Math.PI + (rnd() - 0.5) * 0.8, 0.6)) v.n++; }
+  }
+  for (let gx = -CITY.R; gx < CITY.R; gx += 260) for (let gy = -CITY.R; gy < CITY.R; gy += 260) { const x = gx + rnd() * 220, y = gy + rnd() * 220, q = rnd(); if (Math.hypot(x, y) < INNER + 100 || q > 0.05) continue; addHome(x, y, rnd() * TAU, 1); }
   // The player's Lanternhold: Lanternmoss Gardens, near the second ring
   { const ra = regionAngle(7); let best = null, bd = 1e9; for (const h of W.homes) { if (h.region !== 7) continue; const d = Math.abs(Math.hypot(h.x, h.y) - 1580) + Math.abs(((Math.atan2(h.y, h.x) - ra + 3 * Math.PI) % TAU) - Math.PI) * 900; if (d < bd) { bd = d; best = h; } }
     best.isPlayer = true; best.owner = 'You'; best.name = 'Your ' + CITY.homeTerm; best.size = 40; best.style = 3; best.wing = 1; best.tower = true; W.player = best; }
@@ -1640,16 +1645,7 @@ function generateCity() {
     else if (k === 'moss') { if (q < 0.3) deco({ type: 'mosspatch', r: 34 + rnd() * 20 }); else if (q < 0.37) { if (obj({ type: 'post', r: 6 })) W.posts.push(W.objs[W.objs.length - 1]); } else if (q < 0.53) obj({ type: 'tree', r: 14 + rnd() * 5, mossy: 1 }); else if (q < 0.55) obj({ type: 'pond', r: 22 }); }
     else if (k === 'amber') { if (q < 0.3) obj({ type: 'orchard', r: 12 }); else if (q < 0.42) obj({ type: 'tree', r: 15, autumn: 1 }); else if (q < 0.45) obj({ type: 'rock', r: 8 }); else if (q < 0.5) deco({ type: 'leaves', r: 26 }); }
   }
-  // Flora: dense small plants per region (painted sprites)
-  const FLORA_P = { docks: 0.34, dunes: 0.3, bluffs: 0.26, wood: 0.5, crystal: 0.3, farms: 0.26, badlands: 0.4, moss: 0.55, amber: 0.42 };
-  for (let gx = -R; gx < R; gx += 30) for (let gy = -R; gy < R; gy += 30) {
-    const x = gx + rnd() * 26, y = gy + rnd() * 26, rr = Math.hypot(x, y), q = rnd(), sz = 5 + rnd() * 6, pick = rnd(), sd = rnd();
-    if (rr > R - 30 || hollowDist(x, y) < 40 || chasmDist(x, y) < 8 || isWet(x, y, 4)) continue;
-    const ri = regionAt(x, y), k = REGIONS[ri].key; if (q > FLORA_P[k]) continue;
-    if (!occFree(OCC.road, x, y, sz * 0.9) || !occFree(OCC.obj, x, y, sz * 0.8)) continue;
-    const list = FLORA[k]; const spr = list[Math.floor(pick * list.length)];
-    W.objs.push({ type: 'flora', x, y, r: spr.startsWith('props2') ? 7 : sz, spr, layer: 1, region: ri, seed: sd }); occMark(OCC.obj, x, y, sz * 0.7);
-  }
+  // Flora is scattered at paint time from a world-seeded hash (see artFlora), so it costs no memory
   // Piers on the lake shore
   for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
 
@@ -2187,6 +2183,23 @@ function artBridge(c, p, q, w, s) {
   c.restore();
 }
 
+/* ---------- flora: scattered at paint time from a world-seeded hash (no stored objects) ---------- */
+const FLORA_P = { docks: 0.34, dunes: 0.3, bluffs: 0.26, wood: 0.5, crystal: 0.3, farms: 0.26, badlands: 0.4, moss: 0.55, amber: 0.42, lava: 0.18 };
+function artFlora(c, x0, y0, x1, y1, minR) {
+  const G = 30, list = [];
+  for (let gx = Math.floor((x0 - 24) / G); gx <= Math.floor((x1 + 4) / G); gx++) for (let gy = Math.floor((y0 - 4) / G); gy <= Math.floor((y1 + 30) / G); gy++) {
+    const q = hash2(gx * 7 + 3, gy * 13 + 5), x = gx * G + hash2(gx, gy + 911) * 26, y = gy * G + hash2(gx + 577, gy) * 26;
+    if (q > 0.55 || Math.hypot(x, y) > CITY.R - 30) continue;
+    const k = REGIONS[regionAt(x, y)].key; if (q > (FLORA_P[k] || 0.3)) continue;
+    const sz = 5 + hash2(gx + 31, gy - 7) * 6;
+    if (sz < minR) continue;
+    if (hollowDist(x, y) < 40 || chasmDist(x, y) < 8 || isWet(x, y, 4) || !occFree(OCC.obj, x, y, sz * 0.8)) continue;
+    const fl = FLORA[k] || FLORA.badlands, spr = fl[Math.floor(hash2(gx - 99, gy + 41) * fl.length)];
+    list.push({ x, y, r: spr.startsWith('props2') ? 7 : sz, spr, sd: hash2(gx + 3, gy + 3) });
+  }
+  list.sort((a, b) => a.y - b.y);
+  for (const o of list) { const w = o.r * 2.6 * (o.spr.startsWith('p_crystal') ? 0.62 : o.spr === 'p_desert_2' ? 1.25 : 1); if (w > 12) softShadow(c, o.x + w * 0.12, o.y + w * 0.02, w * 0.4, w * 0.16, 0.6); drawSprite(c, o.spr, o.x, o.y, w, 0.5, 0.82, o.sd > 0.5); }
+}
 /* ---------- sprite choices for world objects ---------- */
 const FLORA = {
   docks: ['p_forest_6', 'p_forest_7', 'p_garden_2', 'p_garden_3', 'p_garden_5'],
@@ -2299,9 +2312,12 @@ function artStatic(c, x0, y0, x1, y1, s) {
   for (const k of W.cracks) if (boxHit(k.bbox, x0, y0, x1, y1)) artCrack(c, k, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
-  for (const rd of W.roads) if (boxHit(rd.bbox, x0, y0, x1, y1)) artRoad(c, rd, s, x0, y0, x1, y1);
-  const tiny = s < 0.1;
-  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer && !(tiny && o.type === 'flora' && o.r < 6)).sort((a, b) => a.y - b.y);
+  if (s < 0.05) { // far LOD: settlements read as warm roof specks, big features only
+    for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9); c.fillStyle = o.roofD; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = o.roofL; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
+      else if (o.layer === 1 && o.type !== 'rock' && (o.r || 0) >= 18) artObj(c, o, s); }
+    return; }
+  artFlora(c, x0, y0, x1, y1, s < 0.1 ? 6 : 0);
+  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer).sort((a, b) => a.y - b.y);
   for (const o of l1) artObj(c, o, s);
 }
 
@@ -2357,21 +2373,19 @@ function artSkyFish(c, kind, x, y, ang, size, t, ph, glowOn, alpha, shadow) {
 let HDEPTH = null;
 function hollowDepthInit() {
   const rnd = mulberry32(777), lights = [], mist = [];
-  for (let i = 0; i < 46; i++) lights.push({ a: rnd() * TAU, sp: 0.004 + rnd() * 0.01, ph: rnd(), sw: (rnd() - 0.5) * 0.6, warm: rnd() < 0.8 });
-  for (let i = 0; i < 18; i++) mist.push({ a: rnd() * TAU, f: 0.3 + rnd() * 0.45, r: 90 + rnd() * 120, sp: (rnd() - 0.5) * 0.02, d: 0.25 + rnd() * 0.5 });
+  for (let i = 0; i < 28; i++) lights.push({ a: rnd() * TAU, sp: 0.004 + rnd() * 0.01, ph: rnd(), sw: (rnd() - 0.5) * 0.6, warm: rnd() < 0.8 });
+  for (let i = 0; i < 7; i++) mist.push({ a: rnd() * TAU, f: 0.3 + rnd() * 0.3, r: 110 + rnd() * 90, sp: (rnd() - 0.5) * 0.02, d: 0.25 + rnd() * 0.5 });
   HDEPTH = { lights, mist };
 }
 function drawHollowDepth(c, t, inV, camx, camy, z, night, glow) {
   const R = CITY.hollowR; if (!inV(0, 0, R * 1.1)) return; if (!HDEPTH) hollowDepthInit();
   const par = (x, y, d) => [x + (camx - x) * d * 0.18, y + (camy - y) * d * 0.18]; // deeper = drifts with the camera
-  c.save(); c.beginPath(); for (let i = 0; i < W.hollowPts.length; i += 2) { const p = W.hollowPts[i]; i ? c.lineTo(p[0] * 0.96, p[1] * 0.96) : c.moveTo(p[0] * 0.96, p[1] * 0.96); } c.closePath(); c.clip();
+  c.save();
   // Lumen core: breathes, sits deepest
   const [cx, cy] = par(0, 0, 1), pulse = 0.75 + 0.25 * Math.sin(t * 0.9) + 0.08 * Math.sin(t * 2.3);
   glow(c, cx, cy, R * 0.32, 'rgba(255,222,150,.9)', 0.32 * pulse); glow(c, cx, cy, R * 0.12, 'rgba(255,248,220,1)', 0.35 * pulse);
   // drifting mist banks at mid depth
-  c.globalCompositeOperation = 'screen';
   for (const m of HDEPTH.mist) { const a = m.a + t * m.sp, rr = hollowR(a) * m.f, [x, y] = par(Math.cos(a) * rr, Math.sin(a) * rr, m.d); glow(c, x, y, m.r, 'rgba(150,170,205,1)', 0.10 + 0.04 * Math.sin(t * 0.4 + m.a * 3)); }
-  c.globalCompositeOperation = 'source-over';
   // delvers: lantern lights spiralling down the terraces, smaller and dimmer as they go deeper
   if (z > 0.12) for (const L of HDEPTH.lights) { const u = (L.ph + t * L.sp) % 1, a = L.a + u * 2.2 + L.sw * Math.sin(u * 9), rr = hollowR(a) * (0.9 - u * 0.55), d = u;
     const [x, y] = par(Math.cos(a) * rr, Math.sin(a) * rr, d); const fade = Math.min(1, u * 8) * Math.min(1, (1 - u) * 6), fl = 0.8 + 0.2 * Math.sin(t * 11 + L.a * 20);
@@ -2461,25 +2475,16 @@ function weatherNow(t) {
   const fade = Math.min(1, u * 6, (1 - u) * 6);
   return { type, x, y, r: type === 'updraft' ? 260 : 620, fade, e, region: regionAt(x, y) };
 }
-function weatherLabel(w) { const R = REGIONS[w.region].name; return { rain: `🌧️ Rain drifting over ${R}`, storm: `⛈️ A Hollow storm rolls across ${R}`, updraft: '🌬️ An Exhale updraft rises from the Hollow', mist: `🌫️ Mist creeps through ${R}`, clear: nightFactor() > 0.5 ? '🌙 Clear night over the Rim' : '☀️ Clear skies over the Rim' }[w.type]; }
+function weatherLabel(w) { const R = regionName(w.region); return { rain: `🌧️ Rain drifting over ${R}`, storm: `⛈️ A Hollow storm rolls across ${R}`, updraft: '🌬️ An Exhale updraft rises from the Hollow', mist: `🌫️ Mist creeps through ${R}`, clear: nightFactor() > 0.5 ? '🌙 Clear night over the Rim' : '☀️ Clear skies over the Rim' }[w.type]; }
 
 /* ---------- generation of agents ---------- */
 function genLife(rnd) {
   const used = new Set(W.homes.map((h) => h.owner));
-  W.walkers = [];
-  const roads = W.roads;
-  for (let i = 0; i < CITY.walkers; i++) {
-    const rd = roads[Math.floor(rnd() * roads.length)];
-    W.walkers.push({ road: rd.idx, s0: rnd() * rd.len, v: (11 + rnd() * 14) * (rnd() < 0.5 ? -1 : 1), lane: (rnd() - 0.5) * 10, name: makeOwner(rnd, used),
-      cloak: CLOAKS[Math.floor(rnd() * CLOAKS.length)], skin: SKIN[Math.floor(rnd() * SKIN.length)], hat: rnd() < 0.4, lantern: rnd() < 0.5,
-      pet: rnd() < 0.22 ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, phase: rnd() * TAU, shy: rnd() });
-  }
-  W.visitors = []; W.markets.forEach((m, mi) => { for (let k = 0; k < 16; k++) W.visitors.push({ m: mi, a0: rnd() * TAU, w: (0.05 + rnd() * 0.08) * (rnd() < 0.5 ? -1 : 1), rr: m.r * (0.45 + rnd() * 0.35), extra: k >= 6, cloak: CLOAKS[Math.floor(rnd() * CLOAKS.length)], skin: SKIN[Math.floor(rnd() * SKIN.length)], phase: rnd() * TAU }); });
-  W.caravans = W.markets.map((m, mi) => { let best = null, bd = 1e9; for (const rd of W.roads) { if (rd.kind !== 'radial') continue; for (let s = 0; s < rd.len; s += 40) { const [x, y] = roadPos(rd, s); const d = Math.hypot(x - m.x, y - m.y); if (d < bd) { bd = d; best = { rd: rd.idx, s }; } } } return Object.assign(best, { m: mi, phase: rnd() * 100 }); });
+  W.walkers = []; W.visitors = []; W.caravans = []; // no foot traffic: the map stays calm and cheap to draw
   // sky-fish (no birds!): day drifters + night school
-  W.dayFish = []; for (let i = 0; i < 7; i++) W.dayFish.push({ kind: ['manta', 'koi', 'eel'][i % 3], phase: rnd() * 200, period: 70 + rnd() * 50, size: 26 + rnd() * 22, a0: rnd() * TAU, hue: rnd() });
-  W.nightFish = []; for (let i = 0; i < 70; i++) W.nightFish.push({ a: rnd() * TAU, r: 0.2 + rnd() * 0.75, sp: 0.15 + rnd() * 0.25, ph: rnd() * TAU, size: 5 + rnd() * 5, hue: rnd() });
-  W.motes = []; for (let i = 0; i < 160; i++) W.motes.push({ a: rnd() * TAU, sp: 0.02 + rnd() * 0.04, off: rnd(), sz: 3 + rnd() * 5, wob: rnd() * TAU });
+  W.dayFish = []; for (let i = 0; i < 2; i++) W.dayFish.push({ kind: ['manta', 'koi', 'eel'][i % 3], phase: rnd() * 600, period: 260 + rnd() * 140, size: 26 + rnd() * 22, a0: rnd() * TAU, hue: rnd() });
+  W.nightFish = []; for (let i = 0; i < 16; i++) W.nightFish.push({ a: rnd() * TAU, r: 0.2 + rnd() * 0.75, sp: 0.15 + rnd() * 0.25, ph: rnd() * TAU, size: 5 + rnd() * 5, hue: rnd() });
+  W.motes = []; for (let i = 0; i < 70; i++) W.motes.push({ a: rnd() * TAU, sp: 0.02 + rnd() * 0.04, off: rnd(), sz: 3 + rnd() * 5, wob: rnd() * TAU });
   W.mist = []; for (let i = 0; i < 14; i++) W.mist.push({ a: rnd() * TAU, r: 120 + rnd() * 550, w: (rnd() - 0.5) * 0.03, size: 260 + rnd() * 380, al: 0.12 + rnd() * 0.16 });
   W.peekers = []; for (let i = 0; i < 22; i++) { const c = W.cracks[Math.floor(rnd() * W.cracks.length)]; const j = Math.floor(rnd() * (c.pts.length - 1)); W.peekers.push({ x: c.pts[j][0], y: c.pts[j][1], P: 9 + rnd() * 15, ph: rnd() * 30, red: rnd() < 0.3, tent: rnd() < 0.35 }); }
   W.boats = []; for (let i = 0; i < 5; i++) W.boats.push({ ph: rnd() * TAU, sp: 0.03 + rnd() * 0.04, ra: 0.3 + rnd() * 0.45, sail: CLOAKS[i] });
@@ -2493,10 +2498,10 @@ function genLife(rnd) {
   const memo = W.landmarks.find((l) => l.type === 'memorial');
   W.npcs = [
     mk('maddox', L0.x + 18, L0.y + 10),
-    mk('pell', 0, 0, { road: 0, v: 22, mover: 'pell' }),
+    mk('pell', (W.lifts[3] || L0).x - 22, (W.lifts[3] || L0).y + 14),
     mk('greta', W.piers[0] ? W.piers[0].x + Math.cos(W.piers[0].a) * 0 : docksM.x, W.piers[0] ? W.piers[0].y : docksM.y),
     mk('ilse', memo.x + 14, memo.y + 20),
-    mk('kip', 0, 0, { road: 2, v: 70, mover: 'kip' }),
+    mk('kip', W.player.x + 46, W.player.y + 30),
     mk('juniper', farmsM.x + 20, farmsM.y - 18),
     mk('hennick', W.vaults[0].x + 30, W.vaults[0].y + 22),
   ];
@@ -2509,7 +2514,7 @@ function npcPos(n, t) {
   return [n.x, n.y, 0];
 }
 function pellProgress() { const h = hourOfDay(); if (h >= 17.5 && h < 20.5) return (h - 17.5) / 3; return (h / 24) * 0.15 + 0.02 * Math.sin(h); }
-function lampLit(l) { const h = hourOfDay(); if (h >= 20.5 || h < 6) return 1; if (h >= 17.5) return l.s / W.roads[0].len < pellProgress() ? 1 : 0; return 0; }
+function lampLit() { return 0; }
 
 function walkerPos(w, t) {
   const rd = W.roads[w.road]; let s = w.s0 + w.v * t;
@@ -2669,11 +2674,14 @@ const CityMap = (() => {
   }
 
   /* ---------- frame ---------- */
+  const dwell = { ri: -1, t: 0 };
   function frame(now) {
     if (!running) return; raf = requestAnimationFrame(frame);
     const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; fps = fps * 0.95 + (1 / Math.max(dt, 0.001)) * 0.05; frameN++;
     if (cam.fly) { const u = clamp((now - cam.fly.t0) / cam.fly.d, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; cam.x = cam.fly.x0 + (cam.fly.x - cam.fly.x0) * e; cam.y = cam.fly.y0 + (cam.fly.y - cam.fly.y0) * e; cam.z = cam.fly.z0 * Math.pow(cam.fly.z / cam.fly.z0, e); if (u >= 1) cam.fly = null; }
     else if (!ptrs.size && (Math.abs(cam.vx) > 0.05 || Math.abs(cam.vy) > 0.05)) { cam.x += cam.vx; cam.y += cam.vy; cam.vx *= 0.92; cam.vy *= 0.92; clampCam(); }
+    // exploration: lingering zoomed-in over a land maps it
+    if (cam.z > 0.42 && !cam.fly && Math.hypot(cam.x, cam.y) < CITY.R && hollowDist(cam.x, cam.y) > 0) { const ri = regionAt(cam.x, cam.y); if (ri === dwell.ri) { dwell.t += dt; if (dwell.t > 2.5 && discoverRegion(ri)) buildLegend(); } else { dwell.ri = ri; dwell.t = 0; } } else dwell.t = 0;
     const t = now / 1000, c = ctx, k = kpx();
     const vx0 = cam.x - Wc / 2 / k, vy0 = cam.y - Hc / 2 / k, vx1 = cam.x + Wc / 2 / k, vy1 = cam.y + Hc / 2 / k;
     c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = `rgb(${FOG.join(',')})`; c.fillRect(0, 0, Wc, Hc);
@@ -2714,7 +2722,7 @@ const CityMap = (() => {
       c.globalAlpha = 1; glow(c, end[0], end[1], 70 + Math.sin(t * 2) * 8, 'rgba(255,255,255,.9)', 0.45); }
     // Hollow: mist banks, peekers, lightning flash
     if (hollowVis) {
-      for (const m of W.mist) { const a = m.a + t * m.w, x = Math.cos(a) * m.r, y = Math.sin(a) * m.r; glow(c, x, y, m.size, 'rgba(220,230,255,.9)', m.al * (wx.type === 'mist' ? 1.6 : 1)); }
+      if (!ART.ok) for (const m of W.mist) { const a = m.a + t * m.w, x = Math.cos(a) * m.r, y = Math.sin(a) * m.r; glow(c, x, y, m.size, 'rgba(220,230,255,.9)', m.al * (wx.type === 'mist' ? 1.6 : 1)); }
     }
     for (const p of W.peekers) { if (!inV(p.x, p.y, 30)) continue; const u = ((t + p.ph) % p.P) / p.P; if (u > 0.2) continue; const a = Math.sin((u / 0.2) * Math.PI);
       c.globalAlpha = a; c.fillStyle = 'rgba(10,8,20,.9)'; c.beginPath(); c.ellipse(p.x, p.y, 9, 6, 0, 0, TAU); c.fill();
@@ -2733,25 +2741,18 @@ const CityMap = (() => {
     for (const m of W.windmills) { if (ART.ok || !inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
       for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
     for (const ch of W.chimneys) { if (!inV(ch.x, ch.y, 80)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.25 + k / 5 + ch.seed) % 1; glow(c, ch.x + u * 40, ch.y - u * 50, 6 + u * 16, 'rgba(90,85,85,.9)', (1 - u) * 0.45); } }
-    if (ART.ok && z > 0.45) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!(REGIONS[h.region].key === 'badlands' || (sd * 3.7) % 1 < 0.4)) continue;
+    if (ART.ok && z > 0.45) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!(REGIONS[h.region].key === 'badlands' ? (sd * 3.7) % 1 < 0.5 : (sd * 3.7) % 1 < 0.12)) continue;
       const w = homeW(h), fx = h.x + w * 0.18 * (homeFlip(h) ? 1 : -1), fy = h.y - w * 0.78;
-      for (let k = 0; k < 4; k++) { const u = (t * 0.18 + k / 4 + sd) % 1; glow(c, fx + u * 14 + Math.sin(u * 5 + sd * 9) * 2, fy - u * 26, 2.5 + u * 8, 'rgba(225,222,215,.9)', Math.min(1, u * 5) * (1 - u) * 0.38); } }
+      for (let k = 0; k < 4; k++) { const u = (t * 0.18 + k / 4 + sd) % 1; glow(c, fx + u * 14 + Math.sin(u * 5 + sd * 9) * 2, fy - u * 26, 2.5 + u * 8, 'rgba(205,200,195,.9)', Math.min(1, u * 5) * (1 - u) * 0.22 * clamp((z - 0.45) / 0.3, 0, 1)); } }
     if (ART.ok && W.river.length) { const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), ex = e0[0] + e0[0] / d * 50, ey = e0[1] + e0[1] / d * 50, sp = ART_MANIFEST.s.props2_2;
       if (sp && inV(ex, ey, 160)) { const fh = 92 * sp[4] / sp[3], by = ey - fh * 0.1 + fh * 0.86; for (let k = 0; k < 7; k++) { const u = (t * 0.35 + k / 7) % 1; glow(c, ex - 30 + ((k * 37) % 60) + Math.sin(t + k) * 4, by - u * 22, 8 + u * 18, 'rgba(235,245,255,1)', (1 - u) * 0.3); } } }
     for (const m of W.mines) { if (!inV(m.x, m.y, 80)) continue; const u = (Math.sin(t * 0.5 + m.seed * 9) + 1) / 2, d = 14 + u * 52; const x = m.x + Math.cos(m.a) * d, y = m.y + Math.sin(m.a) * d;
       if (ART.ok) { drawSprite(c, 'props_4', x, y, 18, 0.5, 0.7, Math.cos(m.a) < 0); continue; } c.save(); c.translate(x, y); c.rotate(m.a); c.fillStyle = '#5a4a3a'; c.fillRect(-5, -4, 10, 8); c.fillStyle = '#b9a4ff'; c.beginPath(); c.arc(-1.5, 0, 1.6, 0, TAU); c.arc(2, 1, 1.4, 0, TAU); c.fill(); c.restore(); }
-    // market caravans (shellback-drawn carts)
-    W.caravans.forEach((cvn) => { const rd = W.roads[cvn.rd], m = W.markets[cvn.m]; const span = 520, u = ((t * 9 + cvn.phase * 7) % (span * 2)); const off = u < span ? span - u : u - span;
-      const dir = Math.sign(roadPos(rd, Math.min(rd.len, cvn.s + 30))[0] - roadPos(rd, cvn.s)[0]) || 1;
-      for (let i = 0; i < 3; i++) { const s = clamp(cvn.s + (off + i * 16) * (Math.hypot(...roadPos(rd, cvn.s).slice(0, 2)) < Math.hypot(m.x, m.y) ? -1 : 1), 0, rd.len); const [x, y, a] = roadPos(rd, s); if (!inV(x, y, 20)) continue;
-        if (ART.ok) { if (i === 0) { softShadow(c, x + 3, y + 1, 12, 4, 0.8); drawSprite(c, 'creatures_5', x, y, 24, 0.5, 0.9, Math.cos(a + (u < span ? Math.PI : 0)) < 0); } else drawSprite(c, 'props_5', x, y, 20, 0.5, 0.75, Math.cos(a) < 0); continue; }
-        if (i === 0) drawPet(c, 'tortoise', x, y, a + (u < span ? Math.PI : 0), t, 0, false);
-        else { c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = '#8a6440'; c.fillRect(-6, -4, 12, 8); c.fillStyle = ['#c8634c', '#e2b04a'][i % 2]; c.fillRect(-5, -3, 10, 6); c.restore(); } } void dir; });
     // homes: lanterns, pets
     const homes = z > 0.32 ? queryObjs(view.x0, view.y0, view.x1, view.y1, 40).filter((o) => o.type === 'home') : [];
     if (z > 0.5) for (const h of homes) { if (!h.pet || h.isPlayer) continue; let x, y, a, sl = h.petSleep || night > 0.6;
       if (sl) { x = h.x + Math.cos(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); y = h.y + Math.sin(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); a = h.ang; }
-      else { const p = h.petPhase, ang = p + Math.sin(t * 0.35 + p) * 1.8 + t * 0.08, rr = h.size * 0.62 + 10 + Math.sin(t * 0.9 + p) * 4; x = h.x + Math.cos(ang) * rr; y = h.y + Math.sin(ang) * rr; a = ang + Math.PI / 2 * Math.sign(Math.cos(t * 0.35 + p)); }
+      else { x = h.x + Math.cos(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); y = h.y + Math.sin(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); a = h.ang; }
       drawPet(c, h.pet, x, y, a, t, h.petPhase, sl); }
     // the player's own Lanternhold, painted live from game state
     drawPlayerHome(c, t, z, inV);
@@ -2759,20 +2760,7 @@ const CityMap = (() => {
     const storm = (wx.type === 'storm' || wx.type === 'rain') && wx.fade > 0.3 ? wx : null; const mole = currentMole();
     if (mole && inV(mole.x, mole.y, 120)) drawMole(c, mole, t);
     if (z > 0.3) {
-      const detail = z > 0.55; let gathered = 0;
-      W.walkers.forEach((w, i) => {
-        let [x, y, a, br] = walkerPos(w, t);
-        if (mole && Math.hypot(x - mole.x, y - mole.y) < 750) { const ga = (i * 2.399) % TAU, rr = 55 + (i % 4) * 11; x = mole.x + Math.cos(ga) * rr; y = mole.y + Math.sin(ga) * rr; a = ga + Math.PI; gathered++; }
-        else if (storm && w.shy < (storm.type === 'storm' ? 0.8 : 0.45) && Math.hypot(x - storm.x, y - storm.y) < storm.r) return; // streets empty in storms
-        if (!inV(x, y, 10)) return;
-        if (!detail) { c.fillStyle = w.cloak; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); return; }
-        drawPerson(c, x, y, a, w.cloak, w.skin, t, w.phase, { hat: w.hat, lantern: w.lantern && night > 0.3 });
-        if (w.pet) drawPet(c, w.pet, x - Math.cos(a) * 9 + Math.cos(a + 1.57) * 4, y - Math.sin(a) * 9 + Math.sin(a + 1.57) * 4, a, t, w.phase, false);
-      });
-      W.visitors.forEach((v) => { const m = W.markets[v.m]; if (v.extra && !(marketSpike(v.m) || (festival() === 'harvest' && REGIONS[m.region].key === 'farms'))) return;
-        const a = v.a0 + t * v.w + Math.sin(t * 0.5 + v.phase) * 0.3, x = m.x + Math.cos(a) * v.rr, y = m.y + Math.sin(a) * v.rr; if (!inV(x, y, 10)) return;
-        if (detail) drawPerson(c, x, y, a + Math.PI / 2 * Math.sign(v.w), v.cloak, v.skin, t, v.phase, {}); else { c.fillStyle = v.cloak; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); } });
-      for (const n of W.npcs) { const [x, y, a] = npcPos(n, t); if (!inV(x, y, 20)) continue; n.sx = x; n.sy = y; glow(c, x, y, 16, 'rgba(255,230,150,.9)', 0.4); drawPerson(c, x, y, a, n.npc.color, SKIN[0], t, 1, { hat: true, lantern: true, spr: NPC_SPR[n.npc.id], h: 17 }); }
+      for (const n of W.npcs) { const [x, y, a] = npcPos(n, t); if (!inV(x, y, 20)) continue; n.sx = x; n.sy = y; glow(c, x, y, 16, 'rgba(255,230,150,.9)', 0.4); drawPerson(c, x, y, a, n.npc.color, SKIN[0], t, 1, { hat: true, lantern: true, spr: NPC_SPR[n.npc.id], h: 17, idle: true }); }
     }
     // promenade lamps lit by Pell (glow added later in night pass)
     // sky-fish by day: big, slow, ground shadows; dive back into the Hollow
@@ -2793,8 +2781,8 @@ const CityMap = (() => {
     c.strokeStyle = `rgba(255,212,107,${0.5 + pulse * 0.4})`; c.lineWidth = 3 / Math.max(0.3, z); c.beginPath(); c.arc(h.x, h.y, h.size + 14 + pulse * 4, 0, TAU); c.stroke();
     drawHome(c, h, Math.max(0.3, z));
     const pets = equippedPets(); pets.forEach((p, i) => { const sl = !heroHome() || nightFactor() > 0.5; const a = h.ang + Math.PI / 2; const kind = p.id;
-      const x = sl ? h.x + Math.cos(a) * (h.size * 0.55 + 6) + Math.cos(h.ang) * (i * 9 - 4) : h.x + Math.cos(t * 0.3 + i * 3) * (h.size * 0.7 + 12), y = sl ? h.y + Math.sin(a) * (h.size * 0.55 + 6) + Math.sin(h.ang) * (i * 9 - 4) : h.y + Math.sin(t * 0.3 + i * 3) * (h.size * 0.7 + 12);
-      drawPet(c, kind, x, y, sl ? h.ang : t * 0.3 + i * 3 + Math.PI / 2, t, i, sl); });
+      const x = h.x + Math.cos(a) * (h.size * 0.55 + 6) + Math.cos(h.ang) * (i * 11 - 5), y = h.y + Math.sin(a) * (h.size * 0.55 + 6) + Math.sin(h.ang) * (i * 11 - 5);
+      drawPet(c, kind, x, y, h.ang, t, i, sl); });
   }
   function drawMole(c, m, t) {
     const bob = Math.sin(t * 3) * 3;
@@ -2839,7 +2827,6 @@ const CityMap = (() => {
     for (const o of W.crystals) G(o.x, o.y, 46, 'rgba(180,150,255,.9)', 0.18 + 0.18 * Math.sin(t * 1.5 + o.seed * 20) + night * 0.25);
     for (const o of W.kilns) G(o.x, o.y, 30, 'rgba(255,150,60,.9)', 0.25 + night * 0.4 + 0.1 * Math.sin(t * 3 + o.seed * 9));
     for (const o of W.posts) G(o.x, o.y, 22, 'rgba(255,212,107,.95)', (0.25 + night * 0.65) * (0.75 + 0.25 * Math.sin(t * 3 + o.seed * 30)));
-    for (const l of W.lamps) if (lampLit(l)) G(l.x, l.y, 26, 'rgba(255,200,110,.95)', 0.85 * (0.85 + 0.15 * Math.sin(t * 4 + l.phase)));
     if (z > (ART.ok ? 0.1 : 0.35) && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if (ART.ok && z <= 0.35) { G(h.x, h.y - 8, homeW(h) * 0.75, 'rgba(255,190,100,.95)', night * 0.75); continue; } if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); G(h.x, h.y + w * 0.05, w * 0.55, 'rgba(255,150,60,.9)', night * 0.35 * fl); const sd = h.lanternPhase || 0; for (let i = 0; i < 3; i++) { const wx = h.x + (((sd * 7.3 + i * 0.37) % 1) - 0.5) * w * 0.55, wy = h.y - w * (0.12 + ((sd * 3.1 + i * 0.29) % 1) * 0.25); G(wx, wy, w * 0.14, 'rgba(255,200,110,.95)', night * 0.9 * fl); G(wx, wy, 2.2, 'rgba(255,245,200,1)', night * 0.9); } } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
     // sky-fish at night: the nightfall school surges out of the chasm, then a few roam
     if (night > 0.05) { const h = hourOfDay(); const surge = h >= 17.5 && h < 21 ? clamp((h - 17.5) / 3.5, 0, 1) : -1;
@@ -2870,6 +2857,7 @@ const CityMap = (() => {
   function updateHud() { const now = performance.now(); if (now - hudAt < 400) return; hudAt = now; const base = wrap.getBoundingClientRect(); hudRects = ['.cityTitle', '#cityInfo', '#ticker', '.cityBtns', '#miniMap'].map((q) => wrap.querySelector(q)).filter((e) => e && e.offsetParent !== null).map((e) => { const r = e.getBoundingClientRect(); return [(r.left - base.left - 4) * dpr, (r.top - base.top - 4) * dpr, (r.width + 8) * dpr, (r.height + 8) * dpr]; }); }
   const ovl = (r, q) => r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1];
   function hudHit(r) { for (const q of hudRects) if (ovl(r, q)) return true; return false; }
+  let lblShown = new Set();
   function drawLabels(c, t, view, inV, S2) {
     updateHud();
     st.labels = [];
@@ -2881,7 +2869,7 @@ const CityMap = (() => {
     const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y - 40); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
     // region names at far zoom
     const ra = clamp((0.5 - z) / 0.15, 0, 1);
-    if (ra > 0) REGIONS.forEach((R, i) => { const a = regionAngle(i), [x, y] = polar(2050, a); const [sx, sy] = S2(x, y); c.font = `700 ${15 * dpr}px Georgia,serif`; { const hw = Math.max(c.measureText(`${R.icon} ${R.name}`).width, c.measureText(R.res.join('  ')).width * 0.75) / 2 + 4 * dpr; if (hudHit([sx - hw, sy - 12 * dpr, hw * 2, 40 * dpr])) return; } st.labels.push({ name: R.name, wx: x, wy: y, sx: sx / dpr, sy: sy / dpr }); c.textAlign = 'center'; c.textBaseline = 'middle'; c.globalAlpha = ra; c.lineWidth = 4 * dpr; c.strokeStyle = 'rgba(40,30,20,.65)'; c.strokeText(`${R.icon} ${R.name}`, sx, sy); c.fillStyle = '#fff6dc'; c.fillText(`${R.icon} ${R.name}`, sx, sy); c.font = `600 ${10.5 * dpr}px system-ui`; c.strokeText(R.res.join('  '), sx, sy + 16 * dpr); c.fillText(R.res.join('  '), sx, sy + 16 * dpr); c.globalAlpha = 1; });
+    // region names are not shown: the lands are discovered by exploring
     if (ra > 0) { const [sx, sy] = S2(0, 0); if (!hudHit([sx - 70 * dpr, sy - 18 * dpr, 140 * dpr, 24 * dpr])) { c.font = `700 ${16 * dpr}px Georgia,serif`; c.globalAlpha = ra; c.fillStyle = '#ffe9a8'; c.textAlign = 'center'; c.fillText('THE HOLLOW', sx, sy); c.globalAlpha = 1; } }
     // civic labels
     const ca = clamp((z - 0.28) / 0.12, 0, 1);
@@ -2890,15 +2878,13 @@ const CityMap = (() => {
       if (!label) continue; const r = pill(c, sx, sy + 14 * dpr, label, { a: ca, bg: 'rgba(36,50,74,.85)', color: '#fff3d0', fs: 10.5 }); rects.push(r); }
     // NPC names + speech bubbles
     if (z > 0.45) for (const n of W.npcs) { if (n.sx == null || !inV(n.sx, n.sy, 20)) continue; const [sx, sy] = S2(n.sx, n.sy);
-      if (z > 0.75) rects.push(pill(c, sx, sy - 9 * dpr, `${n.npc.icon} ${n.npc.name}`, { bg: 'rgba(255,230,160,.95)', fs: 10, bold: true }));
-      const b = npcBubble(n, t); if (b) { const r = pill(c, sx, sy - (z > 0.75 ? 26 : 10) * dpr, b, { bg: '#fffdf4', fs: 10.5, border: 'rgba(110,80,40,.4)' }); rects.push(r); } }
+      if (z > 0.75) rects.push(pill(c, sx, sy - 9 * dpr, `${n.npc.icon} ${n.npc.name}`, { bg: 'rgba(255,230,160,.95)', fs: 10, bold: true, a: clamp((z - 0.75) / 0.2, 0, 1) }));
+      const b = npcBubble(n, t); if (b) { const r = pill(c, sx, sy - (z > 0.75 ? 26 : 10) * dpr, b, { bg: '#fffdf4', fs: 10.5, border: 'rgba(110,80,40,.4)', a: clamp((z - 0.45) / 0.2, 0, 1) }); rects.push(r); } }
     // home labels (level-of-detail, decluttered)
-    if (z > 0.6) { const homes = queryObjs(view.x0, view.y0, view.x1, view.y1, 20).filter((o) => o.type === 'home' && !o.isPlayer).sort((a, b) => b.level - a.level);
-      for (const h of homes) { const need = Math.max(0.75, 1.3 - h.level / 45); const a = clamp((z - need) / 0.15 + 0.2, 0, 1); if (a <= 0.05) continue;
+    if (z > 0.6) { const homes = queryObjs(view.x0, view.y0, view.x1, view.y1, 20).filter((o) => o.type === 'home' && !o.isPlayer).sort((a, b) => (lblShown.has(b.id) - lblShown.has(a.id)) || b.level - a.level); const nowShown = new Set();
+      for (const h of homes) { const need = Math.max(0.75, 1.3 - h.level / 45); const a = clamp((z - need) / 0.25, 0, 1); if (a <= 0.02) continue;
         const [sx, sy] = S2(h.x, h.y - h.size * 0.55); const fs = 10.5; c.font = `600 ${fs * dpr}px system-ui`; const w = c.measureText(h.owner).width + 34 * dpr, hh = (fs + 6) * dpr; const r = [sx - w / 2, sy - hh, w, hh];
-        if (!free(r)) continue; const sh = (S.mapShields[h.id] || 0) > S.gameTime; pill(c, sx, sy, `${h.owner} · ${h.level}${sh ? ' 🛡️' : ''}`, { a, fs }); } }
-    // walker names when very close
-    if (z > 1.7) W.walkers.forEach((w) => { const [x, y] = walkerPos(w, t); if (!inV(x, y)) return; const [sx, sy] = S2(x, y - 7); const r = [sx - 30 * dpr, sy - 14 * dpr, 60 * dpr, 14 * dpr]; if (!free(r)) return; pill(c, sx, sy, w.name, { fs: 9, bg: 'rgba(255,255,255,.7)' }); });
+        if (!free(r)) continue; const sh = (S.mapShields[h.id] || 0) > S.gameTime; pill(c, sx, sy, `${h.owner} · ${h.level}${sh ? ' 🛡️' : ''}`, { a, fs }); st.labels.push({ name: h.owner, wx: h.x, wy: h.y - h.size * 0.55, sx: sx / dpr, sy: sy / dpr }); nowShown.add(h.id); } lblShown = nowShown; }
   }
   function npcBubble(n, t) {
     const b = bubbles.get(n.npc.id); if (b && b.until > t) return b.text;
@@ -2915,8 +2901,8 @@ const CityMap = (() => {
   function rumorPool() {
     const out = [], t = performance.now() / 1000;
     if (S.gameTime < S.nextRaidAt && S.nextRaidAt - S.gameTime < 3 * HOUR && S.gameTime >= S.shieldUntil) out.push({ w: 3, s: '🏴 Scouts saw raider banners on the east road. They\'re eyeing your Lanternhold.' });
-    const nm = nextMole(); if (nm && nm.start - S.gameTime < 4 * HOUR) out.push({ w: 3, s: `🫨 The ground's been trembling in ${REGIONS[nm.region].name}. Something big is digging.` });
-    const cm = currentMole(); if (cm) out.push({ w: 4, s: `⚠️ A Rim Mole broke the surface in ${REGIONS[cm.region].name}! Crowds are gathering to watch the fight.` });
+    const nm = nextMole(); if (nm && nm.start - S.gameTime < 4 * HOUR) out.push({ w: 3, s: `🫨 The ground's been trembling in ${regionName(nm.region)}. Something big is digging.` });
+    const cm = currentMole(); if (cm) out.push({ w: 4, s: `⚠️ A Rim Mole broke the surface in ${regionName(cm.region)}! Crowds are gathering to watch the fight.` });
     const w = Math.floor(S.gameTime / (CITY.spikeWindowHours * HOUR));
     W.markets.forEach((m, i) => { const res = REGIONS[m.region].sells[0]; if (marketSpike(i)) out.push({ w: 2, s: `📈 ${CONFIG.resources[res].name} prices are spiking at the ${m.name}! Traders are pouring in.` });
       else if (spikeAt(i, w + 1)) out.push({ w: 2, s: `🤫 Traders whisper ${CONFIG.resources[res].name} will be dear at the ${m.name} soon.` }); });
@@ -2940,8 +2926,10 @@ const CityMap = (() => {
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
   function buildLegend() {
-    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Regions of Rim City</b><button class="btn ghost sm" data-city="legend">✕</button></div>` + REGIONS.map((R, i) => `<div class="legrow" data-city="region:${i}"><span class="sw" style="background:rgb(${R.ground.join(',')})"></span><div><b>${R.icon} ${R.name}</b><br><span class="dim">${R.res.join(' · ')}</span></div></div>`).join('') +
-      `<div class="dim" style="margin-top:6px">🏪 Bazaars trade resources · 🏦 Vaults add storage · 🧵 Tether lifts drop into the Hollow · ★ is your ${CITY.homeTerm}. Tap a region to fly there.</div>`;
+    const known = REGIONS.map((R, i) => [R, i]).filter(([, i]) => isDiscovered(i)), unk = REGIONS.length - known.length;
+    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Lands you have explored</b><button class="btn ghost sm" data-city="legend">✕</button></div>` + known.map(([R, i]) => `<div class="legrow" data-city="region:${i}"><span class="sw" style="background:rgb(${R.ground.join(',')})"></span><div><b>${R.icon} ${R.name}</b><br><span class="dim">${R.res.join(' · ')}</span></div></div>`).join('') +
+      (unk ? `<div class="legrow"><span class="sw" style="background:#555"></span><div><b>❔ ${unk} unexplored land${unk > 1 ? 's' : ''}</b><br><span class="dim">Zoom in and linger somewhere new to map it.</span></div></div>` : '') +
+      `<div class="dim" style="margin-top:6px">🏪 Bazaars trade resources · 🏦 Vaults add storage · 🧵 Tether lifts drop into the Hollow · ★ is your ${CITY.homeTerm}.</div>`;
   }
   function buildMinimapBase() {
     const N = 120; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
@@ -2962,10 +2950,10 @@ const CityMap = (() => {
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
     if (b === 'home') return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
     if (b === 'overview') return flyTo(0, 0, Math.min(Wc, Hc) / dpr / (CITY.R * 2.1));
-    if (b === 'legend') return $('#legend').classList.toggle('hidden');
+    if (b === 'legend') { buildLegend(); return $('#legend').classList.toggle('hidden'); }
     if (b === 'journal') return journalModal();
     if (b === 'season') return seasonModal();
-    if (b.startsWith('region:')) { const i = +b.split(':')[1]; const [x, y] = polar(1900, regionAngle(i)); $('#legend').classList.add('hidden'); flyTo(x, y, 0.45); }
+    if (b.startsWith('region:')) { const i = +b.split(':')[1]; const hs = W.homes.filter((h) => h.region === i), hh = hs[Math.floor(hs.length / 2)] || W.player, x = hh.x, y = hh.y; $('#legend').classList.add('hidden'); flyTo(x, y, 0.45); }
   }
 
   /* ---------- taps & cards ---------- */
@@ -2992,9 +2980,9 @@ const CityMap = (() => {
   }
   function homeCard(h) {
     const R = REGIONS[h.region], sh = (S.mapShields[h.id] || 0) > S.gameTime, est = starsFor(attackPower() / h.power);
-    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${R.icon} ${R.name}</div>
+    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${isDiscovered(h.region) ? `${R.icon} ${R.name}` : '❔ Unexplored lands'}</div>
       <div class="wrapgap" style="margin-top:6px"><span class="tag">🛡️ Power ${h.power}</span><span class="tag">⚔️ You ${Math.round(attackPower())}</span><span class="tag ${est >= 2 ? 'good' : est === 0 ? 'bad' : ''}">Likely ${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span></div>
-      <div class="small" style="margin-top:6px">Resources nearby: ${R.res.join(' · ')}</div>
+      <div class="small" style="margin-top:6px">Resources nearby: ${isDiscovered(h.region) ? R.res.join(' · ') : '??? (explore or raid here to find out)'}</div>
       <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level))}</div>
       ${historyLines(h, false)}
       ${btnRow(`${sh ? `<span class="tag">🛡️ Shielded ${countdown(S.mapShields[h.id])}</span>` : `<button class="btn red" data-act="mapraid" data-id="${h.id}" ${!heroHome() || S.res.lumen < CONFIG.mapRaid.lumen ? 'disabled' : ''}>⚔️ Raid (${CONFIG.mapRaid.lumen} 🏮)</button>`}
@@ -3010,10 +2998,10 @@ const CityMap = (() => {
   function marketCard(m) {
     const R = REGIONS[m.region], spike = marketSpike(m.idx), mult = spike ? CITY.spikeMult : 1, P = CONFIG.market, lot = P.lot;
     const sellMult = (R.premium ? P.premiumSellMult : P.sellMult);
-    const buys = R.sells.map((k) => { const n = k === 'amber' ? 5 : lot, price = Math.ceil(P.prices[k] * n * P.buyMult * mult * (k === R.sells[0] ? 1 : 1.1)); return `<button class="btn alt sm" data-act="mbuy" data-id="${k}" data-n="${n}" data-m="${(price / (P.prices[k] * n)).toFixed(3)}">Buy ${n} ${CONFIG.resources[k].icon} · ${price} 👑</button>`; }).join('');
+    const buys = R.sells.map((k) => { const n = k === 'amber' ? 5 : lot, price = Math.ceil(P.prices[k] * n * P.buyMult * mult * (k === R.sells[0] ? 1 : 1.1)); return `<button class="btn alt sm" data-act="mbuy" data-id="${k}" data-n="${n}" data-m="${(price / (P.prices[k] * n)).toFixed(3)}">Buy ${n} ${rIco(k)} · ${price} 👑</button>`; }).join('');
     const sells = Object.keys(P.prices).filter((k) => k !== 'crowns').map((k) => { const n = k === 'amber' || k === 'steel' ? 5 : lot; const m2 = sellMult * (R.sells.includes(k) && spike ? CITY.spikeMult : 1) * (R.sells.includes(k) ? 0.8 : 1); const gain = Math.floor(P.prices[k] * n * m2);
-      return `<button class="btn ghost sm" data-act="msell" data-id="${k}" data-n="${n}" data-m="${m2.toFixed(3)}" ${(S.res[k] || 0) < n ? 'disabled' : ''}>Sell ${n} ${CONFIG.resources[k].icon} → ${gain} 👑</button>`; }).join('');
-    openModal(`<h2>🏪 ${m.name}</h2><div class="small">${R.icon} ${R.name} · stalls: ${R.res.join(' · ')}</div>
+      return `<button class="btn ghost sm" data-act="msell" data-id="${k}" data-n="${n}" data-m="${m2.toFixed(3)}" ${(S.res[k] || 0) < n ? 'disabled' : ''}>Sell ${n} ${rIco(k)} → ${gain} 👑</button>`; }).join('');
+    openModal(`<h2>🏪 ${m.name}</h2><div class="small">${isDiscovered(m.region) ? `${R.icon} ${R.name} · stalls: ${R.res.join(' · ')}` : '❔ A bazaar in unexplored lands'}</div>
       ${spike ? `<div class="tag bad" style="margin-top:6px">📈 Price spike! ${CONFIG.resources[R.sells[0]].name} costs ×${CITY.spikeMult}, and the square is packed.</div>` : `<div class="dim" style="margin-top:6px">Normal trading day.${R.premium ? ' Goldenstep traders pay premium Crowns for everything you sell.' : ''}</div>`}
       ${festival() === 'harvest' && R.key === 'farms' ? '<div class="tag good" style="margin-top:4px">🌾 Harvest Fair! Extra stalls and crowds.</div>' : ''}
       <div class="small" style="margin-top:8px"><b>Buy local goods</b></div>${btnRow(buys)}
@@ -3024,7 +3012,7 @@ const CityMap = (() => {
   }
   function vaultCard(v) {
     const lvl = S.buildings.vault || 0, block = buildBlock('vault'), cost = lvl < CONFIG.buildings.vault.max ? buildCost('vault') : null;
-    openModal(`<h2>🏦 ${v.name}</h2><div class="small">${REGIONS[v.region].icon} ${REGIONS[v.region].name}</div>
+    openModal(`<h2>🏦 ${v.name}</h2><div class="small">${isDiscovered(v.region) ? REGIONS[v.region].icon + ' ' + REGIONS[v.region].name : '❔ Unexplored lands'}</div>
       <p class="small">Vaults are cut into the old bedrock under the Rim. Building your own <b>Rim Vault</b> raises every storage cap by <b>+${Math.round(CONFIG.vault.capPerLevel * 100)}%</b> per level and keeps <b>+${Math.round(CONFIG.vault.protectPerLevel * 100)}%</b> more of your stock safe from raiders.</p>
       <div class="wrapgap"><span class="tag">Your Vault: Lv ${lvl}</span><span class="tag">Storage cap ${fmt(storageCap())}</span><span class="tag">Raid-safe ${Math.round(protectedShare() * 100)}%</span></div>
       ${cost ? `<div class="wrapgap" style="margin-top:8px">${costHtml(cost)}<span class="dim">⏱ ${gameDur(buildTime('vault'))}</span></div>` : ''}
@@ -3037,7 +3025,9 @@ const CityMap = (() => {
   function loreCard(o) { const L = LORE[o.type]; openModal(`<h2>${o.type === 'statue' ? '🗿' : o.type === 'memorial' ? '🕯️' : '🚪'} ${L.title}</h2><p>${L.text}</p>${o.type === 'memorial' ? `<p class="dim">${S.stats.expeditions} of your expeditions have returned. Wren's name is not on the Wall.</p>` : ''}${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function hollowCard() { openModal(`<h2>🕳️ The Hollow</h2><p class="small">A chasm with no bottom anyone has seen. Lumen glows in its depths; the layers step down like terraces: ${CONFIG.layers.map((l) => l.name).join(' → ')} → …</p><p class="dim">Sky-fish surge out of it at nightfall. Lightning sometimes flickers far below.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">Send Wren down</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function regionCard(i) {
-    const R = REGIONS[i], n = W.homes.filter((h) => h.region === i).length, m = W.markets.find((mm) => mm.region === i);
+    const R = REGIONS[i];
+    if (!isDiscovered(i)) return openModal(`<h2>❔ Unexplored lands</h2><p class="small">Nobody you know has mapped this stretch of the Rim yet. Linger here with the map zoomed in, raid a Lanternhold, or fight what digs up out of the ground to learn what the land holds.</p><div class="wrapgap"><span class="tag">??? resources</span><span class="tag">??? bazaar</span></div>${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+    const n = W.homes.filter((h) => h.region === i).length, m = W.markets.find((mm) => mm.region === i);
     openModal(`<h2>${R.icon} ${R.name}</h2><p class="small">${R.blurb}</p><div class="wrapgap">${R.res.map((r) => `<span class="tag">${r}</span>`).join('')}</div>
       <div class="dim" style="margin-top:6px">${n} ${CITY.homeTerm}s · Bazaar trades ${R.sells.map((k) => CONFIG.resources[k].icon + ' ' + CONFIG.resources[k].name).join(', ')}${R.key === 'bluffs' && frostLevel() > 0 ? ' · ❄️ frost is creeping in' : ''}</div>
       ${btnRow(`${m ? `<button class="btn alt" data-act="mopen" data-id="${m.idx}">🏪 Open ${m.name}</button>` : ''}<button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
@@ -3051,7 +3041,7 @@ const CityMap = (() => {
   }
   function moleCard(m) {
     const P = molePower(), ch = clamp(attackPower() / P, 0.15, 0.95);
-    openModal(`<h2>⚠️ A Rim Mole surfaced!</h2><p class="small">A house-sized mole has burst out of a fissure in <b>${REGIONS[m.region].name}</b>. Half the street has come out to watch. It digs back down in ${countdown(m.end)}.</p>
+    openModal(`<h2>⚠️ A Rim Mole surfaced!</h2><div class="scene paint molescene">${pic('molebg', 'bg')}${pic('wren_b', 'fighter')}</div><p class="small">A house-sized mole has burst out of a fissure in <b>${REGIONS[m.region].name}</b>. Half the street has come out to watch. It digs back down in ${countdown(m.end)}.</p>
       <div class="wrapgap"><span class="tag bad">Mole power ${P}</span><span class="tag">You ${Math.round(attackPower())}</span><span class="tag">~${Math.round(ch * 100)}% to win</span></div>
       <div class="dim" style="margin-top:6px">Win: Crowns, Amber, Iron, a skull trophy for your ${CITY.homeTerm} and big XP. Lose: Wren limps home with a little loot.</div>
       ${btnRow(`<button class="btn red" data-act="molefight" data-id="${m.k}" ${!heroHome() ? 'disabled' : ''}>⚔️ Join the fight</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
@@ -3072,7 +3062,7 @@ const CityMap = (() => {
   }
   function onAct(act, ds) {
     switch (act) {
-      case 'mapraid': { const h = W.homes[+ds.id]; closeModalQuiet(); return startMapRaid(h); }
+      case 'mapraid': { const h = W.homes[+ds.id]; closeModalQuiet(); discoverRegion(h.region); return startMapRaid(h); }
       case 'mapvisit': { const h = W.homes[+ds.id]; toast(`👋 ${h.owner} waves from the window. (Visiting is coming soon.)`); return; }
       case 'mbuy': marketBuy(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
       case 'msell': marketSell(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;

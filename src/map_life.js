@@ -79,25 +79,16 @@ function weatherNow(t) {
   const fade = Math.min(1, u * 6, (1 - u) * 6);
   return { type, x, y, r: type === 'updraft' ? 260 : 620, fade, e, region: regionAt(x, y) };
 }
-function weatherLabel(w) { const R = REGIONS[w.region].name; return { rain: `🌧️ Rain drifting over ${R}`, storm: `⛈️ A Hollow storm rolls across ${R}`, updraft: '🌬️ An Exhale updraft rises from the Hollow', mist: `🌫️ Mist creeps through ${R}`, clear: nightFactor() > 0.5 ? '🌙 Clear night over the Rim' : '☀️ Clear skies over the Rim' }[w.type]; }
+function weatherLabel(w) { const R = regionName(w.region); return { rain: `🌧️ Rain drifting over ${R}`, storm: `⛈️ A Hollow storm rolls across ${R}`, updraft: '🌬️ An Exhale updraft rises from the Hollow', mist: `🌫️ Mist creeps through ${R}`, clear: nightFactor() > 0.5 ? '🌙 Clear night over the Rim' : '☀️ Clear skies over the Rim' }[w.type]; }
 
 /* ---------- generation of agents ---------- */
 function genLife(rnd) {
   const used = new Set(W.homes.map((h) => h.owner));
-  W.walkers = [];
-  const roads = W.roads;
-  for (let i = 0; i < CITY.walkers; i++) {
-    const rd = roads[Math.floor(rnd() * roads.length)];
-    W.walkers.push({ road: rd.idx, s0: rnd() * rd.len, v: (11 + rnd() * 14) * (rnd() < 0.5 ? -1 : 1), lane: (rnd() - 0.5) * 10, name: makeOwner(rnd, used),
-      cloak: CLOAKS[Math.floor(rnd() * CLOAKS.length)], skin: SKIN[Math.floor(rnd() * SKIN.length)], hat: rnd() < 0.4, lantern: rnd() < 0.5,
-      pet: rnd() < 0.22 ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, phase: rnd() * TAU, shy: rnd() });
-  }
-  W.visitors = []; W.markets.forEach((m, mi) => { for (let k = 0; k < 16; k++) W.visitors.push({ m: mi, a0: rnd() * TAU, w: (0.05 + rnd() * 0.08) * (rnd() < 0.5 ? -1 : 1), rr: m.r * (0.45 + rnd() * 0.35), extra: k >= 6, cloak: CLOAKS[Math.floor(rnd() * CLOAKS.length)], skin: SKIN[Math.floor(rnd() * SKIN.length)], phase: rnd() * TAU }); });
-  W.caravans = W.markets.map((m, mi) => { let best = null, bd = 1e9; for (const rd of W.roads) { if (rd.kind !== 'radial') continue; for (let s = 0; s < rd.len; s += 40) { const [x, y] = roadPos(rd, s); const d = Math.hypot(x - m.x, y - m.y); if (d < bd) { bd = d; best = { rd: rd.idx, s }; } } } return Object.assign(best, { m: mi, phase: rnd() * 100 }); });
+  W.walkers = []; W.visitors = []; W.caravans = []; // no foot traffic: the map stays calm and cheap to draw
   // sky-fish (no birds!): day drifters + night school
-  W.dayFish = []; for (let i = 0; i < 7; i++) W.dayFish.push({ kind: ['manta', 'koi', 'eel'][i % 3], phase: rnd() * 200, period: 70 + rnd() * 50, size: 26 + rnd() * 22, a0: rnd() * TAU, hue: rnd() });
-  W.nightFish = []; for (let i = 0; i < 70; i++) W.nightFish.push({ a: rnd() * TAU, r: 0.2 + rnd() * 0.75, sp: 0.15 + rnd() * 0.25, ph: rnd() * TAU, size: 5 + rnd() * 5, hue: rnd() });
-  W.motes = []; for (let i = 0; i < 160; i++) W.motes.push({ a: rnd() * TAU, sp: 0.02 + rnd() * 0.04, off: rnd(), sz: 3 + rnd() * 5, wob: rnd() * TAU });
+  W.dayFish = []; for (let i = 0; i < 2; i++) W.dayFish.push({ kind: ['manta', 'koi', 'eel'][i % 3], phase: rnd() * 600, period: 260 + rnd() * 140, size: 26 + rnd() * 22, a0: rnd() * TAU, hue: rnd() });
+  W.nightFish = []; for (let i = 0; i < 16; i++) W.nightFish.push({ a: rnd() * TAU, r: 0.2 + rnd() * 0.75, sp: 0.15 + rnd() * 0.25, ph: rnd() * TAU, size: 5 + rnd() * 5, hue: rnd() });
+  W.motes = []; for (let i = 0; i < 70; i++) W.motes.push({ a: rnd() * TAU, sp: 0.02 + rnd() * 0.04, off: rnd(), sz: 3 + rnd() * 5, wob: rnd() * TAU });
   W.mist = []; for (let i = 0; i < 14; i++) W.mist.push({ a: rnd() * TAU, r: 120 + rnd() * 550, w: (rnd() - 0.5) * 0.03, size: 260 + rnd() * 380, al: 0.12 + rnd() * 0.16 });
   W.peekers = []; for (let i = 0; i < 22; i++) { const c = W.cracks[Math.floor(rnd() * W.cracks.length)]; const j = Math.floor(rnd() * (c.pts.length - 1)); W.peekers.push({ x: c.pts[j][0], y: c.pts[j][1], P: 9 + rnd() * 15, ph: rnd() * 30, red: rnd() < 0.3, tent: rnd() < 0.35 }); }
   W.boats = []; for (let i = 0; i < 5; i++) W.boats.push({ ph: rnd() * TAU, sp: 0.03 + rnd() * 0.04, ra: 0.3 + rnd() * 0.45, sail: CLOAKS[i] });
@@ -111,10 +102,10 @@ function genLife(rnd) {
   const memo = W.landmarks.find((l) => l.type === 'memorial');
   W.npcs = [
     mk('maddox', L0.x + 18, L0.y + 10),
-    mk('pell', 0, 0, { road: 0, v: 22, mover: 'pell' }),
+    mk('pell', (W.lifts[3] || L0).x - 22, (W.lifts[3] || L0).y + 14),
     mk('greta', W.piers[0] ? W.piers[0].x + Math.cos(W.piers[0].a) * 0 : docksM.x, W.piers[0] ? W.piers[0].y : docksM.y),
     mk('ilse', memo.x + 14, memo.y + 20),
-    mk('kip', 0, 0, { road: 2, v: 70, mover: 'kip' }),
+    mk('kip', W.player.x + 46, W.player.y + 30),
     mk('juniper', farmsM.x + 20, farmsM.y - 18),
     mk('hennick', W.vaults[0].x + 30, W.vaults[0].y + 22),
   ];
@@ -127,7 +118,7 @@ function npcPos(n, t) {
   return [n.x, n.y, 0];
 }
 function pellProgress() { const h = hourOfDay(); if (h >= 17.5 && h < 20.5) return (h - 17.5) / 3; return (h / 24) * 0.15 + 0.02 * Math.sin(h); }
-function lampLit(l) { const h = hourOfDay(); if (h >= 20.5 || h < 6) return 1; if (h >= 17.5) return l.s / W.roads[0].len < pellProgress() ? 1 : 0; return 0; }
+function lampLit() { return 0; }
 
 function walkerPos(w, t) {
   const rd = W.roads[w.road]; let s = w.s0 + w.v * t;

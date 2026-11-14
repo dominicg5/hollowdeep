@@ -272,6 +272,23 @@ function artBridge(c, p, q, w, s) {
   c.restore();
 }
 
+/* ---------- flora: scattered at paint time from a world-seeded hash (no stored objects) ---------- */
+const FLORA_P = { docks: 0.34, dunes: 0.3, bluffs: 0.26, wood: 0.5, crystal: 0.3, farms: 0.26, badlands: 0.4, moss: 0.55, amber: 0.42, lava: 0.18 };
+function artFlora(c, x0, y0, x1, y1, minR) {
+  const G = 30, list = [];
+  for (let gx = Math.floor((x0 - 24) / G); gx <= Math.floor((x1 + 4) / G); gx++) for (let gy = Math.floor((y0 - 4) / G); gy <= Math.floor((y1 + 30) / G); gy++) {
+    const q = hash2(gx * 7 + 3, gy * 13 + 5), x = gx * G + hash2(gx, gy + 911) * 26, y = gy * G + hash2(gx + 577, gy) * 26;
+    if (q > 0.55 || Math.hypot(x, y) > CITY.R - 30) continue;
+    const k = REGIONS[regionAt(x, y)].key; if (q > (FLORA_P[k] || 0.3)) continue;
+    const sz = 5 + hash2(gx + 31, gy - 7) * 6;
+    if (sz < minR) continue;
+    if (hollowDist(x, y) < 40 || chasmDist(x, y) < 8 || isWet(x, y, 4) || !occFree(OCC.obj, x, y, sz * 0.8)) continue;
+    const fl = FLORA[k] || FLORA.badlands, spr = fl[Math.floor(hash2(gx - 99, gy + 41) * fl.length)];
+    list.push({ x, y, r: spr.startsWith('props2') ? 7 : sz, spr, sd: hash2(gx + 3, gy + 3) });
+  }
+  list.sort((a, b) => a.y - b.y);
+  for (const o of list) { const w = o.r * 2.6 * (o.spr.startsWith('p_crystal') ? 0.62 : o.spr === 'p_desert_2' ? 1.25 : 1); if (w > 12) softShadow(c, o.x + w * 0.12, o.y + w * 0.02, w * 0.4, w * 0.16, 0.6); drawSprite(c, o.spr, o.x, o.y, w, 0.5, 0.82, o.sd > 0.5); }
+}
 /* ---------- sprite choices for world objects ---------- */
 const FLORA = {
   docks: ['p_forest_6', 'p_forest_7', 'p_garden_2', 'p_garden_3', 'p_garden_5'],
@@ -384,9 +401,12 @@ function artStatic(c, x0, y0, x1, y1, s) {
   for (const k of W.cracks) if (boxHit(k.bbox, x0, y0, x1, y1)) artCrack(c, k, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
-  for (const rd of W.roads) if (boxHit(rd.bbox, x0, y0, x1, y1)) artRoad(c, rd, s, x0, y0, x1, y1);
-  const tiny = s < 0.1;
-  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer && !(tiny && o.type === 'flora' && o.r < 6)).sort((a, b) => a.y - b.y);
+  if (s < 0.05) { // far LOD: settlements read as warm roof specks, big features only
+    for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9); c.fillStyle = o.roofD; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = o.roofL; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
+      else if (o.layer === 1 && o.type !== 'rock' && (o.r || 0) >= 18) artObj(c, o, s); }
+    return; }
+  artFlora(c, x0, y0, x1, y1, s < 0.1 ? 6 : 0);
+  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer).sort((a, b) => a.y - b.y);
   for (const o of l1) artObj(c, o, s);
 }
 
@@ -442,21 +462,19 @@ function artSkyFish(c, kind, x, y, ang, size, t, ph, glowOn, alpha, shadow) {
 let HDEPTH = null;
 function hollowDepthInit() {
   const rnd = mulberry32(777), lights = [], mist = [];
-  for (let i = 0; i < 46; i++) lights.push({ a: rnd() * TAU, sp: 0.004 + rnd() * 0.01, ph: rnd(), sw: (rnd() - 0.5) * 0.6, warm: rnd() < 0.8 });
-  for (let i = 0; i < 18; i++) mist.push({ a: rnd() * TAU, f: 0.3 + rnd() * 0.45, r: 90 + rnd() * 120, sp: (rnd() - 0.5) * 0.02, d: 0.25 + rnd() * 0.5 });
+  for (let i = 0; i < 28; i++) lights.push({ a: rnd() * TAU, sp: 0.004 + rnd() * 0.01, ph: rnd(), sw: (rnd() - 0.5) * 0.6, warm: rnd() < 0.8 });
+  for (let i = 0; i < 7; i++) mist.push({ a: rnd() * TAU, f: 0.3 + rnd() * 0.3, r: 110 + rnd() * 90, sp: (rnd() - 0.5) * 0.02, d: 0.25 + rnd() * 0.5 });
   HDEPTH = { lights, mist };
 }
 function drawHollowDepth(c, t, inV, camx, camy, z, night, glow) {
   const R = CITY.hollowR; if (!inV(0, 0, R * 1.1)) return; if (!HDEPTH) hollowDepthInit();
   const par = (x, y, d) => [x + (camx - x) * d * 0.18, y + (camy - y) * d * 0.18]; // deeper = drifts with the camera
-  c.save(); c.beginPath(); for (let i = 0; i < W.hollowPts.length; i += 2) { const p = W.hollowPts[i]; i ? c.lineTo(p[0] * 0.96, p[1] * 0.96) : c.moveTo(p[0] * 0.96, p[1] * 0.96); } c.closePath(); c.clip();
+  c.save();
   // Lumen core: breathes, sits deepest
   const [cx, cy] = par(0, 0, 1), pulse = 0.75 + 0.25 * Math.sin(t * 0.9) + 0.08 * Math.sin(t * 2.3);
   glow(c, cx, cy, R * 0.32, 'rgba(255,222,150,.9)', 0.32 * pulse); glow(c, cx, cy, R * 0.12, 'rgba(255,248,220,1)', 0.35 * pulse);
   // drifting mist banks at mid depth
-  c.globalCompositeOperation = 'screen';
   for (const m of HDEPTH.mist) { const a = m.a + t * m.sp, rr = hollowR(a) * m.f, [x, y] = par(Math.cos(a) * rr, Math.sin(a) * rr, m.d); glow(c, x, y, m.r, 'rgba(150,170,205,1)', 0.10 + 0.04 * Math.sin(t * 0.4 + m.a * 3)); }
-  c.globalCompositeOperation = 'source-over';
   // delvers: lantern lights spiralling down the terraces, smaller and dimmer as they go deeper
   if (z > 0.12) for (const L of HDEPTH.lights) { const u = (L.ph + t * L.sp) % 1, a = L.a + u * 2.2 + L.sw * Math.sin(u * 9), rr = hollowR(a) * (0.9 - u * 0.55), d = u;
     const [x, y] = par(Math.cos(a) * rr, Math.sin(a) * rr, d); const fade = Math.min(1, u * 8) * Math.min(1, (1 - u) * 6), fl = 0.8 + 0.2 * Math.sin(t * 11 + L.a * 20);

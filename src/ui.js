@@ -2,53 +2,41 @@
 /* =====================================================================
    UI
    ===================================================================== */
+/* painted UI art (assets/ui) */
+const UIA = 'assets/ui/', UI_HAS = new Set('amber coal crowns iron lumen moss steel stone timber hall storehouse training lift wall kennel vault forge still still2 smelter strider drill golem golem_sleep dummy rival0 rival1 rival2 wisp pup moth ferret wren wren_a wren_b wren_c capital molebg layers'.split(' '));
+function pic(k, cls, alt) { return `<img class="pic ${cls || ''}" src="${UIA}${k}.webp" alt="${alt || ''}" decoding="async" draggable="false">`; }
+function rIco(k) { return UI_HAS.has(k) ? pic(k, 'ri', CONFIG.resources[k].name) : CONFIG.resources[k].icon; }
+function petIco(id, cls) { return UI_HAS.has(id) ? pic(id, cls || 'pi', CONFIG.pets[id].name) : CONFIG.pets[id].icon; }
+function lootHtml(l) { return Object.keys(l).filter((k) => l[k] > 0).map((k) => `<span class="lt">${rIco(k)}${fmt(l[k])}</span>`).join(' '); }
 function toast(msg) {
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
   const box = $('#toasts'); box.appendChild(el); while (box.children.length > 3) box.firstChild.remove();
   setTimeout(() => el.remove(), 3200);
 }
-function costHtml(cost) { return Object.keys(cost).map((k) => `<span class="cost ${(S.res[k] || 0) < cost[k] ? 'short' : ''}">${CONFIG.resources[k].icon}${fmt(cost[k])}</span>`).join(''); }
+function costHtml(cost) { return Object.keys(cost).map((k) => `<span class="cost ${(S.res[k] || 0) < cost[k] ? 'short' : ''}">${rIco(k)}${fmt(cost[k])}</span>`).join(''); }
 function pbar(start, end, cls) { const p = clamp((S.gameTime - start) / Math.max(1, end - start), 0, 1) * 100; return `<div class="bar ${cls || ''}"><i data-pstart="${start}" data-pend="${end}" style="width:${p}%"></i></div>`; }
 function countdown(end) { return `<span data-end="${end}">${realLeft(end)}</span>`; }
 
 function renderResbar() {
   const cap = storageCap();
-  $('#resbar').innerHTML = RES.map((k) => `<div class="res ${S.res[k] >= cap - 0.5 ? 'full' : ''}" title="${CONFIG.resources[k].name}">${CONFIG.resources[k].icon}<b>${fmt(S.res[k] || 0)}</b></div>`).join('');
+  $('#resbar').innerHTML = RES.map((k) => `<div class="res ${S.res[k] >= cap - 0.5 ? 'full' : ''}" title="${CONFIG.resources[k].name}">${rIco(k)}<b>${fmt(S.res[k] || 0)}</b></div>`).join('');
   const p = $('#speedPill'); p.className = 'pill' + (S.testMode ? ' test' : ''); p.textContent = S.testMode ? `⏩ TEST ×${speed()}` : 'Real time';
 }
 
 /* ---------- Capital ---------- */
 function capitalScene() {
-  const g = golemCount(), b = S.buildings;
-  const hallH = 34 + b.hall * 3, lights = [];
-  for (let i = 0; i < Math.min(8, b.hall + 2); i++) lights.push(`<circle class="pulse" style="animation-delay:${i * 0.3}s" cx="${120 + i * 22}" cy="${86 - (i % 3) * 6}" r="2.5" fill="#ffd46b"/>`);
-  let wall = ''; const W0 = 30, segW = 290 / (g + 1);
-  for (let i = 0; i <= g; i++) wall += `<rect x="${W0 + i * segW}" y="142" width="${segW - 4}" height="16" rx="3" fill="#9a8c74" stroke="#6d604c"/>`;
-  for (let i = 0; i < g; i++) { const x = W0 + (i + 1) * segW - 10; wall += `<g><rect x="${x}" y="128" width="16" height="30" rx="5" fill="#8e8069" stroke="#5e5240"/><circle cx="${x + 5}" cy="136" r="1.6" fill="#ffd46b" class="pulse"/><circle cx="${x + 11}" cy="136" r="1.6" fill="#ffd46b" class="pulse"/></g>`; }
-  const spineDepth = 170 + liftReach() * 12;
-  return `<div class="scene"><svg viewBox="0 0 360 230" aria-label="Your capital on the Rim">
-  <defs>
-    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7e3b5"/><stop offset=".6" stop-color="#e9c99a"/><stop offset="1" stop-color="#c9a77a"/></linearGradient>
-    <linearGradient id="chasm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f7a7a"/><stop offset=".5" stop-color="#2d4258"/><stop offset="1" stop-color="#141a2a"/></linearGradient>
-    <radialGradient id="sun" cx=".8" cy=".2" r=".5"><stop offset="0" stop-color="#fff6d8"/><stop offset="1" stop-color="#fff6d8" stop-opacity="0"/></radialGradient>
-  </defs>
-  <rect width="360" height="230" fill="url(#sky)"/><rect width="360" height="230" fill="url(#sun)"/>
-  <path d="M0 60 Q60 40 120 55 T240 50 T360 58 L360 100 L0 100Z" fill="#b8c6a0" opacity=".55"/>
-  <path d="M0 158 L360 158 L360 170 Q300 175 260 172 L240 230 L120 230 L100 172 Q50 176 0 170Z" fill="#a08a64"/>
-  <path d="M100 172 Q180 182 260 172 L240 230 L120 230Z" fill="url(#chasm)"/>
-  <line x1="180" y1="150" x2="180" y2="${spineDepth}" stroke="#ffd46b" stroke-width="2" class="lumenglow"/>
-  ${S.outposts.map((o, i) => `<circle cx="${170 + (i % 2 ? 22 : -14)}" cy="${170 + o.layer * 12}" r="3" fill="${o.dark ? '#555' : '#ffd46b'}" class="pulse"/>`).join('')}
-  <!-- buildings -->
-  <g><rect x="150" y="${150 - hallH}" width="60" height="${hallH}" fill="#d8c3a0" stroke="#7a5f3c"/><path d="M144 ${150 - hallH} L180 ${120 - hallH} L216 ${150 - hallH}Z" fill="#b0573a"/><circle cx="180" cy="${132 - hallH}" r="5" fill="#ffd46b" class="pulse lumenglow"/></g>
-  <g><rect x="60" y="112" width="44" height="38" fill="#cdb48a" stroke="#7a5f3c"/><path d="M56 112 L82 92 L108 112Z" fill="#8a6b3a"/><text x="82" y="138" font-size="14" text-anchor="middle">📦</text></g>
-  <g><rect x="240" y="118" width="40" height="32" fill="#cdb48a" stroke="#7a5f3c"/><path d="M236 118 L260 100 L284 118Z" fill="#4f8c8a"/><text x="260" y="140" font-size="13" text-anchor="middle">🗡️</text></g>
-  <g><rect x="294" y="124" width="34" height="26" fill="#c9b08a" stroke="#7a5f3c"/><path d="M290 124 L311 108 L332 124Z" fill="#9a6a4a"/><text x="311" y="143" font-size="12" text-anchor="middle">🐾</text></g>
-  ${b.forge > 0 ? `<g><rect x="20" y="122" width="32" height="28" fill="#b9a07a" stroke="#6d5030"/><rect x="40" y="104" width="7" height="18" fill="#6d5030"/><circle cx="44" cy="98" r="5" fill="#ccc" opacity=".5" class="pulse"/></g>` : ''}
-  <g><rect x="170" y="150" width="20" height="8" fill="#6d5030"/><text x="180" y="166" font-size="9" text-anchor="middle" fill="#fff3d0">Lift ${b.lift}</text></g>
-  ${lights.join('')}
-  ${wall}
-  <text x="10" y="222" font-size="10" fill="#f3e6c8" opacity=".9">The Rim · the Hollow opens below ↓</text>
-  </svg></div>`;
+  const g = golemCount(), b = S.buildings, eyes = [], wins = [];
+  // statue eyes on the Guardian Wall light up per golem (4 painted statues)
+  [[48.3, 42.6], [54.2, 44.6], [60.0, 43.2], [65.4, 41.6]].forEach(([x, y], i) => { if (i < g) eyes.push(`<i class="eye" style="left:${x}%;top:${y}%;animation-delay:${i * 0.4}s"></i>`); });
+  // lit windows on the Lantern Hall: more as it levels up
+  const W0 = [[35, 10], [38, 10], [24.5, 32], [29.8, 31.5], [33.8, 41.6], [41, 41.6], [24.9, 37.8], [30.4, 37], [39.8, 26.6], [42.5, 25.5]];
+  W0.slice(0, Math.min(W0.length, b.hall + 1)).forEach(([x, y], i) => wins.push(`<i class="win" style="left:${x}%;top:${y}%;animation-delay:${(i * 0.37) % 2}s"></i>`));
+  const reach = liftReach();
+  return `<div class="scene paint capscene"><img class="bg" src="${UIA}capital.webp" alt="Your capital on the Rim" decoding="async">
+    ${wins.join('')}${eyes.join('')}${b.forge > 0 ? '<i class="smoke s1"></i><i class="smoke s2"></i>' : ''}
+    <i class="cage" style="--d:${10 + reach * 6}%"></i>
+    <div class="chips"><span>🏮 Hall ${b.hall}</span><span>🗿 ${g} golem${g === 1 ? '' : 's'}</span><span>🧵 Lift ${b.lift} · layer ${reach}</span>${S.outposts.length ? `<span>⚓ ${S.outposts.length} outpost${S.outposts.length > 1 ? 's' : ''}</span>` : ''}</div>
+    <div class="cap">The Rim · the Hollow opens below ↓</div></div>`;
 }
 function buildingEffect(id, lvl) {
   const H = CONFIG.hallPerLevel;
@@ -75,7 +63,7 @@ function viewCapital() {
   for (const id in CONFIG.buildings) {
     const b = CONFIG.buildings[id], lvl = S.buildings[id], block = buildBlock(id), cost = buildCost(id);
     const building = S.build && S.build.id === id;
-    h += `<div class="card bld"><div class="ic">${b.icon}</div><div>
+    h += `<div class="card bld"><div class="ic">${UI_HAS.has(id) ? pic(id, 'bi', b.name) : b.icon}</div><div>
       <div class="row between"><h3>${b.name}<span class="lvl">Lv ${lvl}</span></h3></div>
       <div class="dim">${b.desc}</div>
       <div class="small" style="margin:4px 0">Now: <b>${buildingEffect(id, lvl)}</b>${lvl < b.max ? `<br>Next: ${buildingEffect(id, lvl + 1)}` : ''}</div>
@@ -90,37 +78,39 @@ function viewCapital() {
 function ladderSvg() {
   const bands = CONFIG.layers.map((L, i) => {
     const y = 20 + i * 70, reach = L.id <= liftReach();
-    return `<rect x="0" y="${y}" width="360" height="70" fill="${L.color}" opacity="${0.35 + i * 0.12}"/>
-      <text x="10" y="${y + 18}" font-size="12" fill="${i > 1 ? '#fff3d0' : '#3a2e22'}" font-family="Georgia">${L.id}. ${L.name}${reach ? '' : ' 🔒'}</text>`;
+    return `<rect x="0" y="${y}" width="360" height="70" fill="${L.color}" opacity="${reach ? 0.12 : 0.3}"/>${reach ? '' : `<rect x="0" y="${y}" width="360" height="70" fill="#0b0d18" opacity=".35"/>`}
+      <line x1="0" y1="${y}" x2="360" y2="${y}" stroke="#fff3d0" stroke-opacity=".25" stroke-dasharray="3 5"/>
+      <text x="10" y="${y + 18}" font-size="12.5" fill="#fff3d0" stroke="#1a1208" stroke-width="3" paint-order="stroke" stroke-opacity=".75" font-family="Georgia" font-weight="700">${L.id}. ${L.name}${reach ? '' : ' 🔒'}</text>`;
   }).join('');
   const spineY = 20 + liftReach() * 70 - 10;
   const ops = S.outposts.map((o, i) => {
     const y = 20 + (o.layer - 1) * 70 + 42, x = 230 + i * 50;
     return `<line x1="180" y1="${y}" x2="${x}" y2="${y}" stroke="#ffd46b" stroke-width="1.5" stroke-dasharray="${o.state === 'anchored' ? '0' : '4 4'}"/>
-      <circle cx="${x}" cy="${y}" r="9" fill="${o.dark ? '#444' : '#ffd46b'}" class="${o.state === 'anchored' ? 'pulse lumenglow' : ''}"/>
-      <text x="${x}" y="${y + 4}" font-size="11" text-anchor="middle">${opType(o).icon}</text>`;
+      <circle cx="${x}" cy="${y}" r="13" fill="${o.dark ? '#444' : '#ffd46b'}" opacity=".35" class="${o.state === 'anchored' ? 'pulse lumenglow' : ''}"/>
+      <image href="${UIA}${o.type === 'drill' ? 'drill' : 'strider'}.webp" x="${x - 13}" y="${y - 26}" width="26" height="${o.type === 'drill' ? 44 : 31}" ${o.dark ? 'opacity=".55"' : ''}/>`;
   }).join('');
   let hero = '';
   const t = S.hero.task;
   if (t && (t.type === 'expedition' || t.type === 'stranded')) {
     const L = layerById(t.layer), p = t.type === 'expedition' ? clamp((S.gameTime - t.start) / (t.end - t.start), 0, 1) : 1;
     const depth = 20 + (t.layer - 1) * 70 + 40, y = 14 + (p < 0.5 ? p * 2 : (1 - p) * 2) * (depth - 14);
-    hero = `<g transform="translate(120 ${t.type === 'stranded' ? depth : y})"><circle r="11" fill="#fff3d0" stroke="#c9822f"/><text y="5" font-size="13" text-anchor="middle">${t.type === 'stranded' ? '🕯️' : '🧗'}</text></g>
+    hero = `<g transform="translate(120 ${t.type === 'stranded' ? depth : y})"><circle r="16" fill="#ffd46b" opacity=".3" class="pulse"/><image href="${UIA}wren.webp" x="-9" y="-21" width="18" height="42"/>${t.type === 'stranded' ? '<text x="12" y="-8" font-size="12">🕯️</text>' : ''}</g>
             <line x1="120" y1="0" x2="120" y2="${t.type === 'stranded' ? depth : y}" stroke="#d8c3a0" stroke-width="1" stroke-dasharray="2 3"/>`;
   }
   return `<div class="scene"><svg viewBox="0 0 360 ${20 + CONFIG.layers.length * 70}" aria-label="The Lantern Ladder">
-    <rect width="360" height="20" fill="#e9c99a"/><text x="180" y="14" font-size="10" text-anchor="middle" fill="#5a4528">🏰 Rim capital</text>
+    <image href="${UIA}layers.webp" x="0" y="0" width="360" height="${20 + CONFIG.layers.length * 70}" preserveAspectRatio="none"/>
+    <text x="180" y="14" font-size="10.5" text-anchor="middle" fill="#fff3d0" stroke="#1a1208" stroke-width="3" paint-order="stroke" font-family="Georgia">🏰 Rim capital</text>
     ${bands}<line x1="180" y1="16" x2="180" y2="${spineY}" stroke="#ffd46b" stroke-width="3" class="lumenglow"/>${ops}${hero}</svg></div>`;
 }
 function heroStatusCard() {
   const t = S.hero.task;
-  let s = `<div class="card"><div class="row between"><h2>🧗 ${CONFIG.hero.name}, Lv ${S.hero.level}</h2><span class="tag">⚔️ ${Math.round(attackPower())}</span></div>`;
+  let s = `<div class="card herocard">${pic('wren', 'portrait', CONFIG.hero.name)}<div class="row between"><h2>${CONFIG.hero.name}, Lv ${S.hero.level}</h2><span class="tag">⚔️ ${Math.round(attackPower())}</span></div>`;
   s += `<div class="bar xp"><i style="width:${(S.hero.xp / xpToNext()) * 100}%"></i></div><div class="dim">${fmt(S.hero.xp)} / ${fmt(xpToNext())} XP · training boost <b>+${fmt1(boostPct())}%</b> XP</div>`;
   if (!t) s += `<div class="small" style="margin-top:6px">Home at the Rim, sparring for idle XP. Ready to descend.</div>`;
   else if (t.type === 'expedition') s += `<div class="small" style="margin-top:6px">Exploring <b>${layerById(t.layer).name}</b> · back in ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   else if (t.type === 'stranded') s += `<div class="small" style="margin-top:6px">🕯️ Stranded in <b>${layerById(t.layer).name}</b>. Rescue line arrives in ${countdown(t.end)}</div>${pbar(t.start, t.end)}
       <button class="btn alt sm" data-act="rescue">Send rescue line now (${rescueCost()} 🏮)</button>`;
-  else if (t.type === 'mole') s += `<div class="small" style="margin-top:6px">🦴 Fighting a Rim Mole in <b>${REGIONS[t.region].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
+  else if (t.type === 'mole') s += `<div class="scene paint molescene">${pic('molebg', 'bg')}${pic('wren_c', 'fighter')}</div><div class="small" style="margin-top:6px">🦴 Fighting a Rim Mole in <b>${regionName(t.region)}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   else if (t.type === 'raid') s += `<div class="small" style="margin-top:6px">⚔️ Marching on <b>${t.map ? esc(t.map.owner + "'s " + t.map.name) : CONFIG.rivals[t.rival].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   return s + '</div>';
 }
@@ -128,12 +118,12 @@ function viewHollow() {
   let h = ladderSvg() + heroStatusCard();
   for (const L of CONFIG.layers) {
     const ok = L.id <= expeditionReach(), ch = Math.round(successChance(L) * 100);
-    const lootRange = Object.keys(L.loot).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${L.loot[k][0]}–${L.loot[k][1]}</span>`).join('');
+    const lootRange = Object.keys(L.loot).map((k) => `<span class="cost">${rIco(k)}${L.loot[k][0]}–${L.loot[k][1]}</span>`).join('');
     h += `<div class="card layer ${ok ? '' : 'locked'}" style="--c:${L.color}">
       <div class="row between"><h3>${L.id}. ${L.name}</h3><span class="tag ${ch >= 75 ? 'good' : ch < 50 ? 'bad' : ''}">${ch}% safe return</span></div>
       <div class="dim">${L.flavor}</div>
       <div class="wrapgap small" style="margin:6px 0">⏱ ${gameDur(L.hours * HOUR)} · 🏮 ${L.lumen} · rec. power ${L.rec}</div>
-      <div class="wrapgap">${lootRange}<span class="tag">🥚 ${CONFIG.pets[L.pet].icon} ${Math.round(L.egg * 100)}%</span></div>
+      <div class="wrapgap">${lootRange}<span class="tag">🥚 ${petIco(L.pet)} ${Math.round(L.egg * 100)}%</span></div>
       <div style="margin-top:8px">${ok ? `<button class="btn deep sm" data-act="exp" data-id="${L.id}" ${!heroHome() || S.res.lumen < L.lumen ? 'disabled' : ''}>Descend</button>` : `<span class="tag">🔒 Upgrade Tether Lift to Lv ${L.id - 2} to scout here</span>`}</div>
     </div>`;
   }
@@ -147,24 +137,24 @@ function viewOutposts() {
   let h = `<div class="card"><h2>The Pull</h2>
     <div class="small">Hauling goods up the Tether costs Lumen: <b>weight × layers climbed × layer pull</b>. Heavy raw ore is expensive. Refine it below and send light Steel up instead.</div>
     <div class="wrapgap small" style="margin-top:6px"><span class="tag">🧵 Lift capacity ${liftCapacity()} wt/h</span><span class="tag">⚓ Spine reaches layer ${liftReach()}</span><span class="tag">⏱ next lift ${countdown(S.nextShipAt)}</span></div>
-    ${S.lastShip ? `<div class="dim" style="margin-top:6px">Last lift: ${lootText(S.lastShip.got) || 'nothing'} · Pull paid ${fmt1(S.lastShip.cost)} 🏮</div>` : ''}
+    ${S.lastShip ? `<div class="dim" style="margin-top:6px">Last lift: ${lootHtml(S.lastShip.got) || 'nothing'} · Pull paid ${fmt1(S.lastShip.cost)} 🏮</div>` : ''}
   </div>`;
   for (const o of S.outposts) {
     const T = opType(o), v = veinById(o.vein), L = layerById(o.layer), r = outpostRates(o), tot = stockTotal(o);
     const pAll = shipPreview(o, 'all'), pRef = shipPreview(o, 'refined');
     h += `<div class="card layer" style="--c:${L.color}">
-      <div class="row between"><h3>${T.icon} ${esc(o.name)} <span class="dim">${T.name}</span></h3><span class="tag ${o.state === 'anchored' ? 'good' : 'lumen'}">${STATE_LABEL[o.state]}</span></div>
+      ${pic(o.type === 'drill' ? 'drill' : 'strider', 'opart', T.name)}<div class="row between"><h3>${esc(o.name)} <span class="dim">${T.name}</span></h3><span class="tag ${o.state === 'anchored' ? 'good' : 'lumen'}">${STATE_LABEL[o.state]}</span></div>
       <div class="small">${L.id}. ${L.name} · <b>${o.state === 'anchored' || o.state === 'settling' ? v.name : '→ ' + veinById(o.move.toVein).name}</b>
         ${o.dark ? '<span class="tag bad">🌑 dark (no Lumen)</span>' : ''} ${seasoned(o) ? '<span class="tag good">Seasoned +10%</span>' : ''} ${o.full ? '<span class="tag bad">Stockhold full</span>' : ''}</div>`;
     if (o.move) h += `<div class="small" style="margin-top:4px">${STATE_LABEL[o.state]} · ${countdown(o.move.phaseEnd)}</div>${pbar(o.move.phaseStart, o.move.phaseEnd)}`;
     if (o.state === 'anchored') {
       h += `<div class="small" style="margin-top:6px">Vein richness ${Math.round(S.veins[o.vein] * 100)}%</div><div class="bar rich"><i style="width:${S.veins[o.vein] * 100}%"></i></div>
-        <div class="wrapgap small">Makes: ${Object.keys(r).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${fmt1(r[k])}/h</span>`).join('')} <span class="dim">· burns ${burnRate(o)} 🏮/h</span></div>`;
+        <div class="wrapgap small">Makes: ${Object.keys(r).map((k) => `<span class="cost">${rIco(k)}${fmt1(r[k])}/h</span>`).join('')} <span class="dim">· burns ${burnRate(o)} 🏮/h</span></div>`;
     }
     h += `<div class="small" style="margin-top:6px">Stockhold ${fmt(tot)} / ${T.stockCap}</div><div class="bar"><i style="width:${(tot / T.stockCap) * 100}%"></i></div>
-      <div class="wrapgap">${Object.keys(o.stock).filter((k) => o.stock[k] >= 1).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${fmt(o.stock[k])}</span>`).join('') || '<span class="dim">empty</span>'}</div>
+      <div class="wrapgap">${Object.keys(o.stock).filter((k) => o.stock[k] >= 1).map((k) => `<span class="cost">${rIco(k)}${fmt(o.stock[k])}</span>`).join('') || '<span class="dim">empty</span>'}</div>
       <div class="dim" style="margin-top:4px">Lift everything now: ${fmt1(pAll.cost)} 🏮 · refined only: ${fmt1(pRef.cost)} 🏮</div>
-      <div style="margin-top:8px" class="small"><b>Module:</b> ${o.module ? `${CONFIG.modules[o.module].icon} ${CONFIG.modules[o.module].name} <span class="dim">(${CONFIG.modules[o.module].desc})</span>` : '<span class="dim">none</span>'}</div>
+      <div style="margin-top:8px" class="small"><b>Module:</b> ${o.module ? `${UI_HAS.has(o.module) ? pic(o.module, 'mi') : CONFIG.modules[o.module].icon} ${CONFIG.modules[o.module].name} <span class="dim">(${CONFIG.modules[o.module].desc})</span>` : '<span class="dim">none</span>'}</div>
       <div class="wrapgap" style="margin-top:4px">${Object.keys(CONFIG.modules).filter((m) => m !== o.module).map((m) => `<button class="btn ghost sm" data-act="module" data-uid="${o.uid}" data-id="${m}" ${canAfford(CONFIG.modules[m].cost) ? '' : 'disabled'}>${o.module ? 'Swap to' : '+'} ${CONFIG.modules[m].icon} ${CONFIG.modules[m].name} ${costHtml(CONFIG.modules[m].cost)}</button>`).join('')}</div>
       <div class="small" style="margin-top:8px"><b>Auto-ship each hour:</b></div>
       <div class="segs">${['all', 'refined', 'off'].map((m) => `<button class="btn sm ${o.ship === m ? 'alt' : 'ghost'}" data-act="shipmode" data-uid="${o.uid}" data-id="${m}">${m === 'all' ? 'Everything' : m === 'refined' ? 'Refined only' : 'Hold'}</button>`).join('')}</div>
@@ -175,7 +165,7 @@ function viewOutposts() {
   }
   const D = CONFIG.outpostTypes.drill;
   if (!S.outposts.some((o) => o.type === 'drill')) {
-    h += `<div class="card"><h3>⛏️ Build a Tetherdrill</h3><div class="dim">${D.desc} A second outpost lets you split a chain: one drill on iron, one on coal, and a Smelter pulls from both.</div>
+    h += `<div class="card">${pic('drill', 'opart')}<h3>Build a Tetherdrill</h3><div class="dim">${D.desc} A second outpost lets you split a chain: one drill on iron, one on coal, and a Smelter pulls from both.</div>
       <div class="wrapgap" style="margin:6px 0">${costHtml(D.cost)}</div>
       <button class="btn sm" data-act="drill" ${S.buildings.lift < D.needsLift || !canAfford(D.cost) ? 'disabled' : ''}>${S.buildings.lift < D.needsLift ? `Needs Tether Lift Lv ${D.needsLift}` : 'Lower it onto the Spine'}</button></div>`;
   }
@@ -190,7 +180,7 @@ function moveMenu(uidv) {
     h += `<div class="card layer ${reach ? '' : 'locked'}" style="--c:${L.color};margin-top:8px"><h3>${L.id}. ${L.name}</h3>`;
     for (const v of L.veins) {
       const taken = veinTaken(v.id, o.uid), here = o.vein === v.id, cost = moveCost(L.id);
-      h += `<div class="row between" style="margin-top:6px;gap:6px"><div class="small"><b>${v.name}</b> · ${Object.keys(v.prod).map((k) => CONFIG.resources[k].icon + fmt1(v.prod[k] * opType(o).mult) + '/h').join(' ')} · rich ${Math.round(S.veins[v.id] * 100)}%<br>
+      h += `<div class="row between" style="margin-top:6px;gap:6px"><div class="small"><b>${v.name}</b> · ${Object.keys(v.prod).map((k) => rIco(k) + fmt1(v.prod[k] * opType(o).mult) + '/h').join(' ')} · rich ${Math.round(S.veins[v.id] * 100)}%<br>
         <span class="dim">⏱ ${gameDur(moveTime(o, L.id))}</span> ${costHtml(cost)}</div>
         ${here ? '<span class="tag good">Here</span>' : taken ? '<span class="tag">Taken</span>' : !reach ? '<span class="tag">🔒</span>' : `<button class="btn sm" data-act="move" data-uid="${o.uid}" data-id="${v.id}" ${canAfford(cost) ? '' : 'disabled'}>Go</button>`}</div>`;
     }
@@ -204,7 +194,7 @@ function moveMenu(uidv) {
 function viewRaids() {
   ensureRivals();
   const gp = golemPower(), g = golemCount();
-  let h = `<div class="card"><h2>🗿 Your defense</h2>
+  let h = `<div class="card"><h2>🗿 Your defense</h2><div class="golemrow">${Array.from({ length: Math.min(g, 8) }, (_, i) => pic('golem_sleep', 'gs', 'sleeping golem')).join('')}</div>
     <div class="grid2" style="margin-top:6px">
       <div class="stat"><b>${g} × ${gp}</b><span>sleeping rock golems</span></div>
       <div class="stat"><b>${Math.round(petsPower() * CONFIG.raids.petDefense)}</b><span>pets on guard</span></div>
@@ -218,9 +208,9 @@ function viewRaids() {
   h += `<div class="card"><h2>⚔️ Rival bases</h2><div class="dim">Async and auto-resolved: your hero + pets vs their defense. Raiding costs ${CONFIG.raids.attackLumen} 🏮 and takes your hero ${gameDur(CONFIG.raids.marchMinutes * MIN)}.</div></div>`;
   CONFIG.rivals.forEach((d, i) => {
     const r = S.rivals[i], ratio = attackPower() / r.power, est = starsFor(ratio), shield = S.gameTime < r.shieldUntil;
-    h += `<div class="card"><div class="row between"><h3>${d.icon} ${d.name}</h3><span class="tag ${ratio >= 1 ? 'good' : ratio < 0.75 ? 'bad' : ''}">🛡️ ${r.power}</span></div>
+    h += `<div class="card rival">${pic('rival' + i, 'rv', d.name)}<div class="row between"><h3>${d.name}</h3><span class="tag ${ratio >= 1 ? 'good' : ratio < 0.75 ? 'bad' : ''}">🛡️ ${r.power}</span></div>
       <div class="dim">${d.lord}</div>
-      <div class="wrapgap small" style="margin:6px 0">Likely: <b>${'★'.repeat(est)}${'☆'.repeat(3 - est)}</b> · full loot ${lootText(rivalLoot(i))}</div>
+      <div class="wrapgap small" style="margin:6px 0">Likely: <b>${'★'.repeat(est)}${'☆'.repeat(3 - est)}</b> · full loot ${lootHtml(rivalLoot(i))}</div>
       ${shield ? `<span class="tag">🛡️ shielded ${countdown(r.shieldUntil)}</span>` : `<button class="btn red sm" data-act="attack" data-id="${i}" ${!heroHome() || S.res.lumen < CONFIG.raids.attackLumen ? 'disabled' : ''}>Raid</button>`}
     </div>`;
   });
@@ -228,21 +218,12 @@ function viewRaids() {
   return h;
 }
 function raidSceneSvg(g) {
-  let golems = '';
-  const segW = 300 / (g + 1);
-  for (let i = 0; i < g; i++) {
-    const x = 30 + (i + 1) * segW - 14;
-    golems += `<g class="golem" style="--i:${i}">
-      <rect x="${x}" y="78" width="28" height="56" rx="8" fill="#8e8069" stroke="#5e5240" stroke-width="2"/>
-      <rect x="${x + 4}" y="92" width="20" height="6" rx="2" fill="#7a6d58"/>
-      <rect class="arm" x="${x - 9}" y="96" width="9" height="26" rx="4" fill="#857760"/><rect class="arm" x="${x + 28}" y="96" width="9" height="26" rx="4" fill="#857760"/>
-      <circle class="eye" cx="${x + 9}" cy="86" r="3" fill="#ffd46b" style="filter:drop-shadow(0 0 4px #ffd46b)"/><circle class="eye" cx="${x + 19}" cy="86" r="3" fill="#ffd46b" style="filter:drop-shadow(0 0 4px #ffd46b)"/>
-    </g>`;
-  }
+  let golems = ''; const n = Math.min(g, 6), segW = 300 / (n + 1);
+  for (let i = 0; i < n; i++) { const x = 30 + (i + 1) * segW - 30;
+    golems += `<g class="golem2" style="--i:${i}"><image class="gs" href="${UIA}golem_sleep.webp" x="${x}" y="88" width="60" height="53"/><image class="ga" href="${UIA}golem.webp" x="${x - 2}" y="76" width="64" height="66"/></g>`; }
   let raiders = ''; for (let i = 0; i < 5; i++) raiders += `<text x="${-40 + (i % 3) * 14}" y="${120 + (i % 2) * 14}" font-size="16">🏴</text>`;
-  let blocks = ''; for (let i = 0; i <= g; i++) blocks += `<rect x="${30 + i * segW}" y="118" width="${segW - 18}" height="16" rx="3" fill="#9a8c74" stroke="#6d604c"/>`;
-  return `<svg viewBox="0 0 360 160"><defs><linearGradient id="rsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f5c"/><stop offset="1" stop-color="#c58a5a"/></linearGradient></defs>
-    <rect width="360" height="160" fill="url(#rsky)"/><rect y="134" width="360" height="26" fill="#6d5a40"/>${blocks}<g id="raiders" class="raiderwrap"><g class="raider">${raiders}</g></g>${golems}</svg>`;
+  return `<svg viewBox="0 0 360 160"><image href="${UIA}capital.webp" x="0" y="-40" width="360" height="203" preserveAspectRatio="xMidYMid slice" opacity=".85"/><rect width="360" height="160" fill="#2a1e30" opacity=".35"/>
+    <rect y="138" width="360" height="22" fill="#4a3a28" opacity=".7"/><g id="raiders" class="raiderwrap"><g class="raider">${raiders}</g></g>${golems}</svg>`;
 }
 function showReveal(r) {
   S.pendingReveal = null;
@@ -250,8 +231,8 @@ function showReveal(r) {
   const lines = [
     `🏴 <b>${esc(r.who)}</b> march on your wall… attack power ${r.atk}.`,
     `It looks like an ordinary wall. Then the columns <b>stand up</b>. ${r.golems} rock golems wake, eyes full of Lumen.`,
-    win ? `<span class="stars">☆☆☆</span><br><b>Raid repelled!</b> The golems hurl them back over the Rim. Spoils: ${lootText(r.gained)}`
-        : `<span class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</span><br>They broke through and took ${lootText(r.lost) || 'very little'}. ${Math.round(protectedShare() * 100)}% of your stock was safe in the Storehouse.`,
+    win ? `<span class="stars">☆☆☆</span><br><b>Raid repelled!</b> The golems hurl them back over the Rim. Spoils: ${lootHtml(r.gained)}`
+        : `<span class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</span><br>They broke through and took ${lootHtml(r.lost) || 'very little'}. ${Math.round(protectedShare() * 100)}% of your stock was safe in the Storehouse.`,
     `<span class="dim">Defense ${r.def} = golems ${r.golems}×${r.golemPower}${r.heroHome ? ' + hero' : ' (hero was away)'} + pets. Shield up for ${CONFIG.raids.shieldHours} game hours.${r.first ? ' (First raid: a tutorial raid you are meant to win.)' : ''}</span>`,
   ];
   openModal(`<h2>🗿 Raid on your capital!</h2><div class="raidscene" id="rscene">${raidSceneSvg(r.golems)}</div>
@@ -270,7 +251,7 @@ function showAttackReport(r) {
   openModal(`<h2>${r.icon} Raid on ${esc(r.name)}</h2>
     <div class="stars" style="text-align:center;margin:10px 0">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</div>
     <p>Your power ${r.atk} vs their defense ${r.def}.</p>
-    <p>${r.stars ? `Loot: ${lootText(r.got)}` : 'Their wall held. Nothing taken.'} · +${fmt(r.xp)} XP</p>
+    <p>${r.stars ? `Loot: ${lootHtml(r.got)}` : 'Their wall held. Nothing taken.'} · +${fmt(r.xp)} XP</p>
     <button class="btn" style="width:100%" data-act="close">Onward</button>`, 'report');
 }
 
@@ -280,26 +261,11 @@ function viewTraining() {
     <div class="dim">Every tap banks into a rolling 7-day boost to hero XP. Optional: idle play still gets you there, just slower.</div></div>
     <div id="tapzone" role="button" aria-label="Tap the training dummy">
       <svg viewBox="0 0 360 220">
-        <ellipse cx="180" cy="200" rx="150" ry="16" fill="#8fae73" opacity=".6"/>
-        <g id="heroG" transform="translate(115 98)">
-          <ellipse cx="0" cy="98" rx="26" ry="6" fill="#000" opacity=".15"/>
-          <rect x="-13" y="34" width="26" height="40" rx="9" fill="#4f8c8a"/>
-          <rect x="-10" y="72" width="8" height="26" rx="3" fill="#5a4528"/><rect x="2" y="72" width="8" height="26" rx="3" fill="#5a4528"/>
-          <circle cx="0" cy="20" r="16" fill="#f3d6b0"/>
-          <path d="M-17 16 Q0 -8 17 16 Q8 6 0 8 Q-8 6 -17 16Z" fill="#6b4a2a"/>
-          <circle cx="6" cy="20" r="2" fill="#3a2e22"/>
-          <path d="M-14 14 Q-24 26 -14 40" stroke="#c9822f" stroke-width="3" fill="none"/>
-          <circle cx="-16" cy="46" r="5" fill="#ffd46b" class="pulse lumenglow"/>
-          <g id="swordArm"><rect x="8" y="40" width="7" height="22" rx="3" fill="#f3d6b0"/><rect x="9" y="-4" width="5" height="46" rx="2" fill="#c9a77a" stroke="#7a5f3c"/><rect x="4" y="38" width="15" height="4" rx="2" fill="#7a5f3c"/></g>
-        </g>
-        <g id="dummyG">
-          <rect x="242" y="110" width="8" height="90" fill="#7a5f3c"/>
-          <ellipse cx="246" cy="132" rx="24" ry="30" fill="#d8b878" stroke="#8a6b3a" stroke-width="2"/>
-          <path d="M226 128 L266 136 M228 142 L264 124" stroke="#8a6b3a" stroke-width="2"/>
-          <circle cx="246" cy="92" r="15" fill="#e2c88f" stroke="#8a6b3a" stroke-width="2"/>
-          <rect x="216" y="122" width="60" height="7" rx="3" fill="#a7844e"/>
-          <circle cx="246" cy="132" r="8" fill="none" stroke="#b0473a" stroke-width="3"/>
-        </g>
+        <image href="${UIA}training.webp" x="-30" y="0" width="420" height="236" preserveAspectRatio="xMidYMid slice"/>
+        <ellipse cx="150" cy="206" rx="40" ry="7" fill="#000" opacity=".25"/><ellipse cx="248" cy="204" rx="30" ry="6" fill="#000" opacity=".25"/>
+        <g id="dummyG"><image href="${UIA}dummy.webp" x="206" y="92" width="84" height="111"/></g>
+        <g id="heroG"><image id="heroImg" href="${UIA}wren_a.webp" x="${150 - 39}" y="88" width="77" height="120"/></g>
+        <g id="swordArm"></g>
         <g id="sparks"></g>
       </svg>
       <div class="hint">Tap anywhere here (or hold Space on desktop)</div>
@@ -324,7 +290,7 @@ function petsCard() {
     <div class="dim">Equipped pets add power to raids and defense, and their bonus applies. Find more as eggs in the Hollow.</div>`;
   for (const p of S.pets) {
     const d = CONFIG.pets[p.id], on = S.slots.slice(0, n).includes(p.uid), cost = petUpCost(p);
-    h += `<div class="row between" style="margin-top:8px;gap:6px"><div><b>${d.icon} ${d.name}</b> <span class="lvl">Lv ${p.level}</span><br><span class="dim">power ${Math.round(petPower(p))} · ${d.bonus}</span></div>
+    h += `<div class="row between" style="margin-top:8px;gap:6px"><div class="row" style="gap:8px">${petIco(p.id, 'petart')}<div><b>${d.name}</b> <span class="lvl">Lv ${p.level}</span><br><span class="dim">power ${Math.round(petPower(p))} · ${d.bonus}</span></div></div>
       <div class="wrapgap" style="justify-content:flex-end"><button class="btn sm ${on ? 'alt' : 'ghost'}" data-act="equip" data-uid="${p.uid}">${on ? 'Equipped' : 'Equip'}</button>
       ${p.level < CONFIG.petMax ? `<button class="btn ghost sm" data-act="petup" data-uid="${p.uid}" ${canAfford(cost) ? '' : 'disabled'}>Feed ${costHtml(cost)}</button>` : ''}</div></div>`;
   }
@@ -350,6 +316,9 @@ function doTap(x, y) {
   S.taps.total++; S.stats.tapsAll++;
   const arm = document.getElementById('swordArm'), dm = document.getElementById('dummyG');
   if (arm) { arm.classList.remove('swing'); void arm.getBBox; arm.getBoundingClientRect(); arm.classList.add('swing'); }
+  const hi = document.getElementById('heroImg');
+  if (hi) { const pose = (k, w) => { hi.setAttribute('href', UIA + k + '.webp'); hi.setAttribute('width', w); hi.setAttribute('x', 150 - w / 2 + (k === 'wren_c' ? 14 : 0)); };
+    clearTimeout(hi._t1); clearTimeout(hi._t2); pose('wren_b', 91); hi._t1 = setTimeout(() => pose('wren_c', 108), 90); hi._t2 = setTimeout(() => pose('wren_a', 77), 300); }
   if (dm) { dm.classList.remove('hit'); dm.getBoundingClientRect(); dm.classList.add('hit'); }
   const zone = document.getElementById('tapzone');
   if (zone && x != null) {
@@ -357,7 +326,7 @@ function doTap(x, y) {
     f.className = 'float' + (mark ? ' mark' : ''); f.textContent = mark ? '+1 Spar Mark' : '+1';
     f.style.left = (x - r.left) + 'px'; f.style.top = (y - r.top - 10) + 'px'; zone.appendChild(f); setTimeout(() => f.remove(), 900);
     const sp = document.getElementById('sparks');
-    if (sp) { sp.insertAdjacentHTML('beforeend', `<g class="spark"><circle cx="${238 + Math.random() * 16}" cy="${124 + Math.random() * 16}" r="${3 + Math.random() * 3}" fill="#ffd46b"/></g>`); while (sp.children.length > 6) sp.firstChild.remove(); }
+    if (sp) { sp.insertAdjacentHTML('beforeend', `<g class="spark"><circle cx="${236 + Math.random() * 20}" cy="${128 + Math.random() * 22}" r="${3 + Math.random() * 3}" fill="#ffd46b"/></g>`); while (sp.children.length > 6) sp.firstChild.remove(); }
   }
   updateTrainingBinds();
   return true;
@@ -379,7 +348,7 @@ function settingsModal() {
 }
 function awayModal(sum, realMs) {
   const d = sum.delta;
-  const rows = Object.keys(d).map((k) => `<span class="cost ${d[k] < 0 ? 'short' : ''}">${CONFIG.resources[k].icon}${d[k] > 0 ? '+' : '−'}${fmt(Math.abs(d[k]))}</span>`).join('');
+  const rows = Object.keys(d).map((k) => `<span class="cost ${d[k] < 0 ? 'short' : ''}">${rIco(k)}${d[k] > 0 ? '+' : '−'}${fmt(Math.abs(d[k]))}</span>`).join('');
   const ev = sum.events.slice().reverse().slice(-14);
   const je = writeJournal(sum);
   openModal(`<h2>🏮 While you were away</h2>

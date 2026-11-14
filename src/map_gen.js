@@ -9,7 +9,8 @@ const CITY = {
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
   tilePx: 256, levels: [0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 280,
   zoomMin: 0.065, zoomMax: 3.2, startZoom: 1.05,
-  walkers: 380, homePetShare: 0.3,
+  homePetShare: 0.12, innerR: 3150,
+  villageP: { docks: 0.6, dunes: 0.4, bluffs: 0.45, wood: 0.5, crystal: 0.35, farms: 0.7, badlands: 0.35, moss: 0.6, amber: 0.6, lava: 0.15 },
   seasonDays: 7, testSeasonDays: 1,     // game days per season (test mode uses testSeasonDays)
   moleWindowHours: 8, moleChance: 0.75, moleDurationHours: 1.5,
   spikeWindowHours: 3, spikeChance: 0.25, spikeMult: 1.6,
@@ -45,6 +46,7 @@ const REGIONS = [
     ground: [200, 152, 94], roofs: ['#b0573a', '#c46a40', '#9a4a30'], wall: '#f0dcc0', styles: [0, 1] },
 ];
 const NREG = REGIONS.length;
+const smooth01g = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
 /* ---------- seeded randomness & noise ---------- */
 function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -69,6 +71,10 @@ function regionF(x, y) {
   const w = (vnoise(x / 700 + 50, y / 700) - 0.5) * 0.55 + (vnoise(x / 240, y / 240 + 9) - 0.5) * 0.14;
   return (((a * NREG + w) % NREG) + NREG) % NREG;
 }
+/* discovery: region names and resources stay hidden until the player explores them */
+function isDiscovered(i) { return !!(W.player && W.player.region === i) || !!(typeof S !== 'undefined' && S && S.discovered && S.discovered[i]); }
+function discoverRegion(i, quiet) { if (isDiscovered(i)) return false; S.discovered = S.discovered || {}; S.discovered[i] = true; if (!quiet && typeof toast === 'function') toast(`🗺️ Discovered ${REGIONS[i].icon} ${REGIONS[i].name}!`); if (typeof save === 'function') save(); return true; }
+function regionName(i) { return isDiscovered(i) ? REGIONS[i].name : 'the unexplored lands'; }
 function regionAt(x, y) { return Math.floor(regionF(x, y)) % NREG; }
 function regionAngle(i) { return ((i + 0.5) / NREG) * TAU - Math.PI; }
 function hollowR(a) { let r = 1; for (const [k, amp, ph] of W.hTerms) r += amp * Math.sin(k * a + ph); return CITY.hollowR * r; }
@@ -172,42 +178,18 @@ function generateCity() {
       L.push([p[0] + nx * w, p[1] + ny * w]); Rr.push([p[0] - nx * w, p[1] - ny * w]); }
     c.poly = L.concat(Rr.reverse()); c.bbox = bboxOf(c.poly, 20); }
 
-  // Roads
-  W.roads = [];
-  const mkRoad = (pts, kind, loop) => {
-    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-    const bridge = []; for (let i = 0; i < pts.length - 1; i++) { const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; bridge.push(chasmDist(mx, my) < 4 || isWet(mx, my, 6) ? 1 : 0); }
-    const rd = { pts, cum, len: cum[cum.length - 1], kind, loop, bridge, idx: W.roads.length, bbox: bboxOf(pts, 30) }; W.roads.push(rd);
-    for (let i = 0; i < pts.length - 1; i++) { const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); for (let d = 0; d <= l; d += 8) { const u = d / l; occMark(OCC.road, pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u, kind === 'promenade' ? 22 : 18); } }
-    return rd;
-  };
-  { const pts = []; for (let i = 0; i <= 200; i++) { const a = (i / 200) * TAU - Math.PI; pts.push(polar(hollowR(a) + 85, a)); } mkRoad(pts, 'promenade', true); }
-  CITY.ringRoads.forEach((_, j) => { const pts = []; const n = 160 + j * 40; for (let i = 0; i <= n; i++) { const a = (i / n) * TAU - Math.PI; pts.push(polar(ringR(j, a), a)); } mkRoad(pts, 'ring', true); });
-  W.radialAngles = [];
-  for (let i = 0; i < CITY.radialRoads; i++) {
-    let a = (i / CITY.radialRoads) * TAU - Math.PI + (rnd() - 0.5) * 0.12; W.radialAngles.push(a);
-    const pts = []; let r = hollowR(a) + 85; const a0 = a;
-    while (r < R - 120) { pts.push(polar(r, a)); r += 44; a = a0 + Math.sin(r / 330 + i) * 0.03; }
-    mkRoad(pts, 'radial', false);
-  }
-
-  // Civic sites at radial × ring intersections
-  W.civic = []; W.markets = []; W.vaults = []; W.plazas = [];
-  const sites = [];
-  W.radialAngles.forEach((a, i) => CITY.ringRoads.forEach((_, j) => { const r = ringR(j, a); const [x, y] = polar(r, a); if (chasmDist(x, y) > 40 && !isWet(x, y, 60)) sites.push({ x, y, a, ring: j, region: regionAt(x, y), used: false }); }));
-  REGIONS.forEach((reg, ri) => {
-    const cands = sites.filter((s) => s.region === ri && !s.used && (s.ring === 1 || s.ring === 2));
-    if (!cands.length) return; cands.sort((p, q) => Math.abs(p.a - regionAngle(ri)) - Math.abs(q.a - regionAngle(ri)));
-    const s = cands[0]; s.used = true;
-    const m = { type: 'market', x: s.x, y: s.y, r: 66, region: ri, name: `${reg.name.split(' ')[0]} Bazaar`, idx: W.markets.length, stalls: [] };
-    for (let k = 0; k < 10; k++) { const ang = (k / 10) * TAU + rnd() * 0.2; m.stalls.push({ a: ang, c: ['#c8634c', '#e2b04a', '#4f8c8a', '#7a5fa0', '#d98a3a'][Math.floor(rnd() * 5)] }); }
-    W.markets.push(m); W.civic.push(m); occMark(OCC.obj, s.x, s.y, 80);
-  });
+  // No roads: the city grows organically in clusters around the Hollow and out across the lands
+  W.roads = []; W.lamps = []; W.plazas = [];
+  W.civic = []; W.markets = []; W.vaults = [];
+  const siteOK = (x, y, rr) => hollowDist(x, y) > 120 && chasmDist(x, y) > rr && !isWet(x, y, rr) && occFree(OCC.obj, x, y, rr);
+  REGIONS.forEach((reg, ri) => { if (reg.outer) return;
+    for (let tries = 0; tries < 40; tries++) { const a = regionAngle(ri) + (rnd() - 0.5) * 0.35, r = 1500 + rnd() * 700, [x, y] = polar(r, a); if (regionAt(x, y) !== ri || !siteOK(x, y, 80)) continue;
+      const m = { type: 'market', x, y, r: 66, region: ri, name: `${reg.name.split(' ')[0]} Bazaar`, idx: W.markets.length, stalls: [] };
+      for (let k = 0; k < 10; k++) { const ang = (k / 10) * TAU + rnd() * 0.2; m.stalls.push({ a: ang, c: ['#c8634c', '#e2b04a', '#4f8c8a', '#7a5fa0', '#d98a3a'][Math.floor(rnd() * 5)] }); }
+      W.markets.push(m); W.civic.push(m); occMark(OCC.obj, x, y, 80); break; } });
   const vaultNames = ['The Deepcoin Vault', 'Old Ledger Vault', 'Gullwing Strongrooms', 'The Amber Coffers', 'Marrow & Daughters Vault', 'Undercliff Depository'];
-  for (let k = 0; k < 6; k++) { const cands = sites.filter((s) => !s.used && (s.ring === 0 || s.ring === 3)); if (!cands.length) break; const s = cands[Math.floor(rnd() * cands.length)]; s.used = true;
-    const v = { type: 'vault', x: s.x + Math.cos(s.a + 1.2) * 0, y: s.y, r: 44, region: s.region, name: vaultNames[k], idx: W.vaults.length }; W.vaults.push(v); W.civic.push(v); occMark(OCC.obj, s.x, s.y, 58); }
-  for (const s of sites) if (!s.used && rnd() < 0.55) { s.used = true; const p = { type: 'plaza', x: s.x, y: s.y, r: 30, region: s.region, fountain: rnd() < 0.6 }; W.plazas.push(p); W.civic.push(p); occMark(OCC.obj, s.x, s.y, 38); }
-
+  for (let k = 0; k < 6; k++) for (let tries = 0; tries < 40; tries++) { const a = rnd() * TAU - Math.PI, r = (rnd() < 0.5 ? 1100 : 2600) + rnd() * 200, [x, y] = polar(r, a); if (!siteOK(x, y, 58)) continue;
+    const v = { type: 'vault', x, y, r: 44, region: regionAt(x, y), name: vaultNames[k], idx: W.vaults.length }; W.vaults.push(v); W.civic.push(v); occMark(OCC.obj, x, y, 58); break; }
   // Tether lift towers on the lip, cables into the Hollow
   W.lifts = []; const liftNames = ['North Spine', 'Gullhook Lift', 'Old Maddox\'s Lift', 'Lantern Ladder', 'Cinder Drop', 'Saltline', 'Mothwing Lift', 'Greystone Spine', 'Rootfall Express', 'Brindle Drop', 'Amber Spine', 'The Long Rope', 'Hushline', 'Glassline'];
   for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU - Math.PI + (rnd() - 0.5) * 0.15; const [x, y] = polar(hollowR(a) + 28, a);
@@ -226,36 +208,42 @@ function generateCity() {
   { const c = W.cracks.find((k) => k.wide && k.pts.length > 10); const e = c.pts[c.pts.length - 1], q = c.pts[c.pts.length - 3]; const ang = Math.atan2(e[1] - q[1], e[0] - q[0]);
     const x = e[0] + Math.cos(ang) * 46, y = e[1] + Math.sin(ang) * 46; const lm = { type: 'gate', x, y, r: 34, name: 'The Undergate', a: ang, region: regionAt(x, y) }; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 52); }
 
-  // Promenade lamp posts (lit by the lamplighter at dusk)
-  W.lamps = []; { const pr = W.roads[0]; for (let s = 0; s < pr.len; s += 110) { const [x, y, ang] = roadPos(pr, s); const ox = Math.cos(ang + Math.PI / 2) * 20, oy = Math.sin(ang + Math.PI / 2) * 20; if (chasmDist(x + ox, y + oy) < 6) continue; W.lamps.push({ x: x + ox, y: y + oy, s, phase: rnd() * TAU }); } }
-
-  // Homes (Lanternholds) along the roads
+  // Homes (Lanternholds): a dense old city around the Hollow that thins outward, plus villages in the far lands
   W.homes = []; const used = new Set();
-  for (const rd of W.roads) {
-    for (let s = 30; s < rd.len - 20; s += 62 + rnd() * 30) {
-      const [px, py, ang] = roadPos(rd, s); const seg = segIndex(rd, s); if (rd.bridge[seg]) continue;
-      for (const side of [-1, 1]) {
-        if (rnd() < 0.42) continue;
-        const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3))));
-        const size = 22 + level * 0.55 + rnd() * 6, off = (rd.kind === 'promenade' ? 30 : 26) + size * 0.55 + rnd() * 12;
-        const x = px + Math.cos(ang + side * Math.PI / 2) * off, y = py + Math.sin(ang + side * Math.PI / 2) * off;
-        const rad = size * 0.62;
-        if (hollowDist(x, y) < 70 || Math.hypot(x, y) > R - 70 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6)) continue;
-        if (!occFree(OCC.road, x, y, rad * 0.8) || !occFree(OCC.obj, x, y, rad + 3)) continue;
-        const region = regionAt(x, y), reg = REGIONS[region];
-        const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
-        const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
-        const h = { id: W.homes.length, x, y, ang: ang + (side > 0 ? Math.PI : 0), size, level, region, style,
-          roofL: shade(base, lf * 1.12), roofD: shade(base, lf * 0.78), roof: shade(base, lf),
-          owner: makeOwner(rnd, used), name: NM.pa[Math.floor(rnd() * NM.pa.length)] + NM.pb[Math.floor(rnd() * NM.pb.length)] + ' ' + CITY.homeTerm,
-          power: Math.round((10 + level * 9) * (0.85 + rnd() * 0.3)),
-          banners: Math.min(4, Math.floor(level / 8 + rnd() * 1.5)), trophies: rnd() < 0.25 + level / 80 ? 1 + Math.floor(rnd() * Math.min(5, level / 6 + 1)) : 0,
-          battered: rnd() < 0.12, pet: rnd() < CITY.homePetShare ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, petPhase: rnd() * TAU, petSleep: rnd() < 0.4,
-          lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
-        W.homes.push(h); occMark(OCC.obj, x, y, rad + 2);
-      }
-    }
+  const addHome = (x, y, face, lvlBias) => {
+    const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3 + (lvlBias || 0)))));
+    const size = 22 + level * 0.55 + rnd() * 6, rad = size * 0.62;
+    if (hollowDist(x, y) < 70 || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, rad + 3)) return null;
+    const region = regionAt(x, y), reg = REGIONS[region];
+    const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
+    const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
+    const h = { id: W.homes.length, x, y, ang: face, size, level, region, style,
+      roofL: shade(base, lf * 1.12), roofD: shade(base, lf * 0.78), roof: shade(base, lf),
+      owner: makeOwner(rnd, used), name: NM.pa[Math.floor(rnd() * NM.pa.length)] + NM.pb[Math.floor(rnd() * NM.pb.length)] + ' ' + CITY.homeTerm,
+      power: Math.round((10 + level * 9) * (0.85 + rnd() * 0.3)),
+      banners: Math.min(4, Math.floor(level / 8 + rnd() * 1.5)), trophies: rnd() < 0.25 + level / 80 ? 1 + Math.floor(rnd() * Math.min(5, level / 6 + 1)) : 0,
+      battered: rnd() < 0.12, pet: rnd() < CITY.homePetShare ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, petPhase: rnd() * TAU, petSleep: true,
+      lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
+    W.homes.push(h); occMark(OCC.obj, x, y, rad + 2); return h;
+  };
+  // old city: jittered grid, density falls off with distance and breaks into neighbourhood clumps
+  const INNER = CITY.innerR;
+  for (let gx = -INNER; gx < INNER; gx += 78) for (let gy = -INNER; gy < INNER; gy += 78) {
+    const x = gx + rnd() * 60, y = gy + rnd() * 60, r = Math.hypot(x, y), q = rnd(); if (r > INNER) continue;
+    const clump = vnoise(x / 420 + 11, y / 420 - 4), fall = clamp(1.15 - (r - CITY.hollowR) / (INNER - CITY.hollowR) * 0.75, 0.25, 1);
+    if (q > fall * (0.3 + 0.7 * smooth01g(0.3, 0.6, clump))) continue;
+    addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 1.2);
   }
+  // far lands: villages and lone farmsteads
+  W.villages = [];
+  const VP = CITY.villageP;
+  for (let gx = -CITY.R; gx < CITY.R; gx += 900) for (let gy = -CITY.R; gy < CITY.R; gy += 900) {
+    const cx = gx + 150 + rnd() * 600, cy = gy + 150 + rnd() * 600, r = Math.hypot(cx, cy), q = rnd(), vr = 140 + rnd() * 280, n = Math.round(6 + rnd() * 34);
+    if (r < INNER + 250 || r > CITY.R - 400) continue; const k = REGIONS[regionAt(cx, cy)].key; if (q > (VP[k] || 0.4)) continue;
+    const v = { x: cx, y: cy, r: vr, n: 0 }; W.villages.push(v);
+    for (let i = 0; i < n * 2 && v.n < n; i++) { const a = i * 2.39996 + rnd() * 0.5, d = vr * Math.sqrt((i + 0.5) / (n * 2)) * (0.85 + rnd() * 0.3); if (addHome(cx + Math.cos(a) * d, cy + Math.sin(a) * d, a + Math.PI + (rnd() - 0.5) * 0.8, 0.6)) v.n++; }
+  }
+  for (let gx = -CITY.R; gx < CITY.R; gx += 260) for (let gy = -CITY.R; gy < CITY.R; gy += 260) { const x = gx + rnd() * 220, y = gy + rnd() * 220, q = rnd(); if (Math.hypot(x, y) < INNER + 100 || q > 0.05) continue; addHome(x, y, rnd() * TAU, 1); }
   // The player's Lanternhold: Lanternmoss Gardens, near the second ring
   { const ra = regionAngle(7); let best = null, bd = 1e9; for (const h of W.homes) { if (h.region !== 7) continue; const d = Math.abs(Math.hypot(h.x, h.y) - 1580) + Math.abs(((Math.atan2(h.y, h.x) - ra + 3 * Math.PI) % TAU) - Math.PI) * 900; if (d < bd) { bd = d; best = h; } }
     best.isPlayer = true; best.owner = 'You'; best.name = 'Your ' + CITY.homeTerm; best.size = 40; best.style = 3; best.wing = 1; best.tower = true; W.player = best; }
@@ -282,16 +270,7 @@ function generateCity() {
     else if (k === 'moss') { if (q < 0.3) deco({ type: 'mosspatch', r: 34 + rnd() * 20 }); else if (q < 0.37) { if (obj({ type: 'post', r: 6 })) W.posts.push(W.objs[W.objs.length - 1]); } else if (q < 0.53) obj({ type: 'tree', r: 14 + rnd() * 5, mossy: 1 }); else if (q < 0.55) obj({ type: 'pond', r: 22 }); }
     else if (k === 'amber') { if (q < 0.3) obj({ type: 'orchard', r: 12 }); else if (q < 0.42) obj({ type: 'tree', r: 15, autumn: 1 }); else if (q < 0.45) obj({ type: 'rock', r: 8 }); else if (q < 0.5) deco({ type: 'leaves', r: 26 }); }
   }
-  // Flora: dense small plants per region (painted sprites)
-  const FLORA_P = { docks: 0.34, dunes: 0.3, bluffs: 0.26, wood: 0.5, crystal: 0.3, farms: 0.26, badlands: 0.4, moss: 0.55, amber: 0.42 };
-  for (let gx = -R; gx < R; gx += 30) for (let gy = -R; gy < R; gy += 30) {
-    const x = gx + rnd() * 26, y = gy + rnd() * 26, rr = Math.hypot(x, y), q = rnd(), sz = 5 + rnd() * 6, pick = rnd(), sd = rnd();
-    if (rr > R - 30 || hollowDist(x, y) < 40 || chasmDist(x, y) < 8 || isWet(x, y, 4)) continue;
-    const ri = regionAt(x, y), k = REGIONS[ri].key; if (q > FLORA_P[k]) continue;
-    if (!occFree(OCC.road, x, y, sz * 0.9) || !occFree(OCC.obj, x, y, sz * 0.8)) continue;
-    const list = FLORA[k]; const spr = list[Math.floor(pick * list.length)];
-    W.objs.push({ type: 'flora', x, y, r: spr.startsWith('props2') ? 7 : sz, spr, layer: 1, region: ri, seed: sd }); occMark(OCC.obj, x, y, sz * 0.7);
-  }
+  // Flora is scattered at paint time from a world-seeded hash (see artFlora), so it costs no memory
   // Piers on the lake shore
   for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
 
