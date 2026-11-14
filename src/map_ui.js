@@ -106,6 +106,7 @@ const CityMap = (() => {
     drawTiles(c, vx0, vy0, vx1, vy1);
     c.setTransform(k, 0, 0, k, Wc / 2 - cam.x * k, Hc / 2 - cam.y * k);
     const view = { x0: vx0 - 60, y0: vy0 - 60, x1: vx1 + 60, y1: vy1 + 60 }, inV = (x, y, m) => x > view.x0 - (m || 0) && x < view.x1 + (m || 0) && y > view.y0 - (m || 0) && y < view.y1 + (m || 0);
+    if (ART.ok) drawHollowDepth(c, t, inV, cam.x, cam.y, cam.z, nightFactor(), glow);
     drawLife(c, t, view, inV);
     c.setTransform(1, 0, 0, 1, 0, 0);
     drawOverlay(c, t, view, inV);
@@ -148,6 +149,7 @@ const CityMap = (() => {
       glow(c, p.x - 3, p.y - 1, 5, col, a * blink); glow(c, p.x + 3, p.y - 1, 5, col, a * blink); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
     // Tether lift cages & cranes
     for (const Lf of W.lifts) { const u = (Math.sin(t * Lf.speed * 2 + Lf.phase) + 1) / 2; const x = Lf.x + (Lf.bx - Lf.x) * u, y = Lf.y + (Lf.by - Lf.y) * u; if (!inV(x, y, 20)) continue;
+      if (ART.ok && ART_MANIFEST.s.hollow_bits_4) { softShadow(c, x + 4, y + 3, 7, 3, 0.7); if (z > 0.5) drawPerson(c, x, y - 2, 0, '#555', SKIN[1], t, Lf.phase, { idle: true, h: 11 }); drawSprite(c, 'hollow_bits_4', x, y, 16, 0.5, 0.8, false, 0.92); continue; }
       c.fillStyle = '#6a4a2a'; c.fillRect(x - 5, y - 5, 10, 10); c.fillStyle = '#c9a070'; c.fillRect(x - 3.5, y - 3.5, 7, 7); if (z > 0.5) drawPerson(c, x, y, 0, CLOAKS[(Lf.phase * 10 | 0) % CLOAKS.length], SKIN[1], t, Lf.phase, {}); }
     for (const cr of W.cranes) { if (!inV(cr.x, cr.y, cr.len + 20)) continue; if (ART.ok) { c.save(); c.translate(cr.x, cr.y); c.rotate(Math.sin(t * 0.4 + cr.phase) * 0.03); softShadow(c, 8, 4, 26, 11, 0.8); drawSprite(c, 'civic_vault_2', 0, 0, 74, 0.38, 0.86, Math.cos(cr.ang) < 0); c.restore(); continue; } const ex = cr.x + Math.cos(cr.ang) * cr.len, ey = cr.y + Math.sin(cr.ang) * cr.len;
       c.strokeStyle = '#5a3e24'; c.lineWidth = 5; c.beginPath(); c.moveTo(cr.x, cr.y); c.lineTo(ex, ey); c.stroke(); c.fillStyle = '#7a5434'; c.fillRect(cr.x - 8, cr.y - 8, 16, 16);
@@ -157,6 +159,11 @@ const CityMap = (() => {
     for (const m of W.windmills) { if (ART.ok || !inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
       for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
     for (const ch of W.chimneys) { if (!inV(ch.x, ch.y, 80)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.25 + k / 5 + ch.seed) % 1; glow(c, ch.x + u * 40, ch.y - u * 50, 6 + u * 16, 'rgba(90,85,85,.9)', (1 - u) * 0.45); } }
+    if (ART.ok && z > 0.45) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!(REGIONS[h.region].key === 'badlands' || (sd * 3.7) % 1 < 0.4)) continue;
+      const w = homeW(h), fx = h.x + w * 0.18 * (homeFlip(h) ? 1 : -1), fy = h.y - w * 0.78;
+      for (let k = 0; k < 4; k++) { const u = (t * 0.18 + k / 4 + sd) % 1; glow(c, fx + u * 14 + Math.sin(u * 5 + sd * 9) * 2, fy - u * 26, 2.5 + u * 8, 'rgba(225,222,215,.9)', Math.min(1, u * 5) * (1 - u) * 0.38); } }
+    if (ART.ok && W.river.length) { const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), ex = e0[0] + e0[0] / d * 50, ey = e0[1] + e0[1] / d * 50, sp = ART_MANIFEST.s.props2_2;
+      if (sp && inV(ex, ey, 160)) { const fh = 92 * sp[4] / sp[3], by = ey - fh * 0.1 + fh * 0.86; for (let k = 0; k < 7; k++) { const u = (t * 0.35 + k / 7) % 1; glow(c, ex - 30 + ((k * 37) % 60) + Math.sin(t + k) * 4, by - u * 22, 8 + u * 18, 'rgba(235,245,255,1)', (1 - u) * 0.3); } } }
     for (const m of W.mines) { if (!inV(m.x, m.y, 80)) continue; const u = (Math.sin(t * 0.5 + m.seed * 9) + 1) / 2, d = 14 + u * 52; const x = m.x + Math.cos(m.a) * d, y = m.y + Math.sin(m.a) * d;
       if (ART.ok) { drawSprite(c, 'props_4', x, y, 18, 0.5, 0.7, Math.cos(m.a) < 0); continue; } c.save(); c.translate(x, y); c.rotate(m.a); c.fillStyle = '#5a4a3a'; c.fillRect(-5, -4, 10, 8); c.fillStyle = '#b9a4ff'; c.beginPath(); c.arc(-1.5, 0, 1.6, 0, TAU); c.arc(2, 1, 1.4, 0, TAU); c.fill(); c.restore(); }
     // market caravans (shellback-drawn carts)

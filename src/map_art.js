@@ -6,9 +6,10 @@
    ===================================================================== */
 const ART = { ok: false, ready: false, failed: false, atlas: [], tex: {}, mips: {}, pats: {}, hollow: null, sil: {}, progress: 0 };
 const ART_BASE = 'assets/';
-const TEX_KEYS = ['grass', 'sand', 'rock', 'forest', 'crystal', 'farm', 'badlands', 'moss', 'orchard', 'water', 'chasm', 'cobble', 'dirt'];
+const CROPS = ['wheat', 'cabbage', 'pumpkin', 'lavender', 'corn', 'vines', 'furrows', 'sunflower'];
+const TEX_KEYS = ['grass', 'sand', 'rock', 'forest', 'crystal', 'farm', 'badlands', 'moss', 'orchard', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff'].concat(CROPS);
 // world units covered by one 512px texture tile
-const TEX_WORLD = { grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120 };
+const TEX_WORLD = { grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120, wall: 640, cliff: 70, wheat: 70, cabbage: 60, pumpkin: 70, lavender: 60, corn: 70, vines: 70, furrows: 70, sunflower: 60 };
 const REGION_TEX = { docks: 'grass', dunes: 'sand', bluffs: 'rock', wood: 'forest', crystal: 'crystal', farms: 'grass', badlands: 'badlands', moss: 'moss', amber: 'orchard' };
 const REGION_BLD = { docks: 'b_lake', dunes: 'b_sand', bluffs: 'b_cliff', wood: 'b_forest', crystal: 'b_crystal', farms: 'b_farm', badlands: 'b_forge', moss: 'b_garden', amber: 'b_orchard' };
 
@@ -163,7 +164,23 @@ function artWater(c, x0, y0, x1, y1, s) {
   c.strokeStyle = texPattern(c, 'water', s); c.lineWidth = 42; polyStroke(c, W.river);
   c.strokeStyle = 'rgba(200,240,255,.22)'; c.lineWidth = 14; polyStroke(c, W.river);
 }
-function artHollow(c, s) {
+// wall details (camps, scaffolds, roots, fungus shelves, cave mouths, crystal veins, mossy trickles) placed on the
+// terraces; mostly on the north wall, which faces the camera in this 3/4 view
+let HOLLOW_BITS = null;
+function hollowBits() {
+  if (HOLLOW_BITS && HOLLOW_BITS.w === W) return HOLLOW_BITS.list;
+  const rr = mulberry32(4242), list = [];
+  for (let i = 0; i < 70; i++) {
+    const north = rr() < 0.78, a = north ? Math.PI * (1.08 + rr() * 0.84) : rr() * Math.PI, f = 0.5 + rr() * 0.42, k = rr();
+    const kind = k < 0.16 ? 0 : k < 0.3 ? 1 : k < 0.46 ? 3 : k < 0.56 ? 6 : k < 0.68 ? 7 : k < 0.8 ? 8 : 5;
+    const R = hollowR(a) * f; list.push({ x: Math.cos(a) * R, y: Math.sin(a) * R, f, spr: 'hollow_bits_' + kind, w: (34 + rr() * 22) * (0.45 + f * 0.6), flip: rr() < 0.5 });
+  }
+  for (let i = 0; i < 26; i++) { const a = Math.PI * (1.05 + rr() * 0.9), R = hollowR(a) * (0.965 + rr() * 0.02); list.push({ x: Math.cos(a) * R, y: Math.sin(a) * R, f: 0.99, spr: 'hollow_bits_2', w: 30 + rr() * 26, flip: rr() < 0.5, hang: true }); }
+  list.sort((p, q) => p.y - q.y); HOLLOW_BITS = { w: W, list }; return list;
+}
+function artHollow(c, s, bx0, by0, bx1, by1) {
+  if (bx0 == null) { bx0 = by0 = -1e9; bx1 = by1 = 1e9; }
+  const inB = (x, y, m) => x > bx0 - m && x < bx1 + m && y > by0 - m && y < by1 + m;
   let mr = 0; for (const p of W.hollowPts) mr = Math.max(mr, Math.hypot(p[0], p[1]));
   c.save();
   // rocky rim
@@ -171,26 +188,60 @@ function artHollow(c, s) {
   c.strokeStyle = 'rgba(60,50,40,.35)'; c.lineWidth = 6; c.stroke();
   pathPoly(c, W.hollowPts); c.clip();
   const R = mr * 1.06; c.imageSmoothingEnabled = true; c.drawImage(ART.hollow, -R, -R + 18, R * 2, R * 2);
-  if (s > 0.3) { c.save(); c.globalCompositeOperation = 'soft-light'; c.globalAlpha = Math.min(0.55, (s - 0.3) * 1.2); c.fillStyle = texPattern(c, 'rock', s, 120); c.fillRect(-R, -R, R * 2, R * 2); c.globalCompositeOperation = 'overlay'; c.globalAlpha *= 0.5; c.fillStyle = texPattern(c, 'moss', s, 140); c.fillRect(-R, -R, R * 2, R * 2); c.restore(); }
-  // inner shadow under the lip (light from top-left)
-  c.lineJoin = 'round'; pathPoly(c, W.hollowPts.map((p) => [p[0] + 8, p[1] + 12])); for (let i = 0; i < 9; i++) { c.strokeStyle = 'rgba(8,10,24,.085)'; c.lineWidth = 16 + i * 14; c.stroke(); }
-  // warm deep glow + distant delvers' lights
-  const g = c.createRadialGradient(0, 40, 10, 0, 40, CITY.hollowR * 0.5); g.addColorStop(0, 'rgba(255,214,120,.35)'); g.addColorStop(1, 'rgba(255,190,90,0)');
-  c.fillStyle = g; c.beginPath(); c.arc(0, 40, CITY.hollowR * 0.5, 0, TAU); c.fill();
-  const rr = mulberry32(7); for (let k = 0; k < 60; k++) { const a = rr() * TAU, f = 0.3 + rr() * 0.6; const [x, y] = polar(hollowR(a) * f, a); c.fillStyle = `rgba(255,${200 + Math.floor(rr() * 50)},120,${0.45 + rr() * 0.4})`; c.beginPath(); c.arc(x, y + (1 - f) * 28, 1.6 + rr() * 1.6, 0, TAU); c.fill(); }
+  // terraced walls: the wall texture wrapped around the pit so its ledges run as concentric terraces that follow the rim
+  const N = c.canvas.width, T = c.getTransform(), g = scratch(N);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, N, N); g.setTransform(T);
+  const mips = ART.mips.wall, want = TEX_WORLD.wall * s; let mi = 0; while (mi < mips.length - 1 && mips[mi + 1].width >= want) mi++;
+  const img = mips[mi], pat = g.createPattern(img, 'repeat'), NW = 128;
+  for (let i = 0; i < NW; i++) {
+    const a0 = (i / NW) * TAU, a1 = ((i + 1) / NW) * TAU, am = (a0 + a1) / 2, hr = hollowR(am), k = hr / CITY.hollowR, sc = TEX_WORLD.wall / img.width;
+    { const pm = polar(hollowR(am) * 0.68, am), half = hollowR(am) * 0.36 + 40; if (!inB(pm[0], pm[1], half)) continue; }
+    pat.setTransform(new DOMMatrix().rotate(((am + Math.PI / 2) * 180) / Math.PI).scale(sc, sc * k).translate((-am * CITY.hollowR * 0.75) / sc, 0));
+    g.fillStyle = pat; g.beginPath(); const o0 = polar(hollowR(a0) * 1.01 + 3, a0 - 0.004), o1 = polar(hollowR(a1) * 1.01 + 3, a1 + 0.004), i1 = polar(hollowR(a1) * 0.36, a1 + 0.004), i0 = polar(hollowR(a0) * 0.36, a0 - 0.004);
+    g.moveTo(o0[0], o0[1]); g.lineTo(o1[0], o1[1]); g.lineTo(i1[0], i1[1]); g.lineTo(i0[0], i0[1]); g.closePath(); g.fill();
+  }
+  // light from the top-left: the north wall faces us and catches light, the south wall falls into shadow
+  g.globalCompositeOperation = 'source-atop';
+  let lg = g.createLinearGradient(-mr * 0.6, -mr, mr * 0.4, mr); lg.addColorStop(0, 'rgba(255,226,170,.16)'); lg.addColorStop(0.45, 'rgba(255,226,170,0)'); lg.addColorStop(0.75, 'rgba(10,14,30,.25)'); lg.addColorStop(1, 'rgba(6,8,22,.6)'); g.fillStyle = lg; g.fillRect(-mr, -mr, mr * 2, mr * 2);
+  // depth: deeper terraces sink into blue haze
+  let dg = g.createRadialGradient(0, 30, mr * 0.3, 0, 0, mr); dg.addColorStop(0, 'rgba(14,20,46,.8)'); dg.addColorStop(0.4, 'rgba(18,26,56,.35)'); dg.addColorStop(0.75, 'rgba(18,24,40,0)'); dg.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = dg; g.fillRect(-mr, -mr, mr * 2, mr * 2);
+  // fade the terraces out toward the glowing core so the painted depths show through
+  g.globalCompositeOperation = 'destination-in';
+  const fg = g.createRadialGradient(0, 30, mr * 0.34, 0, 20, mr * 0.62); fg.addColorStop(0, 'rgba(0,0,0,0)'); fg.addColorStop(1, 'rgba(0,0,0,0.92)'); g.fillStyle = fg; g.fillRect(-mr * 1.1, -mr * 1.1, mr * 2.2, mr * 2.2);
+  g.globalCompositeOperation = 'source-over';
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.filter = 'brightness(1.3) contrast(1.25) saturate(1.25)'; c.drawImage(g.canvas, 0, 0); c.filter = 'none'; c.restore();
+  // details on the ledges, darker and smaller the deeper they sit
+  if (s > 0.09) for (const b of hollowBits()) { if (!inB(b.x, b.y, b.w)) continue;
+    if (b.hang) { c.globalAlpha = 0.95; drawSprite(c, b.spr, b.x, b.y - 4, b.w, 0.5, 0.04, b.flip); c.globalAlpha = 1; continue; }
+    softShadow(c, b.x + b.w * 0.1, b.y + b.w * 0.25, b.w * 0.4, b.w * 0.16, 0.7);
+    const dk = clamp((0.95 - b.f) * 1.3, 0, 0.55); c.filter = `brightness(${(1 - dk).toFixed(2)}) saturate(${(1 - dk * 0.6).toFixed(2)})`;
+    drawSprite(c, b.spr, b.x, b.y, b.w, 0.5, 0.6, b.flip); c.filter = 'none';
+  }
+  // soft shadow under the lip (light from top-left)
+  c.lineJoin = 'round'; pathPoly(c, W.hollowPts.map((p) => [p[0] + 8, p[1] + 12])); for (let i = 0; i < 9; i++) { c.strokeStyle = 'rgba(8,10,24,.07)'; c.lineWidth = 16 + i * 14; c.stroke(); }
+  // warm deep glow + distant delvers' lights on the terraces
+  const gg = c.createRadialGradient(0, 40, 10, 0, 40, CITY.hollowR * 0.5); gg.addColorStop(0, 'rgba(255,214,120,.35)'); gg.addColorStop(1, 'rgba(255,190,90,0)');
+  c.fillStyle = gg; c.beginPath(); c.arc(0, 40, CITY.hollowR * 0.5, 0, TAU); c.fill();
+  const rr = mulberry32(7); for (let k = 0; k < 140; k++) { const a = rr() * TAU, f = 0.38 + rr() * 0.58; const [x, y] = polar(hollowR(a) * f, a); const al = (0.35 + rr() * 0.5) * (0.4 + f * 0.6), r = (0.8 + rr() * 1.4) * (0.5 + f * 0.6); c.fillStyle = `rgba(255,${200 + Math.floor(rr() * 50)},120,${al})`; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); }
   c.restore();
   // lip highlight
   c.strokeStyle = 'rgba(255,240,200,.25)'; c.lineWidth = 3; pathPoly(c, W.hollowPts.map((p) => [p[0] - 2, p[1] - 3])); c.stroke();
 }
 function artCrack(c, k, s) {
+  const mw = Math.max(...k.ws), d = Math.min(26, mw * 0.55 + 4);
   c.save(); c.lineJoin = 'round';
-  pathPoly(c, k.poly); c.lineWidth = k.wide ? 16 : 8; c.strokeStyle = texPattern(c, 'rock', s); c.stroke(); c.lineWidth = k.wide ? 4 : 2; c.strokeStyle = 'rgba(40,32,26,.45)'; c.stroke();
-  c.fillStyle = texPattern(c, 'chasm', s); c.fill();
-  c.clip(); c.lineCap = 'round';
-  const mw = Math.max(...k.ws);
-  c.strokeStyle = 'rgba(10,10,26,.45)'; c.lineWidth = mw * 0.7; polyStroke(c, k.pts.map((p) => [p[0] + 4, p[1] + 5]));
-  c.strokeStyle = 'rgba(6,6,18,.65)'; c.lineWidth = mw * 0.32; polyStroke(c, k.pts.map((p) => [p[0] + 3, p[1] + 4]));
-  if (k.wide) { c.strokeStyle = 'rgba(255,200,110,.25)'; c.lineWidth = 4; polyStroke(c, k.pts.map((p) => [p[0] + 3, p[1] + 4])); }
+  pathPoly(c, k.poly); c.lineWidth = k.wide ? 14 : 7; c.strokeStyle = texPattern(c, 'rock', s); c.stroke(); c.lineWidth = k.wide ? 3 : 1.6; c.strokeStyle = 'rgba(40,32,26,.5)'; c.stroke();
+  c.clip();
+  // the far (north) wall face is visible in this 3/4 view: rock strata texture
+  c.fillStyle = texPattern(c, 'cliff', s); c.fill();
+  // shading: lit top of the face, darker going down
+  c.strokeStyle = 'rgba(255,240,210,.18)'; c.lineWidth = 3; pathPoly(c, k.poly.map((p) => [p[0], p[1] + 1.5])); c.stroke();
+  // the chasm floor/darkness: the same outline pushed down by the wall height
+  pathPoly(c, k.poly.map((p) => [p[0], p[1] + d])); c.fillStyle = texPattern(c, 'chasm', s); c.fill();
+  for (let i = 0; i < 4; i++) { pathPoly(c, k.poly.map((p) => [p[0], p[1] + d * (0.55 + i * 0.12)])); c.fillStyle = 'rgba(8,8,20,.16)'; c.fill(); }
+  c.lineCap = 'round';
+  c.strokeStyle = 'rgba(6,6,18,.6)'; c.lineWidth = mw * 0.3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8]));
+  if (k.wide) { c.strokeStyle = 'rgba(255,200,110,.22)'; c.lineWidth = 3; polyStroke(c, k.pts.map((p) => [p[0] + 2, p[1] + d * 0.8])); }
   c.restore();
 }
 function artRoad(c, rd, s, x0, y0, x1, y1) {
@@ -235,12 +286,28 @@ const FLORA = {
 };
 const TREES = { docks: ['p_forest_0', 'p_forest_5', 'p_forest_4'], wood: ['p_forest_0', 'p_forest_0', 'p_forest_4', 'p_forest_5', 'p_forest_7'], moss: ['p_garden_8', 'p_forest_4', 'p_forest_0', 'p_garden_8'], farms: ['p_forest_0', 'p_forest_5'], amber: ['p_orchard_1', 'p_orchard_2', 'p_orchard_4'], def: ['p_forest_0'] };
 function homeTier(level) { return level <= 3 ? 0 : level <= 7 ? 1 : level <= 13 ? 2 : level <= 20 ? 3 : level <= 29 ? 4 : 5; }
-function homeSprite(h) { return REGION_BLD[REGIONS[h.region].key] + '_' + homeTier(h.level); }
+function homeSeed(h) { return ((h.lanternPhase || 0) / TAU) % 1; }
+// two painted designs per region and size; mirrored ones face the other way
+function homeSprite(h) { const k = REGION_BLD[REGIONS[h.region].key], t = h === W.player ? Math.min(5, Math.floor(h.level / 2)) : homeTier(h.level); const alt = h !== W.player && (homeSeed(h) * 7.31) % 1 < 0.5; const n = (alt ? k.replace('b_', 'b2_') : k) + '_' + t; return ART_MANIFEST.s[n] ? n : k + '_' + t; }
+function homeFlip(h) { return h !== W.player && (homeSeed(h) * 13.7) % 1 < 0.5; }
+// little yard details around homes: laundry, fences, vegetable plots, woodpiles, coops, wells, benches, herb beds, barrels
+const YARD = { docks: [0, 1, 8, 6], dunes: [8, 6, 7], bluffs: [7, 1, 5, 2], wood: [3, 3, 0, 8], crystal: [3, 8, 5], farms: [2, 4, 1, 0, 2], badlands: [8, 3, 5], moss: [7, 1, 2, 6], amber: [2, 8, 1, 4] };
+const YARD_W = [26, 22, 24, 18, 22, 16, 14, 18, 12];
+function homeYard(h, w) {
+  if (h === W.player) return [];
+  const sd = homeSeed(h), list = YARD[REGIONS[h.region].key] || [8], out = [], n = sd < 0.3 ? 0 : sd < 0.75 ? 1 : 2;
+  for (let i = 0; i < n; i++) { const r = (sd * (17.3 + i * 9.1)) % 1, a = (i === 0 ? 0.35 : 2.6) + r * 1.4; const k = list[Math.floor(((sd * (5.7 + i * 3.3)) % 1) * list.length)];
+    out.push({ spr: 'yard_' + k, x: h.x + Math.cos(a) * w * 0.62, y: h.y + Math.sin(a) * w * 0.32 + w * 0.06, w: YARD_W[k] * (0.9 + r * 0.3), flip: r > 0.5 }); }
+  return out;
+}
 function homeW(h, tier) { if (tier == null) tier = h === W.player ? Math.min(5, Math.floor(h.level / 2)) : homeTier(h.level); return (h.size * (1.55 + tier * 0.09) + 8) * 1.22; }
 function artHome(c, h, s) {
   const tier = h === W.player ? Math.min(5, Math.floor(h.level / 2)) : homeTier(h.level), w = homeW(h, tier);
   softShadow(c, h.x + w * 0.1, h.y + w * 0.05, w * 0.55, w * 0.3, 0.9);
-  drawSprite(c, homeSprite(h), h.x, h.y, w, 0.5, 0.74);
+  const yard = s > 0.09 ? homeYard(h, w) : [];
+  for (const y of yard) if (y.y < h.y) drawSprite(c, y.spr, y.x, y.y, y.w, 0.5, 0.8, y.flip);
+  drawSprite(c, homeSprite(h), h.x, h.y, w, 0.5, 0.74, homeFlip(h));
+  for (const y of yard) if (y.y >= h.y) { softShadow(c, y.x + 2, y.y, y.w * 0.4, y.w * 0.14, 0.5); drawSprite(c, y.spr, y.x, y.y, y.w, 0.5, 0.8, y.flip); }
   if (s > 0.28) {
     const top = h.y - w * 0.55;
     for (let i = 0; i < h.banners; i++) { const bx = h.x - w * 0.38 + i * 6, by = h.y + w * 0.12; c.strokeStyle = '#3a2e22'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx, by - 13); c.stroke(); c.fillStyle = LAYER_COLORS[i]; c.beginPath(); c.moveTo(bx, by - 13); c.lineTo(bx + 6, by - 10.5); c.lineTo(bx, by - 8); c.closePath(); c.fill(); }
@@ -289,7 +356,13 @@ function artObj(c, o, s) {
 }
 function artDecal(c, o, s) {
   switch (o.type) {
-    case 'field': { c.save(); c.translate(o.x, o.y); c.rotate(o.a); const w = o.r * 1.7, h = o.r * 1.2; c.fillStyle = texPattern(c, 'farm', s); c.fillRect(-w / 2, -h / 2, w, h); c.strokeStyle = 'rgba(70,95,45,.7)'; c.lineWidth = 4; c.strokeRect(-w / 2, -h / 2, w, h); c.restore(); return; }
+    case 'field': { c.save(); c.translate(o.x, o.y); c.rotate(o.a); const w = o.r * 1.7, h = o.r * 1.2, crop = CROPS[Math.floor(((o.c || 0) * 7.77 + (o.seed || 0)) * 8) % 8];
+      c.fillStyle = texPattern(c, 'dirt', s); c.fillRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6);
+      c.fillStyle = texPattern(c, crop, s); c.fillRect(-w / 2, -h / 2, w, h);
+      // soft inner edge + hedgerow border
+      c.strokeStyle = 'rgba(40,30,15,.25)'; c.lineWidth = 2; c.strokeRect(-w / 2, -h / 2, w, h);
+      c.strokeStyle = 'rgba(70,100,45,.85)'; c.lineWidth = 3.2; c.setLineDash([4, 2.5]); c.strokeRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6); c.setLineDash([]);
+      c.restore(); return; }
     case 'cliff': softShadow(c, o.x + o.r * 0.3, o.y + o.r * 0.2, o.r * 0.9, o.r * 0.45, 0.6); drawSprite(c, 'p_rocks_7', o.x, o.y, o.r * 1.5, 0.5, 0.72, o.seed > 0.5); return;
     case 'scree': drawSprite(c, 'p_rocks_8', o.x, o.y, o.r * 1.3, 0.5, 0.6, o.seed > 0.5); return;
     case 'leaves': drawSprite(c, 'p_orchard_7', o.x, o.y, o.r * 1.4, 0.5, 0.6, o.seed > 0.5); return;
@@ -304,10 +377,10 @@ function artDecal(c, o, s) {
 }
 function artStatic(c, x0, y0, x1, y1, s) {
   drawTerrain(c, x0, y0, x1, y1, s);
-  const objs = queryObjs(x0, y0, x1, y1, 150);
+  const objs = queryObjs(x0, y0, x1, y1, 160, 150);
   for (const o of objs) if (o.layer === 0) artDecal(c, o, s);
   artWater(c, x0, y0, x1, y1, s);
-  if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) { artHollow(c, s); const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), e = [e0[0] + e0[0] / d * 50, e0[1] + e0[1] / d * 50]; softShadow(c, e[0] + 8, e[1] + 60, 46, 22, 0.8); drawSprite(c, 'props2_2', e[0], e[1], 92, 0.42, 0.1); }
+  if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) { artHollow(c, s, x0, y0, x1, y1); const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), e = [e0[0] + e0[0] / d * 50, e0[1] + e0[1] / d * 50]; softShadow(c, e[0] + 8, e[1] + 60, 46, 22, 0.8); drawSprite(c, 'props2_2', e[0], e[1], 92, 0.42, 0.1); }
   for (const k of W.cracks) if (boxHit(k.bbox, x0, y0, x1, y1)) artCrack(c, k, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
@@ -322,11 +395,24 @@ const PEOPLE_N = 16;
 const NPC_SPR = { maddox: 4, pell: 2, greta: 3, ilse: 5, kip: 6, juniper: 7, hennick: 8 };
 const PET_SPR = { pup: 'creatures_0', wisp: 'creatures_1', moth: 'creatures_2', ferret: 'creatures_4', tortoise: 'creatures_5', kit: 'creatures_6' };
 function strHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+// walk cycle: body bobs, legs (bottom slice) split into two halves that swing opposite ways
+function drawWalk(c, name, x, y, w, ay, flip, ph, split, stride, bob) {
+  const e = ART_MANIFEST.s[name]; if (!e) return; const h = w * e[4] / e[3], img = ART.atlas[e[0]];
+  const sy = e[4] * split | 0, top = h * split, dy = y - h * ay, s1 = Math.sin(ph), s2 = Math.sin(ph + Math.PI);
+  c.save(); c.translate(x, 0); if (flip) c.scale(-1, 1);
+  const lx = -w / 2, hw = e[3] / 2, lh = e[4] - sy, dh = h - top;
+  // back leg first (darker), then front leg
+  c.drawImage(img, e[1] + hw, e[2] + sy, hw, lh, lx + w / 2 + s2 * stride, dy + top + Math.max(0, -s2) * 0.6, w / 2, dh - Math.max(0, -s2) * 0.6);
+  c.drawImage(img, e[1], e[2] + sy, hw, lh, lx + s1 * stride, dy + top + Math.max(0, -s1) * 0.6, w / 2, dh - Math.max(0, -s1) * 0.6);
+  c.drawImage(img, e[1], e[2], e[3], sy + 1, lx, dy - bob, w, top + h / e[4] + bob * 0.3);
+  c.restore();
+}
 function artPerson(c, x, y, ang, t, ph, idx, opt) {
   opt = opt || {}; const bob = Math.abs(Math.sin(t * 8 + ph)) * 0.9, H = opt.h || 15;
   softShadow(c, x + 2, y + 0.5, 5, 2.4, 0.9);
   const e = ART_MANIFEST.s['people_' + idx]; if (!e) return; const w = H * e[3] / e[4];
-  drawSprite(c, 'people_' + idx, x, y - bob, w, 0.5, 0.96, Math.cos(ang) < 0);
+  if (opt.idle || c.getTransform().a < 1.1) drawSprite(c, 'people_' + idx, x, y - bob, w, 0.5, 0.96, Math.cos(ang) < 0);
+  else drawWalk(c, 'people_' + idx, x, y, w, 0.96, Math.cos(ang) < 0, t * 8 + ph, 0.66, w * 0.07, bob * 0.6);
   if (opt.lantern) { c.fillStyle = 'rgba(255,212,107,.95)'; c.beginPath(); c.arc(x + (Math.cos(ang) < 0 ? -3.5 : 3.5), y - H * 0.45 - bob, 1.4, 0, TAU); c.fill(); }
 }
 function artPet(c, kind, x, y, ang, t, ph, sleeping) {
@@ -336,7 +422,8 @@ function artPet(c, kind, x, y, ang, t, ph, sleeping) {
   softShadow(c, x + 1, y + 0.5, w * 0.45, 1.8, kind === 'wisp' ? 0.3 : 0.8);
   if (sleeping) { c.save(); c.translate(x, y); c.scale(1, 0.8); drawSprite(c, name, 0, 0, w, 0.5, 0.92, ph % 2 > 1, 0.9); c.restore(); c.fillStyle = 'rgba(255,255,255,.9)'; c.font = '5px Georgia'; c.fillText('z', x + 3, y - H - (t * 2 + ph) % 4); return; }
   if (kind === 'moth') { c.save(); c.translate(x, y - hop); c.scale(0.7 + 0.3 * Math.abs(Math.sin(t * 14 + ph)), 1); drawSprite(c, name, 0, 0, w, 0.5, 0.9); c.restore(); return; }
-  drawSprite(c, name, x, y - hop, w, 0.5, 0.92, Math.cos(ang) < 0);
+  if (kind === 'wisp' || c.getTransform().a < 1.1) drawSprite(c, name, x, y - hop, w, 0.5, 0.92, Math.cos(ang) < 0);
+  else drawWalk(c, name, x, y, w, 0.92, Math.cos(ang) < 0, t * 10 + ph, 0.62, w * 0.06, hop);
 }
 const FISH_SPR = { manta: 'skyfish_0', koi: 'skyfish_1', koi2: 'skyfish_4', eel: 'skyfish_2', glowmanta: 'skyfish_3', school: 'skyfish_5' };
 function artSkyFish(c, kind, x, y, ang, size, t, ph, glowOn, alpha, shadow) {
@@ -348,5 +435,33 @@ function artSkyFish(c, kind, x, y, ang, size, t, ph, glowOn, alpha, shadow) {
   if (kind === 'manta') c.scale(0.86 + 0.16 * und, 1); else c.scale(1 + und * 0.05, 1 - Math.abs(und) * 0.04);
   const img = shadow ? ART.sil[name] : ART.atlas[e[0]];
   if (shadow) c.drawImage(img, 0, 0, img.width, img.height, -w / 2, -len / 2, w, len); else c.drawImage(img, e[1], e[2], e[3], e[4], -w / 2, -len / 2, w, len);
+  c.restore();
+}
+
+// live depth layers over the painted Hollow: parallax mist, pulsing Lumen core, delver lanterns going down
+let HDEPTH = null;
+function hollowDepthInit() {
+  const rnd = mulberry32(777), lights = [], mist = [];
+  for (let i = 0; i < 46; i++) lights.push({ a: rnd() * TAU, sp: 0.004 + rnd() * 0.01, ph: rnd(), sw: (rnd() - 0.5) * 0.6, warm: rnd() < 0.8 });
+  for (let i = 0; i < 18; i++) mist.push({ a: rnd() * TAU, f: 0.3 + rnd() * 0.45, r: 90 + rnd() * 120, sp: (rnd() - 0.5) * 0.02, d: 0.25 + rnd() * 0.5 });
+  HDEPTH = { lights, mist };
+}
+function drawHollowDepth(c, t, inV, camx, camy, z, night, glow) {
+  const R = CITY.hollowR; if (!inV(0, 0, R * 1.1)) return; if (!HDEPTH) hollowDepthInit();
+  const par = (x, y, d) => [x + (camx - x) * d * 0.18, y + (camy - y) * d * 0.18]; // deeper = drifts with the camera
+  c.save(); c.beginPath(); for (let i = 0; i < W.hollowPts.length; i += 2) { const p = W.hollowPts[i]; i ? c.lineTo(p[0] * 0.96, p[1] * 0.96) : c.moveTo(p[0] * 0.96, p[1] * 0.96); } c.closePath(); c.clip();
+  // Lumen core: breathes, sits deepest
+  const [cx, cy] = par(0, 0, 1), pulse = 0.75 + 0.25 * Math.sin(t * 0.9) + 0.08 * Math.sin(t * 2.3);
+  glow(c, cx, cy, R * 0.32, 'rgba(255,222,150,.9)', 0.32 * pulse); glow(c, cx, cy, R * 0.12, 'rgba(255,248,220,1)', 0.35 * pulse);
+  // drifting mist banks at mid depth
+  c.globalCompositeOperation = 'screen';
+  for (const m of HDEPTH.mist) { const a = m.a + t * m.sp, rr = hollowR(a) * m.f, [x, y] = par(Math.cos(a) * rr, Math.sin(a) * rr, m.d); glow(c, x, y, m.r, 'rgba(150,170,205,1)', 0.10 + 0.04 * Math.sin(t * 0.4 + m.a * 3)); }
+  c.globalCompositeOperation = 'source-over';
+  // delvers: lantern lights spiralling down the terraces, smaller and dimmer as they go deeper
+  if (z > 0.12) for (const L of HDEPTH.lights) { const u = (L.ph + t * L.sp) % 1, a = L.a + u * 2.2 + L.sw * Math.sin(u * 9), rr = hollowR(a) * (0.9 - u * 0.55), d = u;
+    const [x, y] = par(Math.cos(a) * rr, Math.sin(a) * rr, d); const fade = Math.min(1, u * 8) * Math.min(1, (1 - u) * 6), fl = 0.8 + 0.2 * Math.sin(t * 11 + L.a * 20);
+    const sz = (1 - u * 0.6) * (z > 1 ? 3.2 : 4.5);
+    glow(c, x, y, sz * 4, L.warm ? 'rgba(255,200,110,1)' : 'rgba(170,220,255,1)', 0.35 * fade * fl * (0.6 + night * 0.4));
+    c.fillStyle = L.warm ? `rgba(255,236,180,${0.9 * fade})` : `rgba(220,240,255,${0.9 * fade})`; c.beginPath(); c.arc(x, y, sz * 0.32, 0, TAU); c.fill(); }
   c.restore();
 }

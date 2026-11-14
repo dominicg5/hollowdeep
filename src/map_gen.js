@@ -312,9 +312,9 @@ function roadPos(rd, s) {
   const lo = segIndex(rd, s), hi = Math.min(lo + 1, rd.pts.length - 1); const p = rd.pts[lo], q = rd.pts[hi]; const l = (rd.cum[hi] - rd.cum[lo]) || 1, u = clamp((s - rd.cum[lo]) / l, 0, 1);
   return [p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u, Math.atan2(q[1] - p[1], q[0] - p[0]), rd.bridge[Math.min(lo, rd.bridge.length - 1)]];
 }
-function queryObjs(x0, y0, x1, y1, pad) {
-  const out = [], b = W.bucket; pad = pad || 140;
+function queryObjs(x0, y0, x1, y1, pad, ext) {
+  const out = [], b = W.bucket; pad = pad || 140; ext = ext || 0;
   for (let gx = Math.floor((x0 - pad) / b); gx <= Math.floor((x1 + pad) / b); gx++) for (let gy = Math.floor((y0 - pad) / b); gy <= Math.floor((y1 + pad) / b); gy++) {
-    const arr = W.buckets.get(gx + ',' + gy); if (!arr) continue; for (const o of arr) { const r = o.r || 20; if (o.x + r >= x0 && o.x - r <= x1 && o.y + r >= y0 && o.y - r <= y1) out.push(o); } }
+    const arr = W.buckets.get(gx + ',' + gy); if (!arr) continue; for (const o of arr) { const r = Math.max(o.r || 20, ext); if (o.x + r >= x0 && o.x - r <= x1 && o.y + r >= y0 && o.y - r <= y1) out.push(o); } }
   return out;
 }
