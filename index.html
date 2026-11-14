@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#2f4a5c">
+<title>Hollowdeep — Playable Prototype</title>
+<style>
+:root{
+  --paper:#f6ecd4; --paper2:#efe0bd; --ink:#3a2e22; --ink2:#6b5a45; --dim:#8f7d63;
+  --lumen:#ffd46b; --moss:#7fb07a; --deep:#24324a; --rust:#b0573a; --teal:#4f8c8a;
+  --good:#4d8a4f; --bad:#b0473a; --accent:#c9822f; --radius:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);
+  background:
+    radial-gradient(ellipse at 20% 0%,rgba(255,236,190,.9),transparent 55%),
+    radial-gradient(ellipse at 90% 30%,rgba(140,190,170,.35),transparent 50%),
+    linear-gradient(180deg,#f1e2bf 0%,#cdbf96 18%,#86ab9c 42%,#3f6170 70%,#1b2436 100%) fixed;
+  overscroll-behavior:none;
+}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style","Palatino Linotype",serif;margin:0;font-weight:600}
+#app{max-width:540px;margin:0 auto;min-height:100%;display:flex;flex-direction:column}
+header#top{position:sticky;top:0;z-index:20;padding:calc(env(safe-area-inset-top) + 8px) 12px 6px;
+  background:linear-gradient(180deg,rgba(246,236,212,.97),rgba(239,224,189,.93));
+  border-bottom:1px solid rgba(110,80,40,.25);box-shadow:0 4px 18px rgba(40,30,10,.15)}
+.titlebar{display:flex;align-items:center;gap:8px}
+.titlebar h1{font-size:21px;letter-spacing:.5px;flex:1}
+.titlebar h1 small{font:12px system-ui;color:var(--dim);margin-left:6px}
+.pill{font-size:11px;padding:3px 8px;border-radius:99px;background:#e2cf9f;color:var(--ink);border:1px solid rgba(110,80,40,.3);white-space:nowrap}
+.pill.test{background:#ffe08a;font-weight:700}
+.iconbtn{border:0;background:rgba(255,255,255,.55);border-radius:12px;font-size:19px;width:38px;height:38px;cursor:pointer}
+#resbar{display:flex;gap:6px;overflow-x:auto;padding:6px 0 2px;scrollbar-width:none}
+#resbar::-webkit-scrollbar{display:none}
+.res{flex:0 0 auto;display:flex;align-items:center;gap:3px;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.6);font-size:13px;font-variant-numeric:tabular-nums;border:1px solid rgba(110,80,40,.15)}
+.res.full{background:#f4c9b8}
+main#view{flex:1;padding:10px 10px 96px}
+nav#tabs{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;justify-content:center;
+  background:linear-gradient(180deg,rgba(30,40,58,.92),rgba(20,26,40,.98));padding:6px 4px calc(env(safe-area-inset-bottom) + 6px);border-top:1px solid rgba(255,212,107,.25)}
+nav#tabs .wrap{display:flex;max-width:540px;width:100%}
+nav#tabs button{flex:1;border:0;background:none;color:#cfc3a6;font-size:11px;padding:4px 0;cursor:pointer;border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:1px;position:relative}
+nav#tabs button span{font-size:21px;line-height:1.1}
+nav#tabs button.on{color:var(--lumen);background:rgba(255,212,107,.1)}
+nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;border-radius:50%;background:#ff8a5c;box-shadow:0 0 6px #ff8a5c}
+.card{background:radial-gradient(circle at 15% 8%,rgba(255,252,240,.97),rgba(246,236,212,.95) 60%,rgba(236,222,190,.95));
+  border-radius:var(--radius);padding:12px;margin:0 0 10px;border:1px solid rgba(110,80,40,.22);box-shadow:0 6px 18px rgba(30,20,5,.18)}
+.card h2{font-size:18px;margin-bottom:4px}
+.card h3{font-size:16px}
+.row{display:flex;align-items:center;gap:8px}
+.row.between{justify-content:space-between}
+.wrapgap{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dim{color:var(--dim);font-size:12.5px}
+.small{font-size:12.5px}
+.tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:99px;background:#e9dab4;border:1px solid rgba(110,80,40,.2);margin-right:3px;white-space:nowrap}
+.tag.good{background:#d3e8c9}.tag.bad{background:#f2cfc4}.tag.lumen{background:#fff0bf}
+.cost{display:inline-flex;gap:2px;align-items:center;font-size:12.5px;padding:1px 6px;border-radius:8px;background:rgba(255,255,255,.6);margin:1px 2px 1px 0;font-variant-numeric:tabular-nums}
+.cost.short{background:#f6c8bb;color:#7a2a1a}
+.btn{border:0;border-radius:12px;padding:10px 14px;font:600 14px system-ui;cursor:pointer;color:#fff8e6;
+  background:linear-gradient(180deg,#d39444,#a8682a);box-shadow:0 3px 0 #7a4a1c,0 4px 10px rgba(0,0,0,.18);min-height:42px}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 #7a4a1c}
+.btn.alt{background:linear-gradient(180deg,#5f9c98,#3f706f);box-shadow:0 3px 0 #2a4b4a}
+.btn.deep{background:linear-gradient(180deg,#43577a,#28354f);box-shadow:0 3px 0 #18223a}
+.btn.red{background:linear-gradient(180deg,#c8634c,#94402e);box-shadow:0 3px 0 #6a2a1c}
+.btn.ghost{background:rgba(255,255,255,.6);color:var(--ink);box-shadow:0 2px 0 rgba(110,80,40,.3)}
+.btn.sm{padding:6px 10px;min-height:34px;font-size:13px}
+.btn:disabled{filter:grayscale(.8);opacity:.55;cursor:not-allowed;transform:none}
+.bar{height:9px;border-radius:9px;background:rgba(80,60,30,.15);overflow:hidden;margin:6px 0}
+.bar>i{display:block;height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,#e8b45a,#ffd46b);box-shadow:0 0 8px rgba(255,212,107,.8);transition:width .25s linear}
+.bar.xp>i{background:linear-gradient(90deg,#6aa36a,#a8d68a)}
+.bar.rich>i{background:linear-gradient(90deg,#8a6b3a,#d9b46a)}
+.bar.boost>i{background:linear-gradient(90deg,#c9822f,#ffcf5a,#fff1b8)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:rgba(255,255,255,.55);border-radius:12px;padding:8px;text-align:center}
+.stat b{display:block;font:600 19px Georgia,serif}
+.stat span{font-size:11.5px;color:var(--dim)}
+.scene{border-radius:var(--radius);overflow:hidden;margin-bottom:10px;box-shadow:0 6px 18px rgba(30,20,5,.25);border:1px solid rgba(110,80,40,.3);line-height:0}
+.scene svg{width:100%;height:auto;display:block}
+.bld{display:grid;grid-template-columns:44px 1fr;gap:10px}
+.bld .ic{font-size:30px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,255,255,.55)}
+.lvl{font:600 12px system-ui;color:#fff;background:#8a6a3a;border-radius:8px;padding:1px 6px;margin-left:4px}
+.layer{border-left:6px solid var(--c,#999)}
+.locked{opacity:.6}
+.log{max-height:300px;overflow:auto}
+.log div{padding:5px 0;border-bottom:1px dashed rgba(110,80,40,.2);font-size:13px}
+.log .t{color:var(--dim);font-size:11px;margin-right:4px}
+.segs{display:flex;gap:4px}
+.segs button{flex:1}
+/* training */
+#tapzone{position:relative;user-select:none;-webkit-user-select:none;touch-action:manipulation;cursor:pointer;border-radius:var(--radius);overflow:hidden;
+  background:radial-gradient(ellipse at 50% 120%,#a9c48a 0%,#7ea36f 35%,transparent 36%),linear-gradient(180deg,#f7e6bd,#e6cf98 60%,#cdb47c);border:1px solid rgba(110,80,40,.3);box-shadow:inset 0 0 30px rgba(120,80,20,.25)}
+#tapzone svg{width:100%;display:block}
+#tapzone .hint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:13px;color:#5a4528;pointer-events:none}
+.float{position:absolute;pointer-events:none;font:700 18px Georgia,serif;color:#a25c12;text-shadow:0 1px 0 #fff6d8;animation:floatup .9s ease-out forwards}
+.float.mark{color:#6a4fa0}
+@keyframes floatup{from{opacity:1;transform:translate(-50%,0) scale(1)}to{opacity:0;transform:translate(-50%,-60px) scale(1.25)}}
+#swordArm{transform-box:fill-box;transform-origin:10% 90%;transform:rotate(-55deg)}
+#swordArm.swing{animation:swing .22s ease-out}
+@keyframes swing{0%{transform:rotate(-70deg)}45%{transform:rotate(45deg)}100%{transform:rotate(-55deg)}}
+#dummyG{transform-box:fill-box;transform-origin:50% 100%}
+#dummyG.hit{animation:wobble .3s ease-out}
+@keyframes wobble{0%{transform:rotate(0)}30%{transform:rotate(9deg)}60%{transform:rotate(-5deg)}100%{transform:rotate(0)}}
+.spark{animation:spark .3s ease-out forwards}
+@keyframes spark{from{opacity:1}to{opacity:0}}
+/* modal */
+#modal{position:fixed;inset:0;z-index:50;background:rgba(15,18,30,.6);display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
+#modal.hidden{display:none}
+#modal .sheet{width:100%;max-width:540px;max-height:88vh;overflow:auto;background:radial-gradient(circle at 20% 0%,#fffaf0,#f3e5c4);border-radius:20px 20px 0 0;padding:16px 14px calc(env(safe-area-inset-bottom) + 16px);box-shadow:0 -10px 30px rgba(0,0,0,.35);animation:rise .25s ease-out}
+@media(min-width:600px){#modal{align-items:center}#modal .sheet{border-radius:20px}}
+@keyframes rise{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+#toasts{position:fixed;top:96px;left:0;right:0;z-index:60;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{background:rgba(36,50,74,.95);color:#fff3d0;padding:8px 14px;border-radius:12px;font-size:13.5px;max-width:92%;box-shadow:0 6px 18px rgba(0,0,0,.3);animation:rise .2s ease-out}
+/* golem reveal */
+.raidscene{border-radius:14px;overflow:hidden;line-height:0;margin:8px 0}
+.raidscene svg{width:100%;display:block}
+.golem{transform-box:fill-box;transform-origin:50% 100%;transform:rotate(90deg) translateX(0)}
+.golem .eye{opacity:0}
+.golem .arm{opacity:0}
+.wake .golem{animation:standup .8s cubic-bezier(.3,1.5,.5,1) forwards;animation-delay:calc(var(--i) * .18s)}
+.wake .golem .eye{animation:glow .4s forwards;animation-delay:calc(var(--i) * .18s + .6s)}
+.wake .golem .arm{animation:glow .3s forwards;animation-delay:calc(var(--i) * .18s + .5s)}
+@keyframes standup{0%{transform:rotate(90deg)}60%{transform:rotate(-8deg) translateY(-6px)}100%{transform:rotate(0) translateY(-2px)}}
+@keyframes glow{to{opacity:1}}
+.raider{transition:transform 1.6s ease-in-out}
+.approach .raider{transform:translateX(70px)}
+.flee .raider{transform:translateX(-90px);transition-duration:1s}
+.shake{animation:shake .4s 2}
+@keyframes shake{25%{transform:translate(2px,1px)}50%{transform:translate(-2px,-1px)}75%{transform:translate(1px,-2px)}}
+.reveal-line{opacity:0;transition:opacity .5s;line-height:1.4}
+.reveal-line.on{opacity:1}
+.stars{font-size:26px;letter-spacing:4px}
+.lumenglow{filter:drop-shadow(0 0 4px #ffd46b)}
+@keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+.pulse{animation:pulse 2.4s ease-in-out infinite}
+.switch{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(110,80,40,.25)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="titlebar">
+      <h1>Hollowdeep<small>prototype</small></h1>
+      <span id="speedPill" class="pill"></span>
+      <button class="iconbtn" data-act="settings" aria-label="Settings">⚙️</button>
+    </div>
+    <div id="resbar"></div>
+  </header>
+  <main id="view"></main>
+  <nav id="tabs"><div class="wrap">
+    <button data-tab="capital"><span>🏰</span>Capital</button>
+    <button data-tab="hollow"><span>🕳️</span>Hollow</button>
+    <button data-tab="outposts"><span>🐢</span>Outposts</button>
+    <button data-tab="raids"><span>⚔️</span>Raids</button>
+    <button data-tab="training"><span>🗡️</span>Training</button>
+  </div></nav>
+</div>
+<div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
+<div id="toasts"></div>
+<script>
+'use strict';
+/* =====================================================================
+   HOLLOWDEEP — playable prototype
+   All tunable numbers live in CONFIG. Times are in GAME hours/minutes;
+   TEST MODE multiplies the clock (default 1 game hour = 1 real minute).
+   ===================================================================== */
+const CONFIG = {
+  saveKey: 'hollowdeep.save.v1',
+  testMode: { defaultOn: true, speed: 60 },      // ×60: 1 game hour = 1 real minute
+  offlineCapHours: 72,                            // max game hours simulated while away
+  simStepMinutes: 5,                              // simulation granularity (game minutes)
+  awayThresholdRealSec: 45,                       // gap that triggers "While you were away"
+
+  start: { crowns: 250, stone: 150, timber: 150, lumen: 80, moss: 0, iron: 0, coal: 10, steel: 0, amber: 2 },
+
+  resources: {   // weight = how heavy it is to haul up the Tether (The Pull)
+    crowns: { icon: '👑', name: 'Crowns',     weight: 0.05 },
+    stone:  { icon: '🪨', name: 'Stone',      weight: 0.6 },
+    timber: { icon: '🪵', name: 'Timber',     weight: 0.5 },
+    lumen:  { icon: '🏮', name: 'Lumen',      weight: 0.1 },
+    moss:   { icon: '🌿', name: 'Lanternmoss',weight: 0.5 },
+    iron:   { icon: '⛓️', name: 'Iron ore',   weight: 1.0 },
+    coal:   { icon: '⚫', name: 'Breathcoal', weight: 1.0 },
+    steel:  { icon: '🔩', name: 'Steel',      weight: 0.3 },
+    amber:  { icon: '🟠', name: 'Amber',      weight: 0.1 },
+  },
+  refined: ['crowns', 'lumen', 'steel', 'amber'],   // what "ship refined only" sends
+
+  storage: { base: 600, growth: 1.5, protectBase: 0.30, protectPerLevel: 0.04 },
+
+  hero: { name: 'Wren', basePower: 12, powerPerLevel: 6, xpBase: 60, xpGrowth: 1.35 },
+
+  // Training Grounds tap curve (v2): boost = 100% × (taps in rolling 7 days ÷ weeklyTarget)^exponent
+  tap: { weeklyTarget: 300000, dailyCap: 60000, exponent: 0.75, testScale: 0.01, maxTapsPerSec: 12, rollingDays: 7 },
+
+  // Buildings. cost for target level T = base × growth^(T-2) (T=1 for things that start at 0)
+  buildings: {
+    hall:      { name: 'Lantern Hall',    icon: '🏮', max: 10, base: { crowns: 120, stone: 80 }, growth: 1.6, minutes: 20,
+                 desc: 'Heart of the capital. Makes Crowns, Stone and a little Lumen; presses Lanternmoss into Lumen (3:1). Other buildings can be at most Hall level +1.' },
+    storehouse:{ name: 'Storehouse',      icon: '📦', max: 10, base: { crowns: 100, stone: 120 }, growth: 1.55, minutes: 15,
+                 desc: 'Raises storage caps and protects part of your stock from raiders.' },
+    training:  { name: 'Training Grounds',icon: '🗡️', max: 10, base: { crowns: 90, timber: 50 }, growth: 1.55, minutes: 15,
+                 desc: 'Hero power +3 per level, and the hero spars for idle XP while home.' },
+    lift:      { name: 'Tether Lift',     icon: '🧵', max: 6, base: { crowns: 150, stone: 100, timber: 80 }, growth: 1.7, minutes: 30, steelFrom: 3, steelPer: 12,
+                 desc: 'Your Spine. Sets how deep outposts can anchor, how much cargo lifts per hour, and cuts the Pull.' },
+    wall:      { name: 'Guardian Wall',   icon: '🗿', max: 10, base: { crowns: 110, stone: 140 }, growth: 1.55, minutes: 20, steelFrom: 4, steelPer: 8,
+                 desc: 'Looks like a wall. It is not. Rock golems sleep in its columns and stand up when raiders come.' },
+    kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
+                 desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
+    forge:     { name: 'Rim Forge',       icon: '⚒️', max: 8, start: 0, base: { crowns: 200, stone: 150, timber: 60 }, growth: 1.6, minutes: 25,
+                 desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel at the Rim. Works, but hauling raw ore up costs a lot of Lumen.' },
+  },
+  buildTimeGrowth: 1.45,
+  hallPerLevel: { crowns: 14, stone: 8, lumen: 2.5, mossPress: 6 },   // per game hour
+  trainingPerLevel: { power: 3, sparXp: 4 },
+  lift: { maxReach: 4, capacityPerLevel: 30, pullCutPerLevel: 0.08 },
+  wall: { baseGolems: 2, golemEvery: 3, maxGolems: 5, golemPower: 10, golemPowerPerLevel: 7 },
+  forgePerLevel: 1.5,                                                 // steel per game hour per level
+
+  // The Hollow. Expedition: hours, lumen cost, recommended power, base risk, xp, loot ranges, pet egg.
+  // Outposts: burn = Lumen per hour to keep an outpost lit; pull = Pull multiplier of the layer.
+  layers: [
+    { id: 1, name: 'The Lip', color: '#d9b46a', flavor: 'Sunlit ledges and old gold seams just under the rim.',
+      hours: 1, lumen: 5, rec: 20, risk: 0.05, xp: 30, loot: { crowns: [40, 80], stone: [20, 40], timber: [10, 25] }, pet: 'wisp', egg: 0.12, burn: 0.5, pull: 1.0,
+      veins: [ { id: 'l1gold', name: 'Gold Vein', prod: { crowns: 12 } }, { id: 'l1chalk', name: 'Chalk Ledge', prod: { stone: 10 } } ] },
+    { id: 2, name: 'Lanternmoss Terraces', color: '#7fb07a', flavor: 'Glowing moss terraces. The fuel of everything below.',
+      hours: 3, lumen: 10, rec: 45, risk: 0.12, xp: 90, loot: { lumen: [15, 30], moss: [20, 40], crowns: [20, 40] }, pet: 'pup', egg: 0.10, burn: 1, pull: 1.25,
+      veins: [ { id: 'l2moss', name: 'Lanternmoss Bed', prod: { moss: 10 } }, { id: 'l2clay', name: 'Clay Shelf', prod: { stone: 11, moss: 2 } } ] },
+    { id: 3, name: 'Rootfall', color: '#c08a4a', flavor: 'A forest growing down the wall. Amber weeps from the roots.',
+      hours: 6, lumen: 20, rec: 80, risk: 0.22, xp: 200, loot: { timber: [30, 60], amber: [2, 5], iron: [10, 20], steel: [3, 6] }, pet: 'moth', egg: 0.10, burn: 2, pull: 1.6,
+      veins: [ { id: 'l3wood', name: 'Heartwood Grove', prod: { timber: 10 } }, { id: 'l3amber', name: 'Amber Weep', prod: { amber: 0.8, timber: 3 } } ] },
+    { id: 4, name: 'The Bellows', color: '#b0573a', flavor: 'The Hollow breathes here. Iron, Breathcoal, and hot wind.',
+      hours: 10, lumen: 35, rec: 130, risk: 0.32, xp: 420, loot: { iron: [30, 60], coal: [20, 40], steel: [6, 12], amber: [3, 6] }, pet: 'ferret', egg: 0.10, burn: 3, pull: 2.0,
+      veins: [ { id: 'l4iron', name: 'Iron Seam', prod: { iron: 8, coal: 2 } }, { id: 'l4coal', name: 'Breathcoal Vent', prod: { coal: 8, iron: 2 } } ] },
+  ],
+  veinDecayPerDay: 0.04, veinMin: 0.35, veinRegenPerDay: 0.08,
+  seasonedDays: 7, seasonedBonus: 0.10, darkOutput: 0.25,
+
+  outpostTypes: {
+    strider: { name: 'Strider', icon: '🦿', mult: 1.0, defense: 25, stockCap: 300, unanchorH: 3, travelHPerLayer: 2, settleH: 2,
+               desc: 'A workshop on four stilt legs. Balanced all-rounder.' },
+    drill:   { name: 'Tetherdrill', icon: '⛏️', mult: 1.3, defense: 15, stockCap: 240, unanchorH: 2, travelHPerLayer: 1, settleH: 1,
+               desc: 'Hangs off your Spine. Highest output, fast to move, thin armor.',
+               cost: { crowns: 500, stone: 250, timber: 120, steel: 15 }, needsLift: 2 },
+  },
+  moveCost: { crowns: 60, lumenPerLayer: 10 },     // moving deeper costs more Lumen (the Pull)
+
+  modules: {
+    still:   { name: 'Lumen Still', icon: '⚗️', cost: { crowns: 120, timber: 40 }, in: { moss: 2 }, out: { lumen: 1 }, perHour: 5,
+               desc: 'Presses 2 Lanternmoss → 1 Lumen aboard (capital presses only 3:1).' },
+    smelter: { name: 'Smelter',     icon: '🔥', cost: { crowns: 200, stone: 120, timber: 60 }, in: { iron: 2, coal: 1 }, out: { steel: 1 }, perHour: 3,
+               desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel aboard. Pulls inputs from your other outposts on the same layer.' },
+  },
+
+  pull: { scale: 0.25, shipEveryHours: 1 },   // Lumen cost = qty × weight × layer depth × layer pull × scale × (1 − lift cut) × pets
+
+  pets: {
+    wisp:   { name: 'Chalk Wisp',     icon: '👻', power: 9, bonus: 'Sturdy defender (+power)' },
+    pup:    { name: 'Moss Pup',       icon: '🐶', power: 6, bonus: '+20% Lumen from expeditions', lumenFind: 0.20 },
+    moth:   { name: 'Amber Moth',     icon: '🦋', power: 7, bonus: '+15% expedition loot', loot: 0.15 },
+    ferret: { name: 'Bellows Ferret', icon: '🦦', power: 8, bonus: 'Hauler: −20% Pull cost', pullCut: 0.20 },
+  },
+  petLevelPower: 0.4, petMax: 10, petUpgrade: { crowns: 60, amber: 2 },
+  kennelPetBoost: 0.10,
+
+  raids: {
+    firstRaidHours: 1.5, intervalHours: [8, 14], shieldHours: 8,
+    attackLumen: 10, marchMinutes: 30, rivalShieldHours: 4,
+    lootPct: 0.30,                          // share of UNPROTECTED stock taken at 3 stars
+    outpostBaitChance: 0.5, outpostLootPct: 0.4,
+    growthPerDay: 0.04,                     // AI raiders slowly get stronger
+    heroHomeDefense: 0.5, petDefense: 0.6,
+  },
+  rivals: [
+    { name: 'Hookline Rest',  lord: 'Vessa the Ropewright', icon: '🪝', mult: 0.7 },
+    { name: 'Cinderbell Keep',lord: 'Old Marrow',          icon: '🔔', mult: 1.0 },
+    { name: 'Mothwick Hold',  lord: 'The Pale Lodge',      icon: '🕯️', mult: 1.35 },
+  ],
+};
+
+const HOUR = 3600e3, MIN = 60e3, DAY = 24 * HOUR;
+const RES = Object.keys(CONFIG.resources);
+let S = null;                 // game state
+let ui = { tab: 'capital', pressing: false, lastHtml: '', modal: null, collecting: null };
+
+/* ---------------- helpers ---------------- */
+const $ = (s) => document.querySelector(s);
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const speed = () => (S.testMode ? CONFIG.testMode.speed : 1);
+const layerById = (id) => CONFIG.layers[id - 1];
+function veinById(id) { for (const L of CONFIG.layers) for (const v of L.veins) if (v.id === id) return Object.assign({ layer: L.id }, v); return null; }
+function fmt(n) { n = Math.floor(n + 1e-9); if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M'; if (n >= 1e4) return (n / 1e3).toFixed(1) + 'k'; return String(n); }
+function fmt1(n) { return n >= 10 ? fmt(n) : (Math.round(n * 10) / 10).toString(); }
+function fmtDur(ms) {
+  ms = Math.max(0, ms); const s = Math.ceil(ms / 1000);
+  if (s < 60) return s + 's';
+  const m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
+  if (d > 0) return d + 'd ' + (h % 24) + 'h';
+  if (h > 0) return h + 'h ' + (m % 60) + 'm';
+  return m + 'm ' + (s % 60) + 's';
+}
+const realLeft = (end) => fmtDur((end - S.gameTime) / speed());
+const gameDur = (ms) => fmtDur(ms) + (S.testMode ? ` <span class="dim">(≈${fmtDur(ms / speed())} real)</span>` : '');
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------------- state ---------------- */
+function newState() {
+  const veins = {}; CONFIG.layers.forEach((L) => L.veins.forEach((v) => (veins[v.id] = 1)));
+  const buildings = {}; for (const k in CONFIG.buildings) buildings[k] = CONFIG.buildings[k].start ?? 1;
+  return {
+    v: 1, testMode: CONFIG.testMode.defaultOn, gameTime: 0, lastReal: Date.now(), created: Date.now(),
+    res: Object.assign({}, CONFIG.start), buildings, build: null,
+    hero: { level: 1, xp: 0, task: null },
+    taps: { days: {}, total: 0, marks: 0 },
+    pets: [{ uid: 1, id: 'pup', level: 1 }], slots: [1, null],
+    outposts: [{ uid: 2, type: 'strider', name: 'Longstep', layer: 1, vein: 'l1gold', state: 'anchored', anchoredSince: 0, stock: {}, module: null, ship: 'all', move: null, dark: false }],
+    veins, nextShipAt: HOUR * CONFIG.pull.shipEveryHours, lastShip: null,
+    nextRaidAt: CONFIG.raids.firstRaidHours * HOUR, shieldUntil: 0, raidCount: 0, lastRaid: null, pendingReveal: null,
+    rivals: [], log: [], nextUid: 10, seen: {},
+    stats: { expeditions: 0, raidsWon: 0, defended: 0, tapsAll: 0 },
+  };
+}
+function uid() { return S.nextUid++; }
+
+function log(icon, msg) {
+  const e = { t: S.gameTime, icon, msg };
+  S.log.unshift(e); if (S.log.length > 80) S.log.length = 80;
+  if (ui.collecting) ui.collecting.push(e);
+  else toast(icon + ' ' + msg.replace(/<[^>]+>/g, ''));
+}
+
+/* ---------------- derived numbers ---------------- */
+function storageCap() { const c = CONFIG.storage; return Math.floor(c.base * Math.pow(c.growth, S.buildings.storehouse - 1)); }
+function protectedShare() { const c = CONFIG.storage; return clamp(c.protectBase + c.protectPerLevel * (S.buildings.storehouse - 1), 0, 0.8); }
+function addRes(k, n) { S.res[k] = clamp((S.res[k] || 0) + n, 0, storageCap()); }
+function canAfford(cost) { return Object.keys(cost).every((k) => (S.res[k] || 0) >= cost[k] - 1e-9); }
+function pay(cost) { if (!canAfford(cost)) return false; for (const k in cost) S.res[k] -= cost[k]; return true; }
+function liftReach() { return Math.min(CONFIG.lift.maxReach, S.buildings.lift + 1); }      // deepest layer outposts can anchor
+function expeditionReach() { return Math.min(CONFIG.layers.length, liftReach() + 1); }       // hero can scout one layer deeper
+function liftCapacity() { return CONFIG.lift.capacityPerLevel * S.buildings.lift; }
+function golemCount() { const w = CONFIG.wall; return Math.min(w.maxGolems, w.baseGolems + Math.floor((S.buildings.wall - 1) / w.golemEvery)); }
+function golemPower() { const w = CONFIG.wall; return w.golemPower + w.golemPowerPerLevel * (S.buildings.wall - 1); }
+function petSlots() { return S.buildings.kennel >= 3 ? 2 : 1; }
+function equippedPets() { return S.slots.slice(0, petSlots()).map((u) => S.pets.find((p) => p.uid === u)).filter(Boolean); }
+function petPower(p) { const d = CONFIG.pets[p.id]; return d.power * (1 + CONFIG.petLevelPower * (p.level - 1)) * (1 + CONFIG.kennelPetBoost * (S.buildings.kennel - 1)); }
+function petsPower() { return equippedPets().reduce((a, p) => a + petPower(p), 0); }
+function petBonus(key) { return equippedPets().reduce((a, p) => a + (CONFIG.pets[p.id][key] || 0), 0); }
+function heroBasePower() { const h = CONFIG.hero; return h.basePower + h.powerPerLevel * (S.hero.level - 1) + CONFIG.trainingPerLevel.power * (S.buildings.training - 1); }
+function attackPower() { return heroBasePower() + petsPower(); }
+function heroHome() { return !S.hero.task; }
+function defensePower() {
+  const r = CONFIG.raids;
+  return golemCount() * golemPower() + petsPower() * r.petDefense + (heroHome() ? heroBasePower() * r.heroHomeDefense : 0);
+}
+function xpToNext(l) { const h = CONFIG.hero; return Math.floor(h.xpBase * Math.pow(h.xpGrowth, (l || S.hero.level) - 1)); }
+
+/* ---------- training boost (rolling 7-day bank) ---------- */
+function tapScale() { return S.testMode ? CONFIG.tap.testScale : 1; }
+function dayIndex() { return Math.floor(S.gameTime / DAY); }
+function tapsToday() { return S.taps.days[dayIndex()] || 0; }
+function dailyCap() { return Math.round(CONFIG.tap.dailyCap * tapScale()); }
+function weeklyTarget() { return Math.round(CONFIG.tap.weeklyTarget * tapScale()); }
+function weekTaps() { const d = dayIndex(); let s = 0; for (const k in S.taps.days) if (+k > d - CONFIG.tap.rollingDays) s += S.taps.days[k]; return s; }
+function boostFor(t) { return 100 * Math.pow(Math.min(1, t / weeklyTarget()), CONFIG.tap.exponent); }
+function boostPct() { return boostFor(weekTaps()); }
+function pruneTaps() { const d = dayIndex(); for (const k in S.taps.days) if (+k <= d - CONFIG.tap.rollingDays) delete S.taps.days[k]; }
+
+function gainXp(amount, quiet) {
+  const gained = amount * (1 + boostPct() / 100);
+  S.hero.xp += gained;
+  let ups = 0;
+  while (S.hero.xp >= xpToNext()) { S.hero.xp -= xpToNext(); S.hero.level++; ups++; }
+  if (ups) log('⭐', `${CONFIG.hero.name} reached <b>level ${S.hero.level}</b>!`);
+  return gained;
+}
+
+/* ---------------- buildings ---------------- */
+function buildCost(id) {
+  const b = CONFIG.buildings[id], target = S.buildings[id] + 1, mult = Math.pow(b.growth, Math.max(0, target - 2));
+  const c = {}; for (const k in b.base) c[k] = Math.round(b.base[k] * mult);
+  if (b.steelFrom && target >= b.steelFrom) c.steel = b.steelPer * (target - b.steelFrom + 1);
+  if (b.amberFrom && target >= b.amberFrom) c.amber = b.amberPer * (target - b.amberFrom + 1);
+  return c;
+}
+function buildTime(id) { const b = CONFIG.buildings[id], target = S.buildings[id] + 1; return b.minutes * MIN * Math.pow(CONFIG.buildTimeGrowth, Math.max(0, target - 2)); }
+function buildBlock(id) {
+  const b = CONFIG.buildings[id], lvl = S.buildings[id];
+  if (lvl >= b.max) return 'Max level';
+  if (id !== 'hall' && lvl + 1 > S.buildings.hall + 1) return `Needs Lantern Hall Lv ${lvl}`;
+  if (S.build) return 'Builders busy';
+  return null;
+}
+function startBuild(id) {
+  if (buildBlock(id)) return;
+  const cost = buildCost(id);
+  if (!pay(cost)) return toast('Not enough resources');
+  S.build = { id, to: S.buildings[id] + 1, start: S.gameTime, end: S.gameTime + buildTime(id) };
+  toast(`🔨 Building ${CONFIG.buildings[id].name} Lv ${S.build.to}`);
+  rerender(true);
+}
+
+/* ---------------- expeditions ---------------- */
+function successChance(L) { return clamp(1 - L.risk + ((attackPower() - L.rec) / L.rec) * 0.3, 0.2, 0.97); }
+function startExpedition(layerId) {
+  const L = layerById(layerId);
+  if (!heroHome()) return toast('Your hero is busy');
+  if (layerId > expeditionReach()) return toast('The Tether does not reach that deep yet');
+  if (!pay({ lumen: L.lumen })) return toast(`Needs ${L.lumen} Lumen to light the way`);
+  S.hero.task = { type: 'expedition', layer: layerId, start: S.gameTime, end: S.gameTime + L.hours * HOUR };
+  toast(`🕳️ ${CONFIG.hero.name} descends into ${L.name}`);
+  rerender(true);
+}
+function rollLoot(L, mult) {
+  const out = {};
+  for (const k in L.loot) { let n = rand(L.loot[k][0], L.loot[k][1]) * mult; if (k === 'lumen') n *= 1 + petBonus('lumenFind'); out[k] = Math.round(n); }
+  return out;
+}
+function lootText(l) { return Object.keys(l).filter((k) => l[k] > 0).map((k) => `${CONFIG.resources[k].icon}${fmt(l[k])}`).join(' '); }
+function grantLoot(l) { for (const k in l) addRes(k, l[k]); }
+function findPet(L) {
+  if (Math.random() < L.egg) {
+    const p = { uid: uid(), id: L.pet, level: 1 };
+    const dupe = S.pets.find((x) => x.id === L.pet);
+    if (dupe) { dupe.level = Math.min(CONFIG.petMax, dupe.level + 1); log('🥚', `Found another ${CONFIG.pets[L.pet].name} egg. Your ${CONFIG.pets[L.pet].name} grew to Lv ${dupe.level}!`); }
+    else { S.pets.push(p); log('🥚', `Found a pet egg! <b>${CONFIG.pets[L.pet].icon} ${CONFIG.pets[L.pet].name}</b> hatched.`); if (!S.slots[0]) S.slots[0] = p.uid; }
+  }
+}
+function finishHeroTask() {
+  const t = S.hero.task;
+  if (t.type === 'expedition') {
+    const L = layerById(t.layer);
+    const mult = (1 + 0.03 * (S.hero.level - 1)) * (1 + petBonus('loot'));
+    const loot = rollLoot(L, mult);
+    if (Math.random() < successChance(L)) {
+      grantLoot(loot); const xp = gainXp(L.xp);
+      S.stats.expeditions++;
+      log('🎒', `Back from <b>${L.name}</b>: ${lootText(loot)} · +${fmt(xp)} XP`);
+      findPet(L);
+      S.hero.task = null;
+    } else {
+      const half = {}; for (const k in loot) half[k] = Math.floor(loot[k] / 2);
+      S.hero.task = { type: 'stranded', layer: t.layer, start: S.gameTime, end: S.gameTime + L.hours * HOUR * 0.5, loot: half, xp: L.xp / 2 };
+      log('🕯️', `${CONFIG.hero.name}'s lantern ran low in <b>${L.name}</b>. Stranded on a ledge, waiting for a rescue line.`);
+    }
+  } else if (t.type === 'stranded') {
+    grantLoot(t.loot); const xp = gainXp(t.xp);
+    log('🪢', `Rescue line reached ${CONFIG.hero.name}. Came home with ${lootText(t.loot)} · +${fmt(xp)} XP`);
+    S.hero.task = null;
+  } else if (t.type === 'raid') {
+    resolveAttack(t.rival);
+    S.hero.task = null;
+  }
+}
+function rescueCost() { return S.hero.task && S.hero.task.type === 'stranded' ? 8 * S.hero.task.layer : 0; }
+function rescueNow() {
+  if (!S.hero.task || S.hero.task.type !== 'stranded') return;
+  if (!pay({ lumen: rescueCost() })) return toast('Not enough Lumen for a rescue line');
+  S.hero.task.end = S.gameTime; finishHeroTask(); rerender(true);
+}
+
+/* ---------------- outposts ---------------- */
+function stockTotal(o) { return Object.values(o.stock).reduce((a, b) => a + b, 0); }
+function opType(o) { return CONFIG.outpostTypes[o.type]; }
+function seasoned(o) { return o.state === 'anchored' && S.gameTime - o.anchoredSince >= CONFIG.seasonedDays * DAY; }
+function outpostRates(o) {
+  if (o.state !== 'anchored') return {};
+  const v = veinById(o.vein), m = opType(o).mult * S.veins[o.vein] * (seasoned(o) ? 1 + CONFIG.seasonedBonus : 1) * (o.dark ? CONFIG.darkOutput : 1);
+  const r = {}; for (const k in v.prod) r[k] = v.prod[k] * m; return r;
+}
+function burnRate(o) { return layerById(o.layer).burn; }
+function siblings(o) { return S.outposts.filter((x) => x !== o && x.state === 'anchored' && x.layer === o.layer); }
+function runModule(o, h) {
+  if (!o.module || o.state !== 'anchored') return;
+  const m = CONFIG.modules[o.module];
+  let batches = m.perHour * h * (o.dark ? CONFIG.darkOutput : 1);
+  const pools = [o, ...(o.module === 'smelter' ? siblings(o) : [])];
+  for (const k in m.in) { const have = pools.reduce((a, p) => a + (p.stock[k] || 0), 0); batches = Math.min(batches, have / m.in[k]); }
+  if (batches <= 1e-6) return;
+  for (const k in m.in) {
+    let need = batches * m.in[k];
+    for (const p of pools) { const take = Math.min(need, p.stock[k] || 0); p.stock[k] = (p.stock[k] || 0) - take; need -= take; if (need <= 1e-9) break; }
+  }
+  for (const k in m.out) o.stock[k] = (o.stock[k] || 0) + batches * m.out[k];
+  o.refined = (o.refined || 0) + batches;
+}
+function updateOutpost(o, h) {
+  const t = S.gameTime, T = opType(o);
+  if (o.move && t >= o.move.phaseEnd) {
+    if (o.state === 'packing') {
+      const layers = Math.abs(o.move.toLayer - o.layer);
+      o.state = 'traveling'; o.move.phaseStart = o.move.phaseEnd; o.move.phaseEnd += Math.max(1, layers * T.travelHPerLayer) * HOUR;
+      log(T.icon, `${o.name} has packed up and is on the move toward ${layerById(o.move.toLayer).name}.`);
+    } else if (o.state === 'traveling') {
+      o.state = 'settling'; o.layer = o.move.toLayer; o.vein = o.move.toVein;
+      o.move.phaseStart = o.move.phaseEnd; o.move.phaseEnd += T.settleH * HOUR;
+    } else if (o.state === 'settling') {
+      o.state = 'anchored'; o.anchoredSince = o.move.phaseEnd; o.move = null;
+      log('⚓', `${o.name} anchored on the <b>${veinById(o.vein).name}</b> in ${layerById(o.layer).name}.`);
+    }
+  }
+  // Lumen upkeep (keeping the outpost lit)
+  const burn = burnRate(o) * h;
+  if (S.res.lumen >= burn) { S.res.lumen -= burn; if (o.dark) { o.dark = false; } }
+  else { if (!o.dark) log('🌑', `${o.name} went dark: the capital ran out of Lumen. Output drops to 25%.`); o.dark = true; }
+  if (o.state === 'anchored') {
+    const cap = T.stockCap, r = outpostRates(o);
+    let room = cap - stockTotal(o);
+    for (const k in r) { const add = Math.min(room, r[k] * h); if (add > 0) { o.stock[k] = (o.stock[k] || 0) + add; room -= add; } }
+    o.full = room <= 0.01;
+    runModule(o, h);
+    S.veins[o.vein] = Math.max(CONFIG.veinMin, S.veins[o.vein] - CONFIG.veinDecayPerDay * h / 24);
+  }
+}
+function pullCost(o, k, qty) {
+  const L = layerById(o.layer);
+  const cut = (1 - CONFIG.lift.pullCutPerLevel * (S.buildings.lift - 1)) * (1 - petBonus('pullCut'));
+  return qty * CONFIG.resources[k].weight * o.layer * L.pull * CONFIG.pull.scale * cut;
+}
+function shipList(o, mode) {
+  const items = {};
+  for (const k in o.stock) { if (o.stock[k] < 0.5) continue; if (mode === 'refined' && !CONFIG.refined.includes(k)) continue; items[k] = o.stock[k]; }
+  return items;
+}
+function shipPreview(o, mode) {
+  const items = shipList(o, mode || 'all'); let cost = 0, weight = 0;
+  for (const k in items) { cost += pullCost(o, k, items[k]); weight += items[k] * CONFIG.resources[k].weight; }
+  return { items, cost, weight };
+}
+// Ship goods up the Tether. Capacity (weight) per cycle is shared; Lumen pays the Pull.
+function shipOutpost(o, mode, capLeft, manual) {
+  if (mode === 'off' || o.state !== 'anchored') return { weight: 0, cost: 0, got: {} };
+  const items = shipList(o, mode); const got = {}; let w = 0, c = 0;
+  for (const k of Object.keys(items).sort((a, b) => CONFIG.resources[a].weight - CONFIG.resources[b].weight)) {
+    let qty = items[k];
+    const wt = CONFIG.resources[k].weight;
+    qty = Math.min(qty, wt > 0 ? (capLeft - w) / wt : qty);
+    const unit = pullCost(o, k, 1);
+    if (unit > 0) qty = Math.min(qty, (S.res.lumen) / unit);
+    qty = Math.floor(qty); if (qty <= 0) continue;
+    const cost = unit * qty; S.res.lumen -= cost; c += cost; w += qty * wt;
+    o.stock[k] -= qty; addRes(k, qty); got[k] = qty;
+  }
+  if (manual && !Object.keys(got).length) toast('Nothing shipped (no cargo, no Lumen for the Pull, or the lift is full)');
+  return { weight: w, cost: c, got };
+}
+function shipAll() {
+  let capLeft = liftCapacity() * CONFIG.pull.shipEveryHours; const total = { got: {}, cost: 0, weight: 0 };
+  for (const o of S.outposts) {
+    const r = shipOutpost(o, o.ship, capLeft, false); capLeft -= r.weight; total.cost += r.cost; total.weight += r.weight;
+    for (const k in r.got) total.got[k] = (total.got[k] || 0) + r.got[k];
+  }
+  S.lastShip = Object.assign(total, { t: S.gameTime });
+}
+function shipNow(uidv) {
+  const o = S.outposts.find((x) => x.uid === uidv); if (!o) return;
+  const r = shipOutpost(o, o.ship === 'off' ? 'all' : o.ship, liftCapacity(), true);
+  if (Object.keys(r.got).length) toast(`🧵 Lifted ${lootText(r.got)} for ${fmt1(r.cost)} 🏮 Pull`);
+  rerender(true);
+}
+function moveCost(toLayer) { return { crowns: CONFIG.moveCost.crowns, lumen: CONFIG.moveCost.lumenPerLayer * toLayer }; }
+function veinTaken(vid, exceptUid) { return S.outposts.some((o) => o.uid !== exceptUid && (o.vein === vid || (o.move && o.move.toVein === vid))); }
+function moveTime(o, toLayer) { const T = opType(o); return (T.unanchorH + Math.max(1, Math.abs(toLayer - o.layer) * T.travelHPerLayer) + T.settleH) * HOUR; }
+function startMove(uidv, vid) {
+  const o = S.outposts.find((x) => x.uid === uidv), v = veinById(vid);
+  if (!o || !v || o.state !== 'anchored') return;
+  if (v.layer > liftReach()) return toast('Your Spine does not reach that layer yet');
+  if (veinTaken(vid, o.uid)) return toast('That vein is already taken');
+  if (!pay(moveCost(v.layer))) return toast('Not enough resources to pack up');
+  o.state = 'packing'; o.move = { toLayer: v.layer, toVein: vid, phaseStart: S.gameTime, phaseEnd: S.gameTime + opType(o).unanchorH * HOUR };
+  log('📦', `${o.name} is pulling up its anchor. Destination: ${v.name}, ${layerById(v.layer).name}.`);
+  closeModal(); rerender(true);
+}
+function installModule(uidv, mid) {
+  const o = S.outposts.find((x) => x.uid === uidv), m = CONFIG.modules[mid];
+  if (!o || o.module === mid) return;
+  if (!pay(m.cost)) return toast('Not enough resources');
+  o.module = mid; if (mid === 'smelter' || mid === 'still') o.ship = 'refined';
+  log(m.icon, `${m.name} installed on ${o.name}. Shipping set to refined goods only.`); rerender(true);
+}
+function buildDrill() {
+  const T = CONFIG.outpostTypes.drill;
+  if (S.outposts.some((o) => o.type === 'drill')) return;
+  if (S.buildings.lift < T.needsLift) return toast(`Needs Tether Lift Lv ${T.needsLift}`);
+  let vein = null;
+  for (const L of CONFIG.layers) { if (L.id > liftReach()) break; for (const v of L.veins) if (!veinTaken(v.id)) { vein = Object.assign({ layer: L.id }, v); break; } if (vein) break; }
+  if (!vein) return toast('No free vein in reach');
+  if (!pay(T.cost)) return toast('Not enough resources');
+  S.outposts.push({ uid: uid(), type: 'drill', name: 'Spinebiter', layer: vein.layer, vein: vein.id, state: 'settling', anchoredSince: 0, stock: {}, module: null, ship: 'all',
+    move: { toLayer: vein.layer, toVein: vein.id, phaseStart: S.gameTime, phaseEnd: S.gameTime + T.settleH * HOUR }, dark: false });
+  log('⛏️', `Tetherdrill <b>Spinebiter</b> lowered onto the ${vein.name}. It bites into the wall…`); rerender(true);
+}
+
+/* ---------------- pets ---------------- */
+function petUpCost(p) { return { crowns: CONFIG.petUpgrade.crowns * p.level, amber: CONFIG.petUpgrade.amber * p.level }; }
+function petUp(u) { const p = S.pets.find((x) => x.uid === u); if (!p || p.level >= CONFIG.petMax) return; if (!pay(petUpCost(p))) return toast('Not enough resources'); p.level++; toast(`${CONFIG.pets[p.id].icon} ${CONFIG.pets[p.id].name} is now Lv ${p.level}`); rerender(true); }
+function equipPet(u) {
+  const n = petSlots(); const idx = S.slots.indexOf(u);
+  if (idx >= 0 && idx < n) { S.slots[idx] = null; }
+  else { let free = -1; for (let i = 0; i < n; i++) if (!S.slots[i]) { free = i; break; } if (free < 0) free = n - 1; S.slots[free] = u; }
+  rerender(true);
+}
+
+/* ---------------- raids ---------------- */
+function ensureRivals() {
+  CONFIG.rivals.forEach((r, i) => { if (!S.rivals[i]) S.rivals[i] = makeRival(i); });
+}
+function makeRival(i) {
+  const def = CONFIG.rivals[i];
+  return { power: Math.round(attackPower() * def.mult * rand(0.92, 1.08)), shieldUntil: 0, lootLvl: S.hero.level };
+}
+function rivalLoot(i) {
+  const r = S.rivals[i], m = CONFIG.rivals[i].mult, l = Math.pow(r.lootLvl, 1.15);
+  return { crowns: Math.round(110 * l * m), stone: Math.round(70 * l * m), steel: Math.round(3 * l * m), lumen: Math.round(12 * m) };
+}
+function starsFor(ratio) { return ratio >= 1.3 ? 3 : ratio >= 1.0 ? 2 : ratio >= 0.75 ? 1 : 0; }
+function startAttack(i) {
+  ensureRivals(); const r = S.rivals[i];
+  if (!heroHome()) return toast('Your hero is busy');
+  if (S.gameTime < r.shieldUntil) return toast('That base is shielded');
+  if (!pay({ lumen: CONFIG.raids.attackLumen })) return toast(`Needs ${CONFIG.raids.attackLumen} Lumen`);
+  S.hero.task = { type: 'raid', rival: i, start: S.gameTime, end: S.gameTime + CONFIG.raids.marchMinutes * MIN };
+  toast(`⚔️ Marching on ${CONFIG.rivals[i].name}…`); rerender(true);
+}
+function resolveAttack(i) {
+  ensureRivals(); const r = S.rivals[i], d = CONFIG.rivals[i];
+  const ratio = (attackPower() / Math.max(1, r.power)) * rand(0.85, 1.15), stars = starsFor(ratio);
+  const full = rivalLoot(i), got = {};
+  for (const k in full) { got[k] = Math.round(full[k] * stars / 3); addRes(k, got[k]); }
+  const xp = gainXp(25 * S.hero.level * (stars + 1) / 2);
+  if (stars > 0) S.stats.raidsWon++;
+  const report = { kind: 'attack', name: d.name, icon: d.icon, stars, got, xp, atk: Math.round(attackPower()), def: r.power, t: S.gameTime };
+  S.lastRaid = report;
+  log('⚔️', `Raid on <b>${d.name}</b>: ${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} ${stars ? 'Loot ' + lootText(got) : 'Repelled. Their wall held.'} · +${fmt(xp)} XP`);
+  S.rivals[i] = makeRival(i); S.rivals[i].shieldUntil = S.gameTime + CONFIG.raids.rivalShieldHours * HOUR;
+  if (!ui.collecting) showAttackReport(report);
+}
+function scheduleNextRaid() { const [a, b] = CONFIG.raids.intervalHours; S.nextRaidAt = S.gameTime + rand(a, b) * HOUR; }
+const RAIDER_NAMES = ['the Ashgull Lodge', 'Brakka\'s Cable-Cutters', 'the Hollow Jackals', 'a Kite crew from the east rim', 'the Lantern Thieves'];
+function aiRaid() {
+  scheduleNextRaid();
+  if (S.gameTime < S.shieldUntil) return;
+  const R = CONFIG.raids, who = pick(RAIDER_NAMES), first = S.raidCount === 0;
+  S.raidCount++;
+  const growth = 1 + R.growthPerDay * (S.gameTime / DAY);
+  const bait = S.outposts.filter((o) => o.state !== 'anchored' || stockTotal(o) > 0.6 * opType(o).stockCap);
+  if (!first && bait.length && Math.random() < R.outpostBaitChance) {
+    const o = pick(bait), T = opType(o);
+    const def = (T.defense + o.layer * 6) * (o.state === 'anchored' ? 1 : 0.5);
+    const atk = def * rand(0.7, 1.5) * growth, stars = starsFor(atk / def);
+    const lost = {};
+    if (stars > 0) for (const k in o.stock) { const n = o.stock[k] * R.outpostLootPct * stars / 3; if (n >= 1) { lost[k] = Math.floor(n); o.stock[k] -= lost[k]; } }
+    const why = o.state !== 'anchored' ? 'caught it in transit' : 'smelled a full stockhold';
+    log('🏴', `${who} ${why} and hit <b>${o.name}</b>. ${stars ? 'They hauled off ' + (lootText(lost) || 'a few crates') + '.' : 'The crew drove them off!'}`);
+    S.lastRaid = { kind: 'outpost', who, name: o.name, stars, lost, t: S.gameTime };
+    return;
+  }
+  const def = defensePower();
+  const atk = first ? def * 0.7 : def * rand(0.7, 1.35) * growth;
+  const stars = starsFor(atk / def), lost = {}, gained = {};
+  if (stars > 0) {
+    const share = R.lootPct * stars / 3, prot = protectedShare();
+    for (const k of ['crowns', 'stone', 'lumen', 'steel', 'timber']) { const n = Math.floor(S.res[k] * (1 - prot) * share); if (n > 0) { lost[k] = n; S.res[k] -= n; } }
+  } else {
+    gained.crowns = Math.round(40 + atk * 1.5); gained.stone = Math.round(atk); grantLoot(gained); S.stats.defended++;
+  }
+  S.shieldUntil = S.gameTime + R.shieldHours * HOUR;
+  const report = { kind: 'defense', who, stars, lost, gained, atk: Math.round(atk), def: Math.round(def), golems: golemCount(), golemPower: golemPower(), heroHome: heroHome(), t: S.gameTime, first };
+  S.lastRaid = report;
+  log('🗿', `${who} raided your capital. The wall stood up: ${golemCount()} rock golems woke. ${stars ? `They broke through (${'★'.repeat(stars)}) and took ${lootText(lost) || 'little'}.` : `Raiders routed! Spoils: ${lootText(gained)}.`}`);
+  if (ui.collecting) S.pendingReveal = report; else showReveal(report);
+}
+
+/* ---------------- simulation ---------------- */
+function step(dt) {
+  const h = dt / HOUR; S.gameTime += dt;
+  const lv = S.buildings.hall, H = CONFIG.hallPerLevel;
+  addRes('crowns', H.crowns * lv * h); addRes('stone', H.stone * lv * h); addRes('lumen', H.lumen * lv * h);
+  const press = Math.min(S.res.moss, H.mossPress * lv * h); if (press > 0) { S.res.moss -= press; addRes('lumen', press / 3); }
+  if (S.buildings.forge > 0) {
+    const n = Math.min(CONFIG.forgePerLevel * S.buildings.forge * h, S.res.iron / 2, S.res.coal);
+    if (n > 0) { S.res.iron -= 2 * n; S.res.coal -= n; addRes('steel', n); }
+  }
+  if (heroHome()) gainXp(CONFIG.trainingPerLevel.sparXp * S.buildings.training * h);
+  if (S.build && S.gameTime >= S.build.end) {
+    S.buildings[S.build.id] = S.build.to;
+    log(CONFIG.buildings[S.build.id].icon, `<b>${CONFIG.buildings[S.build.id].name}</b> upgraded to Lv ${S.build.to}.`);
+    S.build = null;
+  }
+  if (S.hero.task && S.gameTime >= S.hero.task.end) finishHeroTask();
+  for (const o of S.outposts) updateOutpost(o, h);
+  const used = new Set(S.outposts.map((o) => o.vein));
+  for (const k in S.veins) if (!used.has(k)) S.veins[k] = Math.min(1, S.veins[k] + CONFIG.veinRegenPerDay * h / 24);
+  while (S.gameTime >= S.nextShipAt) { shipAll(); S.nextShipAt += CONFIG.pull.shipEveryHours * HOUR; }
+  if (S.gameTime >= S.nextRaidAt) aiRaid();
+  pruneTaps();
+}
+function simulate(dtGame) {
+  const stepMs = CONFIG.simStepMinutes * MIN;
+  while (dtGame > 0) { const d = Math.min(stepMs, dtGame); step(d); dtGame -= d; }
+}
+// Runs a chunk of time "while away" and returns a summary
+function simulateAway(dtGame) {
+  const before = Object.assign({}, S.res), lvl = S.hero.level;
+  const capped = Math.min(dtGame, CONFIG.offlineCapHours * HOUR);
+  ui.collecting = [];
+  simulate(capped);
+  const events = ui.collecting; ui.collecting = null;
+  const delta = {}; for (const k of RES) { const d = (S.res[k] || 0) - (before[k] || 0); if (Math.abs(d) >= 1) delta[k] = d; }
+  return { gameMs: capped, cappedFrom: dtGame, delta, events, levels: S.hero.level - lvl };
+}
+
+/* ---------------- save / load ---------------- */
+function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(S)); } catch (e) { /* storage full or blocked */ } }
+function load() {
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; return Object.assign(newState(), s); } catch (e) { return null; }
+}
+function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }
+
+/* =====================================================================
+   UI
+   ===================================================================== */
+function toast(msg) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg;
+  const box = $('#toasts'); box.appendChild(el); while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => el.remove(), 3200);
+}
+function costHtml(cost) { return Object.keys(cost).map((k) => `<span class="cost ${(S.res[k] || 0) < cost[k] ? 'short' : ''}">${CONFIG.resources[k].icon}${fmt(cost[k])}</span>`).join(''); }
+function pbar(start, end, cls) { const p = clamp((S.gameTime - start) / Math.max(1, end - start), 0, 1) * 100; return `<div class="bar ${cls || ''}"><i data-pstart="${start}" data-pend="${end}" style="width:${p}%"></i></div>`; }
+function countdown(end) { return `<span data-end="${end}">${realLeft(end)}</span>`; }
+
+function renderResbar() {
+  const cap = storageCap();
+  $('#resbar').innerHTML = RES.map((k) => `<div class="res ${S.res[k] >= cap - 0.5 ? 'full' : ''}" title="${CONFIG.resources[k].name}">${CONFIG.resources[k].icon}<b>${fmt(S.res[k] || 0)}</b></div>`).join('');
+  const p = $('#speedPill'); p.className = 'pill' + (S.testMode ? ' test' : ''); p.textContent = S.testMode ? `⏩ TEST ×${speed()}` : 'Real time';
+}
+
+/* ---------- Capital ---------- */
+function capitalScene() {
+  const g = golemCount(), b = S.buildings;
+  const hallH = 34 + b.hall * 3, lights = [];
+  for (let i = 0; i < Math.min(8, b.hall + 2); i++) lights.push(`<circle class="pulse" style="animation-delay:${i * 0.3}s" cx="${120 + i * 22}" cy="${86 - (i % 3) * 6}" r="2.5" fill="#ffd46b"/>`);
+  let wall = ''; const W0 = 30, segW = 290 / (g + 1);
+  for (let i = 0; i <= g; i++) wall += `<rect x="${W0 + i * segW}" y="142" width="${segW - 4}" height="16" rx="3" fill="#9a8c74" stroke="#6d604c"/>`;
+  for (let i = 0; i < g; i++) { const x = W0 + (i + 1) * segW - 10; wall += `<g><rect x="${x}" y="128" width="16" height="30" rx="5" fill="#8e8069" stroke="#5e5240"/><circle cx="${x + 5}" cy="136" r="1.6" fill="#ffd46b" class="pulse"/><circle cx="${x + 11}" cy="136" r="1.6" fill="#ffd46b" class="pulse"/></g>`; }
+  const spineDepth = 170 + liftReach() * 12;
+  return `<div class="scene"><svg viewBox="0 0 360 230" aria-label="Your capital on the Rim">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7e3b5"/><stop offset=".6" stop-color="#e9c99a"/><stop offset="1" stop-color="#c9a77a"/></linearGradient>
+    <linearGradient id="chasm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f7a7a"/><stop offset=".5" stop-color="#2d4258"/><stop offset="1" stop-color="#141a2a"/></linearGradient>
+    <radialGradient id="sun" cx=".8" cy=".2" r=".5"><stop offset="0" stop-color="#fff6d8"/><stop offset="1" stop-color="#fff6d8" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="360" height="230" fill="url(#sky)"/><rect width="360" height="230" fill="url(#sun)"/>
+  <path d="M0 60 Q60 40 120 55 T240 50 T360 58 L360 100 L0 100Z" fill="#b8c6a0" opacity=".55"/>
+  <path d="M0 158 L360 158 L360 170 Q300 175 260 172 L240 230 L120 230 L100 172 Q50 176 0 170Z" fill="#a08a64"/>
+  <path d="M100 172 Q180 182 260 172 L240 230 L120 230Z" fill="url(#chasm)"/>
+  <line x1="180" y1="150" x2="180" y2="${spineDepth}" stroke="#ffd46b" stroke-width="2" class="lumenglow"/>
+  ${S.outposts.map((o, i) => `<circle cx="${170 + (i % 2 ? 22 : -14)}" cy="${170 + o.layer * 12}" r="3" fill="${o.dark ? '#555' : '#ffd46b'}" class="pulse"/>`).join('')}
+  <!-- buildings -->
+  <g><rect x="150" y="${150 - hallH}" width="60" height="${hallH}" fill="#d8c3a0" stroke="#7a5f3c"/><path d="M144 ${150 - hallH} L180 ${120 - hallH} L216 ${150 - hallH}Z" fill="#b0573a"/><circle cx="180" cy="${132 - hallH}" r="5" fill="#ffd46b" class="pulse lumenglow"/></g>
+  <g><rect x="60" y="112" width="44" height="38" fill="#cdb48a" stroke="#7a5f3c"/><path d="M56 112 L82 92 L108 112Z" fill="#8a6b3a"/><text x="82" y="138" font-size="14" text-anchor="middle">📦</text></g>
+  <g><rect x="240" y="118" width="40" height="32" fill="#cdb48a" stroke="#7a5f3c"/><path d="M236 118 L260 100 L284 118Z" fill="#4f8c8a"/><text x="260" y="140" font-size="13" text-anchor="middle">🗡️</text></g>
+  <g><rect x="294" y="124" width="34" height="26" fill="#c9b08a" stroke="#7a5f3c"/><path d="M290 124 L311 108 L332 124Z" fill="#9a6a4a"/><text x="311" y="143" font-size="12" text-anchor="middle">🐾</text></g>
+  ${b.forge > 0 ? `<g><rect x="20" y="122" width="32" height="28" fill="#b9a07a" stroke="#6d5030"/><rect x="40" y="104" width="7" height="18" fill="#6d5030"/><circle cx="44" cy="98" r="5" fill="#ccc" opacity=".5" class="pulse"/></g>` : ''}
+  <g><rect x="170" y="150" width="20" height="8" fill="#6d5030"/><text x="180" y="166" font-size="9" text-anchor="middle" fill="#fff3d0">Lift ${b.lift}</text></g>
+  ${lights.join('')}
+  ${wall}
+  <text x="10" y="222" font-size="10" fill="#f3e6c8" opacity=".9">The Rim · the Hollow opens below ↓</text>
+  </svg></div>`;
+}
+function buildingEffect(id, lvl) {
+  const H = CONFIG.hallPerLevel;
+  switch (id) {
+    case 'hall': return `${H.crowns * lvl}👑 ${H.stone * lvl}🪨 ${fmt1(H.lumen * lvl)}🏮 /h`;
+    case 'storehouse': { const c = CONFIG.storage; return `cap ${fmt(c.base * Math.pow(c.growth, lvl - 1))} · protects ${Math.round(clamp(c.protectBase + c.protectPerLevel * (lvl - 1), 0, .8) * 100)}%`; }
+    case 'training': return `+${CONFIG.trainingPerLevel.power * (lvl - 1)} power · spar ${CONFIG.trainingPerLevel.sparXp * lvl} XP/h`;
+    case 'lift': return `reach layer ${Math.min(CONFIG.lift.maxReach, lvl + 1)} · ${CONFIG.lift.capacityPerLevel * lvl} wt/h · Pull −${Math.round(CONFIG.lift.pullCutPerLevel * (lvl - 1) * 100)}%`;
+    case 'wall': { const w = CONFIG.wall; return `${Math.min(w.maxGolems, w.baseGolems + Math.floor((lvl - 1) / w.golemEvery))} golems × ${w.golemPower + w.golemPowerPerLevel * (lvl - 1)} power`; }
+    case 'kennel': return `${lvl >= 3 ? 2 : 1} pet slot${lvl >= 3 ? 's' : ''} · pets +${Math.round(CONFIG.kennelPetBoost * (lvl - 1) * 100)}%`;
+    case 'forge': return lvl ? `${fmt1(CONFIG.forgePerLevel * lvl)} 🔩/h from raw ore` : 'not built';
+  }
+  return '';
+}
+function viewCapital() {
+  let h = capitalScene();
+  const def = Math.round(defensePower());
+  h += `<div class="card"><div class="row between"><h2>Rim Capital</h2><span class="tag">🛡️ Defense ${def}</span></div>
+    <div class="small">Storage cap <b>${fmt(storageCap())}</b> each · ${Math.round(protectedShare() * 100)}% safe from raids.
+    ${S.gameTime < S.shieldUntil ? `<br>🛡️ Shield up: ${countdown(S.shieldUntil)}` : `<br>⚠️ No shield. Raiders may come.`}</div>
+    ${S.build ? `<div class="small" style="margin-top:6px">🔨 Building <b>${CONFIG.buildings[S.build.id].name} Lv ${S.build.to}</b> · ${countdown(S.build.end)}</div>${pbar(S.build.start, S.build.end)}` : `<div class="dim" style="margin-top:6px">Builders idle. Pick an upgrade.</div>`}
+  </div>`;
+  for (const id in CONFIG.buildings) {
+    const b = CONFIG.buildings[id], lvl = S.buildings[id], block = buildBlock(id), cost = buildCost(id);
+    const building = S.build && S.build.id === id;
+    h += `<div class="card bld"><div class="ic">${b.icon}</div><div>
+      <div class="row between"><h3>${b.name}<span class="lvl">Lv ${lvl}</span></h3></div>
+      <div class="dim">${b.desc}</div>
+      <div class="small" style="margin:4px 0">Now: <b>${buildingEffect(id, lvl)}</b>${lvl < b.max ? `<br>Next: ${buildingEffect(id, lvl + 1)}` : ''}</div>
+      ${lvl < b.max ? `<div class="wrapgap">${costHtml(cost)}<span class="dim">⏱ ${gameDur(buildTime(id))}</span></div>
+      <div style="margin-top:6px"><button class="btn sm" data-act="build" data-id="${id}" ${block || !canAfford(cost) ? 'disabled' : ''}>${building ? 'Building…' : block && block !== 'Builders busy' ? block : lvl === 0 ? 'Build' : 'Upgrade'}</button></div>` : '<span class="tag good">Max level</span>'}
+    </div></div>`;
+  }
+  return h;
+}
+
+/* ---------- Hollow ---------- */
+function ladderSvg() {
+  const bands = CONFIG.layers.map((L, i) => {
+    const y = 20 + i * 70, reach = L.id <= liftReach();
+    return `<rect x="0" y="${y}" width="360" height="70" fill="${L.color}" opacity="${0.35 + i * 0.12}"/>
+      <text x="10" y="${y + 18}" font-size="12" fill="${i > 1 ? '#fff3d0' : '#3a2e22'}" font-family="Georgia">${L.id}. ${L.name}${reach ? '' : ' 🔒'}</text>`;
+  }).join('');
+  const spineY = 20 + liftReach() * 70 - 10;
+  const ops = S.outposts.map((o, i) => {
+    const y = 20 + (o.layer - 1) * 70 + 42, x = 230 + i * 50;
+    return `<line x1="180" y1="${y}" x2="${x}" y2="${y}" stroke="#ffd46b" stroke-width="1.5" stroke-dasharray="${o.state === 'anchored' ? '0' : '4 4'}"/>
+      <circle cx="${x}" cy="${y}" r="9" fill="${o.dark ? '#444' : '#ffd46b'}" class="${o.state === 'anchored' ? 'pulse lumenglow' : ''}"/>
+      <text x="${x}" y="${y + 4}" font-size="11" text-anchor="middle">${opType(o).icon}</text>`;
+  }).join('');
+  let hero = '';
+  const t = S.hero.task;
+  if (t && (t.type === 'expedition' || t.type === 'stranded')) {
+    const L = layerById(t.layer), p = t.type === 'expedition' ? clamp((S.gameTime - t.start) / (t.end - t.start), 0, 1) : 1;
+    const depth = 20 + (t.layer - 1) * 70 + 40, y = 14 + (p < 0.5 ? p * 2 : (1 - p) * 2) * (depth - 14);
+    hero = `<g transform="translate(120 ${t.type === 'stranded' ? depth : y})"><circle r="11" fill="#fff3d0" stroke="#c9822f"/><text y="5" font-size="13" text-anchor="middle">${t.type === 'stranded' ? '🕯️' : '🧗'}</text></g>
+            <line x1="120" y1="0" x2="120" y2="${t.type === 'stranded' ? depth : y}" stroke="#d8c3a0" stroke-width="1" stroke-dasharray="2 3"/>`;
+  }
+  return `<div class="scene"><svg viewBox="0 0 360 ${20 + CONFIG.layers.length * 70}" aria-label="The Lantern Ladder">
+    <rect width="360" height="20" fill="#e9c99a"/><text x="180" y="14" font-size="10" text-anchor="middle" fill="#5a4528">🏰 Rim capital</text>
+    ${bands}<line x1="180" y1="16" x2="180" y2="${spineY}" stroke="#ffd46b" stroke-width="3" class="lumenglow"/>${ops}${hero}</svg></div>`;
+}
+function heroStatusCard() {
+  const t = S.hero.task;
+  let s = `<div class="card"><div class="row between"><h2>🧗 ${CONFIG.hero.name}, Lv ${S.hero.level}</h2><span class="tag">⚔️ ${Math.round(attackPower())}</span></div>`;
+  s += `<div class="bar xp"><i style="width:${(S.hero.xp / xpToNext()) * 100}%"></i></div><div class="dim">${fmt(S.hero.xp)} / ${fmt(xpToNext())} XP · training boost <b>+${fmt1(boostPct())}%</b> XP</div>`;
+  if (!t) s += `<div class="small" style="margin-top:6px">Home at the Rim, sparring for idle XP. Ready to descend.</div>`;
+  else if (t.type === 'expedition') s += `<div class="small" style="margin-top:6px">Exploring <b>${layerById(t.layer).name}</b> · back in ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
+  else if (t.type === 'stranded') s += `<div class="small" style="margin-top:6px">🕯️ Stranded in <b>${layerById(t.layer).name}</b>. Rescue line arrives in ${countdown(t.end)}</div>${pbar(t.start, t.end)}
+      <button class="btn alt sm" data-act="rescue">Send rescue line now (${rescueCost()} 🏮)</button>`;
+  else if (t.type === 'raid') s += `<div class="small" style="margin-top:6px">⚔️ Marching on <b>${CONFIG.rivals[t.rival].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
+  return s + '</div>';
+}
+function viewHollow() {
+  let h = ladderSvg() + heroStatusCard();
+  for (const L of CONFIG.layers) {
+    const ok = L.id <= expeditionReach(), ch = Math.round(successChance(L) * 100);
+    const lootRange = Object.keys(L.loot).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${L.loot[k][0]}–${L.loot[k][1]}</span>`).join('');
+    h += `<div class="card layer ${ok ? '' : 'locked'}" style="--c:${L.color}">
+      <div class="row between"><h3>${L.id}. ${L.name}</h3><span class="tag ${ch >= 75 ? 'good' : ch < 50 ? 'bad' : ''}">${ch}% safe return</span></div>
+      <div class="dim">${L.flavor}</div>
+      <div class="wrapgap small" style="margin:6px 0">⏱ ${gameDur(L.hours * HOUR)} · 🏮 ${L.lumen} · rec. power ${L.rec}</div>
+      <div class="wrapgap">${lootRange}<span class="tag">🥚 ${CONFIG.pets[L.pet].icon} ${Math.round(L.egg * 100)}%</span></div>
+      <div style="margin-top:8px">${ok ? `<button class="btn deep sm" data-act="exp" data-id="${L.id}" ${!heroHome() || S.res.lumen < L.lumen ? 'disabled' : ''}>Descend</button>` : `<span class="tag">🔒 Upgrade Tether Lift to Lv ${L.id - 2} to scout here</span>`}</div>
+    </div>`;
+  }
+  h += `<div class="card dim">If your lantern runs low you don't die: you get stranded on a ledge and come home later with half the haul. Deeper = longer, riskier, richer.</div>`;
+  return h;
+}
+
+/* ---------- Outposts ---------- */
+const STATE_LABEL = { anchored: '⚓ Anchored', packing: '📦 Packing up', traveling: '🚶 On the move', settling: '🪝 Settling in' };
+function viewOutposts() {
+  let h = `<div class="card"><h2>The Pull</h2>
+    <div class="small">Hauling goods up the Tether costs Lumen: <b>weight × layers climbed × layer pull</b>. Heavy raw ore is expensive. Refine it below and send light Steel up instead.</div>
+    <div class="wrapgap small" style="margin-top:6px"><span class="tag">🧵 Lift capacity ${liftCapacity()} wt/h</span><span class="tag">⚓ Spine reaches layer ${liftReach()}</span><span class="tag">⏱ next lift ${countdown(S.nextShipAt)}</span></div>
+    ${S.lastShip ? `<div class="dim" style="margin-top:6px">Last lift: ${lootText(S.lastShip.got) || 'nothing'} · Pull paid ${fmt1(S.lastShip.cost)} 🏮</div>` : ''}
+  </div>`;
+  for (const o of S.outposts) {
+    const T = opType(o), v = veinById(o.vein), L = layerById(o.layer), r = outpostRates(o), tot = stockTotal(o);
+    const pAll = shipPreview(o, 'all'), pRef = shipPreview(o, 'refined');
+    h += `<div class="card layer" style="--c:${L.color}">
+      <div class="row between"><h3>${T.icon} ${esc(o.name)} <span class="dim">${T.name}</span></h3><span class="tag ${o.state === 'anchored' ? 'good' : 'lumen'}">${STATE_LABEL[o.state]}</span></div>
+      <div class="small">${L.id}. ${L.name} · <b>${o.state === 'anchored' || o.state === 'settling' ? v.name : '→ ' + veinById(o.move.toVein).name}</b>
+        ${o.dark ? '<span class="tag bad">🌑 dark (no Lumen)</span>' : ''} ${seasoned(o) ? '<span class="tag good">Seasoned +10%</span>' : ''} ${o.full ? '<span class="tag bad">Stockhold full</span>' : ''}</div>`;
+    if (o.move) h += `<div class="small" style="margin-top:4px">${STATE_LABEL[o.state]} · ${countdown(o.move.phaseEnd)}</div>${pbar(o.move.phaseStart, o.move.phaseEnd)}`;
+    if (o.state === 'anchored') {
+      h += `<div class="small" style="margin-top:6px">Vein richness ${Math.round(S.veins[o.vein] * 100)}%</div><div class="bar rich"><i style="width:${S.veins[o.vein] * 100}%"></i></div>
+        <div class="wrapgap small">Makes: ${Object.keys(r).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${fmt1(r[k])}/h</span>`).join('')} <span class="dim">· burns ${burnRate(o)} 🏮/h</span></div>`;
+    }
+    h += `<div class="small" style="margin-top:6px">Stockhold ${fmt(tot)} / ${T.stockCap}</div><div class="bar"><i style="width:${(tot / T.stockCap) * 100}%"></i></div>
+      <div class="wrapgap">${Object.keys(o.stock).filter((k) => o.stock[k] >= 1).map((k) => `<span class="cost">${CONFIG.resources[k].icon}${fmt(o.stock[k])}</span>`).join('') || '<span class="dim">empty</span>'}</div>
+      <div class="dim" style="margin-top:4px">Lift everything now: ${fmt1(pAll.cost)} 🏮 · refined only: ${fmt1(pRef.cost)} 🏮</div>
+      <div style="margin-top:8px" class="small"><b>Module:</b> ${o.module ? `${CONFIG.modules[o.module].icon} ${CONFIG.modules[o.module].name} <span class="dim">(${CONFIG.modules[o.module].desc})</span>` : '<span class="dim">none</span>'}</div>
+      <div class="wrapgap" style="margin-top:4px">${Object.keys(CONFIG.modules).filter((m) => m !== o.module).map((m) => `<button class="btn ghost sm" data-act="module" data-uid="${o.uid}" data-id="${m}" ${canAfford(CONFIG.modules[m].cost) ? '' : 'disabled'}>${o.module ? 'Swap to' : '+'} ${CONFIG.modules[m].icon} ${CONFIG.modules[m].name} ${costHtml(CONFIG.modules[m].cost)}</button>`).join('')}</div>
+      <div class="small" style="margin-top:8px"><b>Auto-ship each hour:</b></div>
+      <div class="segs">${['all', 'refined', 'off'].map((m) => `<button class="btn sm ${o.ship === m ? 'alt' : 'ghost'}" data-act="shipmode" data-uid="${o.uid}" data-id="${m}">${m === 'all' ? 'Everything' : m === 'refined' ? 'Refined only' : 'Hold'}</button>`).join('')}</div>
+      <div class="wrapgap" style="margin-top:8px">
+        <button class="btn alt sm" data-act="ship" data-uid="${o.uid}" ${o.state !== 'anchored' || tot < 1 ? 'disabled' : ''}>🧵 Lift now</button>
+        <button class="btn deep sm" data-act="movemenu" data-uid="${o.uid}" ${o.state !== 'anchored' ? 'disabled' : ''}>🧭 Move…</button>
+      </div></div>`;
+  }
+  const D = CONFIG.outpostTypes.drill;
+  if (!S.outposts.some((o) => o.type === 'drill')) {
+    h += `<div class="card"><h3>⛏️ Build a Tetherdrill</h3><div class="dim">${D.desc} A second outpost lets you split a chain: one drill on iron, one on coal, and a Smelter pulls from both.</div>
+      <div class="wrapgap" style="margin:6px 0">${costHtml(D.cost)}</div>
+      <button class="btn sm" data-act="drill" ${S.buildings.lift < D.needsLift || !canAfford(D.cost) ? 'disabled' : ''}>${S.buildings.lift < D.needsLift ? `Needs Tether Lift Lv ${D.needsLift}` : 'Lower it onto the Spine'}</button></div>`;
+  }
+  h += `<div class="card dim">Chain to try: get your Spine to layer 4 (Tether Lift Lv 3), move an outpost onto the <b>Iron Seam</b>, install a <b>Smelter</b>, set shipping to <b>Refined only</b>. Compare the Pull cost against lifting raw ore to the Rim Forge.</div>`;
+  return h;
+}
+function moveMenu(uidv) {
+  const o = S.outposts.find((x) => x.uid === uidv);
+  let h = `<h2>🧭 Move ${esc(o.name)}</h2><div class="dim">Packing up, traveling, and settling take time. While moving, the outpost makes nothing and is easy prey for raiders.</div>`;
+  for (const L of CONFIG.layers) {
+    const reach = L.id <= liftReach();
+    h += `<div class="card layer ${reach ? '' : 'locked'}" style="--c:${L.color};margin-top:8px"><h3>${L.id}. ${L.name}</h3>`;
+    for (const v of L.veins) {
+      const taken = veinTaken(v.id, o.uid), here = o.vein === v.id, cost = moveCost(L.id);
+      h += `<div class="row between" style="margin-top:6px;gap:6px"><div class="small"><b>${v.name}</b> · ${Object.keys(v.prod).map((k) => CONFIG.resources[k].icon + fmt1(v.prod[k] * opType(o).mult) + '/h').join(' ')} · rich ${Math.round(S.veins[v.id] * 100)}%<br>
+        <span class="dim">⏱ ${gameDur(moveTime(o, L.id))}</span> ${costHtml(cost)}</div>
+        ${here ? '<span class="tag good">Here</span>' : taken ? '<span class="tag">Taken</span>' : !reach ? '<span class="tag">🔒</span>' : `<button class="btn sm" data-act="move" data-uid="${o.uid}" data-id="${v.id}" ${canAfford(cost) ? '' : 'disabled'}>Go</button>`}</div>`;
+    }
+    h += '</div>';
+  }
+  h += `<button class="btn ghost" style="width:100%;margin-top:6px" data-act="close">Cancel</button>`;
+  openModal(h, 'move');
+}
+
+/* ---------- Raids ---------- */
+function viewRaids() {
+  ensureRivals();
+  const gp = golemPower(), g = golemCount();
+  let h = `<div class="card"><h2>🗿 Your defense</h2>
+    <div class="grid2" style="margin-top:6px">
+      <div class="stat"><b>${g} × ${gp}</b><span>sleeping rock golems</span></div>
+      <div class="stat"><b>${Math.round(petsPower() * CONFIG.raids.petDefense)}</b><span>pets on guard</span></div>
+      <div class="stat"><b>${heroHome() ? Math.round(heroBasePower() * CONFIG.raids.heroHomeDefense) : 0}</b><span>${heroHome() ? 'hero at home' : 'hero away!'}</span></div>
+      <div class="stat"><b>${Math.round(defensePower())}</b><span>total defense</span></div>
+    </div>
+    <div class="small" style="margin-top:8px">${S.gameTime < S.shieldUntil ? `🛡️ Shielded for ${countdown(S.shieldUntil)}` : '⚠️ Unshielded. AI raiders strike every 8–14 game hours.'}</div>
+    <div class="wrapgap" style="margin-top:8px">${S.lastRaid && S.lastRaid.kind === 'defense' ? `<button class="btn ghost sm" data-act="replay">▶︎ Replay last defense</button>` : ''}
+      <button class="btn ghost sm" data-act="raidnow">🧪 Test: trigger a raid on me</button></div>
+  </div>`;
+  h += `<div class="card"><h2>⚔️ Rival bases</h2><div class="dim">Async and auto-resolved: your hero + pets vs their defense. Raiding costs ${CONFIG.raids.attackLumen} 🏮 and takes your hero ${gameDur(CONFIG.raids.marchMinutes * MIN)}.</div></div>`;
+  CONFIG.rivals.forEach((d, i) => {
+    const r = S.rivals[i], ratio = attackPower() / r.power, est = starsFor(ratio), shield = S.gameTime < r.shieldUntil;
+    h += `<div class="card"><div class="row between"><h3>${d.icon} ${d.name}</h3><span class="tag ${ratio >= 1 ? 'good' : ratio < 0.75 ? 'bad' : ''}">🛡️ ${r.power}</span></div>
+      <div class="dim">${d.lord}</div>
+      <div class="wrapgap small" style="margin:6px 0">Likely: <b>${'★'.repeat(est)}${'☆'.repeat(3 - est)}</b> · full loot ${lootText(rivalLoot(i))}</div>
+      ${shield ? `<span class="tag">🛡️ shielded ${countdown(r.shieldUntil)}</span>` : `<button class="btn red sm" data-act="attack" data-id="${i}" ${!heroHome() || S.res.lumen < CONFIG.raids.attackLumen ? 'disabled' : ''}>Raid</button>`}
+    </div>`;
+  });
+  h += `<div class="card"><h2>📜 Chronicle</h2><div class="log">${S.log.slice(0, 40).map((e) => `<div><span class="t">${fmtDur(S.gameTime - e.t)} ago</span>${e.icon} ${e.msg}</div>`).join('') || '<div class="dim">Nothing yet.</div>'}</div></div>`;
+  return h;
+}
+function raidSceneSvg(g) {
+  let golems = '';
+  const segW = 300 / (g + 1);
+  for (let i = 0; i < g; i++) {
+    const x = 30 + (i + 1) * segW - 14;
+    golems += `<g class="golem" style="--i:${i}">
+      <rect x="${x}" y="78" width="28" height="56" rx="8" fill="#8e8069" stroke="#5e5240" stroke-width="2"/>
+      <rect x="${x + 4}" y="92" width="20" height="6" rx="2" fill="#7a6d58"/>
+      <rect class="arm" x="${x - 9}" y="96" width="9" height="26" rx="4" fill="#857760"/><rect class="arm" x="${x + 28}" y="96" width="9" height="26" rx="4" fill="#857760"/>
+      <circle class="eye" cx="${x + 9}" cy="86" r="3" fill="#ffd46b" style="filter:drop-shadow(0 0 4px #ffd46b)"/><circle class="eye" cx="${x + 19}" cy="86" r="3" fill="#ffd46b" style="filter:drop-shadow(0 0 4px #ffd46b)"/>
+    </g>`;
+  }
+  let raiders = ''; for (let i = 0; i < 5; i++) raiders += `<text x="${-40 + (i % 3) * 14}" y="${120 + (i % 2) * 14}" font-size="16">🏴</text>`;
+  let blocks = ''; for (let i = 0; i <= g; i++) blocks += `<rect x="${30 + i * segW}" y="118" width="${segW - 18}" height="16" rx="3" fill="#9a8c74" stroke="#6d604c"/>`;
+  return `<svg viewBox="0 0 360 160"><defs><linearGradient id="rsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3f5c"/><stop offset="1" stop-color="#c58a5a"/></linearGradient></defs>
+    <rect width="360" height="160" fill="url(#rsky)"/><rect y="134" width="360" height="26" fill="#6d5a40"/>${blocks}<g id="raiders" class="raiderwrap"><g class="raider">${raiders}</g></g>${golems}</svg>`;
+}
+function showReveal(r) {
+  S.pendingReveal = null;
+  const win = r.stars === 0;
+  const lines = [
+    `🏴 <b>${esc(r.who)}</b> march on your wall… attack power ${r.atk}.`,
+    `It looks like an ordinary wall. Then the columns <b>stand up</b>. ${r.golems} rock golems wake, eyes full of Lumen.`,
+    win ? `<span class="stars">☆☆☆</span><br><b>Raid repelled!</b> The golems hurl them back over the Rim. Spoils: ${lootText(r.gained)}`
+        : `<span class="stars">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</span><br>They broke through and took ${lootText(r.lost) || 'very little'}. ${Math.round(protectedShare() * 100)}% of your stock was safe in the Storehouse.`,
+    `<span class="dim">Defense ${r.def} = golems ${r.golems}×${r.golemPower}${r.heroHome ? ' + hero' : ' (hero was away)'} + pets. Shield up for ${CONFIG.raids.shieldHours} game hours.${r.first ? ' (First raid: a tutorial raid you are meant to win.)' : ''}</span>`,
+  ];
+  openModal(`<h2>🗿 Raid on your capital!</h2><div class="raidscene" id="rscene">${raidSceneSvg(r.golems)}</div>
+    ${lines.map((l, i) => `<p class="reveal-line" id="rl${i}">${l}</p>`).join('')}
+    <button class="btn" style="width:100%" data-act="close">${win ? 'Glorious' : 'Rebuild'}</button>`, 'reveal');
+  const sc = $('#rscene');
+  setTimeout(() => sc.classList.add('approach'), 60);
+  const on = (i, d) => setTimeout(() => { const e = $('#rl' + i); if (e) e.classList.add('on'); }, d);
+  on(0, 100);
+  setTimeout(() => { sc.classList.add('wake'); sc.classList.add('shake'); }, 1500);
+  on(1, 1700);
+  setTimeout(() => { if (win) sc.classList.add('flee'); }, 3200);
+  on(2, 3300); on(3, 3900);
+}
+function showAttackReport(r) {
+  openModal(`<h2>${r.icon} Raid on ${esc(r.name)}</h2>
+    <div class="stars" style="text-align:center;margin:10px 0">${'★'.repeat(r.stars)}${'☆'.repeat(3 - r.stars)}</div>
+    <p>Your power ${r.atk} vs their defense ${r.def}.</p>
+    <p>${r.stars ? `Loot: ${lootText(r.got)}` : 'Their wall held. Nothing taken.'} · +${fmt(r.xp)} XP</p>
+    <button class="btn" style="width:100%" data-act="close">Onward</button>`, 'report');
+}
+
+/* ---------- Training ---------- */
+function viewTraining() {
+  return `<div class="card"><div class="row between"><h2>🗡️ Training Grounds</h2><span class="tag lumen" data-bind="boost"></span></div>
+    <div class="dim">Every tap banks into a rolling 7-day boost to hero XP. Optional: idle play still gets you there, just slower.</div></div>
+    <div id="tapzone" role="button" aria-label="Tap the training dummy">
+      <svg viewBox="0 0 360 220">
+        <ellipse cx="180" cy="200" rx="150" ry="16" fill="#8fae73" opacity=".6"/>
+        <g id="heroG" transform="translate(115 98)">
+          <ellipse cx="0" cy="98" rx="26" ry="6" fill="#000" opacity=".15"/>
+          <rect x="-13" y="34" width="26" height="40" rx="9" fill="#4f8c8a"/>
+          <rect x="-10" y="72" width="8" height="26" rx="3" fill="#5a4528"/><rect x="2" y="72" width="8" height="26" rx="3" fill="#5a4528"/>
+          <circle cx="0" cy="20" r="16" fill="#f3d6b0"/>
+          <path d="M-17 16 Q0 -8 17 16 Q8 6 0 8 Q-8 6 -17 16Z" fill="#6b4a2a"/>
+          <circle cx="6" cy="20" r="2" fill="#3a2e22"/>
+          <path d="M-14 14 Q-24 26 -14 40" stroke="#c9822f" stroke-width="3" fill="none"/>
+          <circle cx="-16" cy="46" r="5" fill="#ffd46b" class="pulse lumenglow"/>
+          <g id="swordArm"><rect x="8" y="40" width="7" height="22" rx="3" fill="#f3d6b0"/><rect x="9" y="-4" width="5" height="46" rx="2" fill="#c9a77a" stroke="#7a5f3c"/><rect x="4" y="38" width="15" height="4" rx="2" fill="#7a5f3c"/></g>
+        </g>
+        <g id="dummyG">
+          <rect x="242" y="110" width="8" height="90" fill="#7a5f3c"/>
+          <ellipse cx="246" cy="132" rx="24" ry="30" fill="#d8b878" stroke="#8a6b3a" stroke-width="2"/>
+          <path d="M226 128 L266 136 M228 142 L264 124" stroke="#8a6b3a" stroke-width="2"/>
+          <circle cx="246" cy="92" r="15" fill="#e2c88f" stroke="#8a6b3a" stroke-width="2"/>
+          <rect x="216" y="122" width="60" height="7" rx="3" fill="#a7844e"/>
+          <circle cx="246" cy="132" r="8" fill="none" stroke="#b0473a" stroke-width="3"/>
+        </g>
+        <g id="sparks"></g>
+      </svg>
+      <div class="hint">Tap anywhere here (or hold Space on desktop)</div>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <div class="grid2">
+        <div class="stat"><b data-bind="today"></b><span>taps today (daily cap)</span></div>
+        <div class="stat"><b data-bind="week"></b><span>7-day bank</span></div>
+        <div class="stat"><b data-bind="boost2"></b><span>XP boost</span></div>
+        <div class="stat"><b data-bind="marks"></b><span>Spar Marks (over cap)</span></div>
+      </div>
+      <div class="bar boost"><i data-bind="boostbar"></i></div>
+      <div class="dim" data-bind="next"></div>
+      <div class="dim" style="margin-top:6px">Curve: boost = 100% × (bank ÷ ${fmt(weeklyTarget())})<sup>${CONFIG.tap.exponent}</sup> · daily cap ${fmt(dailyCap())}${S.testMode ? ` <b>(test mode: thresholds ×${CONFIG.tap.testScale}; real game uses 300k / 60k)</b>` : ''}. Taps older than 7 game days fall out of the bank. Taps faster than ${CONFIG.tap.maxTapsPerSec}/s are ignored (anti auto-clicker).</div>
+    </div>
+    <div id="heroSlot">${heroStatusCard()}</div>
+    <div id="petSlot">${petsCard()}</div>`;
+}
+function petsCard() {
+  const n = petSlots();
+  let h = `<div class="card"><h2>🐾 Pets <span class="dim">${n} slot${n > 1 ? 's' : ''}${n < 2 ? ' · 2nd at Kennel Lv 3' : ''}</span></h2>
+    <div class="dim">Equipped pets add power to raids and defense, and their bonus applies. Find more as eggs in the Hollow.</div>`;
+  for (const p of S.pets) {
+    const d = CONFIG.pets[p.id], on = S.slots.slice(0, n).includes(p.uid), cost = petUpCost(p);
+    h += `<div class="row between" style="margin-top:8px;gap:6px"><div><b>${d.icon} ${d.name}</b> <span class="lvl">Lv ${p.level}</span><br><span class="dim">power ${Math.round(petPower(p))} · ${d.bonus}</span></div>
+      <div class="wrapgap" style="justify-content:flex-end"><button class="btn sm ${on ? 'alt' : 'ghost'}" data-act="equip" data-uid="${p.uid}">${on ? 'Equipped' : 'Equip'}</button>
+      ${p.level < CONFIG.petMax ? `<button class="btn ghost sm" data-act="petup" data-uid="${p.uid}" ${canAfford(cost) ? '' : 'disabled'}>Feed ${costHtml(cost)}</button>` : ''}</div></div>`;
+  }
+  return h + '</div>';
+}
+function updateTrainingBinds() {
+  const set = (k, v, attr) => { const e = document.querySelector(`[data-bind="${k}"]`); if (e) { if (attr) e.style.width = v; else if (e.innerHTML !== v) e.innerHTML = v; } };
+  const b = boostPct(), wk = weekTaps(), today = tapsToday();
+  set('boost', `+${fmt1(b)}% XP`); set('boost2', `+${fmt1(b)}%`);
+  set('today', `${fmt(today)} / ${fmt(dailyCap())}`); set('week', fmt(wk)); set('marks', fmt(S.taps.marks));
+  set('boostbar', b + '%', true);
+  const next = [10, 25, 50, 75, 100].find((x) => x > b + 0.01);
+  set('next', next ? `Next milestone +${next}% at ${fmt(Math.ceil(weeklyTarget() * Math.pow(next / 100, 1 / CONFIG.tap.exponent)))} taps in the bank.` : 'Maxed! Extra taps still count once old ones roll off.');
+}
+let tapTimes = [];
+function doTap(x, y) {
+  const now = performance.now();
+  tapTimes = tapTimes.filter((t) => now - t < 1000);
+  if (tapTimes.length >= CONFIG.tap.maxTapsPerSec) { return false; }
+  tapTimes.push(now);
+  const d = dayIndex(); let mark = false;
+  if ((S.taps.days[d] || 0) < dailyCap()) S.taps.days[d] = (S.taps.days[d] || 0) + 1; else { S.taps.marks++; mark = true; }
+  S.taps.total++; S.stats.tapsAll++;
+  const arm = document.getElementById('swordArm'), dm = document.getElementById('dummyG');
+  if (arm) { arm.classList.remove('swing'); void arm.getBBox; arm.getBoundingClientRect(); arm.classList.add('swing'); }
+  if (dm) { dm.classList.remove('hit'); dm.getBoundingClientRect(); dm.classList.add('hit'); }
+  const zone = document.getElementById('tapzone');
+  if (zone && x != null) {
+    const r = zone.getBoundingClientRect(), f = document.createElement('div');
+    f.className = 'float' + (mark ? ' mark' : ''); f.textContent = mark ? '+1 Spar Mark' : '+1';
+    f.style.left = (x - r.left) + 'px'; f.style.top = (y - r.top - 10) + 'px'; zone.appendChild(f); setTimeout(() => f.remove(), 900);
+    const sp = document.getElementById('sparks');
+    if (sp) { sp.insertAdjacentHTML('beforeend', `<g class="spark"><circle cx="${238 + Math.random() * 16}" cy="${124 + Math.random() * 16}" r="${3 + Math.random() * 3}" fill="#ffd46b"/></g>`); while (sp.children.length > 6) sp.firstChild.remove(); }
+  }
+  updateTrainingBinds();
+  return true;
+}
+
+/* ---------- modal ---------- */
+function openModal(html, kind) { ui.modal = kind || 'x'; $('#modalBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
+function closeModal() { ui.modal = null; $('#modal').classList.add('hidden'); $('#modalBody').innerHTML = ''; rerender(true); if (S.pendingReveal) { const r = S.pendingReveal; setTimeout(() => showReveal(r), 250); } }
+function settingsModal() {
+  openModal(`<h2>⚙️ Settings</h2>
+    <div class="switch"><div><b>Test mode</b><div class="dim">Speeds every timer: 1 game hour = ${fmtDur(HOUR / CONFIG.testMode.speed)} real. Training thresholds scale ×${CONFIG.tap.testScale}.</div></div>
+      <button class="btn sm ${S.testMode ? 'alt' : 'ghost'}" data-act="toggletest">${S.testMode ? 'ON' : 'OFF'}</button></div>
+    <div class="switch"><div><b>Skip ahead</b><div class="dim">Simulate game time instantly (shows a while-you-were-away summary).</div></div>
+      <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
+    <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
+    <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
+    <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
+}
+function awayModal(sum, realMs) {
+  const d = sum.delta;
+  const rows = Object.keys(d).map((k) => `<span class="cost ${d[k] < 0 ? 'short' : ''}">${CONFIG.resources[k].icon}${d[k] > 0 ? '+' : '−'}${fmt(Math.abs(d[k]))}</span>`).join('');
+  const ev = sum.events.slice().reverse().slice(-14);
+  openModal(`<h2>🏮 While you were away</h2>
+    <div class="dim">${realMs != null ? `Gone ${fmtDur(realMs)} real · ` : ''}${fmtDur(sum.gameMs)} of game time passed${sum.cappedFrom > sum.gameMs ? ` (capped at ${CONFIG.offlineCapHours}h)` : ''}.</div>
+    <div class="wrapgap" style="margin:10px 0">${rows || '<span class="dim">No change in stock.</span>'}</div>
+    ${sum.levels ? `<p>⭐ ${CONFIG.hero.name} gained ${sum.levels} level${sum.levels > 1 ? 's' : ''}!</p>` : ''}
+    <div class="log">${ev.map((e) => `<div>${e.icon} ${e.msg}</div>`).join('') || '<div class="dim">Quiet times on the Rim.</div>'}</div>
+    <button class="btn" style="width:100%;margin-top:12px" data-act="close">${S.pendingReveal ? '▶︎ Watch the raid' : 'Back to the Rim'}</button>`, 'away');
+}
+
+/* ---------- render loop ---------- */
+const VIEWS = { capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
+function rerender(force) {
+  renderResbar();
+  document.querySelectorAll('nav#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === ui.tab));
+  if (ui.tab === 'training' && !force && document.getElementById('tapzone')) {
+    updateTrainingBinds();
+    if (!ui.pressing) for (const [id, fn] of [['heroSlot', heroStatusCard], ['petSlot', petsCard]]) { const el = document.getElementById(id), hh = fn(); if (el && el.dataset.h !== hh) { el.dataset.h = hh; el.innerHTML = hh; } }
+    return;
+  }
+  if (ui.pressing && !force) return;
+  const html = VIEWS[ui.tab]();
+  if (force || html !== ui.lastHtml) { ui.lastHtml = html; $('#view').innerHTML = html; }
+  if (ui.tab === 'training') updateTrainingBinds();
+}
+function updateLive() {
+  document.querySelectorAll('[data-end]').forEach((e) => { const v = realLeft(+e.dataset.end); if (e.textContent !== v) e.textContent = v; });
+  document.querySelectorAll('[data-pstart]').forEach((e) => { e.style.width = clamp((S.gameTime - +e.dataset.pstart) / Math.max(1, +e.dataset.pend - +e.dataset.pstart), 0, 1) * 100 + '%'; });
+}
+function setTab(t) { ui.tab = t; ui.lastHtml = ''; rerender(true); window.scrollTo(0, 0); }
+
+let lastRender = 0, lastSave = 0;
+function tick() {
+  const now = Date.now(), realDt = now - S.lastReal;
+  S.lastReal = now;
+  if (realDt <= 0) return;
+  if (realDt > CONFIG.awayThresholdRealSec * 1000) {
+    const sum = simulateAway(realDt * speed());
+    awayModal(sum, realDt); rerender(true); save(); return;
+  }
+  simulate(realDt * speed());
+  updateLive();
+  if (now - lastRender > 1000) { lastRender = now; rerender(false); }
+  if (now - lastSave > 5000) { lastSave = now; save(); }
+}
+
+/* ---------- input ---------- */
+function onAct(act, ds) {
+  switch (act) {
+    case 'build': return startBuild(ds.id);
+    case 'exp': return startExpedition(+ds.id);
+    case 'rescue': return rescueNow();
+    case 'attack': return startAttack(+ds.id);
+    case 'ship': return shipNow(+ds.uid);
+    case 'shipmode': { const o = S.outposts.find((x) => x.uid === +ds.uid); o.ship = ds.id; return rerender(true); }
+    case 'module': return installModule(+ds.uid, ds.id);
+    case 'movemenu': return moveMenu(+ds.uid);
+    case 'move': return startMove(+ds.uid, ds.id);
+    case 'drill': return buildDrill();
+    case 'equip': return equipPet(+ds.uid);
+    case 'petup': return petUp(+ds.uid);
+    case 'replay': return showReveal(S.lastRaid);
+    case 'raidnow': S.shieldUntil = 0; S.nextRaidAt = S.gameTime; ui.collecting = null; aiRaid(); return rerender(true);
+    case 'settings': return settingsModal();
+    case 'close': return closeModal();
+    case 'toggletest': S.testMode = !S.testMode; save(); settingsModal(); return rerender(true);
+    case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayModal(sum, null); save(); return rerender(true); }
+    case 'reset': if (confirm('Reset all Hollowdeep progress?')) resetSave(); return;
+  }
+}
+function closeModalQuiet() { ui.modal = null; $('#modal').classList.add('hidden'); }
+
+function init() {
+  const loaded = load();
+  S = loaded || newState();
+  ensureRivals();
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-tab]'); if (t) return setTab(t.dataset.tab);
+    const b = e.target.closest('[data-act]'); if (b && !b.disabled) onAct(b.dataset.act, b.dataset);
+  });
+  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && ui.modal !== 'reveal') closeModal(); });
+  document.addEventListener('pointerdown', (e) => {
+    ui.pressing = true;
+    const z = e.target.closest('#tapzone'); if (z) { e.preventDefault(); doTap(e.clientX, e.clientY); }
+  });
+  const release = () => setTimeout(() => (ui.pressing = false), 60);
+  document.addEventListener('pointerup', release); document.addEventListener('pointercancel', release);
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && ui.tab === 'training' && !ui.modal) { e.preventDefault(); const z = $('#tapzone'); if (z) { const r = z.getBoundingClientRect(); doTap(r.left + r.width * 0.68, r.top + r.height * 0.55); } }
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); else tick(); });
+  window.addEventListener('pagehide', save);
+  rerender(true);
+  if (loaded) {
+    const realDt = Date.now() - loaded.lastReal;
+    S.lastReal = Date.now();
+    if (realDt > CONFIG.awayThresholdRealSec * 1000) { const sum = simulateAway(realDt * speed()); awayModal(sum, realDt); rerender(true); }
+    else simulate(Math.max(0, realDt) * speed());
+  } else {
+    openModal(`<h2>Welcome to the Rim</h2>
+      <p>You hold a small capital on the edge of <b>the Hollow</b>, a chasm that goes down forever. Lumen, a living light, grows deep below.</p>
+      <ul class="small">
+        <li>🏰 <b>Capital</b>: upgrade buildings. Your wall is not just a wall.</li>
+        <li>🕳️ <b>Hollow</b>: send ${CONFIG.hero.name} on timed expeditions. Deeper = richer, riskier.</li>
+        <li>🐢 <b>Outposts</b>: your Strider mines a vein and lifts goods up the Tether. Hauling costs Lumen (the Pull).</li>
+        <li>⚔️ <b>Raids</b>: auto-resolved raids on rival bases; raiders will test your wall.</li>
+        <li>🗡️ <b>Training</b>: tap the dummy for a rolling XP boost. Optional.</li>
+      </ul>
+      <p class="dim">TEST MODE is on: 1 game hour = 1 real minute. Close the tab and come back to see what happened while you were away.</p>
+      <button class="btn" style="width:100%" data-act="close">Begin</button>`, 'welcome');
+  }
+  save();
+  setInterval(tick, 250);
+}
+window.HD = { get S() { return S; }, CONFIG, simulate, simulateAway, startExpedition, startBuild, doTap, save, load, boostPct, weekTaps, aiRaid, shipAll, startMove, installModule, setTab, attackPower, defensePower };
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body></html>
