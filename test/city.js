@@ -11,10 +11,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => typeof ART !== 'undefined' && ART.ready, null, { timeout: 30000 }); await p.waitForTimeout(2500);
   ok(await p.evaluate(() => ART.ok), 'painted art assets loaded');
   ok(await p.isVisible('#cityCanvas'), 'Rim City is default tab and canvas visible');
-  const g = await p.evaluate(() => ({ homes: W.homes.length, regions: REGIONS.length, cracks: W.cracks.length, R: CITY.R, lavaHomes: W.homes.filter((h) => REGIONS[h.region].key === 'lava').length, flows: W.lavaFlows.length, lavaCracks: W.cracks.filter((c) => c.lava).length, rifts: W.rifts.length, glow: W.cracks.filter((c) => c.glow).length, obs: !!CONFIG.resources.obsidian, lavaMarket: W.markets.some((m) => REGIONS[m.region].key === 'lava' && REGIONS[m.region].sells.includes('obsidian')) }));
-  ok(g.homes > 3000, `homes generated: ${g.homes}`); ok(g.regions === 10, '10 regions (incl. lava)'); ok(g.cracks > 10, 'cracks: ' + g.cracks);
-  ok(g.R >= 10000, 'big map radius ' + g.R); ok(g.lavaHomes > 50 && g.flows > 20 && g.lavaCracks > 3, `lava lands: ${g.lavaHomes} homes, ${g.flows} flows, ${g.lavaCracks} lava cracks`);
-  ok(g.rifts >= 4 && g.glow >= 8, `glowing fissures ${g.glow}, rift mouths ${g.rifts}`); ok(g.obs && g.lavaMarket, 'obsidian resource + Cinderglass Bazaar');
+  const g = await p.evaluate(() => ({ homes: W.homes.length, cracks: W.cracks.length, R: CITY.R, mk: W.markets.length, vt: W.vaults.length, mtn: W.mountains.length, br: W.bridges.length, fish: (W.dayFish||[]).length + (W.nightFish||[]).length, obs: !!CONFIG.resources.obsidian, wx: WEATHER_TYPES.filter((w) => w === 'storm' || w === 'rain').length, tiers: [...new Set(W.homes.map((h) => h.level))].length }));
+  ok(g.homes > 15000, `metropolis homes generated: ${g.homes}`); ok(g.cracks > 10, 'crevices: ' + g.cracks); ok(g.mk === 0 && g.vt === 0, 'no bazaars or vaults on the map');
+  ok(g.R >= 10000, 'big map radius ' + g.R); ok(g.mtn > 100, 'mountains: ' + g.mtn); ok(g.br > 20, 'bridges over crevices: ' + g.br);
+  ok(g.fish === 0, 'no flying fish'); ok(g.wx === 0, 'no storms or rain in weather table'); ok(g.obs, 'obsidian resource still in economy');
   // canvas non-blank
   const varied = await p.evaluate(() => { const c = document.getElementById('cityCanvas'), x = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; const set = new Set(); for (let i = 0; i < x.length; i += 4 * 997) set.add((x[i] >> 4) + ',' + (x[i + 1] >> 4) + ',' + (x[i + 2] >> 4)); return set.size; });
   ok(varied > 40, 'map renders varied pixels: ' + varied);
@@ -45,7 +45,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await tp('touchStart', [[180, 500], [220, 500]]); for (let i = 1; i <= 8; i++) await tp('touchMove', [[180 - i * 10, 500], [220 + i * 10, 500]]); await tp('touchEnd', []);
   await p.waitForTimeout(300); const za = await p.evaluate(() => CityMap.cam.z); ok(za > zb * 1.3, `pinch zooms in ${zb.toFixed(2)} -> ${za.toFixed(2)}`);
   // tap an AI home → card with Raid
-  await p.evaluate(() => { const h = W.homes.find((h) => !h.player && h.region === 3); CityMap.flyTo(h.x, h.y, 1.4, true); window.__h = h; });
+  await p.evaluate(() => { const h = W.homes.find((h) => !h.player && Math.hypot(h.x - W.player.x, h.y - W.player.y) > 300); CityMap.flyTo(h.x, h.y, 1.4, true); window.__h = h; });
   await p.waitForTimeout(400);
   const pt = await p.evaluate(() => { const [x, y] = CityMap.w2s(__h.x, __h.y); return [x, y]; });
   const box = await p.locator('#cityCanvas').boundingBox();
@@ -60,15 +60,6 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForTimeout(500);
   ok(await p.evaluate(() => !S.hero.task), 'map raid resolves');
   await p.evaluate(() => closeModalQuiet());
-  // market & vault cards
-  await p.evaluate(() => { S.res.crowns = 5000; const m = W.markets[7]; CityMap.flyTo(m.x, m.y, 1.2, true); CityMap.handleTap(...CityMap.w2s(m.x, m.y)); });
-  await p.waitForTimeout(300); ok(/Bazaar|Market/.test(await p.textContent('#modalBody')), 'market card opens');
-  const before = await p.evaluate(() => S.res.moss);
-  const buy = p.locator('#modal [data-act=mbuy]').first(); await buy.click(); await p.waitForTimeout(200);
-  ok(await p.evaluate((b) => Object.values(S.res).length && S.res.crowns < 5000, before), 'market buy spends crowns');
-  await p.evaluate(() => closeModalQuiet());
-  await p.evaluate(() => { const v = W.vaults[0]; CityMap.flyTo(v.x, v.y, 1.2, true); CityMap.handleTap(...CityMap.w2s(v.x, v.y)); }); await p.waitForTimeout(300);
-  ok(/Vault/.test(await p.textContent('#modalBody')), 'vault card opens'); await p.evaluate(() => closeModalQuiet());
   // NPC + landmark + region
   await p.evaluate(() => { const L = W.landmarks[0]; CityMap.flyTo(L.x, L.y, 1.2, true); CityMap.handleTap(...CityMap.w2s(L.x, L.y)); }); await p.waitForTimeout(300);
   ok((await p.textContent('#modalBody')).length > 80, 'landmark lore card'); await p.evaluate(() => closeModalQuiet());
@@ -83,13 +74,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const shot = async (name, x, y, z, w = 2200) => { await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [x, y, z]); await p.waitForTimeout(w); await p.screenshot({ path: name }); };
   await p.evaluate(() => { S.seasonOverride = null; S.festivalOverride = false; });
   await shot('city-far.png', 0, 0, 0.1, 4000);
-  const r = await p.evaluate(() => { const m = W.markets[4]; return [m.x, m.y]; }); await shot('city-mid.png', r[0], r[1], 0.45);
+  await shot('city-mid.png', 2500, 1500, 0.45);
   const ph = await p.evaluate(() => [W.player.x + 40, W.player.y - 60]); await shot('city-close.png', ph[0], ph[1], 1.6);
-  // region close-ups (painted plants & buildings)
-  for (const [i, nm] of [[0, 'docks'], [1, 'dunes'], [3, 'wood'], [4, 'crystal'], [5, 'farms'], [6, 'badlands'], [7, 'moss'], [8, 'amber'], [2, 'bluffs'], [9, 'lava']]) {
-    const q = await p.evaluate((i) => { const hs = W.homes.filter((h) => h.region === i); const h = hs[Math.floor(hs.length / 2)]; return [h.x, h.y]; }, i);
-    await shot('city-r-' + nm + '.png', q[0], q[1], 1.1, 1800);
-  }
+  // metropolis close-ups: a bridge and a mountain
+  const bq = await p.evaluate(() => { const b = W.bridges[5]; return [(b.p[0] + b.q[0]) / 2, (b.p[1] + b.q[1]) / 2]; }); await shot('city-bridge.png', bq[0], bq[1], 0.9, 1800);
+  const mq = await p.evaluate(() => { const m = W.mountains[W.mountains.length - 3]; return [m.x, m.y]; }); await shot('city-mountain.png', mq[0], mq[1], 0.4, 1800);
   // night + festival
   await p.evaluate(() => { CityMap.onAct('season', { id: 'deep' }); closeModalQuiet(); }); await p.waitForTimeout(400);
   await shot('city-night.png', 0, -300, 0.22, 3000); await shot('city-night-close.png', ph[0], ph[1], 0.9, 2000);

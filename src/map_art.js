@@ -7,7 +7,7 @@
 const ART = { ok: false, ready: false, failed: false, atlas: [], tex: {}, mips: {}, pats: {}, hollow: null, sil: {}, progress: 0 };
 const ART_BASE = 'assets/';
 const CROPS = ['wheat', 'cabbage', 'pumpkin', 'lavender', 'corn', 'vines', 'furrows', 'sunflower'];
-const TEX_KEYS = ['grass', 'sand', 'rock', 'forest', 'crystal', 'farm', 'badlands', 'moss', 'orchard', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff', 'lava'].concat(CROPS);
+const TEX_KEYS = ['grass', 'sand', 'rock', 'water', 'chasm', 'cobble', 'dirt', 'wall', 'cliff'];
 // world units covered by one 512px texture tile
 const TEX_WORLD = { grass: 190, sand: 240, rock: 230, forest: 200, crystal: 210, farm: 560, badlands: 230, moss: 210, orchard: 200, water: 320, chasm: 150, cobble: 64, dirt: 120, wall: 640, cliff: 70, lava: 300, wheat: 70, cabbage: 60, pumpkin: 70, lavender: 60, corn: 70, vines: 70, furrows: 70, sunflower: 60 };
 const REGION_TEX = { docks: 'grass', dunes: 'sand', bluffs: 'rock', wood: 'forest', crystal: 'crystal', farms: 'grass', badlands: 'badlands', moss: 'moss', amber: 'orchard', lava: 'lava' };
@@ -79,7 +79,6 @@ const pickOf = (arr, seed) => arr[Math.floor(seed * 9973) % arr.length];
 const TG = 17; const maskCv = document.createElement('canvas'); maskCv.width = maskCv.height = TG; const maskCtx = maskCv.getContext('2d'); const maskImg = maskCtx.createImageData(TG, TG);
 const smooth01 = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 function terrainWeights(x, y, out) {
-  const M = regionMix(x, y);
   const add = (k, w) => { if (w > 0) out[k] = (out[k] || 0) + w; };
   const put = (ri, w) => {
     const key = REGIONS[ri].key, tk = REGION_TEX[key];
@@ -90,7 +89,7 @@ function terrainWeights(x, y, out) {
     else if (key === 'bluffs') { const m = smooth01(0.45, 0.7, vnoise(x / 160 + 4, y / 160)); add('grass', w * m * 0.55); add('rock', w * (1 - m * 0.55)); }
     else add(tk, w);
   };
-  for (let q = 0; q < 8; q += 2) if (M[q + 1] > 0) put(M[q], M[q + 1]);
+  void put; add('grass', 1); // one flat green land everywhere: no biomes
   // sandy-dirt lip around the Hollow and along cracks
   const hd = hollowDist(x, y); const lip = clamp(1 - hd / 150, 0, 1) * 0.75;
   if (lip > 0) { for (const k in out) out[k] *= (1 - lip); add('dirt', lip); }
@@ -98,7 +97,7 @@ function terrainWeights(x, y, out) {
 }
 /* World-anchored terrain maps: weights are sampled ONCE on a fixed world grid, so every zoom level and
    every tile blends regions identically (no borders shifting or textures popping while zooming). */
-const TMAP = { G: 44, n: 0, RW: 0, keys: ['grass', 'farm', 'forest', 'moss', 'rock', 'sand', 'badlands', 'crystal', 'orchard', 'lava', 'dirt'], w: {}, mask: {}, macro: null, fog: null };
+const TMAP = { G: 44, n: 0, RW: 0, keys: ['grass', 'dirt'], w: {}, mask: {}, macro: null, fog: null };
 function buildTerrainMaps() {
   const G = TMAP.G, RW = CITY.R + 640, n = Math.ceil((2 * RW) / G) + 1; TMAP.n = n; TMAP.RW = RW;
   for (const k of TMAP.keys) TMAP.w[k] = new Float32Array(n * n);
@@ -323,7 +322,7 @@ const HOME_TIERS = [
   { name: 'Ladderstack', from: 17 }, { name: 'Spinehouse', from: 23 }, { name: 'Lumenworks', from: 29 }, { name: 'Deepwarden Hall', from: 35 },
 ];
 const TIER_WF = [0.92, 0.98, 1.08, 1.1, 1.0, 1.18, 1.3, 1.42], TIER_AY = [0.8, 0.8, 0.8, 0.82, 0.88, 0.84, 0.85, 0.83];
-const ROOF_VAR = { docks: 'home2', bluffs: 'home2', crystal: 'home2', lava: 'home2', wood: 'home3', badlands: 'home3' };
+const ROOF_VAR = {}; // every home wears red clay tiles
 const ROOF_SPECK = { home: ['#8e3b28', '#c4634a'], home2: ['#3d4c62', '#6a7d96'], home3: ['#5a4030', '#86644a'] };
 function homeTier(level) { let t = 0; for (let i = 0; i < HOME_TIERS.length; i++) if (level >= HOME_TIERS[i].from) t = i; return t; }
 function playerTier() { return Math.min(7, Math.max(0, Math.round(((typeof S !== 'undefined' && S ? S.buildings.hall : 1) - 1) * 7 / 9))); }
@@ -334,11 +333,11 @@ function roofVar(h) { return h === W.player ? 'home' : ROOF_VAR[REGIONS[h.region
 function homeSprite(h) { return roofVar(h) + '_' + tierOf(h); }
 function homeFlip(h) { return h !== W.player && (homeSeed(h) * 13.7) % 1 < 0.5; }
 // little yard details around homes: laundry, fences, vegetable plots, woodpiles, coops, wells, benches, herb beds, barrels
-const YARD = { docks: [0, 1, 8, 6], dunes: [8, 6, 7], bluffs: [7, 1, 5, 2], wood: [3, 3, 0, 8], crystal: [3, 8, 5], farms: [2, 4, 1, 0, 2], badlands: [8, 3, 5], moss: [7, 1, 2, 6], amber: [2, 8, 1, 4], lava: [8, 3, 5] };
+const YARD_ALL = [0, 1, 3, 5, 6, 8, 8, 1]; const YARD = { docks: [0, 1, 8, 6], dunes: [8, 6, 7], bluffs: [7, 1, 5, 2], wood: [3, 3, 0, 8], crystal: [3, 8, 5], farms: [2, 4, 1, 0, 2], badlands: [8, 3, 5], moss: [7, 1, 2, 6], amber: [2, 8, 1, 4], lava: [8, 3, 5] };
 const YARD_W = [26, 22, 24, 18, 22, 16, 14, 18, 12];
 function homeYard(h, w) {
   if (h === W.player) return [];
-  const sd = homeSeed(h), list = YARD[REGIONS[h.region].key] || [8], out = [], n = sd < 0.3 ? 0 : sd < 0.75 ? 1 : 2;
+  const sd = homeSeed(h), list = YARD_ALL, out = [], n = sd < 0.3 ? 0 : sd < 0.75 ? 1 : 2;
   for (let i = 0; i < n; i++) { const r = (sd * (17.3 + i * 9.1)) % 1, a = (i === 0 ? 0.35 : 2.6) + r * 1.4; const k = list[Math.floor(((sd * (5.7 + i * 3.3)) % 1) * list.length)];
     out.push({ spr: 'yard_' + k, x: h.x + Math.cos(a) * w * 0.62, y: h.y + Math.sin(a) * w * 0.32 + w * 0.06, w: YARD_W[k] * (0.9 + r * 0.3), flip: r > 0.5 }); }
   return out;
@@ -363,6 +362,7 @@ function artObj(c, o, s) {
   const tree = (name, w) => { softShadow(c, o.x + w * 0.16, o.y + w * 0.04, w * 0.42, w * 0.2, 0.85); drawSprite(c, name, o.x, o.y, w, 0.5, 0.9, sd > 0.5); };
   switch (o.type) {
     case 'home': return artHome(c, o, s);
+    case 'mountain': { const w = o.r * 2.7; softShadow(c, o.x + w * 0.12, o.y + w * 0.02, w * 0.5, w * 0.2, 0.7); drawSprite(c, o.spr, o.x, o.y, w, 0.5, 0.86, o.seed > 0.5); return; }
     case 'tree': { if (o.autumn) return tree(pickOf(TREES.amber, sd), o.r * 2.9); const list = TREES[key] || TREES.def; return tree(pickOf(list, sd), o.r * 2.7); }
     case 'orchard': return tree(sd < 0.6 ? 'p_orchard_0' : 'p_orchard_3', o.r * 2.9);
     case 'pine': return tree(sd < 0.55 ? 'p_forest_1' : 'p_forest_2', o.r * 2.3);
@@ -423,8 +423,16 @@ function artDecal(c, o, s) {
     default: return drawDecal(c, o, s);
   }
 }
+function mtnHit(m, x0, y0, x1, y1) { const w = m.r * 2.7; return m.x + w / 2 > x0 && m.x - w / 2 < x1 && m.y + m.r * 0.6 > y0 && m.y - w * 1.1 < y1; }
+function artRingStreet(c, s) { // cobbled ring street round the lip of the Hollow
+  if (!W.ringPts) W.ringPts = W.hollowPts.map((p) => { const a = Math.atan2(p[1], p[0]), r = Math.hypot(p[0], p[1]) + 92; return [Math.cos(a) * r, Math.sin(a) * r]; });
+  c.save(); c.lineJoin = 'round'; pathPoly(c, W.ringPts.map((p) => [p[0] + 3, p[1] + 5])); c.strokeStyle = 'rgba(40,30,20,.3)'; c.lineWidth = 92; c.stroke();
+  pathPoly(c, W.ringPts); c.strokeStyle = '#7d705e'; c.lineWidth = 86; c.stroke(); c.strokeStyle = texPattern(c, 'cobble', s); c.lineWidth = 80; c.stroke();
+  c.strokeStyle = 'rgba(255,240,210,.10)'; c.lineWidth = 30; c.stroke(); c.restore();
+}
 function artStatic(c, x0, y0, x1, y1, s) {
   drawTerrain(c, x0, y0, x1, y1, s);
+  { const e = CITY.hollowR * 1.3 + 200; if (x1 > -e && x0 < e && y1 > -e && y0 < e) artRingStreet(c, s); }
   const objs = queryObjs(x0, y0, x1, y1, 160, 150);
   for (const o of objs) if (o.layer === 0) artDecal(c, o, s);
   artWater(c, x0, y0, x1, y1, s);
@@ -433,12 +441,13 @@ function artStatic(c, x0, y0, x1, y1, s) {
   for (const f of W.lavaFlows) if (boxHit(f.bbox, x0, y0, x1, y1)) artLavaFlow(c, f, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
-  if (s < 0.05) { // far LOD: settlements read as warm roof specks, big features only
+  for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s);
+  if (boxHit([-1200, -1200, 1200, 1200], x0, y0, x1, y1) && ART_MANIFEST.s.scaffold_0) { const sw = 400; softShadow(c, -40, 160, 190, 44, 0.35); drawSprite(c, 'scaffold_0', -50, 200, sw, 0.5, 0.97); }
+  if (s < 0.05) { for (const m of W.mountains) if (mtnHit(m, x0, y0, x1, y1)) artObj(c, m, s); // far LOD: settlements read as warm roof specks, big features only
     for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9), rc = ROOF_SPECK[roofVar(o)]; c.fillStyle = rc[0]; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = rc[1]; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
-      else if (o.layer === 1 && o.type !== 'rock' && (o.r || 0) >= (s < 0.035 ? 26 : 18)) artObj(c, o, s); }
+      else if (o.layer === 1 && o.type !== 'rock' && o.type !== 'tree' && (o.r || 0) >= (s < 0.035 ? 26 : 18)) artObj(c, o, s); }
     return; }
-  artFlora(c, x0, y0, x1, y1, s < 0.1 ? 6 : 0);
-  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer).sort((a, b) => a.y - b.y);
+  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer); for (const m of W.mountains) if (mtnHit(m, x0, y0, x1, y1)) l1.push(m); l1.sort((a, b) => a.y - b.y);
   for (const o of l1) artObj(c, o, s);
 }
 

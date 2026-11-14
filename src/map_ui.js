@@ -102,7 +102,7 @@ const CityMap = (() => {
     if (cam.fly) { const u = clamp((now - cam.fly.t0) / cam.fly.d, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; cam.x = cam.fly.x0 + (cam.fly.x - cam.fly.x0) * e; cam.y = cam.fly.y0 + (cam.fly.y - cam.fly.y0) * e; cam.z = cam.fly.z0 * Math.pow(cam.fly.z / cam.fly.z0, e); if (u >= 1) cam.fly = null; }
     else if (!ptrs.size && (Math.abs(cam.vx) > 0.05 || Math.abs(cam.vy) > 0.05)) { cam.x += cam.vx; cam.y += cam.vy; cam.vx *= 0.92; cam.vy *= 0.92; clampCam(); }
     // exploration: lingering zoomed-in over a land maps it
-    if (cam.z > 0.42 && !cam.fly && Math.hypot(cam.x, cam.y) < CITY.R && hollowDist(cam.x, cam.y) > 0) { const ri = regionAt(cam.x, cam.y); if (ri === dwell.ri) { dwell.t += dt; if (dwell.t > 2.5 && discoverRegion(ri)) buildLegend(); } else { dwell.ri = ri; dwell.t = 0; } } else dwell.t = 0;
+    if (false && cam.z > 0.42 && !cam.fly && Math.hypot(cam.x, cam.y) < CITY.R && hollowDist(cam.x, cam.y) > 0) { const ri = regionAt(cam.x, cam.y); if (ri === dwell.ri) { dwell.t += dt; if (dwell.t > 2.5 && discoverRegion(ri)) buildLegend(); } else { dwell.ri = ri; dwell.t = 0; } } else dwell.t = 0;
     const t = now / 1000, c = ctx, k = kpx();
     const vx0 = cam.x - Wc / 2 / k, vy0 = cam.y - Hc / 2 / k, vx1 = cam.x + Wc / 2 / k, vy1 = cam.y + Hc / 2 / k;
     c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = `rgb(${FOG.join(',')})`; c.fillRect(0, 0, Wc, Hc);
@@ -163,9 +163,9 @@ const CityMap = (() => {
       for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
     if (z > 0.3) for (const v of W.vents) { if (!inV(v.x, v.y, 90)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.2 + k / 5 + v.seed) % 1; glow(c, v.x + u * 26 + Math.sin(u * 4 + v.seed * 9) * 5, v.y - v.r * 2 - u * 60, 5 + u * 18, 'rgba(110,100,100,.9)', Math.min(1, u * 6) * (1 - u) * 0.4); } }
     for (const ch of W.chimneys) { if (!inV(ch.x, ch.y, 80)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.25 + k / 5 + ch.seed) % 1; glow(c, ch.x + u * 40, ch.y - u * 50, 6 + u * 16, 'rgba(90,85,85,.9)', (1 - u) * 0.45); } }
-    if (ART.ok && z > 0.45) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!(REGIONS[h.region].key === 'badlands' ? (sd * 3.7) % 1 < 0.5 : (sd * 3.7) % 1 < 0.12)) continue;
+    if (ART.ok && z > 0.45) { let nSm = 0; for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) { if (h.type !== 'home') continue; const sd = homeSeed(h); if (!((sd * 3.7) % 1 < 0.08) || ++nSm > 18) continue;
       const w = homeW(h), fx = h.x + w * 0.18 * (homeFlip(h) ? 1 : -1), fy = h.y - w * 0.78;
-      for (let k = 0; k < 4; k++) { const u = (t * 0.18 + k / 4 + sd) % 1; glow(c, fx + u * 14 + Math.sin(u * 5 + sd * 9) * 2, fy - u * 26, 2.5 + u * 8, 'rgba(205,200,195,.9)', Math.min(1, u * 5) * (1 - u) * 0.22 * clamp((z - 0.45) / 0.3, 0, 1)); } }
+      for (let k = 0; k < 4; k++) { const u = (t * 0.18 + k / 4 + sd) % 1; glow(c, fx + u * 14 + Math.sin(u * 5 + sd * 9) * 2, fy - u * 26, 2.5 + u * 8, 'rgba(205,200,195,.9)', Math.min(1, u * 5) * (1 - u) * 0.22 * clamp((z - 0.45) / 0.3, 0, 1)); } } }
     if (ART.ok && W.river.length) { const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), ex = e0[0] + e0[0] / d * 50, ey = e0[1] + e0[1] / d * 50, sp = ART_MANIFEST.s.props2_2;
       if (sp && inV(ex, ey, 160)) { const fh = 92 * sp[4] / sp[3], by = ey - fh * 0.1 + fh * 0.86; for (let k = 0; k < 7; k++) { const u = (t * 0.35 + k / 7) % 1; glow(c, ex - 30 + ((k * 37) % 60) + Math.sin(t + k) * 4, by - u * 22, 8 + u * 18, 'rgba(235,245,255,1)', (1 - u) * 0.3); } } }
     for (const m of W.mines) { if (!inV(m.x, m.y, 80)) continue; const u = (Math.sin(t * 0.5 + m.seed * 9) + 1) / 2, d = 14 + u * 52; const x = m.x + Math.cos(m.a) * d, y = m.y + Math.sin(m.a) * d;
@@ -224,8 +224,8 @@ const CityMap = (() => {
     // weather cloud shadow & rain (before night so rain is visible at dusk)
     if (wx.type !== 'clear' && wx.type !== 'updraft' && inV(wx.x, wx.y, wx.r)) {
       const [sx, sy] = S2(wx.x, wx.y), R = wx.r * k; const g = c.createRadialGradient(sx, sy, 0, sx, sy, R);
-      const dark = wx.type === 'storm' ? 0.38 : wx.type === 'mist' ? 0 : 0.22; g.addColorStop(0, `rgba(30,40,60,${dark * wx.fade})`); g.addColorStop(1, 'rgba(30,40,60,0)'); c.fillStyle = g; c.fillRect(0, 0, Wc, Hc);
-      if (wx.type === 'mist') { c.globalAlpha = 0.35 * wx.fade; c.drawImage(glowSprite('rgba(235,240,245,.95)'), sx - R, sy - R, R * 2, R * 2); c.globalAlpha = 1; }
+      const dark = wx.type === 'storm' ? 0.38 : wx.type === 'mist' ? 0 : 0.13; if (dark * wx.fade > 0.01) { g.addColorStop(0, `rgba(30,40,60,${dark * wx.fade})`); g.addColorStop(1, 'rgba(30,40,60,0)'); c.fillStyle = g; const bx0 = Math.max(0, sx - R), by0 = Math.max(0, sy - R); c.fillRect(bx0, by0, Math.min(Wc, sx + R) - bx0, Math.min(Hc, sy + R) - by0); }
+      if (wx.type === 'mist' && wx.fade > 0.02) { c.fillStyle = `rgba(235,240,245,${(0.09 * wx.fade).toFixed(3)})`; for (const f of [1, 0.72, 0.45]) { c.beginPath(); c.ellipse(sx, sy, R * f, R * f * 0.8, 0, 0, TAU); c.fill(); } }
       if (wx.type === 'rain' || wx.type === 'storm') { c.strokeStyle = 'rgba(200,215,240,.55)'; c.lineWidth = 1.2 * dpr; c.beginPath(); const n = wx.type === 'storm' ? 220 : 140;
         for (let i = 0; i < n; i++) { const px = sx + (hash1(i) * 2 - 1) * R * 0.85, py0 = sy + (hash1(i + 999) * 2 - 1) * R * 0.85, fall = ((t * 600 * dpr + i * 37) % (90 * dpr)); const py = py0 + fall; if (Math.hypot(px - sx, py - sy) > R * 0.9) continue; c.moveTo(px, py); c.lineTo(px - 3 * dpr, py + 10 * dpr); } c.globalAlpha = wx.fade; c.stroke(); c.globalAlpha = 1; }
       if (wx.type === 'storm' && Math.sin(t * 1.7) > 0.985) { c.fillStyle = 'rgba(230,240,255,.35)'; c.fillRect(0, 0, Wc, Hc); }
@@ -258,8 +258,8 @@ const CityMap = (() => {
       for (let fi = 0; fi < W.lavaFlows.length; fi++) { const f = W.lavaFlows[fi]; if ((z < 0.06 && fi % 4) || !vb(f.bbox)) continue; for (let i = 0; i < f.pts.length; i += stp) { const p = f.pts[i]; G(p[0], p[1], Math.max(stp * 18, f.ws[i] * 2), 'rgba(255,120,40,.9)', (0.14 + night * 0.5) * (0.8 + 0.2 * Math.sin(t * 2 + f.ph + i * 0.4))); } }
       if (z > 0.06) { for (const v of W.vents) G(v.x, v.y - v.r, v.r * 2.2, 'rgba(255,120,40,.95)', (0.2 + night * 0.5) * (0.75 + 0.25 * Math.sin(t * 3 + v.seed * 20))); for (const o of W.lavaPools) G(o.x, o.y, o.r * 1.8, 'rgba(255,130,40,.9)', (0.18 + night * 0.5) * fl); }
       for (const m of W.rifts) { const lm = m.mouth; if (lm) G(lm.x, lm.y, 90, 'rgba(140,230,255,.9)', (0.12 + night * 0.35) * (0.7 + 0.3 * Math.sin(t * 1.1 + lm.x))); } }
-    if (night > 0.15 && z <= 0.2) { if (!W.glowCells) { const C = 600, m = new Map(); for (const h of W.homes) { const k = Math.floor(h.x / C) + ',' + Math.floor(h.y / C); let e = m.get(k); if (!e) { e = { x: 0, y: 0, n: 0 }; m.set(k, e); } e.x += h.x; e.y += h.y; e.n++; } W.glowCells = [...m.values()].map((e) => ({ x: e.x / e.n, y: e.y / e.n, n: e.n })); }
-      for (const g of W.glowCells) G(g.x, g.y, 300 + Math.sqrt(g.n) * 55, 'rgba(255,190,100,.95)', night * Math.min(0.45, 0.06 + g.n * 0.012)); }
+    if (night > 0.15 && z <= 0.2) { if (!W.glowCells) { const C = 900, m = new Map(); for (const h of W.homes) { const k = Math.floor(h.x / C) + ',' + Math.floor(h.y / C); let e = m.get(k); if (!e) { e = { x: 0, y: 0, n: 0 }; m.set(k, e); } e.x += h.x; e.y += h.y; e.n++; } W.glowCells = [...m.values()].map((e) => ({ x: e.x / e.n, y: e.y / e.n, n: e.n })); }
+      for (const g of W.glowCells) G(g.x, g.y, 1250, 'rgba(255,190,100,.95)', night * Math.min(0.3, 0.03 + g.n * 0.0035)); }
     if (z > 0.2 && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if (ART.ok && z <= 0.35) { G(h.x, h.y - 8, homeW(h) * 0.75, 'rgba(255,190,100,.95)', night * 0.75); continue; } if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); G(h.x, h.y + w * 0.05, w * 0.55, 'rgba(255,150,60,.9)', night * 0.35 * fl); const sd = h.lanternPhase || 0; for (let i = 0; i < 3; i++) { const wx = h.x + (((sd * 7.3 + i * 0.37) % 1) - 0.5) * w * 0.55, wy = h.y - w * (0.12 + ((sd * 3.1 + i * 0.29) % 1) * 0.25); G(wx, wy, w * 0.14, 'rgba(255,200,110,.95)', night * 0.9 * fl); G(wx, wy, 2.2, 'rgba(255,245,200,1)', night * 0.9); } } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
     // sky-fish at night: the nightfall school surges out of the chasm, then a few roam
     if (night > 0.05) { const h = hourOfDay(); const surge = h >= 17.5 && h < 21 ? clamp((h - 17.5) / 3.5, 0, 1) : -1;
@@ -340,11 +340,11 @@ const CityMap = (() => {
     W.markets.forEach((m, i) => { const res = REGIONS[m.region].sells[0]; if (marketSpike(i)) out.push({ w: 2, s: `📈 ${CONFIG.resources[res].name} prices are spiking at the ${m.name}! Traders are pouring in.` });
       else if (spikeAt(i, w + 1)) out.push({ w: 2, s: `🤫 Traders whisper ${CONFIG.resources[res].name} will be dear at the ${m.name} soon.` }); });
     const si = seasonInfo(); if (!si.forced && si.nextIn < 6 * HOUR) out.push({ w: 2, s: `${SEASONS[(si.idx + 1) % 4].icon} ${SEASONS[(si.idx + 1) % 4].name} is coming. Old Maddox can smell it on the updraft.` });
-    const f = festival(); if (f === 'lumen') out.push({ w: 3, s: '🏮 The Lumen Festival is on! Lanterns float down into the Hollow all night.' }); if (f === 'harvest') out.push({ w: 3, s: '🌾 The Harvest Fair is on in Goldenstep! The Bazaar is packed.' });
-    if (frostLevel() > 0) out.push({ w: 2, s: '❄️ Frost is creeping over Greystone Bluffs. Quarry crews are wrapping their hands.' });
+    const f = festival(); if (f === 'lumen') out.push({ w: 3, s: '🏮 The Lumen Festival is on! Lanterns float down into the Hollow all night.' }); if (f === 'harvest') out.push({ w: 3, s: '🌾 The Harvest Fair is on! Every rooftop is strung with lanterns.' });
+    if (frostLevel() > 0) out.push({ w: 2, s: '❄️ Frost is creeping down from the mountains. Quarry crews are wrapping their hands.' });
     const tk = S.hero.task; if (tk && tk.type === 'expedition' && tk.end - S.gameTime < 1.5 * HOUR) out.push({ w: 3, s: `🧗 Word on the Promenade: ${CONFIG.hero.name} is climbing back up the Tether.` });
     const nw = weatherNow(t + CITY.weatherSeconds); if (nw.type !== 'clear') out.push({ w: 1, s: `🌦️ Weather-watchers say: ${weatherLabel(nw).replace(/^\S+\s/, '')} soon.` });
-    if (isDusk()) out.push({ w: 1, s: '🕯️ Pell is lighting the Promenade lamps. The sky-fish will rise soon.' });
+    if (isDusk()) out.push({ w: 1, s: '🕯️ Pell is lighting the Promenade lamps. The crevices will glow soon.' });
     RUMORS.forEach((r) => out.push({ w: 1, s: '💬 ' + r }));
     return out;
   }
@@ -359,16 +359,18 @@ const CityMap = (() => {
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
   function buildLegend() {
-    const known = REGIONS.map((R, i) => [R, i]).filter(([, i]) => isDiscovered(i)), unk = REGIONS.length - known.length;
-    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Lands you have explored</b><button class="btn ghost sm" data-city="legend">✕</button></div>` + known.map(([R, i]) => `<div class="legrow" data-city="region:${i}"><span class="sw" style="background:rgb(${R.ground.join(',')})"></span><div><b>${R.icon} ${R.name}</b><br><span class="dim">${R.res.join(' · ')}</span></div></div>`).join('') +
-      (unk ? `<div class="legrow"><span class="sw" style="background:#555"></span><div><b>❔ ${unk} unexplored land${unk > 1 ? 's' : ''}</b><br><span class="dim">Zoom in and linger somewhere new to map it.</span></div></div>` : '') +
-      `<div class="dim" style="margin-top:6px">🏪 Bazaars trade resources · 🏦 Vaults add storage · 🧵 Tether lifts drop into the Hollow · ★ is your ${CITY.homeTerm}.</div>`;
+    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Rim City</b><button class="btn ghost sm" data-city="legend">✕</button></div>
+      <div class="legrow" data-city="home"><span class="sw" style="background:#ffd46b"></span><div><b>★ Your ${CITY.homeTerm}</b><br><span class="dim">Tap to fly home.</span></div></div>
+      <div class="legrow"><span class="sw" style="background:#18203a"></span><div><b>🕳️ The Hollow</b><br><span class="dim">Tether lifts and the great scaffold drop into it.</span></div></div>
+      <div class="legrow"><span class="sw" style="background:#3a3430"></span><div><b>Crevices</b><br><span class="dim">Cracks in the earth between the districts. Some breathe Lumen; ${W.rifts.length} rift mouths may lead back down.</span></div></div>
+      <div class="legrow"><span class="sw" style="background:#8a8a84"></span><div><b>⛰️ Mountains</b><br><span class="dim">Ring the city's edge and split the outer districts.</span></div></div>
+      <div class="dim" style="margin-top:6px">${W.homes.length.toLocaleString()} ${CITY.homeTerm}s · tap any home to see who lives there.</div>`;
   }
   function buildMinimapBase() {
     const N = 160; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = (i / N) * 2 * CITY.R - CITY.R, y = (j / N) * 2 * CITY.R - CITY.R; let col = groundRGB(x, y); if (hollowDist(x, y) < 0) col = [24, 30, 52]; else if (inLake(x, y)) col = [93, 155, 179]; else if (chasmDist(x, y) < 6) col = [30, 32, 48]; const o = (j * N + i) * 4; img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255; }
     const tmp = document.createElement('canvas'); tmp.width = tmp.height = N; tmp.getContext('2d').putImageData(img, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, N * 2, N * 2);
-    g.fillStyle = 'rgba(60,40,20,.55)'; const sc = (N * 2) / (CITY.R * 2); for (const h of W.homes) g.fillRect((h.x + CITY.R) * sc - 0.5, (h.y + CITY.R) * sc - 0.5, 1.2, 1.2);
+    const sc = (N * 2) / (CITY.R * 2); g.fillStyle = 'rgba(150,60,40,.5)'; for (const h of W.homes) g.fillRect((h.x + CITY.R) * sc - 0.5, (h.y + CITY.R) * sc - 0.5, 1, 1); g.fillStyle = 'rgba(130,128,120,.95)'; for (const m of W.mountains) { g.beginPath(); g.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, Math.max(1.5, m.r * sc * 0.9), 0, TAU); g.fill(); }
   }
   function drawMinimap() {
     if (!mmBase) return; const s = mm.width; if (mm.width !== 240) { mm.width = mm.height = 240; }
@@ -399,7 +401,7 @@ const CityMap = (() => {
     for (const o of queryObjs(x - 80, y - 80, x + 80, y + 80, 80)) { if (!['home', 'market', 'vault', 'lift', 'statue', 'memorial', 'gate', 'rift'].includes(o.type)) continue; const d = Math.hypot(o.x - x, o.y - y) - (o.r || 20); if (d < bd) { bd = d; best = o; } }
     if (best && bd < Math.max(8, tapR * 0.6)) { if (best.type === 'home') return homeCard(best); if (best.type === 'market') return marketCard(best); if (best.type === 'vault') return vaultCard(best); if (best.type === 'lift') return liftCard(best); if (best.type === 'rift') return riftCard(best); return loreCard(best); }
     if (hollowDist(x, y) < 0) return hollowCard();
-    if (Math.hypot(x, y) < CITY.R) return regionCard(regionAt(x, y));
+    void regionCard; // the land itself has no card: no regions to reveal
   }
   const btnRow = (html) => `<div class="wrapgap" style="margin-top:10px">${html}</div>`;
   function historyLines(h, real) {
@@ -413,9 +415,8 @@ const CityMap = (() => {
   }
   function homeCard(h) {
     const R = REGIONS[h.region], sh = (S.mapShields[h.id] || 0) > S.gameTime, est = starsFor(attackPower() / h.power);
-    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} ${typeof tierName === 'function' ? tierName(h) : ''} · ${isDiscovered(h.region) ? `${R.icon} ${R.name}` : '❔ Unexplored lands'}</div>
+    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${typeof tierName === 'function' ? tierName(h) : ''}</div>
       <div class="wrapgap" style="margin-top:6px"><span class="tag">🛡️ Power ${h.power}</span><span class="tag">⚔️ You ${Math.round(attackPower())}</span><span class="tag ${est >= 2 ? 'good' : est === 0 ? 'bad' : ''}">Likely ${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span></div>
-      <div class="small" style="margin-top:6px">Resources nearby: ${isDiscovered(h.region) ? R.res.join(' · ') : '??? (explore or raid here to find out)'}</div>
       <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level, h.region))}</div>
       ${historyLines(h, false)}
       ${btnRow(`${sh ? `<span class="tag">🛡️ Shielded ${countdown(S.mapShields[h.id])}</span>` : `<button class="btn red" data-act="mapraid" data-id="${h.id}" ${!heroHome() || S.res.lumen < CONFIG.mapRaid.lumen ? 'disabled' : ''}>⚔️ Raid (${CONFIG.mapRaid.lumen} 🏮)</button>`}
@@ -470,7 +471,7 @@ const CityMap = (() => {
   function npcCard(n, t) {
     const lines = n.npc.id === 'kip' ? [currentRumor || 'Nothing new on the Rim!'] : n.npc.lines; const line = lines[n.talk % lines.length]; n.talk++;
     bubbles.set(n.npc.id, { text: line.length > 54 ? line.slice(0, 52) + '…' : line, until: t + 5 });
-    const extra = n.npc.id === 'greta' ? `<button class="btn alt" data-act="mopen" data-id="${W.markets.findIndex((m) => m.region === 0)}">🏪 Docks Bazaar</button>` : n.npc.id === 'hennick' ? `<button class="btn" data-act="vopen">🏦 About Vaults</button>` : n.npc.id === 'juniper' ? `<button class="btn alt" data-act="mopen" data-id="${W.markets.findIndex((m) => m.region === 5)}">🏪 Goldenstep Bazaar</button>` : '';
+    const extra = !W.markets.length ? '' : n.npc.id === 'greta' ? `<button class="btn alt" data-act="mopen" data-id="${W.markets.findIndex((m) => m.region === 0)}">🏪 Docks Bazaar</button>` : n.npc.id === 'hennick' ? `<button class="btn" data-act="vopen">🏦 About Vaults</button>` : n.npc.id === 'juniper' ? `<button class="btn alt" data-act="mopen" data-id="${W.markets.findIndex((m) => m.region === 5)}">🏪 Goldenstep Bazaar</button>` : '';
     openModal(`<h2>${n.npc.icon} ${n.npc.name}</h2><div class="dim">${n.npc.role}</div><p style="font-family:Georgia,serif;font-size:16px;margin:10px 0">“${esc(line)}”</p>
       ${btnRow(`<button class="btn ghost" data-act="npcmore" data-id="${n.npc.id}">💬 Keep talking</button>${extra}<button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
   }

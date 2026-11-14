@@ -36,11 +36,11 @@ const SEASONS = [
   { name: 'Frostfall', icon: '❄️', tint: 'rgba(200,225,255,.10)' },
 ];
 const RUMORS = [
-  'They say the Undergate hummed last night. Old Maddox won\'t talk about it.', 'A Glassdune kiln-master swears she saw a sky-fish with a lantern in its mouth.',
-  'Somebody keeps leaving fresh moss on Aurel Vane\'s statue.', 'Hushwood loggers heard singing from a fissure. Nobody went to check.',
-  'Mirrorlake\'s water dropped a finger overnight. Where does it all go?', 'The Pale Lodge is hiring rope-wrights. Big dive planned, they say.',
-  'Brass Hennick counts the Vault coin twice a day. He says it\'s once.', 'A Shellback calf wandered into the Goldenstep Bazaar and ate a whole stall of mossrice.',
-  'Cinderreach chimneys went cold for an hour at noon. Nobody knows why.', 'Pell the lamplighter has never once been late. Not once in thirty years.',
+  'They say the Undergate hummed last night. Old Maddox won\'t talk about it.', 'A tile-setter on the high towers swears she saw a lantern drifting up out of the Hollow.',
+  'Somebody keeps leaving fresh moss on Aurel Vane\'s statue.', 'Bridge-keepers heard singing from a crevice. Nobody went to check.',
+  'A new tower went up on the east side overnight. Red tiles, still wet with clay.', 'The Pale Lodge is hiring rope-wrights. Big dive planned, they say.',
+  'The mountain shepherds say the peaks grumbled at dawn.', 'A Shellback calf wandered across the long bridge and wouldn\'t budge for an hour.',
+  'Kiln chimneys across the city went cold for an hour at noon. Nobody knows why.', 'Pell the lamplighter has never once been late. Not once in thirty years.',
 ];
 
 /* ---------- time helpers ---------- */
@@ -70,7 +70,7 @@ function molePower() { return Math.round(18 + 7 * S.hero.level); }
 function spikeAt(mi, w) { return hash2(w, 100 + mi) < CITY.spikeChance; }
 function marketSpike(mi) { return spikeAt(mi, Math.floor(gTime() / (CITY.spikeWindowHours * HOUR))); }
 /* Weather (real-time, ambient) */
-const WEATHER_TYPES = ['rain', 'storm', 'updraft', 'clear', 'rain', 'mist'];
+const WEATHER_TYPES = ['clear', 'cloud', 'clear', 'mist', 'cloud', 'clear']; // gentle weather only: no storms
 function weatherNow(t) {
   const P = CITY.weatherSeconds, e = Math.floor(t / P), u = (t % P) / P, type = WEATHER_TYPES[Math.floor(hash2(e, 5) * WEATHER_TYPES.length)];
   const a0 = hash2(e, 9) * TAU - Math.PI, a1 = a0 + 0.9 + hash2(e, 11) * 0.6;
@@ -79,15 +79,15 @@ function weatherNow(t) {
   const fade = Math.min(1, u * 6, (1 - u) * 6);
   return { type, x, y, r: type === 'updraft' ? 260 : 620, fade, e, region: regionAt(x, y) };
 }
-function weatherLabel(w) { const R = regionName(w.region); return { rain: `🌧️ Rain drifting over ${R}`, storm: `⛈️ A Hollow storm rolls across ${R}`, updraft: '🌬️ An Exhale updraft rises from the Hollow', mist: `🌫️ Mist creeps through ${R}`, clear: nightFactor() > 0.5 ? '🌙 Clear night over the Rim' : '☀️ Clear skies over the Rim' }[w.type]; }
+function weatherLabel(w) { const R = 'the Rim'; return { cloud: '⛅ Clouds drift over the Rim', mist: '🌫️ A light mist settles over the Rim', rain: `🌧️ Rain drifting over ${R}`, storm: `⛈️ A Hollow storm rolls across ${R}`, updraft: '🌬️ An Exhale updraft rises from the Hollow', clear: nightFactor() > 0.5 ? '🌙 Clear night over the Rim' : '☀️ Clear skies over the Rim' }[w.type]; }
 
 /* ---------- generation of agents ---------- */
 function genLife(rnd) {
   const used = new Set(W.homes.map((h) => h.owner));
   W.walkers = []; W.visitors = []; W.caravans = []; // no foot traffic: the map stays calm and cheap to draw
   // sky-fish (no birds!): day drifters + night school
-  W.dayFish = []; for (let i = 0; i < 2; i++) W.dayFish.push({ kind: ['manta', 'koi', 'eel'][i % 3], phase: rnd() * 600, period: 260 + rnd() * 140, size: 26 + rnd() * 22, a0: rnd() * TAU, hue: rnd() });
-  W.nightFish = []; for (let i = 0; i < 16; i++) W.nightFish.push({ a: rnd() * TAU, r: 0.2 + rnd() * 0.75, sp: 0.15 + rnd() * 0.25, ph: rnd() * TAU, size: 5 + rnd() * 5, hue: rnd() });
+  W.dayFish = []; if (0) W.dayFish.push({ kind: ['manta', 'koi', 'eel'][i % 3], phase: rnd() * 600, period: 260 + rnd() * 140, size: 26 + rnd() * 22, a0: rnd() * TAU, hue: rnd() });
+  W.nightFish = []; if (0) W.nightFish.push({ a: rnd() * TAU, r: 0.2 + rnd() * 0.75, sp: 0.15 + rnd() * 0.25, ph: rnd() * TAU, size: 5 + rnd() * 5, hue: rnd() });
   W.motes = []; for (let i = 0; i < 70; i++) W.motes.push({ a: rnd() * TAU, sp: 0.02 + rnd() * 0.04, off: rnd(), sz: 3 + rnd() * 5, wob: rnd() * TAU });
   W.mist = []; for (let i = 0; i < 14; i++) W.mist.push({ a: rnd() * TAU, r: 120 + rnd() * 550, w: (rnd() - 0.5) * 0.03, size: 260 + rnd() * 380, al: 0.12 + rnd() * 0.16 });
   W.peekers = []; for (let i = 0; i < 22; i++) { const c = W.cracks[Math.floor(rnd() * W.cracks.length)]; const j = Math.floor(rnd() * (c.pts.length - 1)); W.peekers.push({ x: c.pts[j][0], y: c.pts[j][1], P: 9 + rnd() * 15, ph: rnd() * 30, red: rnd() < 0.3, tent: rnd() < 0.35 }); }
@@ -106,8 +106,6 @@ function genLife(rnd) {
     mk('greta', W.piers[0] ? W.piers[0].x + Math.cos(W.piers[0].a) * 0 : docksM.x, W.piers[0] ? W.piers[0].y : docksM.y),
     mk('ilse', memo.x + 14, memo.y + 20),
     mk('kip', W.player.x + 46, W.player.y + 30),
-    mk('juniper', farmsM.x + 20, farmsM.y - 18),
-    mk('hennick', W.vaults[0].x + 30, W.vaults[0].y + 22),
   ];
 }
 

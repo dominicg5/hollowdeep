@@ -3,7 +3,7 @@
    RIM CITY — procedural, seeded world around the Hollow
    ===================================================================== */
 const CITY = {
-  homeTerm: 'Lanternhold',              // in-world name for each player's capital
+  homeTerm: 'Lanternhold', functional: false,              // in-world name for each player's capital
   seed: 20261114,
   R: 11000, hollowR: 700,                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
@@ -220,9 +220,14 @@ function generateCity() {
   const lavaFlow = (x, y, a, len, w0, stopOcc) => { const pts = [[x, y]], ws = [w0]; const n = Math.ceil(len / 22);
     for (let i = 1; i <= n; i++) { a += (rnd() - 0.5) * 0.7; const nx = x + Math.cos(a) * 22, ny = y + Math.sin(a) * 22; if (regionAt(nx, ny) !== OUTER.LAVA || Math.hypot(nx, ny) > R - 160 || (stopOcc && !occFree(OCC.obj, nx, ny, 4))) break; x = nx; y = ny; pts.push([x, y]); ws.push(w0 * (1 - 0.8 * i / n) + 2); }
     if (pts.length < 3) return null; const f = { pts, ws, bbox: bboxOf(pts, w0 + 30), ph: rnd() * TAU }; W.lavaFlows.push(f); for (const p of pts) occMark(OCC.obj, p[0], p[1], w0 * 0.6 + 4); return f; };
-  for (const c of W.cracks) { let nl = 0; for (const p of c.pts) if (regionAt(p[0], p[1]) === OUTER.LAVA) nl++; c.lava = nl > c.pts.length * 0.4; if (c.lava) { c.glow = false;
+  for (const c of W.cracks) { let nl = 0; for (const p of c.pts) if (regionAt(p[0], p[1]) === OUTER.LAVA) nl++; c.lava = false && nl > c.pts.length * 0.4; if (c.lava) { c.glow = false;
       const nf = 1 + Math.floor(rnd() * 3 + c.pts.length / 30); for (let k = 0; k < nf; k++) { const j = 1 + Math.floor(rnd() * (c.pts.length - 2)), p = c.pts[j], q = c.pts[j + 1]; const ang = Math.atan2(q[1] - p[1], q[0] - p[0]) + (rnd() < 0.5 ? 1 : -1) * (1.2 + rnd() * 0.6), off = c.ws[j] / 2 + 2;
         lavaFlow(p[0] + Math.cos(ang) * off, p[1] + Math.sin(ang) * off, ang, 160 + rnd() * 420, 9 + rnd() * 10); } } }
+  W.bridges = [];
+  for (const c of W.cracks) { if (c.depth > 1) continue; for (let i = 6; i < c.pts.length - 4; i += 12 + Math.floor(rnd() * 6)) { const w = c.ws[i]; if (w < 18 || Math.hypot(c.pts[i][0], c.pts[i][1]) < CITY.hollowR + 200) continue;
+    const p = c.pts[i - 1], q = c.pts[i + 1], ang = Math.atan2(q[1] - p[1], q[0] - p[0]) + Math.PI / 2, L = w / 2 + 22, m = c.pts[i];
+    W.bridges.push({ p: [m[0] - Math.cos(ang) * L, m[1] - Math.sin(ang) * L], q: [m[0] + Math.cos(ang) * L, m[1] + Math.sin(ang) * L], w: Math.min(26, 14 + w * 0.08) }); } }
+  for (const b of W.bridges) { b.bbox = bboxOf([b.p, b.q], 30); occMark(OCC.obj, b.p[0], b.p[1], 18); occMark(OCC.obj, b.q[0], b.q[1], 18); }
   W.rifts = W.cracks.filter((c) => c.outer && c.depth === 0 && c.glow && !c.lava && c.pts.length > 6).slice(0, 10);
   // Polygon outlines for cracks
   for (const c of W.cracks) { const L = [], Rr = []; for (let i = 0; i < c.pts.length; i++) { const p = c.pts[i], q = c.pts[Math.min(i + 1, c.pts.length - 1)], o = c.pts[Math.max(i - 1, 0)];
@@ -234,6 +239,7 @@ function generateCity() {
   W.roads = []; W.lamps = []; W.plazas = [];
   W.civic = []; W.markets = []; W.vaults = [];
   const siteOK = (x, y, rr) => hollowDist(x, y) > 120 && chasmDist(x, y) > rr && !isWet(x, y, rr) && occFree(OCC.obj, x, y, rr);
+  if (CITY.functional) { // bazaars and public vaults are not on the map any more
   REGIONS.forEach((reg, ri) => { if (reg.outer) return;
     for (let tries = 0; tries < 40; tries++) { const a = regionAngle(ri) + (rnd() - 0.5) * 0.35, r = 1500 + rnd() * 700, [x, y] = polar(r, a); if (regionAt(x, y) !== ri || !siteOK(x, y, 80)) continue;
       const m = { type: 'market', x, y, r: 66, region: ri, name: `${reg.name.split(' ')[0]} Bazaar`, idx: W.markets.length, stalls: [] };
@@ -247,6 +253,7 @@ function generateCity() {
   const vaultNames = ['The Deepcoin Vault', 'Old Ledger Vault', 'Gullwing Strongrooms', 'The Amber Coffers', 'Marrow & Daughters Vault', 'Undercliff Depository'];
   for (let k = 0; k < 6; k++) for (let tries = 0; tries < 40; tries++) { const a = rnd() * TAU - Math.PI, r = (rnd() < 0.5 ? 1100 : 2600) + rnd() * 200, [x, y] = polar(r, a); if (!siteOK(x, y, 58)) continue;
     const v = { type: 'vault', x, y, r: 44, region: regionAt(x, y), name: vaultNames[k], idx: W.vaults.length }; W.vaults.push(v); W.civic.push(v); occMark(OCC.obj, x, y, 58); break; }
+  }
   // Tether lift towers on the lip, cables into the Hollow
   W.lifts = []; const liftNames = ['North Spine', 'Gullhook Lift', 'Old Maddox\'s Lift', 'Lantern Ladder', 'Cinder Drop', 'Saltline', 'Mothwing Lift', 'Greystone Spine', 'Rootfall Express', 'Brindle Drop', 'Amber Spine', 'The Long Rope', 'Hushline', 'Glassline'];
   for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU - Math.PI + (rnd() - 0.5) * 0.15; const [x, y] = polar(hollowR(a) + 28, a);
@@ -269,12 +276,20 @@ function generateCity() {
   W.rifts.forEach((c, i) => { const p = c.pts[0], q = c.pts[2]; const ang = Math.atan2(p[1] - q[1], p[0] - q[0]); const x = p[0] + Math.cos(ang) * 40, y = p[1] + Math.sin(ang) * 40;
     const lm = { type: 'rift', x, y, r: 30, name: riftNames[i % riftNames.length], a: ang, crack: c, region: regionAt(x, y) }; c.mouth = lm; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 60); });
 
+  // Mountains: a ring of peaks round the edge of the world and a few ridges that split the outer districts
+  W.mountains = [];
+  const addMtn = (x, y, r) => { if (hollowDist(x, y) < 900 || chasmDist(x, y) < r * 0.5 || isWet(x, y, r)) return; const m = { type: 'mountain', x, y, r, layer: 1, seed: rnd(), spr: 'mtn_' + Math.floor(rnd() * 9) }; W.mountains.push(m); occMark(OCC.obj, x, y, r * 0.8); };
+  for (let row = 0; row < 3; row++) { const rr = R - 260 - row * 520, n = Math.floor(TAU * rr / (420 + row * 60)); for (let i = 0; i < n; i++) { if (row === 2 && rnd() < 0.45) continue; const a = (i + rnd() * 0.6) / n * TAU; addMtn(Math.cos(a) * (rr + (rnd() - 0.5) * 200), Math.sin(a) * (rr + (rnd() - 0.5) * 200), 200 + rnd() * 140 - row * 25); } }
+  for (let k = 0; k < 9; k++) { let a = rnd() * TAU, r = 4600 + rnd() * 4400; const da = (rnd() < 0.5 ? 1 : -1) * (0.04 + rnd() * 0.03), dr = (rnd() - 0.5) * 120, n = 6 + Math.floor(rnd() * 10);
+    for (let i = 0; i < n; i++) { a += da; r += dr; addMtn(Math.cos(a) * r + (rnd() - 0.5) * 120, Math.sin(a) * r + (rnd() - 0.5) * 120, 150 + rnd() * 120); } }
+  W.mountains.sort((p, q) => p.y - q.y);
+
   // Homes (Lanternholds): a dense old city around the Hollow that thins outward, plus villages in the far lands
   W.homes = []; const used = new Set();
   const addHome = (x, y, face, lvlBias) => {
     const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3 + (lvlBias || 0)))));
     const size = 22 + level * 0.55 + rnd() * 6, rad = size * 0.62;
-    if (hollowDist(x, y) < 70 || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, rad + 3)) return null;
+    if (hollowDist(x, y) < 150 || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, rad + 3)) return null;
     const region = regionAt(x, y), reg = REGIONS[region];
     const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
     const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
@@ -287,24 +302,17 @@ function generateCity() {
       lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
     W.homes.push(h); occMark(OCC.obj, x, y, rad + 2); return h;
   };
-  // old city: jittered grid, density falls off with distance and breaks into neighbourhood clumps
-  const INNER = CITY.innerR;
-  for (let gx = -INNER; gx < INNER; gx += 78) for (let gy = -INNER; gy < INNER; gy += 78) {
-    const x = gx + rnd() * 60, y = gy + rnd() * 60, r = Math.hypot(x, y), q = rnd(); if (r > INNER) continue;
-    const clump = vnoise(x / 420 + 11, y / 420 - 4), fall = clamp(1.15 - (r - CITY.hollowR) / (INNER - CITY.hollowR) * 0.75, 0.25, 1);
-    if (q > fall * (0.3 + 0.7 * smooth01g(0.3, 0.6, clump))) continue;
-    addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 1.2);
-  }
-  // far lands: villages and lone farmsteads
+  // the metropolis: homes packed shoulder to shoulder around the Hollow, thinning into dense districts between the
+  // mountains and crevices of the outer lands. Tall, high-level homes crowd the lip.
   W.villages = [];
-  const VP = CITY.villageP;
-  for (let gx = -CITY.R; gx < CITY.R; gx += 800) for (let gy = -CITY.R; gy < CITY.R; gy += 800) {
-    const cx = gx + 130 + rnd() * 540, cy = gy + 130 + rnd() * 540, r = Math.hypot(cx, cy), q = rnd(), vr = 150 + rnd() * 300, n = Math.round(8 + rnd() * 52);
-    if (r < INNER + 250 || r > CITY.R - 400) continue; const k = REGIONS[regionAt(cx, cy)].key; if (q > (VP[k] || 0.4)) continue;
-    const v = { x: cx, y: cy, r: vr, n: 0 }; W.villages.push(v);
-    for (let i = 0; i < n * 2 && v.n < n; i++) { const a = i * 2.39996 + rnd() * 0.5, d = vr * Math.sqrt((i + 0.5) / (n * 2)) * (0.85 + rnd() * 0.3); if (addHome(cx + Math.cos(a) * d, cy + Math.sin(a) * d, a + Math.PI + (rnd() - 0.5) * 0.8, 0.6)) v.n++; }
+  for (let gx = -R; gx < R; gx += 60) for (let gy = -R; gy < R; gy += 60) {
+    const x = gx + rnd() * 34, y = gy + rnd() * 34, r = Math.hypot(x, y), q = rnd(); if (r > R - 300) continue;
+    const dist = vnoise(x / 1300 + 3, y / 1300 - 8), lane = vnoise(x / 260 + 40, y / 260);
+    let p = r < 3800 ? 0.92 : 0.12 + 0.8 * smooth01g(0.36, 0.56, dist);
+    if (lane < 0.22) p *= 0.35; // little squares and gaps
+    if (q > p) continue;
+    addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.8, r < 1700 ? -1.3 : r < 3000 ? -0.6 : 0.3);
   }
-  for (let gx = -CITY.R; gx < CITY.R; gx += 260) for (let gy = -CITY.R; gy < CITY.R; gy += 260) { const x = gx + rnd() * 220, y = gy + rnd() * 220, q = rnd(); if (Math.hypot(x, y) < INNER + 100 || q > 0.05) continue; addHome(x, y, rnd() * TAU, 1); }
   // The player's Lanternhold: Lanternmoss Gardens, near the second ring
   { const ra = regionAngle(7); let best = null, bd = 1e9; for (const h of W.homes) { if (h.region !== 7) continue; const d = Math.abs(Math.hypot(h.x, h.y) - 1580) + Math.abs(((Math.atan2(h.y, h.x) - ra + 3 * Math.PI) % TAU) - Math.PI) * 900; if (d < bd) { bd = d; best = h; } }
     best.isPlayer = true; best.owner = 'You'; best.name = 'Your ' + CITY.homeTerm; best.size = 40; best.style = 3; best.wing = 1; best.tower = true; W.player = best; }
@@ -332,8 +340,9 @@ function generateCity() {
     else if (k === 'lava') { if (q < 0.022) { deco({ type: 'lavapool', r: 26 + rnd() * 14 }); W.lavaPools.push(W.objs[W.objs.length - 1]); } else if (q < 0.07) obj({ type: 'basalt', r: 16 + rnd() * 10 }); else if (q < 0.085) { if (obj({ type: 'vent', r: 18 + rnd() * 8 })) W.vents.push(W.objs[W.objs.length - 1]); } else if (q < 0.12) obj({ type: 'obsidian', r: 14 + rnd() * 8 }); else if (q < 0.15) obj({ type: 'deadtree', r: 10 }); else if (q < 0.2) deco({ type: 'cracked', r: 36, a: rnd() * TAU }); }
     else if (k === 'amber') { if (q < 0.3) obj({ type: 'orchard', r: 12 }); else if (q < 0.42) obj({ type: 'tree', r: 15, autumn: 1 }); else if (q < 0.45) obj({ type: 'rock', r: 8 }); else if (q < 0.5) deco({ type: 'leaves', r: 26 }); }
   };
-  for (let gx = -3500; gx < 3500; gx += 52) for (let gy = -3500; gy < 3500; gy += 52) { const x = gx + rnd() * 46, y = gy + rnd() * 46; if (Math.hypot(x, y) < 3400) decorAt(x, y); }
-  for (let gx = -R; gx < R; gx += 66) for (let gy = -R; gy < R; gy += 66) { const x = gx + rnd() * 58, y = gy + rnd() * 58; if (Math.hypot(x, y) >= 3400) decorAt(x, y); }
+  void decorAt; // regional scenery retired: flat grass and only a handful of trees
+  for (let gx = -R; gx < R; gx += 90) for (let gy = -R; gy < R; gy += 90) { const x = gx + rnd() * 80, y = gy + rnd() * 80, q = rnd(); if (q > 0.012 || Math.hypot(x, y) > R - 200 || hollowDist(x, y) < 150 || chasmDist(x, y) < 14 || isWet(x, y, 8)) continue;
+    const r0 = 16 + rnd() * 8; if (!occFree(OCC.obj, x, y, r0)) continue; W.objs.push({ type: 'tree', x, y, r: r0, layer: 1, region: 0, seed: rnd() }); occMark(OCC.obj, x, y, r0); }
   for (const v of W.vents) if (rnd() < 0.7) { const a = rnd() * TAU; lavaFlow(v.x + Math.cos(a) * (v.r + 6), v.y + Math.sin(a) * (v.r + 6), a, 90 + rnd() * 220, 7 + rnd() * 6, true); }
   // Flora is scattered at paint time from a world-seeded hash (see artFlora), so it costs no memory
   // Piers on the lake shore

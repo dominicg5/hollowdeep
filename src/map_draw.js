@@ -4,9 +4,7 @@
    ===================================================================== */
 const FOG = [62, 88, 84];
 function groundRGB(x, y) {
-  const M = regionMix(x, y); let c = [0, 0, 0], sw = 0;
-  for (let q = 0; q < 8; q += 2) { const w = M[q + 1]; if (w <= 0) continue; const g = REGIONS[M[q]].ground; c[0] += g[0] * w; c[1] += g[1] * w; c[2] += g[2] * w; sw += w; }
-  c = [c[0] / sw, c[1] / sw, c[2] / sw];
+  let c = [118, 160, 96];
   const n = 0.9 + vnoise(x / 140, y / 140) * 0.14 + vnoise(x / 40, y / 40) * 0.05;
   c = [c[0] * n, c[1] * n, c[2] * n];
   const hd = hollowDist(x, y); if (hd < 140) c = mix(c, [205, 182, 138], clamp(1 - hd / 140, 0, 1) * 0.55);

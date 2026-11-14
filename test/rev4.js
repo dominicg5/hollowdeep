@@ -1,0 +1,21 @@
+const { chromium } = require('playwright-core');
+const URL = process.env.URL || 'http://localhost:8765/hollowdeep-prototype.html';
+(async () => {
+  const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
+  const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })).newPage();
+  const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto(URL); await p.waitForTimeout(800);
+  if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]');
+  await p.waitForFunction(() => typeof ART !== 'undefined' && ART.ready && W.homes, null, { timeout: 90000 });
+  console.log(await p.evaluate(() => JSON.stringify({ homes: W.homes.length, objs: W.objs.length, mtn: W.mountains.length, bridges: W.bridges.length, cracks: W.cracks.length, gen: W.genMs })));
+  const shot = async (n, x, y, z, w) => { await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [x, y, z]); await p.waitForTimeout(w || 2500); await p.screenshot({ path: n }); };
+  const P = await p.evaluate(() => { const br = W.bridges[Math.floor(W.bridges.length / 2)]; const m = W.mountains.find((m) => Math.hypot(m.x, m.y) < 9000) || W.mountains[0]; const edge = W.mountains[5];
+    return { pl: [W.player.x, W.player.y], br: br.p, m: [m.x, m.y], e: [edge.x, edge.y] }; });
+  const only = process.env.ONLY;
+  const S = [['mv-hollow.png', 0, 120, 0.42, 3500], ['mv-lip.png', 0, -760, 0.9], ['mv-home.png', ...P.pl, 1.1], ['mv-dist.png', ...P.pl, 0.25, 3500], ['mv-bridge.png', ...P.br, 0.8], ['mv-ridge.png', ...P.m, 0.3, 3500], ['mv-edge.png', ...P.e, 0.25, 3500], ['mv-over.png', 0, 0, 0.022, 6000]];
+  for (const s of S) if (!only || s[0].includes(only)) await shot(...s);
+  await p.evaluate(() => { CityMap.onAct('season', { id: 'deep' }); closeModalQuiet(); }); await p.waitForTimeout(400);
+  for (const s of [['mv-n-hollow.png', 0, 100, 0.35, 3000], ['mv-n-over.png', 0, 0, 0.05, 4000]]) if (!only || s[0].includes(only)) await shot(...s);
+  console.log('errors', errs.length, errs.slice(0, 3).join(' | '));
+  await b.close();
+})();
