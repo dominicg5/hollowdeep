@@ -7,7 +7,7 @@ const CITY = {
   seed: 20261114,
   R: 3300, hollowR: 700,                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
-  tilePx: 256, levels: [0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 200,
+  tilePx: 256, levels: [0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 280,
   zoomMin: 0.065, zoomMax: 3.2, startZoom: 1.05,
   walkers: 380, homePetShare: 0.3,
   seasonDays: 7, testSeasonDays: 1,     // game days per season (test mode uses testSeasonDays)

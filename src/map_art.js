@@ -97,33 +97,55 @@ function terrainWeights(x, y, out) {
   if (lip > 0) { for (const k in out) out[k] *= (1 - lip); add('dirt', lip); }
   return out;
 }
+/* World-anchored terrain maps: weights are sampled ONCE on a fixed world grid, so every zoom level and
+   every tile blends regions identically (no borders shifting or textures popping while zooming). */
+const TMAP = { G: 32, n: 0, RW: 0, keys: ['grass', 'farm', 'forest', 'moss', 'rock', 'sand', 'badlands', 'crystal', 'orchard', 'dirt'], w: {}, mask: {}, macro: null, fog: null };
+function buildTerrainMaps() {
+  const G = TMAP.G, RW = CITY.R + 640, n = Math.ceil((2 * RW) / G) + 1; TMAP.n = n; TMAP.RW = RW;
+  for (const k of TMAP.keys) TMAP.w[k] = new Float32Array(n * n);
+  const o = {};
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { for (const k in o) delete o[k]; const x = -RW + i * G, y = -RW + j * G; terrainWeights(x, y, o); let sum = 0; for (const k in o) sum += o[k]; for (const k in o) if (TMAP.w[k]) TMAP.w[k][j * n + i] = o[k] / (sum || 1); }
+  const mk = () => { const cv = document.createElement('canvas'); cv.width = cv.height = n; return cv; };
+  // sequential "over" compositing in a fixed order reproduces the normalized blend exactly: alpha_k = w_k / sum(w_0..w_k)
+  const cum = new Float32Array(n * n);
+  for (const k of TMAP.keys) { const W8 = TMAP.w[k]; let any = false; for (let q = 0; q < n * n; q++) if (W8[q] > 0.003) { any = true; break; } if (!any) { TMAP.w[k] = null; continue; }
+    const cv = mk(), g = cv.getContext('2d'), im = g.createImageData(n, n);
+    for (let q = 0; q < n * n; q++) { cum[q] += W8[q]; const a = cum[q] > 1e-4 ? W8[q] / cum[q] : 0; const o4 = q * 4; im.data[o4] = im.data[o4 + 1] = im.data[o4 + 2] = 255; im.data[o4 + 3] = Math.round(clamp(a, 0, 1) * 255); }
+    g.putImageData(im, 0, 0); TMAP.mask[k] = cv; }
+  // macro light/dark variation + fog beyond the rim
+  const mc = mk(), mg = mc.getContext('2d'), mi = mg.createImageData(n, n), fc = mk(), fg = fc.getContext('2d'), fi = fg.createImageData(n, n);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { const x = -RW + i * G, y = -RW + j * G, q = (j * n + i) * 4;
+    const v = Math.round(clamp(0.78 + vnoise(x / 520, y / 520) * 0.16 + vnoise(x / 150 + 3, y / 150) * 0.08, 0, 1) * 255); mi.data[q] = mi.data[q + 1] = mi.data[q + 2] = v; mi.data[q + 3] = 255;
+    fi.data[q] = FOG[0]; fi.data[q + 1] = FOG[1]; fi.data[q + 2] = FOG[2]; fi.data[q + 3] = Math.round(clamp((Math.hypot(x, y) - (CITY.R - 250)) / 480, 0, 1) * 255); }
+  mg.putImageData(mi, 0, 0); fg.putImageData(fi, 0, 0); TMAP.macro = mc; TMAP.fog = fc; TMAP.world = W;
+}
+// draw the part of a world-grid map covering [x0,x1]x[y0,y1] (with margin so bilinear edges stay off-tile)
+function drawMap(g, cv, x0, y0, x1, y1) {
+  const G = TMAP.G, RW = TMAP.RW, n = TMAP.n;
+  const i0 = clamp(Math.floor((x0 + RW) / G) - 2, 0, n - 1), j0 = clamp(Math.floor((y0 + RW) / G) - 2, 0, n - 1), i1 = clamp(Math.ceil((x1 + RW) / G) + 2, 0, n - 1), j1 = clamp(Math.ceil((y1 + RW) / G) + 2, 0, n - 1);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(cv, i0, j0, i1 - i0 + 1, j1 - j0 + 1, -RW + i0 * G - G / 2, -RW + j0 * G - G / 2, (i1 - i0 + 1) * G, (j1 - j0 + 1) * G);
+}
+function mapAny(k, x0, y0, x1, y1) {
+  const Wk = TMAP.w[k]; if (!Wk) return false; const G = TMAP.G, RW = TMAP.RW, n = TMAP.n;
+  const i0 = clamp(Math.floor((x0 + RW) / G) - 1, 0, n - 1), j0 = clamp(Math.floor((y0 + RW) / G) - 1, 0, n - 1), i1 = clamp(Math.ceil((x1 + RW) / G) + 1, 0, n - 1), j1 = clamp(Math.ceil((y1 + RW) / G) + 1, 0, n - 1);
+  for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (Wk[j * n + i] > 0.003) return true; return false;
+}
 function drawTerrain(c, x0, y0, x1, y1, s) {
-  const ws = x1 - x0, cell = ws / (TG - 1), layers = {};
-  const grid = [];
-  for (let j = 0; j < TG; j++) for (let i = 0; i < TG; i++) { const o = {}; terrainWeights(x0 + i * cell, y0 + j * cell, o); grid.push(o); for (const k in o) layers[k] = Math.max(layers[k] || 0, o[k]); }
-  const keys = Object.keys(layers).filter((k) => layers[k] > 0.004).sort((a, b) => layers[b] - layers[a]);
-  const N = c.canvas.width, T = c.getTransform();
-  // base: the strongest layer, solid
-  c.fillStyle = texPattern(c, keys[0], s); c.fillRect(x0, y0, ws, ws);
+  if (TMAP.world !== W) buildTerrainMaps();
+  const ws = x1 - x0, N = c.canvas.width, T = c.getTransform();
+  c.fillStyle = texPattern(c, 'grass', s); c.fillRect(x0, y0, ws, ws);
   const g = scratch(N);
-  for (const k of keys.slice(1)) {
-    // mask from weights
-    for (let q = 0; q < TG * TG; q++) { const w = grid[q][k] || 0; const o = q * 4; maskImg.data[o] = maskImg.data[o + 1] = maskImg.data[o + 2] = 255; maskImg.data[o + 3] = Math.round(clamp(w * 1.04, 0, 1) * 255); }
-    maskCtx.putImageData(maskImg, 0, 0);
+  for (const k of TMAP.keys) {
+    if (!TMAP.mask[k] || !mapAny(k, x0, y0, x1, y1)) continue;
     g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, N, N);
     g.setTransform(T); g.fillStyle = texPattern(g, k, s); g.fillRect(x0, y0, ws, ws);
-    g.globalCompositeOperation = 'destination-in'; g.imageSmoothingEnabled = true; g.drawImage(maskCv, 0, 0, TG, TG, x0 - cell / 2, y0 - cell / 2, ws + cell, ws + cell);
-    g.globalCompositeOperation = 'source-over';
+    g.globalCompositeOperation = 'destination-in'; drawMap(g, TMAP.mask[k], x0, y0, x1, y1); g.globalCompositeOperation = 'source-over';
     c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(g.canvas, 0, 0); c.restore();
   }
-  // macro light/dark variation breaks up texture repetition; fog beyond the rim
-  for (let q = 0; q < TG * TG; q++) { const i = q % TG, j = (q / TG) | 0, x = x0 + i * cell, y = y0 + j * cell; const n = 0.78 + vnoise(x / 520, y / 520) * 0.16 + vnoise(x / 150 + 3, y / 150) * 0.08; const o = q * 4; const v = Math.round(clamp(n, 0, 1) * 255); maskImg.data[o] = v; maskImg.data[o + 1] = v; maskImg.data[o + 2] = Math.round(v * 0.97); maskImg.data[o + 3] = 255; }
-  maskCtx.putImageData(maskImg, 0, 0); c.globalCompositeOperation = 'multiply'; c.imageSmoothingEnabled = true; c.drawImage(maskCv, 0, 0, TG, TG, x0 - cell / 2, y0 - cell / 2, ws + cell, ws + cell); c.globalCompositeOperation = 'source-over';
+  c.globalCompositeOperation = 'multiply'; drawMap(c, TMAP.macro, x0, y0, x1, y1); c.globalCompositeOperation = 'source-over';
   const rMax = Math.hypot(Math.max(Math.abs(x0), Math.abs(x1)), Math.max(Math.abs(y0), Math.abs(y1)));
-  if (rMax > CITY.R - 260) {
-    for (let q = 0; q < TG * TG; q++) { const i = q % TG, j = (q / TG) | 0, r = Math.hypot(x0 + i * cell, y0 + j * cell); const o = q * 4; maskImg.data[o] = FOG[0]; maskImg.data[o + 1] = FOG[1]; maskImg.data[o + 2] = FOG[2]; maskImg.data[o + 3] = Math.round(clamp((r - (CITY.R - 250)) / 480, 0, 1) * 255); }
-    maskCtx.putImageData(maskImg, 0, 0); c.drawImage(maskCv, 0, 0, TG, TG, x0 - cell / 2, y0 - cell / 2, ws + cell, ws + cell);
-  }
+  if (rMax > CITY.R - 260) drawMap(c, TMAP.fog, x0, y0, x1, y1);
 }
 
 /* ---------- water, the Hollow, cracks, roads (textured) ---------- */
@@ -291,7 +313,7 @@ function artStatic(c, x0, y0, x1, y1, s) {
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
   for (const rd of W.roads) if (boxHit(rd.bbox, x0, y0, x1, y1)) artRoad(c, rd, s, x0, y0, x1, y1);
   const tiny = s < 0.1;
-  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer && !(tiny && o.type === 'flora' && o.r < 8)).sort((a, b) => a.y - b.y);
+  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer && !(tiny && o.type === 'flora' && o.r < 6)).sort((a, b) => a.y - b.y);
   for (const o of l1) artObj(c, o, s);
 }
 

@@ -61,22 +61,29 @@ const CityMap = (() => {
     if (ptrs.size === 1) gesture = { tap: false }; if (ptrs.size === 0) gesture = null; }
 
   /* ---------- tiles ---------- */
-  function levelFor() { const want = cam.z * dpr; for (const L of CITY.levels) if (L >= want * 0.8) return L; return CITY.levels[CITY.levels.length - 1]; }
+  let curL = 0;
+  // hysteresis so a pinch hovering near a threshold doesn't flip between cache levels every frame
+  function levelFor() { const want = cam.z * dpr; if (curL && curL >= want * 0.7 && curL <= want * 2.2) return curL; let pick = CITY.levels[CITY.levels.length - 1]; for (const L of CITY.levels) if (L >= want * 0.8) { pick = L; break; } curL = pick; return pick; }
   function tileKey(L, tx, ty) { return L + ':' + tx + ':' + ty; }
   function renderTile(L, tx, ty) { const c = document.createElement('canvas'); c.width = c.height = CITY.tilePx; const g = c.getContext('2d'); const ws = CITY.tilePx / L; g.setTransform(L, 0, 0, L, -tx * ws * L, -ty * ws * L); drawStatic(g, tx * ws, ty * ws, (tx + 1) * ws, (ty + 1) * ws, L); st.tilesRendered++; return c; }
-  function getTile(L, tx, ty) { const t = tiles.get(tileKey(L, tx, ty)); if (t) t.u = ++tileUse; return t ? t.c : null; }
-  function putTile(L, tx, ty, c) { tiles.set(tileKey(L, tx, ty), { c, u: ++tileUse }); if (tiles.size > CITY.maxTiles) { const arr = [...tiles.entries()].sort((a, b) => a[1].u - b[1].u); for (let i = 0; i < 20; i++) tiles.delete(arr[i][0]); } }
+  function getTile(L, tx, ty, full) { const t = tiles.get(tileKey(L, tx, ty)); if (t) t.u = ++tileUse; return t ? (full ? t : t.c) : null; }
+  function putTile(L, tx, ty, c) { tiles.set(tileKey(L, tx, ty), { c, u: ++tileUse, born: performance.now() }); if (tiles.size > CITY.maxTiles) { const arr = [...tiles.entries()].sort((a, b) => a[1].u - b[1].u); for (let i = 0; i < 20; i++) tiles.delete(arr[i][0]); } }
+  const FADE_MS = 220;
   function drawTiles(c, vx0, vy0, vx1, vy1) {
-    const L = levelFor(), ws = CITY.tilePx / L, need = [];
+    const L = levelFor(), ws = CITY.tilePx / L, need = [], now = performance.now();
     const k = kpx();
     for (let tx = Math.floor(vx0 / ws); tx <= Math.floor(vx1 / ws); tx++) for (let ty = Math.floor(vy0 / ws); ty <= Math.floor(vy1 / ws); ty++) {
       const dx = (tx * ws - cam.x) * k + Wc / 2, dy = (ty * ws - cam.y) * k + Hc / 2, ds = ws * k;
-      const t = getTile(L, tx, ty);
-      if (t) { c.drawImage(t, dx, dy, ds + 0.6, ds + 0.6); continue; }
-      need.push([tx, ty, Math.hypot(tx * ws + ws / 2 - cam.x, ty * ws + ws / 2 - cam.y)]);
-      // fallback: a coarser cached tile
-      for (const L2 of CITY.levels.filter((l) => l < L).reverse()) { const ws2 = CITY.tilePx / L2, px = Math.floor(tx * ws / ws2), py = Math.floor(ty * ws / ws2), t2 = getTile(L2, px, py);
-        if (t2) { const sx = ((tx * ws - px * ws2) / ws2) * CITY.tilePx, sy = ((ty * ws - py * ws2) / ws2) * CITY.tilePx, ss = (ws / ws2) * CITY.tilePx; c.drawImage(t2, sx, sy, ss, ss, dx, dy, ds + 0.6, ds + 0.6); break; } }
+      const te = getTile(L, tx, ty, true), age = te ? now - te.born : 1e9;
+      if (te && age >= FADE_MS) { c.drawImage(te.c, dx, dy, ds + 0.6, ds + 0.6); continue; }
+      if (!te) need.push([tx, ty, Math.hypot(tx * ws + ws / 2 - cam.x, ty * ws + ws / 2 - cam.y)]); else st.fading = now + FADE_MS;
+      // fallback: whatever else is cached for this spot (finer first, then coarser), kept on screen until the new tile has faded in
+      let drewFb = false;
+      for (const L2 of CITY.levels.filter((l) => l > L)) { const ws2 = CITY.tilePx / L2, f = ws / ws2; let all = true; for (let a = 0; a < f && all; a++) for (let b2 = 0; b2 < f; b2++) if (!tiles.has(tileKey(L2, tx * f + a, ty * f + b2))) { all = false; break; }
+        if (all && f <= 4) { for (let a = 0; a < f; a++) for (let b2 = 0; b2 < f; b2++) c.drawImage(getTile(L2, tx * f + a, ty * f + b2), dx + (a * ds) / f, dy + (b2 * ds) / f, ds / f + 0.6, ds / f + 0.6); drewFb = true; break; } }
+      if (!drewFb) for (const L2 of CITY.levels.filter((l) => l < L).reverse()) { const ws2 = CITY.tilePx / L2, px = Math.floor(tx * ws / ws2), py = Math.floor(ty * ws / ws2), t2 = getTile(L2, px, py);
+        if (t2) { const sx = ((tx * ws - px * ws2) / ws2) * CITY.tilePx, sy = ((ty * ws - py * ws2) / ws2) * CITY.tilePx, ss = (ws / ws2) * CITY.tilePx; c.drawImage(t2, sx, sy, ss, ss, dx, dy, ds + 0.6, ds + 0.6); drewFb = true; break; } }
+      if (te) { c.globalAlpha = drewFb ? Math.min(1, age / FADE_MS) : 1; c.drawImage(te.c, dx, dy, ds + 0.6, ds + 0.6); c.globalAlpha = 1; }
     }
     need.sort((a, b) => a[2] - b[2]);
     const t0 = performance.now();
