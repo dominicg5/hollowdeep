@@ -22,6 +22,16 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.mouse.move(200, 500); await p.mouse.down(); await p.mouse.move(120, 420, { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(300);
   const c1 = await p.evaluate(() => ({ ...CityMap.cam }));
   ok(c1.x > c0.x + 20 && c1.y > c0.y + 20, `drag pans camera (${(c1.x - c0.x).toFixed(0)},${(c1.y - c0.y).toFixed(0)})`);
+  // labels anchored in world space while dragging
+  await p.evaluate(() => CityMap.flyTo(0, 0, 0.1, true)); await p.waitForTimeout(400);
+  const L0 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l })));
+  await p.mouse.move(200, 520); await p.mouse.down(); await p.mouse.move(140, 470, { steps: 6 }); await p.waitForTimeout(120);
+  const L1 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l, w: CityMap.s2w(l.sx, l.sy) })));
+  await p.mouse.up();
+  let moved = 0, drift = 0;
+  for (const a of L1) { const b = L0.find((x) => x.name === a.name); if (!b) continue; moved++; drift = Math.max(drift, Math.hypot(a.w[0] - a.wx, a.w[1] - a.wy), Math.abs((a.sx - b.sx) - (-60)) , Math.abs((a.sy - b.sy) - (-50))); }
+  ok(moved >= 2 && drift < 3, `region labels stay anchored while dragging (${moved} labels, max drift ${drift.toFixed(2)})`);
+  await p.evaluate(() => CityMap.flyTo(W.player.x, W.player.y, 1.05, true)); await p.waitForTimeout(300);
   // wheel zoom
   await p.mouse.move(200, 500); await p.mouse.wheel(0, 400); await p.waitForTimeout(300);
   const c2 = await p.evaluate(() => CityMap.cam.z); ok(c2 < c1.z, `wheel zooms out ${c1.z.toFixed(2)} -> ${c2.toFixed(2)}`);

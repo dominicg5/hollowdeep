@@ -265,13 +265,21 @@ const CityMap = (() => {
   function pill(c, x, y, text, opt) {
     opt = opt || {}; const fs = (opt.fs || 11) * dpr; c.font = `${opt.bold ? 700 : 600} ${fs}px ${opt.serif ? 'Georgia,serif' : 'system-ui,sans-serif'}`;
     const w = c.measureText(text).width + 10 * dpr, h = fs + 6 * dpr; const bx = x - w / 2, by = y - h;
+    if (hudHit([bx, by, w, h])) return [bx, by, 0, 0];
     c.globalAlpha = opt.a == null ? 1 : opt.a; c.fillStyle = opt.bg || 'rgba(255,248,230,.86)'; c.beginPath(); if (c.roundRect) c.roundRect(bx, by, w, h, h / 2); else c.rect(bx, by, w, h); c.fill();
     if (opt.border) { c.strokeStyle = opt.border; c.lineWidth = 1.5 * dpr; c.stroke(); }
     c.fillStyle = opt.color || '#3a2e22'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, x, by + h / 2 + 0.5); c.globalAlpha = 1;
     return [bx, by, w, h];
   }
+  // HUD rectangles (device px) that world labels must not draw under
+  let hudRects = [], hudAt = 0;
+  function updateHud() { const now = performance.now(); if (now - hudAt < 400) return; hudAt = now; const base = wrap.getBoundingClientRect(); hudRects = ['.cityTitle', '#cityInfo', '#ticker', '.cityBtns', '#miniMap'].map((q) => wrap.querySelector(q)).filter((e) => e && e.offsetParent !== null).map((e) => { const r = e.getBoundingClientRect(); return [(r.left - base.left - 4) * dpr, (r.top - base.top - 4) * dpr, (r.width + 8) * dpr, (r.height + 8) * dpr]; }); }
+  const ovl = (r, q) => r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1];
+  function hudHit(r) { for (const q of hudRects) if (ovl(r, q)) return true; return false; }
   function drawLabels(c, t, view, inV, S2) {
-    const z = cam.z, rects = [];
+    updateHud();
+    st.labels = [];
+    const z = cam.z, rects = hudRects.slice();
     const free = (r) => { for (const q of rects) if (r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1]) return false; rects.push(r); return true; };
     // player label always
     { const h = W.player, [sx, sy] = S2(h.x, h.y - h.size); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · ${CITY.homeTerm} Lv ${S.buildings.hall}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
@@ -279,8 +287,8 @@ const CityMap = (() => {
     const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y - 40); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
     // region names at far zoom
     const ra = clamp((0.5 - z) / 0.15, 0, 1);
-    if (ra > 0) REGIONS.forEach((R, i) => { const a = regionAngle(i), [x, y] = polar(2050, a); let [sx, sy] = S2(x, y); c.font = `700 ${15 * dpr}px Georgia,serif`; { const hw = Math.max(c.measureText(`${R.icon} ${R.name}`).width, 150 * dpr) / 2 + 6 * dpr; if (sx > -hw && sx < Wc + hw) sx = Math.max(hw, Math.min(Wc - hw, sx)); } c.textAlign = 'center'; c.textBaseline = 'middle'; c.globalAlpha = ra; c.lineWidth = 4 * dpr; c.strokeStyle = 'rgba(40,30,20,.65)'; c.strokeText(`${R.icon} ${R.name}`, sx, sy); c.fillStyle = '#fff6dc'; c.fillText(`${R.icon} ${R.name}`, sx, sy); c.font = `600 ${10.5 * dpr}px system-ui`; c.strokeText(R.res.join('  '), sx, sy + 16 * dpr); c.fillText(R.res.join('  '), sx, sy + 16 * dpr); c.globalAlpha = 1; });
-    if (ra > 0) { const [sx, sy] = S2(0, 0); c.font = `700 ${16 * dpr}px Georgia,serif`; c.globalAlpha = ra; c.fillStyle = '#ffe9a8'; c.textAlign = 'center'; c.fillText('THE HOLLOW', sx, sy); c.globalAlpha = 1; }
+    if (ra > 0) REGIONS.forEach((R, i) => { const a = regionAngle(i), [x, y] = polar(2050, a); const [sx, sy] = S2(x, y); c.font = `700 ${15 * dpr}px Georgia,serif`; { const hw = Math.max(c.measureText(`${R.icon} ${R.name}`).width, c.measureText(R.res.join('  ')).width * 0.75) / 2 + 4 * dpr; if (hudHit([sx - hw, sy - 12 * dpr, hw * 2, 40 * dpr])) return; } st.labels.push({ name: R.name, wx: x, wy: y, sx: sx / dpr, sy: sy / dpr }); c.textAlign = 'center'; c.textBaseline = 'middle'; c.globalAlpha = ra; c.lineWidth = 4 * dpr; c.strokeStyle = 'rgba(40,30,20,.65)'; c.strokeText(`${R.icon} ${R.name}`, sx, sy); c.fillStyle = '#fff6dc'; c.fillText(`${R.icon} ${R.name}`, sx, sy); c.font = `600 ${10.5 * dpr}px system-ui`; c.strokeText(R.res.join('  '), sx, sy + 16 * dpr); c.fillText(R.res.join('  '), sx, sy + 16 * dpr); c.globalAlpha = 1; });
+    if (ra > 0) { const [sx, sy] = S2(0, 0); if (!hudHit([sx - 70 * dpr, sy - 18 * dpr, 140 * dpr, 24 * dpr])) { c.font = `700 ${16 * dpr}px Georgia,serif`; c.globalAlpha = ra; c.fillStyle = '#ffe9a8'; c.textAlign = 'center'; c.fillText('THE HOLLOW', sx, sy); c.globalAlpha = 1; } }
     // civic labels
     const ca = clamp((z - 0.28) / 0.12, 0, 1);
     if (ca > 0) for (const o of W.civic) { if (!inV(o.x, o.y, 40) || o.type === 'plaza') continue; const [sx, sy] = S2(o.x, o.y + (o.r || 20) + 8);
