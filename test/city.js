@@ -1,6 +1,6 @@
 // Rim City map tests (mobile viewport, headless)
 const { chromium } = require('playwright-core'); const path = require('path');
-const URL = 'file://' + path.resolve(__dirname, '../index.html');
+const URL = process.env.URL || 'http://localhost:8765/index.html';
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
@@ -8,7 +8,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message + ' ' + e.stack)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   await p.goto(URL); await p.waitForTimeout(1200);
   if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]');
-  await p.waitForTimeout(1500);
+  await p.waitForFunction(() => typeof ART !== 'undefined' && ART.ready, null, { timeout: 30000 }); await p.waitForTimeout(2500);
+  ok(await p.evaluate(() => ART.ok), 'painted art assets loaded');
   ok(await p.isVisible('#cityCanvas'), 'Rim City is default tab and canvas visible');
   const g = await p.evaluate(() => ({ homes: W.homes.length, regions: REGIONS.length, cracks: W.cracks.length }));
   ok(g.homes > 300, `homes generated: ${g.homes}`); ok(g.regions === 9, '9 regions'); ok(g.cracks > 10, 'cracks: ' + g.cracks);
@@ -82,6 +83,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await shot('city-far.png', 0, 0, 0.1, 4000);
   const r = await p.evaluate(() => { const m = W.markets[4]; return [m.x, m.y]; }); await shot('city-mid.png', r[0], r[1], 0.45);
   const ph = await p.evaluate(() => [W.player.x + 40, W.player.y - 60]); await shot('city-close.png', ph[0], ph[1], 1.6);
+  // region close-ups (painted plants & buildings)
+  for (const [i, nm] of [[0, 'docks'], [1, 'dunes'], [3, 'wood'], [4, 'crystal'], [5, 'farms'], [6, 'badlands'], [7, 'moss'], [8, 'amber'], [2, 'bluffs']]) {
+    const q = await p.evaluate((i) => { const hs = W.homes.filter((h) => h.region === i); const h = hs[Math.floor(hs.length / 2)]; return [h.x, h.y]; }, i);
+    await shot('city-r-' + nm + '.png', q[0], q[1], 1.1, 1800);
+  }
   // night + festival
   await p.evaluate(() => { CityMap.onAct('season', { id: 'deep' }); closeModalQuiet(); }); await p.waitForTimeout(400);
   await shot('city-night.png', 0, -300, 0.22, 3000); await shot('city-night-close.png', ph[0], ph[1], 0.9, 2000);

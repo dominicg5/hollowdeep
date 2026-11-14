@@ -19,6 +19,7 @@ function mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) *
 const gsCanvas = document.createElement('canvas'); const GSN = 24; gsCanvas.width = gsCanvas.height = GSN + 2; const gsCtx = gsCanvas.getContext('2d'); const gsImg = gsCtx.createImageData(GSN + 2, GSN + 2);
 
 function drawStatic(c, x0, y0, x1, y1, s) {
+  if (ART.ok) return artStatic(c, x0, y0, x1, y1, s);
   const ws = x1 - x0, cell = ws / GSN;
   // 1. Ground: tiny smooth-scaled color field = soft painterly blends
   for (let j = 0; j < GSN + 2; j++) for (let i = 0; i < GSN + 2; i++) { const col = groundRGB(x0 + (i - 0.5) * cell, y0 + (j - 0.5) * cell), o = (j * (GSN + 2) + i) * 4; gsImg.data[o] = col[0]; gsImg.data[o + 1] = col[1]; gsImg.data[o + 2] = col[2]; gsImg.data[o + 3] = 255; }
@@ -197,6 +198,7 @@ function drawVault(c, v, s) {
   const g = c.createRadialGradient(v.x - 5, v.y - 5, 2, v.x, v.y, 16); g.addColorStop(0, '#fff2b8'); g.addColorStop(0.5, '#e2b04a'); g.addColorStop(1, '#a8782a'); c.fillStyle = g; c.beginPath(); c.arc(v.x, v.y, 14, 0, TAU); c.fill();
 }
 function drawHome(c, h, s) {
+  if (ART.ok) return artHome(c, h, s);
   c.save(); c.translate(h.x, h.y); c.rotate(h.ang);
   const w = h.size, d = h.size * 0.74;
   c.fillStyle = 'rgba(40,30,20,.25)'; c.fillRect(-w / 2 + 5, -d / 2 + 6, w, d);

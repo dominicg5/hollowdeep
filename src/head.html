@@ -136,6 +136,14 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 .pulse{animation:pulse 2.4s ease-in-out infinite}
 .switch{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(110,80,40,.25)}
 /* Rim City */
+#cityLoader{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%,#2c3a5a 0,#141a2e 70%)}
+#cityLoader.hidden{display:none}
+#cityLoader .ldCard{width:min(300px,80%);text-align:center;color:#fff3d0}
+#cityLoader .ldTitle{font:600 20px Georgia,serif}
+#cityLoader .ldSub{font-size:12px;opacity:.75;margin:4px 0 12px}
+#cityLoader .ldBar{height:10px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
+#cityLoader .ldBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#c9822f,#ffd46b);transition:width .2s}
+#cityLoader .ldPct{font-size:12px;margin-top:6px;opacity:.8}
 #city{position:fixed;left:0;right:0;top:96px;bottom:64px;z-index:5;overflow:hidden;background:#3e5854}
 #city.hidden{display:none}
 #cityCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
@@ -171,6 +179,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
   <main id="view"></main>
   <div id="city" class="hidden">
     <canvas id="cityCanvas" aria-label="Rim City map"></canvas>
+    <div id="cityLoader" class="hidden"><div class="ldCard"><div class="ldTitle">🎨 Painting Rim City…</div><div class="ldSub">Unpacking homes, trees and the Hollow</div><div class="ldBar"><i></i></div><div class="ldPct">0%</div></div></div>
     <div class="cityTop">
       <div class="cityTitle">🗺️ Rim City <span id="cityCount" class="dim"></span></div>
       <div id="cityInfo"></div>

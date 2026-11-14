@@ -282,6 +282,16 @@ function generateCity() {
     else if (k === 'moss') { if (q < 0.3) deco({ type: 'mosspatch', r: 34 + rnd() * 20 }); else if (q < 0.37) { if (obj({ type: 'post', r: 6 })) W.posts.push(W.objs[W.objs.length - 1]); } else if (q < 0.53) obj({ type: 'tree', r: 14 + rnd() * 5, mossy: 1 }); else if (q < 0.55) obj({ type: 'pond', r: 22 }); }
     else if (k === 'amber') { if (q < 0.3) obj({ type: 'orchard', r: 12 }); else if (q < 0.42) obj({ type: 'tree', r: 15, autumn: 1 }); else if (q < 0.45) obj({ type: 'rock', r: 8 }); else if (q < 0.5) deco({ type: 'leaves', r: 26 }); }
   }
+  // Flora: dense small plants per region (painted sprites)
+  const FLORA_P = { docks: 0.34, dunes: 0.3, bluffs: 0.26, wood: 0.5, crystal: 0.3, farms: 0.26, badlands: 0.4, moss: 0.55, amber: 0.42 };
+  for (let gx = -R; gx < R; gx += 30) for (let gy = -R; gy < R; gy += 30) {
+    const x = gx + rnd() * 26, y = gy + rnd() * 26, rr = Math.hypot(x, y), q = rnd(), sz = 5 + rnd() * 6, pick = rnd(), sd = rnd();
+    if (rr > R - 30 || hollowDist(x, y) < 40 || chasmDist(x, y) < 8 || isWet(x, y, 4)) continue;
+    const ri = regionAt(x, y), k = REGIONS[ri].key; if (q > FLORA_P[k]) continue;
+    if (!occFree(OCC.road, x, y, sz * 0.9) || !occFree(OCC.obj, x, y, sz * 0.8)) continue;
+    const list = FLORA[k]; const spr = list[Math.floor(pick * list.length)];
+    W.objs.push({ type: 'flora', x, y, r: spr.startsWith('props2') ? 7 : sz, spr, layer: 1, region: ri, seed: sd }); occMark(OCC.obj, x, y, sz * 0.7);
+  }
   // Piers on the lake shore
   for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
 

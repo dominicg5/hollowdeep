@@ -35,7 +35,10 @@ const CityMap = (() => {
   }
   function layout() { const top = $('#top').offsetHeight, bot = $('#tabs').offsetHeight; wrap.style.top = top + 'px'; wrap.style.bottom = bot + 'px'; }
   function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; }
-  function show() { if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
+  function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); if (p != null) { L.querySelector('i').style.width = Math.round(p * 100) + '%'; L.querySelector('.ldPct').textContent = Math.round(p * 100) + '%'; } }
+  function show() {
+    if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Rim City art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
+    if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
   function hide() { if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z }; }
 
   /* ---------- camera ---------- */
@@ -120,6 +123,7 @@ const CityMap = (() => {
       c.globalAlpha = 1;
       for (const b of W.boats) { const a = b.ph + t * b.sp; const x = L.x + Math.cos(a) * L.r * b.ra, y = L.y + Math.sin(a) * L.r * b.ra * 0.8, h = a + Math.PI / 2;
         c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 1; c.beginPath(); c.arc(L.x, L.y, L.r * b.ra, a - 0.25, a - 0.02); c.stroke();
+        if (ART.ok) { drawSprite(c, b.sail === CLOAKS[0] || b.sail === CLOAKS[2] ? 'props_1' : 'props_2', x, y + Math.sin(t * 1.4 + b.ph) * 0.8, 30, 0.5, 0.7, Math.cos(h) < 0); continue; }
         c.save(); c.translate(x, y); c.rotate(h); c.fillStyle = '#8a6440'; c.beginPath(); c.ellipse(0, 0, 8, 3.2, 0, 0, TAU); c.fill(); c.fillStyle = b.sail; c.beginPath(); c.moveTo(-1, 0); c.lineTo(4, -7); c.lineTo(5, 0); c.closePath(); c.fill(); c.restore(); }
     }
     const rv = W.river, end = rv[rv.length - 1];
@@ -138,21 +142,22 @@ const CityMap = (() => {
     // Tether lift cages & cranes
     for (const Lf of W.lifts) { const u = (Math.sin(t * Lf.speed * 2 + Lf.phase) + 1) / 2; const x = Lf.x + (Lf.bx - Lf.x) * u, y = Lf.y + (Lf.by - Lf.y) * u; if (!inV(x, y, 20)) continue;
       c.fillStyle = '#6a4a2a'; c.fillRect(x - 5, y - 5, 10, 10); c.fillStyle = '#c9a070'; c.fillRect(x - 3.5, y - 3.5, 7, 7); if (z > 0.5) drawPerson(c, x, y, 0, CLOAKS[(Lf.phase * 10 | 0) % CLOAKS.length], SKIN[1], t, Lf.phase, {}); }
-    for (const cr of W.cranes) { if (!inV(cr.x, cr.y, cr.len + 20)) continue; const ex = cr.x + Math.cos(cr.ang) * cr.len, ey = cr.y + Math.sin(cr.ang) * cr.len;
+    for (const cr of W.cranes) { if (!inV(cr.x, cr.y, cr.len + 20)) continue; if (ART.ok) { c.save(); c.translate(cr.x, cr.y); c.rotate(Math.sin(t * 0.4 + cr.phase) * 0.03); softShadow(c, 8, 4, 26, 11, 0.8); drawSprite(c, 'civic_vault_2', 0, 0, 74, 0.38, 0.86, Math.cos(cr.ang) < 0); c.restore(); continue; } const ex = cr.x + Math.cos(cr.ang) * cr.len, ey = cr.y + Math.sin(cr.ang) * cr.len;
       c.strokeStyle = '#5a3e24'; c.lineWidth = 5; c.beginPath(); c.moveTo(cr.x, cr.y); c.lineTo(ex, ey); c.stroke(); c.fillStyle = '#7a5434'; c.fillRect(cr.x - 8, cr.y - 8, 16, 16);
       const u = (Math.sin(t * 0.4 + cr.phase) + 1) / 2, lx = cr.x + (ex - cr.x) * u, ly = cr.y + (ey - cr.y) * u, sw = Math.sin(t * 1.5 + cr.phase) * 4;
       c.fillStyle = 'rgba(0,0,0,.3)'; c.fillRect(lx - 5 + sw + 6, ly - 5 + 9, 10, 10); c.fillStyle = '#b0844a'; c.fillRect(lx - 5 + sw, ly - 5, 10, 10); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1; c.strokeRect(lx - 5 + sw, ly - 5, 10, 10); }
     // windmills, smoke, carts
-    for (const m of W.windmills) { if (!inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
+    for (const m of W.windmills) { if (ART.ok || !inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
       for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
     for (const ch of W.chimneys) { if (!inV(ch.x, ch.y, 80)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.25 + k / 5 + ch.seed) % 1; glow(c, ch.x + u * 40, ch.y - u * 50, 6 + u * 16, 'rgba(90,85,85,.9)', (1 - u) * 0.45); } }
     for (const m of W.mines) { if (!inV(m.x, m.y, 80)) continue; const u = (Math.sin(t * 0.5 + m.seed * 9) + 1) / 2, d = 14 + u * 52; const x = m.x + Math.cos(m.a) * d, y = m.y + Math.sin(m.a) * d;
-      c.save(); c.translate(x, y); c.rotate(m.a); c.fillStyle = '#5a4a3a'; c.fillRect(-5, -4, 10, 8); c.fillStyle = '#b9a4ff'; c.beginPath(); c.arc(-1.5, 0, 1.6, 0, TAU); c.arc(2, 1, 1.4, 0, TAU); c.fill(); c.restore(); }
+      if (ART.ok) { drawSprite(c, 'props_4', x, y, 18, 0.5, 0.7, Math.cos(m.a) < 0); continue; } c.save(); c.translate(x, y); c.rotate(m.a); c.fillStyle = '#5a4a3a'; c.fillRect(-5, -4, 10, 8); c.fillStyle = '#b9a4ff'; c.beginPath(); c.arc(-1.5, 0, 1.6, 0, TAU); c.arc(2, 1, 1.4, 0, TAU); c.fill(); c.restore(); }
     // market caravans (shellback-drawn carts)
     W.caravans.forEach((cvn) => { const rd = W.roads[cvn.rd], m = W.markets[cvn.m]; const span = 520, u = ((t * 9 + cvn.phase * 7) % (span * 2)); const off = u < span ? span - u : u - span;
       const dir = Math.sign(roadPos(rd, Math.min(rd.len, cvn.s + 30))[0] - roadPos(rd, cvn.s)[0]) || 1;
       for (let i = 0; i < 3; i++) { const s = clamp(cvn.s + (off + i * 16) * (Math.hypot(...roadPos(rd, cvn.s).slice(0, 2)) < Math.hypot(m.x, m.y) ? -1 : 1), 0, rd.len); const [x, y, a] = roadPos(rd, s); if (!inV(x, y, 20)) continue;
-        if (i === 0) drawPet(c, 'tortoise', x, y, a + (u < span ? Math.PI : 0), t, 0, false), c.save(), c.translate(x, y), c.scale(2.2, 2.2), c.restore();
+        if (ART.ok) { if (i === 0) { softShadow(c, x + 3, y + 1, 12, 4, 0.8); drawSprite(c, 'creatures_5', x, y, 24, 0.5, 0.9, Math.cos(a + (u < span ? Math.PI : 0)) < 0); } else drawSprite(c, 'props_5', x, y, 20, 0.5, 0.75, Math.cos(a) < 0); continue; }
+        if (i === 0) drawPet(c, 'tortoise', x, y, a + (u < span ? Math.PI : 0), t, 0, false);
         else { c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = '#8a6440'; c.fillRect(-6, -4, 12, 8); c.fillStyle = ['#c8634c', '#e2b04a'][i % 2]; c.fillRect(-5, -3, 10, 6); c.restore(); } } void dir; });
     // homes: lanterns, pets
     const homes = z > 0.32 ? queryObjs(view.x0, view.y0, view.x1, view.y1, 40).filter((o) => o.type === 'home') : [];
@@ -179,7 +184,7 @@ const CityMap = (() => {
       W.visitors.forEach((v) => { const m = W.markets[v.m]; if (v.extra && !(marketSpike(v.m) || (festival() === 'harvest' && REGIONS[m.region].key === 'farms'))) return;
         const a = v.a0 + t * v.w + Math.sin(t * 0.5 + v.phase) * 0.3, x = m.x + Math.cos(a) * v.rr, y = m.y + Math.sin(a) * v.rr; if (!inV(x, y, 10)) return;
         if (detail) drawPerson(c, x, y, a + Math.PI / 2 * Math.sign(v.w), v.cloak, v.skin, t, v.phase, {}); else { c.fillStyle = v.cloak; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); } });
-      for (const n of W.npcs) { const [x, y, a] = npcPos(n, t); if (!inV(x, y, 20)) continue; n.sx = x; n.sy = y; glow(c, x, y, 16, 'rgba(255,230,150,.9)', 0.4); drawPerson(c, x, y, a, n.npc.color, SKIN[0], t, 1, { hat: true, lantern: true }); }
+      for (const n of W.npcs) { const [x, y, a] = npcPos(n, t); if (!inV(x, y, 20)) continue; n.sx = x; n.sy = y; glow(c, x, y, 16, 'rgba(255,230,150,.9)', 0.4); drawPerson(c, x, y, a, n.npc.color, SKIN[0], t, 1, { hat: true, lantern: true, spr: NPC_SPR[n.npc.id], h: 17 }); }
     }
     // promenade lamps lit by Pell (glow added later in night pass)
     // sky-fish by day: big, slow, ground shadows; dive back into the Hollow
@@ -188,7 +193,7 @@ const CityMap = (() => {
       const x = Math.cos(a) * r, y = Math.sin(a) * r; if (!inV(x, y, f.size * 3 + 90)) continue;
       const u2 = u + 0.002, r2 = Math.sin(u2 * Math.PI) * 2500, a2 = f.a0 + u2 * 2.4, head = Math.atan2(Math.sin(a2) * r2 - y, Math.cos(a2) * r2 - x);
       const sc = 0.55 + alt * 0.7, emerge = Math.min(1, u * 12, (1 - u) * 12);
-      drawSkyFish(c, f.kind, x + 40 + alt * 70, y + 55 + alt * 90, head, f.size * sc, t, f.phase, false, 0.18 * dayA * emerge); // ground shadow
+      drawSkyFish(c, f.kind, x + 40 + alt * 70, y + 55 + alt * 90, head, f.size * sc, t, f.phase, false, (ART.ok ? 0.22 : 0.18) * dayA * emerge, true); // ground shadow
       drawSkyFish(c, f.kind, x, y, head, f.size * sc, t, f.phase, false, dayA * (0.35 + 0.65 * emerge)); }
   }
   function drawPlayerHome(c, t, z, inV) {
@@ -205,6 +210,7 @@ const CityMap = (() => {
   }
   function drawMole(c, m, t) {
     const bob = Math.sin(t * 3) * 3;
+    if (ART.ok) { softShadow(c, m.x + 10, m.y + 8, 62, 30, 0.9); drawSprite(c, 'creatures_3', m.x, m.y + bob * 0.4, 128, 0.5, 0.62); for (let i = 0; i < 8; i++) { const u = (t * 0.7 + i / 8) % 1, a = i * 0.8; glow(c, m.x + Math.cos(a) * (40 + u * 40), m.y + Math.sin(a) * (30 + u * 30), 10 + u * 12, 'rgba(160,130,90,.9)', (1 - u) * 0.45); } return; }
     c.fillStyle = '#6a4a30'; for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; c.beginPath(); c.arc(m.x + Math.cos(a) * 32, m.y + Math.sin(a) * 26, 9 + (i % 3) * 3, 0, TAU); c.fill(); }
     c.fillStyle = '#2e2420'; c.beginPath(); c.ellipse(m.x, m.y + bob * 0.3, 26, 22, 0, 0, TAU); c.fill();
     c.fillStyle = '#4a3a32'; c.beginPath(); c.ellipse(m.x, m.y - 4 + bob, 20, 16, 0, 0, TAU); c.fill();
@@ -227,7 +233,7 @@ const CityMap = (() => {
       if (wx.type === 'storm' && Math.sin(t * 1.7) > 0.985) { c.fillStyle = 'rgba(230,240,255,.35)'; c.fillRect(0, 0, Wc, Hc); }
     }
     // night
-    if (night > 0) { c.fillStyle = `rgba(14,20,50,${0.6 * night})`; c.fillRect(0, 0, Wc, Hc); }
+    if (night > 0) { c.fillStyle = `rgba(14,20,50,${(ART.ok ? 0.52 : 0.6) * night})`; c.fillRect(0, 0, Wc, Hc); }
     // glows (additive)
     c.globalCompositeOperation = 'lighter';
     const G = (x, y, r, col, a) => { if (!inV(x, y, r)) return; const [sx, sy] = S2(x, y); glow(c, sx, sy, r * k, col, a); };
@@ -246,7 +252,7 @@ const CityMap = (() => {
     for (const o of W.kilns) G(o.x, o.y, 30, 'rgba(255,150,60,.9)', 0.25 + night * 0.4 + 0.1 * Math.sin(t * 3 + o.seed * 9));
     for (const o of W.posts) G(o.x, o.y, 22, 'rgba(255,212,107,.95)', (0.25 + night * 0.65) * (0.75 + 0.25 * Math.sin(t * 3 + o.seed * 30)));
     for (const l of W.lamps) if (lampLit(l)) G(l.x, l.y, 26, 'rgba(255,200,110,.95)', 0.85 * (0.85 + 0.15 * Math.sin(t * 4 + l.phase)));
-    if (z > 0.35 && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase)));
+    if (z > 0.35 && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); G(h.x - w * 0.12, h.y - w * 0.28, w * 0.34, 'rgba(255,190,100,.95)', night * 0.8 * fl); G(h.x + w * 0.16, h.y - w * 0.2, w * 0.24, 'rgba(255,215,130,.95)', night * 0.75 * fl); G(h.x, h.y + w * 0.08, w * 0.5, 'rgba(255,170,80,.9)', night * 0.45 * fl); } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
     // sky-fish at night: the nightfall school surges out of the chasm, then a few roam
     if (night > 0.05) { const h = hourOfDay(); const surge = h >= 17.5 && h < 21 ? clamp((h - 17.5) / 3.5, 0, 1) : -1;
       W.nightFish.forEach((f, i) => { let x, y, a, al;

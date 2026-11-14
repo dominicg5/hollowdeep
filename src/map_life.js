@@ -138,6 +138,7 @@ function walkerPos(w, t) {
 
 /* ---------- tiny painters (world units) ---------- */
 function drawPerson(c, x, y, ang, cloak, skin, t, ph, opt) {
+  if (ART.ok) return artPerson(c, x, y, ang, t, ph, (opt && opt.spr != null) ? opt.spr : strHash(cloak + skin + Math.round(ph * 1000)) % PEOPLE_N, opt);
   const bob = Math.sin(t * 9 + ph) * 0.7; opt = opt || {};
   c.fillStyle = 'rgba(30,20,10,.25)'; c.beginPath(); c.ellipse(x + 1.5, y + 2, 3.6, 2.6, 0, 0, TAU); c.fill();
   c.save(); c.translate(x, y + bob * 0.3); c.rotate(ang);
@@ -148,6 +149,7 @@ function drawPerson(c, x, y, ang, cloak, skin, t, ph, opt) {
   if (opt.lantern) { c.fillStyle = 'rgba(255,212,107,.9)'; c.beginPath(); c.arc(x + Math.cos(ang + 1.2) * 4.5, y + Math.sin(ang + 1.2) * 4.5, 1.2, 0, TAU); c.fill(); }
 }
 function drawPet(c, kind, x, y, ang, t, ph, sleeping) {
+  if (ART.ok) return artPet(c, kind, x, y, ang, t, ph, sleeping);
   c.save(); c.translate(x, y); c.rotate(ang);
   c.fillStyle = 'rgba(30,20,10,.22)'; c.beginPath(); c.ellipse(1, 1.5, 3.4, 2.4, 0, 0, TAU); c.fill();
   const wag = sleeping ? 0 : Math.sin(t * 12 + ph);
@@ -163,7 +165,8 @@ function drawPet(c, kind, x, y, ang, t, ph, sleeping) {
   c.restore();
 }
 /* sky-fish: manta / koi / eel / small glowing school fish */
-function drawSkyFish(c, kind, x, y, ang, size, t, ph, glow, alpha) {
+function drawSkyFish(c, kind, x, y, ang, size, t, ph, glow, alpha, shadow) {
+  if (ART.ok && kind !== 'school') return artSkyFish(c, kind, x, y, ang, size, t, ph, glow, alpha, shadow);
   c.save(); c.globalAlpha = alpha; c.translate(x, y); c.rotate(ang);
   const und = Math.sin(t * 3 + ph);
   if (kind === 'manta') {
