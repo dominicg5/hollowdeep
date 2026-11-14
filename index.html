@@ -134,6 +134,27 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
 .pulse{animation:pulse 2.4s ease-in-out infinite}
 .switch{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(110,80,40,.25)}
+/* Rim City */
+#city{position:fixed;left:0;right:0;top:96px;bottom:64px;z-index:5;overflow:hidden;background:#3e5854}
+#city.hidden{display:none}
+#cityCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
+#cityCanvas:active{cursor:grabbing}
+.cityTop{position:absolute;left:8px;right:56px;top:8px;pointer-events:none;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.cityTitle{font:600 15px Georgia,serif;background:rgba(246,236,212,.92);padding:4px 10px;border-radius:12px;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+#cityInfo{font-size:11.5px;background:rgba(36,50,74,.82);color:#fff3d0;padding:3px 9px;border-radius:10px;max-width:100%}
+#ticker{max-width:100%;overflow:hidden;background:rgba(255,250,235,.9);border-radius:10px;padding:3px 9px;font-size:12px;box-shadow:0 3px 10px rgba(0,0,0,.15);border-left:4px solid #c9822f}
+#ticker span{display:inline-block}
+#ticker span.slide{animation:tick .6s ease-out}
+@keyframes tick{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.cityBtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
+.cityBtns button{width:42px;height:42px;border-radius:12px;border:1px solid rgba(110,80,40,.3);background:rgba(246,236,212,.94);font-size:19px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.2)}
+.cityBtns button:active{transform:translateY(1px)}
+#miniMap{position:absolute;left:8px;bottom:8px;width:112px;height:112px;border-radius:50%;border:3px solid rgba(246,236,212,.95);box-shadow:0 4px 14px rgba(0,0,0,.35);background:#2a3a3a;cursor:pointer;touch-action:none}
+#legend{position:absolute;right:58px;top:8px;width:min(300px,calc(100% - 70px));max-height:calc(100% - 16px);overflow:auto;background:rgba(250,243,226,.97);border-radius:14px;padding:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:13px}
+#legend.hidden{display:none}
+.legrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed rgba(110,80,40,.2);cursor:pointer}
+.legrow .sw{width:22px;height:22px;border-radius:6px;flex:0 0 auto;border:1px solid rgba(0,0,0,.2)}
+#cityHint{position:absolute;left:128px;right:8px;bottom:12px;text-align:center;font-size:11.5px;color:#fff6dc;text-shadow:0 1px 3px rgba(0,0,0,.6);pointer-events:none}
 </style>
 </head>
 <body>
@@ -147,7 +168,24 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
     <div id="resbar"></div>
   </header>
   <main id="view"></main>
+  <div id="city" class="hidden">
+    <canvas id="cityCanvas" aria-label="Rim City map"></canvas>
+    <div class="cityTop">
+      <div class="cityTitle">🗺️ Rim City <span id="cityCount" class="dim"></span></div>
+      <div id="cityInfo"></div>
+      <div id="ticker"><span></span></div>
+    </div>
+    <div class="cityBtns">
+      <button data-city="zin" aria-label="Zoom in">＋</button><button data-city="zout" aria-label="Zoom out">－</button>
+      <button data-city="home" aria-label="My Lanternhold">🏠</button><button data-city="overview" aria-label="Whole map">🌐</button>
+      <button data-city="legend" aria-label="Legend">📖</button><button data-city="journal" aria-label="Journal">📔</button><button data-city="season" aria-label="Seasons">🍂</button>
+    </div>
+    <canvas id="miniMap" width="240" height="240" aria-label="Minimap"></canvas>
+    <div id="legend" class="hidden"></div>
+    <div id="cityHint">Drag to explore · pinch or scroll to zoom · tap anything</div>
+  </div>
   <nav id="tabs"><div class="wrap">
+    <button data-tab="city"><span>🗺️</span>Rim City</button>
     <button data-tab="capital"><span>🏰</span>Capital</button>
     <button data-tab="hollow"><span>🕳️</span>Hollow</button>
     <button data-tab="outposts"><span>🐢</span>Outposts</button>
@@ -207,6 +245,8 @@ const CONFIG = {
                  desc: 'Looks like a wall. It is not. Rock golems sleep in its columns and stand up when raiders come.' },
     kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
                  desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
+    vault:     { name: 'Rim Vault',       icon: '🏦', max: 8, start: 0, base: { crowns: 260, stone: 220 }, growth: 1.6, minutes: 30,
+                 desc: 'Deep stone vaults under your Lanternhold. +30% storage cap and +3% raid protection per level. (Public Vaults dot Rim City.)' },
     forge:     { name: 'Rim Forge',       icon: '⚒️', max: 8, start: 0, base: { crowns: 200, stone: 150, timber: 60 }, growth: 1.6, minutes: 25,
                  desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel at the Rim. Works, but hauling raw ore up costs a lot of Lumen.' },
   },
@@ -215,7 +255,11 @@ const CONFIG = {
   trainingPerLevel: { power: 3, sparXp: 4 },
   lift: { maxReach: 4, capacityPerLevel: 30, pullCutPerLevel: 0.08 },
   wall: { baseGolems: 2, golemEvery: 3, maxGolems: 5, golemPower: 10, golemPowerPerLevel: 7 },
-  forgePerLevel: 1.5,                                                 // steel per game hour per level
+  forgePerLevel: 1.5,
+  vault: { capPerLevel: 0.30, protectPerLevel: 0.03 },
+  // Rim City market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
+  market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
+  mapRaid: { lumen: 10, marchMinutes: 30, shieldHours: 6 },                                                 // steel per game hour per level
 
   // The Hollow. Expedition: hours, lumen cost, recommended power, base risk, xp, loot ranges, pet egg.
   // Outposts: burn = Lumen per hour to keep an outpost lit; pull = Pull multiplier of the layer.
@@ -281,7 +325,7 @@ const CONFIG = {
 const HOUR = 3600e3, MIN = 60e3, DAY = 24 * HOUR;
 const RES = Object.keys(CONFIG.resources);
 let S = null;                 // game state
-let ui = { tab: 'capital', pressing: false, lastHtml: '', modal: null, collecting: null };
+let ui = { tab: 'city', pressing: false, lastHtml: '', modal: null, collecting: null };
 
 /* ---------------- helpers ---------------- */
 const $ = (s) => document.querySelector(s);
@@ -319,7 +363,8 @@ function newState() {
     veins, nextShipAt: HOUR * CONFIG.pull.shipEveryHours, lastShip: null,
     nextRaidAt: CONFIG.raids.firstRaidHours * HOUR, shieldUntil: 0, raidCount: 0, lastRaid: null, pendingReveal: null,
     rivals: [], log: [], nextUid: 10, seen: {},
-    stats: { expeditions: 0, raidsWon: 0, defended: 0, tapsAll: 0 },
+    mapShields: {}, moleDone: {}, journal: [], seasonOverride: null, festivalOverride: false, cityCam: null,
+    stats: { expeditions: 0, raidsWon: 0, defended: 0, tapsAll: 0, deepest: 0, moles: 0 },
   };
 }
 function uid() { return S.nextUid++; }
@@ -332,8 +377,8 @@ function log(icon, msg) {
 }
 
 /* ---------------- derived numbers ---------------- */
-function storageCap() { const c = CONFIG.storage; return Math.floor(c.base * Math.pow(c.growth, S.buildings.storehouse - 1)); }
-function protectedShare() { const c = CONFIG.storage; return clamp(c.protectBase + c.protectPerLevel * (S.buildings.storehouse - 1), 0, 0.8); }
+function storageCap() { const c = CONFIG.storage; return Math.floor(c.base * Math.pow(c.growth, S.buildings.storehouse - 1) * (1 + CONFIG.vault.capPerLevel * (S.buildings.vault || 0))); }
+function protectedShare() { const c = CONFIG.storage; return clamp(c.protectBase + c.protectPerLevel * (S.buildings.storehouse - 1) + CONFIG.vault.protectPerLevel * (S.buildings.vault || 0), 0, 0.85); }
 function addRes(k, n) { S.res[k] = clamp((S.res[k] || 0) + n, 0, storageCap()); }
 function canAfford(cost) { return Object.keys(cost).every((k) => (S.res[k] || 0) >= cost[k] - 1e-9); }
 function pay(cost) { if (!canAfford(cost)) return false; for (const k in cost) S.res[k] -= cost[k]; return true; }
@@ -435,7 +480,7 @@ function finishHeroTask() {
     const loot = rollLoot(L, mult);
     if (Math.random() < successChance(L)) {
       grantLoot(loot); const xp = gainXp(L.xp);
-      S.stats.expeditions++;
+      S.stats.expeditions++; S.stats.deepest = Math.max(S.stats.deepest || 0, t.layer);
       log('🎒', `Back from <b>${L.name}</b>: ${lootText(loot)} · +${fmt(xp)} XP`);
       findPet(L);
       S.hero.task = null;
@@ -448,8 +493,10 @@ function finishHeroTask() {
     grantLoot(t.loot); const xp = gainXp(t.xp);
     log('🪢', `Rescue line reached ${CONFIG.hero.name}. Came home with ${lootText(t.loot)} · +${fmt(xp)} XP`);
     S.hero.task = null;
+  } else if (t.type === 'mole') {
+    resolveMoleFight(t); S.hero.task = null;
   } else if (t.type === 'raid') {
-    resolveAttack(t.rival);
+    if (t.map) resolveMapRaid(t.map); else resolveAttack(t.rival);
     S.hero.task = null;
   }
 }
@@ -636,6 +683,82 @@ function resolveAttack(i) {
   S.rivals[i] = makeRival(i); S.rivals[i].shieldUntil = S.gameTime + CONFIG.raids.rivalShieldHours * HOUR;
   if (!ui.collecting) showAttackReport(report);
 }
+/* ---- raids on Rim City Lanternholds (AI players on the map) ---- */
+function mapRaidLoot(level) { return { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level }; }
+function startMapRaid(h) {
+  if (!heroHome()) return toast('Your hero is busy');
+  if ((S.mapShields[h.id] || 0) > S.gameTime) return toast('That Lanternhold is shielded');
+  if (!pay({ lumen: CONFIG.mapRaid.lumen })) return toast(`Needs ${CONFIG.mapRaid.lumen} Lumen`);
+  S.hero.task = { type: 'raid', map: { id: h.id, owner: h.owner, name: h.name, level: h.level, power: h.power }, start: S.gameTime, end: S.gameTime + CONFIG.mapRaid.marchMinutes * MIN };
+  toast(`⚔️ Marching on ${h.owner}'s ${h.name}…`); rerender(true);
+}
+function resolveMapRaid(m) {
+  const ratio = (attackPower() / Math.max(1, m.power)) * rand(0.85, 1.15), stars = starsFor(ratio);
+  const full = mapRaidLoot(m.level), got = {};
+  for (const k in full) { got[k] = Math.round(full[k] * stars / 3); addRes(k, got[k]); }
+  const xp = gainXp(20 * m.level * (stars + 1) / 2);
+  if (stars > 0) S.stats.raidsWon++;
+  S.mapShields[m.id] = S.gameTime + CONFIG.mapRaid.shieldHours * HOUR;
+  const report = { kind: 'attack', name: `${m.owner}'s ${m.name}`, icon: '🏘️', stars, got, xp, atk: Math.round(attackPower()), def: m.power, t: S.gameTime };
+  S.lastRaid = report;
+  log('⚔️', `Raid on <b>${m.owner}'s ${m.name}</b>: ${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} ${stars ? 'Loot ' + lootText(got) : 'Repelled.'} · +${fmt(xp)} XP`);
+  if (!ui.collecting) showAttackReport(report);
+}
+/* ---- Rim Mole fights (map event) ---- */
+function startMoleFight(m) {
+  if (!heroHome()) return toast('Your hero is busy');
+  S.hero.task = { type: 'mole', k: m.k, region: m.region, power: molePower(), start: S.gameTime, end: S.gameTime + 20 * MIN };
+  S.moleDone[m.k] = true;
+  toast('⚔️ Wren charges the Rim Mole! The crowd roars.'); rerender(true);
+}
+function resolveMoleFight(t) {
+  const win = Math.random() < clamp(attackPower() / t.power, 0.15, 0.95);
+  const where = REGIONS[t.region].name;
+  if (win) {
+    const loot = { crowns: Math.round(60 * S.hero.level), amber: 3 + Math.floor(Math.random() * 4), iron: 20 + Math.floor(Math.random() * 20) }; grantLoot(loot);
+    const xp = gainXp(40 * S.hero.level); S.stats.moles = (S.stats.moles || 0) + 1;
+    log('🦴', `${CONFIG.hero.name} drove the Rim Mole back into the deep in ${where}! ${lootText(loot)} · +${fmt(xp)} XP. A skull trophy now hangs over your door.`);
+  } else {
+    const loot = { crowns: 20 * S.hero.level }; grantLoot(loot); const xp = gainXp(10 * S.hero.level);
+    log('🤕', `The Rim Mole in ${where} was too much. ${CONFIG.hero.name} limped home with ${lootText(loot)} · +${fmt(xp)} XP.`);
+  }
+}
+/* ---- Wren's journal (written on return from time away) ---- */
+function writeJournal(sum) {
+  const ev = sum.events, by = (ic) => ev.filter((e) => e.icon === ic), strip = (m) => m.replace(/<[^>]+>/g, '');
+  const P = [];
+  const exps = by('🎒');
+  if (exps.length === 1) P.push(`I went down the Tether and came back with ${strip(exps[0].msg).split(': ')[1] || 'a full pack'}.`);
+  else if (exps.length > 1) P.push(`I made ${exps.length} trips down the Tether. My boots are more mud than leather now.`);
+  if (by('🕯️').length) P.push('My lantern guttered out on a ledge once. I sat in the dark counting heartbeats until the rescue line found me.');
+  const def = by('🗿');
+  def.forEach((e) => P.push(/routed/.test(e.msg) ? 'Raiders came for the wall. The golems stood up (I will never get used to that sound) and sent them running.' : 'Raiders broke through while I was away. The golems did what they could. We need a deeper Vault.'));
+  const atk = by('⚔️'); if (atk.length) P.push(`I led ${atk.length} raid${atk.length > 1 ? 's' : ''} on our neighbours. Not my proudest work, but the coffers are fuller.`);
+  if (by('🦴').length) P.push('I fought a Rim Mole in front of half the city. Its skull hangs over our door now.');
+  if (by('🥚').length) P.push('Found an egg in the dark and carried it up under my coat. It hatched by the fire.');
+  if (by('🌑').length) P.push('Our outposts went dark for a while. Not enough Lumen. I hate leaving them blind.');
+  const anch = by('⚓'); if (anch.length) P.push('Our outpost found new footing below. The crew sent a cheer up the line.');
+  const blds = ev.filter((e) => /upgraded to Lv/.test(e.msg)); if (blds.length) P.push(`The builders finished ${blds.map((e) => strip(e.msg).split(' upgraded')[0]).join(', ')}.`);
+  if (sum.levels) P.push(`I feel stronger. Level ${S.hero.level} now.`);
+  if (!P.length) P.push(['Quiet days. I sharpened my blade, watched the sky-fish drift, and let Old Maddox tell me the same story twice.', 'Nothing much happened. I sat on the Promenade and watched Pell light the lamps.', 'A slow stretch. I fed the pets and listened to the Hollow breathe.'][Math.floor(Math.random() * 3)]);
+  try { const si = seasonInfo(); P.push(`${SEASONS[si.idx].icon} ${SEASONS[si.idx].name} on the Rim.`); } catch (e) { /* map not loaded */ }
+  const entry = { t: S.gameTime, real: Date.now(), day: Math.floor(S.gameTime / DAY) + 1, text: P.join(' ') };
+  S.journal = S.journal || []; S.journal.unshift(entry); if (S.journal.length > 40) S.journal.length = 40;
+  return entry;
+}
+/* ---- Rim City markets ---- */
+function marketBuy(k, lot, mult) {
+  const price = Math.ceil(CONFIG.market.prices[k] * lot * mult);
+  if (S.res[k] + lot > storageCap()) return toast('Not enough storage room');
+  if (!pay({ crowns: price })) return toast(`Needs ${price} Crowns`);
+  addRes(k, lot); toast(`🏪 Bought ${lot} ${CONFIG.resources[k].icon} for ${price} 👑`); return true;
+}
+function marketSell(k, lot, mult) {
+  if ((S.res[k] || 0) < lot) return toast(`You need ${lot} ${CONFIG.resources[k].name}`);
+  const gain = Math.floor(CONFIG.market.prices[k] * lot * mult);
+  S.res[k] -= lot; addRes('crowns', gain); toast(`🏪 Sold ${lot} ${CONFIG.resources[k].icon} for ${gain} 👑`); return true;
+}
+
 function scheduleNextRaid() { const [a, b] = CONFIG.raids.intervalHours; S.nextRaidAt = S.gameTime + rand(a, b) * HOUR; }
 const RAIDER_NAMES = ['the Ashgull Lodge', 'Brakka\'s Cable-Cutters', 'the Hollow Jackals', 'a Kite crew from the east rim', 'the Lantern Thieves'];
 function aiRaid() {
@@ -714,7 +837,7 @@ function simulateAway(dtGame) {
 /* ---------------- save / load ---------------- */
 function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(S)); } catch (e) { /* storage full or blocked */ } }
 function load() {
-  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; return Object.assign(newState(), s); } catch (e) { return null; }
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); return Object.assign(d, s); } catch (e) { return null; }
 }
 function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }
 
@@ -778,6 +901,7 @@ function buildingEffect(id, lvl) {
     case 'lift': return `reach layer ${Math.min(CONFIG.lift.maxReach, lvl + 1)} · ${CONFIG.lift.capacityPerLevel * lvl} wt/h · Pull −${Math.round(CONFIG.lift.pullCutPerLevel * (lvl - 1) * 100)}%`;
     case 'wall': { const w = CONFIG.wall; return `${Math.min(w.maxGolems, w.baseGolems + Math.floor((lvl - 1) / w.golemEvery))} golems × ${w.golemPower + w.golemPowerPerLevel * (lvl - 1)} power`; }
     case 'kennel': return `${lvl >= 3 ? 2 : 1} pet slot${lvl >= 3 ? 's' : ''} · pets +${Math.round(CONFIG.kennelPetBoost * (lvl - 1) * 100)}%`;
+    case 'vault': return lvl ? `storage +${Math.round(CONFIG.vault.capPerLevel * lvl * 100)}% · protection +${Math.round(CONFIG.vault.protectPerLevel * lvl * 100)}%` : 'not built';
     case 'forge': return lvl ? `${fmt1(CONFIG.forgePerLevel * lvl)} 🔩/h from raw ore` : 'not built';
   }
   return '';
@@ -838,7 +962,8 @@ function heroStatusCard() {
   else if (t.type === 'expedition') s += `<div class="small" style="margin-top:6px">Exploring <b>${layerById(t.layer).name}</b> · back in ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   else if (t.type === 'stranded') s += `<div class="small" style="margin-top:6px">🕯️ Stranded in <b>${layerById(t.layer).name}</b>. Rescue line arrives in ${countdown(t.end)}</div>${pbar(t.start, t.end)}
       <button class="btn alt sm" data-act="rescue">Send rescue line now (${rescueCost()} 🏮)</button>`;
-  else if (t.type === 'raid') s += `<div class="small" style="margin-top:6px">⚔️ Marching on <b>${CONFIG.rivals[t.rival].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
+  else if (t.type === 'mole') s += `<div class="small" style="margin-top:6px">🦴 Fighting a Rim Mole in <b>${REGIONS[t.region].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
+  else if (t.type === 'raid') s += `<div class="small" style="margin-top:6px">⚔️ Marching on <b>${t.map ? esc(t.map.owner + "'s " + t.map.name) : CONFIG.rivals[t.rival].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   return s + '</div>';
 }
 function viewHollow() {
@@ -1081,7 +1206,7 @@ function doTap(x, y) {
 }
 
 /* ---------- modal ---------- */
-function openModal(html, kind) { ui.modal = kind || 'x'; $('#modalBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
+function openModal(html, kind) { ui.modalAt = performance.now(); ui.modal = kind || 'x'; $('#modalBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
 function closeModal() { ui.modal = null; $('#modal').classList.add('hidden'); $('#modalBody').innerHTML = ''; rerender(true); if (S.pendingReveal) { const r = S.pendingReveal; setTimeout(() => showReveal(r), 250); } }
 function settingsModal() {
   openModal(`<h2>⚙️ Settings</h2>
@@ -1090,6 +1215,7 @@ function settingsModal() {
     <div class="switch"><div><b>Skip ahead</b><div class="dim">Simulate game time instantly (shows a while-you-were-away summary).</div></div>
       <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
     <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
+    <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Rim City map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
     <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
 }
@@ -1097,7 +1223,9 @@ function awayModal(sum, realMs) {
   const d = sum.delta;
   const rows = Object.keys(d).map((k) => `<span class="cost ${d[k] < 0 ? 'short' : ''}">${CONFIG.resources[k].icon}${d[k] > 0 ? '+' : '−'}${fmt(Math.abs(d[k]))}</span>`).join('');
   const ev = sum.events.slice().reverse().slice(-14);
+  const je = writeJournal(sum);
   openModal(`<h2>🏮 While you were away</h2>
+    <div class="card" style="margin:8px 0;background:#fffaf0"><div class="dim">📔 From ${CONFIG.hero.name}'s journal · Day ${je.day}</div><div style="font-family:Georgia,serif;font-size:15px;margin-top:4px">“${je.text}”</div></div>
     <div class="dim">${realMs != null ? `Gone ${fmtDur(realMs)} real · ` : ''}${fmtDur(sum.gameMs)} of game time passed${sum.cappedFrom > sum.gameMs ? ` (capped at ${CONFIG.offlineCapHours}h)` : ''}.</div>
     <div class="wrapgap" style="margin:10px 0">${rows || '<span class="dim">No change in stock.</span>'}</div>
     ${sum.levels ? `<p>⭐ ${CONFIG.hero.name} gained ${sum.levels} level${sum.levels > 1 ? 's' : ''}!</p>` : ''}
@@ -1106,10 +1234,12 @@ function awayModal(sum, realMs) {
 }
 
 /* ---------- render loop ---------- */
-const VIEWS = { capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
+const VIEWS = { city: () => '', capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
 function rerender(force) {
   renderResbar();
   document.querySelectorAll('nav#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === ui.tab));
+  if (ui.tab === 'city') { $('#view').style.display = 'none'; CityMap.show(); return; }
+  $('#view').style.display = ''; CityMap.hide();
   if (ui.tab === 'training' && !force && document.getElementById('tapzone')) {
     updateTrainingBinds();
     if (!ui.pressing) for (const [id, fn] of [['heroSlot', heroStatusCard], ['petSlot', petsCard]]) { const el = document.getElementById(id), hh = fn(); if (el && el.dataset.h !== hh) { el.dataset.h = hh; el.innerHTML = hh; } }
@@ -1163,6 +1293,8 @@ function onAct(act, ds) {
     case 'toggletest': S.testMode = !S.testMode; save(); settingsModal(); return rerender(true);
     case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayModal(sum, null); save(); return rerender(true); }
     case 'reset': if (confirm('Reset all Hollowdeep progress?')) resetSave(); return;
+    case 'journal': closeModalQuiet(); setTab('city'); setTimeout(() => { const b = document.querySelector('[data-city=journal]'); if (b) b.click(); }, 60); return;
+    default: return CityMap.onAct(act, ds);
   }
 }
 function closeModalQuiet() { ui.modal = null; $('#modal').classList.add('hidden'); }
@@ -1175,7 +1307,7 @@ function init() {
     const t = e.target.closest('[data-tab]'); if (t) return setTab(t.dataset.tab);
     const b = e.target.closest('[data-act]'); if (b && !b.disabled) onAct(b.dataset.act, b.dataset);
   });
-  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && ui.modal !== 'reveal') closeModal(); });
+  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && ui.modal !== 'reveal' && performance.now() - (ui.modalAt || 0) > 400) closeModal(); });
   document.addEventListener('pointerdown', (e) => {
     ui.pressing = true;
     const z = e.target.closest('#tapzone'); if (z) { e.preventDefault(); doTap(e.clientX, e.clientY); }
@@ -1197,6 +1329,7 @@ function init() {
     openModal(`<h2>Welcome to the Rim</h2>
       <p>You hold a small capital on the edge of <b>the Hollow</b>, a chasm that goes down forever. Lumen, a living light, grows deep below.</p>
       <ul class="small">
+        <li>🗺️ <b>Rim City</b>: the huge city around the Hollow. Drag, pinch and tap anything. Every house is a player's ${CITY.homeTerm}.</li>
         <li>🏰 <b>Capital</b>: upgrade buildings. Your wall is not just a wall.</li>
         <li>🕳️ <b>Hollow</b>: send ${CONFIG.hero.name} on timed expeditions. Deeper = richer, riskier.</li>
         <li>🐢 <b>Outposts</b>: your Strider mines a vein and lifts goods up the Tether. Hauling costs Lumen (the Pull).</li>
@@ -1211,5 +1344,1231 @@ function init() {
 }
 window.HD = { get S() { return S; }, CONFIG, simulate, simulateAway, startExpedition, startBuild, doTap, save, load, boostPct, weekTaps, aiRaid, shipAll, startMove, installModule, setTab, attackPower, defensePower };
 document.addEventListener('DOMContentLoaded', init);
+
+/* =====================================================================
+   RIM CITY — procedural, seeded world around the Hollow
+   ===================================================================== */
+const CITY = {
+  homeTerm: 'Lanternhold',              // in-world name for each player's capital
+  seed: 20261114,
+  R: 3300, hollowR: 700,                // world radius, hollow base radius (world units)
+  ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
+  tilePx: 256, levels: [0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 200,
+  zoomMin: 0.065, zoomMax: 3.2, startZoom: 1.05,
+  walkers: 380, homePetShare: 0.3,
+  seasonDays: 7, testSeasonDays: 1,     // game days per season (test mode uses testSeasonDays)
+  moleWindowHours: 8, moleChance: 0.75, moleDurationHours: 1.5,
+  spikeWindowHours: 3, spikeChance: 0.25, spikeMult: 1.6,
+  weatherSeconds: 45,                   // real seconds per weather event
+};
+const REGIONS = [
+  { key: 'docks', name: 'Mirrorlake Docks', icon: '🐟', res: ['🐟 Fish', '💧 Freshwater', '🧂 Salt'], sells: ['lumen'],
+    blurb: 'A mirror-still lake spills over the lip into the Hollow in a roaring veil. Fishers, ferrymen and lamp-oil pressers.',
+    ground: [150, 192, 160], roofs: ['#5f7f99', '#6f8fa8', '#4f6a80'], wall: '#e6dcc8', styles: [0, 1] },
+  { key: 'dunes', name: 'Glassdune Quarter', icon: '⏳', res: ['⏳ Sand', '🔮 Sunglass', '🟠 Amber'], sells: ['amber'],
+    blurb: 'Wind-carved dunes and glass kilns that glow all night. Sunglass lenses for every lantern on the Rim.',
+    ground: [232, 207, 152], roofs: ['#e9d4a4', '#d9b77a', '#c99a5a'], wall: '#f3e3bf', styles: [2] },
+  { key: 'bluffs', name: 'Greystone Bluffs', icon: '🪨', res: ['🪨 Stone', '🤍 Chalk', '🏛️ Marble'], sells: ['stone'],
+    blurb: 'Stepped cliffs and quarries. Every wall on the Rim started here, and every winter the frost starts here too.',
+    ground: [180, 178, 162], roofs: ['#7c7f86', '#8f8f8a', '#6c6e73'], wall: '#d9d4c4', styles: [1] },
+  { key: 'wood', name: 'Hushwood', icon: '🌲', res: ['🪵 Timber', '🍯 Resin', '🍄 Mushrooms'], sells: ['timber'],
+    blurb: 'An old, quiet forest. Sawmills hum at its edge; the deep trees whisper back.',
+    ground: [104, 150, 98], roofs: ['#6b4a32', '#7d5638', '#5a3d2a'], wall: '#d8c3a0', styles: [0] },
+  { key: 'crystal', name: 'Shardglow Mines', icon: '💎', res: ['💎 Crystal', '🏮 Lumen', '🔷 Deepglass'], sells: ['lumen', 'amber'],
+    blurb: 'Crystal seams break the surface here, humming with Lumen. Miners never need lanterns.',
+    ground: [130, 126, 156], roofs: ['#6a5a9a', '#7c6bb0', '#584a82'], wall: '#d9d2e6', styles: [1, 3] },
+  { key: 'farms', name: 'Goldenstep Terraces', icon: '🌾', res: ['🌾 Grain', '🍚 Mossrice', '🍯 Honey'], sells: ['timber'], premium: true,
+    blurb: 'Golden fields step down toward the rim, and the windmills never stop. Traders here pay the best Crowns for anything you sell.',
+    ground: [206, 193, 120], roofs: ['#c9a65a', '#b8904a', '#d6b46a'], wall: '#efe2c2', styles: [0] },
+  { key: 'badlands', name: 'Cinderreach Badlands', icon: '⛓️', res: ['⛓️ Iron', '⚫ Breathcoal', '🟤 Copper'], sells: ['iron', 'coal'],
+    blurb: 'Cracked red earth, slag heaps and smoking chimneys. Iron and Breathcoal for the forges.',
+    ground: [166, 120, 92], roofs: ['#8a4a32', '#6d3a2a', '#9a5a3a'], wall: '#cdb49a', styles: [2, 1] },
+  { key: 'moss', name: 'Lanternmoss Gardens', icon: '🌿', res: ['🌿 Lanternmoss', '🏮 Lumen Oil', '🌱 Herbs'], sells: ['moss', 'lumen'],
+    blurb: 'Glowing moss gardens and lantern-lit paths. The softest light on the Rim, and your home.',
+    ground: [122, 174, 130], roofs: ['#4f8c6a', '#5f9c78', '#3f7a5c'], wall: '#e8e0c8', styles: [3, 0] },
+  { key: 'amber', name: 'Amberfall Orchards', icon: '🍂', res: ['🟠 Amber', '🍎 Fruit', '🪵 Heartwood'], sells: ['amber', 'timber'],
+    blurb: 'Autumn orchards whose trees weep amber. Sweet air, sticky boots.',
+    ground: [200, 152, 94], roofs: ['#b0573a', '#c46a40', '#9a4a30'], wall: '#f0dcc0', styles: [0, 1] },
+];
+const NREG = REGIONS.length;
+
+/* ---------- seeded randomness & noise ---------- */
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function hash2(x, y) { let h = Math.imul(x | 0, 374761393) ^ Math.imul(y | 0, 668265263) ^ CITY.seed; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
+function hash1(n) { return hash2(n, 7919); }
+function vnoise(x, y) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi), b = hash2(xi + 1, yi), c = hash2(xi, yi + 1), d = hash2(xi + 1, yi + 1);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+const TAU = Math.PI * 2;
+const polar = (r, a) => [Math.cos(a) * r, Math.sin(a) * r];
+function distSeg(px, py, x1, y1, x2, y2) { const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy || 1; let t = ((px - x1) * dx + (py - y1) * dy) / l2; t = t < 0 ? 0 : t > 1 ? 1 : t; const ex = x1 + t * dx - px, ey = y1 + t * dy - py; return [Math.sqrt(ex * ex + ey * ey), t]; }
+function shade(rgb, f) { return `rgb(${clamp(Math.round(rgb[0] * f), 0, 255)},${clamp(Math.round(rgb[1] * f), 0, 255)},${clamp(Math.round(rgb[2] * f), 0, 255)})`; }
+function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+
+/* ---------- the world object ---------- */
+const W = { ready: false };
+
+function regionF(x, y) {
+  const a = (Math.atan2(y, x) + Math.PI) / TAU;
+  const w = (vnoise(x / 700 + 50, y / 700) - 0.5) * 0.55 + (vnoise(x / 240, y / 240 + 9) - 0.5) * 0.14;
+  return (((a * NREG + w) % NREG) + NREG) % NREG;
+}
+function regionAt(x, y) { return Math.floor(regionF(x, y)) % NREG; }
+function regionAngle(i) { return ((i + 0.5) / NREG) * TAU - Math.PI; }
+function hollowR(a) { let r = 1; for (const [k, amp, ph] of W.hTerms) r += amp * Math.sin(k * a + ph); return CITY.hollowR * r; }
+function hollowDist(x, y) { return Math.hypot(x, y) - hollowR(Math.atan2(y, x)); } // >0 outside
+function ringR(i, a) { const [p1, p2] = W.ringPh[i]; return CITY.ringRoads[i] + 40 * Math.sin(3 * a + p1) + 22 * Math.sin(5 * a + p2); }
+function lakeR(a) { let r = 1; for (const [k, amp, ph] of W.lakeTerms) r += amp * Math.sin(k * a + ph); return W.lake.r * r; }
+function inLake(x, y, m) { const dx = x - W.lake.x, dy = y - W.lake.y; return Math.hypot(dx, dy) < lakeR(Math.atan2(dy, dx)) + (m || 0); }
+
+/* segment grid for chasm/river distance queries */
+function segGridAdd(grid, seg, cell) {
+  const pad = seg.w / 2 + 2;
+  const x0 = Math.floor((Math.min(seg.x1, seg.x2) - pad) / cell), x1 = Math.floor((Math.max(seg.x1, seg.x2) + pad) / cell);
+  const y0 = Math.floor((Math.min(seg.y1, seg.y2) - pad) / cell), y1 = Math.floor((Math.max(seg.y1, seg.y2) + pad) / cell);
+  for (let gx = x0; gx <= x1; gx++) for (let gy = y0; gy <= y1; gy++) { const k = gx + ',' + gy; (grid.get(k) || grid.set(k, []).get(k)).push(seg); }
+}
+function segGridDist(grid, cell, x, y) { // distance to nearest edge (negative = inside)
+  const gx = Math.floor(x / cell), gy = Math.floor(y / cell); let best = 1e9;
+  for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const arr = grid.get((gx + i) + ',' + (gy + j)); if (!arr) continue;
+    for (const s of arr) { const [d, t] = distSeg(x, y, s.x1, s.y1, s.x2, s.y2); const w = s.w1 + (s.w2 - s.w1) * t; const e = d - w / 2; if (e < best) best = e; } }
+  return best;
+}
+const chasmDist = (x, y) => segGridDist(W.crackGrid, 160, x, y);
+const riverDist = (x, y) => segGridDist(W.riverGrid, 160, x, y);
+function isWet(x, y, m) { return inLake(x, y, m) || riverDist(x, y) < (m || 0); }
+
+/* occupancy grids */
+const OCC = { cell: 16, n: 0, off: 0 };
+function occInit() { OCC.n = Math.ceil((CITY.R + 800) * 2 / OCC.cell); OCC.off = CITY.R + 800; OCC.road = new Uint8Array(OCC.n * OCC.n); OCC.obj = new Uint8Array(OCC.n * OCC.n); }
+function occIter(x, y, r, fn) {
+  const c = OCC.cell, x0 = Math.floor((x - r + OCC.off) / c), x1 = Math.floor((x + r + OCC.off) / c), y0 = Math.floor((y - r + OCC.off) / c), y1 = Math.floor((y + r + OCC.off) / c);
+  for (let gx = x0; gx <= x1; gx++) for (let gy = y0; gy <= y1; gy++) { if (gx < 0 || gy < 0 || gx >= OCC.n || gy >= OCC.n) continue;
+    const cx = gx * c - OCC.off + c / 2, cy = gy * c - OCC.off + c / 2; if ((cx - x) ** 2 + (cy - y) ** 2 > (r + c * 0.5) ** 2) continue; if (fn(gx * OCC.n + gy) === false) return false; }
+  return true;
+}
+const occMark = (g, x, y, r) => occIter(x, y, r, (i) => { g[i] = 1; });
+const occFree = (g, x, y, r) => occIter(x, y, r, (i) => (g[i] ? false : true));
+
+/* ---------- names ---------- */
+const NM = {
+  a: ['Ves', 'Kor', 'Ash', 'Bri', 'Tam', 'Mor', 'Lio', 'Ren', 'Sab', 'Fen', 'Oda', 'Quil', 'Har', 'Iv', 'Jor', 'Nel', 'Pell', 'Rook', 'Sil', 'Tov', 'Ula', 'Wex', 'Yar', 'Zel', 'Cal', 'Dun', 'Eli', 'Gav', 'Mae', 'Thes', 'Bram', 'Cora', 'Dov', 'Isk'],
+  b: ['sa', 'rin', 'lyn', 'dle', 'ric', 'ow', 'ka', 'vin', 'eth', 'a', 'os', 'wyn', 'mar', 'ette', 'is', 'und', 'ra', 'el', 'ock', 'ith', 'ley', 'ana', 'ius', 'o'],
+  sur: ['Morrow', 'Vane', 'Holloway', 'Ashgrove', 'Tallow', 'Wick', 'Deepwater', 'Ropewright', 'Brindle', 'Kettle', 'Marsh', 'Cindervale', 'Lark', 'Thorne', 'Gale', 'Fernsby'],
+  adj: ['Deep', 'Lantern', 'Moss', 'Rope', 'Hollow', 'Ember', 'Quiet', 'Amber', 'Salt', 'Glass', 'Iron', 'Pale', 'Wick', 'Tether', 'Rim', 'Mothlit', 'Cinder', 'Gloam'],
+  noun: ['diver', 'fang', 'wright', 'keeper', 'runner', 'moth', 'wolf', 'song', 'hook', 'lark', 'smith', 'born', 'walker', 'sage', 'bell', 'heart', 'fox'],
+  pa: ['Brindle', 'Cinder', 'Moth', 'Hush', 'Salt', 'Glim', 'Fern', 'Kettle', 'Thorn', 'Wick', 'Ash', 'Gull', 'Lark', 'Rook', 'Bell', 'Ember', 'Mire', 'Copper', 'Tallow', 'Dusk', 'Hearth', 'Gloam', 'Pebble', 'Sorrel'],
+  pb: ['wick', 'gate', 'court', 'rest', 'reach', 'mere', 'watch', 'fold', 'croft', 'stead', 'ledge', 'spire', 'end', 'nook', 'row', 'well'],
+};
+function makeOwner(rnd, used) {
+  for (let tries = 0; tries < 20; tries++) {
+    const p = (a) => a[Math.floor(rnd() * a.length)];
+    const k = rnd(); let n;
+    if (k < 0.35) n = p(NM.a) + p(NM.b);
+    else if (k < 0.6) n = p(NM.a) + p(NM.b) + ' ' + p(NM.sur);
+    else if (k < 0.85) n = p(NM.adj) + p(NM.noun);
+    else n = p(NM.adj) + p(NM.noun) + (10 + Math.floor(rnd() * 89));
+    if (!used.has(n)) { used.add(n); return n; }
+  }
+  return 'Delver' + Math.floor(rnd() * 9999);
+}
+const PET_KINDS = ['pup', 'wisp', 'moth', 'ferret', 'tortoise', 'kit'];
+const PET_NAMES = { pup: 'Moss Pup', wisp: 'Chalk Wisp', moth: 'Amber Moth', ferret: 'Bellows Ferret', tortoise: 'Shellback calf', kit: 'Lanternkit' };
+const LAYER_COLORS = ['#d9b46a', '#7fb07a', '#c08a4a', '#b0573a'];
+
+/* ---------- generation ---------- */
+function generateCity() {
+  const t0 = performance.now();
+  const rnd = mulberry32(CITY.seed);
+  const R = CITY.R;
+  W.hTerms = [[2, 0.05, rnd() * TAU], [3, 0.07, rnd() * TAU], [5, 0.045, rnd() * TAU], [8, 0.03, rnd() * TAU], [13, 0.018, rnd() * TAU], [21, 0.01, rnd() * TAU]];
+  W.hollowPts = []; for (let i = 0; i < 240; i++) { const a = (i / 240) * TAU - Math.PI; W.hollowPts.push(polar(hollowR(a), a)); }
+  W.ringPh = CITY.ringRoads.map(() => [rnd() * TAU, rnd() * TAU]);
+  occInit();
+
+  // Lake (Mirrorlake Docks) + river spilling into the Hollow
+  const la = regionAngle(0) + 0.05;
+  W.lake = { x: Math.cos(la) * 1330, y: Math.sin(la) * 1330, r: 250 };
+  W.lakeTerms = [[2, 0.12, rnd() * TAU], [3, 0.08, rnd() * TAU], [5, 0.05, rnd() * TAU]];
+  W.lakePts = []; for (let i = 0; i < 90; i++) { const a = (i / 90) * TAU; const r = lakeR(a); W.lakePts.push([W.lake.x + Math.cos(a) * r, W.lake.y + Math.sin(a) * r]); }
+  W.river = []; { let p = [W.lake.x * 0.82, W.lake.y * 0.82]; const end = polar(hollowR(la - 0.03) - 30, la - 0.03); for (let i = 0; i <= 12; i++) { const u = i / 12; W.river.push([p[0] + (end[0] - p[0]) * u + Math.sin(u * 9) * 22 * (1 - u), p[1] + (end[1] - p[1]) * u + Math.cos(u * 7) * 18 * (1 - u)]); } }
+  W.riverGrid = new Map(); for (let i = 0; i < W.river.length - 1; i++) segGridAdd(W.riverGrid, { x1: W.river[i][0], y1: W.river[i][1], x2: W.river[i + 1][0], y2: W.river[i + 1][1], w: 40, w1: 40, w2: 46 }, 160);
+
+  // Cracks: wide side-chasms + narrow fissures, branching outward
+  W.cracks = []; W.crackGrid = new Map();
+  const addCrack = (x, y, ang, len, w0, w1, depth) => {
+    const step = 36, n = Math.max(3, Math.ceil(len / step)); const pts = [[x, y]], ws = [w0]; let a = ang, cx = x, cy = y;
+    for (let i = 1; i <= n; i++) { const rad = Math.atan2(cy, cx); a += (rnd() - 0.5) * 0.55; { let d = rad - a; d = ((d + 3 * Math.PI) % TAU) - Math.PI; a += d * 0.15; } cx += Math.cos(a) * step; cy += Math.sin(a) * step;
+      if (Math.hypot(cx, cy) > R - 60) break; pts.push([cx, cy]); ws.push(w0 + (w1 - w0) * (i / n)); }
+    const c = { pts, ws, wide: w0 > 60, depth }; W.cracks.push(c);
+    for (let i = 0; i < pts.length - 1; i++) segGridAdd(W.crackGrid, { x1: pts[i][0], y1: pts[i][1], x2: pts[i + 1][0], y2: pts[i + 1][1], w: Math.max(ws[i], ws[i + 1]), w1: ws[i], w2: ws[i + 1] }, 160);
+    if (depth < 2) { const nb = c.wide ? 3 : 1; for (let b = 0; b < nb; b++) if (rnd() < 0.7 && pts.length > 6) { const j = Math.floor(pts.length * (0.3 + rnd() * 0.5)); const side = rnd() < 0.5 ? -1 : 1; addCrack(pts[j][0], pts[j][1], a + side * (0.6 + rnd() * 0.6), len * (0.3 + rnd() * 0.3), ws[j] * 0.45, 2, depth + 1); } }
+    return c;
+  };
+  const crackAngles = [];
+  const wideAt = [regionAngle(2) + 0.1, regionAngle(4) - 0.05, regionAngle(6) + 0.12];
+  for (const a of wideAt) { crackAngles.push(a); addCrack(...polar(hollowR(a) - 30, a), a, 1350 + rnd() * 350, 120 + rnd() * 30, 26, 0); }
+  for (let i = 0; i < 10; i++) { let a; do { a = rnd() * TAU - Math.PI; } while (crackAngles.some((b) => Math.abs(((a - b + 3 * Math.PI) % TAU) - Math.PI) < 0.22) || Math.abs(((a - la + 3 * Math.PI) % TAU) - Math.PI) < 0.3);
+    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 450 + rnd() * 800, 22 + rnd() * 22, 3, 0); }
+  // Polygon outlines for cracks
+  for (const c of W.cracks) { const L = [], Rr = []; for (let i = 0; i < c.pts.length; i++) { const p = c.pts[i], q = c.pts[Math.min(i + 1, c.pts.length - 1)], o = c.pts[Math.max(i - 1, 0)];
+      const ang = Math.atan2(q[1] - o[1], q[0] - o[0]), nx = -Math.sin(ang), ny = Math.cos(ang), w = c.ws[i] / 2 * (0.85 + hash2(i, c.pts.length) * 0.3);
+      L.push([p[0] + nx * w, p[1] + ny * w]); Rr.push([p[0] - nx * w, p[1] - ny * w]); }
+    c.poly = L.concat(Rr.reverse()); c.bbox = bboxOf(c.poly, 20); }
+
+  // Roads
+  W.roads = [];
+  const mkRoad = (pts, kind, loop) => {
+    const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    const bridge = []; for (let i = 0; i < pts.length - 1; i++) { const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2; bridge.push(chasmDist(mx, my) < 4 || isWet(mx, my, 6) ? 1 : 0); }
+    const rd = { pts, cum, len: cum[cum.length - 1], kind, loop, bridge, idx: W.roads.length, bbox: bboxOf(pts, 30) }; W.roads.push(rd);
+    for (let i = 0; i < pts.length - 1; i++) { const l = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); for (let d = 0; d <= l; d += 8) { const u = d / l; occMark(OCC.road, pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u, kind === 'promenade' ? 22 : 18); } }
+    return rd;
+  };
+  { const pts = []; for (let i = 0; i <= 200; i++) { const a = (i / 200) * TAU - Math.PI; pts.push(polar(hollowR(a) + 85, a)); } mkRoad(pts, 'promenade', true); }
+  CITY.ringRoads.forEach((_, j) => { const pts = []; const n = 160 + j * 40; for (let i = 0; i <= n; i++) { const a = (i / n) * TAU - Math.PI; pts.push(polar(ringR(j, a), a)); } mkRoad(pts, 'ring', true); });
+  W.radialAngles = [];
+  for (let i = 0; i < CITY.radialRoads; i++) {
+    let a = (i / CITY.radialRoads) * TAU - Math.PI + (rnd() - 0.5) * 0.12; W.radialAngles.push(a);
+    const pts = []; let r = hollowR(a) + 85; const a0 = a;
+    while (r < R - 120) { pts.push(polar(r, a)); r += 44; a = a0 + Math.sin(r / 330 + i) * 0.03; }
+    mkRoad(pts, 'radial', false);
+  }
+
+  // Civic sites at radial × ring intersections
+  W.civic = []; W.markets = []; W.vaults = []; W.plazas = [];
+  const sites = [];
+  W.radialAngles.forEach((a, i) => CITY.ringRoads.forEach((_, j) => { const r = ringR(j, a); const [x, y] = polar(r, a); if (chasmDist(x, y) > 40 && !isWet(x, y, 60)) sites.push({ x, y, a, ring: j, region: regionAt(x, y), used: false }); }));
+  REGIONS.forEach((reg, ri) => {
+    const cands = sites.filter((s) => s.region === ri && !s.used && (s.ring === 1 || s.ring === 2));
+    if (!cands.length) return; cands.sort((p, q) => Math.abs(p.a - regionAngle(ri)) - Math.abs(q.a - regionAngle(ri)));
+    const s = cands[0]; s.used = true;
+    const m = { type: 'market', x: s.x, y: s.y, r: 66, region: ri, name: `${reg.name.split(' ')[0]} Bazaar`, idx: W.markets.length, stalls: [] };
+    for (let k = 0; k < 10; k++) { const ang = (k / 10) * TAU + rnd() * 0.2; m.stalls.push({ a: ang, c: ['#c8634c', '#e2b04a', '#4f8c8a', '#7a5fa0', '#d98a3a'][Math.floor(rnd() * 5)] }); }
+    W.markets.push(m); W.civic.push(m); occMark(OCC.obj, s.x, s.y, 80);
+  });
+  const vaultNames = ['The Deepcoin Vault', 'Old Ledger Vault', 'Gullwing Strongrooms', 'The Amber Coffers', 'Marrow & Daughters Vault', 'Undercliff Depository'];
+  for (let k = 0; k < 6; k++) { const cands = sites.filter((s) => !s.used && (s.ring === 0 || s.ring === 3)); if (!cands.length) break; const s = cands[Math.floor(rnd() * cands.length)]; s.used = true;
+    const v = { type: 'vault', x: s.x + Math.cos(s.a + 1.2) * 0, y: s.y, r: 44, region: s.region, name: vaultNames[k], idx: W.vaults.length }; W.vaults.push(v); W.civic.push(v); occMark(OCC.obj, s.x, s.y, 58); }
+  for (const s of sites) if (!s.used && rnd() < 0.55) { s.used = true; const p = { type: 'plaza', x: s.x, y: s.y, r: 30, region: s.region, fountain: rnd() < 0.6 }; W.plazas.push(p); W.civic.push(p); occMark(OCC.obj, s.x, s.y, 38); }
+
+  // Tether lift towers on the lip, cables into the Hollow
+  W.lifts = []; const liftNames = ['North Spine', 'Gullhook Lift', 'Old Maddox\'s Lift', 'Lantern Ladder', 'Cinder Drop', 'Saltline', 'Mothwing Lift', 'Greystone Spine', 'Rootfall Express', 'Brindle Drop', 'Amber Spine', 'The Long Rope', 'Hushline', 'Glassline'];
+  for (let i = 0; i < 14; i++) { const a = (i / 14) * TAU - Math.PI + (rnd() - 0.5) * 0.15; const [x, y] = polar(hollowR(a) + 28, a);
+    if (chasmDist(x, y) < 30 || isWet(x, y, 30)) continue;
+    const [bx, by] = polar(hollowR(a) * (0.32 + rnd() * 0.25), a + (rnd() - 0.5) * 0.3);
+    const L = { type: 'lift', x, y, r: 18, bx, by, a, name: liftNames[i], region: regionAt(x, y), phase: rnd() * TAU, speed: 0.12 + rnd() * 0.1 }; W.lifts.push(L); W.civic.push(L); occMark(OCC.obj, x, y, 24); }
+  // Cranes over the wide chasms
+  W.cranes = []; for (const c of W.cracks) if (c.wide) for (const f of [0.35, 0.65]) { const i = Math.floor(c.pts.length * f), p = c.pts[i], q = c.pts[i + 1] || p; const ang = Math.atan2(q[1] - p[1], q[0] - p[0]) + Math.PI / 2, w = c.ws[i] / 2 + 26;
+    const base = [p[0] + Math.cos(ang) * w, p[1] + Math.sin(ang) * w]; W.cranes.push({ x: base[0], y: base[1], ang: ang + Math.PI, len: w * 2 - 10, phase: rnd() * TAU }); occMark(OCC.obj, base[0], base[1], 22); }
+
+  // Landmarks with lore
+  W.landmarks = [];
+  const lmAt = (a, dr, type, name, r) => { const [x, y] = polar(hollowR(a) + dr, a); const lm = { type, x, y, r, name, a, region: regionAt(x, y) }; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, r + 14); return lm; };
+  lmAt(regionAngle(7) + 0.22, 150, 'statue', 'Statue of Aurel Vane, First to Descend', 26);
+  lmAt(regionAngle(8) - 0.2, 150, 'memorial', 'The Wall of Lanterns Out', 40);
+  { const c = W.cracks.find((k) => k.wide && k.pts.length > 10); const e = c.pts[c.pts.length - 1], q = c.pts[c.pts.length - 3]; const ang = Math.atan2(e[1] - q[1], e[0] - q[0]);
+    const x = e[0] + Math.cos(ang) * 46, y = e[1] + Math.sin(ang) * 46; const lm = { type: 'gate', x, y, r: 34, name: 'The Undergate', a: ang, region: regionAt(x, y) }; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 52); }
+
+  // Promenade lamp posts (lit by the lamplighter at dusk)
+  W.lamps = []; { const pr = W.roads[0]; for (let s = 0; s < pr.len; s += 110) { const [x, y, ang] = roadPos(pr, s); const ox = Math.cos(ang + Math.PI / 2) * 20, oy = Math.sin(ang + Math.PI / 2) * 20; if (chasmDist(x + ox, y + oy) < 6) continue; W.lamps.push({ x: x + ox, y: y + oy, s, phase: rnd() * TAU }); } }
+
+  // Homes (Lanternholds) along the roads
+  W.homes = []; const used = new Set();
+  for (const rd of W.roads) {
+    for (let s = 30; s < rd.len - 20; s += 62 + rnd() * 30) {
+      const [px, py, ang] = roadPos(rd, s); const seg = segIndex(rd, s); if (rd.bridge[seg]) continue;
+      for (const side of [-1, 1]) {
+        if (rnd() < 0.42) continue;
+        const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3))));
+        const size = 22 + level * 0.55 + rnd() * 6, off = (rd.kind === 'promenade' ? 30 : 26) + size * 0.55 + rnd() * 12;
+        const x = px + Math.cos(ang + side * Math.PI / 2) * off, y = py + Math.sin(ang + side * Math.PI / 2) * off;
+        const rad = size * 0.62;
+        if (hollowDist(x, y) < 70 || Math.hypot(x, y) > R - 70 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6)) continue;
+        if (!occFree(OCC.road, x, y, rad * 0.8) || !occFree(OCC.obj, x, y, rad + 3)) continue;
+        const region = regionAt(x, y), reg = REGIONS[region];
+        const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
+        const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
+        const h = { id: W.homes.length, x, y, ang: ang + (side > 0 ? Math.PI : 0), size, level, region, style,
+          roofL: shade(base, lf * 1.12), roofD: shade(base, lf * 0.78), roof: shade(base, lf),
+          owner: makeOwner(rnd, used), name: NM.pa[Math.floor(rnd() * NM.pa.length)] + NM.pb[Math.floor(rnd() * NM.pb.length)] + ' ' + CITY.homeTerm,
+          power: Math.round((10 + level * 9) * (0.85 + rnd() * 0.3)),
+          banners: Math.min(4, Math.floor(level / 8 + rnd() * 1.5)), trophies: rnd() < 0.25 + level / 80 ? 1 + Math.floor(rnd() * Math.min(5, level / 6 + 1)) : 0,
+          battered: rnd() < 0.12, pet: rnd() < CITY.homePetShare ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, petPhase: rnd() * TAU, petSleep: rnd() < 0.4,
+          lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
+        W.homes.push(h); occMark(OCC.obj, x, y, rad + 2);
+      }
+    }
+  }
+  // The player's Lanternhold: Lanternmoss Gardens, near the second ring
+  { const ra = regionAngle(7); let best = null, bd = 1e9; for (const h of W.homes) { if (h.region !== 7) continue; const d = Math.abs(Math.hypot(h.x, h.y) - 1580) + Math.abs(((Math.atan2(h.y, h.x) - ra + 3 * Math.PI) % TAU) - Math.PI) * 900; if (d < bd) { bd = d; best = h; } }
+    best.isPlayer = true; best.owner = 'You'; best.name = 'Your ' + CITY.homeTerm; best.size = 40; best.style = 3; best.wing = 1; best.tower = true; W.player = best; }
+
+  // Region scenery (decals on the ground + objects)
+  W.objs = [];
+  const add = (o) => { W.objs.push(o); return o; };
+  W.windmills = []; W.chimneys = []; W.crystals = []; W.mines = []; W.posts = []; W.kilns = []; W.piers = [];
+  for (let gx = -R; gx < R; gx += 52) for (let gy = -R; gy < R; gy += 52) {
+    const x = gx + rnd() * 46, y = gy + rnd() * 46, r = Math.hypot(x, y);
+    if (r > R - 20 || hollowDist(x, y) < 45 || chasmDist(x, y) < 10) continue;
+    const ri = regionAt(x, y), k = REGIONS[ri].key, q = rnd();
+    const wet = isWet(x, y, 6); if (wet) continue;
+    const free = (rr) => occFree(OCC.road, x, y, rr * 0.7) && occFree(OCC.obj, x, y, rr);
+    const deco = (o) => { if (occFree(OCC.road, x, y, (o.r || 20) * 0.5)) add(Object.assign({ x, y, layer: 0, region: ri, seed: rnd() }, o)); };
+    const obj = (o) => { if (free(o.r)) { add(Object.assign({ x, y, layer: 1, region: ri, seed: rnd() }, o)); occMark(OCC.obj, x, y, o.r); return true; } return false; };
+    if (k === 'docks') { if (inLake(x, y, 90)) { if (q < 0.5) deco({ type: 'reeds', r: 14 }); } else if (q < 0.3) obj({ type: 'tree', r: 14 + rnd() * 6 }); else if (q < 0.35) obj({ type: 'rock', r: 9 }); }
+    else if (k === 'dunes') { if (q < 0.32) deco({ type: 'dune', r: 40 + rnd() * 30, a: rnd() * TAU }); else if (q < 0.36) obj({ type: 'palm', r: 12 }); else if (q < 0.41) obj({ type: 'rock', r: 9 }); else if (q < 0.425 && obj({ type: 'kiln', r: 18 })) W.kilns.push(W.objs[W.objs.length - 1]); }
+    else if (k === 'bluffs') { if (q < 0.13) deco({ type: 'cliff', r: 50 + rnd() * 40, a: rnd() * TAU }); else if (q < 0.33) obj({ type: 'boulder', r: 10 + rnd() * 9 }); else if (q < 0.42) obj({ type: 'pine', r: 12 }); else if (q < 0.432) obj({ type: 'quarry', r: 34 }); }
+    else if (k === 'wood') { if (q < 0.42) obj({ type: 'tree', r: 15 + rnd() * 9 }); else if (q < 0.7) obj({ type: 'pine', r: 13 + rnd() * 6 }); else if (q < 0.708) obj({ type: 'sawmill', r: 26 }); else if (q < 0.73) obj({ type: 'logs', r: 12 }); else if (q < 0.77) deco({ type: 'shrooms', r: 8 }); }
+    else if (k === 'crystal') { if (q < 0.18) { if (obj({ type: 'crystal', r: 14 + rnd() * 8 })) W.crystals.push(W.objs[W.objs.length - 1]); } else if (q < 0.32) obj({ type: 'rock', r: 10 }); else if (q < 0.345) { if (obj({ type: 'mine', r: 22, a: rnd() * TAU })) W.mines.push(W.objs[W.objs.length - 1]); } else if (q < 0.45) deco({ type: 'scree', r: 30 }); }
+    else if (k === 'farms') { if (q < 0.36) deco({ type: 'field', r: 46 + rnd() * 18, a: rnd() * Math.PI, c: rnd() }); else if (q < 0.41) obj({ type: 'hay', r: 7 }); else if (q < 0.425) { if (obj({ type: 'windmill', r: 18 })) W.windmills.push(W.objs[W.objs.length - 1]); } else if (q < 0.46) obj({ type: 'tree', r: 13 }); }
+    else if (k === 'badlands') { if (q < 0.26) deco({ type: 'cracked', r: 36, a: rnd() * TAU }); else if (q < 0.32) obj({ type: 'slag', r: 18 + rnd() * 8 }); else if (q < 0.335) { if (obj({ type: 'chimney', r: 14 })) W.chimneys.push(W.objs[W.objs.length - 1]); } else if (q < 0.43) obj({ type: 'rock', r: 10 }); else if (q < 0.46) obj({ type: 'deadtree', r: 10 }); }
+    else if (k === 'moss') { if (q < 0.3) deco({ type: 'mosspatch', r: 34 + rnd() * 20 }); else if (q < 0.37) { if (obj({ type: 'post', r: 6 })) W.posts.push(W.objs[W.objs.length - 1]); } else if (q < 0.53) obj({ type: 'tree', r: 14 + rnd() * 5, mossy: 1 }); else if (q < 0.55) obj({ type: 'pond', r: 22 }); }
+    else if (k === 'amber') { if (q < 0.3) obj({ type: 'orchard', r: 12 }); else if (q < 0.42) obj({ type: 'tree', r: 15, autumn: 1 }); else if (q < 0.45) obj({ type: 'rock', r: 8 }); else if (q < 0.5) deco({ type: 'leaves', r: 26 }); }
+  }
+  // Piers on the lake shore
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
+
+  // Spatial index for drawing & hit tests
+  W.bucket = 256; W.buckets = new Map();
+  const put = (o) => { const k = Math.floor(o.x / W.bucket) + ',' + Math.floor(o.y / W.bucket); (W.buckets.get(k) || W.buckets.set(k, []).get(k)).push(o); };
+  W.homes.forEach((h) => { h.type = 'home'; h.layer = 1; h.r = h.size * 0.75; put(h); });
+  W.objs.forEach(put); W.civic.forEach((c) => { c.layer = 1; put(c); });
+
+  // Ambient life
+  genLife(rnd);
+  W.genMs = Math.round(performance.now() - t0);
+  W.ready = true;
+}
+function bboxOf(pts, pad) { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const p of pts) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); } return [x0 - pad, y0 - pad, x1 + pad, y1 + pad]; }
+function segIndex(rd, s) { let lo = 0, hi = rd.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (rd.cum[m] <= s) lo = m; else hi = m; } return lo; }
+function roadPos(rd, s) {
+  const lo = segIndex(rd, s), hi = Math.min(lo + 1, rd.pts.length - 1); const p = rd.pts[lo], q = rd.pts[hi]; const l = (rd.cum[hi] - rd.cum[lo]) || 1, u = clamp((s - rd.cum[lo]) / l, 0, 1);
+  return [p[0] + (q[0] - p[0]) * u, p[1] + (q[1] - p[1]) * u, Math.atan2(q[1] - p[1], q[0] - p[0]), rd.bridge[Math.min(lo, rd.bridge.length - 1)]];
+}
+function queryObjs(x0, y0, x1, y1, pad) {
+  const out = [], b = W.bucket; pad = pad || 140;
+  for (let gx = Math.floor((x0 - pad) / b); gx <= Math.floor((x1 + pad) / b); gx++) for (let gy = Math.floor((y0 - pad) / b); gy <= Math.floor((y1 + pad) / b); gy++) {
+    const arr = W.buckets.get(gx + ',' + gy); if (!arr) continue; for (const o of arr) { const r = o.r || 20; if (o.x + r >= x0 && o.x - r <= x1 && o.y + r >= y0 && o.y - r <= y1) out.push(o); } }
+  return out;
+}
+
+/* =====================================================================
+   RIM CITY — static painting (cached in tiles)
+   ===================================================================== */
+const FOG = [62, 88, 84];
+function groundRGB(x, y) {
+  const f = regionF(x, y), i = Math.floor(f) % NREG, fr = f - Math.floor(f);
+  let c = REGIONS[i].ground;
+  const edge = 0.14;
+  if (fr > 1 - edge) { const n = REGIONS[(i + 1) % NREG].ground, t = (fr - (1 - edge)) / (2 * edge); c = mix(c, n, t); }
+  else if (fr < edge) { const p = REGIONS[(i + NREG - 1) % NREG].ground, t = (edge - fr) / (2 * edge); c = mix(c, p, t); }
+  const n = 0.9 + vnoise(x / 140, y / 140) * 0.14 + vnoise(x / 40, y / 40) * 0.05;
+  c = [c[0] * n, c[1] * n, c[2] * n];
+  const hd = hollowDist(x, y); if (hd < 140) c = mix(c, [205, 182, 138], clamp(1 - hd / 140, 0, 1) * 0.55);
+  const r = Math.hypot(x, y); if (r > CITY.R - 250) c = mix(c, FOG, clamp((r - (CITY.R - 250)) / 500, 0, 1));
+  return c;
+}
+function mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
+const gsCanvas = document.createElement('canvas'); const GSN = 24; gsCanvas.width = gsCanvas.height = GSN + 2; const gsCtx = gsCanvas.getContext('2d'); const gsImg = gsCtx.createImageData(GSN + 2, GSN + 2);
+
+function drawStatic(c, x0, y0, x1, y1, s) {
+  const ws = x1 - x0, cell = ws / GSN;
+  // 1. Ground: tiny smooth-scaled color field = soft painterly blends
+  for (let j = 0; j < GSN + 2; j++) for (let i = 0; i < GSN + 2; i++) { const col = groundRGB(x0 + (i - 0.5) * cell, y0 + (j - 0.5) * cell), o = (j * (GSN + 2) + i) * 4; gsImg.data[o] = col[0]; gsImg.data[o + 1] = col[1]; gsImg.data[o + 2] = col[2]; gsImg.data[o + 3] = 255; }
+  gsCtx.putImageData(gsImg, 0, 0); c.imageSmoothingEnabled = true; c.drawImage(gsCanvas, 1, 1, GSN, GSN, x0, y0, ws, ws);
+  // painterly flecks
+  if (s >= 0.25) { const rr = mulberry32(Math.floor(x0 * 13 + y0 * 7 + s * 1000)); c.lineCap = 'round';
+    for (let k = 0; k < 70; k++) { const x = x0 + rr() * ws, y = y0 + rr() * ws; const g = groundRGB(x, y); c.strokeStyle = shade(g, rr() < 0.5 ? 1.12 : 0.86); c.globalAlpha = 0.5; c.lineWidth = 2.2; c.beginPath(); c.moveTo(x, y); c.lineTo(x + 5 + rr() * 6, y + (rr() - 0.5) * 4); c.stroke(); }
+    c.globalAlpha = 1; }
+  const objs = queryObjs(x0, y0, x1, y1);
+  // 2. decals
+  for (const o of objs) if (o.layer === 0) drawDecal(c, o, s);
+  // 3. water
+  if (boxHit([x0, y0, x1, y1], W.lake.x - 400, W.lake.y - 400, W.lake.x + 400, W.lake.y + 400) || true) drawWater(c, x0, y0, x1, y1, s);
+  // 4. the Hollow
+  if (x1 > -CITY.hollowR * 1.4 && x0 < CITY.hollowR * 1.4 && y1 > -CITY.hollowR * 1.4 && y0 < CITY.hollowR * 1.4) drawHollow(c, s);
+  // 5. cracks
+  for (const k of W.cracks) if (boxHit(k.bbox, x0, y0, x1, y1)) drawCrack(c, k, s);
+  // 6. lift cables
+  c.lineCap = 'round';
+  for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(60,45,30,.7)'; c.lineWidth = 2.2; c.beginPath(); c.moveTo(L.x, L.y); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
+  // 7. roads & bridges
+  for (const rd of W.roads) if (boxHit(rd.bbox, x0, y0, x1, y1)) drawRoad(c, rd, s, x0, y0, x1, y1);
+  // 8. objects by y
+  const l1 = objs.filter((o) => o.layer === 1 && !o.isPlayer).sort((a, b) => a.y - b.y);
+  for (const o of l1) drawObj(c, o, s);
+}
+function boxHit(b, x0, y0, x1, y1) { return b[2] >= x0 && b[0] <= x1 && b[3] >= y0 && b[1] <= y1; }
+function pathPoly(c, pts) { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.closePath(); }
+
+function drawWater(c, x0, y0, x1, y1, s) {
+  const L = W.lake;
+  if (boxHit([L.x - 420, L.y - 420, L.x + 420, L.y + 420], x0, y0, x1, y1)) {
+    pathPoly(c, W.lakePts); c.fillStyle = '#d8c9a0'; c.save(); c.lineWidth = 22; c.strokeStyle = 'rgba(214,198,150,.9)'; c.stroke(); c.restore();
+    const g = c.createRadialGradient(L.x, L.y, 20, L.x, L.y, L.r * 1.2); g.addColorStop(0, '#3f7f9e'); g.addColorStop(0.7, '#5d9bb3'); g.addColorStop(1, '#8cc3c9');
+    c.fillStyle = g; c.fill(); c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 2; c.stroke();
+  }
+  // river
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = '#d6c696'; c.lineWidth = 58; polyStroke(c, W.river);
+  c.strokeStyle = '#5d9bb3'; c.lineWidth = 42; polyStroke(c, W.river);
+  c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 6; polyStroke(c, W.river);
+}
+function polyStroke(c, pts) { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.stroke(); }
+
+const HOLLOW_BANDS = [[1.0, '#7a6448'], [0.93, '#5b5048'], [0.84, '#46464e'], [0.74, '#36405a'], [0.63, '#2a3452'], [0.52, '#1f2846'], [0.4, '#18203a'], [0.28, '#121830']];
+function drawHollow(c, s) {
+  // rim lip
+  c.save();
+  const scaled = (f, dx, dy) => W.hollowPts.map((p) => [p[0] * f + dx, p[1] * f + dy]);
+  pathPoly(c, scaled(1.04, 0, 0)); c.fillStyle = '#cdb68a'; c.fill();
+  HOLLOW_BANDS.forEach(([f, col], i) => {
+    const pts = scaled(f, 0, (1 - f) * 70 * 0.4); pathPoly(c, pts); c.fillStyle = col; c.fill();
+    if (s > 0.08) { c.strokeStyle = 'rgba(255,230,180,' + (0.22 - i * 0.02) + ')'; c.lineWidth = 3; c.stroke(); }
+  });
+  // terraced ledge texture
+  if (s > 0.12) { const rr = mulberry32(99); c.strokeStyle = 'rgba(255,240,200,.08)'; c.lineWidth = 2;
+    for (let k = 0; k < 160; k++) { const a = rr() * TAU, f = 0.3 + rr() * 0.68, r = hollowR(a) * f; const [x, y] = polar(r, a); c.beginPath(); c.arc(0, (1 - f) * 28, r, a, a + 0.05 + rr() * 0.12); c.stroke(); } }
+  // deep glow
+  const g = c.createRadialGradient(0, 40, 10, 0, 40, CITY.hollowR * 0.55); g.addColorStop(0, 'rgba(255,214,120,.55)'); g.addColorStop(0.4, 'rgba(255,190,90,.18)'); g.addColorStop(1, 'rgba(255,190,90,0)');
+  c.fillStyle = g; c.beginPath(); c.arc(0, 40, CITY.hollowR * 0.55, 0, TAU); c.fill();
+  // distant lights of other delvers' outposts
+  const rr = mulberry32(7); for (let k = 0; k < 90; k++) { const a = rr() * TAU, f = 0.3 + rr() * 0.62; const [x, y] = polar(hollowR(a) * f, a); c.fillStyle = `rgba(255,${200 + Math.floor(rr() * 50)},120,${0.5 + rr() * 0.4})`; c.beginPath(); c.arc(x, y + (1 - f) * 28, 2.2 + rr() * 2, 0, TAU); c.fill(); }
+  c.restore();
+}
+function drawCrack(c, k, s) {
+  pathPoly(c, k.poly); c.fillStyle = '#cdb68a'; c.save(); c.lineWidth = k.wide ? 14 : 7; c.strokeStyle = 'rgba(205,182,138,.9)'; c.lineJoin = 'round'; c.stroke(); c.restore();
+  c.fillStyle = k.wide ? '#1d2236' : '#2a2a34'; c.fill();
+  if (s > 0.1) { c.save(); c.clip(); c.lineCap = 'round'; c.lineJoin = 'round';
+    c.strokeStyle = 'rgba(70,64,80,.9)'; c.lineWidth = Math.max(...k.ws) * 0.55; polyStroke(c, k.pts.map((p) => [p[0] + 3, p[1] + 4]));
+    c.strokeStyle = k.wide ? 'rgba(255,212,107,.35)' : 'rgba(255,212,107,.22)'; c.lineWidth = k.wide ? 6 : 2; polyStroke(c, k.pts); c.restore(); }
+}
+function drawRoad(c, rd, s, x0, y0, x1, y1) {
+  const wOuter = rd.kind === 'promenade' ? 30 : rd.kind === 'ring' ? 25 : 21, wInner = wOuter - 6;
+  const col = rd.kind === 'promenade' ? ['#9b8564', '#e3d4b0'] : ['#8f7650', '#d6c194'];
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  const runs = []; let cur = null;
+  for (let i = 0; i < rd.pts.length - 1; i++) {
+    const p = rd.pts[i], q = rd.pts[i + 1];
+    if (Math.max(p[0], q[0]) < x0 - 40 || Math.min(p[0], q[0]) > x1 + 40 || Math.max(p[1], q[1]) < y0 - 40 || Math.min(p[1], q[1]) > y1 + 40) { cur = null; continue; }
+    if (rd.bridge[i]) { cur = null; drawBridge(c, p, q, wOuter, s); continue; }
+    if (!cur) { cur = [p]; runs.push(cur); } cur.push(q);
+  }
+  for (const pass of [0, 1, 2]) for (const run of runs) {
+    if (pass === 0) { c.strokeStyle = col[0]; c.lineWidth = wOuter; }
+    else if (pass === 1) { c.strokeStyle = col[1]; c.lineWidth = wInner; }
+    else { if (s < 0.3) continue; c.strokeStyle = 'rgba(120,95,60,.18)'; c.lineWidth = 1.5; c.setLineDash([6, 10]); }
+    polyStroke(c, run); c.setLineDash([]);
+  }
+}
+function drawBridge(c, p, q, w, s) {
+  const ang = Math.atan2(q[1] - p[1], q[0] - p[0]), len = Math.hypot(q[0] - p[0], q[1] - p[1]);
+  c.save(); c.translate(p[0], p[1]); c.rotate(ang);
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(-2, -w / 2 + 6, len + 4, w);
+  c.fillStyle = '#8a6440'; c.fillRect(-2, -w / 2, len + 4, w);
+  if (s > 0.2) { c.strokeStyle = '#5e4128'; c.lineWidth = 1.2; for (let d = 0; d < len; d += 5) { c.beginPath(); c.moveTo(d, -w / 2); c.lineTo(d, w / 2); c.stroke(); } }
+  c.fillStyle = '#4b3420'; c.fillRect(-2, -w / 2 - 2, len + 4, 3); c.fillRect(-2, w / 2 - 1, len + 4, 3);
+  c.restore();
+}
+
+function blob(c, x, y, r, seed, n) { const rr = mulberry32(Math.floor(seed * 1e6)); c.beginPath(); n = n || 9; for (let i = 0; i <= n; i++) { const a = (i / n) * TAU, rad = r * (0.75 + rr() * 0.35); const px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad; i ? c.lineTo(px, py) : c.moveTo(px, py); } c.closePath(); }
+function drawDecal(c, o, s) {
+  switch (o.type) {
+    case 'dune': c.save(); c.translate(o.x, o.y); c.rotate(o.a); c.lineCap = 'round';
+      c.strokeStyle = 'rgba(180,140,80,.35)'; c.lineWidth = 7; c.beginPath(); c.arc(0, 4, o.r, Math.PI * 1.15, Math.PI * 1.85); c.stroke();
+      c.strokeStyle = 'rgba(255,245,215,.55)'; c.lineWidth = 4; c.beginPath(); c.arc(0, 0, o.r, Math.PI * 1.15, Math.PI * 1.85); c.stroke(); c.restore(); break;
+    case 'cliff': for (let i = 0; i < 4; i++) { blob(c, o.x + i * 4, o.y + i * 5, o.r * (1 - i * 0.2), o.seed + i); c.fillStyle = shade([150, 146, 132], 0.88 + i * 0.08); c.fill(); if (s > 0.15) { c.strokeStyle = 'rgba(80,75,65,.35)'; c.lineWidth = 2; c.stroke(); } } break;
+    case 'field': { c.save(); c.translate(o.x, o.y); c.rotate(o.a); const w = o.r * 1.6, h = o.r * 1.1; const base = o.c < 0.33 ? [214, 186, 90] : o.c < 0.66 ? [170, 186, 96] : [196, 160, 86];
+      c.fillStyle = shade(base, 1); c.fillRect(-w / 2, -h / 2, w, h); if (s > 0.12) { c.strokeStyle = shade(base, 0.82); c.lineWidth = 2; for (let x = -w / 2 + 4; x < w / 2; x += 7) { c.beginPath(); c.moveTo(x, -h / 2); c.lineTo(x, h / 2); c.stroke(); } }
+      c.strokeStyle = 'rgba(90,110,60,.6)'; c.lineWidth = 3; c.strokeRect(-w / 2, -h / 2, w, h); c.restore(); break; }
+    case 'mosspatch': { const g = c.createRadialGradient(o.x, o.y, 2, o.x, o.y, o.r); g.addColorStop(0, 'rgba(200,255,170,.55)'); g.addColorStop(1, 'rgba(160,230,140,0)'); c.fillStyle = g; c.beginPath(); c.arc(o.x, o.y, o.r, 0, TAU); c.fill(); break; }
+    case 'cracked': { c.strokeStyle = 'rgba(70,35,20,.45)'; c.lineWidth = 1.6; const rr = mulberry32(Math.floor(o.seed * 1e6)); for (let i = 0; i < 5; i++) { c.beginPath(); let x = o.x, y = o.y; c.moveTo(x, y); let a = rr() * TAU; for (let k = 0; k < 4; k++) { a += (rr() - 0.5) * 1.2; x += Math.cos(a) * 9; y += Math.sin(a) * 9; c.lineTo(x, y); } c.stroke(); } break; }
+    case 'scree': { const rr = mulberry32(Math.floor(o.seed * 1e6)); c.fillStyle = 'rgba(90,85,110,.35)'; for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(o.x + (rr() - 0.5) * o.r * 1.6, o.y + (rr() - 0.5) * o.r * 1.6, 2 + rr() * 3, 0, TAU); c.fill(); } break; }
+    case 'reeds': { c.strokeStyle = '#5f8a4a'; c.lineWidth = 1.5; const rr = mulberry32(Math.floor(o.seed * 1e6)); for (let i = 0; i < 7; i++) { const x = o.x + (rr() - 0.5) * 18, y = o.y + (rr() - 0.5) * 18; c.beginPath(); c.moveTo(x, y); c.lineTo(x + (rr() - 0.5) * 5, y - 7); c.stroke(); } break; }
+    case 'shrooms': { c.fillStyle = '#c8634c'; c.beginPath(); c.arc(o.x, o.y, 3, 0, TAU); c.arc(o.x + 6, o.y + 3, 2.4, 0, TAU); c.fill(); c.fillStyle = '#fff'; c.fillRect(o.x - 1, o.y - 1, 1.5, 1.5); break; }
+    case 'leaves': { const rr = mulberry32(Math.floor(o.seed * 1e6)); for (let i = 0; i < 10; i++) { c.fillStyle = ['#d8762f', '#c9822f', '#b0573a', '#e2b04a'][i % 4]; c.globalAlpha = 0.6; c.beginPath(); c.ellipse(o.x + (rr() - 0.5) * o.r * 1.6, o.y + (rr() - 0.5) * o.r * 1.6, 3, 1.8, rr() * 3, 0, TAU); c.fill(); } c.globalAlpha = 1; break; }
+  }
+}
+function shadowCircle(c, x, y, r) { c.fillStyle = 'rgba(40,30,20,.22)'; c.beginPath(); c.ellipse(x + r * 0.35, y + r * 0.45, r, r * 0.85, 0, 0, TAU); c.fill(); }
+function canopy(c, x, y, r, col, s) {
+  shadowCircle(c, x, y, r);
+  if (s < 0.12) { c.fillStyle = shade(col, 1); c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); return; }
+  c.fillStyle = shade(col, 0.8); c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  c.fillStyle = shade(col, 1); c.beginPath(); c.arc(x - r * 0.15, y - r * 0.2, r * 0.75, 0, TAU); c.fill();
+  c.fillStyle = shade(col, 1.18); c.beginPath(); c.arc(x - r * 0.35, y - r * 0.4, r * 0.35, 0, TAU); c.fill();
+}
+function drawObj(c, o, s) {
+  switch (o.type) {
+    case 'home': return drawHome(c, o, s);
+    case 'tree': { const col = o.autumn ? [210, 120, 50] : o.mossy ? [96, 160, 104] : REGIONS[o.region].key === 'docks' ? [92, 150, 100] : [70, 120, 70]; canopy(c, o.x, o.y, o.r, col, s); if (o.mossy && s > 0.2) { c.fillStyle = 'rgba(220,255,180,.7)'; c.beginPath(); c.arc(o.x + 3, o.y - 2, 1.6, 0, TAU); c.arc(o.x - 4, o.y + 3, 1.3, 0, TAU); c.fill(); } return; }
+    case 'orchard': canopy(c, o.x, o.y, o.r, [130, 140, 60], s); if (s > 0.2) { c.fillStyle = '#e2902f'; for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(o.x + Math.cos(i * 1.3) * o.r * 0.55, o.y + Math.sin(i * 1.3) * o.r * 0.55, 1.8, 0, TAU); c.fill(); } } return;
+    case 'pine': { shadowCircle(c, o.x, o.y, o.r * 0.9); const col = REGIONS[o.region].key === 'bluffs' ? [70, 100, 80] : [52, 96, 66];
+      for (let i = 0; i < 3; i++) { const r = o.r * (1 - i * 0.28); c.fillStyle = shade(col, 0.85 + i * 0.15); c.beginPath(); for (let k = 0; k < 7; k++) { const a = (k / 7) * TAU + i * 0.3, rr = k % 2 ? r * 0.7 : r; k ? c.lineTo(o.x + Math.cos(a) * rr, o.y - i * 2 + Math.sin(a) * rr) : c.moveTo(o.x + Math.cos(a) * rr, o.y - i * 2 + Math.sin(a) * rr); } c.closePath(); c.fill(); } return; }
+    case 'palm': { shadowCircle(c, o.x, o.y, 8); c.strokeStyle = '#5f8a4a'; c.lineWidth = 3; c.lineCap = 'round'; for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; c.beginPath(); c.moveTo(o.x, o.y); c.quadraticCurveTo(o.x + Math.cos(a) * 8, o.y + Math.sin(a) * 8 - 3, o.x + Math.cos(a) * 13, o.y + Math.sin(a) * 13); c.stroke(); } c.fillStyle = '#7a5a30'; c.beginPath(); c.arc(o.x, o.y, 2.5, 0, TAU); c.fill(); return; }
+    case 'deadtree': c.strokeStyle = '#4a3528'; c.lineWidth = 2; c.lineCap = 'round'; for (let i = 0; i < 4; i++) { const a = i * 1.7 + o.seed * 6; c.beginPath(); c.moveTo(o.x, o.y); c.lineTo(o.x + Math.cos(a) * o.r, o.y + Math.sin(a) * o.r); c.stroke(); } return;
+    case 'rock': case 'boulder': { shadowCircle(c, o.x, o.y, o.r); const col = REGIONS[o.region].key === 'crystal' ? [110, 105, 130] : REGIONS[o.region].key === 'badlands' ? [130, 92, 72] : REGIONS[o.region].key === 'dunes' ? [190, 160, 112] : [150, 146, 136];
+      blob(c, o.x, o.y, o.r, o.seed, 7); c.fillStyle = shade(col, 0.95); c.fill(); if (s > 0.15) { blob(c, o.x - o.r * 0.2, o.y - o.r * 0.25, o.r * 0.55, o.seed + 1, 6); c.fillStyle = shade(col, 1.15); c.fill(); } return; }
+    case 'crystal': { const g = c.createRadialGradient(o.x, o.y, 2, o.x, o.y, o.r * 1.8); g.addColorStop(0, 'rgba(190,160,255,.5)'); g.addColorStop(1, 'rgba(190,160,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(o.x, o.y, o.r * 1.8, 0, TAU); c.fill();
+      const rr = mulberry32(Math.floor(o.seed * 1e6)); for (let i = 0; i < 5; i++) { const a = rr() * TAU, L = o.r * (0.6 + rr() * 0.7), w = 3 + rr() * 3; c.save(); c.translate(o.x, o.y); c.rotate(a); c.beginPath(); c.moveTo(0, -w); c.lineTo(L, 0); c.lineTo(0, w); c.closePath(); c.fillStyle = i % 2 ? '#9b7fe0' : '#7fd4e6'; c.fill(); c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 0.8; c.stroke(); c.restore(); } return; }
+    case 'kiln': { shadowCircle(c, o.x, o.y, o.r); c.fillStyle = '#c9a06a'; c.beginPath(); c.arc(o.x, o.y, o.r, 0, TAU); c.fill(); c.fillStyle = '#e8c890'; c.beginPath(); c.arc(o.x - 4, o.y - 4, o.r * 0.6, 0, TAU); c.fill(); c.fillStyle = '#ff9a3c'; c.beginPath(); c.arc(o.x, o.y, 4, 0, TAU); c.fill(); return; }
+    case 'quarry': { for (let i = 0; i < 4; i++) { c.fillStyle = shade([150, 146, 132], 0.95 - i * 0.12); c.fillRect(o.x - o.r + i * 7, o.y - o.r * 0.7 + i * 5, (o.r - i * 7) * 2, (o.r * 0.7 - i * 5) * 2); } c.fillStyle = '#e8e4da'; c.fillRect(o.x + o.r - 6, o.y - 6, 8, 6); c.fillRect(o.x + o.r - 4, o.y + 2, 7, 5); return; }
+    case 'sawmill': { shadowCircle(c, o.x, o.y, o.r); c.fillStyle = '#8a6440'; c.fillRect(o.x - 18, o.y - 12, 36, 24); c.fillStyle = '#a67c50'; c.fillRect(o.x - 18, o.y - 12, 36, 11); c.fillStyle = '#c9c4b8'; c.beginPath(); c.arc(o.x + 22, o.y + 6, 7, 0, TAU); c.fill(); drawLogs(c, o.x - 28, o.y + 14); return; }
+    case 'logs': drawLogs(c, o.x, o.y); return;
+    case 'hay': shadowCircle(c, o.x, o.y, 6); c.fillStyle = '#e2c45a'; c.beginPath(); c.arc(o.x, o.y, 6, 0, TAU); c.fill(); c.strokeStyle = '#b8964a'; c.lineWidth = 1; c.beginPath(); c.arc(o.x, o.y, 3.5, 0, TAU); c.stroke(); return;
+    case 'windmill': shadowCircle(c, o.x, o.y, 12); c.fillStyle = '#e8dcc0'; c.beginPath(); c.arc(o.x, o.y, 11, 0, TAU); c.fill(); c.fillStyle = '#9a6a4a'; c.beginPath(); c.arc(o.x, o.y, 6, 0, TAU); c.fill(); return;
+    case 'mine': { c.strokeStyle = '#5a4a3a'; c.lineWidth = 1.5; const dx = Math.cos(o.a), dy = Math.sin(o.a), nx = -dy * 3, ny = dx * 3; c.beginPath(); c.moveTo(o.x + nx, o.y + ny); c.lineTo(o.x + nx + dx * 70, o.y + ny + dy * 70); c.moveTo(o.x - nx, o.y - ny); c.lineTo(o.x - nx + dx * 70, o.y - ny + dy * 70); c.stroke();
+      for (let d = 4; d < 70; d += 6) { c.beginPath(); c.moveTo(o.x + dx * d + nx * 1.6, o.y + dy * d + ny * 1.6); c.lineTo(o.x + dx * d - nx * 1.6, o.y + dy * d - ny * 1.6); c.stroke(); }
+      blob(c, o.x, o.y, 20, o.seed, 8); c.fillStyle = '#6a6480'; c.fill(); c.fillStyle = '#16131f'; c.beginPath(); c.arc(o.x, o.y, 9, 0, TAU); c.fill(); c.strokeStyle = '#8a6440'; c.lineWidth = 3; c.beginPath(); c.arc(o.x, o.y, 10, 0, TAU); c.stroke(); return; }
+    case 'slag': { shadowCircle(c, o.x, o.y, o.r); const g = c.createRadialGradient(o.x - 4, o.y - 4, 2, o.x, o.y, o.r); g.addColorStop(0, '#6a5a50'); g.addColorStop(1, '#3a2e2a'); c.fillStyle = g; blob(c, o.x, o.y, o.r, o.seed); c.fill(); return; }
+    case 'chimney': shadowCircle(c, o.x, o.y, 10); c.fillStyle = '#8a4a32'; c.fillRect(o.x - 8, o.y - 8, 16, 16); c.fillStyle = '#2a1e1a'; c.fillRect(o.x - 4, o.y - 4, 8, 8); return;
+    case 'post': c.fillStyle = '#3a2e22'; c.beginPath(); c.arc(o.x, o.y, 2, 0, TAU); c.fill(); return;
+    case 'pond': { c.fillStyle = '#5d9bb3'; blob(c, o.x, o.y, o.r, o.seed); c.fill(); c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 1.5; c.stroke(); c.fillStyle = '#6aa36a'; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(o.x + Math.cos(i * 2) * o.r * 0.5, o.y + Math.sin(i * 2) * o.r * 0.4, 3, 0, TAU); c.fill(); } return; }
+    case 'pier': { c.save(); c.translate(o.x, o.y); c.rotate(o.a); c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(2, -3, 46, 10); c.fillStyle = '#9a7048'; c.fillRect(0, -5, 46, 10); c.strokeStyle = '#6a4a2a'; c.lineWidth = 1; for (let d = 0; d < 46; d += 4) { c.beginPath(); c.moveTo(d, -5); c.lineTo(d, 5); c.stroke(); } c.restore(); return; }
+    case 'market': return drawMarket(c, o, s);
+    case 'vault': return drawVault(c, o, s);
+    case 'plaza': c.fillStyle = '#e6d8b8'; c.beginPath(); c.arc(o.x, o.y, o.r, 0, TAU); c.fill(); c.strokeStyle = '#b8a47a'; c.lineWidth = 2; c.stroke(); if (s > 0.15) { c.strokeStyle = 'rgba(150,130,90,.35)'; c.lineWidth = 1; c.beginPath(); c.arc(o.x, o.y, o.r * 0.65, 0, TAU); c.stroke(); }
+      if (o.fountain) { c.fillStyle = '#8a8070'; c.beginPath(); c.arc(o.x, o.y, 10, 0, TAU); c.fill(); c.fillStyle = '#7ab3c6'; c.beginPath(); c.arc(o.x, o.y, 7.5, 0, TAU); c.fill(); } else { c.fillStyle = '#9a9280'; c.beginPath(); c.arc(o.x, o.y, 5, 0, TAU); c.fill(); } return;
+    case 'lift': { shadowCircle(c, o.x, o.y, 14); c.fillStyle = '#7a5f3c'; c.fillRect(o.x - 12, o.y - 12, 24, 24); c.fillStyle = '#a07a4a'; c.fillRect(o.x - 9, o.y - 9, 18, 18); c.strokeStyle = '#3a2a1a'; c.lineWidth = 2; c.beginPath(); c.moveTo(o.x - 9, o.y - 9); c.lineTo(o.x + 9, o.y + 9); c.moveTo(o.x + 9, o.y - 9); c.lineTo(o.x - 9, o.y + 9); c.stroke(); c.fillStyle = '#ffd46b'; c.beginPath(); c.arc(o.x, o.y, 3.5, 0, TAU); c.fill(); return; }
+    case 'statue': { c.fillStyle = '#e0d6c0'; c.beginPath(); c.arc(o.x, o.y, o.r, 0, TAU); c.fill(); c.strokeStyle = '#a8987a'; c.lineWidth = 2; c.stroke(); c.fillStyle = '#9a9488'; c.fillRect(o.x - 9, o.y - 9, 18, 18); c.fillStyle = '#c4beb0'; c.beginPath(); c.arc(o.x - 1, o.y - 2, 6, 0, TAU); c.fill(); c.fillStyle = '#8a8478'; c.beginPath(); c.moveTo(o.x + 4, o.y + 2); c.lineTo(o.x + 14, o.y + 12); c.lineTo(o.x + 9, o.y + 15); c.closePath(); c.fill(); c.fillRect(o.x + 12, o.y - 14, 5, 4); return; }
+    case 'memorial': { c.save(); c.translate(o.x, o.y); c.rotate(o.a + Math.PI / 2); c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(-36, 2, 76, 10); c.fillStyle = '#8f8a80'; c.fillRect(-38, -6, 76, 12); c.fillStyle = '#b8b2a4'; for (let i = 0; i < 9; i++) c.fillRect(-35 + i * 8, -4, 6, 8); c.restore(); return; }
+    case 'gate': { c.save(); c.translate(o.x, o.y); c.fillStyle = '#6c6a64'; c.beginPath(); c.arc(0, 0, o.r, 0, TAU); c.fill(); c.fillStyle = '#4a4440'; c.beginPath(); c.arc(0, 0, o.r * 0.78, 0, TAU); c.fill(); c.strokeStyle = '#b8964a'; c.lineWidth = 3; c.beginPath(); c.arc(0, 0, o.r * 0.78, 0, TAU); c.stroke();
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; c.beginPath(); c.moveTo(Math.cos(a) * 6, Math.sin(a) * 6); c.lineTo(Math.cos(a) * o.r * 0.75, Math.sin(a) * o.r * 0.75); c.stroke(); } c.fillStyle = '#d9b46a'; c.beginPath(); c.arc(0, 0, 6, 0, TAU); c.fill(); c.restore(); return; }
+  }
+}
+function drawLogs(c, x, y) { c.fillStyle = '#7a5434'; for (let i = 0; i < 3; i++) { c.fillRect(x - 10, y - 6 + i * 4, 20, 3.5); } c.fillStyle = '#c9a070'; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(x + 10, y - 4 + i * 4, 1.8, 0, TAU); c.fill(); } }
+function drawMarket(c, m, s) {
+  c.fillStyle = '#e8dbbb'; c.beginPath(); c.arc(m.x, m.y, m.r, 0, TAU); c.fill(); c.strokeStyle = '#b8a47a'; c.lineWidth = 3; c.stroke();
+  if (s > 0.12) { c.strokeStyle = 'rgba(160,140,100,.3)'; c.lineWidth = 1; for (let r = 14; r < m.r; r += 12) { c.beginPath(); c.arc(m.x, m.y, r, 0, TAU); c.stroke(); } }
+  for (const st of m.stalls) { const x = m.x + Math.cos(st.a) * (m.r - 16), y = m.y + Math.sin(st.a) * (m.r - 16); c.save(); c.translate(x, y); c.rotate(st.a + Math.PI / 2);
+    c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(-8, -5, 18, 12); c.fillStyle = st.c; c.fillRect(-9, -7, 18, 12); if (s > 0.2) { c.fillStyle = 'rgba(255,255,255,.7)'; for (let k = -9; k < 9; k += 6) c.fillRect(k, -7, 3, 12); } c.restore(); }
+  c.fillStyle = '#8a8070'; c.beginPath(); c.arc(m.x, m.y, 9, 0, TAU); c.fill(); c.fillStyle = '#ffd46b'; c.beginPath(); c.arc(m.x, m.y, 4, 0, TAU); c.fill();
+}
+function drawVault(c, v, s) {
+  c.fillStyle = '#e2d6bc'; c.beginPath(); c.arc(v.x, v.y, v.r, 0, TAU); c.fill();
+  shadowCircle(c, v.x, v.y, 26); c.fillStyle = '#b8b0a0'; c.fillRect(v.x - 26, v.y - 22, 52, 44); c.fillStyle = '#d4ccba'; c.fillRect(v.x - 26, v.y - 22, 52, 8);
+  c.fillStyle = '#f2ead6'; for (let i = 0; i < 6; i++) { c.beginPath(); c.arc(v.x - 22 + i * 8.8, v.y + 18, 2.6, 0, TAU); c.fill(); }
+  const g = c.createRadialGradient(v.x - 5, v.y - 5, 2, v.x, v.y, 16); g.addColorStop(0, '#fff2b8'); g.addColorStop(0.5, '#e2b04a'); g.addColorStop(1, '#a8782a'); c.fillStyle = g; c.beginPath(); c.arc(v.x, v.y, 14, 0, TAU); c.fill();
+}
+function drawHome(c, h, s) {
+  c.save(); c.translate(h.x, h.y); c.rotate(h.ang);
+  const w = h.size, d = h.size * 0.74;
+  c.fillStyle = 'rgba(40,30,20,.25)'; c.fillRect(-w / 2 + 5, -d / 2 + 6, w, d);
+  if (s < 0.09) { c.fillStyle = h.roof; c.fillRect(-w / 2, -d / 2, w, d); c.restore(); return; }
+  // yard
+  if (s > 0.2) { c.fillStyle = 'rgba(255,250,230,.16)'; c.fillRect(-w / 2 - 6, -d / 2 - 4, w + 12, d + 14); }
+  // wing
+  if (h.wing) { const ww = w * 0.5, wd = d * 0.8; const wx = h.wing > 0 ? w / 2 - 4 : -w / 2 - ww + 4; c.fillStyle = 'rgba(40,30,20,.2)'; c.fillRect(wx + 4, -wd / 2 + 6, ww, wd); c.fillStyle = h.roofD; c.fillRect(wx, -wd / 2, ww, wd); c.fillStyle = h.roofL; c.fillRect(wx, -wd / 2, ww, wd / 2); }
+  const st = h.style;
+  if (st === 0) { // gable
+    c.fillStyle = h.roofL; c.fillRect(-w / 2, -d / 2, w, d / 2); c.fillStyle = h.roofD; c.fillRect(-w / 2, 0, w, d / 2);
+    if (s > 0.3) { c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 1; for (let x = -w / 2 + 4; x < w / 2; x += 4) { c.beginPath(); c.moveTo(x, -d / 2); c.lineTo(x, d / 2); c.stroke(); } }
+    c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-w / 2, 0); c.lineTo(w / 2, 0); c.stroke();
+  } else if (st === 1) { // hip
+    c.fillStyle = h.roof; c.fillRect(-w / 2, -d / 2, w, d);
+    c.fillStyle = h.roofL; c.beginPath(); c.moveTo(-w / 2, -d / 2); c.lineTo(w / 2, -d / 2); c.lineTo(w / 4, 0); c.lineTo(-w / 4, 0); c.closePath(); c.fill();
+    c.fillStyle = h.roofD; c.beginPath(); c.moveTo(-w / 2, d / 2); c.lineTo(w / 2, d / 2); c.lineTo(w / 4, 0); c.lineTo(-w / 4, 0); c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.3)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(-w / 4, 0); c.lineTo(w / 4, 0); c.stroke();
+  } else if (st === 2) { // flat with dome
+    c.fillStyle = h.roof; c.fillRect(-w / 2, -d / 2, w, d); c.strokeStyle = h.roofD; c.lineWidth = 2; c.strokeRect(-w / 2 + 1, -d / 2 + 1, w - 2, d - 2);
+    const g = c.createRadialGradient(-3, -3, 1, 0, 0, d * 0.35); g.addColorStop(0, '#fffaf0'); g.addColorStop(1, h.roofD); c.fillStyle = g; c.beginPath(); c.arc(w * 0.12, 0, d * 0.32, 0, TAU); c.fill();
+  } else { // round cottage
+    const r = d * 0.62; c.fillStyle = h.roofD; c.beginPath(); c.arc(0, 0, r, 0, TAU); c.fill();
+    const g = c.createRadialGradient(-r * 0.3, -r * 0.3, 1, 0, 0, r); g.addColorStop(0, h.roofL); g.addColorStop(1, h.roof); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r * 0.9, 0, TAU); c.fill();
+    if (s > 0.3) { c.strokeStyle = 'rgba(0,0,0,.15)'; c.lineWidth = 1; for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(a) * r * 0.9, Math.sin(a) * r * 0.9); c.stroke(); } }
+    c.fillStyle = '#ffd46b'; c.beginPath(); c.arc(0, 0, 2.2, 0, TAU); c.fill();
+  }
+  if (h.tower) { c.fillStyle = 'rgba(40,30,20,.25)'; c.beginPath(); c.arc(-w / 2 + 3, -d / 2 + 6, 8, 0, TAU); c.fill(); c.fillStyle = h.roofD; c.beginPath(); c.arc(-w / 2, -d / 2, 8, 0, TAU); c.fill(); c.fillStyle = h.roofL; c.beginPath(); c.moveTo(-w / 2, -d / 2); c.arc(-w / 2, -d / 2, 8, Math.PI, Math.PI * 1.75); c.closePath(); c.fill(); }
+  // history: battered wall, banners, trophies
+  if (s > 0.28) {
+    if (h.battered) { c.strokeStyle = 'rgba(40,25,15,.7)'; c.lineWidth = 1.2; c.beginPath(); c.moveTo(w / 2 - 3, -d / 2 + 2); c.lineTo(w / 2 - 8, -d / 2 + 7); c.lineTo(w / 2 - 5, -d / 2 + 11); c.stroke(); c.fillStyle = '#8a8070'; for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(w / 2 + 3 + i * 2, d / 2 + 2 - i * 3, 1.6, 0, TAU); c.fill(); } }
+    for (let i = 0; i < h.banners; i++) { const bx = -w / 2 + 3 + i * 6, by = d / 2 + 5; c.strokeStyle = '#3a2e22'; c.lineWidth = 1; c.beginPath(); c.moveTo(bx, by); c.lineTo(bx, by - 9); c.stroke(); c.fillStyle = LAYER_COLORS[i]; c.beginPath(); c.moveTo(bx, by - 9); c.lineTo(bx + 5, by - 7); c.lineTo(bx, by - 5); c.closePath(); c.fill(); }
+    if (h.trophies) { const tx = w / 2 + 6, ty = -d / 2 - 3; c.fillStyle = '#f2ead6'; c.beginPath(); c.ellipse(tx, ty, 4, 3, 0, 0, TAU); c.fill(); c.fillStyle = '#3a2e22'; c.beginPath(); c.arc(tx - 1.5, ty, 0.8, 0, TAU); c.arc(tx + 1.5, ty, 0.8, 0, TAU); c.fill(); }
+  }
+  c.restore();
+}
+
+/* =====================================================================
+   RIM CITY — living world: people, pets, NPCs, sky-fish, weather,
+   day/night, seasons & festivals, mole surfacings, market spikes
+   ===================================================================== */
+const CLOAKS = ['#4f8c8a', '#b0573a', '#7a5fa0', '#c9822f', '#5f7f99', '#6b8f4a', '#9a4a5a', '#3a4a6a', '#d8b46a'];
+const SKIN = ['#f3d6b0', '#e2b88f', '#c8946a', '#9a6a48', '#f6e0c8'];
+const NPCS = [
+  { id: 'maddox', name: 'Old Maddox', role: 'Tether operator', icon: '🧓', color: '#5f7f99',
+    lines: ['Forty years I\'ve run this lift. The rope hums different when something big is climbing it. Learn the hum and you\'ll live.',
+      'Aurel Vane went down on a single line with a jar of moss for light. Came back up with Lumen in her eyes. Never blinked right after.',
+      'Layer four breathes, kid. Twice a day the Bellows exhales and every cable on the Rim sings. That\'s the Hollow saying hello.',
+      'They say the Undergate was here before the first city. Nobody built it. Nobody\'s opened it. I sleep fine, mostly.',
+      'Sky-fish come up at nightfall because the deep gets too bright for them. Imagine that. Too much light.'] },
+  { id: 'pell', name: 'Pell', role: 'Lamplighter', icon: '🕯️', color: '#c9822f',
+    lines: ['Dusk is my hour. Every lamp on the Promenade, one by one, before the sky-fish rise.', 'A lamp lit late is a delver lost, my gran said. So I\'m never late.', 'Mind the wick, friend. Lumen oil bites if you rush it.'] },
+  { id: 'greta', name: 'Greta Saltline', role: 'Fishmonger', icon: '🐟', color: '#5d9bb3',
+    lines: ['Glassfin, fresh this morning! Two for a Crown!', 'Mirrorlake eels! Smoked, salted, or still wriggling!', 'Lamp oil pressed from lakefish, cheaper than the Mines!', 'If the sky-fish came down to the lake I\'d be rich. Clever things never do.'] },
+  { id: 'ilse', name: 'Sister Ilse', role: 'Keeper of the Wall', icon: '🕊️', color: '#9a9488',
+    lines: ['Every name on the Wall of Lanterns Out went down and did not come up. We light a candle for each, each night.', 'Your Wren\'s name isn\'t here. Let\'s keep it that way. Bring her home.', 'The oldest stone has no name, just a carved lantern. We think it was the first delver who never returned.'] },
+  { id: 'kip', name: 'Kip', role: 'Courier', icon: '📯', color: '#c8634c', lines: ['RUMOR', 'RUMOR', 'RUMOR'] },
+  { id: 'juniper', name: 'Juniper Fernsby', role: 'Farmer & fair host', icon: '🌾', color: '#6b8f4a',
+    lines: ['Goldenstep feeds the whole Rim. Bring stone or timber to the Bazaar and I\'ll pay you proper Crowns.', 'Harvest Fair\'s the best week of the year. Pie-throwing, mole-racing, and old Maddox dancing.', 'Windmills turn even when there\'s no wind. Nobody asks why. It\'s the Hollow breathing.'] },
+  { id: 'hennick', name: 'Brass Hennick', role: 'Vault warden', icon: '🏦', color: '#b8964a',
+    lines: ['Raiders take what\'s lying around. They can\'t take what\'s under a ton of greystone. Build yourself a Vault: more room, and more of it stays safe.', 'Every Vault on the Rim is cut into the old bedrock. Deepest one goes down a full layer.', 'Coin sleeps best in the dark.'] },
+];
+const LORE = {
+  statue: { title: 'Statue of Aurel Vane', text: 'The first to descend and return. Her outstretched arm was broken off in the Great Exhale of year 12; the Rim council voted to leave it that way. "She reached for the deep, and the deep took a piece." Delvers touch the stump for luck before a long dive.' },
+  memorial: { title: 'The Wall of Lanterns Out', text: 'A long wall of small stone plaques, one for every delver who went below and never came back. A candle burns for each one, every night. Sister Ilse keeps them lit. There are more plaques than anyone likes to count.' },
+  gate: { title: 'The Undergate', text: 'A round door of black stone set into the end of a chasm, ringed with gold that never tarnishes. It was here before the first city. It has no handle, no lock and no hinges. Sometimes, when the Bellows exhales, people swear it hums back. Nobody has opened it. Yet.' },
+};
+const SEASONS = [
+  { name: 'Bloomtide', icon: '🌸', tint: 'rgba(255,200,220,.06)' },
+  { name: 'Lumen Summer', icon: '☀️', tint: 'rgba(255,230,150,.06)' },
+  { name: 'Ambertide', icon: '🍂', tint: 'rgba(230,140,60,.08)' },
+  { name: 'Frostfall', icon: '❄️', tint: 'rgba(200,225,255,.10)' },
+];
+const RUMORS = [
+  'They say the Undergate hummed last night. Old Maddox won\'t talk about it.', 'A Glassdune kiln-master swears she saw a sky-fish with a lantern in its mouth.',
+  'Somebody keeps leaving fresh moss on Aurel Vane\'s statue.', 'Hushwood loggers heard singing from a fissure. Nobody went to check.',
+  'Mirrorlake\'s water dropped a finger overnight. Where does it all go?', 'The Pale Lodge is hiring rope-wrights. Big dive planned, they say.',
+  'Brass Hennick counts the Vault coin twice a day. He says it\'s once.', 'A Shellback calf wandered into the Goldenstep Bazaar and ate a whole stall of mossrice.',
+  'Cinderreach chimneys went cold for an hour at noon. Nobody knows why.', 'Pell the lamplighter has never once been late. Not once in thirty years.',
+];
+
+/* ---------- time helpers ---------- */
+function gTime() { return S ? S.gameTime : 0; }
+function hourOfDay() { return ((gTime() / HOUR) + 8) % 24; }
+function nightFactor() { const h = hourOfDay(); if (h >= 20 || h < 5) return 1; if (h >= 17) return (h - 17) / 3; if (h < 7) return 1 - (h - 5) / 2; return 0; }
+function isDusk() { const h = hourOfDay(); return h >= 17.5 && h < 20.5; }
+function seasonLen() { return (S && S.testMode ? CITY.testSeasonDays : CITY.seasonDays) * DAY; }
+function seasonInfo() {
+  if (S && S.seasonOverride != null) return { idx: S.seasonOverride, prog: S.festivalOverride ? 0.8 : 0.5, forced: true };
+  const L = seasonLen(), t = gTime(); return { idx: Math.floor(t / L) % 4, prog: (t % L) / L, nextIn: L - (t % L) };
+}
+function festival() { const s = seasonInfo(); if (s.idx === 1 && (s.prog > 0.6 || (s.forced && S.festivalOverride))) return 'lumen'; if (s.idx === 2 && ((s.prog > 0.25 && s.prog < 0.75) || (s.forced && S.festivalOverride))) return 'harvest'; return null; }
+function frostLevel() { const s = seasonInfo(); return s.idx === 3 ? clamp(s.prog * 1.4, 0.15, 1) : 0; }
+/* Mole surfacings: deterministic windows of game time */
+function moleEvent(k) {
+  const win = CITY.moleWindowHours * HOUR; if (hash2(k, 31) > CITY.moleChance) return null;
+  const start = k * win + hash2(k, 37) * (win - CITY.moleDurationHours * HOUR), end = start + CITY.moleDurationHours * HOUR;
+  const ci = Math.floor(hash2(k, 41) * W.cracks.length), c = W.cracks[ci]; const pi = Math.max(1, Math.floor(c.pts.length * (0.4 + hash2(k, 43) * 0.5)) - 1); const p = c.pts[pi];
+  const off = c.ws[pi] / 2 + 34, ang = Math.atan2(p[1], p[0]) + Math.PI / 2; const x = p[0] + Math.cos(ang) * off, y = p[1] + Math.sin(ang) * off;
+  return { k, start, end, x, y, region: regionAt(x, y), power: 0 };
+}
+function currentMole() { const k = Math.floor(gTime() / (CITY.moleWindowHours * HOUR)); for (const kk of [k, k - 1]) { const e = moleEvent(kk); if (e && gTime() >= e.start && gTime() < e.end && !(S.moleDone && S.moleDone[e.k])) return e; } return null; }
+function nextMole() { const k = Math.floor(gTime() / (CITY.moleWindowHours * HOUR)); for (let kk = k; kk < k + 4; kk++) { const e = moleEvent(kk); if (e && e.start > gTime()) return e; } return null; }
+function molePower() { return Math.round(18 + 7 * S.hero.level); }
+/* Market price spikes */
+function spikeAt(mi, w) { return hash2(w, 100 + mi) < CITY.spikeChance; }
+function marketSpike(mi) { return spikeAt(mi, Math.floor(gTime() / (CITY.spikeWindowHours * HOUR))); }
+/* Weather (real-time, ambient) */
+const WEATHER_TYPES = ['rain', 'storm', 'updraft', 'clear', 'rain', 'mist'];
+function weatherNow(t) {
+  const P = CITY.weatherSeconds, e = Math.floor(t / P), u = (t % P) / P, type = WEATHER_TYPES[Math.floor(hash2(e, 5) * WEATHER_TYPES.length)];
+  const a0 = hash2(e, 9) * TAU - Math.PI, a1 = a0 + 0.9 + hash2(e, 11) * 0.6;
+  const pa = a0 + (a1 - a0) * u, pr = 1500 + 700 * Math.sin(u * Math.PI);
+  const x = type === 'updraft' ? Math.cos(a0) * (hollowR(a0) + 20) : Math.cos(pa) * pr, y = type === 'updraft' ? Math.sin(a0) * (hollowR(a0) + 20) : Math.sin(pa) * pr;
+  const fade = Math.min(1, u * 6, (1 - u) * 6);
+  return { type, x, y, r: type === 'updraft' ? 260 : 620, fade, e, region: regionAt(x, y) };
+}
+function weatherLabel(w) { const R = REGIONS[w.region].name; return { rain: `🌧️ Rain drifting over ${R}`, storm: `⛈️ A Hollow storm rolls across ${R}`, updraft: '🌬️ An Exhale updraft rises from the Hollow', mist: `🌫️ Mist creeps through ${R}`, clear: nightFactor() > 0.5 ? '🌙 Clear night over the Rim' : '☀️ Clear skies over the Rim' }[w.type]; }
+
+/* ---------- generation of agents ---------- */
+function genLife(rnd) {
+  const used = new Set(W.homes.map((h) => h.owner));
+  W.walkers = [];
+  const roads = W.roads;
+  for (let i = 0; i < CITY.walkers; i++) {
+    const rd = roads[Math.floor(rnd() * roads.length)];
+    W.walkers.push({ road: rd.idx, s0: rnd() * rd.len, v: (11 + rnd() * 14) * (rnd() < 0.5 ? -1 : 1), lane: (rnd() - 0.5) * 10, name: makeOwner(rnd, used),
+      cloak: CLOAKS[Math.floor(rnd() * CLOAKS.length)], skin: SKIN[Math.floor(rnd() * SKIN.length)], hat: rnd() < 0.4, lantern: rnd() < 0.5,
+      pet: rnd() < 0.22 ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, phase: rnd() * TAU, shy: rnd() });
+  }
+  W.visitors = []; W.markets.forEach((m, mi) => { for (let k = 0; k < 16; k++) W.visitors.push({ m: mi, a0: rnd() * TAU, w: (0.05 + rnd() * 0.08) * (rnd() < 0.5 ? -1 : 1), rr: m.r * (0.45 + rnd() * 0.35), extra: k >= 6, cloak: CLOAKS[Math.floor(rnd() * CLOAKS.length)], skin: SKIN[Math.floor(rnd() * SKIN.length)], phase: rnd() * TAU }); });
+  W.caravans = W.markets.map((m, mi) => { let best = null, bd = 1e9; for (const rd of W.roads) { if (rd.kind !== 'radial') continue; for (let s = 0; s < rd.len; s += 40) { const [x, y] = roadPos(rd, s); const d = Math.hypot(x - m.x, y - m.y); if (d < bd) { bd = d; best = { rd: rd.idx, s }; } } } return Object.assign(best, { m: mi, phase: rnd() * 100 }); });
+  // sky-fish (no birds!): day drifters + night school
+  W.dayFish = []; for (let i = 0; i < 7; i++) W.dayFish.push({ kind: ['manta', 'koi', 'eel'][i % 3], phase: rnd() * 200, period: 70 + rnd() * 50, size: 26 + rnd() * 22, a0: rnd() * TAU, hue: rnd() });
+  W.nightFish = []; for (let i = 0; i < 70; i++) W.nightFish.push({ a: rnd() * TAU, r: 0.2 + rnd() * 0.75, sp: 0.15 + rnd() * 0.25, ph: rnd() * TAU, size: 5 + rnd() * 5, hue: rnd() });
+  W.motes = []; for (let i = 0; i < 160; i++) W.motes.push({ a: rnd() * TAU, sp: 0.02 + rnd() * 0.04, off: rnd(), sz: 3 + rnd() * 5, wob: rnd() * TAU });
+  W.mist = []; for (let i = 0; i < 14; i++) W.mist.push({ a: rnd() * TAU, r: 120 + rnd() * 550, w: (rnd() - 0.5) * 0.03, size: 260 + rnd() * 380, al: 0.12 + rnd() * 0.16 });
+  W.peekers = []; for (let i = 0; i < 22; i++) { const c = W.cracks[Math.floor(rnd() * W.cracks.length)]; const j = Math.floor(rnd() * (c.pts.length - 1)); W.peekers.push({ x: c.pts[j][0], y: c.pts[j][1], P: 9 + rnd() * 15, ph: rnd() * 30, red: rnd() < 0.3, tent: rnd() < 0.35 }); }
+  W.boats = []; for (let i = 0; i < 5; i++) W.boats.push({ ph: rnd() * TAU, sp: 0.03 + rnd() * 0.04, ra: 0.3 + rnd() * 0.45, sail: CLOAKS[i] });
+  W.lanterns = []; for (let i = 0; i < 90; i++) { const a = rnd() * TAU; W.lanterns.push({ a, ph: rnd(), sp: 0.012 + rnd() * 0.01, c: rnd() < 0.5 ? '#ffd46b' : '#ffb36b' }); }
+  W.frost = W.objs.filter((o) => REGIONS[o.region].key === 'bluffs' && (o.type === 'cliff' || o.type === 'boulder')).slice(0, 220);
+  W.frostOthers = W.objs.filter((o, i) => i % 11 === 0 && REGIONS[o.region].key !== 'bluffs').slice(0, 200);
+  // Named NPC placement
+  const L0 = W.lifts.find((l) => /Maddox/.test(l.name)) || W.lifts[0];
+  const mk = (id, x, y, extra) => Object.assign({ x, y, npc: NPCS.find((n) => n.id === id), talk: 0 }, extra || {});
+  const docksM = W.markets.find((m) => m.region === 0) || W.markets[0], farmsM = W.markets.find((m) => m.region === 5) || W.markets[1];
+  const memo = W.landmarks.find((l) => l.type === 'memorial');
+  W.npcs = [
+    mk('maddox', L0.x + 18, L0.y + 10),
+    mk('pell', 0, 0, { road: 0, v: 22, mover: 'pell' }),
+    mk('greta', W.piers[0] ? W.piers[0].x + Math.cos(W.piers[0].a) * 0 : docksM.x, W.piers[0] ? W.piers[0].y : docksM.y),
+    mk('ilse', memo.x + 14, memo.y + 20),
+    mk('kip', 0, 0, { road: 2, v: 70, mover: 'kip' }),
+    mk('juniper', farmsM.x + 20, farmsM.y - 18),
+    mk('hennick', W.vaults[0].x + 30, W.vaults[0].y + 22),
+  ];
+}
+
+/* positions of moving NPCs */
+function npcPos(n, t) {
+  if (n.mover === 'pell') { const rd = W.roads[0]; const s = ((pellProgress() * rd.len) % rd.len + rd.len) % rd.len; const [x, y, a] = roadPos(rd, s); return [x + Math.cos(a + Math.PI / 2) * 12, y + Math.sin(a + Math.PI / 2) * 12, a]; }
+  if (n.mover === 'kip') { const rd = W.roads[n.road]; const s = ((t * n.v) % rd.len + rd.len) % rd.len; const [x, y, a] = roadPos(rd, s); return [x, y, a]; }
+  return [n.x, n.y, 0];
+}
+function pellProgress() { const h = hourOfDay(); if (h >= 17.5 && h < 20.5) return (h - 17.5) / 3; return (h / 24) * 0.15 + 0.02 * Math.sin(h); }
+function lampLit(l) { const h = hourOfDay(); if (h >= 20.5 || h < 6) return 1; if (h >= 17.5) return l.s / W.roads[0].len < pellProgress() ? 1 : 0; return 0; }
+
+function walkerPos(w, t) {
+  const rd = W.roads[w.road]; let s = w.s0 + w.v * t;
+  if (rd.loop) s = ((s % rd.len) + rd.len) % rd.len; else { const T = 2 * rd.len; s = ((s % T) + T) % T; if (s > rd.len) s = T - s; }
+  const [x, y, a, br] = roadPos(rd, s); const dir = w.v > 0 ? 0 : Math.PI;
+  return [x + Math.cos(a + Math.PI / 2) * w.lane, y + Math.sin(a + Math.PI / 2) * w.lane, a + dir, br];
+}
+
+/* ---------- tiny painters (world units) ---------- */
+function drawPerson(c, x, y, ang, cloak, skin, t, ph, opt) {
+  const bob = Math.sin(t * 9 + ph) * 0.7; opt = opt || {};
+  c.fillStyle = 'rgba(30,20,10,.25)'; c.beginPath(); c.ellipse(x + 1.5, y + 2, 3.6, 2.6, 0, 0, TAU); c.fill();
+  c.save(); c.translate(x, y + bob * 0.3); c.rotate(ang);
+  c.fillStyle = cloak; c.beginPath(); c.ellipse(0, 0, 3.4, 4.2, 0, 0, TAU); c.fill();
+  c.fillStyle = skin; c.beginPath(); c.arc(0.8, 0, 2.1, 0, TAU); c.fill();
+  if (opt.hat) { c.fillStyle = '#5a4528'; c.beginPath(); c.arc(0.8, 0, 2.3, -Math.PI / 2, Math.PI / 2); c.fill(); }
+  c.restore();
+  if (opt.lantern) { c.fillStyle = 'rgba(255,212,107,.9)'; c.beginPath(); c.arc(x + Math.cos(ang + 1.2) * 4.5, y + Math.sin(ang + 1.2) * 4.5, 1.2, 0, TAU); c.fill(); }
+}
+function drawPet(c, kind, x, y, ang, t, ph, sleeping) {
+  c.save(); c.translate(x, y); c.rotate(ang);
+  c.fillStyle = 'rgba(30,20,10,.22)'; c.beginPath(); c.ellipse(1, 1.5, 3.4, 2.4, 0, 0, TAU); c.fill();
+  const wag = sleeping ? 0 : Math.sin(t * 12 + ph);
+  switch (kind) {
+    case 'pup': c.fillStyle = '#7a9a5a'; c.beginPath(); c.ellipse(0, 0, 3.4, 2.2, 0, 0, TAU); c.fill(); c.beginPath(); c.arc(3, 0, 1.8, 0, TAU); c.fill(); c.fillStyle = '#5a7a3a'; c.beginPath(); c.arc(3.2, -1.6, 0.9, 0, TAU); c.arc(3.2, 1.6, 0.9, 0, TAU); c.fill(); c.strokeStyle = '#7a9a5a'; c.lineWidth = 0.9; c.beginPath(); c.moveTo(-3, 0); c.lineTo(-5, wag * 1.5); c.stroke(); break;
+    case 'wisp': c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(230,240,255,.85)'; c.beginPath(); c.arc(0, Math.sin(t * 3 + ph) * 1.2, 2.4, 0, TAU); c.fill(); c.fillStyle = 'rgba(200,220,255,.25)'; c.beginPath(); c.arc(0, 0, 5, 0, TAU); c.fill(); break;
+    case 'moth': { const f = sleeping ? 0.3 : Math.abs(Math.sin(t * 14 + ph)); c.fillStyle = '#e2a04a'; c.beginPath(); c.ellipse(0, -1.5 - f, 2.6, 1.6 * (0.4 + f), 0, 0, TAU); c.ellipse(0, 1.5 + f, 2.6, 1.6 * (0.4 + f), 0, 0, TAU); c.fill(); c.fillStyle = '#5a3a20'; c.fillRect(-2, -0.4, 4, 0.8); break; }
+    case 'ferret': c.strokeStyle = '#8a6440'; c.lineCap = 'round'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(-4, wag); c.quadraticCurveTo(0, -wag, 3.5, 0); c.stroke(); c.fillStyle = '#5a3a20'; c.beginPath(); c.arc(4, 0, 1.2, 0, TAU); c.fill(); break;
+    case 'tortoise': c.fillStyle = '#6a8a5a'; c.beginPath(); c.arc(0, 0, 3.2, 0, TAU); c.fill(); c.fillStyle = '#9ac27a'; c.beginPath(); c.arc(-0.5, -0.6, 1.6, 0, TAU); c.fill(); c.fillStyle = '#8a7a5a'; c.beginPath(); c.arc(3.6, 0, 1.1, 0, TAU); c.fill(); break;
+    case 'kit': c.fillStyle = '#d8823a'; c.beginPath(); c.ellipse(0, 0, 3, 2, 0, 0, TAU); c.fill(); c.beginPath(); c.arc(2.8, 0, 1.6, 0, TAU); c.fill(); c.strokeStyle = '#d8823a'; c.lineWidth = 1; c.beginPath(); c.moveTo(-3, 0); c.quadraticCurveTo(-5, wag * 2, -6, wag * 2.5); c.stroke(); c.fillStyle = '#ffd46b'; c.beginPath(); c.arc(-6, wag * 2.5, 1, 0, TAU); c.fill(); break;
+  }
+  if (sleeping) { c.rotate(-ang); c.fillStyle = 'rgba(255,255,255,.85)'; c.font = '4px Georgia'; c.fillText('z', 3, -4 - (t * 2 + ph) % 3); }
+  c.restore();
+}
+/* sky-fish: manta / koi / eel / small glowing school fish */
+function drawSkyFish(c, kind, x, y, ang, size, t, ph, glow, alpha) {
+  c.save(); c.globalAlpha = alpha; c.translate(x, y); c.rotate(ang);
+  const und = Math.sin(t * 3 + ph);
+  if (kind === 'manta') {
+    const span = size * (0.9 + 0.15 * und);
+    c.fillStyle = glow ? 'rgba(160,230,255,.8)' : '#3f4f6a';
+    c.beginPath(); c.moveTo(size * 0.6, 0); c.quadraticCurveTo(0, -span, -size * 0.35, -span * 0.95 * (0.85 + 0.15 * und)); c.quadraticCurveTo(-size * 0.2, 0, -size * 0.35, span * 0.95 * (0.85 - 0.15 * und)); c.quadraticCurveTo(0, span, size * 0.6, 0); c.fill();
+    c.strokeStyle = c.fillStyle; c.lineWidth = size * 0.04; c.beginPath(); c.moveTo(-size * 0.3, 0); c.quadraticCurveTo(-size * 0.8, und * size * 0.2, -size * 1.2, -und * size * 0.15); c.stroke();
+    c.fillStyle = 'rgba(255,230,160,.6)'; c.beginPath(); c.arc(size * 0.2, -size * 0.25, size * 0.05, 0, TAU); c.arc(size * 0.2, size * 0.25, size * 0.05, 0, TAU); c.fill();
+  } else if (kind === 'koi') {
+    c.fillStyle = glow ? 'rgba(255,200,140,.85)' : '#e8915a';
+    c.beginPath(); c.ellipse(0, 0, size * 0.5, size * 0.2, 0, 0, TAU); c.fill();
+    c.beginPath(); c.moveTo(-size * 0.42, 0); c.lineTo(-size * 0.8, -size * 0.25 + und * size * 0.1); c.lineTo(-size * 0.75, und * size * 0.05); c.lineTo(-size * 0.8, size * 0.25 + und * size * 0.1); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.ellipse(size * 0.1, -size * 0.05, size * 0.12, size * 0.08, 0, 0, TAU); c.fill();
+    c.fillStyle = glow ? 'rgba(255,220,180,.6)' : 'rgba(255,240,220,.55)'; c.beginPath(); c.ellipse(0, -size * 0.28, size * 0.18, size * 0.1 * (1 + und * 0.4), 0.4, 0, TAU); c.ellipse(0, size * 0.28, size * 0.18, size * 0.1 * (1 - und * 0.4), -0.4, 0, TAU); c.fill();
+  } else if (kind === 'eel') {
+    c.strokeStyle = glow ? 'rgba(180,255,200,.85)' : '#4a6a5a'; c.lineCap = 'round'; c.lineWidth = size * 0.14;
+    c.beginPath(); for (let i = 0; i <= 10; i++) { const u = i / 10, px = size * 0.6 - u * size * 1.6, py = Math.sin(t * 4 + ph - u * 5) * size * 0.16 * u; i ? c.lineTo(px, py) : c.moveTo(px, py); } c.stroke();
+    c.fillStyle = '#ffe6a0'; c.beginPath(); c.arc(size * 0.5, 0, size * 0.04, 0, TAU); c.fill();
+  } else { // tiny school fish
+    c.fillStyle = 'rgba(170,255,230,.95)'; c.beginPath(); c.ellipse(0, 0, size * 0.55, size * 0.22, 0, 0, TAU); c.fill(); c.beginPath(); c.moveTo(-size * 0.45, 0); c.lineTo(-size * 0.85, -size * 0.25 * (1 + und * 0.3)); c.lineTo(-size * 0.85, size * 0.25 * (1 - und * 0.3)); c.closePath(); c.fill();
+  }
+  c.restore();
+}
+
+/* =====================================================================
+   RIM CITY — camera, tiles, frame loop, input, cards, ticker, minimap
+   ===================================================================== */
+const CityMap = (() => {
+  let cv, ctx, mm, mctx, wrap, dpr = 1, Wc = 0, Hc = 0, running = false, raf = 0;
+  const cam = { x: 0, y: 0, z: CITY.startZoom, vx: 0, vy: 0, fly: null };
+  const tiles = new Map(); let tileUse = 0;
+  const ptrs = new Map(); let gesture = null;
+  let tickerI = 0, tickerT = 0, lastFrame = 0, fps = 60, frameN = 0, mmBase = null;
+  const bubbles = new Map(); // npc id -> {text, until}
+  const glowCache = new Map();
+  const st = { tilesRendered: 0, frames: 0, lastDraw: 0 };
+
+  function glowSprite(col) {
+    if (glowCache.has(col)) return glowCache.get(col);
+    const g = document.createElement('canvas'); g.width = g.height = 64; const x = g.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, col); gr.addColorStop(0.35, col.replace(/[\d.]+\)$/, '0.35)')); gr.addColorStop(1, col.replace(/[\d.]+\)$/, '0)')); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); glowCache.set(col, g); return g;
+  }
+  const glow = (c, x, y, r, col, a) => { c.globalAlpha = a; c.drawImage(glowSprite(col), x - r, y - r, r * 2, r * 2); c.globalAlpha = 1; };
+
+  /* ---------- setup ---------- */
+  function mount() {
+    wrap = $('#city'); cv = $('#cityCanvas'); ctx = cv.getContext('2d'); mm = $('#miniMap'); mctx = mm.getContext('2d');
+    if (!W.ready) generateCity();
+    if (!S.cityCam) { cam.x = W.player.x; cam.y = W.player.y; cam.z = CITY.startZoom; } else Object.assign(cam, S.cityCam, { vx: 0, vy: 0, fly: null });
+    cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointermove', onMove); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onUp);
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+    mm.addEventListener('pointerdown', (e) => { e.stopPropagation(); const r = mm.getBoundingClientRect(); const s = (CITY.R * 2) / r.width; flyTo((e.clientX - r.left) * s - CITY.R, (e.clientY - r.top) * s - CITY.R, Math.max(cam.z, 0.35)); });
+    wrap.addEventListener('click', (e) => { const b = e.target.closest('[data-city]'); if (b) cityButton(b.dataset.city); });
+    window.addEventListener('resize', resize);
+    $('#cityCount').textContent = `· ${W.homes.length.toLocaleString()} ${CITY.homeTerm}s`;
+    buildLegend(); buildMinimapBase(); resize();
+    mount.done = true;
+  }
+  function layout() { const top = $('#top').offsetHeight, bot = $('#tabs').offsetHeight; wrap.style.top = top + 'px'; wrap.style.bottom = bot + 'px'; }
+  function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; }
+  function show() { if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
+  function hide() { if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z }; }
+
+  /* ---------- camera ---------- */
+  const kpx = () => cam.z * dpr;
+  function s2w(sx, sy) { return [cam.x + (sx * dpr - Wc / 2) / kpx(), cam.y + (sy * dpr - Hc / 2) / kpx()]; }
+  function w2s(x, y) { return [((x - cam.x) * kpx() + Wc / 2) / dpr, ((y - cam.y) * kpx() + Hc / 2) / dpr]; }
+  function clampCam() { cam.z = clamp(cam.z, CITY.zoomMin, CITY.zoomMax); const r = Math.hypot(cam.x, cam.y), m = CITY.R + 200; if (r > m) { cam.x *= m / r; cam.y *= m / r; } }
+  function zoomAt(sx, sy, f) { const [wx, wy] = s2w(sx, sy); cam.z = clamp(cam.z * f, CITY.zoomMin, CITY.zoomMax); const [nx, ny] = s2w(sx, sy); cam.x += wx - nx; cam.y += wy - ny; cam.fly = null; clampCam(); }
+  function flyTo(x, y, z, now) { if (now) { cam.x = x; cam.y = y; if (z) cam.z = z; cam.fly = null; cam.vx = cam.vy = 0; clampCam(); return; } cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x, y, z: z || cam.z, t0: performance.now(), d: 900 }; }
+
+  /* ---------- input ---------- */
+  function onDown(e) { if (e.isPrimary) ptrs.clear(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); cam.vx = cam.vy = 0; cam.fly = null;
+    gesture = ptrs.size === 1 ? { tap: true } : { tap: false, pinch: pinchState() }; }
+  function pinchState() { const p = [...ptrs.values()]; return { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2 }; }
+  function onMove(e) { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY;
+    if (ptrs.size === 1) { if (Math.hypot(p.x - p.x0, p.y - p.y0) > 8) gesture.tap = false; cam.x -= dx / cam.z; cam.y -= dy / cam.z; cam.vx = -dx / cam.z; cam.vy = -dy / cam.z; clampCam(); }
+    else if (ptrs.size === 2 && gesture && gesture.pinch) { const n = pinchState(); zoomAt(n.mx, n.my, n.d / Math.max(1, gesture.pinch.d)); cam.x -= (n.mx - gesture.pinch.mx) / cam.z; cam.y -= (n.my - gesture.pinch.my) / cam.z; gesture.pinch = n; clampCam(); } }
+  function onUp(e) { const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId);
+    if (p && gesture && gesture.tap && ptrs.size === 0 && performance.now() - p.t0 < 600) { cam.vx = cam.vy = 0; handleTap(e.offsetX, e.offsetY); }
+    if (ptrs.size === 1) gesture = { tap: false }; if (ptrs.size === 0) gesture = null; }
+
+  /* ---------- tiles ---------- */
+  function levelFor() { const want = cam.z * dpr; for (const L of CITY.levels) if (L >= want * 0.8) return L; return CITY.levels[CITY.levels.length - 1]; }
+  function tileKey(L, tx, ty) { return L + ':' + tx + ':' + ty; }
+  function renderTile(L, tx, ty) { const c = document.createElement('canvas'); c.width = c.height = CITY.tilePx; const g = c.getContext('2d'); const ws = CITY.tilePx / L; g.setTransform(L, 0, 0, L, -tx * ws * L, -ty * ws * L); drawStatic(g, tx * ws, ty * ws, (tx + 1) * ws, (ty + 1) * ws, L); st.tilesRendered++; return c; }
+  function getTile(L, tx, ty) { const t = tiles.get(tileKey(L, tx, ty)); if (t) t.u = ++tileUse; return t ? t.c : null; }
+  function putTile(L, tx, ty, c) { tiles.set(tileKey(L, tx, ty), { c, u: ++tileUse }); if (tiles.size > CITY.maxTiles) { const arr = [...tiles.entries()].sort((a, b) => a[1].u - b[1].u); for (let i = 0; i < 20; i++) tiles.delete(arr[i][0]); } }
+  function drawTiles(c, vx0, vy0, vx1, vy1) {
+    const L = levelFor(), ws = CITY.tilePx / L, need = [];
+    const k = kpx();
+    for (let tx = Math.floor(vx0 / ws); tx <= Math.floor(vx1 / ws); tx++) for (let ty = Math.floor(vy0 / ws); ty <= Math.floor(vy1 / ws); ty++) {
+      const dx = (tx * ws - cam.x) * k + Wc / 2, dy = (ty * ws - cam.y) * k + Hc / 2, ds = ws * k;
+      const t = getTile(L, tx, ty);
+      if (t) { c.drawImage(t, dx, dy, ds + 0.6, ds + 0.6); continue; }
+      need.push([tx, ty, Math.hypot(tx * ws + ws / 2 - cam.x, ty * ws + ws / 2 - cam.y)]);
+      // fallback: a coarser cached tile
+      for (const L2 of CITY.levels.filter((l) => l < L).reverse()) { const ws2 = CITY.tilePx / L2, px = Math.floor(tx * ws / ws2), py = Math.floor(ty * ws / ws2), t2 = getTile(L2, px, py);
+        if (t2) { const sx = ((tx * ws - px * ws2) / ws2) * CITY.tilePx, sy = ((ty * ws - py * ws2) / ws2) * CITY.tilePx, ss = (ws / ws2) * CITY.tilePx; c.drawImage(t2, sx, sy, ss, ss, dx, dy, ds + 0.6, ds + 0.6); break; } }
+    }
+    need.sort((a, b) => a[2] - b[2]);
+    const t0 = performance.now();
+    for (const [tx, ty] of need) { if (performance.now() - t0 > 9) break; putTile(L, tx, ty, renderTile(L, tx, ty)); }
+    if (!need.length) { // prewarm the coarse levels for instant zoom-outs
+      for (const L2 of [0.0625, 0.125]) { const ws2 = CITY.tilePx / L2, n = Math.ceil((CITY.R + 300) / ws2); for (let tx = -n; tx < n; tx++) for (let ty = -n; ty < n; ty++) if (!tiles.has(tileKey(L2, tx, ty))) { putTile(L2, tx, ty, renderTile(L2, tx, ty)); return need.length; } }
+    }
+    return need.length;
+  }
+
+  /* ---------- frame ---------- */
+  function frame(now) {
+    if (!running) return; raf = requestAnimationFrame(frame);
+    const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; fps = fps * 0.95 + (1 / Math.max(dt, 0.001)) * 0.05; frameN++;
+    if (cam.fly) { const u = clamp((now - cam.fly.t0) / cam.fly.d, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; cam.x = cam.fly.x0 + (cam.fly.x - cam.fly.x0) * e; cam.y = cam.fly.y0 + (cam.fly.y - cam.fly.y0) * e; cam.z = cam.fly.z0 * Math.pow(cam.fly.z / cam.fly.z0, e); if (u >= 1) cam.fly = null; }
+    else if (!ptrs.size && (Math.abs(cam.vx) > 0.05 || Math.abs(cam.vy) > 0.05)) { cam.x += cam.vx; cam.y += cam.vy; cam.vx *= 0.92; cam.vy *= 0.92; clampCam(); }
+    const t = now / 1000, c = ctx, k = kpx();
+    const vx0 = cam.x - Wc / 2 / k, vy0 = cam.y - Hc / 2 / k, vx1 = cam.x + Wc / 2 / k, vy1 = cam.y + Hc / 2 / k;
+    c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = `rgb(${FOG.join(',')})`; c.fillRect(0, 0, Wc, Hc);
+    drawTiles(c, vx0, vy0, vx1, vy1);
+    c.setTransform(k, 0, 0, k, Wc / 2 - cam.x * k, Hc / 2 - cam.y * k);
+    const view = { x0: vx0 - 60, y0: vy0 - 60, x1: vx1 + 60, y1: vy1 + 60 }, inV = (x, y, m) => x > view.x0 - (m || 0) && x < view.x1 + (m || 0) && y > view.y0 - (m || 0) && y < view.y1 + (m || 0);
+    drawLife(c, t, view, inV);
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    drawOverlay(c, t, view, inV);
+    if (frameN % 4 === 0) drawMinimap();
+    if (t - tickerT > 7 || !tickerT) { tickerT = t; updateTicker(); }
+    if (frameN % 15 === 0) updateInfo(t);
+    st.frames++; st.lastDraw = now;
+  }
+
+  /* ---------- living layer (world space) ---------- */
+  function drawLife(c, t, view, inV) {
+    const z = cam.z, night = nightFactor(), fest = festival(), frost = frostLevel(), wx = weatherNow(t);
+    const hollowVis = view.x1 > -900 && view.x0 < 900 && view.y1 > -900 && view.y0 < 900;
+    // frost creeping over the bluffs (and later everything)
+    if (frost > 0) { for (const o of W.frost) if (inV(o.x, o.y, 80)) glow(c, o.x, o.y, (o.r || 30) * (1 + frost), 'rgba(240,248,255,.9)', 0.55 * frost);
+      if (frost > 0.6) for (const o of W.frostOthers) if (inV(o.x, o.y, 60)) glow(c, o.x, o.y, 40, 'rgba(240,248,255,.9)', 0.35 * (frost - 0.6) / 0.4); }
+    // lake shimmer, boats, waterfall
+    const L = W.lake;
+    if (inV(L.x, L.y, 500)) {
+      c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = 1.5; c.lineCap = 'round';
+      for (let i = 0; i < 40; i++) { const a = hash1(i) * TAU, rr = Math.sqrt(hash1(i + 50)) * L.r * 0.85; const x = L.x + Math.cos(a) * rr, y = L.y + Math.sin(a) * rr; const al = 0.5 + 0.5 * Math.sin(t * 1.6 + i); c.globalAlpha = al * 0.7; c.beginPath(); c.moveTo(x - 6, y); c.quadraticCurveTo(x, y - 2, x + 6, y); c.stroke(); }
+      c.globalAlpha = 1;
+      for (const b of W.boats) { const a = b.ph + t * b.sp; const x = L.x + Math.cos(a) * L.r * b.ra, y = L.y + Math.sin(a) * L.r * b.ra * 0.8, h = a + Math.PI / 2;
+        c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = 1; c.beginPath(); c.arc(L.x, L.y, L.r * b.ra, a - 0.25, a - 0.02); c.stroke();
+        c.save(); c.translate(x, y); c.rotate(h); c.fillStyle = '#8a6440'; c.beginPath(); c.ellipse(0, 0, 8, 3.2, 0, 0, TAU); c.fill(); c.fillStyle = b.sail; c.beginPath(); c.moveTo(-1, 0); c.lineTo(4, -7); c.lineTo(5, 0); c.closePath(); c.fill(); c.restore(); }
+    }
+    const rv = W.river, end = rv[rv.length - 1];
+    if (inV(end[0], end[1], 300)) { c.strokeStyle = 'rgba(255,255,255,.65)'; c.lineWidth = 2.5; c.lineCap = 'round'; const pr = rv[rv.length - 3];
+      for (let i = 0; i < 14; i++) { const u = ((t * 0.6 + i / 14) % 1); const x = pr[0] + (end[0] - pr[0]) * u * 1.3 + Math.sin(i * 3) * 10, y = pr[1] + (end[1] - pr[1]) * u * 1.3 + Math.cos(i * 2) * 10; c.globalAlpha = 1 - u; c.beginPath(); c.moveTo(x, y); c.lineTo(x + (end[0] - pr[0]) * 0.08, y + (end[1] - pr[1]) * 0.08); c.stroke(); }
+      c.globalAlpha = 1; glow(c, end[0], end[1], 70 + Math.sin(t * 2) * 8, 'rgba(255,255,255,.9)', 0.45); }
+    // Hollow: mist banks, peekers, lightning flash
+    if (hollowVis) {
+      for (const m of W.mist) { const a = m.a + t * m.w, x = Math.cos(a) * m.r, y = Math.sin(a) * m.r; glow(c, x, y, m.size, 'rgba(220,230,255,.9)', m.al * (wx.type === 'mist' ? 1.6 : 1)); }
+    }
+    for (const p of W.peekers) { if (!inV(p.x, p.y, 30)) continue; const u = ((t + p.ph) % p.P) / p.P; if (u > 0.2) continue; const a = Math.sin((u / 0.2) * Math.PI);
+      c.globalAlpha = a; c.fillStyle = 'rgba(10,8,20,.9)'; c.beginPath(); c.ellipse(p.x, p.y, 9, 6, 0, 0, TAU); c.fill();
+      if (p.tent) { c.strokeStyle = 'rgba(40,30,60,.95)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(p.x + 6, p.y); c.quadraticCurveTo(p.x + 14, p.y - 12 + Math.sin(t * 4) * 4, p.x + 20, p.y - 6 + Math.cos(t * 3) * 5); c.stroke(); }
+      const blink = Math.sin(t * 7 + p.ph) > 0.92 ? 0.2 : 1; c.globalAlpha = a * blink; c.globalCompositeOperation = 'lighter'; const col = p.red ? 'rgba(255,90,70,1)' : 'rgba(255,240,150,1)';
+      glow(c, p.x - 3, p.y - 1, 5, col, a * blink); glow(c, p.x + 3, p.y - 1, 5, col, a * blink); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
+    // Tether lift cages & cranes
+    for (const Lf of W.lifts) { const u = (Math.sin(t * Lf.speed * 2 + Lf.phase) + 1) / 2; const x = Lf.x + (Lf.bx - Lf.x) * u, y = Lf.y + (Lf.by - Lf.y) * u; if (!inV(x, y, 20)) continue;
+      c.fillStyle = '#6a4a2a'; c.fillRect(x - 5, y - 5, 10, 10); c.fillStyle = '#c9a070'; c.fillRect(x - 3.5, y - 3.5, 7, 7); if (z > 0.5) drawPerson(c, x, y, 0, CLOAKS[(Lf.phase * 10 | 0) % CLOAKS.length], SKIN[1], t, Lf.phase, {}); }
+    for (const cr of W.cranes) { if (!inV(cr.x, cr.y, cr.len + 20)) continue; const ex = cr.x + Math.cos(cr.ang) * cr.len, ey = cr.y + Math.sin(cr.ang) * cr.len;
+      c.strokeStyle = '#5a3e24'; c.lineWidth = 5; c.beginPath(); c.moveTo(cr.x, cr.y); c.lineTo(ex, ey); c.stroke(); c.fillStyle = '#7a5434'; c.fillRect(cr.x - 8, cr.y - 8, 16, 16);
+      const u = (Math.sin(t * 0.4 + cr.phase) + 1) / 2, lx = cr.x + (ex - cr.x) * u, ly = cr.y + (ey - cr.y) * u, sw = Math.sin(t * 1.5 + cr.phase) * 4;
+      c.fillStyle = 'rgba(0,0,0,.3)'; c.fillRect(lx - 5 + sw + 6, ly - 5 + 9, 10, 10); c.fillStyle = '#b0844a'; c.fillRect(lx - 5 + sw, ly - 5, 10, 10); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1; c.strokeRect(lx - 5 + sw, ly - 5, 10, 10); }
+    // windmills, smoke, carts
+    for (const m of W.windmills) { if (!inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
+      for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
+    for (const ch of W.chimneys) { if (!inV(ch.x, ch.y, 80)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.25 + k / 5 + ch.seed) % 1; glow(c, ch.x + u * 40, ch.y - u * 50, 6 + u * 16, 'rgba(90,85,85,.9)', (1 - u) * 0.45); } }
+    for (const m of W.mines) { if (!inV(m.x, m.y, 80)) continue; const u = (Math.sin(t * 0.5 + m.seed * 9) + 1) / 2, d = 14 + u * 52; const x = m.x + Math.cos(m.a) * d, y = m.y + Math.sin(m.a) * d;
+      c.save(); c.translate(x, y); c.rotate(m.a); c.fillStyle = '#5a4a3a'; c.fillRect(-5, -4, 10, 8); c.fillStyle = '#b9a4ff'; c.beginPath(); c.arc(-1.5, 0, 1.6, 0, TAU); c.arc(2, 1, 1.4, 0, TAU); c.fill(); c.restore(); }
+    // market caravans (shellback-drawn carts)
+    W.caravans.forEach((cvn) => { const rd = W.roads[cvn.rd], m = W.markets[cvn.m]; const span = 520, u = ((t * 9 + cvn.phase * 7) % (span * 2)); const off = u < span ? span - u : u - span;
+      const dir = Math.sign(roadPos(rd, Math.min(rd.len, cvn.s + 30))[0] - roadPos(rd, cvn.s)[0]) || 1;
+      for (let i = 0; i < 3; i++) { const s = clamp(cvn.s + (off + i * 16) * (Math.hypot(...roadPos(rd, cvn.s).slice(0, 2)) < Math.hypot(m.x, m.y) ? -1 : 1), 0, rd.len); const [x, y, a] = roadPos(rd, s); if (!inV(x, y, 20)) continue;
+        if (i === 0) drawPet(c, 'tortoise', x, y, a + (u < span ? Math.PI : 0), t, 0, false), c.save(), c.translate(x, y), c.scale(2.2, 2.2), c.restore();
+        else { c.save(); c.translate(x, y); c.rotate(a); c.fillStyle = '#8a6440'; c.fillRect(-6, -4, 12, 8); c.fillStyle = ['#c8634c', '#e2b04a'][i % 2]; c.fillRect(-5, -3, 10, 6); c.restore(); } } void dir; });
+    // homes: lanterns, pets
+    const homes = z > 0.32 ? queryObjs(view.x0, view.y0, view.x1, view.y1, 40).filter((o) => o.type === 'home') : [];
+    if (z > 0.5) for (const h of homes) { if (!h.pet || h.isPlayer) continue; let x, y, a, sl = h.petSleep || night > 0.6;
+      if (sl) { x = h.x + Math.cos(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); y = h.y + Math.sin(h.ang + Math.PI / 2) * (h.size * 0.5 + 6); a = h.ang; }
+      else { const p = h.petPhase, ang = p + Math.sin(t * 0.35 + p) * 1.8 + t * 0.08, rr = h.size * 0.62 + 10 + Math.sin(t * 0.9 + p) * 4; x = h.x + Math.cos(ang) * rr; y = h.y + Math.sin(ang) * rr; a = ang + Math.PI / 2 * Math.sign(Math.cos(t * 0.35 + p)); }
+      drawPet(c, h.pet, x, y, a, t, h.petPhase, sl); }
+    // the player's own Lanternhold, painted live from game state
+    drawPlayerHome(c, t, z, inV);
+    // people
+    const storm = (wx.type === 'storm' || wx.type === 'rain') && wx.fade > 0.3 ? wx : null; const mole = currentMole();
+    if (mole && inV(mole.x, mole.y, 120)) drawMole(c, mole, t);
+    if (z > 0.3) {
+      const detail = z > 0.55; let gathered = 0;
+      W.walkers.forEach((w, i) => {
+        let [x, y, a, br] = walkerPos(w, t);
+        if (mole && Math.hypot(x - mole.x, y - mole.y) < 750) { const ga = (i * 2.399) % TAU, rr = 55 + (i % 4) * 11; x = mole.x + Math.cos(ga) * rr; y = mole.y + Math.sin(ga) * rr; a = ga + Math.PI; gathered++; }
+        else if (storm && w.shy < (storm.type === 'storm' ? 0.8 : 0.45) && Math.hypot(x - storm.x, y - storm.y) < storm.r) return; // streets empty in storms
+        if (!inV(x, y, 10)) return;
+        if (!detail) { c.fillStyle = w.cloak; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); return; }
+        drawPerson(c, x, y, a, w.cloak, w.skin, t, w.phase, { hat: w.hat, lantern: w.lantern && night > 0.3 });
+        if (w.pet) drawPet(c, w.pet, x - Math.cos(a) * 9 + Math.cos(a + 1.57) * 4, y - Math.sin(a) * 9 + Math.sin(a + 1.57) * 4, a, t, w.phase, false);
+      });
+      W.visitors.forEach((v) => { const m = W.markets[v.m]; if (v.extra && !(marketSpike(v.m) || (festival() === 'harvest' && REGIONS[m.region].key === 'farms'))) return;
+        const a = v.a0 + t * v.w + Math.sin(t * 0.5 + v.phase) * 0.3, x = m.x + Math.cos(a) * v.rr, y = m.y + Math.sin(a) * v.rr; if (!inV(x, y, 10)) return;
+        if (detail) drawPerson(c, x, y, a + Math.PI / 2 * Math.sign(v.w), v.cloak, v.skin, t, v.phase, {}); else { c.fillStyle = v.cloak; c.beginPath(); c.arc(x, y, 3.5, 0, TAU); c.fill(); } });
+      for (const n of W.npcs) { const [x, y, a] = npcPos(n, t); if (!inV(x, y, 20)) continue; n.sx = x; n.sy = y; glow(c, x, y, 16, 'rgba(255,230,150,.9)', 0.4); drawPerson(c, x, y, a, n.npc.color, SKIN[0], t, 1, { hat: true, lantern: true }); }
+    }
+    // promenade lamps lit by Pell (glow added later in night pass)
+    // sky-fish by day: big, slow, ground shadows; dive back into the Hollow
+    const dayA = 1 - night;
+    if (dayA > 0.05) for (const f of W.dayFish) { const u = ((t + f.phase) / f.period) % 1, alt = Math.sin(u * Math.PI), r = alt * 2500, a = f.a0 + u * 2.4;
+      const x = Math.cos(a) * r, y = Math.sin(a) * r; if (!inV(x, y, f.size * 3 + 90)) continue;
+      const u2 = u + 0.002, r2 = Math.sin(u2 * Math.PI) * 2500, a2 = f.a0 + u2 * 2.4, head = Math.atan2(Math.sin(a2) * r2 - y, Math.cos(a2) * r2 - x);
+      const sc = 0.55 + alt * 0.7, emerge = Math.min(1, u * 12, (1 - u) * 12);
+      drawSkyFish(c, f.kind, x + 40 + alt * 70, y + 55 + alt * 90, head, f.size * sc, t, f.phase, false, 0.18 * dayA * emerge); // ground shadow
+      drawSkyFish(c, f.kind, x, y, head, f.size * sc, t, f.phase, false, dayA * (0.35 + 0.65 * emerge)); }
+  }
+  function drawPlayerHome(c, t, z, inV) {
+    const h = W.player; if (!inV(h.x, h.y, 80)) return;
+    const raid = S.lastRaid && S.lastRaid.kind === 'defense' && S.lastRaid.stars > 0 && S.gameTime - S.lastRaid.t < 12 * HOUR;
+    Object.assign(h, { level: S.buildings.hall, banners: Math.min(4, S.stats.deepest || 0), trophies: S.stats.moles || 0, battered: !!raid, size: 38 + S.buildings.hall * 0.8 });
+    const pulse = 0.5 + 0.5 * Math.sin(t * 2.5);
+    glow(c, h.x, h.y, h.size * 1.8 + pulse * 10, 'rgba(255,212,107,.9)', 0.45);
+    c.strokeStyle = `rgba(255,212,107,${0.5 + pulse * 0.4})`; c.lineWidth = 3 / Math.max(0.3, z); c.beginPath(); c.arc(h.x, h.y, h.size + 14 + pulse * 4, 0, TAU); c.stroke();
+    drawHome(c, h, Math.max(0.3, z));
+    const pets = equippedPets(); pets.forEach((p, i) => { const sl = !heroHome() || nightFactor() > 0.5; const a = h.ang + Math.PI / 2; const kind = p.id;
+      const x = sl ? h.x + Math.cos(a) * (h.size * 0.55 + 6) + Math.cos(h.ang) * (i * 9 - 4) : h.x + Math.cos(t * 0.3 + i * 3) * (h.size * 0.7 + 12), y = sl ? h.y + Math.sin(a) * (h.size * 0.55 + 6) + Math.sin(h.ang) * (i * 9 - 4) : h.y + Math.sin(t * 0.3 + i * 3) * (h.size * 0.7 + 12);
+      drawPet(c, kind, x, y, sl ? h.ang : t * 0.3 + i * 3 + Math.PI / 2, t, i, sl); });
+  }
+  function drawMole(c, m, t) {
+    const bob = Math.sin(t * 3) * 3;
+    c.fillStyle = '#6a4a30'; for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; c.beginPath(); c.arc(m.x + Math.cos(a) * 32, m.y + Math.sin(a) * 26, 9 + (i % 3) * 3, 0, TAU); c.fill(); }
+    c.fillStyle = '#2e2420'; c.beginPath(); c.ellipse(m.x, m.y + bob * 0.3, 26, 22, 0, 0, TAU); c.fill();
+    c.fillStyle = '#4a3a32'; c.beginPath(); c.ellipse(m.x, m.y - 4 + bob, 20, 16, 0, 0, TAU); c.fill();
+    c.fillStyle = '#e88a9a'; c.beginPath(); c.arc(m.x, m.y - 16 + bob, 6, 0, TAU); c.fill();
+    c.strokeStyle = '#d8c3a0'; c.lineWidth = 2.5; for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(m.x + sx * 16, m.y + bob); for (let k = 0; k < 3; k++) { c.moveTo(m.x + sx * 18, m.y - 2 + k * 3 + bob); c.lineTo(m.x + sx * 30, m.y - 6 + k * 4 + bob + Math.sin(t * 8) * 2 * sx); } c.stroke(); }
+    for (let i = 0; i < 8; i++) { const u = (t * 0.7 + i / 8) % 1, a = i * 0.8; glow(c, m.x + Math.cos(a) * (30 + u * 40), m.y + Math.sin(a) * (24 + u * 30), 10 + u * 10, 'rgba(160,130,90,.9)', (1 - u) * 0.5); }
+  }
+
+  /* ---------- overlay: night, glows, weather, labels (screen space) ---------- */
+  function drawOverlay(c, t, view, inV) {
+    const k = kpx(), z = cam.z, night = nightFactor(), fest = festival(), wx = weatherNow(t), S2 = (x, y) => [(x - cam.x) * k + Wc / 2, (y - cam.y) * k + Hc / 2];
+    const season = SEASONS[seasonInfo().idx]; c.fillStyle = season.tint; c.fillRect(0, 0, Wc, Hc);
+    // weather cloud shadow & rain (before night so rain is visible at dusk)
+    if (wx.type !== 'clear' && wx.type !== 'updraft' && inV(wx.x, wx.y, wx.r)) {
+      const [sx, sy] = S2(wx.x, wx.y), R = wx.r * k; const g = c.createRadialGradient(sx, sy, 0, sx, sy, R);
+      const dark = wx.type === 'storm' ? 0.38 : wx.type === 'mist' ? 0 : 0.22; g.addColorStop(0, `rgba(30,40,60,${dark * wx.fade})`); g.addColorStop(1, 'rgba(30,40,60,0)'); c.fillStyle = g; c.fillRect(0, 0, Wc, Hc);
+      if (wx.type === 'mist') { c.globalAlpha = 0.35 * wx.fade; c.drawImage(glowSprite('rgba(235,240,245,.95)'), sx - R, sy - R, R * 2, R * 2); c.globalAlpha = 1; }
+      if (wx.type === 'rain' || wx.type === 'storm') { c.strokeStyle = 'rgba(200,215,240,.55)'; c.lineWidth = 1.2 * dpr; c.beginPath(); const n = wx.type === 'storm' ? 220 : 140;
+        for (let i = 0; i < n; i++) { const px = sx + (hash1(i) * 2 - 1) * R * 0.85, py0 = sy + (hash1(i + 999) * 2 - 1) * R * 0.85, fall = ((t * 600 * dpr + i * 37) % (90 * dpr)); const py = py0 + fall; if (Math.hypot(px - sx, py - sy) > R * 0.9) continue; c.moveTo(px, py); c.lineTo(px - 3 * dpr, py + 10 * dpr); } c.globalAlpha = wx.fade; c.stroke(); c.globalAlpha = 1; }
+      if (wx.type === 'storm' && Math.sin(t * 1.7) > 0.985) { c.fillStyle = 'rgba(230,240,255,.35)'; c.fillRect(0, 0, Wc, Hc); }
+    }
+    // night
+    if (night > 0) { c.fillStyle = `rgba(14,20,50,${0.6 * night})`; c.fillRect(0, 0, Wc, Hc); }
+    // glows (additive)
+    c.globalCompositeOperation = 'lighter';
+    const G = (x, y, r, col, a) => { if (!inV(x, y, r)) return; const [sx, sy] = S2(x, y); glow(c, sx, sy, r * k, col, a); };
+    const pulse = 0.75 + 0.25 * Math.sin(t * 0.9);
+    G(0, 40, CITY.hollowR * 0.7, 'rgba(255,205,110,.8)', (0.25 + night * 0.35) * pulse);
+    // lightning deep below
+    { const P = 9, seg = Math.floor(t / P), h = hash1(seg + 3); const t0 = seg * P + hash1(seg + 77) * 6; if (h < 0.55 && t > t0 && t < t0 + 0.55) { const fl = (Math.sin((t - t0) * 60) > 0 ? 1 : 0.4) * (1 - (t - t0) / 0.55); const a = hash1(seg) * TAU, rr = CITY.hollowR * 0.35 * hash1(seg + 5);
+      G(Math.cos(a) * rr, Math.sin(a) * rr, 380, 'rgba(180,210,255,.9)', 0.7 * fl); if (inV(0, 0, 800)) { c.strokeStyle = `rgba(220,235,255,${0.9 * fl})`; c.lineWidth = 2.5 * dpr; c.beginPath(); let [bx, by] = [Math.cos(a) * rr, Math.sin(a) * rr]; let [sx, sy] = S2(bx, by); c.moveTo(sx, sy);
+        for (let i = 0; i < 7; i++) { bx += (hash2(seg, i) - 0.5) * 120; by += (hash2(i, seg) - 0.5) * 120; [sx, sy] = S2(bx, by); c.lineTo(sx, sy); } c.stroke(); } } }
+    // drifting Lumen motes rising out of the Hollow
+    if (inV(0, 0, 1000)) for (const m of W.motes) { const u = (t * m.sp + m.off) % 1, rr = 40 + u * CITY.hollowR * 1.05, a = m.a + Math.sin(t * 0.3 + m.wob) * 0.1; G(Math.cos(a) * rr, Math.sin(a) * rr - u * 40, m.sz * 2.4, 'rgba(255,220,120,.95)', Math.sin(u * Math.PI) * (0.5 + night * 0.5)); }
+    // updraft weather: a spiral column of motes at the rim
+    if (wx.type === 'updraft' && inV(wx.x, wx.y, 300)) for (let i = 0; i < 50; i++) { const u = (t * 0.25 + i / 50) % 1, a = i * 0.7 + t * 2, rr = 30 + u * 220; G(wx.x + Math.cos(a) * rr * 0.5, wx.y + Math.sin(a) * rr * 0.5 - u * 120, 10, 'rgba(255,240,200,.9)', (1 - u) * wx.fade * 0.8); }
+    // crystals, kilns, lantern posts, promenade lamps, home lanterns
+    for (const o of W.crystals) G(o.x, o.y, 46, 'rgba(180,150,255,.9)', 0.18 + 0.18 * Math.sin(t * 1.5 + o.seed * 20) + night * 0.25);
+    for (const o of W.kilns) G(o.x, o.y, 30, 'rgba(255,150,60,.9)', 0.25 + night * 0.4 + 0.1 * Math.sin(t * 3 + o.seed * 9));
+    for (const o of W.posts) G(o.x, o.y, 22, 'rgba(255,212,107,.95)', (0.25 + night * 0.65) * (0.75 + 0.25 * Math.sin(t * 3 + o.seed * 30)));
+    for (const l of W.lamps) if (lampLit(l)) G(l.x, l.y, 26, 'rgba(255,200,110,.95)', 0.85 * (0.85 + 0.15 * Math.sin(t * 4 + l.phase)));
+    if (z > 0.35 && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase)));
+    // sky-fish at night: the nightfall school surges out of the chasm, then a few roam
+    if (night > 0.05) { const h = hourOfDay(); const surge = h >= 17.5 && h < 21 ? clamp((h - 17.5) / 3.5, 0, 1) : -1;
+      W.nightFish.forEach((f, i) => { let x, y, a, al;
+        if (surge >= 0) { const rr = CITY.hollowR * (0.08 + surge * (0.6 + f.r * 1.4)), ang = f.a + t * f.sp * 0.8; x = Math.cos(ang) * rr; y = Math.sin(ang) * rr; a = ang + Math.PI / 2 + 0.4; al = Math.min(1, surge * 4) * (surge > 0.85 && i >= 10 ? (1 - surge) / 0.15 : 1); }
+        else { if (i >= 10) return; const u = ((t * 0.01 * (1 + f.sp)) + f.ph) % 1, rr = 300 + Math.sin(u * TAU * 2) * 1100 + 1200, ang = f.a + u * TAU; x = Math.cos(ang) * rr; y = Math.sin(ang) * rr; a = ang + Math.PI / 2; al = night; }
+        if (!inV(x, y, 30)) return; const [sx, sy] = S2(x, y); glow(c, sx, sy, f.size * 4 * k, f.hue < 0.5 ? 'rgba(120,255,220,.9)' : 'rgba(150,200,255,.9)', 0.5 * al);
+        c.globalCompositeOperation = 'source-over'; c.save(); c.setTransform(k, 0, 0, k, Wc / 2 - cam.x * k, Hc / 2 - cam.y * k); drawSkyFish(c, i % 7 === 0 ? 'eel' : 'school', x, y, a, f.size * (i % 7 === 0 ? 3 : 1), t, f.ph, true, al); c.restore(); c.globalCompositeOperation = 'lighter'; }); }
+    // Lumen Festival: lanterns float from the rim into the Hollow
+    if (fest === 'lumen') for (const L of W.lanterns) { const u = (t * L.sp + L.ph) % 1, rr = (hollowR(L.a) + 60) * (1 - u * 0.75); G(Math.cos(L.a + u * 0.6) * rr, Math.sin(L.a + u * 0.6) * rr - Math.sin(u * Math.PI) * 30, 18, L.c === '#ffd46b' ? 'rgba(255,212,107,.95)' : 'rgba(255,170,100,.95)', Math.sin(u * Math.PI) * 0.9); }
+    if (fest === 'harvest') { const m = W.markets.find((mm) => REGIONS[mm.region].key === 'farms'); if (m) for (let i = 0; i < 6; i++) { const u = (t * 0.5 + i / 6) % 1, a = i * 1.1 + Math.floor(t * 0.5 + i / 6) * 2; G(m.x + Math.cos(a) * (40 + u * 60), m.y + Math.sin(a) * (40 + u * 60), 12 * (1 - u) + 4, ['rgba(255,200,90,.9)', 'rgba(255,120,90,.9)', 'rgba(150,255,150,.9)'][i % 3], 1 - u); } }
+    c.globalCompositeOperation = 'source-over';
+    // frost snow in winter
+    if (frostLevel() > 0.3) { c.fillStyle = 'rgba(255,255,255,.8)'; for (let i = 0; i < 60; i++) { const x = (hash1(i) * Wc + t * 20 * dpr + Math.sin(t + i) * 10) % Wc, y = (hash1(i + 7) * Hc + t * 40 * dpr) % Hc; c.beginPath(); c.arc(x, y, 1.6 * dpr, 0, TAU); c.fill(); } }
+    drawLabels(c, t, view, inV, S2);
+  }
+  function pill(c, x, y, text, opt) {
+    opt = opt || {}; const fs = (opt.fs || 11) * dpr; c.font = `${opt.bold ? 700 : 600} ${fs}px ${opt.serif ? 'Georgia,serif' : 'system-ui,sans-serif'}`;
+    const w = c.measureText(text).width + 10 * dpr, h = fs + 6 * dpr; const bx = x - w / 2, by = y - h;
+    c.globalAlpha = opt.a == null ? 1 : opt.a; c.fillStyle = opt.bg || 'rgba(255,248,230,.86)'; c.beginPath(); if (c.roundRect) c.roundRect(bx, by, w, h, h / 2); else c.rect(bx, by, w, h); c.fill();
+    if (opt.border) { c.strokeStyle = opt.border; c.lineWidth = 1.5 * dpr; c.stroke(); }
+    c.fillStyle = opt.color || '#3a2e22'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, x, by + h / 2 + 0.5); c.globalAlpha = 1;
+    return [bx, by, w, h];
+  }
+  function drawLabels(c, t, view, inV, S2) {
+    const z = cam.z, rects = [];
+    const free = (r) => { for (const q of rects) if (r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1]) return false; rects.push(r); return true; };
+    // player label always
+    { const h = W.player, [sx, sy] = S2(h.x, h.y - h.size); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · ${CITY.homeTerm} Lv ${S.buildings.hall}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
+    // mole
+    const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y - 40); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
+    // region names at far zoom
+    const ra = clamp((0.5 - z) / 0.15, 0, 1);
+    if (ra > 0) REGIONS.forEach((R, i) => { const a = regionAngle(i), [x, y] = polar(2050, a); let [sx, sy] = S2(x, y); c.font = `700 ${15 * dpr}px Georgia,serif`; { const hw = Math.max(c.measureText(`${R.icon} ${R.name}`).width, 150 * dpr) / 2 + 6 * dpr; if (sx > -hw && sx < Wc + hw) sx = Math.max(hw, Math.min(Wc - hw, sx)); } c.textAlign = 'center'; c.textBaseline = 'middle'; c.globalAlpha = ra; c.lineWidth = 4 * dpr; c.strokeStyle = 'rgba(40,30,20,.65)'; c.strokeText(`${R.icon} ${R.name}`, sx, sy); c.fillStyle = '#fff6dc'; c.fillText(`${R.icon} ${R.name}`, sx, sy); c.font = `600 ${10.5 * dpr}px system-ui`; c.strokeText(R.res.join('  '), sx, sy + 16 * dpr); c.fillText(R.res.join('  '), sx, sy + 16 * dpr); c.globalAlpha = 1; });
+    if (ra > 0) { const [sx, sy] = S2(0, 0); c.font = `700 ${16 * dpr}px Georgia,serif`; c.globalAlpha = ra; c.fillStyle = '#ffe9a8'; c.textAlign = 'center'; c.fillText('THE HOLLOW', sx, sy); c.globalAlpha = 1; }
+    // civic labels
+    const ca = clamp((z - 0.28) / 0.12, 0, 1);
+    if (ca > 0) for (const o of W.civic) { if (!inV(o.x, o.y, 40) || o.type === 'plaza') continue; const [sx, sy] = S2(o.x, o.y + (o.r || 20) + 8);
+      const label = o.type === 'market' ? `🏪 ${o.name}${marketSpike(o.idx) ? ' 📈' : ''}` : o.type === 'vault' ? `🏦 ${o.name}` : o.type === 'lift' ? `🧵 ${o.name}` : o.type === 'statue' ? '🗿 Aurel Vane' : o.type === 'memorial' ? '🕯️ Wall of Lanterns Out' : o.type === 'gate' ? '🚪 The Undergate' : '';
+      if (!label) continue; const r = pill(c, sx, sy + 14 * dpr, label, { a: ca, bg: 'rgba(36,50,74,.85)', color: '#fff3d0', fs: 10.5 }); rects.push(r); }
+    // NPC names + speech bubbles
+    if (z > 0.45) for (const n of W.npcs) { if (n.sx == null || !inV(n.sx, n.sy, 20)) continue; const [sx, sy] = S2(n.sx, n.sy);
+      if (z > 0.75) rects.push(pill(c, sx, sy - 9 * dpr, `${n.npc.icon} ${n.npc.name}`, { bg: 'rgba(255,230,160,.95)', fs: 10, bold: true }));
+      const b = npcBubble(n, t); if (b) { const r = pill(c, sx, sy - (z > 0.75 ? 26 : 10) * dpr, b, { bg: '#fffdf4', fs: 10.5, border: 'rgba(110,80,40,.4)' }); rects.push(r); } }
+    // home labels (level-of-detail, decluttered)
+    if (z > 0.6) { const homes = queryObjs(view.x0, view.y0, view.x1, view.y1, 20).filter((o) => o.type === 'home' && !o.isPlayer).sort((a, b) => b.level - a.level);
+      for (const h of homes) { const need = Math.max(0.75, 1.3 - h.level / 45); const a = clamp((z - need) / 0.15 + 0.2, 0, 1); if (a <= 0.05) continue;
+        const [sx, sy] = S2(h.x, h.y - h.size * 0.55); const fs = 10.5; c.font = `600 ${fs * dpr}px system-ui`; const w = c.measureText(h.owner).width + 34 * dpr, hh = (fs + 6) * dpr; const r = [sx - w / 2, sy - hh, w, hh];
+        if (!free(r)) continue; const sh = (S.mapShields[h.id] || 0) > S.gameTime; pill(c, sx, sy, `${h.owner} · ${h.level}${sh ? ' 🛡️' : ''}`, { a, fs }); } }
+    // walker names when very close
+    if (z > 1.7) W.walkers.forEach((w) => { const [x, y] = walkerPos(w, t); if (!inV(x, y)) return; const [sx, sy] = S2(x, y - 7); const r = [sx - 30 * dpr, sy - 14 * dpr, 60 * dpr, 14 * dpr]; if (!free(r)) return; pill(c, sx, sy, w.name, { fs: 9, bg: 'rgba(255,255,255,.7)' }); });
+  }
+  function npcBubble(n, t) {
+    const b = bubbles.get(n.npc.id); if (b && b.until > t) return b.text;
+    if (n.npc.id === 'greta') { const k = Math.floor(t / 9); if (t % 9 < 3.5) { const docks = W.markets.findIndex((m) => m.region === 0); return marketSpike(docks) ? 'Lumen oil is DEAR today! Get it while it lasts!' : n.npc.lines[k % 3]; } }
+    if (n.npc.id === 'kip' && t % 11 < 4) return '📯 ' + (currentRumor || 'News from the Rim!').slice(0, 60);
+    if (n.npc.id === 'pell' && isDusk() && t % 7 < 3) return 'Lamps, lamps! Lighting the way down!';
+    if (n.npc.id === 'maddox' && t % 13 < 2.5) return '♪ hmm-hmm, the rope sings… ♪';
+    if (n.npc.id === 'juniper' && festival() === 'harvest' && t % 10 < 3.5) return 'Harvest Fair! Pies, pumpkins and mole races!';
+    return null;
+  }
+
+  /* ---------- HUD ---------- */
+  let currentRumor = '';
+  function rumorPool() {
+    const out = [], t = performance.now() / 1000;
+    if (S.gameTime < S.nextRaidAt && S.nextRaidAt - S.gameTime < 3 * HOUR && S.gameTime >= S.shieldUntil) out.push({ w: 3, s: '🏴 Scouts saw raider banners on the east road. They\'re eyeing your Lanternhold.' });
+    const nm = nextMole(); if (nm && nm.start - S.gameTime < 4 * HOUR) out.push({ w: 3, s: `🫨 The ground's been trembling in ${REGIONS[nm.region].name}. Something big is digging.` });
+    const cm = currentMole(); if (cm) out.push({ w: 4, s: `⚠️ A Rim Mole broke the surface in ${REGIONS[cm.region].name}! Crowds are gathering to watch the fight.` });
+    const w = Math.floor(S.gameTime / (CITY.spikeWindowHours * HOUR));
+    W.markets.forEach((m, i) => { const res = REGIONS[m.region].sells[0]; if (marketSpike(i)) out.push({ w: 2, s: `📈 ${CONFIG.resources[res].name} prices are spiking at the ${m.name}! Traders are pouring in.` });
+      else if (spikeAt(i, w + 1)) out.push({ w: 2, s: `🤫 Traders whisper ${CONFIG.resources[res].name} will be dear at the ${m.name} soon.` }); });
+    const si = seasonInfo(); if (!si.forced && si.nextIn < 6 * HOUR) out.push({ w: 2, s: `${SEASONS[(si.idx + 1) % 4].icon} ${SEASONS[(si.idx + 1) % 4].name} is coming. Old Maddox can smell it on the updraft.` });
+    const f = festival(); if (f === 'lumen') out.push({ w: 3, s: '🏮 The Lumen Festival is on! Lanterns float down into the Hollow all night.' }); if (f === 'harvest') out.push({ w: 3, s: '🌾 The Harvest Fair is on in Goldenstep! The Bazaar is packed.' });
+    if (frostLevel() > 0) out.push({ w: 2, s: '❄️ Frost is creeping over Greystone Bluffs. Quarry crews are wrapping their hands.' });
+    const tk = S.hero.task; if (tk && tk.type === 'expedition' && tk.end - S.gameTime < 1.5 * HOUR) out.push({ w: 3, s: `🧗 Word on the Promenade: ${CONFIG.hero.name} is climbing back up the Tether.` });
+    const nw = weatherNow(t + CITY.weatherSeconds); if (nw.type !== 'clear') out.push({ w: 1, s: `🌦️ Weather-watchers say: ${weatherLabel(nw).replace(/^\S+\s/, '')} soon.` });
+    if (isDusk()) out.push({ w: 1, s: '🕯️ Pell is lighting the Promenade lamps. The sky-fish will rise soon.' });
+    RUMORS.forEach((r) => out.push({ w: 1, s: '💬 ' + r }));
+    return out;
+  }
+  function updateTicker() {
+    const pool = rumorPool(); const real = pool.filter((p) => p.w > 1); const pickFrom = real.length && tickerI % 2 === 0 ? real : pool; currentRumor = pickFrom[tickerI % pickFrom.length].s; tickerI++;
+    const el = $('#ticker span'); if (el) { el.classList.remove('slide'); void el.offsetWidth; el.textContent = currentRumor; el.classList.add('slide'); }
+  }
+  function updateInfo(t) {
+    const si = seasonInfo(), s = SEASONS[si.idx], h = hourOfDay(), f = festival(), wx = weatherNow(t);
+    const hh = Math.floor(h), mm = Math.floor((h % 1) * 60);
+    const txt = `${s.icon} ${s.name}${f ? (f === 'lumen' ? ' · 🏮 Lumen Festival' : ' · 🌾 Harvest Fair') : ''} · ${h >= 6 && h < 18 ? '☀️' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${weatherLabel(wx)}`;
+    const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
+  }
+  function buildLegend() {
+    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Regions of Rim City</b><button class="btn ghost sm" data-city="legend">✕</button></div>` + REGIONS.map((R, i) => `<div class="legrow" data-city="region:${i}"><span class="sw" style="background:rgb(${R.ground.join(',')})"></span><div><b>${R.icon} ${R.name}</b><br><span class="dim">${R.res.join(' · ')}</span></div></div>`).join('') +
+      `<div class="dim" style="margin-top:6px">🏪 Bazaars trade resources · 🏦 Vaults add storage · 🧵 Tether lifts drop into the Hollow · ★ is your ${CITY.homeTerm}. Tap a region to fly there.</div>`;
+  }
+  function buildMinimapBase() {
+    const N = 120; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = (i / N) * 2 * CITY.R - CITY.R, y = (j / N) * 2 * CITY.R - CITY.R; let col = groundRGB(x, y); if (hollowDist(x, y) < 0) col = [24, 30, 52]; else if (inLake(x, y)) col = [93, 155, 179]; else if (chasmDist(x, y) < 6) col = [30, 32, 48]; const o = (j * N + i) * 4; img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255; }
+    const tmp = document.createElement('canvas'); tmp.width = tmp.height = N; tmp.getContext('2d').putImageData(img, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, N * 2, N * 2);
+    g.fillStyle = 'rgba(60,40,20,.55)'; const sc = (N * 2) / (CITY.R * 2); for (const h of W.homes) g.fillRect((h.x + CITY.R) * sc - 0.5, (h.y + CITY.R) * sc - 0.5, 1.2, 1.2);
+  }
+  function drawMinimap() {
+    if (!mmBase) return; const s = mm.width; if (mm.width !== 240) { mm.width = mm.height = 240; }
+    mctx.clearRect(0, 0, 240, 240); mctx.save(); mctx.beginPath(); mctx.arc(120, 120, 118, 0, TAU); mctx.clip(); mctx.drawImage(mmBase, 0, 0, 240, 240);
+    const sc = 240 / (CITY.R * 2), k = kpx(); const vw = Wc / k, vh = Hc / k; mctx.strokeStyle = '#fff'; mctx.lineWidth = 2; mctx.strokeRect((cam.x - vw / 2 + CITY.R) * sc, (cam.y - vh / 2 + CITY.R) * sc, vw * sc, vh * sc);
+    const p = W.player; mctx.fillStyle = '#ffd46b'; mctx.strokeStyle = '#7a4a1c'; mctx.beginPath(); mctx.arc((p.x + CITY.R) * sc, (p.y + CITY.R) * sc, 5, 0, TAU); mctx.fill(); mctx.stroke();
+    const m = currentMole(); if (m) { mctx.fillStyle = '#c8634c'; mctx.beginPath(); mctx.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, 4.5, 0, TAU); mctx.fill(); }
+    mctx.restore(); void s;
+  }
+  function cityButton(b) {
+    if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
+    if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
+    if (b === 'home') return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
+    if (b === 'overview') return flyTo(0, 0, Math.min(Wc, Hc) / dpr / (CITY.R * 2.1));
+    if (b === 'legend') return $('#legend').classList.toggle('hidden');
+    if (b === 'journal') return journalModal();
+    if (b === 'season') return seasonModal();
+    if (b.startsWith('region:')) { const i = +b.split(':')[1]; const [x, y] = polar(1900, regionAngle(i)); $('#legend').classList.add('hidden'); flyTo(x, y, 0.45); }
+  }
+
+  /* ---------- taps & cards ---------- */
+  function handleTap(sx, sy) {
+    const [x, y] = s2w(sx, sy), z = cam.z, t = performance.now() / 1000, tapR = 16 / z;
+    for (const n of W.npcs) { const [nx, ny] = npcPos(n, t); if (Math.hypot(nx - x, ny - y) < Math.max(14, tapR)) return npcCard(n, t); }
+    const mole = currentMole(); if (mole && Math.hypot(mole.x - x, mole.y - y) < Math.max(50, tapR)) return moleCard(mole);
+    if (Math.hypot(W.player.x - x, W.player.y - y) < Math.max(W.player.size, tapR)) return playerCard();
+    let best = null, bd = 1e9;
+    for (const o of queryObjs(x - 80, y - 80, x + 80, y + 80, 80)) { if (!['home', 'market', 'vault', 'lift', 'statue', 'memorial', 'gate'].includes(o.type)) continue; const d = Math.hypot(o.x - x, o.y - y) - (o.r || 20); if (d < bd) { bd = d; best = o; } }
+    if (best && bd < Math.max(8, tapR * 0.6)) { if (best.type === 'home') return homeCard(best); if (best.type === 'market') return marketCard(best); if (best.type === 'vault') return vaultCard(best); if (best.type === 'lift') return liftCard(best); return loreCard(best); }
+    if (hollowDist(x, y) < 0) return hollowCard();
+    if (Math.hypot(x, y) < CITY.R) return regionCard(regionAt(x, y));
+  }
+  const btnRow = (html) => `<div class="wrapgap" style="margin-top:10px">${html}</div>`;
+  function historyLines(h, real) {
+    const L = [];
+    if (h.banners) L.push(`🚩 Banners for ${h.banners} Hollow layer${h.banners > 1 ? 's' : ''} cleared: ${CONFIG.layers.slice(0, h.banners).map((l) => l.name).join(', ')}`);
+    if (h.trophies) L.push(`🦴 ${h.trophies} Rim Mole trophy${h.trophies > 1 ? ' skulls' : ' skull'} over the door`);
+    if (h.battered) L.push(real ? '🧱 Your wall is still cracked from the last raid' : '🧱 The wall is battered from a recent raid');
+    if (!real && h.pet) L.push(`${{ pup: '🐶', wisp: '👻', moth: '🦋', ferret: '🦦', tortoise: '🐢', kit: '🐱' }[h.pet]} A ${PET_NAMES[h.pet]} ${h.petSleep ? 'sleeps on the porch' : 'patrols the yard'}`);
+    if (real) equippedPets().forEach((p) => L.push(`${CONFIG.pets[p.id].icon} ${CONFIG.pets[p.id].name} ${!heroHome() || nightFactor() > 0.5 ? 'sleeps on the porch' : 'plays in the yard'}`));
+    return L.length ? `<div class="small" style="margin-top:6px">${L.join('<br>')}</div>` : '<div class="dim" style="margin-top:6px">No trophies yet. A fresh start.</div>';
+  }
+  function homeCard(h) {
+    const R = REGIONS[h.region], sh = (S.mapShields[h.id] || 0) > S.gameTime, est = starsFor(attackPower() / h.power);
+    openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · Lv ${h.level} · ${R.icon} ${R.name}</div>
+      <div class="wrapgap" style="margin-top:6px"><span class="tag">🛡️ Power ${h.power}</span><span class="tag">⚔️ You ${Math.round(attackPower())}</span><span class="tag ${est >= 2 ? 'good' : est === 0 ? 'bad' : ''}">Likely ${'★'.repeat(est)}${'☆'.repeat(3 - est)}</span></div>
+      <div class="small" style="margin-top:6px">Resources nearby: ${R.res.join(' · ')}</div>
+      <div class="small">Full raid loot: ${lootText(mapRaidLoot(h.level))}</div>
+      ${historyLines(h, false)}
+      ${btnRow(`${sh ? `<span class="tag">🛡️ Shielded ${countdown(S.mapShields[h.id])}</span>` : `<button class="btn red" data-act="mapraid" data-id="${h.id}" ${!heroHome() || S.res.lumen < CONFIG.mapRaid.lumen ? 'disabled' : ''}>⚔️ Raid (${CONFIG.mapRaid.lumen} 🏮)</button>`}
+        <button class="btn ghost" data-act="mapvisit" data-id="${h.id}">👋 Visit</button><button class="btn ghost" data-act="close">Close</button>`)}
+      ${!heroHome() ? '<div class="dim" style="margin-top:6px">Your hero is away, so raids wait until she returns.</div>' : ''}`, 'city');
+  }
+  function playerCard() {
+    openModal(`<h2>★ Your ${CITY.homeTerm}</h2><div class="small">Lantern Hall Lv ${S.buildings.hall} · ${REGIONS[W.player.region].icon} ${REGIONS[W.player.region].name} · 🛡️ Defense ${Math.round(defensePower())}</div>
+      ${historyLines(W.player, true)}
+      <div class="dim" style="margin-top:6px">Everything here reflects your real game: banners for the deepest layer ${CONFIG.hero.name} returned from, a skull for each Rim Mole beaten, cracks after a lost defense, and your equipped pets.</div>
+      ${btnRow(`<button class="btn" data-act="gotab" data-id="capital">🏰 Open Capital</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
+  }
+  function marketCard(m) {
+    const R = REGIONS[m.region], spike = marketSpike(m.idx), mult = spike ? CITY.spikeMult : 1, P = CONFIG.market, lot = P.lot;
+    const sellMult = (R.premium ? P.premiumSellMult : P.sellMult);
+    const buys = R.sells.map((k) => { const n = k === 'amber' ? 5 : lot, price = Math.ceil(P.prices[k] * n * P.buyMult * mult * (k === R.sells[0] ? 1 : 1.1)); return `<button class="btn alt sm" data-act="mbuy" data-id="${k}" data-n="${n}" data-m="${(price / (P.prices[k] * n)).toFixed(3)}">Buy ${n} ${CONFIG.resources[k].icon} · ${price} 👑</button>`; }).join('');
+    const sells = Object.keys(P.prices).filter((k) => k !== 'crowns').map((k) => { const n = k === 'amber' || k === 'steel' ? 5 : lot; const m2 = sellMult * (R.sells.includes(k) && spike ? CITY.spikeMult : 1) * (R.sells.includes(k) ? 0.8 : 1); const gain = Math.floor(P.prices[k] * n * m2);
+      return `<button class="btn ghost sm" data-act="msell" data-id="${k}" data-n="${n}" data-m="${m2.toFixed(3)}" ${(S.res[k] || 0) < n ? 'disabled' : ''}>Sell ${n} ${CONFIG.resources[k].icon} → ${gain} 👑</button>`; }).join('');
+    openModal(`<h2>🏪 ${m.name}</h2><div class="small">${R.icon} ${R.name} · stalls: ${R.res.join(' · ')}</div>
+      ${spike ? `<div class="tag bad" style="margin-top:6px">📈 Price spike! ${CONFIG.resources[R.sells[0]].name} costs ×${CITY.spikeMult}, and the square is packed.</div>` : `<div class="dim" style="margin-top:6px">Normal trading day.${R.premium ? ' Goldenstep traders pay premium Crowns for everything you sell.' : ''}</div>`}
+      ${festival() === 'harvest' && R.key === 'farms' ? '<div class="tag good" style="margin-top:4px">🌾 Harvest Fair! Extra stalls and crowds.</div>' : ''}
+      <div class="small" style="margin-top:8px"><b>Buy local goods</b></div>${btnRow(buys)}
+      <div class="small" style="margin-top:8px"><b>Sell to the bazaar</b></div>${btnRow(sells)}
+      <div class="dim" style="margin-top:8px">You have 👑 ${fmt(S.res.crowns)} · storage cap ${fmt(storageCap())}. Caravans deliver instantly (prototype).</div>
+      ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+    marketCard.last = m;
+  }
+  function vaultCard(v) {
+    const lvl = S.buildings.vault || 0, block = buildBlock('vault'), cost = lvl < CONFIG.buildings.vault.max ? buildCost('vault') : null;
+    openModal(`<h2>🏦 ${v.name}</h2><div class="small">${REGIONS[v.region].icon} ${REGIONS[v.region].name}</div>
+      <p class="small">Vaults are cut into the old bedrock under the Rim. Building your own <b>Rim Vault</b> raises every storage cap by <b>+${Math.round(CONFIG.vault.capPerLevel * 100)}%</b> per level and keeps <b>+${Math.round(CONFIG.vault.protectPerLevel * 100)}%</b> more of your stock safe from raiders.</p>
+      <div class="wrapgap"><span class="tag">Your Vault: Lv ${lvl}</span><span class="tag">Storage cap ${fmt(storageCap())}</span><span class="tag">Raid-safe ${Math.round(protectedShare() * 100)}%</span></div>
+      ${cost ? `<div class="wrapgap" style="margin-top:8px">${costHtml(cost)}<span class="dim">⏱ ${gameDur(buildTime('vault'))}</span></div>` : ''}
+      ${btnRow(`${cost ? `<button class="btn" data-act="build" data-id="vault" ${block || !canAfford(cost) ? 'disabled' : ''}>${block && block !== 'Builders busy' ? block : S.build ? 'Builders busy' : lvl ? `Upgrade to Lv ${lvl + 1}` : 'Build your Vault'}</button>` : '<span class="tag good">Max level</span>'}<button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
+  }
+  function liftCard(L) {
+    openModal(`<h2>🧵 ${L.name}</h2><p class="small">A public Tether lift on the lip of the Hollow. Cages go down to the Terraces and back all day. Your own Spine is the Tether Lift in your capital (Lv ${S.buildings.lift}, reaches layer ${liftReach()}).</p>
+      ${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">🕳️ Go to the Hollow</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+  }
+  function loreCard(o) { const L = LORE[o.type]; openModal(`<h2>${o.type === 'statue' ? '🗿' : o.type === 'memorial' ? '🕯️' : '🚪'} ${L.title}</h2><p>${L.text}</p>${o.type === 'memorial' ? `<p class="dim">${S.stats.expeditions} of your expeditions have returned. Wren's name is not on the Wall.</p>` : ''}${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
+  function hollowCard() { openModal(`<h2>🕳️ The Hollow</h2><p class="small">A chasm with no bottom anyone has seen. Lumen glows in its depths; the layers step down like terraces: ${CONFIG.layers.map((l) => l.name).join(' → ')} → …</p><p class="dim">Sky-fish surge out of it at nightfall. Lightning sometimes flickers far below.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">Send Wren down</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
+  function regionCard(i) {
+    const R = REGIONS[i], n = W.homes.filter((h) => h.region === i).length, m = W.markets.find((mm) => mm.region === i);
+    openModal(`<h2>${R.icon} ${R.name}</h2><p class="small">${R.blurb}</p><div class="wrapgap">${R.res.map((r) => `<span class="tag">${r}</span>`).join('')}</div>
+      <div class="dim" style="margin-top:6px">${n} ${CITY.homeTerm}s · Bazaar trades ${R.sells.map((k) => CONFIG.resources[k].icon + ' ' + CONFIG.resources[k].name).join(', ')}${R.key === 'bluffs' && frostLevel() > 0 ? ' · ❄️ frost is creeping in' : ''}</div>
+      ${btnRow(`${m ? `<button class="btn alt" data-act="mopen" data-id="${m.idx}">🏪 Open ${m.name}</button>` : ''}<button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
+  }
+  function npcCard(n, t) {
+    const lines = n.npc.id === 'kip' ? [currentRumor || 'Nothing new on the Rim!'] : n.npc.lines; const line = lines[n.talk % lines.length]; n.talk++;
+    bubbles.set(n.npc.id, { text: line.length > 54 ? line.slice(0, 52) + '…' : line, until: t + 5 });
+    const extra = n.npc.id === 'greta' ? `<button class="btn alt" data-act="mopen" data-id="${W.markets.findIndex((m) => m.region === 0)}">🏪 Docks Bazaar</button>` : n.npc.id === 'hennick' ? `<button class="btn" data-act="vopen">🏦 About Vaults</button>` : n.npc.id === 'juniper' ? `<button class="btn alt" data-act="mopen" data-id="${W.markets.findIndex((m) => m.region === 5)}">🏪 Goldenstep Bazaar</button>` : '';
+    openModal(`<h2>${n.npc.icon} ${n.npc.name}</h2><div class="dim">${n.npc.role}</div><p style="font-family:Georgia,serif;font-size:16px;margin:10px 0">“${esc(line)}”</p>
+      ${btnRow(`<button class="btn ghost" data-act="npcmore" data-id="${n.npc.id}">💬 Keep talking</button>${extra}<button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
+  }
+  function moleCard(m) {
+    const P = molePower(), ch = clamp(attackPower() / P, 0.15, 0.95);
+    openModal(`<h2>⚠️ A Rim Mole surfaced!</h2><p class="small">A house-sized mole has burst out of a fissure in <b>${REGIONS[m.region].name}</b>. Half the street has come out to watch. It digs back down in ${countdown(m.end)}.</p>
+      <div class="wrapgap"><span class="tag bad">Mole power ${P}</span><span class="tag">You ${Math.round(attackPower())}</span><span class="tag">~${Math.round(ch * 100)}% to win</span></div>
+      <div class="dim" style="margin-top:6px">Win: Crowns, Amber, Iron, a skull trophy for your ${CITY.homeTerm} and big XP. Lose: Wren limps home with a little loot.</div>
+      ${btnRow(`<button class="btn red" data-act="molefight" data-id="${m.k}" ${!heroHome() ? 'disabled' : ''}>⚔️ Join the fight</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
+  }
+  function journalModal() {
+    const J = S.journal || [];
+    openModal(`<h2>📔 ${CONFIG.hero.name}'s Journal</h2><div class="dim">${CONFIG.hero.name} writes an entry whenever you come back after time away.</div>
+      <div class="log" style="max-height:60vh">${J.map((e) => `<div style="padding:8px 0"><span class="t">Day ${e.day} · ${new Date(e.real).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span><div style="font-family:Georgia,serif">${e.text}</div></div>`).join('') || '<div class="dim">No entries yet. Leave for a while and come back.</div>'}</div>
+      ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+  }
+  function seasonModal() {
+    const si = seasonInfo();
+    openModal(`<h2>${SEASONS[si.idx].icon} Seasons & festivals</h2><p class="small">Now: <b>${SEASONS[si.idx].name}</b>${festival() ? ` · ${festival() === 'lumen' ? '🏮 Lumen Festival' : '🌾 Harvest Fair'}` : ''}. ${si.forced ? 'Debug override is ON.' : `Next season in ${realLeft(S.gameTime + si.nextIn)} real.`}</p>
+      <div class="dim">The cycle: 🌸 Bloomtide → ☀️ Lumen Summer (Lumen Festival late in the season) → 🍂 Ambertide (Harvest Fair mid-season) → ❄️ Frostfall (frost creeps over the Bluffs). Each season lasts ${S.testMode ? CITY.testSeasonDays : CITY.seasonDays} game day(s)${S.testMode ? ' in test mode' : ''}.</div>
+      <div class="small" style="margin-top:8px"><b>Debug</b></div>
+      ${btnRow(`<button class="btn ghost sm" data-act="season" data-id="next">Next season ⏭</button><button class="btn ghost sm" data-act="season" data-id="fest">${S.festivalOverride ? 'Festival OFF' : 'Force festival 🎉'}</button><button class="btn ghost sm" data-act="season" data-id="night">Skip to dusk 🌆</button><button class="btn ghost sm" data-act="season" data-id="deep">Nightfall 🌙</button><button class="btn ghost sm" data-act="season" data-id="auto">Follow clock ↺</button>`)}
+      ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+  }
+  function onAct(act, ds) {
+    switch (act) {
+      case 'mapraid': { const h = W.homes[+ds.id]; closeModalQuiet(); return startMapRaid(h); }
+      case 'mapvisit': { const h = W.homes[+ds.id]; toast(`👋 ${h.owner} waves from the window. (Visiting is coming soon.)`); return; }
+      case 'mbuy': marketBuy(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
+      case 'msell': marketSell(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
+      case 'mopen': return marketCard(W.markets[+ds.id]);
+      case 'vopen': return vaultCard(W.vaults[0]);
+      case 'gotab': closeModalQuiet(); return setTab(ds.id);
+      case 'npcmore': { const n = W.npcs.find((x) => x.npc.id === ds.id); return npcCard(n, performance.now() / 1000); }
+      case 'molefight': { const m = currentMole(); if (!m) return toast('The mole has gone back down.'); closeModalQuiet(); return startMoleFight(m); }
+      case 'season': { if (ds.id === 'next') { const si = seasonInfo(); S.seasonOverride = (si.idx + 1) % 4; }
+        else if (ds.id === 'fest') { S.festivalOverride = !S.festivalOverride; if (S.seasonOverride == null) S.seasonOverride = seasonInfo().idx; if (S.festivalOverride && S.seasonOverride !== 1 && S.seasonOverride !== 2) S.seasonOverride = 1; }
+        else if (ds.id === 'deep') { const h = hourOfDay(); simulate(((19.4 - h + 24) % 24) * HOUR); toast('🌙 Skipped ahead to nightfall'); }
+        else if (ds.id === 'night') { const h = hourOfDay(); const d = ((17.6 - h + 24) % 24) * HOUR; simulate(d); toast('🌆 Skipped ahead to dusk'); }
+        else { S.seasonOverride = null; S.festivalOverride = false; }
+        save(); return seasonModal(); }
+    }
+    return false;
+  }
+  return { show, hide, onAct, flyTo, cam, st, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
+})();
 </script>
 </body></html>

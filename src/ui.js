@@ -59,6 +59,7 @@ function buildingEffect(id, lvl) {
     case 'lift': return `reach layer ${Math.min(CONFIG.lift.maxReach, lvl + 1)} · ${CONFIG.lift.capacityPerLevel * lvl} wt/h · Pull −${Math.round(CONFIG.lift.pullCutPerLevel * (lvl - 1) * 100)}%`;
     case 'wall': { const w = CONFIG.wall; return `${Math.min(w.maxGolems, w.baseGolems + Math.floor((lvl - 1) / w.golemEvery))} golems × ${w.golemPower + w.golemPowerPerLevel * (lvl - 1)} power`; }
     case 'kennel': return `${lvl >= 3 ? 2 : 1} pet slot${lvl >= 3 ? 's' : ''} · pets +${Math.round(CONFIG.kennelPetBoost * (lvl - 1) * 100)}%`;
+    case 'vault': return lvl ? `storage +${Math.round(CONFIG.vault.capPerLevel * lvl * 100)}% · protection +${Math.round(CONFIG.vault.protectPerLevel * lvl * 100)}%` : 'not built';
     case 'forge': return lvl ? `${fmt1(CONFIG.forgePerLevel * lvl)} 🔩/h from raw ore` : 'not built';
   }
   return '';
@@ -119,7 +120,8 @@ function heroStatusCard() {
   else if (t.type === 'expedition') s += `<div class="small" style="margin-top:6px">Exploring <b>${layerById(t.layer).name}</b> · back in ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   else if (t.type === 'stranded') s += `<div class="small" style="margin-top:6px">🕯️ Stranded in <b>${layerById(t.layer).name}</b>. Rescue line arrives in ${countdown(t.end)}</div>${pbar(t.start, t.end)}
       <button class="btn alt sm" data-act="rescue">Send rescue line now (${rescueCost()} 🏮)</button>`;
-  else if (t.type === 'raid') s += `<div class="small" style="margin-top:6px">⚔️ Marching on <b>${CONFIG.rivals[t.rival].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
+  else if (t.type === 'mole') s += `<div class="small" style="margin-top:6px">🦴 Fighting a Rim Mole in <b>${REGIONS[t.region].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
+  else if (t.type === 'raid') s += `<div class="small" style="margin-top:6px">⚔️ Marching on <b>${t.map ? esc(t.map.owner + "'s " + t.map.name) : CONFIG.rivals[t.rival].name}</b> · ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   return s + '</div>';
 }
 function viewHollow() {
@@ -362,7 +364,7 @@ function doTap(x, y) {
 }
 
 /* ---------- modal ---------- */
-function openModal(html, kind) { ui.modal = kind || 'x'; $('#modalBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
+function openModal(html, kind) { ui.modalAt = performance.now(); ui.modal = kind || 'x'; $('#modalBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
 function closeModal() { ui.modal = null; $('#modal').classList.add('hidden'); $('#modalBody').innerHTML = ''; rerender(true); if (S.pendingReveal) { const r = S.pendingReveal; setTimeout(() => showReveal(r), 250); } }
 function settingsModal() {
   openModal(`<h2>⚙️ Settings</h2>
@@ -371,6 +373,7 @@ function settingsModal() {
     <div class="switch"><div><b>Skip ahead</b><div class="dim">Simulate game time instantly (shows a while-you-were-away summary).</div></div>
       <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
     <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
+    <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Rim City map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
     <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
 }
@@ -378,7 +381,9 @@ function awayModal(sum, realMs) {
   const d = sum.delta;
   const rows = Object.keys(d).map((k) => `<span class="cost ${d[k] < 0 ? 'short' : ''}">${CONFIG.resources[k].icon}${d[k] > 0 ? '+' : '−'}${fmt(Math.abs(d[k]))}</span>`).join('');
   const ev = sum.events.slice().reverse().slice(-14);
+  const je = writeJournal(sum);
   openModal(`<h2>🏮 While you were away</h2>
+    <div class="card" style="margin:8px 0;background:#fffaf0"><div class="dim">📔 From ${CONFIG.hero.name}'s journal · Day ${je.day}</div><div style="font-family:Georgia,serif;font-size:15px;margin-top:4px">“${je.text}”</div></div>
     <div class="dim">${realMs != null ? `Gone ${fmtDur(realMs)} real · ` : ''}${fmtDur(sum.gameMs)} of game time passed${sum.cappedFrom > sum.gameMs ? ` (capped at ${CONFIG.offlineCapHours}h)` : ''}.</div>
     <div class="wrapgap" style="margin:10px 0">${rows || '<span class="dim">No change in stock.</span>'}</div>
     ${sum.levels ? `<p>⭐ ${CONFIG.hero.name} gained ${sum.levels} level${sum.levels > 1 ? 's' : ''}!</p>` : ''}
@@ -387,10 +392,12 @@ function awayModal(sum, realMs) {
 }
 
 /* ---------- render loop ---------- */
-const VIEWS = { capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
+const VIEWS = { city: () => '', capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
 function rerender(force) {
   renderResbar();
   document.querySelectorAll('nav#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === ui.tab));
+  if (ui.tab === 'city') { $('#view').style.display = 'none'; CityMap.show(); return; }
+  $('#view').style.display = ''; CityMap.hide();
   if (ui.tab === 'training' && !force && document.getElementById('tapzone')) {
     updateTrainingBinds();
     if (!ui.pressing) for (const [id, fn] of [['heroSlot', heroStatusCard], ['petSlot', petsCard]]) { const el = document.getElementById(id), hh = fn(); if (el && el.dataset.h !== hh) { el.dataset.h = hh; el.innerHTML = hh; } }
@@ -444,6 +451,8 @@ function onAct(act, ds) {
     case 'toggletest': S.testMode = !S.testMode; save(); settingsModal(); return rerender(true);
     case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayModal(sum, null); save(); return rerender(true); }
     case 'reset': if (confirm('Reset all Hollowdeep progress?')) resetSave(); return;
+    case 'journal': closeModalQuiet(); setTab('city'); setTimeout(() => { const b = document.querySelector('[data-city=journal]'); if (b) b.click(); }, 60); return;
+    default: return CityMap.onAct(act, ds);
   }
 }
 function closeModalQuiet() { ui.modal = null; $('#modal').classList.add('hidden'); }
@@ -456,7 +465,7 @@ function init() {
     const t = e.target.closest('[data-tab]'); if (t) return setTab(t.dataset.tab);
     const b = e.target.closest('[data-act]'); if (b && !b.disabled) onAct(b.dataset.act, b.dataset);
   });
-  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && ui.modal !== 'reveal') closeModal(); });
+  $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal' && ui.modal !== 'reveal' && performance.now() - (ui.modalAt || 0) > 400) closeModal(); });
   document.addEventListener('pointerdown', (e) => {
     ui.pressing = true;
     const z = e.target.closest('#tapzone'); if (z) { e.preventDefault(); doTap(e.clientX, e.clientY); }
@@ -478,6 +487,7 @@ function init() {
     openModal(`<h2>Welcome to the Rim</h2>
       <p>You hold a small capital on the edge of <b>the Hollow</b>, a chasm that goes down forever. Lumen, a living light, grows deep below.</p>
       <ul class="small">
+        <li>🗺️ <b>Rim City</b>: the huge city around the Hollow. Drag, pinch and tap anything. Every house is a player's ${CITY.homeTerm}.</li>
         <li>🏰 <b>Capital</b>: upgrade buildings. Your wall is not just a wall.</li>
         <li>🕳️ <b>Hollow</b>: send ${CONFIG.hero.name} on timed expeditions. Deeper = richer, riskier.</li>
         <li>🐢 <b>Outposts</b>: your Strider mines a vein and lifts goods up the Tether. Hauling costs Lumen (the Pull).</li>

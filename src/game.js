@@ -47,6 +47,8 @@ const CONFIG = {
                  desc: 'Looks like a wall. It is not. Rock golems sleep in its columns and stand up when raiders come.' },
     kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
                  desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
+    vault:     { name: 'Rim Vault',       icon: '🏦', max: 8, start: 0, base: { crowns: 260, stone: 220 }, growth: 1.6, minutes: 30,
+                 desc: 'Deep stone vaults under your Lanternhold. +30% storage cap and +3% raid protection per level. (Public Vaults dot Rim City.)' },
     forge:     { name: 'Rim Forge',       icon: '⚒️', max: 8, start: 0, base: { crowns: 200, stone: 150, timber: 60 }, growth: 1.6, minutes: 25,
                  desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel at the Rim. Works, but hauling raw ore up costs a lot of Lumen.' },
   },
@@ -55,7 +57,11 @@ const CONFIG = {
   trainingPerLevel: { power: 3, sparXp: 4 },
   lift: { maxReach: 4, capacityPerLevel: 30, pullCutPerLevel: 0.08 },
   wall: { baseGolems: 2, golemEvery: 3, maxGolems: 5, golemPower: 10, golemPowerPerLevel: 7 },
-  forgePerLevel: 1.5,                                                 // steel per game hour per level
+  forgePerLevel: 1.5,
+  vault: { capPerLevel: 0.30, protectPerLevel: 0.03 },
+  // Rim City market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
+  market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
+  mapRaid: { lumen: 10, marchMinutes: 30, shieldHours: 6 },                                                 // steel per game hour per level
 
   // The Hollow. Expedition: hours, lumen cost, recommended power, base risk, xp, loot ranges, pet egg.
   // Outposts: burn = Lumen per hour to keep an outpost lit; pull = Pull multiplier of the layer.
@@ -121,7 +127,7 @@ const CONFIG = {
 const HOUR = 3600e3, MIN = 60e3, DAY = 24 * HOUR;
 const RES = Object.keys(CONFIG.resources);
 let S = null;                 // game state
-let ui = { tab: 'capital', pressing: false, lastHtml: '', modal: null, collecting: null };
+let ui = { tab: 'city', pressing: false, lastHtml: '', modal: null, collecting: null };
 
 /* ---------------- helpers ---------------- */
 const $ = (s) => document.querySelector(s);
@@ -159,7 +165,8 @@ function newState() {
     veins, nextShipAt: HOUR * CONFIG.pull.shipEveryHours, lastShip: null,
     nextRaidAt: CONFIG.raids.firstRaidHours * HOUR, shieldUntil: 0, raidCount: 0, lastRaid: null, pendingReveal: null,
     rivals: [], log: [], nextUid: 10, seen: {},
-    stats: { expeditions: 0, raidsWon: 0, defended: 0, tapsAll: 0 },
+    mapShields: {}, moleDone: {}, journal: [], seasonOverride: null, festivalOverride: false, cityCam: null,
+    stats: { expeditions: 0, raidsWon: 0, defended: 0, tapsAll: 0, deepest: 0, moles: 0 },
   };
 }
 function uid() { return S.nextUid++; }
@@ -172,8 +179,8 @@ function log(icon, msg) {
 }
 
 /* ---------------- derived numbers ---------------- */
-function storageCap() { const c = CONFIG.storage; return Math.floor(c.base * Math.pow(c.growth, S.buildings.storehouse - 1)); }
-function protectedShare() { const c = CONFIG.storage; return clamp(c.protectBase + c.protectPerLevel * (S.buildings.storehouse - 1), 0, 0.8); }
+function storageCap() { const c = CONFIG.storage; return Math.floor(c.base * Math.pow(c.growth, S.buildings.storehouse - 1) * (1 + CONFIG.vault.capPerLevel * (S.buildings.vault || 0))); }
+function protectedShare() { const c = CONFIG.storage; return clamp(c.protectBase + c.protectPerLevel * (S.buildings.storehouse - 1) + CONFIG.vault.protectPerLevel * (S.buildings.vault || 0), 0, 0.85); }
 function addRes(k, n) { S.res[k] = clamp((S.res[k] || 0) + n, 0, storageCap()); }
 function canAfford(cost) { return Object.keys(cost).every((k) => (S.res[k] || 0) >= cost[k] - 1e-9); }
 function pay(cost) { if (!canAfford(cost)) return false; for (const k in cost) S.res[k] -= cost[k]; return true; }
@@ -275,7 +282,7 @@ function finishHeroTask() {
     const loot = rollLoot(L, mult);
     if (Math.random() < successChance(L)) {
       grantLoot(loot); const xp = gainXp(L.xp);
-      S.stats.expeditions++;
+      S.stats.expeditions++; S.stats.deepest = Math.max(S.stats.deepest || 0, t.layer);
       log('🎒', `Back from <b>${L.name}</b>: ${lootText(loot)} · +${fmt(xp)} XP`);
       findPet(L);
       S.hero.task = null;
@@ -288,8 +295,10 @@ function finishHeroTask() {
     grantLoot(t.loot); const xp = gainXp(t.xp);
     log('🪢', `Rescue line reached ${CONFIG.hero.name}. Came home with ${lootText(t.loot)} · +${fmt(xp)} XP`);
     S.hero.task = null;
+  } else if (t.type === 'mole') {
+    resolveMoleFight(t); S.hero.task = null;
   } else if (t.type === 'raid') {
-    resolveAttack(t.rival);
+    if (t.map) resolveMapRaid(t.map); else resolveAttack(t.rival);
     S.hero.task = null;
   }
 }
@@ -476,6 +485,82 @@ function resolveAttack(i) {
   S.rivals[i] = makeRival(i); S.rivals[i].shieldUntil = S.gameTime + CONFIG.raids.rivalShieldHours * HOUR;
   if (!ui.collecting) showAttackReport(report);
 }
+/* ---- raids on Rim City Lanternholds (AI players on the map) ---- */
+function mapRaidLoot(level) { return { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level }; }
+function startMapRaid(h) {
+  if (!heroHome()) return toast('Your hero is busy');
+  if ((S.mapShields[h.id] || 0) > S.gameTime) return toast('That Lanternhold is shielded');
+  if (!pay({ lumen: CONFIG.mapRaid.lumen })) return toast(`Needs ${CONFIG.mapRaid.lumen} Lumen`);
+  S.hero.task = { type: 'raid', map: { id: h.id, owner: h.owner, name: h.name, level: h.level, power: h.power }, start: S.gameTime, end: S.gameTime + CONFIG.mapRaid.marchMinutes * MIN };
+  toast(`⚔️ Marching on ${h.owner}'s ${h.name}…`); rerender(true);
+}
+function resolveMapRaid(m) {
+  const ratio = (attackPower() / Math.max(1, m.power)) * rand(0.85, 1.15), stars = starsFor(ratio);
+  const full = mapRaidLoot(m.level), got = {};
+  for (const k in full) { got[k] = Math.round(full[k] * stars / 3); addRes(k, got[k]); }
+  const xp = gainXp(20 * m.level * (stars + 1) / 2);
+  if (stars > 0) S.stats.raidsWon++;
+  S.mapShields[m.id] = S.gameTime + CONFIG.mapRaid.shieldHours * HOUR;
+  const report = { kind: 'attack', name: `${m.owner}'s ${m.name}`, icon: '🏘️', stars, got, xp, atk: Math.round(attackPower()), def: m.power, t: S.gameTime };
+  S.lastRaid = report;
+  log('⚔️', `Raid on <b>${m.owner}'s ${m.name}</b>: ${'★'.repeat(stars)}${'☆'.repeat(3 - stars)} ${stars ? 'Loot ' + lootText(got) : 'Repelled.'} · +${fmt(xp)} XP`);
+  if (!ui.collecting) showAttackReport(report);
+}
+/* ---- Rim Mole fights (map event) ---- */
+function startMoleFight(m) {
+  if (!heroHome()) return toast('Your hero is busy');
+  S.hero.task = { type: 'mole', k: m.k, region: m.region, power: molePower(), start: S.gameTime, end: S.gameTime + 20 * MIN };
+  S.moleDone[m.k] = true;
+  toast('⚔️ Wren charges the Rim Mole! The crowd roars.'); rerender(true);
+}
+function resolveMoleFight(t) {
+  const win = Math.random() < clamp(attackPower() / t.power, 0.15, 0.95);
+  const where = REGIONS[t.region].name;
+  if (win) {
+    const loot = { crowns: Math.round(60 * S.hero.level), amber: 3 + Math.floor(Math.random() * 4), iron: 20 + Math.floor(Math.random() * 20) }; grantLoot(loot);
+    const xp = gainXp(40 * S.hero.level); S.stats.moles = (S.stats.moles || 0) + 1;
+    log('🦴', `${CONFIG.hero.name} drove the Rim Mole back into the deep in ${where}! ${lootText(loot)} · +${fmt(xp)} XP. A skull trophy now hangs over your door.`);
+  } else {
+    const loot = { crowns: 20 * S.hero.level }; grantLoot(loot); const xp = gainXp(10 * S.hero.level);
+    log('🤕', `The Rim Mole in ${where} was too much. ${CONFIG.hero.name} limped home with ${lootText(loot)} · +${fmt(xp)} XP.`);
+  }
+}
+/* ---- Wren's journal (written on return from time away) ---- */
+function writeJournal(sum) {
+  const ev = sum.events, by = (ic) => ev.filter((e) => e.icon === ic), strip = (m) => m.replace(/<[^>]+>/g, '');
+  const P = [];
+  const exps = by('🎒');
+  if (exps.length === 1) P.push(`I went down the Tether and came back with ${strip(exps[0].msg).split(': ')[1] || 'a full pack'}.`);
+  else if (exps.length > 1) P.push(`I made ${exps.length} trips down the Tether. My boots are more mud than leather now.`);
+  if (by('🕯️').length) P.push('My lantern guttered out on a ledge once. I sat in the dark counting heartbeats until the rescue line found me.');
+  const def = by('🗿');
+  def.forEach((e) => P.push(/routed/.test(e.msg) ? 'Raiders came for the wall. The golems stood up (I will never get used to that sound) and sent them running.' : 'Raiders broke through while I was away. The golems did what they could. We need a deeper Vault.'));
+  const atk = by('⚔️'); if (atk.length) P.push(`I led ${atk.length} raid${atk.length > 1 ? 's' : ''} on our neighbours. Not my proudest work, but the coffers are fuller.`);
+  if (by('🦴').length) P.push('I fought a Rim Mole in front of half the city. Its skull hangs over our door now.');
+  if (by('🥚').length) P.push('Found an egg in the dark and carried it up under my coat. It hatched by the fire.');
+  if (by('🌑').length) P.push('Our outposts went dark for a while. Not enough Lumen. I hate leaving them blind.');
+  const anch = by('⚓'); if (anch.length) P.push('Our outpost found new footing below. The crew sent a cheer up the line.');
+  const blds = ev.filter((e) => /upgraded to Lv/.test(e.msg)); if (blds.length) P.push(`The builders finished ${blds.map((e) => strip(e.msg).split(' upgraded')[0]).join(', ')}.`);
+  if (sum.levels) P.push(`I feel stronger. Level ${S.hero.level} now.`);
+  if (!P.length) P.push(['Quiet days. I sharpened my blade, watched the sky-fish drift, and let Old Maddox tell me the same story twice.', 'Nothing much happened. I sat on the Promenade and watched Pell light the lamps.', 'A slow stretch. I fed the pets and listened to the Hollow breathe.'][Math.floor(Math.random() * 3)]);
+  try { const si = seasonInfo(); P.push(`${SEASONS[si.idx].icon} ${SEASONS[si.idx].name} on the Rim.`); } catch (e) { /* map not loaded */ }
+  const entry = { t: S.gameTime, real: Date.now(), day: Math.floor(S.gameTime / DAY) + 1, text: P.join(' ') };
+  S.journal = S.journal || []; S.journal.unshift(entry); if (S.journal.length > 40) S.journal.length = 40;
+  return entry;
+}
+/* ---- Rim City markets ---- */
+function marketBuy(k, lot, mult) {
+  const price = Math.ceil(CONFIG.market.prices[k] * lot * mult);
+  if (S.res[k] + lot > storageCap()) return toast('Not enough storage room');
+  if (!pay({ crowns: price })) return toast(`Needs ${price} Crowns`);
+  addRes(k, lot); toast(`🏪 Bought ${lot} ${CONFIG.resources[k].icon} for ${price} 👑`); return true;
+}
+function marketSell(k, lot, mult) {
+  if ((S.res[k] || 0) < lot) return toast(`You need ${lot} ${CONFIG.resources[k].name}`);
+  const gain = Math.floor(CONFIG.market.prices[k] * lot * mult);
+  S.res[k] -= lot; addRes('crowns', gain); toast(`🏪 Sold ${lot} ${CONFIG.resources[k].icon} for ${gain} 👑`); return true;
+}
+
 function scheduleNextRaid() { const [a, b] = CONFIG.raids.intervalHours; S.nextRaidAt = S.gameTime + rand(a, b) * HOUR; }
 const RAIDER_NAMES = ['the Ashgull Lodge', 'Brakka\'s Cable-Cutters', 'the Hollow Jackals', 'a Kite crew from the east rim', 'the Lantern Thieves'];
 function aiRaid() {
@@ -554,6 +639,6 @@ function simulateAway(dtGame) {
 /* ---------------- save / load ---------------- */
 function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(S)); } catch (e) { /* storage full or blocked */ } }
 function load() {
-  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; return Object.assign(newState(), s); } catch (e) { return null; }
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); return Object.assign(d, s); } catch (e) { return null; }
 }
 function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }
