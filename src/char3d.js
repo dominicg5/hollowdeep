@@ -54,9 +54,9 @@ const CharView = (() => {
   const GRADES = { // in upgrade order; each tier adds geometry, not just colour
     bronze: { name: 'Bronze', tier: 0, head: 0xb07f45, handle: 0x8a5a34, bind: 0xa8743f },
     iron: { name: 'Iron', tier: 1, head: 0x80858d, handle: 0x6e4628, bind: 0x55585e },
-    steel: { name: 'Steel', tier: 2, head: 0x8e99a6, handle: 0x5b3a22, bind: 0x9aa4ae, wrap: 0x3a2618, emissive: 0x0c1014 },
+    steel: { name: 'Steel', tier: 2, head: 0x6b7580, handle: 0x5b3a22, bind: 0x7d8792, wrap: 0x3a2618, emissive: 0x0a0d10, shine: 0xd8e2ec, shin: 55, chip: 0x8e99a6 },
     gold: { name: 'Gold', tier: 3, head: 0xe6b640, handle: 0x5e2f1a, bind: 0xe6b640, wrap: 0x8a2a1e, emissive: 0x2a1c00 },
-    mithril: { name: 'Mithril', tier: 4, head: 0x93b8de, handle: 0xd9d2c2, bind: 0xb9d4ee, wrap: 0x5f7ea6, emissive: 0x1a2530 },
+    mithril: { name: 'Mithril', tier: 4, head: 0x6f97c6, handle: 0xd9d2c2, bind: 0x9cc0e6, wrap: 0x5f7ea6, emissive: 0x14243a, shine: 0xe8f6ff, shin: 90, chip: 0x93b8de },
     rune: { name: 'Rune', tier: 5, head: 0x3b424c, handle: 0x33261e, bind: 0x8f8160, wrap: 0x2a1d16, glow: 0xb48cff, chip: 0x8f66ee },
     lumen: { name: 'Lumen', tier: 6, head: 0x7ff4ff, handle: 0x2b3038, bind: 0x5fd8f0, wrap: 0x23272e, glow: 0x7ff4ff },
     onyx: { name: 'Black Onyx', tier: 7, head: 0x16131a, handle: 0x1d1a21, bind: 0x5a1610, wrap: 0x221c20, chip: 0xc8301c, onyx: true },
@@ -113,7 +113,7 @@ const CharView = (() => {
   const spiral = (cx, cy, r0, turns, dir = 1, n = 18) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, a = dir * t * turns * TAU, rr = r0 * (1 - 0.8 * t); o.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); } return o; };
   // grip at the origin, handle along +y, blade in the local x/y plane (x = the pick's forward)
   function makePickaxe(grade) { const key = GRADES[grade] ? grade : 'bronze', G = GRADES[key], T = G.tier, px = new THREE.Group(); px.name = 'pickaxe'; px.userData.grade = key; px.userData.fx = [];
-    const metal = toon(G.head, null, G.emissive ? { emissive: G.emissive } : {}), bindM = toon(G.bind), wood = toon(0, fabric(G.handle, { seed: 23, weave: T >= 4 ? 0.03 : 0.06 })), wrapM = toon(0, fabric(G.wrap || 0x4b3020, { seed: 25, weave: 0.22 }));
+    const metal = G.shine ? new THREE.MeshPhongMaterial({ color: G.head, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }) : toon(G.head, null, G.emissive ? { emissive: G.emissive } : {}), bindM = toon(G.bind), wood = toon(0, fabric(G.handle, { seed: 23, weave: T >= 4 ? 0.03 : 0.06 })), wrapM = toon(0, fabric(G.wrap || 0x4b3020, { seed: 25, weave: 0.22 }));
     // handle
     if (G.onyx) part(px, twistedHandle(1.04, 0.0165), toon(G.handle), [0, 0.22, 0]); else part(px, cyl(0.016, 0.0138, 1.04, T >= 4 ? 14 : 10), wood, [0, 0.22, 0]);
     // grip: rope (bronze) > plain leather (iron) > spiral leather strap (steel+) > cross-wrapped (mithril+)
@@ -207,13 +207,13 @@ const CharView = (() => {
       pack: toon(0, fabric(P.pack, { seed: 19, stitch: 'rgba(30,18,8,.4)' })), packDk: toon(0, fabric(P.packDk, { seed: 20 })), helmet: toon(0, fabric(P.helmet, { seed: 21, weave: 0.015 })), brass: toon(P.brass), dark: toon(0x2c2420), rope: toon(0, fabric(P.rope, { seed: 22, weave: 0.18 })),
       sock: toon(0, fabric(P.sock, { seed: 24, weave: 0.14 })), lens: new THREE.MeshBasicMaterial({ color: 0x2f4c52 }) };
     // proportions: the female delver has slightly shorter legs (per the sheet)
-    const LT = F ? 0.325 : 0.36, LS = F ? 0.315 : 0.345, HY = 0.045 + LT + LS + 0.07;
+    const LT = F ? 0.34 : 0.36, LS = F ? 0.33 : 0.345, HY = 0.045 + LT + LS + 0.07;
     const B = {}; // rig
     B.hips = bone('hips', root, 0, HY, 0); B.spine = bone('spine', B.hips, 0, 0.1, 0); B.chest = bone('chest', B.spine, 0, 0.16, 0); B.neck = bone('neck', B.chest, 0, 0.135, 0); B.head = bone('head', B.neck, 0, 0.055, 0.005);
     for (const [s, k] of [[-1, 'R'], [1, 'L']]) { B['sh' + k] = bone('shoulder' + k, B.chest, s * 0.15, 0.085, -0.005); B['ua' + k] = bone('upperArm' + k, B['sh' + k], 0, 0, 0); B['fa' + k] = bone('forearm' + k, B['ua' + k], 0, -0.245, 0); B['hd' + k] = bone('hand' + k, B['fa' + k], 0, -0.215, 0);
       B['th' + k] = bone('thigh' + k, B.hips, s * 0.082, -0.045, 0); B['sn' + k] = bone('shin' + k, B['th' + k], 0, -LT, 0); B['ft' + k] = bone('foot' + k, B['sn' + k], 0, -LS, 0); }
     // ---- head: one soft anime face (wide cranium, soft cheeks, small chin) ----
-    const HC = V(0, 0.105, 0.01), HR = 0.125, head = new THREE.Group(); head.position.copy(HC); B.head.add(head); B.headC = head;
+    const HC = V(0, 0.099, 0.01), HR = 0.125, head = new THREE.Group(); head.position.copy(HC); head.scale.setScalar(F ? 0.93 : 0.94); B.head.add(head); B.headC = head;
     const hgeo = new THREE.SphereGeometry(HR, 44, 32); { const p = hgeo.attributes.position; for (let i = 0; i < p.count; i++) { let x = p.getX(i), y = p.getY(i), z = p.getZ(i); const ny = y / HR, fz = ss(-0.25, 0.8, z / HR), low = ss(0.05, -1, ny);
       x *= 1 - 0.3 * Math.pow(low, 1.4) * (0.55 + 0.45 * fz); x *= 1 + 0.05 * Math.exp(-(((ny + 0.28) / 0.22) ** 2)) * fz; y -= 0.016 * Math.pow(low, 2) * fz; z += 0.014 * Math.pow(low, 1.5) * fz; if (z < 0) z *= 1 - 0.05 * ss(0, -1, z / HR); p.setXYZ(i, x, y, z); } hgeo.computeVertexNormals(); }
     part(head, hgeo, M.skin); const probe = new THREE.Mesh(hgeo, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })), rc = new THREE.Raycaster();
@@ -222,7 +222,7 @@ const CharView = (() => {
     // eyes: big, iris gradient, two highlights, thick upper lash line with a flick; a skin eyelid slides down to blink
     const eyeW = new THREE.MeshBasicMaterial({ color: 0xfffbf4 }), irisT = cv(64, 64, (g) => { const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, '#24120a'); gr.addColorStop(0.5, P.iris); gr.addColorStop(1, '#c9914f'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); g.fillStyle = '#120803'; g.beginPath(); g.ellipse(32, 28, 13, 17, 0, 0, TAU); g.fill(); g.strokeStyle = 'rgba(20,8,2,.8)'; g.lineWidth = 5; g.beginPath(); g.arc(32, 32, 30, 0, TAU); g.stroke(); });
     const irisM = new THREE.MeshBasicMaterial({ map: irisT }), hiM = new THREE.MeshBasicMaterial({ color: 0xffffff }), lashM = new THREE.MeshBasicMaterial({ color: 0x24150d, side: THREE.DoubleSide }), lidM = toon(P.skin, null, { side: THREE.DoubleSide });
-    built.lids = []; const ERX = 0.029, ERY = 0.037;
+    built.lids = []; const ERX = 0.027, ERY = 0.034;
     for (const s of [-1, 1]) { const eg = new THREE.Group(); eg.position.set(...onFace(s * 0.049, -0.02, 0.0012)); eg.rotation.set(0.1, s * 0.4, 0); head.add(eg);
       const sc = new THREE.Mesh(new THREE.CircleGeometry(1, 28), eyeW); sc.scale.set(ERX, ERY, 1); eg.add(sc);
       const ir = new THREE.Mesh(new THREE.CircleGeometry(1, 28), irisM); ir.scale.set(0.0215, 0.029, 1); ir.position.set(s * -0.002, -0.004, 0.0008); eg.add(ir);
@@ -242,17 +242,18 @@ const CharView = (() => {
       g.computeVertexNormals(); return part(o.parent || head, g, M.hair, null, null, null, { ink: o.ink }); };
     const sz = (x, y, off) => Math.sqrt(Math.max(0, HR * HR - x * x - y * y)) + off;
     part(head, new THREE.SphereGeometry(HR * 1.045, 28, 18, 0, TAU, 0, Math.PI * 0.6), M.hair, [0, 0.004, -0.008], [-0.42, 0, 0]);
+    part(head, ell(HR * 1.07, HR * 0.9, HR * 1.0, 22, 14), M.hair, [0, 0.018, -0.03]);
     if (!F) { const rp = prng(5);
       for (let i = 0; i < 9; i++) { const x = -0.076 + i * 0.019, tx = x * 1.18 + (rp() - 0.5) * 0.03, ty = 0.022 + rp() * 0.016; lock([[x * 0.9, 0.088, sz(x, 0.088, 0.0) - 0.01], [x * 1.04, 0.058, sz(x, 0.058, 0.012)], [tx, ty, sz(tx, ty, 0.006)]], 0.019 + rp() * 0.004, { tp: 0.9 }); }
       for (const s of [-1, 1]) for (let k = 0; k < 3; k++) { const z0 = 0.06 - k * 0.045; lock([[s * 0.1, 0.075, z0], [s * 0.132, 0.02, z0 + 0.005], [s * (0.13 + rp() * 0.02), -0.03 - rp() * 0.025, z0 - 0.01]], 0.022); }
       for (let i = 0; i < 9; i++) { const a = -1.35 + i * 0.34, fl = 0.015 + rp() * 0.02; lock([[Math.sin(a) * 0.1, 0.07, -Math.cos(a) * 0.1], [Math.sin(a) * 0.137, 0.0, -Math.cos(a) * 0.137], [Math.sin(a) * (0.14 + fl), -0.065 - rp() * 0.03, -Math.cos(a) * (0.14 + fl)]], 0.027, { tp: 0.85 }); } }
     else { const rp = prng(9);
       for (let i = 0; i < 9; i++) { const x = -0.08 + i * 0.02, tx = x * 1.1 + 0.01, ty = 0.014 + (rp() - 0.5) * 0.01 + Math.abs(x) * 0.08; lock([[x * 0.9, 0.088, sz(x, 0.088, 0.0) - 0.01], [x * 1.02 + 0.006, 0.056, sz(x, 0.056, 0.012)], [tx, ty, sz(tx, ty, 0.006)]], 0.019, { tp: 0.85 }); }
-      for (const s of [-1, 1]) { lock([[s * 0.094, 0.075, 0.075], [s * 0.122, 0.005, 0.083], [s * 0.118, -0.075, 0.072], [s * 0.104, -0.122, 0.062]], 0.022, { tp: 0.7 }); lock([[s * 0.108, 0.07, 0.03], [s * 0.138, -0.01, 0.035], [s * 0.132, -0.085, 0.022]], 0.024, { tp: 0.75 }); }
+      for (const s of [-1, 1]) { lock([[s * 0.094, 0.075, 0.075], [s * 0.124, 0.005, 0.083], [s * 0.122, -0.08, 0.072], [s * 0.112, -0.15, 0.06], [s * 0.1, -0.19, 0.05]], 0.023, { tp: 0.7 }); lock([[s * 0.108, 0.07, 0.03], [s * 0.138, -0.01, 0.035], [s * 0.132, -0.085, 0.022]], 0.024, { tp: 0.75 }); }
       for (let i = 0; i < 7; i++) { const a = -1.2 + i * 0.4; lock([[Math.sin(a) * 0.11, 0.07, -Math.cos(a) * 0.11], [Math.sin(a) * 0.12, 0.0, -Math.cos(a) * 0.136], [Math.sin(a) * 0.025, -0.045, -0.13]], 0.03, { tp: 0.35, flat: 0.4 }); } }
     // braid (female): a thick chain of crossed links hanging from the back of the head, over the pack
     built.braid = []; if (F) { let par = bone('braid0', head, 0, -0.045, -0.128); part(par, ell(0.034, 0.03, 0.03), M.hair);
-      for (let i = 0; i < 9; i++) { const ln = bone('braid' + (i + 1), par, 0, i ? -0.05 : 0, 0); const w = 0.038 * (1 - i * 0.05); for (const s of [-1, 1]) part(ln, ell(w, 0.034, w * 0.82), M.hair, [s * w * 0.38, -0.024, 0], [0, 0, s * 0.5]); built.braid.push({ b: ln, rx: i ? -0.08 : 0.95, ax: 0, az: 0, vx: 0, vz: 0 }); ln.rotation.x = i ? -0.08 : 0.95; par = ln; }
+      for (let i = 0; i < 11; i++) { const ln = bone('braid' + (i + 1), par, 0, i ? -0.048 : 0, 0); const w = 0.038 * (1 - i * 0.045); for (const s of [-1, 1]) part(ln, ell(w, 0.034, w * 0.82), M.hair, [s * w * 0.38, -0.024, 0], [0, 0, s * 0.5]); built.braid.push({ b: ln, rx: i ? (i < 5 ? -0.035 : -0.13) : 1.1, ax: 0, az: 0, vx: 0, vz: 0 }); ln.rotation.x = i ? (i < 5 ? -0.035 : -0.13) : 1.1; par = ln; }
       const tip = bone('braidTip', par, 0, -0.054, 0); part(tip, cyl(0.014, 0.018, 0.022), M.belt, [0, 0.01, 0]); for (let k = 0; k < 5; k++) { const g = new THREE.ConeGeometry(0.012, 0.06, 6); g.translate(0, -0.03, 0); const m = part(tip, g, M.hair); m.rotation.set(0.05 * k, 0, (k - 2) * 0.2); } }
     // ---- helmet: brass-olive dome, brim, leather band with rivets, headlamp and goggles ----
     { const hg = new THREE.Group(); hg.position.set(0, 0.04, -0.008); hg.rotation.x = -0.15; head.add(hg); built.helmet = hg;
@@ -274,18 +275,19 @@ const CharView = (() => {
     shell(skins, [[HY - 0.03, 0.118 * fw, 0.086], [HY + 0.06, 0.119 * fw, 0.087], [HY + 0.15, 0.121 * fw, 0.088], [HY + 0.24, 0.128 * fw, 0.092], [HY + 0.31, 0.136 * fw, 0.098], [HY + 0.35, 0.138 * fw, 0.099], [HY + 0.385, 0.115, 0.088], [HY + 0.41, 0.07, 0.06], [HY + 0.43, 0.043, 0.041], [HY + 0.445, 0.04, 0.038]], TOR, M.shirt, { cz: 0.005 });
     if (!F) for (const [y, z] of [[0.08, 0.103], [0.025, 0.099], [-0.03, 0.094], [-0.085, 0.091]]) part(B.chest, ell(0.006, 0.006, 0.004, 8, 6), M.dark, [0, y, z + 0.004], null, null, { ink: false });
     // jacket: open front (wider at the hem), soft hem flare
-    const JK = F ? [[HY - 0.075, 0.164, 0.132, 0, 0, 1.0], [HY - 0.01, 0.157, 0.125, 0, 0, 0.84], [HY + 0.07, 0.15, 0.119, 0, 0, 0.72], [HY + 0.16, 0.144, 0.112, 0, 0, 0.62], [HY + 0.26, 0.142, 0.11, 0, 0, 0.56], [HY + 0.32, 0.152, 0.116, 0, 0, 0.56], [HY + 0.36, 0.158, 0.12, 0, 0, 0.6], [HY + 0.4, 0.137, 0.106, 0, 0, 0.74], [HY + 0.425, 0.092, 0.076, 0, 0, 0.9]]
-      : [[HY - 0.035, 0.156, 0.126, 0, 0, 1.25], [HY + 0.05, 0.147, 0.116, 0, 0, 1.0], [HY + 0.15, 0.139, 0.108, 0, 0, 0.86], [HY + 0.25, 0.138, 0.106, 0, 0, 0.76], [HY + 0.32, 0.149, 0.113, 0, 0, 0.72], [HY + 0.36, 0.156, 0.118, 0, 0, 0.78], [HY + 0.4, 0.135, 0.104, 0, 0, 0.95], [HY + 0.425, 0.09, 0.074, 0, 0, 1.1]];
+    const JK = F ? [[HY - 0.11, 0.176, 0.142, 0, 0, 1.05], [HY - 0.06, 0.163, 0.131, 0, 0, 0.92], [HY - 0.01, 0.157, 0.125, 0, 0, 0.84], [HY + 0.07, 0.15, 0.119, 0, 0, 0.72], [HY + 0.16, 0.144, 0.112, 0, 0, 0.62], [HY + 0.26, 0.142, 0.11, 0, 0, 0.56], [HY + 0.32, 0.152, 0.116, 0, 0, 0.56], [HY + 0.36, 0.158, 0.12, 0, 0, 0.6], [HY + 0.4, 0.137, 0.106, 0, 0, 0.74], [HY + 0.425, 0.092, 0.076, 0, 0, 0.9]]
+      : [[HY - 0.095, 0.17, 0.138, 0, 0, 1.32], [HY - 0.035, 0.157, 0.127, 0, 0, 1.2], [HY + 0.05, 0.147, 0.116, 0, 0, 1.0], [HY + 0.15, 0.139, 0.108, 0, 0, 0.86], [HY + 0.25, 0.138, 0.106, 0, 0, 0.76], [HY + 0.32, 0.149, 0.113, 0, 0, 0.72], [HY + 0.36, 0.156, 0.118, 0, 0, 0.78], [HY + 0.4, 0.135, 0.104, 0, 0, 0.95], [HY + 0.425, 0.09, 0.074, 0, 0, 1.1]];
     shell(skins, JK, TOR.slice(0, 3), M.jacket, { seg: 26, ink: false });
     { for (const s of [-1, 1]) { const pts = JK.map((r) => { const ang = s * (r[5] / 2); return [Math.sin(ang) * r[1], r[0], Math.cos(ang) * r[2]]; }); const g = tube(pts, 0.009, 6, 24); const pos = g.attributes.position, si = [], sw = [];
       for (let i = 0; i < pos.count; i++) { const y = pos.getY(i), w = [1, 0, 0, 0]; for (const [b, yj] of [[1, HY + 0.1], [2, HY + 0.26]]) { const t = ss(yj - 0.06, yj + 0.06, y); for (let q = 0; q < b; q++) w[q] *= 1 - t; w[b] = t; } si.push(0, 1, 2, 3); sw.push(...w); }
       g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4)); const m = new THREE.SkinnedMesh(g, M.jacket); m.castShadow = true; m.frustumCulled = false; skins.push({ m, bones: [B.hips, B.spine, B.chest, B.chest], ink: true }); } }
     // hem and front-edge piping in the jacket's own colour (rolled edge, no dark planks)
-    { const h = JK[0], a0 = h[5] / 2; part(B.hips, new THREE.TorusGeometry(1, 0.012 / h[1], 6, 40, TAU - h[5]), M.jacket, [0, h[0] - HY, 0], [Math.PI / 2, 0, Math.PI / 2 + a0], [h[1], h[2], h[1]]); }
-    if (!F) { for (const s of [-1, 1]) part(B.chest, ell(0.026, 0.056, 0.006), M.jacket, [s * 0.06, 0.1, 0.112], [-0.28, s * 0.42, s * 0.3]);
+    { const h = JK[0], a0 = h[5] / 2; part(B.hips, new THREE.TorusGeometry(1, 0.017 / h[1], 7, 40, TAU - h[5]), M.jacket, [0, h[0] - HY, 0], [Math.PI / 2, 0, Math.PI / 2 + a0], [h[1], h[2], h[1]]); }
+    if (!F) { for (const s of [-1, 1]) { part(B.chest, rbox(0.05, 0.13, 0.012, 0.005), M.jacket, [s * 0.072, 0.075, 0.112], [-0.2, s * 0.38, s * 0.36]); part(B.chest, rbox(0.034, 0.03, 0.012, 0.004), M.jacketDk, [s * 0.098, 0.13, 0.098], [-0.3, s * 0.5, s * -0.5]); }
       part(B.chest, new THREE.TorusGeometry(0.08, 0.022, 8, 24, TAU - 0.9), M.jacket, [0, 0.16, -0.004], [Math.PI / 2 + 0.3, 0, Math.PI / 2 + 0.45], [1.05, 0.9, 1]); }
-    else { part(B.chest, new THREE.TorusGeometry(0.088, 0.036, 10, 26), M.jacket, [0, 0.162, -0.028], [Math.PI / 2 + 0.25, 0, 0], [1.05, 0.88, 1]);
-      part(B.chest, new THREE.SphereGeometry(1, 22, 14, 0, TAU, 0, Math.PI * 0.55), M.jacket, [0, 0.13, -0.09], [-1.95, 0, 0], [0.125, 0.105, 0.1]); }
+    else { part(B.chest, new THREE.TorusGeometry(0.094, 0.044, 10, 28), M.jacket, [0, 0.165, -0.03], [Math.PI / 2 + 0.3, 0, 0], [1.12, 0.9, 1]); for (const s of [-1, 1]) part(B.chest, ell(0.05, 0.06, 0.05), M.jacket, [s * 0.1, 0.16, 0.0], [0.2, 0, s * 0.4]);
+      part(B.chest, new THREE.SphereGeometry(1, 22, 14, 0, TAU, 0, Math.PI * 0.55), M.jacket, [0, 0.135, -0.1], [-1.9, 0, 0], [0.15, 0.13, 0.12]); part(B.chest, ell(0.1, 0.05, 0.035), M.jacketDk, [0, 0.19, -0.165], [0.5, 0, 0]); }
+    for (const s of F ? [-1, 1] : [1]) { const x = s * (F ? 0.082 : 0.085), y = F ? 0.0 : 0.02; part(B.chest, rbox(0.058, 0.064, 0.014, 0.006), M.jacket, [x, y, 0.118], [-0.12, s * 0.3, 0]); part(B.chest, rbox(0.064, 0.026, 0.018, 0.006), M.jacketDk, [x, y + 0.034, 0.121], [-0.05, s * 0.3, 0]); part(B.chest, rbox(0.01, 0.01, 0.006, 0.002), M.brass, [x, y + 0.028, 0.131], null, null, { ink: false }); }
     // pockets with flaps (on the spine so they ride the lower jacket)
     for (const s of [-1, 1]) { const y = F ? -0.075 : -0.05, z = F ? 0.1 : 0.094; part(B.spine, rbox(0.078, 0.075, 0.016, 0.008), M.jacket, [s * 0.097, y, z], [0, s * 0.62, 0]); part(B.spine, rbox(0.084, 0.028, 0.02, 0.008), M.jacketDk, [s * 0.099, y + 0.035, z + 0.004], [0.08, s * 0.62, 0]); }
     // ---- belt, buckle, pouches, rope ----
@@ -298,22 +300,23 @@ const CharView = (() => {
     for (const [s, k] of [[-1, 'R'], [1, 'L']]) { const th = B['th' + k], sn = B['sn' + k], ft = B['ft' + k], yh = HY - 0.045, yk = yh - LT, ya = yk - LS, cx = s * 0.082;
       if (F) { shell(skins, [[yh + 0.07, 0.075, 0.075], [yh + 0.02, 0.086, 0.084], [yh - 0.08, 0.087, 0.085], [yh - 0.15, 0.089, 0.087], [yh - 0.175, 0.092, 0.09]], [[B.hips], [th, yh, 0.06]], M.pants, { cx, seg: 18 });
         part(th, new THREE.TorusGeometry(0.09, 0.011, 6, 22), M.pants, [0, -0.172, 0], [Math.PI / 2, 0, 0]);
-        shell(skins, [[yh - 0.1, 0.066, 0.066], [yh - 0.17, 0.061, 0.062], [yh - 0.25, 0.054, 0.055], [yk + 0.02, 0.05, 0.051], [yk - 0.03, 0.048, 0.05], [yk - 0.1, 0.046, 0.049], [yk - 0.17, 0.041, 0.043], [ya + 0.1, 0.035, 0.036]], [[th], [sn, yk, 0.05]], M.skin, { cx, seg: 16 });
-        const st = -0.045, sb = -LS + 0.12; part(sn, cyl(0.046, 0.051, st - sb, 16), M.sock, [0, (st + sb) / 2, 0]); part(sn, new THREE.TorusGeometry(0.051, 0.013, 6, 18), M.sock, [0, st, 0], [Math.PI / 2, 0, 0]);
+        shell(skins, [[yh - 0.1, 0.062, 0.062], [yh - 0.17, 0.056, 0.057], [yh - 0.25, 0.049, 0.05], [yk + 0.02, 0.045, 0.046], [yk - 0.03, 0.043, 0.045], [yk - 0.1, 0.043, 0.046], [yk - 0.17, 0.037, 0.039], [ya + 0.1, 0.032, 0.033]], [[th], [sn, yk, 0.05]], M.skin, { cx, seg: 16 });
+        const st = -0.06, sb = -LS + 0.12; part(sn, cyl(0.042, 0.047, st - sb, 16), M.sock, [0, (st + sb) / 2, 0]); part(sn, new THREE.TorusGeometry(0.047, 0.013, 6, 18), M.sock, [0, st, 0], [Math.PI / 2, 0, 0]);
         part(sn, cyl(0.057, 0.061, 0.17, 18), M.bootLace, [0, -LS + 0.085, 0]); part(sn, new THREE.TorusGeometry(0.06, 0.011, 6, 20), M.boot, [0, -LS + 0.17, 0], [Math.PI / 2, 0, 0]); }
       else { shell(skins, [[yh + 0.07, 0.07, 0.07], [yh + 0.02, 0.083, 0.082], [yh - 0.08, 0.083, 0.081], [yh - 0.2, 0.078, 0.076], [yk + 0.06, 0.072, 0.071], [yk, 0.071, 0.074], [yk - 0.08, 0.068, 0.069], [yk - 0.12, 0.068, 0.067], [ya + 0.27, 0.073, 0.073], [ya + 0.215, 0.075, 0.075], [ya + 0.19, 0.068, 0.068]], [[B.hips], [th, yh, 0.06], [sn, yk, 0.06]], M.pants, { cx, seg: 18 });
         part(th, rbox(0.03, 0.095, 0.08, 0.012), M.pants, [s * 0.082, -0.2, 0.0]); part(th, rbox(0.034, 0.03, 0.085, 0.01), M.pants, [s * 0.085, -0.155, 0.0]); part(th, rbox(0.006, 0.012, 0.012, 0.002), M.brass, [s * 0.103, -0.155, 0.0], null, null, { ink: false });
-        part(sn, rbox(0.086, 0.09, 0.014, 0.008), M.patch, [0, -0.02, 0.075], [-0.06, 0, 0], [1, 1, 1]);
+        part(sn, ell(0.07, 0.06, 0.07, 16, 12), M.pants, [0, 0.0, 0.002]); part(sn, rbox(0.086, 0.09, 0.014, 0.008), M.patch, [0, -0.02, 0.075], [-0.06, 0, 0], [1, 1, 1]);
         part(sn, cyl(0.064, 0.067, 0.22, 18), M.bootLace, [0, -LS + 0.11, 0.004]); part(sn, new THREE.TorusGeometry(0.067, 0.013, 6, 20), M.boot, [0, -LS + 0.215, 0.004], [Math.PI / 2, 0, 0]); }
       part(ft, rbox(0.1, 0.085, 0.2, 0.038), M.boot, [0, -0.03, 0.045]); part(ft, rbox(0.106, 0.024, 0.212, 0.01), M.bootDk, [0, -0.07, 0.046]); part(ft, rbox(0.04, 0.03, 0.09, 0.012), M.bootLace, [0, 0.01, 0.07], [0.5, 0, 0], null, { ink: false }); }
     // ---- arms (skinned: shoulder > upper arm > forearm > hand) ----
     for (const [s, k] of [[-1, 'R'], [1, 'L']]) { const sh = B['sh' + k], ua = B['ua' + k], fa = B['fa' + k], hd = B['hd' + k], ys = HY + 0.345, cx = s * 0.15, cz = -0.005, AC = [[sh], [ua, ys, 0.05], [fa, ys - 0.245, 0.045], [hd, ys - 0.46, 0.02]];
-      if (!F) { shell(skins, [[ys + 0.062, 0.002, 0.002], [ys + 0.055, 0.03, 0.03], [ys + 0.04, 0.05, 0.05], [ys + 0.015, 0.062, 0.059], [ys - 0.04, 0.062, 0.058], [ys - 0.13, 0.055, 0.052], [ys - 0.21, 0.051, 0.049], [ys - 0.25, 0.051, 0.049], [ys - 0.285, 0.05, 0.048]], AC.slice(0, 3), M.jacket, { cx, cz, seg: 18 });
+      if (!F) { shell(skins, [[ys + 0.062, 0.002, 0.002], [ys + 0.055, 0.03, 0.03], [ys + 0.04, 0.05, 0.05], [ys + 0.015, 0.062, 0.059], [ys - 0.04, 0.062, 0.058], [ys - 0.13, 0.055, 0.052], [ys - 0.2, 0.052, 0.05], [ys - 0.222, 0.057, 0.055], [ys - 0.242, 0.051, 0.049], [ys - 0.262, 0.056, 0.053], [ys - 0.285, 0.051, 0.049]], AC.slice(0, 3), M.jacket, { cx, cz, seg: 18 });
         shell(skins, [[ys - 0.25, 0.042, 0.04], [ys - 0.3, 0.041, 0.039], [ys - 0.37, 0.036, 0.034], [ys - 0.43, 0.031, 0.029]], AC.slice(1, 3), M.skin, { cx, cz, seg: 16 });
         part(fa, new THREE.TorusGeometry(0.05, 0.02, 8, 22), M.jacket, [0, -0.04, 0], [Math.PI / 2, 0, 0]); part(fa, new THREE.TorusGeometry(0.046, 0.014, 8, 22), M.shirt, [0, -0.063, 0], [Math.PI / 2, 0, 0]);
         part(fa, cyl(0.04, 0.046, 0.09, 16), M.glove, [0, -0.17, 0]); part(fa, new THREE.TorusGeometry(0.045, 0.006, 6, 18), M.belt, [0, -0.15, 0], [Math.PI / 2, 0, 0]); }
-      else { shell(skins, [[ys + 0.062, 0.002, 0.002], [ys + 0.055, 0.03, 0.03], [ys + 0.04, 0.05, 0.05], [ys + 0.015, 0.063, 0.06], [ys - 0.04, 0.064, 0.06], [ys - 0.13, 0.057, 0.054], [ys - 0.22, 0.053, 0.05], [ys - 0.26, 0.052, 0.05], [ys - 0.34, 0.05, 0.047], [ys - 0.41, 0.05, 0.047], [ys - 0.435, 0.055, 0.052]], AC, M.jacket, { cx, cz, seg: 18 });
+      else { shell(skins, [[ys + 0.062, 0.002, 0.002], [ys + 0.055, 0.03, 0.03], [ys + 0.04, 0.05, 0.05], [ys + 0.015, 0.063, 0.06], [ys - 0.04, 0.064, 0.06], [ys - 0.13, 0.057, 0.054], [ys - 0.2, 0.054, 0.051], [ys - 0.222, 0.059, 0.056], [ys - 0.242, 0.053, 0.05], [ys - 0.262, 0.058, 0.055], [ys - 0.29, 0.052, 0.05], [ys - 0.34, 0.05, 0.047], [ys - 0.41, 0.05, 0.047], [ys - 0.435, 0.055, 0.052]], AC, M.jacket, { cx, cz, seg: 18 });
         part(fa, new THREE.TorusGeometry(0.053, 0.012, 6, 20), M.jacket, [0, -0.19, 0], [Math.PI / 2, 0, 0]); part(fa, cyl(0.037, 0.042, 0.05, 16), M.glove, [0, -0.2, 0]); }
+      part(fa, ell(0.05, 0.05, 0.048, 16, 12), M.jacket, [0, 0.004, -0.004]); // elbow cap: keeps the bent elbow round
       if (!F || s > 0) part(ua, rbox(0.056, 0.066, 0.012, 0.006), M.patch, [s * 0.061, -0.075, 0], [0, s * Math.PI / 2, 0]);
       // hand: mitten palm + glove over the first finger joints, bare finger tips, thumb (curl about x toward the palm, -z)
       part(hd, rbox(0.064, 0.064, 0.034, 0.015), M.glove, [0, -0.036, 0]);
@@ -321,17 +324,34 @@ const CharView = (() => {
       const tp = bone('tips' + k, kn, 0, -0.026, 0); for (let i = 0; i < 4; i++) part(tp, capsule(0.0075, i === (s < 0 ? 0 : 3) ? 0.007 : 0.011, 8), M.skin, [-0.0225 + i * 0.015, -0.009, 0], null, null, { ink: false });
       const th = bone('thumb' + k, hd, s * -0.031, -0.024, -0.01); th.rotation.set(0.3, 0, s * 0.6); part(th, capsule(0.0105, 0.018, 8), M.glove, [0, -0.012, 0], null, null, { ink: false }); part(th, capsule(0.0085, 0.01, 8), M.skin, [0, -0.031, 0], null, null, { ink: false });
       B['kn' + k] = kn; B['tp' + k] = tp; B['thumb' + k] = th; }
-    // ---- backpack ----
+    // ---- backpack: big canvas rucksack (body, buckled top flap, outer pocket, side pockets, rope coil / bedroll / lantern) ----
     { const pk = new THREE.Group(); pk.position.set(0, -0.02, -0.095); B.chest.add(pk); built.pack = pk;
-      part(pk, rbox(0.3, 0.33, 0.15, 0.045), M.pack, [0, 0, -0.08]); part(pk, rbox(0.29, 0.13, 0.07, 0.03), M.packDk, [0, 0.11, -0.13], [0.15, 0, 0]);
-      part(pk, rbox(0.21, 0.13, 0.045, 0.02), M.pack, [0, -0.075, -0.165]); part(pk, rbox(0.17, 0.05, 0.03, 0.012), M.packDk, [0, -0.025, -0.188]);
-      for (const s of [-1, 1]) { part(pk, rbox(0.03, 0.26, 0.012, 0.005), M.belt, [s * 0.065, 0.0, -0.157 - 0.035]); part(pk, rbox(0.022, 0.018, 0.016, 0.003), M.brass, [s * 0.065, 0.05, -0.2]); part(pk, rbox(0.06, 0.15, 0.1, 0.02), M.packDk, [s * 0.165, -0.06, -0.08]);
-        part(B.chest, tube([[s * 0.096, -0.07, 0.094], [s * 0.1, 0.08, 0.104], [s * 0.106, 0.15, 0.03], [s * 0.095, 0.13, -0.1], [s * 0.085, 0.06, -0.13]], 0.011, 6, 20), M.packDk, null, null, [1, 1, 0.75]); part(B.chest, rbox(0.03, 0.022, 0.01, 0.003), M.brass, [s * 0.098, 0.02, 0.102], null, null, { ink: false }); }
-      if (!F) { for (let k = 0; k < 5; k++) part(pk, new THREE.TorusGeometry(0.085 - k * 0.012, 0.014, 6, 28), M.rope, [-0.17 - k * 0.003, 0.02, -0.07], [0, Math.PI / 2, 0]); part(pk, new THREE.CircleGeometry(0.03, 12), M.rope, [-0.186, 0.02, -0.07], [0, -Math.PI / 2, 0], null, { ink: false }); }
-      else { const roll = part(pk, cyl(0.065, 0.065, 0.34, 22), M.packDk, [0, -0.2, -0.085], [0, 0, Math.PI / 2]); const sp = toon(0, spiralTex(P.packDk)); for (const s of [-1, 1]) part(pk, new THREE.CircleGeometry(0.064, 22), sp, [s * 0.171, -0.2, -0.085], [0, s * Math.PI / 2, 0], null, { ink: false });
-        for (const s of [-1, 1]) part(pk, new THREE.TorusGeometry(0.067, 0.008, 6, 20), M.belt, [s * 0.1, -0.2, -0.085], [0, Math.PI / 2, 0]); void roll;
-        // the lantern on its ring, swinging
-        const pv = bone('lanternPivot', pk, 0.19, 0.0, -0.06); built.lantern = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; part(pv, new THREE.TorusGeometry(0.014, 0.003, 5, 12), M.dark, [0, -0.01, 0], [0, Math.PI / 2, 0]);
+      const W = F ? 0.31 : 0.345, H = F ? 0.37 : 0.41, D = F ? 0.17 : 0.19, y0 = F ? -0.065 : -0.08, zc = -0.004 - D / 2, zb = zc - D / 2;
+      part(pk, rbox(W, H, D, 0.05), M.pack, [0, y0, zc]);
+      for (const s of [-1, 1]) part(pk, rbox(0.012, H * 0.94, D * 0.9, 0.005), M.packDk, [s * (W / 2 - 0.004), y0, zc], null, null, { ink: false });
+      // top flap draped over the top and down the back, with two buckled straps
+      part(pk, rbox(W * 1.02, 0.05, D * 1.06, 0.022), M.packDk, [0, y0 + H / 2 + 0.006, zc - 0.004]);
+      part(pk, rbox(W * 0.96, H * 0.3, 0.026, 0.012), M.packDk, [0, y0 + H * 0.36, zb - 0.01], [0.06, 0, 0]);
+      for (const s of [-1, 1]) { part(pk, rbox(0.028, H * 0.52, 0.01, 0.004), M.belt, [s * W * 0.24, y0 + H * 0.16, zb - 0.026]); part(pk, rbox(0.034, 0.026, 0.014, 0.004), M.brass, [s * W * 0.24, y0 + H * 0.2, zb - 0.032]); part(pk, rbox(0.016, 0.01, 0.016, 0.002), M.belt, [s * W * 0.24, y0 + H * 0.2, zb - 0.036], null, null, { ink: false }); }
+      // outer pocket with its own flap and straps
+      part(pk, rbox(W * 0.74, H * 0.36, 0.07, 0.024), M.pack, [0, y0 - H * 0.22, zb - 0.03]);
+      part(pk, rbox(W * 0.78, H * 0.12, 0.08, 0.02), M.packDk, [0, y0 - H * 0.06, zb - 0.032], [0.1, 0, 0]);
+      for (const s of [-1, 1]) { part(pk, rbox(0.024, H * 0.24, 0.008, 0.003), M.belt, [s * W * 0.2, y0 - H * 0.2, zb - 0.068]); part(pk, rbox(0.028, 0.022, 0.012, 0.003), M.brass, [s * W * 0.2, y0 - H * 0.12, zb - 0.072]); }
+      // side pockets
+      for (const s of F ? [-1, 1] : [1]) { part(pk, rbox(0.06, H * 0.42, D * 0.66, 0.02), M.pack, [s * (W / 2 + 0.024), y0 - H * 0.18, zc]); part(pk, rbox(0.068, H * 0.11, D * 0.7, 0.016), M.packDk, [s * (W / 2 + 0.026), y0 - H * 0.0, zc], [0, 0, s * -0.08]); part(pk, rbox(0.008, H * 0.2, 0.02, 0.003), M.belt, [s * (W / 2 + 0.056), y0 - H * 0.14, zc]); }
+      // shoulder straps (wide, padded, buckled at the chest) and a sternum strap
+      for (const s of [-1, 1]) { part(B.chest, tube([[s * 0.094, -0.1, 0.092], [s * 0.098, 0.0, 0.106], [s * 0.103, 0.1, 0.102], [s * 0.108, 0.158, 0.03], [s * 0.098, 0.14, -0.1], [s * 0.088, 0.07, -0.13]], 0.012, 6, 24), M.packDk, null, null, [1.25, 1, 0.62]);
+        part(B.chest, rbox(0.032, 0.024, 0.012, 0.003), M.brass, [s * 0.096, -0.02, 0.105], null, null, { ink: false }); part(B.chest, tube([[s * 0.094, -0.1, 0.09], [s * 0.11, -0.2, 0.05], [s * 0.13, -0.25, -0.06]], 0.008, 5, 10), M.packDk, null, null, [1, 1, 0.7]); }
+      if (F) part(B.chest, rbox(0.17, 0.016, 0.008, 0.003), M.packDk, [0, 0.05, 0.108]);
+      if (!F) { // rope coil on the right side, bedroll strapped across the top
+        const cx0 = -(W / 2 + 0.04); for (let k = 0; k < 6; k++) part(pk, new THREE.TorusGeometry(0.105 - k * 0.013, 0.015, 7, 30), M.rope, [cx0 - k * 0.004, y0 + H * 0.06, zc], [0, Math.PI / 2, 0]); part(pk, new THREE.CircleGeometry(0.032, 14), M.rope, [cx0 - 0.026, y0 + H * 0.06, zc], [0, -Math.PI / 2, 0], null, { ink: false });
+        part(pk, new THREE.TorusGeometry(0.06, 0.007, 5, 16), M.belt, [cx0 + 0.01, y0 + H * 0.06, zc], [0, 0, 0], [1, 1.9, 0.6]);
+        const by = y0 - H / 2 - 0.045; part(pk, cyl(0.052, 0.052, W * 1.06, 22), M.packDk, [0, by, zc + 0.005], [0, 0, Math.PI / 2]); const sp = toon(0, spiralTex(P.packDk)); for (const s of [-1, 1]) part(pk, new THREE.CircleGeometry(0.051, 22), sp, [s * W * 0.531, by, zc + 0.005], [0, s * Math.PI / 2, 0], null, { ink: false });
+        for (const s of [-1, 1]) part(pk, new THREE.TorusGeometry(0.054, 0.008, 6, 20), M.belt, [s * W * 0.3, by, zc + 0.005], [0, Math.PI / 2, 0]); }
+      else { const ry = y0 - H / 2 - 0.055; part(pk, cyl(0.068, 0.068, W * 1.12, 22), M.packDk, [0, ry, zc - 0.005], [0, 0, Math.PI / 2]); const sp = toon(0, spiralTex(P.packDk)); for (const s of [-1, 1]) part(pk, new THREE.CircleGeometry(0.067, 22), sp, [s * W * 0.561, ry, zc - 0.005], [0, s * Math.PI / 2, 0], null, { ink: false });
+        for (const s of [-1, 1]) part(pk, new THREE.TorusGeometry(0.07, 0.008, 6, 20), M.belt, [s * W * 0.3, ry, zc - 0.005], [0, Math.PI / 2, 0]);
+        // the lantern on its ring, swinging off the left side of the pack
+        const pv = bone('lanternPivot', pk, W / 2 + 0.07, y0 + 0.01, zc + 0.03); built.lantern = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; part(pv, new THREE.TorusGeometry(0.014, 0.003, 5, 12), M.dark, [0, -0.01, 0], [0, Math.PI / 2, 0]);
         const L = new THREE.Group(); L.position.y = -0.09; pv.add(L); part(L, new THREE.ConeGeometry(0.038, 0.035, 8), M.dark, [0, 0.055, 0]); part(L, cyl(0.036, 0.036, 0.016, 10), M.dark, [0, -0.05, 0]); part(L, cyl(0.03, 0.03, 0.01, 10), M.dark, [0, 0.035, 0]);
         for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + 0.4; part(L, cyl(0.003, 0.003, 0.085, 4), M.dark, [Math.cos(a) * 0.031, -0.005, Math.sin(a) * 0.031], null, null, { ink: false }); }
         built.lanternCore = new THREE.MeshBasicMaterial({ color: 0xffc46a }); const core = new THREE.Mesh(cyl(0.024, 0.024, 0.075, 12), built.lanternCore); core.position.y = -0.005; L.add(core);
@@ -359,7 +379,7 @@ const CharView = (() => {
     // fixed ankle targets (character space) and the pickaxe mount (its origin is the grip)
     c.ankle = { R: V(-0.095, 0.08, 0.0), L: V(0.1, 0.08, -0.02) };
     const mt = c.built.mount; { // per the sheets: he carries it short over the right shoulder; she rests it across the back of her neck
-      const F = c.sex === 'f', d = (F ? V(0.625, 0.404, -0.673) : V(0.3, 0.55, -0.78)).normalize(), bl = F ? V(0, 1, 0).addScaledVector(d, -d.y).normalize() : V(-1, 0.8, 0).addScaledVector(d, -V(-1, 0.8, 0).dot(d)).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); mt.quaternion.setFromRotationMatrix(_m); mt.position.copy(F ? V(-0.2, 0.09, 0.1) : V(-0.21, 0.075, 0.12)); c.gripAt = F ? 0.0 : 0.08; }
+      const F = c.sex === 'f', d = (F ? V(0.625, 0.404, -0.673) : V(0.14, 0.58, -0.8)).normalize(), bl = F ? V(0, 1, 0).addScaledVector(d, -d.y).normalize() : V(-1, 0.8, 0).addScaledVector(d, -V(-1, 0.8, 0).dot(d)).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); mt.quaternion.setFromRotationMatrix(_m); mt.position.copy(F ? V(-0.2, 0.09, 0.1) : V(-0.21, 0.075, 0.12)); c.gripAt = F ? 0.0 : 0.08; }
     c.pickRest = { p: mt.position.clone(), q: mt.quaternion.clone() }; c.restQ = {}; for (const k in B) if (B[k] && B[k].isObject3D) c.restQ[k] = B[k].quaternion.clone(); }
   const PALM = V(0, -0.045, -0.031);
   function solveLimbs(c, f) { const { B } = c, root = c.root; root.updateMatrixWorld(true);
