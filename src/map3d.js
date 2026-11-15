@@ -298,87 +298,126 @@ void main() {
         A.p.push(p.x, p.y, p.z); A.n.push(d.x, d.y, d.z); A.uv.push((k / seg) * uvk[0], vacc / uvk[1]); const c = col(i, a, p, d); A.c.push(c[0], c[1], c[2]); } }
     for (let i = 0; i < n - 1; i++) for (let k = 0; k < seg; k++) { const a = base + i * (seg + 1) + k, b2 = a + seg + 1; A.i.push(a, b2, a + 1, a + 1, b2, b2 + 1); } }
   function bez(p0, p1, p2, p3, n) { const c = new THREE.CubicBezierCurve3(p0, p1, p2, p3); return c.getPoints(n); }
-  const HWX = { built: false, objs: [], mush: null, hollows: [], mushGlow: null, badges: [] };
+  const HWX = { built: false, objs: [], mush: null, mushGlow: null, badges: [], clumps: [], seats: [] };
+  // the pit wall: radius (from the Hollow's centre) where the wall reaches height y along angle phi
+  function wallR(phi, y) { let lo = Math.max(50, hollowR(phi) - 3000), hi = hollowR(phi) + 300; for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2, [x, z] = polar(m, phi); if (meshH(x, z) > y) hi = m; else lo = m; } return (lo + hi) / 2; }
+  function puffGeo(det, seed) { // one leafy floret: a lumpy ball (cauliflower bumps), lit from the top, dark underneath
+    const g = new THREE.IcosahedronGeometry(1, det), P = g.attributes.position, cc = [], uv = [];
+    for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
+      const n = 1 + 0.16 * (vnoise(x * 2.1 + seed, z * 2.1 + y * 1.9 + seed) - 0.5) * 2 + 0.07 * Math.sin(x * 9 + seed) * Math.sin(y * 8 + 1) * Math.sin(z * 9 + 2) + 0.04 * Math.sin(x * 17 + y * 13 + z * 15);
+      P.setXYZ(i, x * n, (y > 0 ? y * 0.92 : y * 0.62) * n, z * n);
+      const t = clamp((y + 0.75) / 1.6, 0, 1), sh = 0.38 + 0.78 * Math.pow(t, 1.15); cc.push(sh * (0.97 + 0.1 * t), sh, sh * (0.86 - 0.14 * t)); uv.push((Math.atan2(z, x) / Math.PI + 1) * 1.5, (y + 1) * 1.2); }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g; }
+  function canopyLeafTex() { return hwCanvasTex(512, 512, (g, w, h) => { g.fillStyle = '#5c7a34'; g.fillRect(0, 0, w, h); let s = 23; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 5200; i++) { const x = R() * w, y = R() * h, r = 3 + R() * 6, k = R(), a = R() * TAU;
+      g.fillStyle = k < 0.22 ? `rgba(${38 + R() * 20 | 0},${58 + R() * 20 | 0},${26 + R() * 10 | 0},.85)` : k < 0.72 ? `rgba(${104 + R() * 34 | 0},${140 + R() * 30 | 0},${54 + R() * 20 | 0},.85)` : k < 0.93 ? `rgba(${150 + R() * 30 | 0},${178 + R() * 24 | 0},${78 + R() * 26 | 0},.85)` : `rgba(${196 + R() * 30 | 0},${206 + R() * 20 | 0},${112 + R() * 30 | 0},.8)`;
+      g.beginPath(); g.ellipse(x, y, r, r * 0.5, a, 0, TAU); g.fill(); g.strokeStyle = 'rgba(30,44,20,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke(); } }); }
   function buildHeartwood() { const T = W.heartwood; if (!T) return; const H = T.H, B = T.base;
     const ax = (f) => { const [x, y] = hwAxis(f); return v3().set(x, B + f * H, y); }, dirAt = (th) => v3().set(Math.cos(th), 0, Math.sin(th));
     const tr = (f, th, r) => ax(f).addScaledVector(dirAt(th), r != null ? r : hwTrunkR(f));
     const add = (o) => { scene.add(o); HWX.objs.push(o); return o; };
+    const OUT = T.in + Math.PI; // the side facing away from the Hollow (onto the plateau)
     if (!HWX.built) { HWX.built = true; const bark = new THREE.MeshLambertMaterial({ map: barkTex(), vertexColors: true, side: THREE.DoubleSide }), A = GA();
-      const moss = (p, d, k) => { const m = Math.max(0, d.y) * 0.8 + (vnoise(p.x / 700 + k, p.z / 700 + p.y / 900) - 0.45) * 1.6; const u = clamp(m, 0, 1); return [1 - 0.42 * u, 1 - 0.12 * u, 1 - 0.55 * u]; };
-      // the trunk: twisted, buttressed, gnarled
-      const trunkRad = (f, a) => { const tw = f * 3.4, Bt = Math.exp(-Math.max(0, f + 0.06) * 8), lobe = Math.pow(0.5 + 0.5 * Math.cos(7 * (a - tw)), 3), r = hwTrunkR(f) * (1 + 0.62 * Bt * lobe - 0.1 * Bt);
-          return r * (1 + 0.07 * Math.sin(3 * a + f * 17) + 0.05 * Math.sin(5 * a - f * 23 + 1.3) + 0.06 * (vnoise(a * 2.2 + 3, f * 14) - 0.5) - (f > 0.66 ? (f - 0.66) * 6 : 0)); };
-      { const pts = [], fs = []; for (let i = 0; i <= 64; i++) { const f = -0.16 + (i / 64) * 0.86; fs.push(f); pts.push(ax(f)); }
-        gaTube(A, pts, 56, (i, a) => trunkRad(fs[i], a), (i, a, p, d) => moss(p, d, 0), [7, 900]); }
-      // great root-cords: twisted strands wound round the lower trunk that spill out as roots, gripping the lip and the summit
-      // behind and clawing down the inner wall of the Hollow
-      const rootPts = [];
-      for (let k = 0; k < 13; k++) { const a = T.in + Math.PI + (k / 13) * TAU + (hash1(k * 3.1) - 0.5) * 0.25, inward = Math.cos(a - T.in) > 0.2, L = H * (inward ? 0.15 + 0.1 * hash1(k) : 0.14 + 0.12 * hash1(k + 9)), r0 = HW_R0 * (0.27 + 0.1 * hash1(k + 2)), pts = [], rs = [];
-        const fTop = k % 4 === 3 ? 0.06 : 0.22 + hash1(k + 5) * 0.22, nS = Math.max(2, Math.round(fTop / 0.012)), tw = 2.4 * (k % 2 ? 1 : 0.8);
-        for (let i = 0; i <= nS; i++) { const f = fTop * (1 - i / nS) + 0.015, aa = a - (f - 0.015) * tw; pts.push(tr(f, aa, trunkRad(f, aa) * 0.93)); rs.push(r0 * (0.25 + 0.75 * Math.pow(i / nS, 0.7))); }
-        let prev = pts[pts.length - 1]; const [cx, cy] = hwAxis(0);
-        for (let i = 1; i <= 22; i++) { const u = i / 22, s2 = Math.hypot(prev.x - cx, prev.z - cy) * (1 - u) + (hwTrunkR(0) * 1.15 + L * Math.pow(u, 0.9)) * u, aa = a + Math.sin(u * 5 + k) * 0.18 * u, x = cx + Math.cos(aa) * s2, z = cy + Math.sin(aa) * s2, rr = r0 * (1 - 0.88 * u);
-          const gy = meshH(x, z); const y = Math.min(prev.y + 40, Math.max(gy + rr * 0.3, prev.y - (i < 4 ? 140 : 900))); const p = v3().set(x, Math.max(y, gy + rr * 0.2), z); pts.push(p); rs.push(rr); prev = p; }
-        gaTube(A, pts, 12, (i, aa) => rs[i] * (1 + 0.12 * Math.sin(aa * 3 + i)), (i, aa, p, d) => moss(p, d, k), [3, 500]); rootPts.push(pts.slice(nS)); }
-      // twisted cords running up the whole trunk into the crown (the trunk reads as a braid of great roots)
-      for (let k = 0; k < 9; k++) { const a0 = (k / 9) * TAU + 0.3, pts = [], rs = [], f1 = 0.5 + hash1(k * 7.3) * 0.14, n = 44;
-        for (let i = 0; i <= n; i++) { const f = 0.03 + (f1 - 0.03) * i / n, aa = a0 + f * 2.6; pts.push(tr(f, aa, trunkRad(f, aa) * 0.94)); rs.push(HW_R0 * (0.2 + 0.05 * hash1(k)) * (1 - 0.55 * i / n) * (i < 3 ? 0.5 + i / 6 : 1)); }
+      const moss = (p, d, k) => { const m = Math.max(0, d.y) * 0.9 + (vnoise(p.x / 600 + k, p.z / 600 + p.y / 800) - 0.48) * 1.7; const u = clamp(m, 0, 1), dk = 0.86 + 0.14 * clamp((p.y - B) / (H * 0.4), 0, 1); return [(1 - 0.45 * u) * dk, (1 - 0.1 * u) * dk, (1 - 0.6 * u) * dk]; };
+      // the trunk: a braid of great twisted strands, deeply ridged, buttressed at the foot
+      const trunkRad = (f, a) => { const tw = f * 4.2, Bt = Math.exp(-Math.max(0, f + 0.04) * 7), lobe = Math.pow(0.5 + 0.5 * Math.cos(6 * (a - tw)), 2.2), lobe2 = Math.pow(0.5 + 0.5 * Math.cos(11 * (a - tw * 1.3) + 1), 4), r = hwTrunkR(f) * (1 + 0.55 * Bt * lobe - 0.08 * Bt);
+          return r * (1 + 0.075 * lobe2 + 0.06 * Math.sin(3 * a + f * 17) + 0.05 * (vnoise(a * 2.2 + 3, f * 14) - 0.5) - (f > 0.66 ? (f - 0.66) * 5 : 0)); };
+      { const pts = [], fs = []; for (let i = 0; i <= 72; i++) { const f = -0.07 + (i / 72) * 0.8, fr = f; fs.push(fr); pts.push(ax(fr)); }
+        gaTube(A, pts, 64, (i, a) => trunkRad(fs[i], a) * (fs[i] < 0 ? 1 + fs[i] * 3 : 1), (i, a, p, d) => moss(p, d, 0), [7, 900]); }
+      // strands wound round the trunk up into the crown
+      for (let k = 0; k < 12; k++) { const a0 = (k / 12) * TAU + 0.3, pts = [], rs = [], f1 = 0.52 + hash1(k * 7.3) * 0.16, n = 48;
+        for (let i = 0; i <= n; i++) { const f = 0.02 + (f1 - 0.02) * i / n, aa = a0 + f * 3.4; pts.push(tr(f, aa, trunkRad(f, aa) * 0.95)); rs.push(HW_R0 * (0.17 + 0.06 * hash1(k)) * (1 - 0.6 * i / n) * (i < 3 ? 0.5 + i / 6 : 1)); }
         gaTube(A, pts, 10, (i, aa) => rs[i] * (1 + 0.1 * Math.sin(aa * 2 + i * 0.4)), (i, aa, p, d) => moss(p, d, k + 40), [2, 600]); }
-      // limbs: crown limbs fanning out from the top of the trunk, plus the limbs that carry the limb-seats
-      const limbs = [];
-      const limb = (f0, th, out, rise, r0, sub) => { const p0 = tr(f0, th, hwTrunkR(f0) * 0.4), d = dirAt(th), p3 = v3().copy(p0).addScaledVector(d, out).add(v3().set(0, rise, 0));
-        const p1 = v3().copy(p0).addScaledVector(d, out * 0.35).add(v3().set(0, rise * 0.15, 0)), p2 = v3().copy(p0).addScaledVector(d, out * 0.7).add(v3().set(0, rise * 0.55, 0)), pts = bez(p0, p1, p2, p3, 18);
-        gaTube(A, pts, 14, (i, a) => r0 * (1 - 0.8 * i / 18) * (1 + 0.08 * Math.sin(a * 3 + i * 0.7)), (i, a, p, d2) => moss(p, d2, th), [3, 600]); const L = { pts, th, end: p3, r0 }; limbs.push(L);
-        if (sub) for (const s of [-1, 1]) { const q0 = pts[10], dd = dirAt(th + s * 0.55), q3 = v3().copy(q0).addScaledVector(dd, out * 0.45).add(v3().set(0, rise * 0.5, 0));
-          const sp = bez(q0, v3().lerpVectors(q0, q3, 0.33).add(v3().set(0, -rise * 0.05, 0)), v3().lerpVectors(q0, q3, 0.66), q3, 10);
-          gaTube(A, sp, 8, (i) => r0 * 0.45 * (1 - 0.8 * i / 10), (i, a, p, d2) => moss(p, d2, th + s), [2, 500]); limbs.push({ pts: sp, th: th + s * 0.55, end: q3, r0: r0 * 0.45, sub: true }); }
-        return L; };
-      for (let k = 0; k < 9; k++) { const th = T.in + (k / 9) * TAU + 0.2 + (hash1(k * 4.4) - 0.5) * 0.4, f0 = 0.59 + hash1(k * 2.2) * 0.07; limb(f0, th, H * (0.26 + 0.1 * hash1(k + 1)), H * (0.08 + 0.11 * hash1(k + 3)), hwTrunkR(f0) * 0.5, true); }
-      limb(0.66, T.in + 0.9, H * 0.08, H * 0.2, hwTrunkR(0.66) * 0.5, true); limb(0.66, T.in - 2.4, H * 0.07, H * 0.22, hwTrunkR(0.66) * 0.45, true); // the leaders
-      const pulleyLimb = limb(0.56, T.in + 0.55, H * 0.3, H * 0.05, hwTrunkR(0.56) * 0.36, false); // a great limb reaching out over the Hollow: the pulley hangs from it
+      // LIP ROOTS: wind down the trunk, then arch out over the lip and grip the plateau behind the tree
+      const rootPts = [], rootR = [];
+      const lipRoot = (a, fTop, L, r0, k, from) => { const pts = [], rs = []; let prev;
+        if (!from) { const nS = Math.max(3, Math.round(fTop / 0.012)), tw = 1.6 * (k % 2 ? 1 : -0.8);
+          for (let i = 0; i <= nS; i++) { const f = fTop * (1 - i / nS) + 0.01, aa = a - (f - 0.01) * tw; pts.push(tr(f, aa, trunkRad(f, aa) * 0.9)); rs.push(r0 * (0.3 + 0.7 * Math.pow(i / nS, 0.6))); } prev = pts[pts.length - 1]; }
+        else { prev = from.p; pts.push(prev); rs.push(r0); }
+        const c = from ? from.p : ax(0), s0 = Math.hypot(prev.x - c.x, prev.z - c.z), n = 26, y0 = prev.y;
+        for (let i = 1; i <= n; i++) { const u = i / n, s2 = s0 + L * Math.pow(u, 0.9), aa = a + Math.sin(u * 4.5 + k) * 0.22 * u, x = c.x + Math.cos(aa) * s2, z = c.z + Math.sin(aa) * s2, rr = r0 * (1 - 0.9 * Math.pow(u, 0.8));
+          const gy = meshH(x, z), arch = Math.sin(Math.min(1, u * 2.2) * Math.PI) * rr * 0.5; const y = Math.max(gy + rr * 0.32 + arch, y0 + (gy - y0) * clamp(u * 3, 0, 1) + rr * 0.3); const p = v3().set(x, y, z); pts.push(p); rs.push(rr); }
+        gaTube(A, pts, 12, (i, aa) => rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))), (i, aa, p, d) => moss(p, d, k), [3, 520]); rootPts.push(pts.slice(from ? 0 : 6)); rootR.push(rs); return { pts, rs }; };
+      for (let k = 0; k < 11; k++) { const a = OUT + (k / 10 - 0.5) * 3.9 + (hash1(k * 3.1) - 0.5) * 0.2, side = Math.abs(Math.cos(a - OUT)), L = H * (0.13 + 0.15 * side) * (0.8 + 0.4 * hash1(k + 9)), r0 = HW_R0 * (0.3 + 0.12 * hash1(k + 2));
+        const R1 = lipRoot(a, 0.1 + hash1(k + 5) * 0.16, L, r0, k);
+        for (const s of [-1, 1]) if (hash1(k * 5 + s) < 0.75) { const i = 8 + ((hash1(k * 2 + s) * 8) | 0); if (R1.pts[i]) lipRoot(a + s * (0.5 + hash1(k + s) * 0.4), 0, L * 0.45, R1.rs[i] * 0.55, k + s * 20, { p: v3().copy(R1.pts[i]) }); } }
+      // WALL ROOTS: from the trunk's Hollow side straight down the inner wall, clawing into the rock, holding the tree up
+      const wallRoot = (phiOff, fTop, drop, r0, k) => { const pts = [], rs = [], aT = T.in + phiOff * 1.6, nS = 6;
+        for (let i = 0; i <= nS; i++) { const f = fTop * (1 - i / nS) + 0.0, aa = aT + (fTop - f) * 1.2 * (k % 2 ? 1 : -1); pts.push(tr(f, aa, trunkRad(f, aa) * 0.9)); rs.push(r0 * (0.4 + 0.6 * i / nS)); }
+        const p0 = pts[pts.length - 1], phi0 = Math.atan2(p0.z, p0.x), r0w = Math.hypot(p0.x, p0.z), y0 = p0.y, n = 30;
+        for (let i = 1; i <= n; i++) { const u = i / n, y = y0 - drop * u, phi = phi0 + phiOff * (0.3 + 1.1 * u) * 0.9 + Math.sin(u * 5 + k) * 0.03, rr = r0 * (1 - 0.86 * Math.pow(u, 0.85));
+          const rw = wallR(phi, y), r = Math.min(r0w + 120 * u, rw - rr * 0.25); const [x, z] = polar(r, phi); pts.push(v3().set(x, Math.max(y, meshH(x, z) + rr * 0.15), z)); rs.push(rr); }
+        gaTube(A, pts, 12, (i, aa) => rs[i] * (1 + 0.12 * Math.sin(aa * 3 + i)), (i, aa, p, d) => moss(p, d, k + 70), [3, 520]); rootPts.push(pts.slice(nS)); rootR.push(rs.slice(nS)); };
+      for (let k = 0; k < 9; k++) { const off = (k / 8 - 0.5) * 0.9 + (hash1(k * 4.7) - 0.5) * 0.06; wallRoot(off, 0.03 + hash1(k * 1.9) * 0.08, 1800 + hash1(k * 2.3) * 2000 - Math.abs(off) * 900, HW_R0 * (0.26 + 0.12 * hash1(k + 7)), k); }
+      // limbs: great crown limbs that fork, each fork ending in a cauliflower floret of foliage
+      const limbs = [], ends = [];
+      const tube = (pts, r0, r1, seed) => gaTube(A, pts, 12, (i, a) => (r0 + (r1 - r0) * i / (pts.length - 1)) * (1 + 0.09 * Math.sin(a * 3 + i * 0.7 + seed)), (i, a, p, d2) => moss(p, d2, seed), [3, 600]);
+      const branch = (p0, th, out, rise, r0, depth, seed) => { const d = dirAt(th), p3 = v3().copy(p0).addScaledVector(d, out).add(v3().set(0, rise, 0));
+        const p1 = v3().copy(p0).addScaledVector(d, out * 0.3).add(v3().set(0, rise * 0.45, 0)), p2 = v3().copy(p0).addScaledVector(d, out * 0.68).add(v3().set(0, rise * 0.95, 0)), pts = bez(p0, p1, p2, p3, 16);
+        tube(pts, r0, r0 * 0.3, seed); const L = { pts, th, end: p3, r0, depth }; limbs.push(L);
+        if (depth > 0) { const forks = depth > 1 ? 3 : 2; for (let k = 0; k < forks; k++) { const i = depth > 1 ? [7, 11, 14][k] : [10, 14][k], s = k % 2 ? 1 : -1, q0 = pts[i];
+            branch(q0, th + s * (0.45 + hash1(seed + k) * 0.35), out * (0.42 + hash1(seed * 2 + k) * 0.12), rise * (0.35 + hash1(seed * 3 + k) * 0.3), r0 * (1 - i / 16 * 0.7) * 0.75, depth - 1, seed * 1.7 + k + 1); } }
+        else ends.push({ p: p3, R: out * 0.95 + 380, th }); return L; };
+      const crownF = [0.62, 0.66, 0.7, 0.64, 0.68, 0.71, 0.63, 0.67];
+      for (let k = 0; k < 8; k++) { const th = T.in + (k / 8) * TAU + 0.25 + (hash1(k * 4.4) - 0.5) * 0.35, towardPit = Math.cos(th - T.in), f0 = crownF[k];
+        branch(tr(f0, th, hwTrunkR(f0) * 0.35), th, H * (0.2 + 0.05 * hash1(k + 1)) * (1 - 0.18 * Math.max(0, towardPit)), H * (0.05 + 0.08 * hash1(k + 3)), hwTrunkR(f0) * 0.5, 2, k * 13 + 1); }
+      for (const [th, f0] of [[T.in + 1.3, 0.7], [OUT + 0.6, 0.71], [T.in - 1.9, 0.72]]) branch(tr(f0, th, hwTrunkR(f0) * 0.3), th, H * 0.07, H * 0.13, hwTrunkR(f0) * 0.42, 1, th * 7); // leaders
+      const pulleyLimb = { pts: null }; { const f0 = 0.5, th = T.in + 0.45, p0 = tr(f0, th, hwTrunkR(f0) * 0.4), d = dirAt(th), p3 = v3().copy(p0).addScaledVector(d, H * 0.29).add(v3().set(0, H * 0.035, 0));
+        const pts = bez(p0, v3().copy(p0).addScaledVector(d, H * 0.1).add(v3().set(0, H * 0.04, 0)), v3().copy(p0).addScaledVector(d, H * 0.2).add(v3().set(0, H * 0.045, 0)), p3, 18); tube(pts, hwTrunkR(f0) * 0.36, hwTrunkR(f0) * 0.12, 77); pulleyLimb.pts = pts; limbs.push({ pts, th, end: p3, r0: hwTrunkR(f0) * 0.36 }); ends.push({ p: v3().copy(p3).add(v3().set(H * 0.01 * d.x, 120, H * 0.01 * d.z)), R: 700, th }); }
       for (let j = 0; j < HW_SEATS.length; j++) { const S = HW_SEATS[j]; if (!S[2]) continue; const th = T.in + S[1], f = S[0];
-        const p0 = tr(f - 0.075, th, hwTrunkR(f - 0.075) * 0.4), d = dirAt(th), under = v3().copy(ax(f)).addScaledVector(d, S[2]).add(v3().set(0, -60, 0)), p3 = v3().copy(under).addScaledVector(d, 700).add(v3().set(0, H * 0.06, 0));
+        const p0 = tr(f - 0.07, th, hwTrunkR(f - 0.07) * 0.4), d = dirAt(th), under = v3().copy(ax(f)).addScaledVector(d, S[2]).add(v3().set(0, -60, 0)), p3 = v3().copy(under).addScaledVector(d, 650).add(v3().set(0, H * 0.05, 0));
         const pts = bez(p0, v3().copy(p0).addScaledVector(d, S[2] * 0.4).add(v3().set(0, H * 0.035, 0)), v3().copy(under).addScaledVector(d, -200).add(v3().set(0, -30, 0)), p3, 20);
-        const r0 = hwTrunkR(f) * 0.34; gaTube(A, pts, 12, (i) => r0 * (1 - 0.7 * i / 20), (i, a, p, d2) => moss(p, d2, j), [3, 600]); limbs.push({ pts, th, end: p3, r0, seat: j }); }
+        const r0 = hwTrunkR(f) * 0.34; tube(pts, r0, r0 * 0.3, j * 3 + 5); limbs.push({ pts, th, end: p3, r0, seat: j }); ends.push({ p: v3().copy(p3).add(v3().set(0, 260, 0)), R: 620, th, seat: j }); }
+      // hanging vines: drooping catenaries between neighbouring limbs
+      for (let k = 0; k < limbs.length - 1; k += 2) { const a = limbs[k].pts[12], b = limbs[k + 1].pts[10]; if (!a || !b || a.distanceTo(b) > 4200 || a.distanceTo(b) < 600) continue; const pts = []; for (let i = 0; i <= 14; i++) { const u = i / 14; pts.push(v3().lerpVectors(a, b, u).add(v3().set(0, -Math.sin(u * Math.PI) * a.distanceTo(b) * 0.28, 0))); }
+        gaTube(A, pts, 5, () => 22, () => [0.42, 0.55, 0.3], [1, 300]); }
       add(gaMesh(A, bark, true));
-      // canopy: broad, flat-topped leaf pads at the limb ends, each a cluster of flattened leafy blobs (instanced, one displaced blob geometry)
-      const cg = new THREE.IcosahedronGeometry(1, 3), cp = cg.attributes.position, cc = [];
-      for (let i = 0; i < cp.count; i++) { const x = cp.getX(i), y = cp.getY(i), z = cp.getZ(i), n = 1 + 0.2 * (vnoise(x * 2.5 + 7, z * 2.5 + y * 1.7) - 0.5) + 0.07 * Math.sin(x * 11) * Math.sin(z * 10) * Math.sin(y * 9); cp.setXYZ(i, x * n, (y > 0 ? y * 0.8 : y * 0.35) * n, z * n); const sh = 0.4 + 0.65 * Math.pow(clamp((y + 0.6) / 1.5, 0, 1), 1.3); cc.push(sh * (0.95 + 0.08 * y), sh, sh * (0.88 - 0.1 * y)); }
-      cg.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); cg.computeVertexNormals();
-      const clumps = []; const clump = (c, r) => clumps.push([c.x, c.y, c.z, r]);
-      const pad = (c, R, sd) => { clump(v3().copy(c).add(v3().set(0, R * 0.12, 0)), R * 0.6); const n = 5 + ((hash1(sd) * 3) | 0); for (let k = 0; k < n; k++) { const aa = (k / n) * TAU + hash1(sd + k) * 0.6, rr = R * (0.5 + hash1(sd * 2 + k) * 0.2); clump(v3().copy(c).add(v3().set(Math.cos(aa) * rr, (hash1(sd * 3 + k) - 0.6) * R * 0.18, Math.sin(aa) * rr)), R * (0.36 + hash1(sd * 5 + k) * 0.16)); } };
-      limbs.forEach((L, li) => { if (L.seat != null) { pad(v3().copy(L.end).add(v3().set(0, 120, 0)), 520, li * 7.1); return; } if (L === pulleyLimb) { pad(v3().copy(L.end).add(v3().set(0, 160, 0)), 700, li * 3.3); return; }
-        pad(v3().copy(L.end).add(v3().set(0, 180, 0)), L.sub ? 950 : 1150, li * 5.7); if (!L.sub) pad(v3().copy(L.pts[12]).add(v3().set(0, 420, 0)), 760, li * 9.1); });
-      { const top = ax(0.88); pad(v3().copy(top).add(v3().set(0, 500, 0)), 1400, 99); }
-      const lm = new THREE.MeshLambertMaterial({ map: leafTex(), vertexColors: true }), im = new THREE.InstancedMesh(cg, lm, clumps.length), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
-      im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(clumps.length * 3), 3);
-      clumps.forEach((c, i) => { e.set(0, hash1(i * 1.7) * TAU, (hash1(i * 2.9) - 0.5) * 0.25); q.setFromEuler(e); mt.compose(v3().set(c[0], c[1], c[2]), q, v3().set(c[3], c[3] * (0.8 + hash1(i) * 0.3), c[3] * (0.85 + hash1(i + 1) * 0.3))); im.setMatrixAt(i, mt);
-        const g2 = 0.9 + hash1(i * 4.1) * 0.22, w2 = hash1(i * 6.3); im.instanceColor.setXYZ(i, g2 * (0.92 + w2 * 0.16), g2, g2 * (0.72 + w2 * 0.1)); });
-      im.castShadow = true; im.receiveShadow = true; add(im);
-      // hanging moss and vines from the limbs
-      const seatPts = HW_SEATS.map((S, j) => heartwoodSlot(j)), clearOf = (x, y, z) => seatPts.every((q) => Math.hypot(q.x - x, q.y - z) > 650 || y < q.elev - 900 || y > q.elev + 1400);
-      const hang = []; for (const L of limbs) for (let k = 2; k < L.pts.length - 1; k += L.sub ? 3 : 2) { const p = L.pts[k], n2 = 1 + ((hash1(k * 3 + L.th) * 3) | 0); for (let j = 0; j < n2; j++) { const hx = p.x + (hash1(k + j * 7 + L.th) - 0.5) * L.r0 * 1.6, hz = p.z + (hash1(k * 5 + j + L.th) - 0.5) * L.r0 * 1.6; if (clearOf(hx, p.y, hz)) hang.push([hx, p.y - L.r0 * 0.6, hz, 150 + hash1(k * 11 + j + L.th * 3) * 500]); } }
-      for (const c of clumps) if (hash1(c[0] * 0.01 + c[2] * 0.003) < 0.6) for (let j = 0; j < 3; j++) hang.push([c[0] + (hash1(j + c[1]) - 0.5) * c[3] * 1.4, c[1] - c[3] * 0.32, c[2] + (hash1(j * 3 + c[1]) - 0.5) * c[3] * 1.4, 200 + hash1(j * 7 + c[0]) * 450]);
-      { const hg = new THREE.CylinderGeometry(0.25, 1, 1, 5, 1); hg.translate(0, -0.5, 0); const hm = new THREE.InstancedMesh(hg, new THREE.MeshLambertMaterial({ color: 0xffffff }), hang.length); hm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(hang.length * 3), 3);
-        hang.forEach((h2, i) => { mt.compose(v3().set(h2[0], h2[1], h2[2]), q.identity(), v3().set(7 + hash1(i) * 7, h2[3], 7 + hash1(i) * 7)); hm.setMatrixAt(i, mt); const v = hash1(i * 2.2); hm.instanceColor.setXYZ(i, 0.26 + v * 0.1, 0.33 + v * 0.1, 0.16 + v * 0.05); }); add(hm); }
+      // CANOPY: one floret (cluster of lumpy puffs) per branch tip, plus the crown dome; dark core puffs fill the gaps between florets
+      const clumps = []; const clump = (x, y, z, r, sh, hue) => clumps.push([x, y, z, r, sh, hue]);
+      const floret = (c, R, sd) => { const hue = hash1(sd * 1.3);
+        clump(c.x, c.y - R * 0.12, c.z, R * 0.7, 0.5, hue);
+        const n = 6 + ((hash1(sd) * 4) | 0); for (let k = 0; k < n; k++) { const aa = (k / n) * TAU + hash1(sd + k) * 0.7, rr = R * (0.5 + hash1(sd * 2 + k) * 0.22); clump(c.x + Math.cos(aa) * rr, c.y + (hash1(sd * 3 + k) - 0.62) * R * 0.32, c.z + Math.sin(aa) * rr, R * (0.36 + hash1(sd * 5 + k) * 0.16), 0.68 + hash1(sd * 7 + k) * 0.2, hue + (hash1(k + sd) - 0.5) * 0.3); }
+        const m = 3 + ((hash1(sd * 9) * 3) | 0); for (let k = 0; k < m; k++) { const aa = hash1(sd * 11 + k) * TAU, rr = R * 0.28 * hash1(sd * 13 + k); clump(c.x + Math.cos(aa) * rr, c.y + R * (0.26 + hash1(sd * 17 + k) * 0.16), c.z + Math.sin(aa) * rr, R * (0.3 + hash1(sd * 19 + k) * 0.12), 0.9 + hash1(sd * 23 + k) * 0.16, hue + (hash1(k * 3 + sd) - 0.5) * 0.3); } };
+      ends.forEach((e2, i) => floret(e2.p, e2.R, i * 5.7 + 1));
+      for (const L of limbs) if (!L.seat && L.depth === 2) { const p = L.pts[12]; floret(v3().copy(p).add(v3().set(0, 420, 0)), 760, p.x * 0.01); }
+      { const top = ax(0.8); floret(v3().copy(top).add(v3().set(0, 700, 0)), 1500, 99); floret(v3().copy(top).add(v3().set(0, 250, 0)).addScaledVector(dirAt(OUT), 900), 1200, 98); }
+      // keep the seats clear: no foliage on top of a deck or a house
+      const seatPts = HW_SEATS.map((S, j) => heartwoodSlot(j)), clearOf = (x, y, z, r) => seatPts.every((q) => Math.hypot(q.x - x, q.y - z) > r + 420 || y + r < q.elev - 60 || y - r > q.elev + HW_HOUSE * 1.6);
+      const keep = clumps.filter((c) => clearOf(c[0], c[1], c[2], c[3] * 0.85)); HWX.clumps = keep;
+      const big = keep.filter((c) => c[3] >= 520), small = keep.filter((c) => c[3] < 520);
+      const lm = new THREE.MeshLambertMaterial({ map: canopyLeafTex(), vertexColors: true }), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+      const PAL = [[0.9, 0.96, 0.5], [0.72, 0.88, 0.54], [0.98, 0.98, 0.56], [0.62, 0.8, 0.5]];
+      for (const [L2, det] of [[big, 3], [small, 2]]) { if (!L2.length) continue; const im = new THREE.InstancedMesh(puffGeo(det, det * 3.7), lm, L2.length); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(L2.length * 3), 3);
+        L2.forEach((c, i) => { e.set((hash1(i * 2.9) - 0.5) * 0.3, hash1(i * 1.7) * TAU, (hash1(i * 3.9) - 0.5) * 0.3); q.setFromEuler(e); mt.compose(v3().set(c[0], c[1], c[2]), q, v3().set(c[3] * (0.95 + hash1(i + 2) * 0.12), c[3] * (0.82 + hash1(i) * 0.22), c[3] * (0.95 + hash1(i + 1) * 0.12))); im.setMatrixAt(i, mt);
+          const hu = ((c[5] % 1) + 1) % 1, a = PAL[(hu * 4) | 0], b = PAL[(((hu * 4) | 0) + 1) % 4], u = (hu * 4) % 1, ht = 0.9 + 0.16 * clamp((c[1] - B - H * 0.55) / (H * 0.3), 0, 1), s = c[4] * ht;
+          im.instanceColor.setXYZ(i, s * (a[0] + (b[0] - a[0]) * u), s * (a[1] + (b[1] - a[1]) * u), s * (a[2] + (b[2] - a[2]) * u)); });
+        im.castShadow = true; im.receiveShadow = true; add(im); }
+      // hanging moss: strands under the limbs and the florets
+      const hang = []; for (const L of limbs) for (let k = 3; k < L.pts.length - 1; k += 2) { const p = L.pts[k], n2 = 1 + ((hash1(k * 3 + L.th) * 3) | 0); for (let j = 0; j < n2; j++) { const hx = p.x + (hash1(k + j * 7 + L.th) - 0.5) * L.r0 * 1.4, hz = p.z + (hash1(k * 5 + j + L.th) - 0.5) * L.r0 * 1.4; if (clearOf(hx, p.y - 300, hz, 300)) hang.push([hx, p.y - L.r0 * 0.5, hz, 160 + hash1(k * 11 + j + L.th * 3) * 520]); } }
+      for (const c of keep) if (c[3] > 300 && hash1(c[0] * 0.01 + c[2] * 0.003) < 0.7) for (let j = 0; j < 6; j++) { const hx = c[0] + (hash1(j + c[1]) - 0.5) * c[3] * 1.3, hz = c[2] + (hash1(j * 3 + c[1]) - 0.5) * c[3] * 1.3; if (clearOf(hx, c[1] - 400, hz, 300)) hang.push([hx, c[1] - c[3] * 0.4, hz, 200 + hash1(j * 7 + c[0]) * 650]); }
+      { const hg = new THREE.CylinderGeometry(0.15, 1, 1, 5, 3); hg.translate(0, -0.5, 0); { const P = hg.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i); P.setX(i, P.getX(i) + Math.sin(y * 7) * 0.8); } } hg.computeVertexNormals();
+        const hm = new THREE.InstancedMesh(hg, new THREE.MeshLambertMaterial({ color: 0xffffff }), hang.length); hm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(hang.length * 3), 3);
+        hang.forEach((h2, i) => { e.set(0, hash1(i * 1.1) * TAU, 0); q.setFromEuler(e); mt.compose(v3().set(h2[0], h2[1], h2[2]), q, v3().set(6 + hash1(i) * 7, h2[3], 6 + hash1(i) * 7)); hm.setMatrixAt(i, mt); const v = hash1(i * 2.2); hm.instanceColor.setXYZ(i, 0.22 + v * 0.14, 0.3 + v * 0.14, 0.13 + v * 0.07); }); hm.castShadow = true; add(hm); }
       // rocks gripped by the roots
-      { const rk = []; for (const pts of rootPts) for (let i = 4; i < pts.length; i += 4) if (hash1(i + pts[i].x) < 0.7) rk.push([pts[i].x + (hash1(i * 3 + pts[i].z) - 0.5) * 300, pts[i].z + (hash1(i * 7 + pts[i].x) - 0.5) * 300, 70 + hash1(i + pts[i].z) * 170]);
-        const rg = new THREE.DodecahedronGeometry(1, 0), rm = new THREE.InstancedMesh(rg, new THREE.MeshLambertMaterial({ color: 0x8a8580, flatShading: true }), rk.length); rm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(rk.length * 3), 3);
-        rk.forEach((r, i) => { e.set(hash1(i) * 3, hash1(i + 1) * 3, 0); q.setFromEuler(e); mt.compose(v3().set(r[0], meshH(r[0], r[1]) + r[2] * 0.2, r[1]), q, v3().set(r[2], r[2] * 0.7, r[2] * 0.9)); rm.setMatrixAt(i, mt); const v = 0.75 + hash1(i * 3) * 0.3; rm.instanceColor.setXYZ(i, v, v * 0.97, v * 0.93); });
+      { const rk = []; rootPts.forEach((pts, ri) => { for (let i = 3; i < pts.length; i += 3) if (hash1(i + pts[i].x) < 0.3) { const rr = (rootR[ri][Math.min(rootR[ri].length - 1, i)] || 100); rk.push([pts[i].x + (hash1(i * 3 + pts[i].z) - 0.5) * rr * 3, pts[i].z + (hash1(i * 7 + pts[i].x) - 0.5) * rr * 3, 50 + hash1(i + pts[i].z) * 120]); } });
+        const rg = new THREE.DodecahedronGeometry(1, 1); { const P = rg.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), n = 1 + 0.18 * Math.sin(x * 5 + z * 3) * Math.cos(y * 4); P.setXYZ(i, x * n, y * n * 0.8, z * n); } } rg.computeVertexNormals();
+        const rm = new THREE.InstancedMesh(rg, new THREE.MeshLambertMaterial({ color: 0x4e4740, flatShading: true }), rk.length); rm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(rk.length * 3), 3);
+        rk.forEach((r, i) => { e.set(hash1(i) * 3, hash1(i + 1) * 3, 0); q.setFromEuler(e); mt.compose(v3().set(r[0], meshH(r[0], r[1]) - r[2] * 0.1, r[1]), q, v3().set(r[2], r[2] * 0.7, r[2] * 0.9)); rm.setMatrixAt(i, mt); const v = 0.62 + hash1(i * 3) * 0.25, mo = hash1(i * 5) < 0.4 ? 0.85 : 1; rm.instanceColor.setXYZ(i, v * mo, v * 0.98, v * 0.9 * mo); });
         rm.castShadow = true; rm.receiveShadow = true; add(rm); }
-      // glowing blue mushrooms on the roots and the lower trunk, glowing hollows in the trunk
-      { const ms = []; for (const pts of rootPts) for (let i = 2; i < pts.length - 2; i++) if (hash1(i * 1.3 + pts[i].x) < 0.45) ms.push([pts[i].x + (hash1(i + pts[i].z) - 0.5) * 140, pts[i].y + 30, pts[i].z + (hash1(i * 2 + pts[i].x) - 0.5) * 140, 26 + hash1(i * 5 + pts[i].z) * 50]);
-        for (let k = 0; k < 70; k++) { const f = -0.04 + hash1(k * 3.7) * 0.16, a = hash1(k * 9.1) * TAU, p = tr(f, a, trunkRad(f, a) * 0.98); ms.push([p.x, p.y, p.z, 24 + hash1(k) * 46]); }
-        const capG = new THREE.SphereGeometry(1, 10, 4, 0, TAU, 0, Math.PI / 2); capG.scale(1, 0.55, 1); const stG = new THREE.CylinderGeometry(0.2, 0.28, 0.9, 6); stG.translate(0, -0.45, 0);
+      // glowing blue mushrooms on the roots and round the foot of the trunk; glowing hollows in the trunk
+      { const ms = []; rootPts.forEach((pts) => { for (let i = 2; i < pts.length - 2; i++) if (hash1(i * 1.3 + pts[i].x) < 0.4) { const n = 1 + ((hash1(i * 7 + pts[i].z) * 3) | 0); for (let j = 0; j < n; j++) ms.push([pts[i].x + (hash1(i + j * 3 + pts[i].z) - 0.5) * 220, pts[i].y + 20, pts[i].z + (hash1(i * 2 + j + pts[i].x) - 0.5) * 220, 22 + hash1(i * 5 + j + pts[i].z) * 46]); } });
+        for (let k = 0; k < 90; k++) { const f = -0.02 + hash1(k * 3.7) * 0.2, a = hash1(k * 9.1) * TAU, p = tr(f, a, trunkRad(f, a) * 0.99); ms.push([p.x, p.y, p.z, 20 + hash1(k) * 44]); }
+        const capG = new THREE.SphereGeometry(1, 12, 5, 0, TAU, 0, Math.PI / 2); capG.scale(1, 0.55, 1); const stG = new THREE.CylinderGeometry(0.18, 0.26, 0.9, 6); stG.translate(0, -0.45, 0);
         const mm = new THREE.MeshBasicMaterial({ color: 0x66d8ff, toneMapped: false }), cap = new THREE.InstancedMesh(capG, mm, ms.length), stem = new THREE.InstancedMesh(stG, new THREE.MeshLambertMaterial({ color: 0xd8e4e0 }), ms.length);
-        ms.forEach((m2, i) => { e.set((hash1(i) - 0.5) * 0.4, 0, (hash1(i + 3) - 0.5) * 0.4); q.setFromEuler(e); mt.compose(v3().set(m2[0], m2[1], m2[2]), q, v3().set(m2[3], m2[3], m2[3])); cap.setMatrixAt(i, mt); stem.setMatrixAt(i, mt); });
+        ms.forEach((m2, i) => { e.set((hash1(i) - 0.5) * 0.5, 0, (hash1(i + 3) - 0.5) * 0.5); q.setFromEuler(e); mt.compose(v3().set(m2[0], m2[1], m2[2]), q, v3().set(m2[3], m2[3], m2[3])); cap.setMatrixAt(i, mt); stem.setMatrixAt(i, mt); });
         add(cap); add(stem); HWX.mush = mm;
         const gp = []; for (let i = 0; i < ms.length; i += 3) gp.push(ms[i][0], ms[i][1] + 20, ms[i][2]);
-        const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); HWX.mushGlow = add(new THREE.Points(gg, new THREE.PointsMaterial({ size: 260, map: glowTex('rgba(120,220,255,.9)', 'rgba(60,160,255,.25)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.3 }))); HWX.mushGlow.frustumCulled = false;
-        const hollowM = new THREE.MeshBasicMaterial({ color: 0x1a120c }), glowM = new THREE.MeshBasicMaterial({ color: 0x5fd0ff, toneMapped: false }); HWX.hollowGlow = glowM;
-        for (const [f, da] of [[0.08, 0.5], [0.17, -1.6], [0.26, 2.6], [0.38, 0.9], [0.47, -0.6], [0.22, -0.4]]) { const a = T.in + da, p = tr(f, a, hwTrunkR(f) * 0.97), n2 = dirAt(a);
-          const o = new THREE.Mesh(new THREE.CircleGeometry(1, 18), hollowM); o.position.copy(p).addScaledVector(n2, 30); o.lookAt(v3().copy(o.position).add(n2)); o.scale.set(110, 170, 1); add(o);
-          const gl = new THREE.Mesh(new THREE.CircleGeometry(1, 18), glowM); gl.position.copy(p).addScaledVector(n2, 34); gl.lookAt(v3().copy(gl.position).add(n2)); gl.scale.set(70, 120, 1); add(gl); } }
+        const hollowM = new THREE.MeshBasicMaterial({ color: 0x140d08 }), glowM = new THREE.MeshBasicMaterial({ color: 0x5fd0ff, toneMapped: false }), rimM = new THREE.MeshLambertMaterial({ color: 0x4a3626 }); HWX.hollowGlow = glowM;
+        for (const [f, da, s] of [[0.06, 0.4, 1.2], [0.15, -1.5, 1], [0.24, 2.5, 1.1], [0.33, 0.95, 0.9], [0.44, -0.55, 0.8], [0.2, -0.35, 1], [0.1, 1.9, 0.9], [0.29, -2.6, 0.8]]) { const a = T.in + da, p = tr(f, a, trunkRad(f, a) * 0.96), n2 = dirAt(a);
+          const rim = new THREE.Mesh(new THREE.TorusGeometry(1, 0.22, 6, 18), rimM); rim.position.copy(p).addScaledVector(n2, 26); rim.lookAt(v3().copy(rim.position).add(n2)); rim.scale.set(120 * s, 180 * s, 90 * s); add(rim);
+          const o = new THREE.Mesh(new THREE.CircleGeometry(1, 18), hollowM); o.position.copy(p).addScaledVector(n2, 30); o.lookAt(v3().copy(o.position).add(n2)); o.scale.set(115 * s, 175 * s, 1); add(o);
+          const gl = new THREE.Mesh(new THREE.CircleGeometry(1, 18), glowM); gl.position.copy(p).addScaledVector(n2, 34); gl.lookAt(v3().copy(gl.position).add(n2)); gl.scale.set(70 * s, 115 * s, 1); add(gl); gp.push(gl.position.x + n2.x * 40, gl.position.y, gl.position.z + n2.z * 40); }
+        const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); HWX.mushGlow = add(new THREE.Points(gg, new THREE.PointsMaterial({ size: 300, map: glowTex('rgba(120,220,255,.9)', 'rgba(60,160,255,.25)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.3 }))); HWX.mushGlow.frustumCulled = false; }
       // seat decks: wrapped round the trunk, or laid on a big limb (merged planks)
       { const D = GA(), slab = (O, I, y, th2) => { // a deck slab between an outer and an inner polyline (x,z): top, underside and rim
           const n = O.length, vt = (x, yy, z, nx, ny, nz, u, v, c) => { D.p.push(x, yy, z); D.n.push(nx, ny, nz); D.uv.push(u, v); D.c.push(c, c, c); return D.p.length / 3 - 1; };
@@ -534,8 +573,18 @@ void main() {
     const D = dist(cam), ph = (cam.tilt * Math.PI) / 180, th2 = cam.rot;
     camera.position.set(T.x + Math.sin(th2) * Math.cos(ph) * D, T.h + Math.sin(ph) * D, T.y + Math.cos(th2) * Math.cos(ph) * D);
     const g = meshH(camera.position.x, camera.position.z) + 60; if (camera.position.y < g) camera.position.y = g;
+    canopyClear(D, ph, th2);
     camera.lookAt(T.x, T.h, T.y); camera.updateMatrixWorld(); camera.far = D * 6 + 30000; camera.near = Math.max(5, D * 0.02); camera.updateProjectionMatrix();
   }
+  // never put the camera inside the Heartwood's foliage: if florets sit between the target and the camera, drop the camera
+  // lower (a flatter view from under the canopy, same distance); only if that fails, pull it in front of the leaves
+  function blockedAt(C, tx, ty, tz, px, py, pz) { let ddx = px - tx, ddy = py - ty, ddz = pz - tz; const L = Math.hypot(ddx, ddy, ddz) || 1; ddx /= L; ddy /= L; ddz /= L; let hit = L;
+    for (const c of C) { const ox = tx - c[0], oy = ty - c[1], oz = tz - c[2], r = c[3] * 1.12 + 80, bb = ox * ddx + oy * ddy + oz * ddz, cc = ox * ox + oy * oy + oz * oz - r * r; if (cc < 0) continue; const disc = bb * bb - cc; if (disc < 0) continue; const t0 = -bb - Math.sqrt(disc); if (t0 > 0 && t0 < hit) hit = t0; }
+    return hit < L ? hit : 0; }
+  function canopyClear(D, ph, rot) { const C = HWX.clumps, Tw = W.heartwood; if (!C || !C.length || !Tw) return; const cp = camera.position; if (Math.hypot(T.x - Tw.x, T.y - Tw.y) > 8000 && Math.hypot(cp.x - Tw.x, cp.z - Tw.y) > 9000) return;
+    if (!blockedAt(C, T.x, T.h, T.y, cp.x, cp.y, cp.z)) return;
+    for (let p2 = ph - 0.06; p2 > -0.12; p2 -= 0.06) { const x = T.x + Math.sin(rot) * Math.cos(p2) * D, y = T.h + Math.sin(p2) * D, z = T.y + Math.cos(rot) * Math.cos(p2) * D; if (y < meshH(x, z) + 60) break; if (!blockedAt(C, T.x, T.h, T.y, x, y, z)) { cp.set(x, y, z); return; } }
+    const hit = blockedAt(C, T.x, T.h, T.y, cp.x, cp.y, cp.z), L = Math.hypot(cp.x - T.x, cp.y - T.h, cp.z - T.y), k = Math.max(hit - 60, Math.min(L, 260)) / L; cp.set(T.x + (cp.x - T.x) * k, T.h + (cp.y - T.h) * k, T.y + (cp.z - T.y) * k); }
   function project(x, y, up, abs) { const p = v3().set(x, (abs ? 0 : meshH(x, y)) + (up || 0), y).project(camera); if (p.z > 1) return [-9999, -9999]; return [((p.x + 1) / 2) * cssW, ((1 - p.y) / 2) * cssH]; }
   function unproject(sx, sy) {
     const o = camera.position.clone(), d = v3().set((sx / cssW) * 2 - 1, -(sy / cssH) * 2 + 1, 0.5).unproject(camera).sub(o).normalize();
