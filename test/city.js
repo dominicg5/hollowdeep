@@ -57,7 +57,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const c1 = await p.evaluate(() => ({ ...CityMap.cam }));
   ok(c1.x > c0.x + 20 && c1.y > c0.y + 20, `drag pans camera (${(c1.x - c0.x).toFixed(0)},${(c1.y - c0.y).toFixed(0)})`);
   // labels anchored in world space while dragging and rotating (screen position == projection of the world anchor)
-  await p.evaluate(() => { const C = W.homes.filter((o) => !o.isPlayer && !o.heartwood), nb = (o) => C.filter((q) => Math.hypot(q.x - o.x, q.y - o.y) < 1400).length; const h = C.slice(0, 120).sort((a, b) => nb(b) - nb(a))[0]; CityMap.flyTo(h.x, h.y, 0.8, true); }); await p.waitForTimeout(2500);
+  await p.evaluate(() => { const C = W.homes.filter((o) => !o.isPlayer && !o.heartwood), nb = (o) => C.filter((q) => Math.hypot(q.x - o.x, q.y - o.y) < 1400).length; void nb; const h = W.homes.find((o) => o.heartwood && o.slot === 4); CityMap.flyTo(h.x, h.y, 0.3, true); }); await p.waitForTimeout(2500); await p.waitForFunction(() => CityMap.st.labels.filter((l) => W.homes.some((o) => o.heartwood && o.owner === l.name)).length >= 2, null, { timeout: 20000 }).catch(() => {}); // the Heartwood seats: their labels are always on, so several are in view
   const L0 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l })));
   await p.mouse.move(200, 520); await p.mouse.down(); await p.mouse.move(140, 470, { steps: 6 }); await p.waitForTimeout(150);
   const L1 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l, pr: CityMap.w2sUp(l.wx, l.wy, l.up) })));

@@ -445,20 +445,20 @@ function ringGround(x, y, k) { if (typeof M3 === 'undefined' || !M3.ground) retu
   return k <= 1 ? g.h > CITY.summitH - 90 : g.h < CITY.summitH * 0.72; }
 /* ---- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall, its roots gripping the lip.
    The Rim's top 10 players live in it, in 10 fixed, numbered seats (#1 near the crown ... #10 low on the trunk). ---- */
-const HW_H = 9000, HW_R0 = 1000, HW_HOUSE = 340;
+const HW_H = 8600, HW_R0 = 1250, HW_HOUSE = 340;
 // seats: [height (fraction of HW_H), angle offset from the side facing the Hollow, limb distance (0 = deck wrapped round the trunk)]
-const HW_SEATS = [[0.585, 0.15, 0], [0.555, -1.25, 1500], [0.51, 1.2, 0], [0.465, -0.2, 1700], [0.415, 2.35, 0], [0.365, -1.05, 0], [0.315, 0.7, 0], [0.265, -2.3, 1350], [0.205, -0.15, 0], [0.145, 1.55, 0]];
+const HW_SEATS = [[0.585, 0.15, 0], [0.555, -1.25, 1650], [0.51, 1.2, 0], [0.465, -0.2, 1850], [0.415, 2.35, 0], [0.365, -1.05, 0], [0.315, 0.7, 0], [0.265, -2.3, 1600], [0.205, -0.15, 0], [0.145, 1.55, 0]];
 function makeHeartwood() { let best = null, bd = -1;
   for (let a = -Math.PI / 2 - 0.9; a <= -Math.PI / 2 + 0.9; a += 0.05) { const [x, y] = polar(hollowR(a) + 40, a); let d = 1e9; for (let r = -200; r <= 1400; r += 100) { const [x2, y2] = polar(hollowR(a) + r, a); d = Math.min(d, chasmDist(x2, y2)); } for (const da of [-0.12, 0.12]) { const [x3, y3] = polar(hollowR(a + da) + 40, a + da); d = Math.min(d, chasmDist(x3, y3) * 1.5); }
     if (W.exchange) d = Math.min(d, Math.hypot(W.exchange.x - x, W.exchange.y - y) * 0.5); d -= Math.abs(a + Math.PI / 2) * 120; if (d > bd) { bd = d; best = a; } }
-  const a = best, [bx, by] = polar(hollowR(a) - HW_R0 * 0.55, a); // the trunk stands against the inner wall, just inside the rim: its back half is sunk into the lip
+  const a = best, [bx, by] = polar(hollowR(a) - HW_R0 * 0.5, a); // the trunk stands against the inner wall, just inside the rim: its back half is sunk into the lip
   return { a, x: bx, y: by, H: HW_H, R0: HW_R0, base: CITY.summitH - 650, in: Math.atan2(-by, -bx), type: 'heartwood' }; }
 // trunk radius at height fraction f (flared base, gently tapering), and the trunk's slightly wandering axis
-function hwTrunkR(f) { const g = Math.max(0, f); return HW_R0 * (0.58 + 0.42 * Math.exp(-g * 5)) * (1 - 0.26 * Math.min(1, g)) * (f < 0 ? 1 - f * 1.2 : 1); }
+function hwTrunkR(f) { const g = Math.max(0, f); return HW_R0 * (0.62 + 0.38 * Math.exp(-g * 4)) * (1 - 0.3 * Math.min(1, g)) * (f < 0 ? 1 - f * 1.2 : 1); }
 function hwAxis(f) { const T = W.heartwood, g = Math.max(0, f); return [T.x + Math.sin(g * 5.1 + 0.7) * HW_H * 0.009 - Math.sin(0.7) * HW_H * 0.009, T.y + Math.sin(g * 4.3 + 2.1) * HW_H * 0.007 - Math.sin(2.1) * HW_H * 0.007]; } // nearly plumb: the roots hold it straight up
 function heartwoodSlot(j) { const T = W.heartwood, S = HW_SEATS[j], f = S[0], th = T.in + S[1], [ax, ay] = hwAxis(f), r = S[2] || hwTrunkR(f) + 330;
   return { x: ax + Math.cos(th) * r, y: ay + Math.sin(th) * r, elev: T.base + f * HW_H + 20, th, f, limb: S[2] }; }
-function nearHeartwood(x, y) { const T = W.heartwood; return !!T && Math.hypot(x - T.x, y - T.y) < HW_R0 * 3.9; } // clear of the trunk and the great roots spread over the lip
+function nearHeartwood(x, y) { const T = W.heartwood; if (!T) return false; const dx = x - T.x, dy = y - T.y, d = Math.hypot(dx, dy); return d < 2700 + 1700 * Math.max(0, -(dx * Math.cos(T.in) + dy * Math.sin(T.in)) / (d || 1)); } // clear of the trunk and the great roots spread over the lip
 function moveHome(h, x, y) { if (W.buckets) { const k = Math.floor(h.x / W.bucket) + ',' + Math.floor(h.y / W.bucket), L = W.buckets.get(k); if (L) { const i = L.indexOf(h); if (i >= 0) L.splice(i, 1); } }
   h.x = x; h.y = y; if (W.put) W.put(h); }
 // seat the Rim's top 10 (by deepest level) in the Heartwood: seat #N = rank #N. Anyone bumped out returns to their ground spot on ring 1.

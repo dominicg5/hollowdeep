@@ -277,8 +277,8 @@ void main() {
     PR.smoke.push([x, homeElev(h) + c[1] * w, y, hash1(i * 7.7) * 10, h]); }
   /* ---------- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall (merged geometry, instanced foliage) ---------- */
   function hwCanvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; if (rep) t.repeat.set(rep[0], rep[1]); return t; }
-  function barkTex() { return hwCanvasTex(256, 512, (g, w, h) => { g.fillStyle = '#6a5240'; g.fillRect(0, 0, w, h); let s = 7; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
-    for (let i = 0; i < 260; i++) { const x0 = R() * w, lw = 2 + R() * 9, l = R() < 0.5; g.strokeStyle = l ? `rgba(${150 + R() * 40 | 0},${118 + R() * 30 | 0},${88 + R() * 20 | 0},${0.25 + R() * 0.35})` : `rgba(${28 + R() * 20 | 0},${20 + R() * 14 | 0},${14 + R() * 8 | 0},${0.35 + R() * 0.4})`; g.lineWidth = lw;
+  function barkTex() { return hwCanvasTex(256, 512, (g, w, h) => { g.fillStyle = '#7b6552'; g.fillRect(0, 0, w, h); let s = 7; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 260; i++) { const x0 = R() * w, lw = 2 + R() * 9, l = R() < 0.5; g.strokeStyle = l ? `rgba(${164 + R() * 40 | 0},${142 + R() * 30 | 0},${112 + R() * 20 | 0},${0.25 + R() * 0.35})` : R() < 0.08 ? `rgba(${92 + R() * 30 | 0},${112 + R() * 30 | 0},${54 + R() * 14 | 0},${0.25 + R() * 0.3})` : `rgba(${36 + R() * 20 | 0},${27 + R() * 14 | 0},${20 + R() * 8 | 0},${0.35 + R() * 0.4})`; g.lineWidth = lw;
       g.beginPath(); let x = x0; g.moveTo(x, -10); for (let y = 0; y <= h + 20; y += 24) { x += (R() - 0.5) * 9; g.lineTo(x, y); } g.stroke(); g.beginPath(); g.moveTo(x0 - w, -10); g.lineTo(x0 - w, h + 10); g.stroke(); }
     for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(20,14,10,${0.2 + R() * 0.3})`; g.beginPath(); g.ellipse(R() * w, R() * h, 2 + R() * 6, 6 + R() * 22, 0, 0, TAU); g.fill(); } }); }
   function leafTex() { return hwCanvasTex(256, 256, (g, w, h) => { g.fillStyle = '#7c9a42'; g.fillRect(0, 0, w, h); let s = 11; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
@@ -308,9 +308,9 @@ void main() {
       P.setXYZ(i, x * n, (y > 0 ? y * 0.92 : y * 0.62) * n, z * n);
       const t = clamp((y + 0.75) / 1.6, 0, 1), sh = 0.38 + 0.78 * Math.pow(t, 1.15); cc.push(sh * (0.97 + 0.1 * t), sh, sh * (0.86 - 0.14 * t)); uv.push((Math.atan2(z, x) / Math.PI + 1) * 1.5, (y + 1) * 1.2); }
     g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g; }
-  function canopyLeafTex() { return hwCanvasTex(512, 512, (g, w, h) => { g.fillStyle = '#5c7a34'; g.fillRect(0, 0, w, h); let s = 23; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  function canopyLeafTex() { return hwCanvasTex(512, 512, (g, w, h) => { g.fillStyle = '#5f7334'; g.fillRect(0, 0, w, h); let s = 23; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
     for (let i = 0; i < 5200; i++) { const x = R() * w, y = R() * h, r = 3 + R() * 6, k = R(), a = R() * TAU;
-      g.fillStyle = k < 0.22 ? `rgba(${38 + R() * 20 | 0},${58 + R() * 20 | 0},${26 + R() * 10 | 0},.85)` : k < 0.72 ? `rgba(${104 + R() * 34 | 0},${140 + R() * 30 | 0},${54 + R() * 20 | 0},.85)` : k < 0.93 ? `rgba(${150 + R() * 30 | 0},${178 + R() * 24 | 0},${78 + R() * 26 | 0},.85)` : `rgba(${196 + R() * 30 | 0},${206 + R() * 20 | 0},${112 + R() * 30 | 0},.8)`;
+      g.fillStyle = k < 0.22 ? `rgba(${38 + R() * 20 | 0},${58 + R() * 20 | 0},${26 + R() * 10 | 0},.85)` : k < 0.72 ? `rgba(${118 + R() * 30 | 0},${138 + R() * 26 | 0},${56 + R() * 18 | 0},.85)` : k < 0.93 ? `rgba(${160 + R() * 28 | 0},${174 + R() * 22 | 0},${80 + R() * 24 | 0},.85)` : `rgba(${204 + R() * 28 | 0},${204 + R() * 20 | 0},${118 + R() * 30 | 0},.8)`;
       g.beginPath(); g.ellipse(x, y, r, r * 0.5, a, 0, TAU); g.fill(); g.strokeStyle = 'rgba(30,44,20,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke(); } }); }
   function buildHeartwood() { const T = W.heartwood; if (!T) return; const H = T.H, B = T.base;
     const ax = (f) => { const [x, y] = hwAxis(f); return v3().set(x, B + f * H, y); }, dirAt = (th) => v3().set(Math.cos(th), 0, Math.sin(th));
@@ -318,7 +318,7 @@ void main() {
     const add = (o) => { scene.add(o); HWX.objs.push(o); return o; };
     const OUT = T.in + Math.PI; // the side facing away from the Hollow (onto the plateau)
     if (!HWX.built) { HWX.built = true; const bark = new THREE.MeshLambertMaterial({ map: barkTex(), vertexColors: true, side: THREE.DoubleSide }), A = GA();
-      const moss = (p, d, k) => { const m = Math.max(0, d.y) * 0.9 + (vnoise(p.x / 600 + k, p.z / 600 + p.y / 800) - 0.48) * 1.7; const u = clamp(m, 0, 1), dk = 0.86 + 0.14 * clamp((p.y - B) / (H * 0.4), 0, 1); return [(1 - 0.45 * u) * dk, (1 - 0.1 * u) * dk, (1 - 0.6 * u) * dk]; };
+      const moss = (p, d, k) => { const m = Math.max(0, d.y) * 0.7 + (vnoise(p.x / 600 + k, p.z / 600 + p.y / 800) - 0.56) * 1.5; const u = clamp(m, 0, 1), dk = 0.86 + 0.14 * clamp((p.y - B) / (H * 0.4), 0, 1); return [(1 - 0.45 * u) * dk, (1 - 0.1 * u) * dk, (1 - 0.6 * u) * dk]; };
       // the trunk: a braid of great twisted strands, deeply ridged, buttressed at the foot
       const trunkRad = (f, a) => { const tw = f * 4.2, Bt = Math.exp(-Math.max(0, f + 0.04) * 7), lobe = Math.pow(0.5 + 0.5 * Math.cos(6 * (a - tw)), 2.2), lobe2 = Math.pow(0.5 + 0.5 * Math.cos(11 * (a - tw * 1.3) + 1), 4), r = hwTrunkR(f) * (1 + 0.55 * Bt * lobe - 0.08 * Bt);
           return r * (1 + 0.075 * lobe2 + 0.06 * Math.sin(3 * a + f * 17) + 0.05 * (vnoise(a * 2.2 + 3, f * 14) - 0.5) - (f > 0.66 ? (f - 0.66) * 5 : 0)); };
@@ -379,22 +379,23 @@ void main() {
         const n = 6 + ((hash1(sd) * 4) | 0); for (let k = 0; k < n; k++) { const aa = (k / n) * TAU + hash1(sd + k) * 0.7, rr = R * (0.5 + hash1(sd * 2 + k) * 0.22); clump(c.x + Math.cos(aa) * rr, c.y + (hash1(sd * 3 + k) - 0.62) * R * 0.32, c.z + Math.sin(aa) * rr, R * (0.36 + hash1(sd * 5 + k) * 0.16), 0.68 + hash1(sd * 7 + k) * 0.2, hue + (hash1(k + sd) - 0.5) * 0.3); }
         const m = 3 + ((hash1(sd * 9) * 3) | 0); for (let k = 0; k < m; k++) { const aa = hash1(sd * 11 + k) * TAU, rr = R * 0.28 * hash1(sd * 13 + k); clump(c.x + Math.cos(aa) * rr, c.y + R * (0.26 + hash1(sd * 17 + k) * 0.16), c.z + Math.sin(aa) * rr, R * (0.3 + hash1(sd * 19 + k) * 0.12), 0.9 + hash1(sd * 23 + k) * 0.16, hue + (hash1(k * 3 + sd) - 0.5) * 0.3); } };
       ends.forEach((e2, i) => floret(e2.p, e2.R, i * 5.7 + 1));
-      for (const L of limbs) if (!L.seat && L.depth === 2) { const p = L.pts[12]; floret(v3().copy(p).add(v3().set(0, 420, 0)), 760, p.x * 0.01); }
+      for (const L of limbs) if (!L.seat && L.depth === 2 && hash1(L.th * 9.1) < 0.5) { const p = L.pts[12]; floret(v3().copy(p).add(v3().set(0, 420, 0)), 760, p.x * 0.01); }
       { const top = ax(0.8); floret(v3().copy(top).add(v3().set(0, 700, 0)), 1500, 99); floret(v3().copy(top).add(v3().set(0, 250, 0)).addScaledVector(dirAt(OUT), 900), 1200, 98); }
       // keep the seats clear: no foliage on top of a deck or a house
       const seatPts = HW_SEATS.map((S, j) => heartwoodSlot(j)), clearOf = (x, y, z, r) => seatPts.every((q) => Math.hypot(q.x - x, q.y - z) > r + 420 || y + r < q.elev - 60 || y - r > q.elev + HW_HOUSE * 1.6);
       const keep = clumps.filter((c) => clearOf(c[0], c[1], c[2], c[3] * 0.85)); HWX.clumps = keep;
       const big = keep.filter((c) => c[3] >= 520), small = keep.filter((c) => c[3] < 520);
       const lm = new THREE.MeshLambertMaterial({ map: canopyLeafTex(), vertexColors: true }), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
-      const PAL = [[0.9, 0.96, 0.5], [0.72, 0.88, 0.54], [0.98, 0.98, 0.56], [0.62, 0.8, 0.5]];
+      const PAL = [[0.92, 0.94, 0.6], [0.78, 0.88, 0.6], [1.0, 0.96, 0.62], [0.7, 0.82, 0.58]];
       for (const [L2, det] of [[big, 3], [small, 2]]) { if (!L2.length) continue; const im = new THREE.InstancedMesh(puffGeo(det, det * 3.7), lm, L2.length); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(L2.length * 3), 3);
         L2.forEach((c, i) => { e.set((hash1(i * 2.9) - 0.5) * 0.3, hash1(i * 1.7) * TAU, (hash1(i * 3.9) - 0.5) * 0.3); q.setFromEuler(e); mt.compose(v3().set(c[0], c[1], c[2]), q, v3().set(c[3] * (0.95 + hash1(i + 2) * 0.12), c[3] * (0.82 + hash1(i) * 0.22), c[3] * (0.95 + hash1(i + 1) * 0.12))); im.setMatrixAt(i, mt);
           const hu = ((c[5] % 1) + 1) % 1, a = PAL[(hu * 4) | 0], b = PAL[(((hu * 4) | 0) + 1) % 4], u = (hu * 4) % 1, ht = 0.9 + 0.16 * clamp((c[1] - B - H * 0.55) / (H * 0.3), 0, 1), s = c[4] * ht;
           im.instanceColor.setXYZ(i, s * (a[0] + (b[0] - a[0]) * u), s * (a[1] + (b[1] - a[1]) * u), s * (a[2] + (b[2] - a[2]) * u)); });
         im.castShadow = true; im.receiveShadow = true; add(im); }
       // hanging moss: strands under the limbs and the florets
-      const hang = []; for (const L of limbs) for (let k = 3; k < L.pts.length - 1; k += 2) { const p = L.pts[k], n2 = 1 + ((hash1(k * 3 + L.th) * 3) | 0); for (let j = 0; j < n2; j++) { const hx = p.x + (hash1(k + j * 7 + L.th) - 0.5) * L.r0 * 1.4, hz = p.z + (hash1(k * 5 + j + L.th) - 0.5) * L.r0 * 1.4; if (clearOf(hx, p.y - 300, hz, 300)) hang.push([hx, p.y - L.r0 * 0.5, hz, 160 + hash1(k * 11 + j + L.th * 3) * 520]); } }
-      for (const c of keep) if (c[3] > 300 && hash1(c[0] * 0.01 + c[2] * 0.003) < 0.7) for (let j = 0; j < 6; j++) { const hx = c[0] + (hash1(j + c[1]) - 0.5) * c[3] * 1.3, hz = c[2] + (hash1(j * 3 + c[1]) - 0.5) * c[3] * 1.3; if (clearOf(hx, c[1] - 400, hz, 300)) hang.push([hx, c[1] - c[3] * 0.4, hz, 200 + hash1(j * 7 + c[0]) * 650]); }
+      const strandClear = (x, y, z, len) => seatPts.every((q) => Math.hypot(q.x - x, q.y - z) > 1500 || y - len > q.elev + 2600 || y < q.elev - 100); // keep the view onto every seat free of strands
+      const hang = []; for (const L of limbs) for (let k = 3; k < L.pts.length - 1; k += 2) { const p = L.pts[k], n2 = 1 + ((hash1(k * 3 + L.th) * 3) | 0); for (let j = 0; j < n2; j++) { const hx = p.x + (hash1(k + j * 7 + L.th) - 0.5) * L.r0 * 1.4, hz = p.z + (hash1(k * 5 + j + L.th) - 0.5) * L.r0 * 1.4; { const len = 160 + hash1(k * 11 + j + L.th * 3) * 520; if (L.seat == null && strandClear(hx, p.y, hz, len)) hang.push([hx, p.y - L.r0 * 0.5, hz, len]); } } }
+      for (const c of keep) if (c[3] > 300 && hash1(c[0] * 0.01 + c[2] * 0.003) < 0.7) for (let j = 0; j < 6; j++) { const hx = c[0] + (hash1(j + c[1]) - 0.5) * c[3] * 1.3, hz = c[2] + (hash1(j * 3 + c[1]) - 0.5) * c[3] * 1.3; const len = 200 + hash1(j * 7 + c[0]) * 650; if (strandClear(hx, c[1], hz, len)) hang.push([hx, c[1] - c[3] * 0.4, hz, len]); }
       { const hg = new THREE.CylinderGeometry(0.15, 1, 1, 5, 3); hg.translate(0, -0.5, 0); { const P = hg.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i); P.setX(i, P.getX(i) + Math.sin(y * 7) * 0.8); } } hg.computeVertexNormals();
         const hm = new THREE.InstancedMesh(hg, new THREE.MeshLambertMaterial({ color: 0xffffff }), hang.length); hm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(hang.length * 3), 3);
         hang.forEach((h2, i) => { e.set(0, hash1(i * 1.1) * TAU, 0); q.setFromEuler(e); mt.compose(v3().set(h2[0], h2[1], h2[2]), q, v3().set(6 + hash1(i) * 7, h2[3], 6 + hash1(i) * 7)); hm.setMatrixAt(i, mt); const v = hash1(i * 2.2); hm.instanceColor.setXYZ(i, 0.22 + v * 0.14, 0.3 + v * 0.14, 0.13 + v * 0.07); }); hm.castShadow = true; add(hm); }
