@@ -54,20 +54,56 @@ const CharView = (() => {
     iron: { name: 'Iron', head: 0x80858d, handle: 0x6e4628, bind: 0x3b2a1e },
     steel: { name: 'Steel', head: 0xc8d1da, handle: 0x5b3a22, bind: 0x2e2f36, emissive: 0x0c1014 },
     gold: { name: 'Gold', head: 0xe6b640, handle: 0x5e2f1a, bind: 0x8a2a1e, emissive: 0x2a1c00 },
+    onyx: { name: 'Black Onyx', head: 0x16131a, handle: 0x1d1a21, bind: 0x7a1a12, wrap: 0x221c20, chip: 0xc8301c, onyx: true },
     lumen: { name: 'Lumen', head: 0x3c5664, handle: 0x2b3038, bind: 0x5fd8f0, wrap: 0x23272e, glow: 0x7ff4ff, runes: true },
   };
   let RUNES = null; const runeTex = () => RUNES || (RUNES = (() => { const t = cv(256, 64, (g, w) => { g.clearRect(0, 0, w, 64); g.strokeStyle = '#d8feff'; g.shadowColor = '#5fe8ff'; g.shadowBlur = 10; g.lineWidth = 5; g.lineCap = 'round'; const r = prng(31);
     for (let k = 0; k < 5; k++) { const x0 = 28 + k * 50; g.beginPath(); g.moveTo(x0, 12); g.lineTo(x0, 52); for (let s = 0; s < 2; s++) { const y = 16 + r() * 30; g.moveTo(x0, y); g.lineTo(x0 + (r() < 0.5 ? -1 : 1) * (9 + r() * 9), y + (r() - 0.5) * 20); } g.stroke(); } }); t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; return t; })());
+  /* ---------- Black Onyx: red-hot veins with little flame licks (one Points draw call, flames rise in world-up and fade) ---------- */
+  const FLAME_MAT = () => new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, // premultiplied: reads on light and dark backdrops
+    uniforms: { uTime: { value: 0 }, uUp: { value: V(0, 1, 0) }, uScale: { value: 400 } },
+    vertexShader: `attribute vec3 aOut; attribute float aSeed; uniform float uTime; uniform vec3 uUp; uniform float uScale; varying float vLife; varying float vSeed;
+      void main() { float rate = 1.6 + fract(aSeed * 7.31) * 1.3; float t = fract(uTime * rate + aSeed); vLife = t; vSeed = aSeed;
+        vec3 side = normalize(cross(uUp, aOut + vec3(0.001, 0.0, 0.0)));
+        vec3 p = position + aOut * (0.003 + 0.004 * t) + uUp * (t * (0.03 + 0.02 * fract(aSeed * 3.7))) + side * 0.004 * sin(uTime * 7.0 + aSeed * 40.0) * t;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv;
+        float flick = 0.75 + 0.25 * sin(uTime * 23.0 + aSeed * 91.0);
+        float size = (0.026 + 0.018 * fract(aSeed * 5.3)) * pow(sin(3.14159 * min(1.0, t * 1.15)), 0.6) * flick;
+        gl_PointSize = size * projectionMatrix[1][1] * uScale / -mv.z; }`,
+    fragmentShader: `varying float vLife; varying float vSeed; uniform float uTime;
+      void main() { vec2 q = gl_PointCoord * 2.0 - 1.0; q.y = -q.y; float h = (q.y + 1.0) * 0.5;
+        float w = mix(0.5, 0.03, pow(h, 0.75)); float x = q.x + 0.18 * h * sin(h * 6.0 + vSeed * 20.0 + uTime * 11.0);
+        float body = smoothstep(w, w * 0.25, abs(x)) * smoothstep(0.0, 0.18, h) * smoothstep(1.0, 0.75, h);
+        float core = smoothstep(w * 0.55, 0.0, abs(x)) * (1.0 - h);
+        vec3 col = mix(vec3(0.8, 0.06, 0.02), vec3(1.0, 0.62, 0.18), core);
+        float a = clamp(body * pow(1.0 - vLife, 0.8) * 1.3, 0.0, 1.0); if (a < 0.01) discard; gl_FragColor = vec4(col * a * 1.1, a); }` });
+  // emit flame sites along a set of polylines: base points + outward directions
+  function flamePoints(sites) { const pos = [], out = [], seed = []; const r = prng(77);
+    for (const [p, o] of sites) { pos.push(p.x, p.y, p.z); out.push(o.x, o.y, o.z); seed.push(r()); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aOut', new THREE.Float32BufferAttribute(out, 3)); g.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1));
+    const pts = new THREE.Points(g, FLAME_MAT()); pts.frustumCulled = false; pts.renderOrder = 5; return pts; }
+  function onyxDetail(px, head, top, thick) { const veinM = new THREE.MeshBasicMaterial({ color: 0xff3418 }), r = prng(41), sites = [];
+    // veins: meandering lines across both faces of the blade, plus a few branches
+    for (const side of [-1, 1]) for (let k = 0; k < 3; k++) { const pts = [], f0 = 0.25 + k * 0.25; for (let i = 0; i <= 14; i++) { const x = -0.245 + 0.47 * i / 14 + (r() - 0.5) * 0.01, u = (x + 0.27) / 0.52, f = clamp(f0 + (r() - 0.5) * 0.22 + 0.08 * Math.sin(i * 1.3 + k), 0.12, 0.88); pts.push(V(x, top(x) - thick(u) * f, side * 0.0168)); }
+      const cur = new THREE.CatmullRomCurve3(pts); part(head, new THREE.TubeGeometry(cur, 40, 0.0023, 4, false), veinM, null, null, null, { ink: false, shadow: false });
+      for (let i = 0; i < 22; i++) { const p = cur.getPointAt((i + r() * 0.8) / 22.5); sites.push([p.add(V(0, head.position.y, 0)), V(0, 0, side)]); } }
+    // twisted handle: a red seam riding the groove of the twist
+    const hp = []; for (let i = 0; i <= 60; i++) { const y = -0.26 + 0.86 * i / 60, th = (Math.PI + y * 18) / 3; hp.push(V(Math.cos(th) * 0.0128, y, Math.sin(th) * 0.0128)); }
+    const hc = new THREE.CatmullRomCurve3(hp); part(px, new THREE.TubeGeometry(hc, 120, 0.0016, 4, false), veinM, null, null, null, { ink: false, shadow: false });
+    for (let i = 0; i < 26; i++) { const p = hc.getPointAt((i + r()) / 26.5); if (Math.abs(p.y) < 0.07) continue; sites.push([p, V(p.x, 0, p.z).normalize()]); }
+    const fl = flamePoints(sites); px.add(fl); px.userData.flames = fl; px.userData.veins = veinM; }
+  function twistedHandle(len, r0) { const g = new THREE.CylinderGeometry(r0 * 0.9, r0, len, 15, 48), P = g.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), th = Math.atan2(z, x), rr = Math.hypot(x, z), yy = y + 0.22; const k = 1 + 0.16 * Math.cos(3 * th - yy * 18); P.setXYZ(i, Math.cos(th) * rr * k, y, Math.sin(th) * rr * k); } g.computeVertexNormals(); return g; }
   // grip at the origin, handle along +y, blade in the local x/y plane (x = the pick's forward)
   function makePickaxe(grade) { const key = GRADES[grade] ? grade : 'bronze', G = GRADES[key], px = new THREE.Group(); px.name = 'pickaxe'; px.userData.grade = key;
     const wood = toon(0, fabric(G.handle, { seed: 23, weave: 0.05 })), bind = G.runes ? new THREE.MeshBasicMaterial({ color: G.bind }) : toon(G.bind), metal = toon(G.head, null, G.emissive ? { emissive: G.emissive } : {});
-    part(px, cyl(0.016, 0.014, 1.04, 10), wood, [0, 0.22, 0]); for (const y of [-0.28, 0.62]) part(px, cyl(0.019, 0.019, 0.025, 10), bind, [0, y, 0]);
+    if (G.onyx) part(px, twistedHandle(1.04, 0.0165), toon(G.handle), [0, 0.22, 0]); else part(px, cyl(0.016, 0.014, 1.04, 10), wood, [0, 0.22, 0]); for (const y of [-0.28, 0.62]) part(px, cyl(0.019, 0.019, 0.025, 10), bind, [0, y, 0]);
     part(px, cyl(0.0185, 0.0185, 0.11, 10), toon(0, fabric(G.wrap || 0x4b3020, { seed: 25, weave: 0.22 })), [0, 0, 0]);
     const sh = new THREE.Shape(), N = 20, pts = [], top = (x) => 0.03 - 0.2 * Math.pow((x + 0.01) / 0.27, 2), thick = (u) => 0.006 + 0.05 * Math.sin(Math.PI * Math.pow(u, 0.9));
     for (let i = 0; i <= N; i++) { const x = -0.27 + 0.52 * i / N; pts.push([x, top(x)]); }
     sh.moveTo(pts[0][0], pts[0][1]); for (const [x, y] of pts) sh.lineTo(x, y); for (let i = N; i >= 0; i--) { const [x, y] = pts[i]; sh.lineTo(x, y - thick(i / N)); } sh.closePath();
     const hg = new THREE.ExtrudeGeometry(sh, { depth: 0.022, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.005, bevelSegments: 2, curveSegments: 4 }); hg.translate(0, 0, -0.011); hg.computeVertexNormals();
     const head = new THREE.Group(); head.position.y = 0.68; px.add(head); part(head, hg, metal); part(head, rbox(0.045, 0.07, 0.045, 0.008), metal);
+    if (G.onyx) onyxDetail(px, head, top, thick);
     if (G.runes) { const rm = new THREE.MeshBasicMaterial({ map: runeTex(), color: G.glow, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
       for (const side of [-1, 1]) { const sg = new THREE.Group(); sg.rotation.y = side < 0 ? Math.PI : 0; head.add(sg);
         for (const x of [-0.13, 0.12]) { const u = (x + 0.27) / 0.52, y = top(x) - thick(u) / 2, sl = -0.4 * (x + 0.01) / 0.0729, m = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.026), rm); m.position.set(side * x, y, 0.0185); m.rotation.z = Math.atan(side * sl); sg.add(m); } }
@@ -124,7 +160,7 @@ const CharView = (() => {
       const sc = new THREE.Mesh(new THREE.CircleGeometry(1, 28), eyeW); sc.scale.set(ERX, ERY, 1); eg.add(sc);
       const ir = new THREE.Mesh(new THREE.CircleGeometry(1, 28), irisM); ir.scale.set(0.0215, 0.029, 1); ir.position.set(s * -0.002, -0.004, 0.0008); eg.add(ir);
       for (const [hx, hy, hr] of [[0.007, 0.011, 0.0072], [-0.006, -0.011, 0.0034], [0.009, -0.002, 0.0022]]) { const h = new THREE.Mesh(new THREE.CircleGeometry(hr, 12), hiM); h.position.set(hx * -s, hy, 0.0016); eg.add(h); }
-      const LN = 16, lp = new Float32Array((LN + 1) * 6), li = []; for (let i = 0; i < LN; i++) { const a = i * 2; li.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); } const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(lp, 3)); lg.setIndex(li);
+      const LN = 16, lp = new Float32Array((LN + 1) * 6), li = []; for (let i = 0; i < LN; i++) { const a = i * 2; li.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); } const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(lp, 3)); lg.setAttribute('normal', new THREE.BufferAttribute(new Float32Array((LN + 1) * 6).map((_, i) => (i % 3 === 2 ? 1 : 0)), 3)); lg.setIndex(li);
       const lid = new THREE.Mesh(lg, lidM); lid.position.z = 0.0024; lid.frustumCulled = false; eg.add(lid);
       const lash = new THREE.Group(); lash.position.z = 0.003; eg.add(lash); const lt = new THREE.Mesh(new THREE.TorusGeometry(ERX, 0.0048, 5, 20, Math.PI * 0.96), lashM); lt.rotation.z = Math.PI * 0.02; lt.scale.set(1.02, 1, 0.4); lash.add(lt);
       const flick = new THREE.Mesh(new THREE.ConeGeometry(0.0045, 0.016, 4), lashM); flick.position.set(s * 0.03, 0.006, 0); flick.rotation.z = -s * 1.15; lash.add(flick);
@@ -312,6 +348,7 @@ const CharView = (() => {
     let lid = 1; if (an.blink > 0) { an.blink += dt; const b = an.blink / 0.16; lid = b < 0.5 ? 1 - b * 2 : (b - 0.5) * 2; if (b >= 1) { an.blink = an.dbl ? -0.12 : 0; an.dbl = false; } } else if (an.blink < 0) { an.blink += dt; if (an.blink >= 0) an.blink = 0.0001; }
     if (fid === 'sigh') lid = Math.min(lid, 1 - 0.85 * Math.sin(Math.PI * ss(0.45, 0.85, u))); for (const L of built.lids) setLid(L, clamp(1 - lid, 0, 1));
     built.mouth.scale.set(1 + 0.45 * smile, 1 + 0.35 * smile, 1);
+    if (built.pick.userData.flames) { const fl = built.pick.userData.flames, u = fl.material.uniforms; u.uTime.value = t; built.pick.getWorldQuaternion(_q2); u.uUp.value.set(0, 1, 0).applyQuaternion(_q2.invert()); u.uScale.value = R ? R.domElement.height / 2 : 400; built.pick.userData.veins.color.setRGB(1, 0.18 + 0.06 * Math.sin(t * 5.3), 0.07); }
     if (built.pick.userData.glow) { const pg = 0.8 + 0.2 * Math.sin(t * 2.4) + 0.05 * Math.sin(t * 13); built.pick.userData.glow.material.opacity = 0.75 * pg; built.pick.userData.light.intensity = 0.35 * pg; }
     // secondary motion: braid, rope and lantern swing with inertia (driven by their anchors' acceleration)
     c.root.updateMatrixWorld(true); const sec = (o, anchor, gain, k, cdamp) => { const p = anchor.getWorldPosition(V(0, 0, 0)); c.root.worldToLocal(p); if (!o.p) { o.p = p.clone(); o.v = V(0, 0, 0); }
@@ -347,7 +384,7 @@ const CharView = (() => {
       if (pts.size === 1) { const dx = e.clientX - pr[0]; st.yaw += dx * 0.011; st.yawV = dx * 0.011 / 0.016; } else if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) st.dist = clamp(dist0 * pinch0 / d, 2.0, 5.6); } });
     const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
     canvas.addEventListener('wheel', (e) => { e.preventDefault(); st.dist = clamp(st.dist * Math.exp(e.deltaY * 0.0012), 2.0, 5.6); st.lastInput = clk; }, { passive: false });
-    const cp = document.getElementById('charPick'); if (cp) { cp.innerHTML = Object.entries(GRADES).map(([k, G]) => `<button data-grade="${k}"><i style="background:${hex(G.runes ? G.glow : G.head)}"></i>${G.name}</button>`).join('');
+    const cp = document.getElementById('charPick'); if (cp) { cp.innerHTML = Object.entries(GRADES).map(([k, G]) => `<button data-grade="${k}"><i style="background:${hex(G.chip || (G.runes ? G.glow : G.head))}"></i>${G.name}</button>`).join('');
       cp.addEventListener('click', (e) => { const b = e.target.closest('[data-grade]'); if (!b) return; S.pickGrade = b.dataset.grade; setPick(S.pickGrade); if (typeof save === 'function') save(); st.lastInput = clk; }); }
     document.getElementById('charSex').addEventListener('click', (e) => { const b = e.target.closest('[data-sex]'); if (!b) return; S.charSex = b.dataset.sex; setChar(S.charSex); if (typeof save === 'function') save(); st.lastInput = clk; });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else if (st.visible) start(); }); }
