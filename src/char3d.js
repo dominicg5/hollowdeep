@@ -300,21 +300,25 @@ const CharView = (() => {
     // ears (with an inner shade) placed behind the jaw, as on the side view
     for (const s of [-1, 1]) { const W = tab(HD.rows, HD.ear[0], 1), o = new THREE.Object3D(); o.position.set(s * (W + 0.003), HD.ear[0], HD.ear[1]); o.rotation.set(0, s * 0.45, s * 0.08); o.updateMatrix();
       const eg = ell(0.013, 0.022, 0.009, 16, 12).applyMatrix4(o.matrix); eg.setAttribute('color', new THREE.Float32BufferAttribute(new Array(eg.attributes.position.count * 3).fill(0.96), 3)); part(head, eg, headMat(F)); }
-    // blink overlay: the front-facing triangles of the head with the frontal concept UVs; hidden while the eyes are open
-    { const nh = hgeo.toNonIndexed(), P3 = nh.attributes.position, N3 = nh.attributes.normal, pos = [], uv = [], nrm = [];
-      for (let t = 0; t < P3.count; t += 3) { let ok = true; for (let q = 0; q < 3; q++) { if (N3.getZ(t + q) < 0.12 || P3.getY(t + q) > 0.02 || P3.getY(t + q) < -0.06) ok = false; } if (!ok) continue;
-        for (let q = 0; q < 3; q++) { const x = P3.getX(t + q), y = P3.getY(t + q), z = P3.getZ(t + q); pos.push(x + N3.getX(t + q) * 0.0004, y + N3.getY(t + q) * 0.0004, z + N3.getZ(t + q) * 0.0004); nrm.push(N3.getX(t + q), N3.getY(t + q), N3.getZ(t + q)); uv.push((64 + x / HD.K) / 128, 1 - (60 - (y + 0.03) / HD.K) / 116); } }
+    // eyes: their own layered decal, a skin of the head's front-facing triangles around the sockets (so they bend with the head surface and foreshorten
+    // naturally; the far eye is hidden by real depth / the nose). Layers, all painted from the upscaled sheet front view: the eye as drawn (lashes, lid lines,
+    // whites) / a separate iris + pupil + highlight that darts inside the eye opening / blink lids (skin from the face atlas + closed lash line) on top.
+    { const nh = hgeo.toNonIndexed(), P3 = nh.attributes.position, N3 = nh.attributes.normal, pos = [], uv = [], nrm = [], K = HD.K;
+      for (let t = 0; t < P3.count; t += 3) { let ok = true, inb = false; for (let q = 0; q < 3; q++) { const xq = P3.getX(t + q) / K, yq = -(P3.getY(t + q) + 0.03) / K; if (N3.getZ(t + q) < -0.3 || P3.getZ(t + q) < 0.0) ok = false; if (Math.abs(xq) < 54 && yq > -26 && yq < 18) inb = true; } if (!ok || !inb) continue;
+        for (let q = 0; q < 3; q++) { const x = P3.getX(t + q), y = P3.getY(t + q), z = P3.getZ(t + q), o = 0.00035; pos.push(x + N3.getX(t + q) * o, y + N3.getY(t + q) * o, z + N3.getZ(t + q) * o); nrm.push(N3.getX(t + q), N3.getY(t + q), N3.getZ(t + q)); uv.push((x / K + 56) / 112, 1 - (-(y + 0.03) / K + 28) / 48); } }
       const dg = new THREE.BufferGeometry(); dg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); dg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); dg.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
-      const uMS = { value: lidTex(F, 1, true) }, dm = new THREE.MeshLambertMaterial({ color: new THREE.Color(...SKTINT), map: lidTex(F, 1), vertexColors: false, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
-      dm.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, eyeUniforms(HD), { uView: HVIEW, uK: { value: HD.K }, uXR: { value: HD.xref }, mapS: uMS, mapH: { value: headAtlas(F) }, uLY: { value: new THREE.Vector4(HD.eyesF[0][3], HD.eyesF[1][3], 0, 0) } });
+      const uL = { value: lidTex(F, 0) }, uD = { value: new THREE.Vector2(0, 0) }, uC = { value: 0 }, sx = F ? 'f' : 'm';
+      const dm = new THREE.MeshLambertMaterial({ color: new THREE.Color(...SKTINT), map: eyeTex(sx, 'a'), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 });
+      dm.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, { uK: { value: K }, mapB: { value: eyeTex(sx, 'b') }, mapM: { value: eyeTex(sx, 'm') }, mapL: uL, mapH: { value: headAtlas(F) }, uD, uC });
         sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP; varying vec3 vON;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP = position; vON = normal;');
-        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP; uniform vec3 uView; uniform vec4 uEP; uniform vec4 uET; uniform vec4 uPR; uniform float uK; uniform float uXR; uniform sampler2D mapS; uniform sampler2D mapH; uniform vec4 uLY; varying vec3 vON;\n' + EYEWARP)
-          .replace('#include <map_fragment>', 'vec2 luv = vec2((64.0 + eyeWarpX(vOP.x, uView, uEP, uET) / uK) / 128.0, 1.0 - (60.0 - (vOP.y + 0.03) / uK) / 116.0); vec4 lt = texture2D(map, luv); float sv = sign(uView.x + 1e-4); if (abs(uView.x) > 0.951 && vOP.x * sv > 0.0) lt = texture2D(mapS, vec2((uXR - vOP.z / uK - 667.0) / 128.0, 1.0 - (60.0 - (vOP.y + 0.03) / uK) / 116.0));' +
-            ' float xq = eyeWarpX(vOP.x, uView, uEP, uET) / uK, yb = (xq < 0.0 ? uLY.x : uLY.y) + 3.5; vec3 sk = texture2D(mapH, vec2(clamp(4.0 * (64.0 + xq) / 1024.0, 0.002, 0.498), 1.0 - 4.0 * (60.0 + yb) / 1024.0)).rgb;' +
-            ' if (abs(uView.x) > 0.951 && vOP.x * sv > 0.0) sk = texture2D(mapH, vec2(clamp((512.0 + 4.0 * (uXR - vOP.z / uK - 667.0)) / 1024.0, 0.502, 0.998), 1.0 - 4.0 * (60.0 - (vOP.y + 0.03) / uK) / 1024.0)).rgb;' +
-            ' diffuseColor.rgb *= sk * lt.rgb; diffuseColor.a *= lt.a;')
-          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + TONE2('1.0', SKMASK) + '0.2;'); }; dm.customProgramCacheKey = () => 'lidwarp4';
-      const dec = new THREE.Mesh(dg, dm); dec.renderOrder = 1; dec.visible = false; head.add(dec); built.face = { m: dm, mesh: dec, key: '0_0', F, uMS }; }
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP; varying vec3 vON; uniform float uK; uniform sampler2D mapB; uniform sampler2D mapM; uniform sampler2D mapL; uniform sampler2D mapH; uniform vec2 uD; uniform float uC;\n')
+          .replace('#include <map_fragment>', ['float xq = vOP.x / uK, yq = -(vOP.y + 0.03) / uK; vec2 eu = vec2((xq + 56.0) / 112.0, 1.0 - (yq + 28.0) / 48.0);',
+            'vec4 ea = texture2D(map, eu); vec4 eb = texture2D(mapB, eu - vec2(uD.x / 112.0, -uD.y / 48.0)); vec4 em = texture2D(mapM, eu); float ia = eb.a * em.g;',
+            'vec3 c = mix(ea.rgb, eb.rgb, ia); float A = max(ea.a, ia) * (1.0 - uC);', // fully closed: only the lid (skin + lash line) over the face skin
+            'vec4 lt = texture2D(mapL, vec2((64.0 + xq) / 128.0, 1.0 - (60.0 + yq) / 116.0)); vec3 sk = texture2D(mapH, vec2(clamp(4.0 * (64.0 + xq) / 1024.0, 0.002, 0.498), 1.0 - 4.0 * (60.0 + yq) / 1024.0)).rgb;',
+            'float Ao = lt.a + A * (1.0 - lt.a); c = (sk * lt.rgb * lt.a + c * A * (1.0 - lt.a)) / max(Ao, 1e-4); A = Ao; float hr = em.r * uC * ea.a; c = mix(c, ea.rgb, hr); A = max(A, hr); diffuseColor.rgb *= c; diffuseColor.a *= A;'].join('\n'))
+          .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + TONE2('1.0', SKMASK) + '0.2;'); }; dm.customProgramCacheKey = () => 'eyedecal1';
+      const dec = new THREE.Mesh(dg, dm); dec.renderOrder = 1; head.add(dec); built.face = { m: dm, mesh: dec, key: -1, F, uL, uD, uC }; }
     // ---- hair: a cap plus layered, tapered clumps (fringe, side locks, back) ----
     const lock = (pts, r0, o = {}) => { const cur = new THREE.CatmullRomCurve3(pts.map((p) => V(...p))), ts = 16, rs = 9, g = new THREE.TubeGeometry(cur, ts, r0, rs, false), Pp = g.attributes.position, c = V(0, 0, 0), v = V(0, 0, 0), n = V(0, 0, 0);
       for (let i = 0; i < Pp.count; i++) { const t = Math.floor(i / (rs + 1)) / ts; cur.getPointAt(t, c); v.set(Pp.getX(i), Pp.getY(i), Pp.getZ(i)).sub(c); n.copy(c).sub(HAIRC).normalize(); v.addScaledVector(n, -v.dot(n) * (o.flat ?? 0.66)); v.multiplyScalar(Math.pow(1 - t, o.tp ?? 0.8) * (1 + (o.bulge ?? 0.5) * Math.sin(Math.PI * Math.pow(t, 0.8))) + 0.03); Pp.setXYZ(i, c.x + v.x, c.y + v.y, c.z + v.z); }
@@ -487,10 +491,10 @@ const CharView = (() => {
   const HEADS = {
     m: { K: 0.0023, xref: 730.4, rows: [[0.132, 0, -0.012, -0.012], [0.12, 0.058, 0.05, -0.078], [0.1, 0.086, 0.078, -0.106], [0.07, 0.102, 0.095, -0.12], [0.04, 0.107, 0.102, -0.125], [0.01, 0.107, 0.103, -0.124], [-0.015, 0.105, 0.1, -0.121], [-0.03, 0.102, 0.097, -0.117], [-0.045, 0.098, 0.091, -0.108], [-0.06, 0.091, 0.093, -0.045], [-0.08, 0.082, 0.095, -0.03], [-0.095, 0.073, 0.092, -0.018], [-0.11, 0.059, 0.083, -0.004], [-0.122, 0.046, 0.077, 0.012], [-0.132, 0.032, 0.075, 0.032], [-0.14, 0.018, 0.073, 0.054], [-0.147, 0, 0.07, 0.07]],
       nose: [[-0.035, 0], [-0.045, 0.003], [-0.055, 0.009], [-0.063, 0.017], [-0.068, 0.021], [-0.073, 0.015], [-0.079, 0.005], [-0.084, 0]], lips: [-0.094, 0.0045], ear: [-0.033, -0.045],
-      eyesF: [[-33.25, -10.75, -7.5, 6], [13, 35.5, -7.5, 6]], pe: 120, skin: '#d2a87f', eyeT: [0.077, 0.098, 0.077, 0.098], eyeS: [707, -1.25, 9, 9], eyeSc: 1.2, profR: [711.8, -1.5, 14.4, 18], mouthS: [700.5, 29.5, 8, 5] },
+      eyesF: [[-32.6, -14.1, -7.3, 3.4], [14.2, 33.4, -7.8, 3.6]], pe: 120, skin: '#d2a87f' },
     f: { K: 0.0023, xref: 730.4, rows: [[0.132, 0, -0.012, -0.012], [0.12, 0.058, 0.05, -0.078], [0.1, 0.085, 0.078, -0.106], [0.07, 0.1, 0.095, -0.12], [0.04, 0.106, 0.103, -0.125], [0.01, 0.106, 0.104, -0.124], [-0.015, 0.104, 0.1, -0.121], [-0.03, 0.101, 0.096, -0.117], [-0.045, 0.097, 0.097, -0.108], [-0.065, 0.087, 0.099, -0.04], [-0.085, 0.077, 0.104, -0.02], [-0.1, 0.067, 0.1, -0.005], [-0.114, 0.052, 0.092, 0.02], [-0.128, 0.034, 0.087, 0.048], [-0.137, 0.02, 0.084, 0.068], [-0.144, 0.009, 0.082, 0.077], [-0.149, 0, 0.08, 0.08]],
       nose: [[-0.033, 0], [-0.043, 0.003], [-0.053, 0.008], [-0.061, 0.015], [-0.066, 0.018], [-0.071, 0.012], [-0.077, 0.004], [-0.082, 0]], lips: [-0.088, 0.004], ear: [-0.04, -0.045],
-      eyesF: [[-45.1, -7.8, -11.9, 13.1], [10.8, 35, -14.4, 11.6]], pe: 179.4, skin: '#d6a784', eyeT: [0.079, 0.0975, 0.079, 0.0975], eyeS: [705.5, -5, 7.5, 11.5], eyeSc: 1.0, profR: [709, -4, 12, 18], mouthS: [692.5, 27, 6.5, 4] } };
+      eyesF: [[-40.6, -16.5, -8.8, 11], [14.4, 35.5, -11.3, 7.6]], pe: 179.4, skin: '#d6a784' } };
   // body skin (neck, hands, legs): the face atlas's median skin with the same tint, Lambert lighting and emissive lift as the projected head, so there is no tone step at the jaw
   // soft anime shading on skin: a gentle, wide gradient away from the key light (far cheek, under the chin), on top of the flat concept colour;
   // on the head it is masked off the front of the face (eyes, nose, mouth) except the underside of the jaw
@@ -516,45 +520,30 @@ const CharView = (() => {
     vertexShader: 'uniform float uW; uniform vec3 uView; void main(){ float f = smoothstep(0.5, 0.72, abs(uView.x)) * smoothstep(0.005, -0.035, position.y) * smoothstep(0.06, 0.01, position.z) * smoothstep(-0.095, -0.06, position.z); vec3 p = position + normalize(normal) * uW * (1.0 - 0.9 * f); gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }',
     fragmentShader: OUT.fragmentShader }); return _headInk; }
   const _headTex = {}, HVIEW = { value: new THREE.Vector3(0, 0, 1) };
-  function headAtlas(F) { const k = F ? 'f' : 'm'; if (!_headTex[k]) { const t = new THREE.TextureLoader().load('assets/char/face-' + k + '.webp'); t.anisotropy = 4; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; _headTex[k] = t; } return _headTex[k]; }
+  function eyeTex(sx, k) { const key = 'e' + sx + k; if (!_headTex[key]) { const t = new THREE.TextureLoader().load('assets/char/eye-' + sx + '-' + k + '.webp'); t.anisotropy = 4; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; _headTex[key] = t; } return _headTex[key]; }
+  let _pre = false; function headAtlas(F) { if (!_pre) { _pre = true; for (const q of 'mf') { for (const e of 'abm') eyeTex(q, e); if (q !== (F ? 'f' : 'm')) headAtlas(q === 'f'); } } const k = F ? 'f' : 'm'; if (!_headTex[k]) { const t = new THREE.TextureLoader().load('assets/char/face-' + k + '.webp'); t.anisotropy = 4; t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; _headTex[k] = t; } return _headTex[k]; }
   // toon material whose colour comes from the concept: front view projected along z, side view along x, blended by the surface normal
-  // feature-aware eye slide: as the camera swings to a side, the near eye of the FRONT projection is slid out toward the cheek (piecewise-linear x warp),
-  // so in profile it sits where the sheet draws the side eye. One source per pixel at every angle: no crossfade, no ghost eyes.
-  const EYEWARP = 'float eyeWarpX(float x, vec3 vw, vec4 EP, vec4 ET) { float sv = sign(vw.x + 1e-4), a = smoothstep(0.34, 0.98, abs(vw.x)), ax = abs(x); vec2 E = sv > 0.0 ? EP.xy : EP.zw, T = sv > 0.0 ? ET.xy : ET.zw; vec2 Q = mix(E, T, (x * sv > 0.0) ? a : 0.0); float We = 0.112;\n'
-    + ' float t = ax < Q.x ? ax * E.x / Q.x : (ax < Q.y ? E.x + (ax - Q.x) * (E.y - E.x) / (Q.y - Q.x) : E.y + (ax - Q.y) * (We - E.y) / max(We - Q.y, 1e-4)); return sign(x) * t; }\n';
-  const eyeUniforms = (H) => { const K = H.K, e = H.eyesF; return { uEP: { value: new THREE.Vector4(e[1][0] * K, e[1][1] * K, -e[0][1] * K, -e[0][0] * K) }, uET: { value: new THREE.Vector4(...H.eyeT) }, uPR: { value: new THREE.Vector4(...H.profR) }, uES: { value: new THREE.Vector3(H.eyeS[0], H.eyeS[1], H.eyeSc) }, uPM: { value: new THREE.Vector4(...H.mouthS) }, uPF: { value: new THREE.Vector4(-e[0][1] - 4, -e[0][0] + 4, Math.min(e[0][2], e[1][2]) - 5, Math.max(e[0][3], e[1][3]) + 4) } }; };
   const _headMats = {};
   function headMat(F, shell) { const mk = (F ? 'f' : 'm') + (shell ? 's' : ''); if (_headMats[mk]) return _headMats[mk]; const H = HEADS[F ? 'f' : 'm'], m = _headMats[mk] = new THREE.MeshLambertMaterial({ map: headAtlas(F), vertexColors: true, alphaTest: shell ? 0.5 : 0 });
-    m.onBeforeCompile = (sh) => { sh.uniforms.uHK = { value: new THREE.Vector2(H.K, H.xref) }; sh.uniforms.uView = HVIEW; Object.assign(sh.uniforms, eyeUniforms(H));
+    m.onBeforeCompile = (sh) => { sh.uniforms.uHK = { value: new THREE.Vector2(H.K, H.xref) }; 
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP; varying vec3 vON;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvOP = position; vON = normal;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP; varying vec3 vON; uniform vec2 uHK; uniform vec3 uView; uniform vec4 uEP; uniform vec4 uET; uniform vec4 uPR; uniform vec4 uPF; uniform vec3 uES; uniform vec4 uPM;\n' + EYEWARP).replace('#include <map_fragment>', [
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vOP; varying vec3 vON; uniform vec2 uHK;\n').replace('#include <map_fragment>', [
         'float hk = uHK.x; float rr = 4.0 * (60.0 - (vOP.y + 0.03) / hk); float sx = 4.0 * (uHK.y - vOP.z / hk - 667.0);',
-        'float xw = mix(eyeWarpX(vOP.x, uView, uEP, uET), vOP.x, smoothstep(14.0, 19.0, rr / 4.0 - 60.0)); vec2 uF = vec2(clamp(4.0 * (64.0 + xw / hk) / 1024.0, 0.002, 0.498), clamp(1.0 - rr / 1024.0, 0.553, 0.999));',
+        'vec2 uF = vec2(clamp(4.0 * (64.0 + vOP.x / hk) / 1024.0, 0.002, 0.498), clamp(1.0 - rr / 1024.0, 0.553, 0.999));',
         'vec2 uS = vec2(clamp((512.0 + sx) / 1024.0, 0.502, 0.998), clamp(1.0 - rr / 1024.0, 0.553, 0.999));',
-        'vec2 uV = vec2(clamp(sx / 1024.0, 0.002, 0.498), clamp(1.0 - (512.0 + rr) / 1024.0, 0.053, 0.499));',
-        'vec3 nn = normalize(vON); float wb = abs(uView.x) > 0.951 && vOP.x * uView.x > 0.0 ? mix(0.42, 0.72, smoothstep(6.0, 14.0, rr / 4.0 - 60.0)) : 0.8 + 0.09 * smoothstep(0.34, 0.98, abs(uView.x)) * step(0.0, vOP.x * uView.x); float ws = max(smoothstep(wb, wb + 0.05, abs(nn.x)), smoothstep(-0.3, -0.36, nn.z));',
-        'float sv = sign(uView.x + 1e-4); float wv = 0.0;',
-        'vec4 hc = mix(mix(texture2D(map, uF), texture2D(map, uS), ws), texture2D(map, uV), wv);',
-        // past ~72 deg the sheet's own side-view eye region is the ONLY source around the near eye (hard switch, no crossfade)
-        'float swP = step(0.951, abs(uView.x)) * step(0.0, vOP.x * sv) * step(0.02, vOP.x * sv); float er = length((vec2(sx / 4.0 + 667.0, rr / 4.0 - 60.0) - uPR.xy) / uPR.zw);',
-                // ...and the far eye (which would peek past the nose bridge) is replaced by the clean side projection
-        shell ? '' : 'float ax2 = -vOP.x * sv / hk; float swF = step(0.951, abs(uView.x)) * step(0.0, -vOP.x * sv) * step(uPF.x, ax2) * step(ax2, uPF.y) * step(uPF.z, rr / 4.0 - 60.0) * step(rr / 4.0 - 60.0, uPF.w); hc = mix(hc, texture2D(map, uS), swF);',
-        shell ? '' : 'vec2 EN = sv > 0.0 ? uEP.xy : uEP.zw; float axn = xw * sv; float swN = step(0.951, abs(uView.x)) * step(0.0, vOP.x * sv) * step(EN.x - 4.0 * hk, axn) * step(axn, EN.y + 6.0 * hk) * step(uPF.z, rr / 4.0 - 60.0) * step(rr / 4.0 - 60.0, uPF.w); ',
-        // the side eye is drawn at the sheet's size (uES.z scales it about its centre) and the sheet's side-view smile gets the same hard switch
-        shell ? 'hc.a *= 1.0 - swP * (1.0 - smoothstep(1.0, 1.15, er));' : '',
-        shell ? '' : 'vec2 ep = vec2(sx / 4.0 + 667.0, rr / 4.0 - 60.0), eq = uES.xy + (ep - uES.xy) / uES.z; vec2 uVe = vec2(clamp(4.0 * (eq.x - 667.0) / 1024.0, 0.002, 0.498), clamp(1.0 - (512.0 + 4.0 * (eq.y + 60.0)) / 1024.0, 0.053, 0.499));',
-        shell ? '' : 'hc = mix(hc, texture2D(map, uVe), swP * (1.0 - smoothstep(0.9, 1.0, er)));',
-        shell ? '' : 'float swM = step(0.951, abs(uView.x)) * smoothstep(0.01, 0.022, vOP.x * sv) * (1.0 - smoothstep(4.0, 7.0, abs(rr / 4.0 - 60.0 - uPM.y))); hc = mix(hc, texture2D(map, uF + vec2(0.0, 24.0 / 1024.0)), swM);',
-        shell ? '' : 'float em = length((ep - uPM.xy) / uPM.zw); hc = mix(hc, texture2D(map, uV), step(0.951, abs(uView.x)) * step(0.0, vOP.x * sv) * (1.0 - smoothstep(0.75, 1.0, em)));', shell ? 'diffuseColor *= hc;' : 'diffuseColor.rgb *= hc.rgb * vec3(' + SKTINT.join(', ') + ');'].join('\n')).replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + TONE2('1.0', SKMASK) + '0.2;'); };
-    m.customProgramCacheKey = () => 'headproj3' + (F ? 'f' : 'm') + (shell ? 's' : ''); return m; }
+        // fixed on the surface (no view dependence): front projection, the side projection past |n.x| 0.8 and under the jaw
+        'vec3 nn = normalize(vON); float ws = max(smoothstep(0.8, 0.85, abs(nn.x)), smoothstep(-0.3, -0.36, nn.z));',
+        'vec4 hc = mix(texture2D(map, uF), texture2D(map, uS), ws);',
+        shell ? 'diffuseColor *= hc;' : 'diffuseColor.rgb *= hc.rgb * vec3(' + SKTINT.join(', ') + ');'].join('\n')).replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + TONE2('1.0', SKMASK) + '0.2;'); };
+    m.customProgramCacheKey = () => 'headproj4' + (F ? 'f' : 'm') + (shell ? 's' : ''); return m; }
   // hair shell: the head pushed out along its normals, showing only the concept's hair pixels (alpha mask), so painted hair gets real volume
   function hairShell(g, F) { const s = g.clone(), P = s.attributes.position, N = s.attributes.normal; for (let i = 0; i < P.count; i++) { const y = P.getY(i), d = 0.006 + 0.008 * ss(0.0, 0.08, y) + 0.004 * ss(0.0, -0.1, P.getZ(i)); P.setXYZ(i, P.getX(i) + N.getX(i) * d, y + N.getY(i) * d, P.getZ(i) + N.getZ(i) * d); }
     s.computeVertexNormals(); return s; }
   // blink lids: skin-coloured lid shapes + a closed lash line, drawn in the frontal concept frame (canvas px = 4 * (x' + 64), 4 * (row + 60))
   const _lidCache = {};
-  function lidTex(F, lidK, side) { const key = (F ? 'f' : 'm') + lidK + (side ? 's' : ''); if (_lidCache[key]) return _lidCache[key]; const H = HEADS[F ? 'f' : 'm'];
+  function lidTex(F, lidK) { const key = (F ? 'f' : 'm') + lidK; if (_lidCache[key]) return _lidCache[key]; const H = HEADS[F ? 'f' : 'm'];
     // lid shapes are white (multiplied onto the head atlas skin sampled in the shader, so a closed lid is exactly the surrounding skin) + soft shadow + lash line
-    const t = cv(512, 464, (g) => { g.clearRect(0, 0, 512, 464); if (!lidK) return; for (const [ex0, ex1, ey0, ey1] of (side ? [[H.eyeS[0] - 667 - 64 - H.eyeS[2], H.eyeS[0] - 667 - 64 + H.eyeS[2], H.eyeS[1] - H.eyeS[3], H.eyeS[1] + H.eyeS[3]]] : H.eyesF)) { const cx = (ex0 + ex1) / 2, cy = (ey0 + ey1) / 2, rx = (ex1 - ex0) / 2 + 2.6, ry = (ey1 - ey0) / 2 + 2.3, X = (x) => 4 * (x + 64), Y = (y) => 4 * (y + 60);
+    const t = cv(512, 464, (g) => { g.clearRect(0, 0, 512, 464); if (!lidK) return; for (const [ex0, ex1, ey0, ey1] of H.eyesF) { const cx = (ex0 + ex1) / 2, cy = (ey0 + ey1) / 2, rx = (ex1 - ex0) / 2 + 3.2, ry = (ey1 - ey0) / 2 + 3.9, X = (x) => 4 * (x + 64), Y = (y) => 4 * (y + 60);
         const yl = lidK === 2 ? cy + ry * 0.35 : cy - ry * 0.05, col = '#ffffff';
         g.save(); g.filter = 'blur(3px)'; g.fillStyle = col; g.beginPath(); g.ellipse(X(cx), Y(cy), rx * 4, ry * 4, 0, Math.PI, TAU); g.lineTo(X(cx + rx), Y(yl)); g.quadraticCurveTo(X(cx), Y(yl + ry * 0.35), X(cx - rx), Y(yl)); g.closePath(); if (lidK === 2) g.ellipse(X(cx), Y(cy), rx * 4, ry * 4, 0, 0, Math.PI); g.fill(); g.restore();
         // soft shadow along the closed lid, then the lash line
@@ -562,7 +551,7 @@ const CharView = (() => {
         g.strokeStyle = 'rgba(40,22,14,.95)'; g.lineWidth = lidK === 2 ? 7 : 9; g.lineCap = 'round'; g.beginPath(); g.moveTo(X(cx - rx * 0.95), Y(yl - 0.4)); g.quadraticCurveTo(X(cx), Y(yl + ry * 0.38), X(cx + rx * 0.98), Y(yl - 0.8)); g.stroke(); } });
     t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; _lidCache[key] = t; return t; }
   function mountTether(tg, grade) { if (tg.grp) { tg.parent.remove(tg.grp); tg.grp.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); } const g = makeTether(grade, tg.o); g.position.set(...tg.pos); g.rotation.set(...tg.rot); tg.parent.add(g); tg.grp = g; return g; }
-  function setFace(built, lid) { const f = built.face; if (!f) return; const k = lid < 0.3 ? 0 : lid < 0.8 ? 1 : 2; if (k === f.key) return; f.key = k; f.mesh.visible = k > 0; if (k) { f.m.map = lidTex(f.F, k); f.uMS.value = lidTex(f.F, k, true); } }
+  function setFace(built, lid) { const f = built.face; if (!f) return; const k = lid < 0.3 ? 0 : lid < 0.8 ? 1 : 2; if (k === f.key) return; f.key = k; f.uL.value = lidTex(f.F, k); f.uC.value = k === 2 ? 1 : 0; }
 
   /* ---------- posing: rest pose, IK ---------- */
   const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _m = new THREE.Matrix4(), _v = V(0, 0, 0), _v2 = V(0, 0, 0), _v3 = V(0, 0, 0);
@@ -600,7 +589,7 @@ const CharView = (() => {
   /* ---------- animation: layered idle + fidgets + secondary motion ---------- */
   const FIDGETS = ['shift', 'scratch', 'tap', 'pick', 'glance', 'sigh'];
   const DUR = { shift: 3.4, scratch: 2.8, tap: 2.4, pick: 2.2, glance: 2.6, sigh: 2.6 };
-  const an = { next: 3, blinkAt: 1.5, blink: 0, lookT: 0, look: [0, 0], lookTo: [0, 0], fid: null, ft: 0, prev: null, last: '' };
+  const an = { next: 3, blinkAt: 1.5, blink: 0, lookT: 0, look: [0, 0], lookTo: [0, 0], dartT: 0, dart: [0, 0], dartTo: [0, 0], fid: null, ft: 0, prev: null, last: '' };
   function pickFidget(now) { const idle = now - st.lastInput > 20; let k; do k = FIDGETS[(Math.random() * FIDGETS.length) | 0]; while (k === an.last); an.last = k; an.fid = k; an.ft = 0; st.fidget = k; an.next = now + (idle ? 2.5 + Math.random() * 2.5 : 4 + Math.random() * 6) + DUR[k]; }
   function pend(o, ax, az, dt, k = 38, c = 4.5) { // damped pendulum driven by the parent's acceleration (character space)
     o.vx += (-k * o.ax - c * o.vx + ax) * dt; o.vz += (-k * o.az - c * o.vz + az) * dt; o.ax += o.vx * dt; o.az += o.vz * dt; o.ax = clamp(o.ax, -0.9, 0.9); o.az = clamp(o.az, -0.9, 0.9); }
@@ -612,6 +601,10 @@ const CharView = (() => {
     // look-arounds: drift toward a new random target every few seconds
     if (t > an.lookT) { an.lookT = t + 2.2 + Math.random() * 3.2; an.lookTo = st.calm ? [0, 0] : [(Math.random() - 0.5) * 0.7, (Math.random() - 0.5) * 0.22]; } if (st.calm && st.faceCam) { an.look[0] = an.look[1] = 0; an.lookTo = [0, 0]; }
     const kl = 1 - Math.exp(-dt * 2.2); an.look[0] += (an.lookTo[0] - an.look[0]) * kl; an.look[1] += (an.lookTo[1] - an.look[1]) * kl; hry += an.look[0]; hrx += an.look[1];
+    // eye darts (the iris layer flicks to a new spot every 1.5-4 s) and a slow, gentle idle head turn; both off for the posed calm face shots
+    const still = st.calm && st.faceCam; if (t > an.dartT) { an.dartT = t + 1.5 + Math.random() * 2.5; an.dartTo = still ? [0, 0] : [(Math.random() - 0.5) * 2.4, (Math.random() - 0.5) * 1.2]; } if (still) an.dart[0] = an.dart[1] = an.dartTo[0] = an.dartTo[1] = 0;
+    const kd = 1 - Math.exp(-dt * 22); an.dart[0] += (an.dartTo[0] - an.dart[0]) * kd; an.dart[1] += (an.dartTo[1] - an.dart[1]) * kd;
+    if (!still) { hry += 0.2 * Math.sin(t * 2 * Math.PI / 9.5) + 0.06 * Math.sin(t * 0.83 + 0.4); hrx += 0.03 * Math.sin(t * 0.41 + 2); }
     // fidgets (each eased in and out by env)
     if (fid === 'shift') { const side = Math.sin(Math.PI * ss(0.1, 0.5, u)) * 0 + (ss(0.08, 0.35, u) - ss(0.62, 0.92, u)) * (an.side || (an.side = Math.random() < 0.5 ? -1 : 1)); hx += 0.068 * side; hy -= 0.026 * Math.abs(side); hrz += 0.09 * side; crz -= 0.095 * side; hrzH += 0.07 * side; hry -= 0.2 * side; if (u > 0.95) an.side = 0; }
     if (fid === 'scratch') { f.reach = ss(0.05, 0.3, u) * ss(1, 0.75, u); f.scr = t * 22; hrzH -= 0.17 * f.reach; hry += 0.22 * f.reach; hrx += 0.1 * f.reach; crz += 0.045 * f.reach; smile -= 0.3 * f.reach; }
@@ -630,7 +623,7 @@ const CharView = (() => {
     // blinks (random, sometimes double), held shut through a sigh
     if (t > an.blinkAt) { an.blink = 0.0001; an.blinkAt = t + 2 + Math.random() * 3.8; if (Math.random() < 0.2) an.dbl = true; }
     let lid = 1; if (an.blink > 0) { an.blink += dt; const b = an.blink / 0.16; lid = b < 0.5 ? 1 - b * 2 : (b - 0.5) * 2; if (b >= 1) { an.blink = an.dbl ? -0.12 : 0; an.dbl = false; } } else if (an.blink < 0) { an.blink += dt; if (an.blink >= 0) an.blink = 0.0001; }
-    if (fid === 'sigh') lid = Math.min(lid, 1 - 0.85 * Math.sin(Math.PI * ss(0.45, 0.85, u))); setFace(built, clamp(1 - lid, 0, 1));
+    if (fid === 'sigh') lid = Math.min(lid, 1 - 0.85 * Math.sin(Math.PI * ss(0.45, 0.85, u))); setFace(built, clamp(1 - lid, 0, 1)); if (built.face) built.face.uD.value.set(an.dart[0], an.dart[1]);
     updatePickFx(built.pick, t); if (showPick) updatePickFx(showPick, t); for (const tg of built.tethers || []) updatePickFx(tg.grp, t);
     // secondary motion: braid, rope and lantern swing with inertia (driven by their anchors' acceleration)
     c.root.updateMatrixWorld(true); const sec = (o, anchor, gain, k, cdamp) => { const p = anchor.getWorldPosition(V(0, 0, 0)); c.root.worldToLocal(p); if (!o.p) { o.p = p.clone(); o.v = V(0, 0, 0); }
