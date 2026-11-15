@@ -123,6 +123,18 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   for (const t of ['capital', 'hollow', 'outposts', 'raids', 'training', 'city']) { await p.click(`nav#tabs [data-tab=${t}]`); await p.waitForTimeout(250); }
   ok(await p.isVisible('#cityCanvas'), 'tab switching round-trip');
   await p.click('nav#tabs [data-tab=capital]'); ok(await p.isVisible('text=Lantern Hall'), 'capital tab renders'); ok(!(await p.isVisible('#cityCanvas')), 'city hidden on other tabs');
+  // Character tab: own 3D stage, sex toggle persisted, fidgets advance, hidden on other tabs
+  await p.click('nav#tabs [data-tab=char]'); await p.waitForTimeout(1500);
+  const cv = await p.evaluate(() => ({ ok: CharView.st.ok, f: CharView.st.frames, vis: !document.getElementById('charWrap').classList.contains('hidden'), city: !document.getElementById('city').classList.contains('hidden') }));
+  ok(cv.ok && cv.vis && !cv.city, 'character tab shows its own stage (city hidden)'); await p.waitForTimeout(800);
+  ok((await p.evaluate(() => CharView.st.frames)) > cv.f, 'character stage renders frames');
+  await p.click('#charSex [data-sex=f]'); await p.waitForTimeout(400);
+  const cs = await p.evaluate(() => ({ s: S.charSex, r: CharView.rig.sex, saved: JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').charSex, braid: CharView.rig.built.braid.length }));
+  ok(cs.s === 'f' && cs.r === 'f' && cs.saved === 'f' && cs.braid > 5, 'female toggle swaps model and persists (' + JSON.stringify(cs) + ')');
+  const fz = await p.evaluate(() => { CharView.st.paused = true; CharView.fidget('scratch'); const y0 = CharView.rig.B.hdL.getWorldPosition(new THREE.Vector3()).y; CharView.advance(0.1, 12); const y1 = CharView.rig.B.hdL.getWorldPosition(new THREE.Vector3()).y; CharView.advance(0.1, 30); CharView.st.paused = false; return [y0, y1, CharView.an.fid]; });
+  ok(fz[1] > fz[0] + 0.25 && !fz[2], 'scratch fidget raises the hand to the face and ends (' + fz.map((v) => typeof v === 'number' ? v.toFixed(2) : v) + ')');
+  await p.click('#charSex [data-sex=m]'); await p.waitForTimeout(300); ok((await p.evaluate(() => CharView.rig.sex)) === 'm', 'male toggle');
+  await p.click('nav#tabs [data-tab=capital]'); await p.waitForTimeout(300); ok(await p.evaluate(() => document.getElementById('charWrap').classList.contains('hidden') && !CharView.st.visible), 'character stage hidden + paused on other tabs');
   await p.click('nav#tabs [data-tab=city]'); await p.waitForTimeout(300);
   // Screenshots: far / mid / close
   const shot = async (name, x, y, z, w = 2200) => { await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [x, y, z]); await p.waitForTimeout(w); await p.screenshot({ path: name }); };

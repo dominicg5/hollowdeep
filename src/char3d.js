@@ -87,8 +87,8 @@ const CharView = (() => {
       for (const s of [-1, 1]) { spike(0.17, 0.022, [s * 0.105, 0.035, 0.06], [s * 0.18, -1, 0.12]); spike(0.15, 0.02, [s * 0.118, 0.03, 0.02], [s * 0.25, -1, 0.0]); spike(0.12, 0.022, [s * 0.11, 0.02, -0.04], [s * 0.3, -1, -0.2]); }
       for (let i = 0; i < 6; i++) { const a = -0.9 + i * 0.36; spike(0.08, 0.026, [Math.sin(a) * 0.11, 0.0, -Math.cos(a) * 0.11], [Math.sin(a) * 0.3, -1, -0.4]); } }
     // braid (female): a chain of links hanging from the back of the head, over the pack
-    built.braid = []; if (F) { let par = bone('braid0', head, 0, -0.035, -0.112); const tie = part(par, ell(0.03, 0.03, 0.03), M.hair); tie.scale.set(1, 0.9, 1);
-      for (let i = 0; i < 9; i++) { const ln = bone('braid' + (i + 1), par, 0, i ? -0.046 : 0, 0); const w = 0.028 * (1 - i * 0.045); for (const s of [-1, 1]) part(ln, ell(w, 0.03, w * 0.8), M.hair, [s * w * 0.35, -0.022, 0], [0, 0, s * 0.5]); built.braid.push({ b: ln, rx: i ? 0.04 : 0.38, ax: 0, az: 0, vx: 0, vz: 0 }); ln.rotation.x = i ? 0.04 : 0.38; par = ln; }
+    built.braid = []; if (F) { let par = bone('braid0', head, 0, -0.035, -0.122); const tie = part(par, ell(0.03, 0.03, 0.03), M.hair); tie.scale.set(1, 0.9, 1);
+      for (let i = 0; i < 9; i++) { const ln = bone('braid' + (i + 1), par, 0, i ? -0.046 : 0, 0); const w = 0.028 * (1 - i * 0.045); for (const s of [-1, 1]) part(ln, ell(w, 0.03, w * 0.8), M.hair, [s * w * 0.35, -0.022, 0], [0, 0, s * 0.5]); built.braid.push({ b: ln, rx: i ? -0.08 : 0.95, ax: 0, az: 0, vx: 0, vz: 0 }); ln.rotation.x = i ? -0.08 : 0.95; par = ln; }
       const tip = bone('braidTip', par, 0, -0.05, 0); part(tip, cyl(0.012, 0.016, 0.02), M.belt, [0, 0.01, 0]); for (let k = 0; k < 5; k++) { const g = new THREE.ConeGeometry(0.01, 0.05, 6); g.translate(0, -0.025, 0); const m = part(tip, g, M.hair); m.rotation.set(0.05 * k, 0, (k - 2) * 0.18); } }
     // ---- helmet: brass-olive dome, brim, leather band with rivets, headlamp and goggles ----
     { const hg = new THREE.Group(); hg.position.set(0, 0.03, -0.004); hg.rotation.x = -0.08; head.add(hg); built.helmet = hg;
@@ -113,7 +113,7 @@ const CharView = (() => {
       // collar / hood and lapels
       if (F) { part(B.chest, new THREE.TorusGeometry(0.085, 0.035, 10, 24), M.jacket, [0, 0.165, -0.025], [Math.PI / 2 + 0.25, 0, 0], [1.05, 0.85, 1]); part(B.chest, ell(0.1, 0.07, 0.05), M.jacket, [0, 0.16, -0.1], [0.3, 0, 0]); }
       else part(B.chest, new THREE.TorusGeometry(0.08, 0.022, 8, 24, TAU - 0.9), M.jacket, [0, 0.16, -0.004], [Math.PI / 2 + 0.3, 0, Math.PI / 2 + 0.45], [1.05, 0.9, 1]);
-      for (const s of [-1, 1]) part(B.chest, rbox(0.045, 0.2, 0.012, 0.005), M.jacketDk, [s * 0.06, 0.02, 0.112], [0.1, s * 0.5, s * -0.16]);
+      for (const s of [-1, 1]) part(B.chest, rbox(0.034, 0.2, 0.01, 0.005), M.jacket, [s * 0.058, 0.02, 0.114], [0.1, s * 0.32, s * -0.14]);
       // front pockets on the jacket, shoulder patch(es)
       for (const s of [-1, 1]) part(B.chest, rbox(0.085, 0.075, 0.02, 0.008), M.jacketDk, [s * 0.1, -0.19, 0.103], [0, s * 0.62, 0]);
       const pm = F ? [1] : [-1, 1]; for (const s of pm) part(B.chest, rbox(0.06, 0.07, 0.012, 0.006), M.patch, [s * 0.165, 0.03, 0.0], [0, s * Math.PI / 2, 0]);
@@ -126,8 +126,8 @@ const CharView = (() => {
     // ---- pelvis, legs ----
     part(B.hips, lathe([[0.0, -0.11], [0.11, -0.1], [0.126, -0.05], [0.128, 0.03], [0.125, 0.1], [0.0, 0.1]], 28), M.pants, null, null, [1, 1, 0.78]);
     for (const [s, k] of [[-1, 'R'], [1, 'L']]) { const th = B['th' + k], sn = B['sn' + k], ft = B['ft' + k];
-      if (F) { part(th, cyl(0.075, 0.08, 0.14, 18), M.pants, [0, -0.06, 0]); part(th, new THREE.TorusGeometry(0.073, 0.009, 6, 20), M.pants, [0, -0.13, 0], [Math.PI / 2, 0, 0]); part(th, cyl(0.05, 0.063, 0.25, 18), M.skin, [0, -0.24, 0]); part(th, ell(0.05, 0.055, 0.052), M.skin, [0, -0.36, 0.0]);
-        part(sn, cyl(0.04, 0.05, 0.2, 16), M.skin, [0, -0.09, 0]); part(sn, cyl(0.045, 0.047, 0.07, 16), M.sock, [0, -0.18, 0]); part(sn, new THREE.TorusGeometry(0.047, 0.012, 6, 18), M.sock, [0, -0.15, 0], [Math.PI / 2, 0, 0]);
+      if (F) { part(th, cyl(0.072, 0.082, 0.2, 18), M.pants, [0, -0.09, 0]); part(th, new THREE.TorusGeometry(0.071, 0.011, 6, 20), M.pants, [0, -0.19, 0], [Math.PI / 2, 0, 0]); part(th, cyl(0.05, 0.063, 0.25, 18), M.skin, [0, -0.24, 0]); part(th, ell(0.05, 0.055, 0.052), M.skin, [0, -0.36, 0.0]);
+        part(sn, cyl(0.04, 0.05, 0.2, 16), M.skin, [0, -0.09, 0]); part(sn, cyl(0.046, 0.052, 0.16, 16), M.sock, [0, -0.13, 0]); part(sn, new THREE.TorusGeometry(0.052, 0.013, 6, 18), M.sock, [0, -0.055, 0], [Math.PI / 2, 0, 0]);
         part(sn, cyl(0.057, 0.06, 0.14, 18), M.bootLace, [0, -0.275, 0]); part(sn, new THREE.TorusGeometry(0.059, 0.01, 6, 20), M.boot, [0, -0.205, 0], [Math.PI / 2, 0, 0]); }
       else { part(th, cyl(0.064, 0.074, 0.38, 18), M.pants, [0, -0.18, 0]); part(th, rbox(0.03, 0.09, 0.075, 0.01), M.pants, [s * 0.068, -0.2, 0.0]); part(th, rbox(0.012, 0.03, 0.078, 0.005), M.belt, [s * 0.084, -0.16, 0.0]); part(th, ell(0.063, 0.06, 0.064), M.pants, [0, -0.36, 0]);
         part(sn, rbox(0.075, 0.075, 0.012, 0.006), M.patch, [0, -0.01, 0.057], [-0.1, 0, 0]); part(sn, cyl(0.058, 0.062, 0.22, 18), M.pants, [0, -0.1, 0]);
@@ -160,14 +160,14 @@ const CharView = (() => {
         const lg = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial('rgba(255,210,120,1)', 'rgba(255,150,60,.35)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); lg.scale.set(0.3, 0.3, 1); L.add(lg); built.lanternGlow = lg;
         const pl = new THREE.PointLight(0xffb060, 0.5, 0.9, 2); L.add(pl); built.lanternLight = pl; } }
     // ---- pickaxe: carried over the right shoulder, held in the right hand (rides on the chest; the hand is IK'd onto its grip) ----
-    { const px = new THREE.Group(); px.name = 'pickaxe'; B.chest.add(px); built.pick = px; const L0 = 0.4, L1 = 0.6;
+    { const px = new THREE.Group(); px.name = 'pickaxe'; B.chest.add(px); built.pick = px; const L0 = 0.2, L1 = 0.72;
       part(px, cyl(0.016, 0.014, L0 + L1, 10), M.wood, [0, (L1 - L0) / 2, 0]); for (const y of [-L0 + 0.02, L1 - 0.12]) part(px, cyl(0.019, 0.019, 0.025, 10), M.belt, [0, y, 0]);
       const sh = new THREE.Shape(), N = 20, pts = []; for (let i = 0; i <= N; i++) { const u = i / N, x = -0.27 + 0.52 * u, y = 0.03 - 0.2 * Math.pow((x + 0.01) / 0.27, 2); pts.push([x, y]); }
       sh.moveTo(pts[0][0], pts[0][1]); for (const [x, y] of pts) sh.lineTo(x, y); for (let i = N; i >= 0; i--) { const [x, y] = pts[i], u = i / N, th = 0.006 + 0.05 * Math.sin(Math.PI * Math.pow(u, 0.9)); sh.lineTo(x, y - th); } sh.closePath();
       const hg = new THREE.ExtrudeGeometry(sh, { depth: 0.022, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.005, bevelSegments: 2, curveSegments: 4 }); hg.translate(0, 0, -0.011); hg.computeVertexNormals();
       const head = new THREE.Group(); head.position.y = L1 - 0.06; px.add(head); part(head, hg, M.bronze, [0, 0.0, 0]); part(head, rbox(0.045, 0.07, 0.045, 0.008), M.bronze, [0, 0.0, 0]); }
     root.traverse((o) => { if (o.isMesh && o.material !== OUT) o.receiveShadow = false; });
-    return { root, B, sex, P };
+    return { root, B, sex, P, built };
   }
 
   /* ---------- posing: rest pose, IK ---------- */
@@ -181,7 +181,7 @@ const CharView = (() => {
   function setup(c) { const { B } = c; c.root.updateMatrixWorld(true); const w = (o, x, y, z) => c.root.localToWorld(V(x, y, z));
     // fixed ankle targets (character space) and the pickaxe grip
     c.ankle = { R: V(-0.095, 0.08, 0.0), L: V(0.1, 0.08, -0.02) };
-    const px = c.root.getObjectByName('pickaxe'); { const d = V(0.12, 0.72, -0.68).normalize(), bl = V(0, 0, 1).addScaledVector(d, -d.z).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); px.quaternion.setFromRotationMatrix(_m); px.position.set(-0.215, -0.03, 0.17); }
+    const px = c.root.getObjectByName('pickaxe'); { const d = V(0.22, 0.5, -0.84).normalize(), bl = V(0, 0, 1).addScaledVector(d, -d.z).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); px.quaternion.setFromRotationMatrix(_m); px.position.set(-0.2, -0.02, 0.2); }
     c.pickRest = { p: px.position.clone(), q: px.quaternion.clone() }; c.restQ = {}; for (const k in B) if (B[k] && B[k].isObject3D) c.restQ[k] = B[k].quaternion.clone(); void w; }
   function solveLimbs(c, f) { const { B } = c, root = c.root; root.updateMatrixWorld(true);
     // legs: feet planted on their ankle targets, knees forward
@@ -268,6 +268,7 @@ const CharView = (() => {
     document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else if (st.visible) start(); }); }
   function resize() { const w = wrap.clientWidth || 390, h = wrap.clientHeight || 600; R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
   function frame(ts) { if (!running) return; raf = requestAnimationFrame(frame); const now = ts / 1000, dt = Math.min(0.05, tPrev ? now - tPrev : 0.016); tPrev = now; clk += dt; st.frames++;
+    if (st.paused) return; // frame capture / tests drive time with advance()
     if (st.fixedDt) return renderAt(st.fixedDt);
     step(dt); }
   function step(dt) { if (!st.dragging) { st.yaw += st.yawV * dt; st.yawV *= Math.exp(-dt * 4); } rig.root.rotation.y = st.yaw; animate(rig, clk, dt);
