@@ -64,6 +64,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await tp0('touchStart', [[150, 500], [250, 500]]); for (let i = 1; i <= 20; i++) await tp0('touchMove', [[150, 500 - i * 25], [250, 500 - i * 25]]); await tp0('touchEnd', []);
     const t2 = await p.evaluate(() => CityMap.cam.tilt); ok(t2 >= 35 && t2 <= 70, 'tilt stays clamped: ' + t2.toFixed(0)); }
   // desktop: right-drag orbits; rotate buttons
+  await p.evaluate(() => { window.__ac = setInterval(() => closeModalQuiet(), 100); });
   { const mo = await p.evaluate(() => { const o = !document.getElementById('modal').classList.contains('hidden') ? document.getElementById('modalBody').textContent.slice(0, 80) : ''; closeModalQuiet(); return o; }); if (mo) console.log('note: modal was open before right-drag:', mo.replace(/\s+/g, ' ')); const r0 = await p.evaluate(() => CityMap.cam.rot); await p.mouse.move(200, 500); await p.mouse.down({ button: 'right' }); await p.mouse.move(280, 500, { steps: 6 }); await p.mouse.up({ button: 'right' });
     const r1 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(r1 - r0) > 0.2, `right-drag rotates (${r0.toFixed(2)} -> ${r1.toFixed(2)})`);
     await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=rotl]'); await p.waitForFunction(() => !CityMap.cam.fly, null, { timeout: 15000 }); const r2 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(Math.abs(r2 - r1) - Math.PI / 4) < 0.05, 'rotate button turns 45deg');
@@ -71,14 +72,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await p.evaluate(() => { CityMap.cam.rot = 0; CityMap.cam.tilt = 55; }); }
   await p.evaluate(() => CityMap.flyTo(W.player.x, W.player.y, 1.05, true)); await p.waitForTimeout(300);
   // wheel zoom
-  await p.mouse.move(200, 500); await p.mouse.wheel(0, 400); await p.waitForTimeout(300);
+  await p.evaluate(() => closeModalQuiet()); await p.mouse.move(200, 500); await p.mouse.wheel(0, 400); await p.waitForTimeout(300);
   const c2 = await p.evaluate(() => CityMap.cam.z); ok(c2 < c1.z, `wheel zooms out ${c1.z.toFixed(2)} -> ${c2.toFixed(2)}`);
-  await p.click('[data-city=zin]'); await p.waitForTimeout(500); const c3 = await p.evaluate(() => CityMap.cam.z); ok(c3 > c2, 'zoom button zooms in');
+  await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=zin]'); await p.waitForTimeout(500); const c3 = await p.evaluate(() => CityMap.cam.z); ok(c3 > c2, 'zoom button zooms in');
   // touch pinch via CDP
   const cdp = await ctx.newCDPSession(p); const zb = await p.evaluate(() => CityMap.cam.z);
   const tp = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], id) => ({ x, y, id })) });
-  await tp('touchStart', [[180, 500], [220, 500]]); for (let i = 1; i <= 8; i++) await tp('touchMove', [[180 - i * 10, 500], [220 + i * 10, 500]]); await tp('touchEnd', []);
+  await p.evaluate(() => closeModalQuiet()); await tp('touchStart', [[180, 500], [220, 500]]); for (let i = 1; i <= 8; i++) await tp('touchMove', [[180 - i * 10, 500], [220 + i * 10, 500]]); await tp('touchEnd', []);
   await p.waitForTimeout(300); const za = await p.evaluate(() => CityMap.cam.z); ok(za > zb * 1.3, `pinch zooms in ${zb.toFixed(2)} -> ${za.toFixed(2)}`);
+  await p.evaluate(() => clearInterval(window.__ac));
   // tap an AI home → card with Raid
   await p.evaluate(() => { const h = W.homes.find((h) => !h.player && Math.hypot(h.x - W.player.x, h.y - W.player.y) > 300); CityMap.flyTo(h.x, h.y, 1.4, true); window.__h = h; });
   await p.waitForTimeout(400);
