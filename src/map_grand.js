@@ -12,13 +12,15 @@ const GRAND = (() => {
 
   /* ---------- water: the plan (local frame: d out from the trunk toward the plateau edge, s across) ---------- */
   const LIP = 3550, LIPH = 1765, WL = 130, FALLS = [[-1800, -800], [-500, 500], [800, 1800]];
-  const lipD = (s) => LIP + 6e-5 * s * s;
+  const lipD = (s) => LIP + 6e-5 * s * s, DB = 3440, BL = 2500;
   const toW = (d, s) => [G.T.x + G.ox * d + G.lx * s, G.T.y + G.oy * d + G.ly * s];
   const toL = (x, y) => { const dx = x - G.T.x, dy = y - G.T.y; return [dx * G.ox + dy * G.oy, dx * G.lx + dy * G.ly]; };
   const halfW = (d, sd) => (2300 + 800 * sm(LIP, LIP + 2500, d)) * (1 + 0.06 * Math.sin(d / 700 + sd * 1.7) + 0.04 * Math.sin(d / 290 + sd * 3.1));
   const dFar = (s) => Math.sqrt(Math.max(0, (CITY.R + 800) ** 2 - s * s)) - G.rT;
   function lakeSdf(d, s) { return Math.max(Math.abs(s) - halfW(d, s < 0 ? -1 : 1), lipD(s) + 30 - d, d - dFar(s)); }
-  function poolSdf(d, s, f) { const [s0, s1] = FALLS[f], ld = lipD(s); return Math.max(s0 - 40 - s, s - s1 - 40, ld - 420 - d, d - ld); }
+  function poolSdf(d, s, f) { return Math.max(poolBack(d, s, f), d - lipD(s)); }
+  function poolBack(d, s, f) { const [s0, s1] = FALLS[f], ld = lipD(s), R = 170, qx = Math.abs(s - (s0 + s1) / 2) - (s1 - s0) / 2 - 40 + R, qy = ld - 420 - d + R;
+    return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - R + 28 * Math.sin(s / 97 + f * 2) + 18 * Math.sin(d / 61 + s / 140); }
   // streams: spring (angle off the plateau side, distance from the trunk axis) -> waypoints -> the pool above one of the falls
   const STREAMS = [[-1.0, 2300, [[2300, -1700], [3000, -1350]], 0, 110], [-1.35, 2550, [[1800, -2250], [2800, -1750]], 0, 80], [-0.45, 1900, [[2400, -520], [3150, -160]], 1, 95],
     [0.45, 1900, [[2400, 520], [3150, 160]], 1, 95], [1.0, 2300, [[2300, 1700], [3000, 1350]], 2, 110], [1.35, 2550, [[1800, 2250], [2800, 1750]], 2, 80]];
@@ -43,7 +45,7 @@ const GRAND = (() => {
       if (L < 0) h = WL - 18 - Math.min(150, -L * 0.3); else { h = Math.min(h, WL + 6 + L * k); const wt = sm(560, 220, L); h += (Math.max(h, WL + 8 + L * 0.12) - h) * wt; }
       mh *= sm(0, 500, L); }
     return [h, mh]; }
-  function wet(x, y, m) { if (!G) return false; const [d, s] = toL(x, y); m = m || 0; if (lakeSdf(d, s) < m) return true; if (d < lipD(s) + 10 && d > 300 && Math.abs(s) < 3300) { const st = streamAt(d, s); if (st && st.dd < m) return true; for (let f = 0; f < 3; f++) if (poolSdf(d, s, f) < m) return true; } return false; }
+  function wet(x, y, m) { if (!G) return false; const [d, s] = toL(x, y); m = m || 0; if ((Math.abs(d - DB) < 170 + m && Math.abs(s) < BL + 200 + m) || (Math.abs(s) < 170 + m && d > 900 && d < DB)) return true; if (lakeSdf(d, s) < m) return true; if (d < lipD(s) + 10 && d > 300 && Math.abs(s) < 3300) { const st = streamAt(d, s); if (st && st.dd < m) return true; for (let f = 0; f < 3; f++) if (poolSdf(d, s, f) < m) return true; } return false; }
   // after the seeded map is laid out: plan the water, then clear (and re-house) anything standing in it
   function fit() { const T = W.heartwood; if (!T) return; G = null; const o = T.in + Math.PI, ox = Math.cos(o), oy = Math.sin(o);
     const g0 = { T, ox, oy, lx: -oy, ly: ox, rT: Math.hypot(T.x, T.y) }, pre = (x, y) => { const k = G; G = null; const h = typeof M3 !== 'undefined' && M3.ground ? M3.ground(x, y).h : CITY.summitH; G = k; return h; };
@@ -61,16 +63,15 @@ const GRAND = (() => {
   /* ---------- the door ---------- */
   function doorWoodTex(hw, H) { return cvTex(512, 768, (g, w, h) => { const r = prng(41);
     // planks
-    for (let i = 0; i < 8; i++) { const v = 0.82 + r() * 0.25; g.fillStyle = `rgb(${150 * v | 0},${108 * v | 0},${66 * v | 0})`; g.fillRect(i * w / 8, 0, w / 8, h);
-      for (let k = 0; k < 40; k++) { g.strokeStyle = `rgba(${r() < 0.5 ? '60,36,16' : '200,160,110'},${0.15 + r() * 0.2})`; g.lineWidth = 1 + r() * 2; const x = i * w / 8 + r() * w / 8; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (r() - 0.5) * 10, h * 0.3, x + (r() - 0.5) * 10, h * 0.7, x + (r() - 0.5) * 6, h); g.stroke(); }
-      g.fillStyle = 'rgba(40,22,10,.75)'; g.fillRect(i * w / 8, 0, 3, h); }
+    for (let i = 0; i < 8; i++) { const v = 0.82 + r() * 0.25; g.fillStyle = `rgb(${196 * v | 0},${172 * v | 0},${140 * v | 0})`; g.fillRect(i * w / 8, 0, w / 8, h);
+      for (let k = 0; k < 40; k++) { g.strokeStyle = `rgba(${r() < 0.5 ? '110,90,66' : '235,220,195'},${0.15 + r() * 0.2})`; g.lineWidth = 1 + r() * 2; const x = i * w / 8 + r() * w / 8; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (r() - 0.5) * 10, h * 0.3, x + (r() - 0.5) * 10, h * 0.7, x + (r() - 0.5) * 6, h); g.stroke(); }
+      g.fillStyle = 'rgba(70,54,38,.6)'; g.fillRect(i * w / 8, 0, 3, h); }
     // carved panels with glyphs (two per leaf)
     const panel = (cx, cy, pw, ph, kind) => { g.fillStyle = 'rgba(50,30,14,.35)'; g.fillRect(cx - pw / 2, cy - ph / 2, pw, ph); g.strokeStyle = 'rgba(40,24,10,.8)'; g.lineWidth = 5; g.strokeRect(cx - pw / 2, cy - ph / 2, pw, ph); g.strokeStyle = 'rgba(230,190,130,.35)'; g.lineWidth = 2; g.strokeRect(cx - pw / 2 + 4, cy - ph / 2 + 4, pw - 8, ph - 8);
       g.save(); g.translate(cx, cy); g.lineCap = 'round'; for (const [col, lw, o] of [['rgba(30,16,6,.9)', 12, 2], ['rgba(214,170,110,.85)', 6, 0]]) { g.strokeStyle = col; g.lineWidth = lw; g.save(); g.translate(o, o); g.beginPath();
         if (kind === 0) { g.moveTo(0, -ph * 0.36); g.lineTo(0, ph * 0.36); g.moveTo(-pw * 0.3, -ph * 0.1); g.lineTo(pw * 0.3, -ph * 0.1); for (const s of [-1, 1]) { g.moveTo(s * pw * 0.3, -ph * 0.1); g.lineTo(s * pw * 0.18, -ph * 0.22); g.moveTo(s * pw * 0.3, -ph * 0.1); g.lineTo(s * pw * 0.18, ph * 0.02); } g.moveTo(-pw * 0.14, ph * 0.22); g.lineTo(0, ph * 0.36); g.lineTo(pw * 0.14, ph * 0.22); }
         else { g.moveTo(0, -ph * 0.38); g.lineTo(pw * 0.28, 0); g.lineTo(0, ph * 0.38); g.lineTo(-pw * 0.28, 0); g.closePath(); g.moveTo(0, -ph * 0.18); g.lineTo(pw * 0.12, 0); g.lineTo(0, ph * 0.18); g.lineTo(-pw * 0.12, 0); g.closePath(); g.moveTo(-pw * 0.36, -ph * 0.3); g.lineTo(-pw * 0.2, -ph * 0.3); g.moveTo(pw * 0.2, ph * 0.3); g.lineTo(pw * 0.36, ph * 0.3); }
         g.stroke(); g.restore(); } g.restore(); };
-    for (const s of [0.25, 0.75]) { panel(s * w, h * 0.34, w * 0.32, h * 0.2, 0); panel(s * w, h * 0.66, w * 0.3, h * 0.17, 1); }
     // iron straps with rivets
     for (const y of [0.17, 0.5, 0.84]) { g.fillStyle = '#2f2a26'; g.fillRect(0, h * y - 10, w, 20); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(0, h * y - 10, w, 4); for (let x = 12; x < w; x += 30) { g.fillStyle = '#1a1714'; g.beginPath(); g.arc(x, h * y, 4.5, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,240,220,.25)'; g.beginPath(); g.arc(x - 1, h * y - 1, 1.6, 0, 6.3); g.fill(); } }
     // centre seam darkening and grime at the foot
@@ -83,15 +84,22 @@ const GRAND = (() => {
     const cxR = hw - R; for (let i = 0; i <= n; i++) { const t = i / n; // right side: from springing (hw, ys) up to apex (0,H)
       const a0 = 0, a1 = Math.atan2(H - ys, -cxR); const a = a0 + (a1 - a0) * t; out.push([cxR + Math.cos(a) * R, ys + Math.sin(a) * R]); }
     out[out.length - 1] = [0, H]; return out; }
-  function buildDoor(C) { const { scene, T, trunkRad, ax, meshH, OUT, barkMat } = C; const v3 = () => new THREE.Vector3();
-    const n = new THREE.Vector3(Math.cos(OUT), 0, Math.sin(OUT));
-    // ground just in front of the trunk on the plateau side, and the trunk's outer surface over the door's span
+  function doorSpot(C) { if (GX.spot) return GX.spot; const { T, trunkRad, ax, meshH, OUT } = C, n = { x: Math.cos(OUT), z: Math.sin(OUT) };
     let gy = 0, rD = 0; { const c0 = ax(0.08); for (let k = 0; k < 3; k++) { let rr = 0; const f0 = Math.max(0, (gy - T.base) / T.H);
         for (let f = f0; f <= f0 + 0.13; f += 0.01) for (let a = -0.34; a <= 0.341; a += 0.04) rr = Math.max(rr, trunkRad(f, OUT + a) * Math.cos(a));
         rD = rr; gy = meshH(c0.x + n.x * (rD + 120), c0.z + n.z * (rD + 120)); } }
+    const c = ax((gy - T.base) / T.H); return (GX.spot = { gy, rD, cx: c.x, cz: c.z, OUT, top: gy + 1020 * 1.35 * 1.3, span: (330 * 1.42 * 1.35 + 260) / rD }); }
+  // bend root points out of the doorway so they curl round the portal instead of cutting through it
+  function dodge(pts, C) { const D = doorSpot(C); for (const p of pts) { if (p.y > D.top + 250) continue; const dx = p.x - D.cx, dz = p.z - D.cz, dist = Math.hypot(dx, dz); if (dist > D.rD + 650) continue;
+      let da = Math.atan2(dz, dx) - D.OUT; da = Math.atan2(Math.sin(da), Math.cos(da)); const ys = sm(D.top + 250, D.top - 300, p.y), span = D.span * (0.55 + 0.45 * ys) * sm(D.rD + 650, D.rD + 250, dist); if (Math.abs(da) >= span) continue;
+      const na = D.OUT + (da < 0 ? -1 : 1) * span; p.x = D.cx + Math.cos(na) * dist; p.z = D.cz + Math.sin(na) * dist; } return pts; }
+  function buildDoor(C) { const { scene, T, trunkRad, ax, meshH, OUT, barkMat } = C; const v3 = () => new THREE.Vector3();
+    const n = new THREE.Vector3(Math.cos(OUT), 0, Math.sin(OUT));
+    // ground just in front of the trunk on the plateau side, and the trunk's outer surface over the door's span
+    const { gy, rD } = doorSpot(C);
     const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD + 60), gy, c.z + n.z * (rD + 60));
     const hw = 330, ys = 620, H = 1020, grp = new THREE.Group(); grp.position.copy(P0); grp.rotation.y = Math.atan2(n.x, n.z); grp.scale.setScalar(1.35); scene.add(grp); GX.door = { x: P0.x, y: P0.z, up: gy, hgt: H * 1.35, grp };
-    const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x2c2724 }), frameM = barkMat;
+    const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x2c2724 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
     const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.slice().reverse().map(([x, y]) => [-x, y]), A.slice(1), [[hw, 0]]); // left foot -> apex -> right foot
     // the glow inside: a bright plane set back in the doorway (you can't see in, only the light)
     { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ map: glowTex2(), color: 0xffffff, toneMapped: false });
@@ -109,10 +117,10 @@ const GRAND = (() => {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(26, 5, 6, 16), ironM); ring.position.set(-s * (hw - gap / 2 - 50), 440, -4); piv.add(ring); const boss = new THREE.Mesh(new THREE.CylinderGeometry(14, 14, 10, 10), ironM); boss.rotation.x = Math.PI / 2; boss.position.set(ring.position.x, 466, -10); piv.add(boss); }
     // the carved frame: a thick bark portal grown round a dressed timber moulding, with a keystone ornament at the apex
     const curveOf = (k, z) => new THREE.CatmullRomCurve3(outline.map(([x, y]) => new THREE.Vector3(x * k, y * (k > 1 ? (y > 5 ? 1 + (k - 1) * 0.55 : 1) : 1), z)));
-    { const tm = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.04, -40), 60, 34, 8, false), new THREE.MeshLambertMaterial({ color: 0x7a5434 })); grp.add(tm);
-      const tm2 = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.16, -50), 60, 46, 8, false), new THREE.MeshLambertMaterial({ map: wood, color: 0xb08a5c })); grp.add(tm2);
+    { const tm = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.04, -40), 60, 34, 8, false), new THREE.MeshLambertMaterial({ color: 0xa8957c })); grp.add(tm);
+      const tm2 = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.16, -50), 60, 46, 8, false), new THREE.MeshLambertMaterial({ map: wood, color: 0xd6c6ae })); grp.add(tm2);
       const portal = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.42, -120), 64, 130, 10, false), frameM); portal.castShadow = true; grp.add(portal);
-      const ks = new THREE.Shape(); ks.moveTo(0, -120); ks.lineTo(90, 10); ks.lineTo(40, 70); ks.lineTo(0, 150); ks.lineTo(-40, 70); ks.lineTo(-90, 10); ks.closePath(); const kg = new THREE.ExtrudeGeometry(ks, { depth: 50, bevelEnabled: true, bevelThickness: 10, bevelSize: 8, bevelSegments: 2 }); const key = new THREE.Mesh(kg, new THREE.MeshLambertMaterial({ map: wood, color: 0xc49a66 })); key.position.set(0, H * 1.04 + 30, -20); grp.add(key);
+      const ks = new THREE.Shape(); ks.moveTo(0, -120); ks.lineTo(90, 10); ks.lineTo(40, 70); ks.lineTo(0, 150); ks.lineTo(-40, 70); ks.lineTo(-90, 10); ks.closePath(); const kg = new THREE.ExtrudeGeometry(ks, { depth: 50, bevelEnabled: true, bevelThickness: 10, bevelSize: 8, bevelSegments: 2 }); const key = new THREE.Mesh(kg, new THREE.MeshLambertMaterial({ map: wood, color: 0xdccbb2 })); key.position.set(0, H * 1.04 + 30, -20); grp.add(key);
       // threshold step and side bases
       const stoneM = new THREE.MeshLambertMaterial({ color: 0x5a554e }); const step = new THREE.Mesh(new THREE.BoxGeometry(2 * hw + 160, 36, 150), stoneM); step.position.set(0, 4, 30); grp.add(step); for (const s of [-1, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(150, 140, 170), stoneM); b.position.set(s * (hw + 120), 50, -40); grp.add(b); } }
     // lanterns on iron brackets either side of the frame
@@ -186,7 +194,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     { const P = [], UV = [], I = []; for (const S of G.streams) { const pts = S.pts.concat([{ d: lipD(S.pts[S.pts.length - 1].s) - 200, s: S.pts[S.pts.length - 1].s * 0.9, wl: LIPH - 6, w: S.pts[S.pts.length - 1].w * 1.3 }]); let acc = 0; const base = P.length / 3;
         pts.forEach((p, i) => { const q = pts[Math.min(pts.length - 1, i + 1)], o = pts[Math.max(0, i - 1)], td = q.d - o.d, ts = q.s - o.s, l = Math.hypot(td, ts) || 1, nd = -ts / l, ns = td / l; if (i) acc += Math.hypot(p.d - o.d, p.s - o.s);
           for (const side of [-1, 1]) { const [x, y] = toW(p.d + nd * p.w * side * 1.05, p.s + ns * p.w * side * 1.05); P.push(x, p.wl + 2, y); UV.push(side < 0 ? 0 : 1, acc / 260); } if (i) { const a = base + (i - 1) * 2; I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } }); }
-      for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f], base = P.length / 3, nu = 12, nv = 6; for (let i = 0; i <= nv; i++) for (let j = 0; j <= nu; j++) { const s2 = s0 - 30 + (s1 - s0 + 60) * j / nu, d = lipD(s2) - 420 + 422 * i / nv, [x, y] = toW(d, s2); P.push(x, LIPH - 6, y); UV.push(j / nu * 0.6 + 0.2, d / 260); }
+      for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f], base = P.length / 3; let nu, nv; nu = 24, nv = 10; for (let i = 0; i <= nv; i++) for (let j = 0; j <= nu; j++) { const s2 = s0 - 140 + (s1 - s0 + 280) * j / nu, d = lipD(s2) - 560 + 562 * i / nv, [x, y] = toW(d, s2), e = Math.max(0, Math.min(1, 1 + poolBack(d, s2, f) / 260)); P.push(x, LIPH - 6, y); UV.push(0.5 + 0.5 * e * (j < nu / 2 ? -1 : 1), d / 260); }
         for (let i = 0; i < nv; i++) for (let j = 0; j < nu; j++) { const a = base + i * (nu + 1) + j; I.push(a, a + nu + 1, a + 1, a + 1, a + nu + 1, a + nu + 2); } }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('aU', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I); const m = new THREE.Mesh(g, smat); m.frustumCulled = false; m.renderOrder = 3; scene.add(m); }
     // the three falls: curved sheets pouring off the lip, streaked and foaming, a second faster veil in front
@@ -303,9 +311,45 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
   function animIsland(t, night, ps) { if (!GX.island) return; const fl = 0.8 + 0.12 * Math.sin(t * 11.0) + 0.08 * Math.sin(t * 17.3 + 1) + 0.05 * Math.sin(t * 29.0);
     GX.fireLight.intensity = (0.6 + 1.4 * night) * fl; GX.firePool.material.opacity = (0.15 + 0.5 * night) * fl; GX.emberM.uniforms.uT.value = t; GX.emberM.uniforms.uS.value = ps || 1;
     const pk = 0.75 + 0.5 * night + 0.1 * Math.sin(t * 1.7); GX.pickM.color.setRGB(0.62 * pk, 0.97 * pk, 1.0 * pk); GX.pickHalo.material.opacity = 0.35 + 0.55 * night; GX.islandMat.emissiveIntensity = night * 0.8; }
+  /* ---------- the plateau bridge: a straight timber-and-stone span over the pools, with steps up to the door ---------- */
+  function plankTex() { return cvTex(256, 64, (g, w, h) => { const r = prng(77); g.fillStyle = '#b49a78'; g.fillRect(0, 0, w, h); for (let k = 0; k < 50; k++) { g.strokeStyle = `rgba(${r() < 0.5 ? '90,70,50' : '225,205,175'},${0.2 + r() * 0.25})`; g.lineWidth = 1 + r() * 1.5; const y = r() * h; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + (r() - 0.5) * 6, w * 0.7, y + (r() - 0.5) * 6, w, y + (r() - 0.5) * 4); g.stroke(); } g.fillStyle = 'rgba(50,38,26,.5)'; g.fillRect(0, 0, w, 3); g.fillRect(0, h - 3, w, 3); }); }
+  function buildBridge(C) { const { scene, meshH, PR } = C, grp = new THREE.Group(); scene.add(grp); GX.bridge = grp; const r = prng(23), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const yaw = Math.atan2(G.lx, G.ly), tex = plankTex(), woodM = new THREE.MeshLambertMaterial({ map: tex, color: 0xc8b8a0 }), darkM = new THREE.MeshLambertMaterial({ map: tex, color: 0x8a7660 }), stoneM = new THREE.MeshLambertMaterial({ color: 0x4f4a44, flatShading: true }), ironM = new THREE.MeshLambertMaterial({ color: 0x2c2724 });
+    // deck height along the span: level over the shelf, easing down onto the ground at either end
+    const NS = 64, deckY = []; for (let i = 0; i <= NS; i++) { const s2 = -BL + 2 * BL * i / NS, g = Math.max(meshH(...toW(DB - 120, s2)), meshH(...toW(DB, s2)), meshH(...toW(DB + 120, s2))); deckY.push(Math.max(LIPH + 70, g + 26)); }
+    for (let k = 0; k < 3; k++) for (let i = 1; i < NS; i++) deckY[i] = Math.max(deckY[i], (deckY[i - 1] + deckY[i + 1]) / 2 - 4);
+    const yAt = (s2) => { const t = Math.max(0, Math.min(NS, (s2 + BL) / (2 * BL) * NS)), i = Math.min(NS - 1, t | 0), f = t - i; return deckY[i] * (1 - f) + deckY[i + 1] * f; };
+    const put = (im, k, d, s2, y, sx, sy, sz, rx, ry, rz) => { const [x, z] = toW(d, s2); e.set(rx || 0, yaw + Math.PI / 2 + (ry || 0), rz || 0); q.setFromEuler(e); mt.compose(V(x, y, z), q, V(sx, sy, sz)); im.setMatrixAt(k, mt); };
+    const box = new THREE.BoxGeometry(1, 1, 1), W2 = 150;
+    // planks across the deck (box x = along s, z = along d after yaw)
+    { const n = Math.floor(2 * BL / 34), im = new THREE.InstancedMesh(box, woodM, n); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
+      for (let k = 0; k < n; k++) { const s2 = -BL + 17 + k * 34, sl = (yAt(s2 + 10) - yAt(s2 - 10)) / 20; put(im, k, DB + (r() - 0.5) * 8, s2, yAt(s2), 31, 12, 2 * W2 + (r() - 0.5) * 16, 0, 0, Math.atan(sl)); const v = 0.8 + r() * 0.3; im.instanceColor.setXYZ(k, v, v * 0.97, v * 0.93); } im.receiveShadow = true; grp.add(im); }
+    // stringers, posts, rails and the stone piers
+    const segs = []; for (let i = 0; i < NS; i++) segs.push([-BL + 2 * BL * i / NS, -BL + 2 * BL * (i + 1) / NS]);
+    { const im = new THREE.InstancedMesh(box, darkM, segs.length * 4); let k = 0;
+      for (const [a, b] of segs) { const ya = yAt(a), yb = yAt(b), L = Math.hypot(b - a, yb - ya), ang = Math.atan2(yb - ya, b - a); for (const sd of [-1, 1]) { put(im, k++, DB + sd * (W2 - 6), (a + b) / 2, (ya + yb) / 2 - 16, L + 2, 22, 18, 0, 0, ang); put(im, k++, DB + sd * (W2 - 4), (a + b) / 2, (ya + yb) / 2 + 96, L + 2, 12, 12, 0, 0, ang); } } grp.add(im); }
+    { const ps = []; for (let s2 = -BL + 40; s2 <= BL - 40; s2 += 160) ps.push(s2); const im = new THREE.InstancedMesh(box, darkM, ps.length * 2); let k = 0; for (const s2 of ps) for (const sd of [-1, 1]) put(im, k++, DB + sd * (W2 - 4), s2, yAt(s2) + 48, 16, 108, 16); grp.add(im);
+      // rope swag between the posts
+      const rp = []; for (const sd of [-1, 1]) for (let i = 0; i < ps.length - 1; i++) for (let j = 0; j <= 6; j++) { const s2 = ps[i] + (ps[i + 1] - ps[i]) * j / 6, [x, z] = toW(DB + sd * (W2 - 2), s2); rp.push([sd, i, x, yAt(s2) + 62 - Math.sin(j / 6 * Math.PI) * 18, z]); }
+      const ropeM = new THREE.MeshLambertMaterial({ color: 0x9a8562 }); for (const sd of [-1, 1]) { const pts = rp.filter((p) => p[0] === sd).map((p) => V(p[2], p[3], p[4])); grp.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, 3.5, 4, false), ropeM)); } }
+    { const pier = []; for (let s2 = -BL + 260; s2 <= BL - 260; s2 += 420) { const y = yAt(s2), g = Math.min(meshH(...toW(DB, s2)), y - 40); pier.push([s2, y, g]); } const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1, 1, 2, 1), stoneM, pier.length * 2); let k = 0;
+      for (const [s2, y, g] of pier) for (const sd of [-1, 1]) { const hh = y - 20 - g + 60; put(im, k++, DB + sd * (W2 - 30), s2, g - 60 + hh / 2, 70, hh, 70, 0, (r() - 0.5) * 0.2, 0); } grp.add(im); }
+    // lanterns on tall posts, both sides, every few spans
+    const lamps = []; { const L = []; for (let s2 = -BL + 200; s2 <= BL - 200; s2 += 640) for (const sd of [-1, 1]) L.push([s2 + sd * 80, sd]); const post = new THREE.InstancedMesh(box, darkM, L.length * 2), cage = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 0.8, 1, 6), ironM, L.length), glass = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6), GX.lampM || (GX.lampM = new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false })), L.length); let k = 0, j = 0;
+      L.forEach(([s2, sd], i) => { const y = yAt(s2), d = DB + sd * (W2 + 10); put(post, k++, d, s2, y + 110, 18, 240, 18); put(post, k++, d - sd * 26, s2, y + 226, 14, 12, 60); put(cage, i, d - sd * 46, s2, y + 210, 17, 8, 17); put(glass, i, d - sd * 46, s2, y + 186, 13, 36, 13); const [x, z] = toW(d - sd * 46, s2); lamps.push(V(x, y + 186, z)); });
+      grp.add(post, cage, glass); }
+    // the steps: from the middle of the bridge up the walkway to the door, stone treads on timber risers
+    { const D = GX.door, [dd] = D ? toL(D.x, D.y) : [1800], d0 = dd + 180, d1 = DB - W2, y1 = yAt(0), y0 = D ? D.up + 28 : y1, n = Math.max(4, Math.round((d1 - d0) / 90)), tr = [];
+      let last = y1; for (let i = n; i >= 0; i--) { const d = d0 + (d1 - d0) * i / n, g = Math.max(meshH(...toW(d, -110)), meshH(...toW(d, 110)), meshH(...toW(d, 0))), lin = y0 + (y1 - y0) * i / n, y = Math.max(g + 10, Math.round(lin / 26) * 26); tr.push([d, y, g]); last = y; }
+      const im = new THREE.InstancedMesh(box, new THREE.MeshLambertMaterial({ color: 0x4f4a44, flatShading: true }), tr.length), rs = new THREE.InstancedMesh(box, darkM, tr.length); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(tr.length * 3), 3);
+      tr.forEach(([d, y, g], k) => { put(im, k, d, (r() - 0.5) * 10, y, 250 + r() * 20, 16, 96, 0, (r() - 0.5) * 0.06, 0); const v = 0.75 + r() * 0.3; im.instanceColor.setXYZ(k, v, v, v * 0.95); const hh = Math.max(20, y - g + 40); put(rs, k, d + 30, 0, y - 8 - hh / 2, 240, hh, 40); }); grp.add(im, rs);
+      // a lantern pair at the foot of the steps
+      const P2 = new THREE.InstancedMesh(box, darkM, 2), G2 = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6), GX.lampM, 2); [-1, 1].forEach((sd, i) => { const [d, y] = tr[0]; put(P2, i, d - 40, sd * 150, y + 100, 18, 220, 18); put(G2, i, d - 40, sd * 150, y + 222, 15, 34, 15); const [x, z] = toW(d - 40, sd * 150); lamps.push(V(x, y + 222, z)); }); grp.add(P2, G2); }
+    grp.traverse((o) => { if (o.isInstancedMesh) { o.castShadow = true; o.computeBoundingSphere && o.computeBoundingSphere(); } });
+    GX.lampAt = (GX.lampAt || []).concat(lamps); for (const p of lamps) PR.glow.push([p.x, p.y, p.z, null]); }
   function doorCard() { const btn = (h) => `<div class="wrapgap" style="margin-top:10px">${h}</div>`;
     openModal(`<h2>🌳 The Lumen Tree</h2><p>The great door stands a hand's width open, and Lumen light spills out over the roots. Inside is the commune of the Hollow, where every delver's road meets.</p><p class="dim">Coming soon.</p>${btn('<button class="btn deep" data-act="close">Enter the Lumen Tree</button><button class="btn ghost" data-act="close">Not now</button>')}`, 'city'); }
-  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); if (G) { buildWater(C); buildIsland(C); } } else if (GX.smokeAt) { for (const p of GX.smokeAt) C.PR.smoke.push([p.x, p.y, p.z, 0.3]); for (const p of GX.lampAt) C.PR.glow.push([p.x, p.y, p.z, null]); } }
+  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); if (G) { buildWater(C); buildIsland(C); buildBridge(C); } } else if (GX.smokeAt) { for (const p of GX.smokeAt) C.PR.smoke.push([p.x, p.y, p.z, 0.3]); for (const p of GX.lampAt) C.PR.glow.push([p.x, p.y, p.z, null]); } }
   function anim(t, night, ps) { animDoor(t, night); animWater(t, night, { ps }); animIsland(t, night, ps); }
-  return { build, anim, wet, carve, fit, doorCard, toW, toL, lipD, LIP, LIPH, WL, FALLS, lakeSdf, dFar, halfW, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
+  return { build, anim, wet, dodge, doorSpot, carve, fit, doorCard, toW, toL, lipD, LIP, LIPH, WL, FALLS, lakeSdf, dFar, halfW, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
 })();
