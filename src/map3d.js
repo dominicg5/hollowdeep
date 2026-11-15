@@ -238,13 +238,13 @@ void main() {
   function glowTex(inner, outer) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, inner); gr.addColorStop(0.4, outer); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); return t; }
 
   /* ---------- real 3D models: houses + trees (meshopt-compressed LODs, instanced), yard props, the Heartwood ---------- */
-  const MODEL_KEYS = ['shack', 'cottage', 'townhouse', 'workshop', 'oak', 'sequoia', 'willow', 'hero'];
+  const MODEL_KEYS = ['shack', 'cottage', 'townhouse', 'workshop', 'oak', 'sequoia', 'willow'];
   const TIER_MODEL = ['shack', 'shack', 'cottage', 'cottage', 'townhouse', 'townhouse', 'workshop', 'workshop'];
-  let MD = null, mdState = 'idle'; const IM = { homes: [], trees: [], props: null, all: [] }; let hero = null, lodTick = 0, lodAt = null; const heroObjs = [];
+  let MD = null, mdState = 'idle'; const IM = { homes: [], trees: [], props: null, all: [] }; let hero = null, lodTick = 0, lodAt = null;
   const LU = { uLumenC: { value: new THREE.Color(0, 0, 0) }, uWin: { value: 0 } };
   function loadScript(src) { return new Promise((res, rej) => { const e = document.createElement('script'); e.src = src; e.onload = res; e.onerror = rej; document.head.appendChild(e); }); }
   async function parseModel(key) { const ab = await (await fetch('assets/models/' + key + '.bin')).arrayBuffer(), dv = new DataView(ab), hl = dv.getUint32(4, true);
-    const H = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, 8, hl))); let off = 8 + hl; const tree = /oak|sequoia|willow|hero/.test(key), geos = [];
+    const H = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, 8, hl))); let off = 8 + hl; const tree = /oak|sequoia|willow/.test(key), geos = [];
     const sx = H.mx[0] - H.mn[0], sy = H.mx[1] - H.mn[1], sz = H.mx[2] - H.mn[2], cx = (H.mx[0] + H.mn[0]) / 2, cz = (H.mx[2] + H.mn[2]) / 2;
     const k = tree ? 1 / sy : 1 / Math.max(sx, sz), y0 = H.mn[1] + sy * (tree ? 0 : 0.07); // houses: sink the dirt slab a little into the ground
     for (const L of H.lods) { const vs = new Uint8Array(ab, off, L.vb); off += L.vb; const is = new Uint8Array(ab, off, L.ib); off += L.ib;
@@ -255,8 +255,8 @@ void main() {
         for (let j = 0; j < 2; j++) UV[i * 2 + j] = H.umn[j] + d.getUint16(o + 12 + j * 2, true) / 65535 * (H.umx[j] - H.umn[j]); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.BufferAttribute(N, 3)); g.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); g.setIndex(new THREE.BufferAttribute(L.ic < 65536 && L.vc < 65536 ? new Uint16Array(ib) : ib, 1)); g.computeBoundingSphere(); geos.push(g); }
     const tl = new THREE.TextureLoader(), tex = (u) => new Promise((res) => tl.load(u, (t) => { t.flipY = false; t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; res(t); }, undefined, () => res(null)));
-    const map = await tex('assets/models/' + key + '.webp'), nrm = /shack|cottage|townhouse|workshop|hero/.test(key) ? await tex('assets/models/' + key + '_n.webp') : null; if (nrm) nrm.encoding = THREE.LinearEncoding;
-    const mat = tree && key !== 'hero' ? new THREE.MeshLambertMaterial({ map, color: key === 'willow' ? 0x9cb48a : 0xb6bd96 }) : new THREE.MeshPhongMaterial({ map, normalMap: nrm, shininess: 6, specular: 0x161310, color: key === 'hero' ? 0xa8bf96 : 0xffffff });
+    const map = await tex('assets/models/' + key + '.webp'), nrm = /shack|cottage|townhouse|workshop/.test(key) ? await tex('assets/models/' + key + '_n.webp') : null; if (nrm) nrm.encoding = THREE.LinearEncoding;
+    const mat = tree ? new THREE.MeshLambertMaterial({ map, color: key === 'willow' ? 0x9cb48a : 0xb6bd96 }) : new THREE.MeshPhongMaterial({ map, normalMap: nrm, shininess: 6, specular: 0x161310, color: 0xffffff });
     mat.onBeforeCompile = (sh) => { sh.uniforms.uLumenC = LU.uLumenC; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float iLum; varying float vLum;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLum = iLum;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uLumenC; varying float vLum;').replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += uLumenC * vLum * diffuseColor.rgb;'); };
     return { geos, mat, tree }; }
@@ -298,58 +298,176 @@ void main() {
     if (R(13) < 0.6) for (let k = 0; k < 1 + (R(14) < 0.5); k++) { const [x, gy, y] = at(-w * (0.5 + 0.13 * k), w * 0.45); block(PR.cyl, x, gy - 1, y, 7, 10, 7, 0, [0.42, 0.28, 0.16], h); }
     if (R(15) < 0.75 || h.elev != null) { const [x, gy, y] = at(w * 0.62, -w * 0.5); stick(PR.box, v3().set(x, gy - 3, y), v3().set(x, gy + 24, y), 2, IRON, h); block(PR.lamp, x, gy + 22, y, 4.5, 5, 4.5, 0, [1, 0.75, 0.4], h); PR.glow.push([x, gy + 25, y, h]); }
     if (R(17) < 0.35 && h.elev == null) { const [x, gy, y] = at(w * 0.2, -w * 0.18); PR.smoke.push([x, gy + w * 0.85, y, R(18) * 10, h]); } }
-  function buildHeartwood() { const T = W.heartwood; if (!T || !MD.hero) return; const H = T.ht, ix = -Math.cos(T.a), iz = -Math.sin(T.a), tx = -iz, tz = ix, g0 = P_H;
-    const tp = (lx, ly, lz) => { const p = heartwoodPoint(lx, ly, lz || 0); return v3().set(p.x, p.elev, p.y); };
-    // the giant willow, leaning out over the Hollow, its root-ball gripping the lip
-    for (const o of heroObjs) scene.remove(o); heroObjs.length = 0; const add = (o) => { scene.add(o); heroObjs.push(o); return o; };
-    const m = new THREE.Mesh(MD.hero.geos[0], MD.hero.mat); m.geometry = MD.hero.geos[0].clone(); m.geometry.setAttribute('iLum', new THREE.BufferAttribute(new Float32Array(m.geometry.attributes.position.count).fill(0.25), 1));
-    const grp = new THREE.Group(); grp.position.set(T.x, g0 - H * 0.16, T.y); grp.rotation.set(0, Math.PI - T.a, -T.lean, 'YXZ'); m.scale.setScalar(H * 1.05); grp.add(m); m.castShadow = true; m.receiveShadow = true; add(grp); hero = { grp, m };
-    // roots: thick bark tubes clawing over the lip and down the pit wall, others gripping the summit
-    const bark = new THREE.MeshLambertMaterial({ color: 0x5a4330 }), roots = [];
-    for (let k = 0; k < 9; k++) { const side = (k / 8 - 0.5) * 0.5, back = k % 3 === 0, s0 = tp(0, 0.13, side * 0.05);
-      const p1 = v3().set(T.x + (back ? -ix : ix) * H * 0.12 + tx * side * H * 0.5, g0 + 30, T.y + (back ? -iz : iz) * H * 0.12 + tz * side * H * 0.5);
-      const ex = T.x + (back ? -ix : ix) * H * (back ? 0.32 : 0.2) + tx * side * H * 0.9, ez = T.y + (back ? -iz : iz) * H * (back ? 0.32 : 0.2) + tz * side * H * 0.9;
-      const p2 = v3().set(ex, (back ? meshH(ex, ez) - 10 : g0 - H * (0.25 + 0.2 * hash1(k))), ez);
-      const curve = new THREE.CatmullRomCurve3([s0, p1, v3().lerpVectors(p1, p2, 0.6).add(v3().set(0, back ? 10 : -40, 0)), p2]);
-      roots.push(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, H * (0.028 - 0.012 * Math.abs(side)), 6, false), bark)); }
-    for (const r of roots) { r.castShadow = true; add(r); }
-    // Ledge platforms built into the tree, struts to the trunk, rope walkways between neighbours, ladders up the trunk
-    const res = W.homes.filter((h) => h.heartwood).sort((a, b) => a.elev - b.elev), plank = WOOD[2];
-    if (res.length) { T.cx = res.reduce((s2, h) => s2 + h.x, 0) / res.length; T.cy = res.reduce((s2, h) => s2 + h.y, 0) / res.length; T.ce = res.reduce((s2, h) => s2 + h.elev, 0) / res.length; }
-    for (const h of res) { const p = v3().set(h.x, h.elev, h.y), w = homeW(h) * 0.8, sl = HW_SLOTS[h.slot % HW_SLOTS.length]; block(PR.cyl, h.x, h.elev - 8, h.y, w * 1.3, 8, w * 1.3, 0, plank, h);
-      if (sl[1] < 0.7 && sl[0] > 0.3) { // portaledge hung under the canopy edge over the pit: four ropes up into the branches
-        const anchor = tp(sl[0] - 0.08, 0.74, sl[2]); for (const [ox, oz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) stick(PR.box, p.clone().add(v3().set(ox * w * 0.5, -6, oz * w * 0.5)), anchor, 1.6, ROPE, h); }
-      else if (sl[1] < 0.5) { const trunk = tp(0, sl[1] - 0.03, 0); stick(PR.box, p.clone().setY(h.elev - 8), trunk, 10, WOOD[0], h); } }
-    // rope walkways between neighbouring canopy homes, ladders down to the hanging ones and the trunk
-    for (let i = 0; i < res.length; i++) { const a = res[i]; let b = null, bd = 1e9; for (const o of res) { if (o === a || o.elev < a.elev - 1) continue; const d = Math.hypot(o.x - a.x, o.y - a.y, (o.elev - a.elev) * 0.5); if (d < bd && !(o._lnk === a)) { bd = d; b = o; } } if (!b) continue; a._lnk = b;
-      const pa = v3().set(a.x, a.elev + 2, a.y), pb = v3().set(b.x, b.elev + 2, b.y), dir = v3().subVectors(pb, pa); const side = v3().set(-dir.z, 0, dir.x).normalize();
-      if (Math.abs(b.elev - a.elev) > pa.distanceTo(pb) * 0.6) { for (const o of [-6, 6]) stick(PR.box, pa.clone().addScaledVector(side, o), pb.clone().addScaledVector(side, o), 1.6, WOOD[1], b);
-        const L = pa.distanceTo(pb); for (let k = 1; k < L / 14; k++) { const q = v3().lerpVectors(pa, pb, k * 14 / L); stick(PR.box, q.clone().addScaledVector(side, -6), q.clone().addScaledVector(side, 6), 1.2, WOOD[1], b); } continue; }
-      const n = 10; let prev = pa; for (let k = 1; k <= n; k++) { const u = k / n, q = v3().lerpVectors(pa, pb, u); q.y -= Math.sin(Math.PI * u) * 24; stick(PR.box, prev, q, 3.5, plank, b); for (const o of [-5, 5]) stick(PR.box, prev.clone().addScaledVector(side, o).setY(prev.y + 10), q.clone().addScaledVector(side, o).setY(q.y + 10), 0.9, ROPE, b); prev = q; } }
-    for (const h of res) delete h._lnk;
-    // the pulley: a beam out along a great branch, a wheel, a winch on the lip, and a crate dangling into the Hollow
-    const b0 = tp(0.02, 0.5, 0.05), b1 = b0.clone().add(v3().set(ix, 0, iz).multiplyScalar(H * 0.62)); stick(PR.box, b0, b1, 24, WOOD[0], null); stick(PR.box, tp(0.0, 0.36, 0.05), v3().lerpVectors(b0, b1, 0.45), 13, WOOD[0], null);
-    const wheel = new THREE.Mesh(new THREE.TorusGeometry(20, 5, 6, 16), new THREE.MeshLambertMaterial({ color: 0x4a3828 })); wheel.position.copy(b1).add(v3().set(0, -26, 0)); wheel.rotation.y = Math.PI / 2 - Math.atan2(iz, ix); add(wheel);
-    stick(PR.box, b1, wheel.position, 4, IRON, null);
-    const winch = v3().set(T.x - ix * 160 + tx * 90, 0, T.y - iz * 160 + tz * 90); winch.y = meshH(winch.x, winch.z); block(PR.cyl, winch.x, winch.y, winch.z, 34, 30, 34, 0, WOOD[0], null); block(PR.box, winch.x, winch.y, winch.z, 50, 8, 10, 0, WOOD[1], null);
-    const ropeM = new THREE.MeshLambertMaterial({ color: 0x9c8460 }), rope = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 5), ropeM), rope2 = new THREE.Mesh(rope.geometry, ropeM);
-    const load = new THREE.Group(); { const crate = new THREE.Mesh(new THREE.BoxGeometry(70, 60, 70), new THREE.MeshLambertMaterial({ color: 0x8a6440 })); crate.position.y = -30; load.add(crate); for (const y of [-8, -52]) { const band = new THREE.Mesh(new THREE.BoxGeometry(73, 5, 73), new THREE.MeshLambertMaterial({ color: 0x333030 })); band.position.y = y; load.add(band); }
-      for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) { const r = new THREE.Mesh(rope.geometry, ropeM); const a = v3().set(sx * 33, -2, sz * 33), b = v3().set(0, 40, 0); r.position.lerpVectors(a, b, 0.5); r.scale.set(1.5, a.distanceTo(b), 1.5); r.quaternion.setFromUnitVectors(v3().set(0, 1, 0), b.clone().sub(a).normalize()); load.add(r); } }
-    const lanternL = new THREE.Mesh(new THREE.BoxGeometry(10, 14, 10), new THREE.MeshBasicMaterial({ color: 0xffc070 })); lanternL.position.y = 46; load.add(lanternL);
-    for (const o of [rope, rope2, load]) { o.castShadow = true; add(o); }
-    hero.pulley = { top: wheel.position.clone().add(v3().set(0, -20, 0)), winch: winch.clone().setY(winch.y + 30), rope, rope2, load, lanternL, dir: v3().set(tx, 0, tz), wheel };
-    PR.glow.push([b1.x, b1.y - 40, b1.z, null]); }
+  /* ---------- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall (merged geometry, instanced foliage) ---------- */
+  function hwCanvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; if (rep) t.repeat.set(rep[0], rep[1]); return t; }
+  function barkTex() { return hwCanvasTex(256, 512, (g, w, h) => { g.fillStyle = '#6a5240'; g.fillRect(0, 0, w, h); let s = 7; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 260; i++) { const x0 = R() * w, lw = 2 + R() * 9, l = R() < 0.5; g.strokeStyle = l ? `rgba(${150 + R() * 40 | 0},${118 + R() * 30 | 0},${88 + R() * 20 | 0},${0.25 + R() * 0.35})` : `rgba(${28 + R() * 20 | 0},${20 + R() * 14 | 0},${14 + R() * 8 | 0},${0.35 + R() * 0.4})`; g.lineWidth = lw;
+      g.beginPath(); let x = x0; g.moveTo(x, -10); for (let y = 0; y <= h + 20; y += 24) { x += (R() - 0.5) * 9; g.lineTo(x, y); } g.stroke(); g.beginPath(); g.moveTo(x0 - w, -10); g.lineTo(x0 - w, h + 10); g.stroke(); }
+    for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(20,14,10,${0.2 + R() * 0.3})`; g.beginPath(); g.ellipse(R() * w, R() * h, 2 + R() * 6, 6 + R() * 22, 0, 0, TAU); g.fill(); } }); }
+  function leafTex() { return hwCanvasTex(256, 256, (g, w, h) => { g.fillStyle = '#7c9a42'; g.fillRect(0, 0, w, h); let s = 11; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 2600; i++) { const x = R() * w, y = R() * h, r = 2 + R() * 4, k = R(); g.fillStyle = k < 0.3 ? `rgba(${70 + R() * 20 | 0},${96 + R() * 20 | 0},${40 + R() * 10 | 0},.75)` : k < 0.8 ? `rgba(${124 + R() * 30 | 0},${154 + R() * 26 | 0},${66 + R() * 20 | 0},.8)` : `rgba(${176 + R() * 30 | 0},${196 + R() * 20 | 0},${104 + R() * 30 | 0},.75)`;
+      g.beginPath(); g.ellipse(x, y, r, r * 0.55, R() * TAU, 0, TAU); g.fill(); } }); }
+  function plankTex() { return hwCanvasTex(128, 128, (g, w, h) => { let s = 5; const R = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 8; i++) { const c = 0.75 + R() * 0.3; g.fillStyle = `rgb(${142 * c | 0},${104 * c | 0},${66 * c | 0})`; g.fillRect(0, i * 16, w, 16); g.fillStyle = 'rgba(40,26,14,.7)'; g.fillRect(0, i * 16 + 14, w, 2); g.fillRect((R() * w) | 0, i * 16, 2, 14); } }); }
+  // geometry accumulator -> one merged mesh
+  function GA() { return { p: [], n: [], uv: [], c: [], i: [] }; }
+  function gaMesh(A, mat, normals) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(A.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(A.uv, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(A.c, 3)); g.setIndex(A.i);
+    if (normals) g.setAttribute('normal', new THREE.Float32BufferAttribute(A.n, 3)); else g.computeVertexNormals(); g.computeBoundingSphere(); const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; return m; }
+  // a tube through centres `pts` with radius rad(i, ang) (parallel-transport frames), vertex colour col(i, ang, pos)
+  function gaTube(A, pts, seg, rad, col, uvk) { const n = pts.length, base = A.p.length / 3; let nr = null, vacc = 0;
+    for (let i = 0; i < n; i++) { const t = v3().subVectors(pts[Math.min(n - 1, i + 1)], pts[Math.max(0, i - 1)]).normalize();
+      if (!nr) { nr = Math.abs(t.y) < 0.9 ? v3().set(0, 1, 0).cross(t).normalize() : v3().set(1, 0, 0).cross(t).normalize(); } else nr.addScaledVector(t, -nr.dot(t)).normalize();
+      const b = v3().crossVectors(t, nr); if (i) vacc += pts[i].distanceTo(pts[i - 1]);
+      for (let k = 0; k <= seg; k++) { const a = (k / seg) * TAU, d = v3().copy(nr).multiplyScalar(Math.cos(a)).addScaledVector(b, Math.sin(a)), r = rad(i, a), p = v3().copy(pts[i]).addScaledVector(d, r);
+        A.p.push(p.x, p.y, p.z); A.n.push(d.x, d.y, d.z); A.uv.push((k / seg) * uvk[0], vacc / uvk[1]); const c = col(i, a, p, d); A.c.push(c[0], c[1], c[2]); } }
+    for (let i = 0; i < n - 1; i++) for (let k = 0; k < seg; k++) { const a = base + i * (seg + 1) + k, b2 = a + seg + 1; A.i.push(a, b2, a + 1, a + 1, b2, b2 + 1); } }
+  function bez(p0, p1, p2, p3, n) { const c = new THREE.CubicBezierCurve3(p0, p1, p2, p3); return c.getPoints(n); }
+  const HWX = { built: false, objs: [], mush: null, hollows: [], mushGlow: null, badges: [] };
+  function buildHeartwood() { const T = W.heartwood; if (!T) return; const H = T.H, B = T.base;
+    const ax = (f) => { const [x, y] = hwAxis(f); return v3().set(x, B + f * H, y); }, dirAt = (th) => v3().set(Math.cos(th), 0, Math.sin(th));
+    const tr = (f, th, r) => ax(f).addScaledVector(dirAt(th), r != null ? r : hwTrunkR(f));
+    const add = (o) => { scene.add(o); HWX.objs.push(o); return o; };
+    if (!HWX.built) { HWX.built = true; const bark = new THREE.MeshLambertMaterial({ map: barkTex(), vertexColors: true, side: THREE.DoubleSide }), A = GA();
+      const moss = (p, d, k) => { const m = Math.max(0, d.y) * 0.8 + (vnoise(p.x / 700 + k, p.z / 700 + p.y / 900) - 0.45) * 1.6; const u = clamp(m, 0, 1); return [1 - 0.42 * u, 1 - 0.12 * u, 1 - 0.55 * u]; };
+      // the trunk: twisted, buttressed, gnarled
+      const trunkRad = (f, a) => { const tw = f * 3.4, Bt = Math.exp(-Math.max(0, f + 0.06) * 8), lobe = Math.pow(0.5 + 0.5 * Math.cos(7 * (a - tw)), 3), r = hwTrunkR(f) * (1 + 0.62 * Bt * lobe - 0.1 * Bt);
+          return r * (1 + 0.07 * Math.sin(3 * a + f * 17) + 0.05 * Math.sin(5 * a - f * 23 + 1.3) + 0.06 * (vnoise(a * 2.2 + 3, f * 14) - 0.5) - (f > 0.66 ? (f - 0.66) * 6 : 0)); };
+      { const pts = [], fs = []; for (let i = 0; i <= 64; i++) { const f = -0.16 + (i / 64) * 0.86; fs.push(f); pts.push(ax(f)); }
+        gaTube(A, pts, 56, (i, a) => trunkRad(fs[i], a), (i, a, p, d) => moss(p, d, 0), [7, 900]); }
+      // great root-cords: twisted strands wound round the lower trunk that spill out as roots, gripping the lip and the summit
+      // behind and clawing down the inner wall of the Hollow
+      const rootPts = [];
+      for (let k = 0; k < 13; k++) { const a = T.in + Math.PI + (k / 13) * TAU + (hash1(k * 3.1) - 0.5) * 0.25, inward = Math.cos(a - T.in) > 0.2, L = H * (inward ? 0.15 + 0.1 * hash1(k) : 0.14 + 0.12 * hash1(k + 9)), r0 = HW_R0 * (0.27 + 0.1 * hash1(k + 2)), pts = [], rs = [];
+        const fTop = k % 4 === 3 ? 0.06 : 0.22 + hash1(k + 5) * 0.22, nS = Math.max(2, Math.round(fTop / 0.012)), tw = 2.4 * (k % 2 ? 1 : 0.8);
+        for (let i = 0; i <= nS; i++) { const f = fTop * (1 - i / nS) + 0.015, aa = a - (f - 0.015) * tw; pts.push(tr(f, aa, trunkRad(f, aa) * 0.93)); rs.push(r0 * (0.25 + 0.75 * Math.pow(i / nS, 0.7))); }
+        let prev = pts[pts.length - 1]; const [cx, cy] = hwAxis(0);
+        for (let i = 1; i <= 22; i++) { const u = i / 22, s2 = Math.hypot(prev.x - cx, prev.z - cy) * (1 - u) + (hwTrunkR(0) * 1.15 + L * Math.pow(u, 0.9)) * u, aa = a + Math.sin(u * 5 + k) * 0.18 * u, x = cx + Math.cos(aa) * s2, z = cy + Math.sin(aa) * s2, rr = r0 * (1 - 0.88 * u);
+          const gy = meshH(x, z); const y = Math.min(prev.y + 40, Math.max(gy + rr * 0.3, prev.y - (i < 4 ? 140 : 900))); const p = v3().set(x, Math.max(y, gy + rr * 0.2), z); pts.push(p); rs.push(rr); prev = p; }
+        gaTube(A, pts, 12, (i, aa) => rs[i] * (1 + 0.12 * Math.sin(aa * 3 + i)), (i, aa, p, d) => moss(p, d, k), [3, 500]); rootPts.push(pts.slice(nS)); }
+      // twisted cords running up the whole trunk into the crown (the trunk reads as a braid of great roots)
+      for (let k = 0; k < 9; k++) { const a0 = (k / 9) * TAU + 0.3, pts = [], rs = [], f1 = 0.5 + hash1(k * 7.3) * 0.14, n = 44;
+        for (let i = 0; i <= n; i++) { const f = 0.03 + (f1 - 0.03) * i / n, aa = a0 + f * 2.6; pts.push(tr(f, aa, trunkRad(f, aa) * 0.94)); rs.push(HW_R0 * (0.2 + 0.05 * hash1(k)) * (1 - 0.55 * i / n) * (i < 3 ? 0.5 + i / 6 : 1)); }
+        gaTube(A, pts, 10, (i, aa) => rs[i] * (1 + 0.1 * Math.sin(aa * 2 + i * 0.4)), (i, aa, p, d) => moss(p, d, k + 40), [2, 600]); }
+      // limbs: crown limbs fanning out from the top of the trunk, plus the limbs that carry the limb-seats
+      const limbs = [];
+      const limb = (f0, th, out, rise, r0, sub) => { const p0 = tr(f0, th, hwTrunkR(f0) * 0.4), d = dirAt(th), p3 = v3().copy(p0).addScaledVector(d, out).add(v3().set(0, rise, 0));
+        const p1 = v3().copy(p0).addScaledVector(d, out * 0.35).add(v3().set(0, rise * 0.15, 0)), p2 = v3().copy(p0).addScaledVector(d, out * 0.7).add(v3().set(0, rise * 0.55, 0)), pts = bez(p0, p1, p2, p3, 18);
+        gaTube(A, pts, 14, (i, a) => r0 * (1 - 0.8 * i / 18) * (1 + 0.08 * Math.sin(a * 3 + i * 0.7)), (i, a, p, d2) => moss(p, d2, th), [3, 600]); const L = { pts, th, end: p3, r0 }; limbs.push(L);
+        if (sub) for (const s of [-1, 1]) { const q0 = pts[10], dd = dirAt(th + s * 0.55), q3 = v3().copy(q0).addScaledVector(dd, out * 0.45).add(v3().set(0, rise * 0.5, 0));
+          const sp = bez(q0, v3().lerpVectors(q0, q3, 0.33).add(v3().set(0, -rise * 0.05, 0)), v3().lerpVectors(q0, q3, 0.66), q3, 10);
+          gaTube(A, sp, 8, (i) => r0 * 0.45 * (1 - 0.8 * i / 10), (i, a, p, d2) => moss(p, d2, th + s), [2, 500]); limbs.push({ pts: sp, th: th + s * 0.55, end: q3, r0: r0 * 0.45, sub: true }); }
+        return L; };
+      for (let k = 0; k < 9; k++) { const th = T.in + (k / 9) * TAU + 0.2 + (hash1(k * 4.4) - 0.5) * 0.4, f0 = 0.59 + hash1(k * 2.2) * 0.07; limb(f0, th, H * (0.26 + 0.1 * hash1(k + 1)), H * (0.08 + 0.11 * hash1(k + 3)), hwTrunkR(f0) * 0.5, true); }
+      limb(0.66, T.in + 0.9, H * 0.08, H * 0.2, hwTrunkR(0.66) * 0.5, true); limb(0.66, T.in - 2.4, H * 0.07, H * 0.22, hwTrunkR(0.66) * 0.45, true); // the leaders
+      const pulleyLimb = limb(0.56, T.in + 0.55, H * 0.3, H * 0.05, hwTrunkR(0.56) * 0.36, false); // a great limb reaching out over the Hollow: the pulley hangs from it
+      for (let j = 0; j < HW_SEATS.length; j++) { const S = HW_SEATS[j]; if (!S[2]) continue; const th = T.in + S[1], f = S[0];
+        const p0 = tr(f - 0.075, th, hwTrunkR(f - 0.075) * 0.4), d = dirAt(th), under = v3().copy(ax(f)).addScaledVector(d, S[2]).add(v3().set(0, -60, 0)), p3 = v3().copy(under).addScaledVector(d, 700).add(v3().set(0, H * 0.06, 0));
+        const pts = bez(p0, v3().copy(p0).addScaledVector(d, S[2] * 0.4).add(v3().set(0, H * 0.035, 0)), v3().copy(under).addScaledVector(d, -200).add(v3().set(0, -30, 0)), p3, 20);
+        const r0 = hwTrunkR(f) * 0.34; gaTube(A, pts, 12, (i) => r0 * (1 - 0.7 * i / 20), (i, a, p, d2) => moss(p, d2, j), [3, 600]); limbs.push({ pts, th, end: p3, r0, seat: j }); }
+      add(gaMesh(A, bark, true));
+      // canopy: broad, flat-topped leaf pads at the limb ends, each a cluster of flattened leafy blobs (instanced, one displaced blob geometry)
+      const cg = new THREE.IcosahedronGeometry(1, 3), cp = cg.attributes.position, cc = [];
+      for (let i = 0; i < cp.count; i++) { const x = cp.getX(i), y = cp.getY(i), z = cp.getZ(i), n = 1 + 0.2 * (vnoise(x * 2.5 + 7, z * 2.5 + y * 1.7) - 0.5) + 0.07 * Math.sin(x * 11) * Math.sin(z * 10) * Math.sin(y * 9); cp.setXYZ(i, x * n, (y > 0 ? y * 0.8 : y * 0.35) * n, z * n); const sh = 0.4 + 0.65 * Math.pow(clamp((y + 0.6) / 1.5, 0, 1), 1.3); cc.push(sh * (0.95 + 0.08 * y), sh, sh * (0.88 - 0.1 * y)); }
+      cg.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); cg.computeVertexNormals();
+      const clumps = []; const clump = (c, r) => clumps.push([c.x, c.y, c.z, r]);
+      const pad = (c, R, sd) => { clump(v3().copy(c).add(v3().set(0, R * 0.12, 0)), R * 0.6); const n = 5 + ((hash1(sd) * 3) | 0); for (let k = 0; k < n; k++) { const aa = (k / n) * TAU + hash1(sd + k) * 0.6, rr = R * (0.5 + hash1(sd * 2 + k) * 0.2); clump(v3().copy(c).add(v3().set(Math.cos(aa) * rr, (hash1(sd * 3 + k) - 0.6) * R * 0.18, Math.sin(aa) * rr)), R * (0.36 + hash1(sd * 5 + k) * 0.16)); } };
+      limbs.forEach((L, li) => { if (L.seat != null) { pad(v3().copy(L.end).add(v3().set(0, 120, 0)), 520, li * 7.1); return; } if (L === pulleyLimb) { pad(v3().copy(L.end).add(v3().set(0, 160, 0)), 700, li * 3.3); return; }
+        pad(v3().copy(L.end).add(v3().set(0, 180, 0)), L.sub ? 950 : 1150, li * 5.7); if (!L.sub) pad(v3().copy(L.pts[12]).add(v3().set(0, 420, 0)), 760, li * 9.1); });
+      { const top = ax(0.88); pad(v3().copy(top).add(v3().set(0, 500, 0)), 1400, 99); }
+      const lm = new THREE.MeshLambertMaterial({ map: leafTex(), vertexColors: true }), im = new THREE.InstancedMesh(cg, lm, clumps.length), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+      im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(clumps.length * 3), 3);
+      clumps.forEach((c, i) => { e.set(0, hash1(i * 1.7) * TAU, (hash1(i * 2.9) - 0.5) * 0.25); q.setFromEuler(e); mt.compose(v3().set(c[0], c[1], c[2]), q, v3().set(c[3], c[3] * (0.8 + hash1(i) * 0.3), c[3] * (0.85 + hash1(i + 1) * 0.3))); im.setMatrixAt(i, mt);
+        const g2 = 0.9 + hash1(i * 4.1) * 0.22, w2 = hash1(i * 6.3); im.instanceColor.setXYZ(i, g2 * (0.92 + w2 * 0.16), g2, g2 * (0.72 + w2 * 0.1)); });
+      im.castShadow = true; im.receiveShadow = true; add(im);
+      // hanging moss and vines from the limbs
+      const seatPts = HW_SEATS.map((S, j) => heartwoodSlot(j)), clearOf = (x, y, z) => seatPts.every((q) => Math.hypot(q.x - x, q.y - z) > 650 || y < q.elev - 900 || y > q.elev + 1400);
+      const hang = []; for (const L of limbs) for (let k = 2; k < L.pts.length - 1; k += L.sub ? 3 : 2) { const p = L.pts[k], n2 = 1 + ((hash1(k * 3 + L.th) * 3) | 0); for (let j = 0; j < n2; j++) { const hx = p.x + (hash1(k + j * 7 + L.th) - 0.5) * L.r0 * 1.6, hz = p.z + (hash1(k * 5 + j + L.th) - 0.5) * L.r0 * 1.6; if (clearOf(hx, p.y, hz)) hang.push([hx, p.y - L.r0 * 0.6, hz, 150 + hash1(k * 11 + j + L.th * 3) * 500]); } }
+      for (const c of clumps) if (hash1(c[0] * 0.01 + c[2] * 0.003) < 0.6) for (let j = 0; j < 3; j++) hang.push([c[0] + (hash1(j + c[1]) - 0.5) * c[3] * 1.4, c[1] - c[3] * 0.32, c[2] + (hash1(j * 3 + c[1]) - 0.5) * c[3] * 1.4, 200 + hash1(j * 7 + c[0]) * 450]);
+      { const hg = new THREE.CylinderGeometry(0.25, 1, 1, 5, 1); hg.translate(0, -0.5, 0); const hm = new THREE.InstancedMesh(hg, new THREE.MeshLambertMaterial({ color: 0xffffff }), hang.length); hm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(hang.length * 3), 3);
+        hang.forEach((h2, i) => { mt.compose(v3().set(h2[0], h2[1], h2[2]), q.identity(), v3().set(7 + hash1(i) * 7, h2[3], 7 + hash1(i) * 7)); hm.setMatrixAt(i, mt); const v = hash1(i * 2.2); hm.instanceColor.setXYZ(i, 0.26 + v * 0.1, 0.33 + v * 0.1, 0.16 + v * 0.05); }); add(hm); }
+      // rocks gripped by the roots
+      { const rk = []; for (const pts of rootPts) for (let i = 4; i < pts.length; i += 4) if (hash1(i + pts[i].x) < 0.7) rk.push([pts[i].x + (hash1(i * 3 + pts[i].z) - 0.5) * 300, pts[i].z + (hash1(i * 7 + pts[i].x) - 0.5) * 300, 70 + hash1(i + pts[i].z) * 170]);
+        const rg = new THREE.DodecahedronGeometry(1, 0), rm = new THREE.InstancedMesh(rg, new THREE.MeshLambertMaterial({ color: 0x8a8580, flatShading: true }), rk.length); rm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(rk.length * 3), 3);
+        rk.forEach((r, i) => { e.set(hash1(i) * 3, hash1(i + 1) * 3, 0); q.setFromEuler(e); mt.compose(v3().set(r[0], meshH(r[0], r[1]) + r[2] * 0.2, r[1]), q, v3().set(r[2], r[2] * 0.7, r[2] * 0.9)); rm.setMatrixAt(i, mt); const v = 0.75 + hash1(i * 3) * 0.3; rm.instanceColor.setXYZ(i, v, v * 0.97, v * 0.93); });
+        rm.castShadow = true; rm.receiveShadow = true; add(rm); }
+      // glowing blue mushrooms on the roots and the lower trunk, glowing hollows in the trunk
+      { const ms = []; for (const pts of rootPts) for (let i = 2; i < pts.length - 2; i++) if (hash1(i * 1.3 + pts[i].x) < 0.45) ms.push([pts[i].x + (hash1(i + pts[i].z) - 0.5) * 140, pts[i].y + 30, pts[i].z + (hash1(i * 2 + pts[i].x) - 0.5) * 140, 26 + hash1(i * 5 + pts[i].z) * 50]);
+        for (let k = 0; k < 70; k++) { const f = -0.04 + hash1(k * 3.7) * 0.16, a = hash1(k * 9.1) * TAU, p = tr(f, a, trunkRad(f, a) * 0.98); ms.push([p.x, p.y, p.z, 24 + hash1(k) * 46]); }
+        const capG = new THREE.SphereGeometry(1, 10, 4, 0, TAU, 0, Math.PI / 2); capG.scale(1, 0.55, 1); const stG = new THREE.CylinderGeometry(0.2, 0.28, 0.9, 6); stG.translate(0, -0.45, 0);
+        const mm = new THREE.MeshBasicMaterial({ color: 0x66d8ff, toneMapped: false }), cap = new THREE.InstancedMesh(capG, mm, ms.length), stem = new THREE.InstancedMesh(stG, new THREE.MeshLambertMaterial({ color: 0xd8e4e0 }), ms.length);
+        ms.forEach((m2, i) => { e.set((hash1(i) - 0.5) * 0.4, 0, (hash1(i + 3) - 0.5) * 0.4); q.setFromEuler(e); mt.compose(v3().set(m2[0], m2[1], m2[2]), q, v3().set(m2[3], m2[3], m2[3])); cap.setMatrixAt(i, mt); stem.setMatrixAt(i, mt); });
+        add(cap); add(stem); HWX.mush = mm;
+        const gp = []; for (let i = 0; i < ms.length; i += 3) gp.push(ms[i][0], ms[i][1] + 20, ms[i][2]);
+        const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); HWX.mushGlow = add(new THREE.Points(gg, new THREE.PointsMaterial({ size: 260, map: glowTex('rgba(120,220,255,.9)', 'rgba(60,160,255,.25)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.3 }))); HWX.mushGlow.frustumCulled = false;
+        const hollowM = new THREE.MeshBasicMaterial({ color: 0x1a120c }), glowM = new THREE.MeshBasicMaterial({ color: 0x5fd0ff, toneMapped: false }); HWX.hollowGlow = glowM;
+        for (const [f, da] of [[0.08, 0.5], [0.17, -1.6], [0.26, 2.6], [0.38, 0.9], [0.47, -0.6], [0.22, -0.4]]) { const a = T.in + da, p = tr(f, a, hwTrunkR(f) * 0.97), n2 = dirAt(a);
+          const o = new THREE.Mesh(new THREE.CircleGeometry(1, 18), hollowM); o.position.copy(p).addScaledVector(n2, 30); o.lookAt(v3().copy(o.position).add(n2)); o.scale.set(110, 170, 1); add(o);
+          const gl = new THREE.Mesh(new THREE.CircleGeometry(1, 18), glowM); gl.position.copy(p).addScaledVector(n2, 34); gl.lookAt(v3().copy(gl.position).add(n2)); gl.scale.set(70, 120, 1); add(gl); } }
+      // seat decks: wrapped round the trunk, or laid on a big limb (merged planks)
+      { const D = GA(), slab = (O, I, y, th2) => { // a deck slab between an outer and an inner polyline (x,z): top, underside and rim
+          const n = O.length, vt = (x, yy, z, nx, ny, nz, u, v, c) => { D.p.push(x, yy, z); D.n.push(nx, ny, nz); D.uv.push(u, v); D.c.push(c, c, c); return D.p.length / 3 - 1; };
+          for (const [yy, ny, c] of [[y, 1, 1], [y - th2, -1, 0.6]]) { const o = O.map(([x, z]) => vt(x, yy, z, 0, ny, 0, x / 120, z / 120, c)), ii = I.map(([x, z]) => vt(x, yy, z, 0, ny, 0, x / 120, z / 120, c));
+            for (let k = 0; k < n - 1; k++) { if (ny > 0) D.i.push(o[k], ii[k], o[k + 1], o[k + 1], ii[k], ii[k + 1]); else D.i.push(o[k], o[k + 1], ii[k], o[k + 1], ii[k + 1], ii[k]); } }
+          const loop = O.concat(I.slice().reverse()); for (let k = 0; k < loop.length; k++) { const [x0, z0] = loop[k], [x1, z1] = loop[(k + 1) % loop.length], l = Math.hypot(x1 - x0, z1 - z0) || 1, nx = (z1 - z0) / l, nz = -(x1 - x0) / l;
+            const a = vt(x0, y, z0, nx, 0, nz, 0, 0, 0.75), b = vt(x1, y, z1, nx, 0, nz, l / 120, 0, 0.75), c2 = vt(x1, y - th2, z1, nx, 0, nz, l / 120, th2 / 120, 0.75), d2 = vt(x0, y - th2, z0, nx, 0, nz, 0, th2 / 120, 0.75); D.i.push(a, b, c2, a, c2, d2); } };
+        HWX.seats = [];
+        for (let j = 0; j < HW_SEATS.length; j++) { const S = HW_SEATS[j], f = S[0], th = T.in + S[1], c = ax(f), y = B + f * H + 20, cs = [];
+          if (!S[2]) { const ri = hwTrunkR(f) * 0.86, ro = hwTrunkR(f) + 640, span = 0.62, O = [], I = []; for (let k = 0; k <= 12; k++) { const a = th - span + (k / 12) * span * 2; O.push([c.x + Math.cos(a) * ro, c.z + Math.sin(a) * ro]); I.push([c.x + Math.cos(a) * ri, c.z + Math.sin(a) * ri]); }
+            slab(O, I, y, 34); HWX.seats.push({ j, th, f, y, c, ri, ro, span }); }
+          else { const d = dirAt(th), sd = new THREE.Vector3(-d.z, 0, d.x), m = v3().copy(c).addScaledVector(d, S[2]), hw2 = 330, P2 = (u, v) => [m.x + d.x * u * hw2 + sd.x * v * hw2, m.z + d.z * u * hw2 + sd.z * v * hw2]; slab([P2(-1, 1), P2(1, 1)], [P2(-1, -1), P2(1, -1)], y, 34);
+            // a walkway along the limb back to the trunk
+            const w0 = v3().copy(c).addScaledVector(d, hwTrunkR(f) * 0.9), w1 = v3().copy(m).addScaledVector(d, -hw2), W2 = (p, s3) => [p.x + sd.x * s3 * 70, p.z + sd.z * s3 * 70]; slab([W2(w0, 1), W2(w1, 1)], [W2(w0, -1), W2(w1, -1)], y - 6, 24);
+            HWX.seats.push({ j, th, f, y, c, limb: S[2], m, d, sd, hw2 }); } }
+        const pm2 = new THREE.MeshLambertMaterial({ map: plankTex(), vertexColors: true, side: THREE.DoubleSide }), dm = gaMesh(D, pm2, true); add(dm); }
+      // the pulley's limb end
+      HWX.pulleyAt = v3().copy(pulleyLimb.pts[15]); HWX.pulleyBase = v3().copy(pulleyLimb.pts[3]);
+      // seat number badges (always face the camera)
+      for (const s2 of HWX.seats) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#5a3b22'; g.beginPath(); g.arc(64, 64, 58, 0, TAU); g.fill(); g.lineWidth = 8; g.strokeStyle = '#e8c27a'; g.stroke();
+        g.fillStyle = '#ffe7a8'; g.font = 'bold 60px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('#' + (s2.j + 1), 64, 68); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false })); const p = s2.limb ? v3().copy(s2.m).addScaledVector(s2.d, s2.hw2 * 0.8) : v3().copy(s2.c).addScaledVector(dirAt(s2.th + s2.span * 0.75), s2.ro - 40); sp.position.set(p.x, s2.y + 150, p.z); sp.scale.set(150, 150, 1); add(sp); HWX.badges.push(sp); } }
+    // railings, posts, struts, ladders, walkways and hanging lanterns (instanced props, rebuilt with the scene)
+    const ST = WOOD[2], RL = WOOD[0], lamp = (p) => { stick(PR.box, p, v3().copy(p).add(v3().set(0, -40, 0)), 3, ROPE, null); block(PR.lamp, p.x, p.y - 70, p.z, 22, 30, 22, 0, [1, 0.75, 0.4], null); PR.glow.push([p.x, p.y - 55, p.z, null]); };
+    const rail = (pts, ht) => { let prev = null; pts.forEach((p, i) => { const top = v3().copy(p).add(v3().set(0, ht, 0)); stick(PR.box, p, top, 12, ST, null); if (prev) { stick(PR.box, prev, top, 6, RL, null); stick(PR.box, v3().copy(prev).add(v3().set(0, -ht * 0.5, 0)), v3().copy(top).add(v3().set(0, -ht * 0.5, 0)), 4, RL, null); } prev = top; }); };
+    const anchor = [];
+    for (const s2 of HWX.seats) { const { th, y } = s2;
+      if (!s2.limb) { const pts = []; for (let k = 0; k <= 12; k++) { const a = th - s2.span + (k / 12) * s2.span * 2; pts.push(v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 14).setY(y)); } rail(pts, 70);
+        for (const k of [0, 6, 12]) { const a = th - s2.span + (k / 12) * s2.span * 2, o = v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 30).setY(y - 34), tk = v3().copy(ax(s2.f - 0.045)).addScaledVector(dirAt(a), hwTrunkR(s2.f - 0.045) * 0.9); stick(PR.box, o, tk, 26, WOOD[0], null); }
+        for (const k of [3, 9]) { const a = th - s2.span + (k / 12) * s2.span * 2; lamp(v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro + 10).setY(y + 70)); }
+        anchor.push({ a: th, y, r: hwTrunkR(s2.f) + 200, span: s2.span }); }
+      else { const { m, d, sd, hw2 } = s2, cn = (u, v) => v3().copy(m).addScaledVector(d, u * hw2).addScaledVector(sd, v * hw2).setY(y); rail([cn(-1, -1), cn(1, -1), cn(1, 1), cn(-1, 1)], 70);
+        for (const v of [-1, 1]) lamp(v3().copy(cn(1, v)).add(v3().set(0, 70, 0))); for (const v of [-1, 1]) for (let k = 1; k < 6; k++) { const p = v3().copy(s2.c).addScaledVector(d, hwTrunkR(s2.f) + (s2.limb - hw2 - hwTrunkR(s2.f)) * k / 6).addScaledVector(sd, v * 70).setY(y - 6); stick(PR.box, p, v3().copy(p).add(v3().set(0, 55, 0)), 7, ST, null); }
+        anchor.push({ a: th, y, r: hwTrunkR(s2.f) + 200, span: 0.12 }); } }
+    // seat k+1 (lower) climbs to seat k: a ladder up the trunk at the lower deck's edge, a landing, then a plank walk round the trunk
+    for (let j = anchor.length - 1; j > 0; j--) { const lo = anchor[j], hi = anchor[j - 1]; let dA = Math.atan2(Math.sin(hi.a - lo.a), Math.cos(hi.a - lo.a)); const sg = dA >= 0 ? 1 : -1, a0 = lo.a + sg * Math.min(lo.span * 0.8, Math.abs(dA)), fH = (hi.y - B) / H;
+      const rTop = hwTrunkR(fH) + 200, rB = Math.min(lo.r, hwTrunkR((lo.y - B) / H) + 200), p0 = v3().copy(ax((lo.y - B) / H)).addScaledVector(dirAt(a0), rB).setY(lo.y), p1 = v3().copy(ax(fH)).addScaledVector(dirAt(a0), rTop).setY(hi.y), sd = new THREE.Vector3(-Math.sin(a0), 0, Math.cos(a0));
+      for (const o of [-26, 26]) stick(PR.box, v3().copy(p0).addScaledVector(sd, o), v3().copy(p1).addScaledVector(sd, o).add(v3().set(0, 60, 0)), 9, WOOD[1], null);
+      const L = p0.distanceTo(p1); for (let k = 1; k < L / 45; k++) { const q = v3().lerpVectors(p0, p1, (k * 45) / L); stick(PR.box, v3().copy(q).addScaledVector(sd, -26), v3().copy(q).addScaledVector(sd, 26), 5, WOOD[1], null); }
+      block(PR.box, p1.x, p1.y - 24, p1.z, 160, 24, 160, -a0, WOOD[2], null); lamp(v3().copy(p1).add(v3().set(0, 160, 0)));
+      // plank walk round the trunk from the landing to the upper deck's edge
+      const a1 = hi.a - sg * hi.span * 0.85, rem = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0)); if (Math.abs(rem) < 0.05 || Math.sign(rem) !== sg) continue;
+      const n = Math.max(2, Math.ceil(Math.abs(rem) * rTop / 70)); let prev = p1, prevR = null;
+      for (let k = 1; k <= n; k++) { const a = a0 + rem * k / n, q = v3().copy(ax(fH)).addScaledVector(dirAt(a), rTop).setY(hi.y - 4); stick(PR.box, prev, q, 30, WOOD[2], null); const qr = v3().copy(ax(fH)).addScaledVector(dirAt(a), rTop + 40).setY(hi.y + 60); stick(PR.box, v3().copy(qr).setY(hi.y), qr, 6, ST, null); if (prevR) stick(PR.box, prevR, qr, 4, ROPE, null); prevR = qr; prev = q; } }
+    // the pulley: a wheel off the great limb, a rope back to the trunk, and a crate dangling deep into the Hollow
+    if (!hero) { const at = HWX.pulleyAt, wheel = new THREE.Mesh(new THREE.TorusGeometry(60, 14, 6, 18), new THREE.MeshLambertMaterial({ color: 0x4a3828 })); wheel.position.copy(at).add(v3().set(0, -160, 0)); wheel.rotation.y = Math.PI / 2 - (T.in + 0.55); add(wheel); stick(PR.box, at, wheel.position, 10, IRON, null);
+      const ropeM = new THREE.MeshLambertMaterial({ color: 0x9c8460 }), rope = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 5), ropeM), rope2 = new THREE.Mesh(rope.geometry, ropeM);
+      const load = new THREE.Group(); { const crate = new THREE.Mesh(new THREE.BoxGeometry(200, 170, 200), new THREE.MeshLambertMaterial({ color: 0x8a6440 })); crate.position.y = -85; load.add(crate); for (const y of [-22, -148]) { const band = new THREE.Mesh(new THREE.BoxGeometry(206, 14, 206), new THREE.MeshLambertMaterial({ color: 0x333030 })); band.position.y = y; load.add(band); }
+        for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) { const r = new THREE.Mesh(rope.geometry, ropeM); poseRope(r, v3().set(sx * 95, -4, sz * 95), v3().set(0, 110, 0), 4); load.add(r); } }
+      const lanternL = new THREE.Mesh(new THREE.BoxGeometry(30, 40, 30), new THREE.MeshBasicMaterial({ color: 0xffc070 })); lanternL.position.y = 130; load.add(lanternL);
+      for (const o of [rope, rope2, load]) { o.castShadow = true; add(o); }
+      hero = { pulley: { top: wheel.position.clone().add(v3().set(0, -60, 0)), winch: v3().copy(HWX.pulleyBase), rope, rope2, load, lanternL, dir: dirAt(T.in + 0.55 + Math.PI / 2), wheel } }; }
+    PR.glow.push([HWX.pulleyAt.x, HWX.pulleyAt.y - 200, HWX.pulleyAt.z, null]);
+    const res = W.homes.filter((h) => h.heartwood); if (res.length) { T.cx = T.x; T.cy = T.y; T.ce = res.reduce((s2, h) => s2 + h.elev, 0) / res.length; } }
   function poseRope(r, a, b, th) { r.position.lerpVectors(a, b, 0.5); r.scale.set(th, a.distanceTo(b), th); r.quaternion.setFromUnitVectors(v3().set(0, 1, 0), v3().subVectors(b, a).normalize()); }
-  function animPulley(t, night) { const P = hero && hero.pulley; if (!P) return; const len = 700 + 520 * (0.5 - 0.5 * Math.cos(t * 0.11)), sw = Math.sin(t * 0.7) * 26 + Math.sin(t * 1.9) * 6;
-    const lp = P.top.clone().add(v3().set(0, -len, 0)).addScaledVector(P.dir, sw); P.load.position.copy(lp).add(v3().set(0, -40, 0)); P.load.rotation.set(sw * 0.004, t * 0.05, -sw * 0.003);
-    poseRope(P.rope, P.top, lp, 2.4); poseRope(P.rope2, P.winch, P.top.clone().add(v3().set(0, 20, 0)), 2.4); P.wheel.rotation.x = len * 0.05; P.lanternL.material.color.setRGB(0.5 + night * 0.6, 0.36 + night * 0.4, 0.2 + night * 0.15); }
+  function animPulley(t, night) { const P = hero && hero.pulley; if (!P) return; const len = 2600 + 1800 * (0.5 - 0.5 * Math.cos(t * 0.06)), sw = Math.sin(t * 0.5) * 60 + Math.sin(t * 1.3) * 14;
+    const lp = P.top.clone().add(v3().set(0, -len, 0)).addScaledVector(P.dir, sw); P.load.position.copy(lp).add(v3().set(0, -110, 0)); P.load.rotation.set(sw * 0.002, t * 0.04, -sw * 0.0015);
+    poseRope(P.rope, P.top, lp, 7); poseRope(P.rope2, P.winch, P.top.clone().add(v3().set(0, 60, 0)), 7); P.wheel.rotation.x = len * 0.02; P.lanternL.material.color.setRGB(0.5 + night * 0.6, 0.36 + night * 0.4, 0.2 + night * 0.15);
+    if (HWX.mush) { const k = 0.45 + night * 0.75; HWX.mush.color.setRGB(0.32 * k, 0.78 * k, 1.0 * k); HWX.hollowGlow.color.setRGB(0.3 * k, 0.75 * k, 0.95 * k); HWX.mushGlow.material.opacity = 0.12 + night * 0.5; } }
   // props meshes: rebuilt (instances near the camera only) on each LOD pass
   function propMesh(geo, mat, cap) { const im = new THREE.InstancedMesh(geo, mat, cap); im.count = 0; im.frustumCulled = false; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); scene.add(im); return im; }
   function buildModelScene() { if (!MD || !scene) return;
     for (const s2 of IM.all) for (const m of s2.meshes) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = [];
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
     const byKey = {}; const push = (k, o) => (byKey[k] || (byKey[k] = [])).push(o);
-    W.homes.forEach((h, i) => { const tier = tierOf(h), key = h.heartwood ? (i % 2 ? 'cottage' : 'shack') : TIER_MODEL[tier], w = homeW(h, tier) * (h.heartwood ? 0.8 : 0.95) * (1 + 0.06 * (tier % 2)), rot = (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
+    W.homes.forEach((h, i) => { const tier = tierOf(h), key = h.heartwood ? (h.slot % 3 === 1 ? 'shack' : 'cottage') : TIER_MODEL[tier], w = h.heartwood ? HW_HOUSE : homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = h.heartwood ? Math.PI / 2 - h.hwTh : (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
       h._rot = rot; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i); });
     for (const k of ['shack', 'cottage', 'townhouse', 'workshop']) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
     let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - (k === 'willow' ? s * 0.16 : 3); nt++;
@@ -433,7 +551,7 @@ void main() {
   function dist(cam) { return cssH / (cam.z * 2 * Math.tan((FOV * Math.PI) / 360)); }
   function place(cam, snap) {
     let th = Math.max(meshH(cam.x, cam.y), P_H * (1 - clamp((Math.hypot(cam.x, cam.y) - CITY.hollowR) / 600, 0, 1)) - 200);
-    const hw = W.heartwood; if (hw && hw.ce) { const d = Math.hypot(cam.x - hw.cx, cam.y - hw.cy); th = Math.max(th, th + (hw.ce - th) * (1 - smooth01(500, 1100, d))); } // look at the Heartwood's homes, not the pit floor below
+    if (W.heartwood) { let bw = 0, be = 0; for (const h of W.homes) if (h.heartwood) { const w = 1 - smooth01(260, 700, Math.hypot(cam.x - h.x, cam.y - h.y)); if (w > bw) { bw = w; be = h.elev; } } if (bw > 0) th = th + (be - th) * bw; } // look at the Heartwood seat, not the pit floor below
     if (snap === 'keep') snap = Math.hypot(T.x - cam.x, T.y - cam.y) > 300 ? true : null;
     T.x = cam.x; T.y = cam.y; T.h = snap === null ? T.h : snap ? th : T.h + (th - T.h) * 0.12;
     const D = dist(cam), ph = (cam.tilt * Math.PI) / 180, th2 = cam.rot;
@@ -502,8 +620,8 @@ void main() {
   }
   function tapSprites(sx, sy, list) { // screen-space hit test against standing billboards: distance to the segment from base to top
     let best = null, bd = 1e9;
-    for (const o of list) { const hgt = o.hgt, up = o.up || 0; const a = project(o.x, o.y, up), b = project(o.x, o.y, up + hgt); if (a[0] < -999) continue;
-      const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1; let u = ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2; u = clamp(u, 0, 1); const d = Math.hypot(a[0] + vx * u - sx, a[1] + vy * u - sy);
+    for (const o of list) { const hgt = o.hgt, up = o.up || 0; const a = project(o.x, o.y, up), b = project(o.x, o.y, up + hgt); if (a[0] < -999 || b[0] < -999) continue;
+      const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1; if (l2 > cssH * cssH * 2) continue; let u = ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2; u = clamp(u, 0, 1); const d = Math.hypot(a[0] + vx * u - sx, a[1] + vy * u - sy);
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }

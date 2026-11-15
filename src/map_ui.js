@@ -318,7 +318,7 @@ const CityMap = (() => {
     const z = cam.z, rects = hudRects.slice();
     const free = (r) => { for (const q of rects) if (r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1]) return false; rects.push(r); return true; };
     // player label always
-    { const h = W.player, [sx, sy] = S2(h.x, h.y, h.size, homeW(h) * (h.heartwood ? 0.7 : 1.05) + hUp(h)); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · Deepest Lv ${W.player.deepest} · Rank #${rimRank(W.player)}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
+    { const h = W.player, [sx, sy] = S2(h.x, h.y, h.size, (h.heartwood ? HW_HOUSE * 0.8 : homeW(h) * 1.05) + hUp(h)); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · Deepest Lv ${W.player.deepest} · Rank #${rimRank(W.player)}${h.heartwood ? ' · 🌳 Heartwood #' + (h.slot + 1) : ''}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
     // mole
     const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y, 40, 110); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
     // region names at far zoom
@@ -335,9 +335,9 @@ const CityMap = (() => {
       if (z > 0.75) rects.push(pill(c, sx, sy - 9 * dpr, `${n.npc.icon} ${n.npc.name}`, { bg: 'rgba(255,230,160,.95)', fs: 10, bold: true, a: clamp((z - 0.75) / 0.2, 0, 1) }));
       const b = npcBubble(n, t); if (b) { const r = pill(c, sx, sy - (z > 0.75 ? 26 : 10) * dpr, b, { bg: '#fffdf4', fs: 10.5, border: 'rgba(110,80,40,.4)', a: clamp((z - 0.45) / 0.2, 0, 1) }); rects.push(r); } }
     // home labels (level-of-detail, decluttered)
-    if (z > 0.6) { const homes = queryObjs(view.x0, view.y0, view.x1, view.y1, 20).filter((o) => o.type === 'home' && !o.isPlayer).sort((a, b) => (lblShown.has(b.id) - lblShown.has(a.id)) || b.level - a.level); const nowShown = new Set();
-      for (const h of homes) { const need = Math.max(0.75, 1.3 - h.level / 45); const a = clamp((z - need) / 0.25, 0, 1); if (a <= 0.02) continue;
-        const up3 = homeW(h) * (h.heartwood ? 0.6 : 0.95) + hUp(h), [sx, sy] = S2(h.x, h.y, h.size * 0.55, up3); const fs = 10.5; c.font = `600 ${fs * dpr}px system-ui`; const ltxt = `${h.heartwood ? '🌳 ' : ''}${h.name} · Deepest Lv ${h.deepest}`, w = c.measureText(ltxt).width + 22 * dpr, hh = (fs + 6) * dpr; const r = [sx - w / 2, sy - hh, w, hh];
+    if (z > 0.1) { const homes = (z > 0.6 ? queryObjs(view.x0, view.y0, view.x1, view.y1, 20).filter((o) => o.type === 'home' && !o.isPlayer && !o.heartwood) : []).concat(is3d() ? W.homes.filter((o) => o.heartwood && !o.isPlayer) : []).sort((a, b) => (lblShown.has(b.id) - lblShown.has(a.id)) || b.level - a.level); const nowShown = new Set();
+      for (const h of homes) { const need = Math.max(0.75, 1.3 - h.level / 45); const a = h.heartwood ? clamp((z - 0.08) / 0.08, 0, 1) : clamp((z - need) / 0.25, 0, 1); if (a <= 0.02) continue;
+        const up3 = (h.heartwood ? HW_HOUSE * 0.7 : homeW(h) * 0.95) + hUp(h), [sx, sy] = S2(h.x, h.y, h.size * 0.55, up3); const fs = 10.5; c.font = `600 ${fs * dpr}px system-ui`; const ltxt = `${h.heartwood ? '🌳#' + (h.slot + 1) + ' ' : ''}${h.name} · Deepest Lv ${h.deepest}`, w = c.measureText(ltxt).width + 22 * dpr, hh = (fs + 6) * dpr; const r = [sx - w / 2, sy - hh, w, hh];
         if (!free(r)) continue; pill(c, sx, sy, ltxt, { a, fs }); st.labels.push({ name: h.owner, wx: h.x, wy: is3d() ? h.y : h.y - h.size * 0.55, up: is3d() ? up3 : 0, sx: sx / dpr, sy: sy / dpr }); nowShown.add(h.id); } lblShown = nowShown; }
   }
   function npcBubble(n, t) {
@@ -423,7 +423,7 @@ const CityMap = (() => {
   function handleTap3d(sx, sy) {
     const [x, y] = s2w(sx, sy), z = cam.z, R = Math.max(160, 260 / z);
     const mole = currentMole(); if (mole && M3.tapSprites(sx, sy, [{ x: mole.x, y: mole.y, hgt: 90, wf: 0.6, o: mole }])) return moleCard(mole);
-    const P = W.player; const cands = [{ x: P.x, y: P.y, up: hUp(P), hgt: homeW(P) * 0.9, wf: 0.4, o: P }]; for (const o of W.homes) if (o.heartwood && !o.isPlayer) cands.push({ x: o.x, y: o.y, up: hUp(o), hgt: homeW(o) * 0.6, wf: 0.5, o }); if (W.exchange) cands.push({ x: W.exchange.x, y: W.exchange.y, hgt: 190, wf: 0.5, o: W.exchange }); for (const o of queryObjs(x - R, y - R, x + R, y + R, 80)) { if (!['home', 'lift', 'statue', 'memorial', 'gate', 'rift', 'outpost'].includes(o.type) || o.isPlayer || o.heartwood) continue; cands.push({ x: o.x, y: o.y, hgt: o.type === 'home' ? homeW(o) * 0.85 : o.type === 'outpost' ? 140 : 50, wf: 0.4, o }); }
+    const P = W.player; const cands = [{ x: P.x, y: P.y, up: hUp(P), hgt: P.heartwood ? HW_HOUSE * 0.6 : homeW(P) * 0.9, wf: P.heartwood ? 0.5 : 0.4, o: P }]; for (const o of W.homes) if (o.heartwood && !o.isPlayer) cands.push({ x: o.x, y: o.y, up: hUp(o), hgt: HW_HOUSE * 0.6, wf: 0.5, o }); if (W.exchange) cands.push({ x: W.exchange.x, y: W.exchange.y, hgt: 190, wf: 0.5, o: W.exchange }); for (const o of queryObjs(x - R, y - R, x + R, y + R, 80)) { if (!['home', 'lift', 'statue', 'memorial', 'gate', 'rift', 'outpost'].includes(o.type) || o.isPlayer || o.heartwood) continue; cands.push({ x: o.x, y: o.y, hgt: o.type === 'home' ? homeW(o) * 0.85 : o.type === 'outpost' ? 140 : 50, wf: 0.4, o }); }
     // nearest-to-camera first so front buildings win
     const cp = M3.project(x, y, 0); const best = M3.tapSprites(sx, sy, cands); if (best === P) return playerCard(); if (best && best.type === 'exchange') return exchangeCard(); if (best) return openFor(best);
     for (const m of [W.lakeFalls, W.pass]) if (m && M3.tapSprites(sx, sy, [{ x: m.x, y: m.y, hgt: m.r * 2.2, wf: 0.5, o: m }])) return loreCard(m);
@@ -458,12 +458,12 @@ const CityMap = (() => {
   function homeCard(h) {
     openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · ${typeof tierName === 'function' ? tierName(h) : ''}</div>
       ${rimLines(h)}
-      <div class="dim" style="margin-top:6px">${h.heartwood ? 'Built into the Heartwood, the giant willow leaning over the Hollow: home of the top 1% of delvers.' : 'The Rim is a safe place: homes nearer the Hollow belong to those who have delved deepest.'}</div>
+      <div class="dim" style="margin-top:6px">${h.heartwood ? `Heartwood seat #${h.slot + 1}: built into the Heartwood, the colossal tree rising out of the Hollow's wall. Its ten numbered seats belong to the Rim's top 10 delvers; the higher the seat, the higher the rank.` : 'The Rim is a safe place: homes nearer the Hollow belong to those who have delved deepest.'}</div>
       ${btnRow(`<button class="btn" data-act="mapvisit" data-id="${h.id}">👋 Visit</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
   }
   function boardModal() { const B = rimBoard(), me = B.indexOf(W.player);
-    const row = (h, i, pin) => `<tr class="${h.isPlayer ? 'me' : ''}"${h.isPlayer ? ` style="background:#ffe7a3;font-weight:700${pin ? ';position:sticky;top:0;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.15)' : ''}"` : ''}><td>#${i + 1}</td><td>${esc(h.isPlayer ? 'You' : h.owner)}${pin ? ' 📌' : ''}</td><td>Lv ${h.deepest}</td><td>${h.heartwood ? '🌳 Heartwood' : rimRing(h)}</td></tr>`;
-    openModal(`<h2>🏆 Rim Leaderboard</h2><div class="small">Ranked by deepest Hollow level reached. The top 1% live in 🌳 the Heartwood; then ten rings, each a tenth of the Rim, from the summit lip (ring 1) out to the far mountains (ring 10). Perks for rim proximity: <span class="dim">(coming soon)</span></div>
+    const row = (h, i, pin) => `<tr class="${h.isPlayer ? 'me' : ''}"${h.isPlayer ? ` style="background:#ffe7a3;font-weight:700${pin ? ';position:sticky;top:0;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.15)' : ''}"` : ''}><td>#${i + 1}</td><td>${esc(h.isPlayer ? 'You' : h.owner)}${pin ? ' 📌' : ''}</td><td>Lv ${h.deepest}</td><td>${h.heartwood ? '🌳 Heartwood #' + (h.slot + 1) : rimRing(h)}</td></tr>`;
+    openModal(`<h2>🏆 Rim Leaderboard</h2><div class="small">Ranked by deepest Hollow level reached. The top 10 players live in 🌳 the Heartwood (seats #1–#10, #1 highest); then ten rings, each a tenth of the Rim, from the summit lip (ring 1) out to the far mountains (ring 10). Perks for rim proximity: <span class="dim">(coming soon)</span></div>
       <table class="board" style="width:100%;margin-top:6px;border-collapse:collapse;font-size:13px"><thead><tr><th align="left">Rank</th><th align="left">Player</th><th align="left">Deepest</th><th align="left">Ring</th></tr></thead>
       <tbody id="boardPin">${row(W.player, me, true)}</tbody><tbody><tr><td colspan="4"><hr style="margin:4px 0"></td></tr>${B.slice(0, 100).map((h, i) => row(h, i)).join('')}</tbody></table>
       ${me >= 100 ? `<div class="dim small">… you are #${me + 1} of ${B.length}</div>` : ''}${btnRow('<button class="btn" data-act="mapgohome">🏠 Fly to my home</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
