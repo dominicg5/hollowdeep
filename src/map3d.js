@@ -344,7 +344,7 @@ void main() {
         const R1 = lipRoot(a, 0.1 + hash1(k + 5) * 0.16, L, r0, k);
         for (const s of [-1, 1]) if (hash1(k * 5 + s) < 0.75) { const i = 8 + ((hash1(k * 2 + s) * 8) | 0); if (R1.pts[i]) lipRoot(a + s * (0.5 + hash1(k + s) * 0.4), 0, L * 0.45, R1.rs[i] * 0.55, k + s * 20, { p: v3().copy(R1.pts[i]) }); } }
       // the bridge root: one of the lip roots, grown long, arching over the pools above the falls
-      { const BR = GRAND.bridgeRoot(DC); if (BR) for (const b of BR.out) { gaTube(A, b.pts, b.k ? 8 : 14, (i, aa) => b.rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))) * (b.k ? 1 : 1 - 0.22 * Math.max(0, Math.cos(aa - Math.PI / 2))), (i, aa, p, d) => moss(p, d, 60 + b.k), [3, 520]); if (!b.k) { rootPts.push(b.pts); rootR.push(b.rs); } } }
+      { const BR = GRAND.bridgeRoot(DC); if (BR) for (const b of BR.out) { if (b.dodge) GRAND.dodge(b.pts, DC); gaTube(A, b.pts, b.k ? 8 : 14, (i, aa) => b.rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))) * (b.k ? 1 : 1 - 0.22 * Math.max(0, Math.cos(aa - Math.PI / 2))), (i, aa, p, d) => moss(p, d, 60 + b.k), [3, 520]); if (!b.k) { rootPts.push(b.pts); rootR.push(b.rs); } } }
       // WALL ROOTS: from the trunk's Hollow side straight down the inner wall, clawing into the rock, holding the tree up
       const wallRoot = (phiOff, fTop, drop, r0, k) => { const pts = [], rs = [], aT = T.in + phiOff * 1.6, nS = 6;
         for (let i = 0; i <= nS; i++) { const f = fTop * (1 - i / nS) + 0.0, aa = aT + (fTop - f) * 1.2 * (k % 2 ? 1 : -1); pts.push(tr(f, aa, trunkRad(f, aa) * 0.9)); rs.push(r0 * (0.4 + 0.6 * i / nS)); }
