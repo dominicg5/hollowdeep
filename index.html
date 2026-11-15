@@ -2980,7 +2980,7 @@ const HOUSE_KIT = (() => {
     B.with = (x, y, z, rotY, s, fn, mirror) => { B.stack.push(B.M.clone()); const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotY || 0), new THREE.Vector3((s || 1) * (mirror ? -1 : 1), s || 1, s || 1));
       B.M.multiply(m); B.NM.getNormalMatrix(B.M); B.flip = B.M.determinant() < 0; fn(); B.M.copy(B.stack.pop()); B.NM.getNormalMatrix(B.M); B.flip = B.M.determinant() < 0; };
     B.pt = (x, y, z) => { v.set(x, y, z).applyMatrix4(B.M); return [v.x, v.y, v.z]; };
-    const uvr = (k, a, b) => { const [x0, y0, x1, y1] = R[k], pad = 1.5; return [(x0 + pad + (x1 - x0 - 2 * pad) * a) / AU, 1 - (y0 + pad + (y1 - y0 - 2 * pad) * (1 - b)) / AU]; };
+    const uvr = (k, a, b) => { const [x0, y0, x1, y1] = R[k], pad = 1.5; return [(x0 + pad + (x1 - x0 - 2 * pad) * a) / AU, 1 - (y0 + pad + (y1 - y0 - 2 * pad) * (1 - b)) / AU]; }; B.uvr = uvr;
     // quad a,b,c,d counter-clockwise seen from outside (a,b bottom; d,c top); col: one colour or four (a,b,c,d)
     B.quad = (a, b, c, d, k, col, uw) => { const w = uw || [0, 0, 1, 1], e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], e2 = [d[0] - a[0], d[1] - a[1], d[2] - a[2]]; let nx = e1[1] * e2[2] - e1[2] * e2[1], ny = e1[2] * e2[0] - e1[0] * e2[2], nz = e1[0] * e2[1] - e1[1] * e2[0];
       if (Math.abs(nx) + Math.abs(ny) + Math.abs(nz) < 1e-12) { const e3 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]]; nx = e1[1] * e3[2] - e1[2] * e3[1]; ny = e1[2] * e3[0] - e1[0] * e3[2]; nz = e1[0] * e3[1] - e1[1] * e3[0]; }
@@ -3292,7 +3292,7 @@ const HOUSE_KIT = (() => {
     return B.geo(); }
   function trees() { if (!treeAtlas) treeAtlas = paintTreeAtlas(); const mat = new THREE.MeshLambertMaterial({ map: treeAtlas, vertexColors: true, side: THREE.DoubleSide });
     return { oak: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true } }; }
-  return { houses, trees, keyFor, KEYS, atlas: () => atlas };
+  return { houses, trees, keyFor, KEYS, atlas: () => atlas, kit: { Builder, material, gableRoof, windowOn, doorOn, lantern, chimney, crate, barrel, sack, woodpile, pickaxe, rope, pot, plinth, halfTimber, wallFace, sideX, SHUT } };
 })();
 
 /* =====================================================================
@@ -3454,7 +3454,8 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     return new THREE.ShaderMaterial({ uniforms: U, transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide, vertexShader: '#include <fog_pars_vertex>\n' + vs, fragmentShader: '#include <fog_pars_fragment>\n' + NOISE + '\n' + fs }); }
   const VS_END = 'vec4 mvPosition = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mvPosition;\n#include <fog_vertex>\n}';
   const FS_END = 'gl_FragColor = vec4(col, a);\n#include <tonemapping_fragment>\n#include <encodings_fragment>\n#include <fog_fragment>\n}';
-  function buildWater(C) { const { scene, meshH } = C, mats = GX.wmats = [];
+  const mats_push = (m) => (GX.wmats || (GX.wmats = [])).push(m);
+  function buildWater(C) { const { scene, meshH } = C, mats = GX.wmats || (GX.wmats = []);
     // the lake: painterly turquoise shallows to deep teal, sky sheen, drifting ripples, foam on the shore and under the falls
     { const d0 = LIP - 150, d1 = dFar(0) + 500, s0 = -3900, nd = 120, ns = 90, P = [], DP = [], UV = [], I = [];
       for (let i = 0; i <= nd; i++) for (let j = 0; j <= ns; j++) { const d = d0 + (d1 - d0) * i / nd, s2 = s0 + (-2 * s0) * j / ns, [x, y] = toW(d, s2), g = meshH(x, y); P.push(x, WL, y); DP.push(WL - g, d - lipD(s2)); UV.push(x, y); }
@@ -3510,10 +3511,98 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
       GX.bow = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
       const m = new THREE.Mesh(g, GX.bow), [x, z] = toW(lipD(0) + 900, 200); m.position.set(x, WL + 80, z); m.rotation.y = Math.atan2(G.ox, G.oy) + Math.PI / 2 * 0; m.lookAt(x + G.ox, WL + 80, z + G.oy); scene.add(m); GX.bowMesh = m; } }
   function animWater(t, night, C) { if (!GX.wmats) return; for (const m of GX.wmats) { m.uniforms.uT.value = t; m.uniforms.uN.value = night; } GX.mist.uniforms.uT.value = t; GX.mist.uniforms.uN.value = night; GX.mist.uniforms.uS.value = C && C.ps ? C.ps : 1; GX.bow.opacity = 0.13 * (1 - night); GX.bowMesh.visible = night < 0.6; }
+
+  /* ---------- the miner's island (concept/miner-island.jpg) ---------- */
+  const ID = 7420, IS = 0, IR = 330, ITOP = 22, S = 115;
+  function ell(B, cx, cy, cz, rx, ry, rz, col, n, k) { const nu = n || 12, nv = Math.max(6, (nu * 0.6) | 0), idx = [], [U, V] = B.uvr(k || 'white', 0.5, 0.5);
+    for (let i = 0; i <= nv; i++) { const th = i / nv * Math.PI, st = Math.sin(th), ct = Math.cos(th); for (let j = 0; j <= nu; j++) { const ph = j / nu * Math.PI * 2, x = st * Math.cos(ph), z = st * Math.sin(ph), y = ct, sh = 0.72 + 0.28 * (y * 0.5 + 0.5);
+        idx.push(B.vert(cx + x * rx, cy + y * ry, cz + z * rz, x / rx, y / ry, z / rz, U, V, [col[0] * sh, col[1] * sh, col[2] * sh])); } }
+    for (let i = 0; i < nv; i++) for (let j = 0; j < nu; j++) { const a = idx[i * (nu + 1) + j], b = idx[i * (nu + 1) + j + 1], c = idx[(i + 1) * (nu + 1) + j], d = idx[(i + 1) * (nu + 1) + j + 1]; B.tris(a, b, c); B.tris(b, d, c); } }
+  const tubeW = (B, p, q, r0, r1, col) => B.tube(p, q, r0, r1, 10, 'white', col, 'white');
+  function buildIsland(C) { const { scene, PR } = C, K = HOUSE_KIT.kit; if (!K) return; const [ix, iz] = toW(ID, IS), y0 = WL + ITOP;
+    const grp = new THREE.Group(); grp.position.set(ix, y0, iz); grp.rotation.y = Math.atan2(G.ox, G.oy); scene.add(grp); GX.island = grp; grp.updateMatrixWorld(true);
+    // the island: grassy mound with a sandy, stony shore
+    { const nA = 64, nR = 16, P = [], Cc = [], I = [], rq = (a) => IR * (1 + 0.12 * Math.sin(3 * a + 1) + 0.07 * Math.sin(5 * a + 2) + 0.04 * Math.sin(9 * a)), r = prng(31);
+      for (let i = 0; i <= nR; i++) for (let j = 0; j < nA; j++) { const a = j / nA * Math.PI * 2, t = i / nR * 1.12, rr = rq(a) * t, x = Math.cos(a) * rr, z = Math.sin(a) * rr;
+        let h = t < 0.78 ? 0 + 6 * Math.sin(x / 40) * Math.sin(z / 50) * (1 - t) : -ITOP * 1.9 * sm(0.78, 1.12, t) * 1.0 + 0; if (t >= 0.78) h += 4 * Math.sin(a * 7);
+        const n = 0.85 + 0.3 * r(), dirt = Math.max(0, 1 - Math.hypot(x - 20, z - 50) / 120) + Math.max(0, 1 - Math.hypot(x - 60, z + 10) / 70) * 0.7;
+        let c = [0.4 * n, 0.55 * n, 0.24 * n]; if (dirt > 0) c = c.map((v, k) => v + ([0.52, 0.42, 0.28][k] * n - v) * Math.min(1, dirt * 1.4)); const sand = sm(0.74, 0.86, t); c = c.map((v, k) => v + ([0.74, 0.66, 0.5][k] * n - v) * sand); if (t > 0.98) c = c.map((v) => v * 0.7);
+        P.push(x, h, z); Cc.push(...c); }
+      P.push(0, 6, 0); Cc.push(0.42, 0.56, 0.25); const ctr = P.length / 3 - 1;
+      for (let j = 0; j < nA; j++) I.push(ctr, (j + 1) % nA, j); for (let i = 0; i < nR; i++) for (let j = 0; j < nA; j++) { const a = i * nA + j, b = i * nA + (j + 1) % nA, c = a + nA, d = b + nA; I.push(a, b, c, b, d, c); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(Cc, 3)); g.setIndex(I); g.computeVertexNormals();
+      const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })); m.receiveShadow = true; grp.add(m);
+      // tufts, stones, a few flowers
+      const tg = new THREE.ConeGeometry(1, 1, 4).translate(0, 0.5, 0), tm = new THREE.MeshLambertMaterial({ color: 0x5f7d34 }), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), N = 200, tuft = new THREE.InstancedMesh(tg, tm, N); tuft.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(N * 3), 3);
+      for (let k = 0; k < N; k++) { const a = r() * Math.PI * 2, t = Math.sqrt(r()) * 0.8, x = Math.cos(a) * rq(a) * t, z = Math.sin(a) * rq(a) * t; if (Math.hypot(x - 20, z - 50) < 60) { k--; continue; } e.set((r() - 0.5) * 0.4, r() * 3, (r() - 0.5) * 0.4); q.setFromEuler(e); const s2 = 4 + r() * 5; mt.compose(new THREE.Vector3(x, 0, z), q, new THREE.Vector3(s2 * 0.9, s2 * 0.8, s2 * 0.9)); tuft.setMatrixAt(k, mt); const v = 0.75 + r() * 0.5; tuft.instanceColor.setXYZ(k, v * (r() < 0.2 ? 1.3 : 1), v, v * 0.9); } grp.add(tuft);
+      const sg = new THREE.DodecahedronGeometry(1, 0), sm2 = new THREE.MeshLambertMaterial({ color: 0x6c665e, flatShading: true }), M2 = 46, st = new THREE.InstancedMesh(sg, sm2, M2);
+      for (let k = 0; k < M2; k++) { const a = r() * Math.PI * 2, t = k < 30 ? 0.82 + r() * 0.2 : r() * 0.7, x = Math.cos(a) * rq(a) * t, z = Math.sin(a) * rq(a) * t, s2 = k < 30 ? 9 + r() * 16 : 4 + r() * 6; e.set(r() * 3, r() * 3, 0); q.setFromEuler(e); mt.compose(new THREE.Vector3(x, (t > 0.8 ? -ITOP * 1.9 * sm(0.78, 1.12, t) : 0) + s2 * 0.2, z), q, new THREE.Vector3(s2, s2 * 0.6, s2 * 0.85)); st.setMatrixAt(k, mt); } st.castShadow = true; grp.add(st);
+      const fg = new THREE.SphereGeometry(1, 5, 3), fl = new THREE.InstancedMesh(fg, new THREE.MeshBasicMaterial({ color: 0xffffff }), 40); fl.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(120), 3);
+      for (let k = 0; k < 40; k++) { const a = r() * Math.PI * 2, t = 0.2 + r() * 0.55, x = Math.cos(a) * rq(a) * t, z = Math.sin(a) * rq(a) * t; mt.compose(new THREE.Vector3(x, 6, z), q.identity(), new THREE.Vector3(2.2, 2.2, 2.2)); fl.setMatrixAt(k, mt); const c = [[1, 0.95, 0.6], [1, 1, 1], [0.8, 0.7, 1], [1, 0.7, 0.6]][k % 4]; fl.instanceColor.setXYZ(k, ...c); } grp.add(fl); }
+    // the shack, the miner, his pack and the campfire: built with the house kit (same painted atlas as the Ledges)
+    const B = K.Builder(true, 4242);
+    B.with(0.3, 0, -0.32, 0, 1, () => { const w = 0.92, d = 0.7, ye = 0.56, yr = 0.98; K.plinth(B, -w / 2, w / 2, -d / 2, d / 2, 0.12); B.walls(-w / 2 + 0.01, w / 2 - 0.01, -d / 2 + 0.01, d / 2 - 0.01, 0.12, ye, 'plaster', 0.9, 0.82);
+      K.wallFace(B, w, d, (L, z, f) => K.halfTimber(B, L, z, 0.12, ye, { n: 2 }));
+      for (const [x, z] of [[-w / 2, -d / 2], [w / 2, -d / 2], [w / 2, d / 2], [-w / 2, d / 2]]) B.box(x - 0.03, 0.1, z - 0.03, x + 0.03, ye, z + 0.03, 'timber', 'timber', [0.9, 0.9, 0.9]);
+      K.gableRoof(B, { x0: -w / 2, x1: w / 2, z0: -d / 2, z1: d / 2, ye, yr, ox: 0.08, oz: 0.11, frame: true });
+      { const yAt = (z) => yr - (yr - ye) * (z / (d / 2 + 0.11)) * 1.0 + 0.045; const z0 = 0.06, z1 = 0.26, x0 = -0.32, x1 = -0.08; B.quad([x0, yAt(z1), z1], [x1, yAt(z1), z1], [x1, yAt(z0), z0], [x0, yAt(z0), z0], 'cloth', [0.95, 0.82, 0.55]); }
+      K.chimney(B, -0.28, -0.14, ye, yr + 0.16, 0.13);
+      K.windowOn(B, d / 2, -0.16, 0.26, 0.15, 0.15, { round: true });
+      K.sideX(B, w / 2, () => { K.doorOn(B, 0.008, -0.02, 0.2, 0.36, { y0: 0.12, steps: 1 }); K.windowOn(B, 0.016, -0.02, 0.36, 0.06, 0.06, { round: true }); K.lantern(B, 0.16, 0.42, 0.01, 1); });
+      K.pickaxe(B, w / 2 - 0.05, d / 2 + 0.07, -0.3); K.rope(B, w / 2 + 0.08, 0.0, d / 2 + 0.1, 0.07); K.barrel(B, -w / 2 - 0.08, 0, d / 2 - 0.05, 0.06, 0.15); K.woodpile(B, -w / 2 - 0.02, 0, -0.05, 0.3, 2, Math.PI / 2); });
+    // the miner: stout, bearded, wide-brimmed hat, patched brown coat over a big belly, boots, sat on a stump
+    const COAT = [0.5, 0.31, 0.19], SHIRT = [0.86, 0.74, 0.56], TROU = [0.32, 0.34, 0.36], BOOT = [0.44, 0.29, 0.17], BEARD = [0.66, 0.63, 0.58], SKIN = [0.98, 0.76, 0.64], HAT = [0.52, 0.42, 0.27], GLOVE = [0.46, 0.3, 0.18];
+    B.with(-0.38, 0, 0.12, 0.35, 1.25, () => { B.cyl(0, 0, 0, 0.13, 0.115, 0.17, 12, 'bark', [0.85, 0.75, 0.62], 'plank');
+      ell(B, 0, 0.24, 0.0, 0.17, 0.09, 0.14, TROU); for (const s2 of [-1, 1]) { tubeW(B, [s2 * 0.08, 0.23, 0.04], [s2 * 0.1, 0.21, 0.2], 0.06, 0.05, TROU); tubeW(B, [s2 * 0.1, 0.21, 0.2], [s2 * 0.11, 0.06, 0.23], 0.05, 0.045, TROU); ell(B, s2 * 0.11, 0.045, 0.26, 0.055, 0.045, 0.085, BOOT); B.box(s2 * 0.11 - 0.05, 0.0, 0.18, s2 * 0.11 + 0.05, 0.015, 0.35, 'white', 'white', [0.2, 0.14, 0.1]);
+        for (let k = 0; k < 3; k++) B.box(s2 * 0.11 - 0.03, 0.08 + k * 0.025, 0.255, s2 * 0.11 + 0.03, 0.088 + k * 0.025, 0.262, 'white', 'white', [0.85, 0.75, 0.6]); }
+      ell(B, 0, 0.43, -0.01, 0.2, 0.19, 0.15, COAT); ell(B, 0, 0.37, 0.07, 0.15, 0.14, 0.13, SHIRT); ell(B, 0, 0.3, 0.07, 0.17, 0.035, 0.12, [0.36, 0.24, 0.15]);
+      for (const s2 of [-1, 1]) { ell(B, s2 * 0.18, 0.53, -0.01, 0.075, 0.065, 0.075, COAT); ell(B, s2 * 0.15, 0.36, 0.05, 0.05, 0.16, 0.08, COAT); }
+      ell(B, -0.2, 0.53, 0.02, 0.045, 0.04, 0.035, [0.45, 0.55, 0.47]); // the patch
+      tubeW(B, [-0.19, 0.5, 0.02], [-0.21, 0.36, 0.13], 0.055, 0.05, COAT); tubeW(B, [-0.21, 0.36, 0.13], [-0.04, 0.33, 0.22], 0.05, 0.045, COAT); ell(B, -0.03, 0.33, 0.22, 0.05, 0.045, 0.05, GLOVE);
+      tubeW(B, [0.19, 0.5, 0.02], [0.22, 0.38, 0.12], 0.055, 0.05, COAT); tubeW(B, [0.22, 0.38, 0.12], [0.12, 0.42, 0.22], 0.05, 0.045, COAT); ell(B, 0.12, 0.42, 0.22, 0.05, 0.045, 0.05, GLOVE);
+      for (const s2 of [-1, 1]) ell(B, s2 * 0.2, 0.355, 0.13, 0.045, 0.03, 0.04, [0.78, 0.68, 0.52]); // turned-back cuffs
+      ell(B, 0, 0.64, 0.02, 0.088, 0.092, 0.088, SKIN); ell(B, 0, 0.56, 0.065, 0.095, 0.105, 0.06, BEARD); ell(B, 0, 0.5, 0.085, 0.07, 0.07, 0.04, BEARD); ell(B, 0, 0.6, 0.095, 0.06, 0.018, 0.025, [0.6, 0.57, 0.53]);
+      for (const s2 of [-1, 1]) { ell(B, s2 * 0.075, 0.62, -0.005, 0.03, 0.055, 0.05, BEARD); ell(B, s2 * 0.032, 0.66, 0.08, 0.012, 0.015, 0.008, [0.12, 0.1, 0.08]); ell(B, s2 * 0.05, 0.635, 0.075, 0.018, 0.012, 0.01, [1.0, 0.62, 0.58]); ell(B, s2 * 0.035, 0.685, 0.08, 0.02, 0.006, 0.008, [0.5, 0.48, 0.45]); }
+      ell(B, 0, 0.628, 0.1, 0.026, 0.024, 0.024, [1.0, 0.6, 0.52]);
+      B.cyl(0, 0.705, 0.0, 0.16, 0.15, 0.014, 18, 'white', HAT, 'white'); B.cyl(0, 0.705, 0.0, 0.088, 0.078, 0.085, 16, 'white', HAT, 'white'); ell(B, 0, 0.79, 0, 0.078, 0.02, 0.078, HAT);
+      B.cyl(0, 0.718, 0.0, 0.09, 0.089, 0.025, 16, 'white', [0.3, 0.22, 0.14], null); for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; B.box(Math.cos(a) * 0.09 - 0.006, 0.722, Math.sin(a) * 0.09 - 0.006, Math.cos(a) * 0.09 + 0.006, 0.738, Math.sin(a) * 0.09 + 0.006, 'iron', 'iron', [1.3, 1.3, 1.3]); }
+      B.beam([-0.16, 0.27, 0.21], [0.24, 0.55, 0.235], 0.028, 'plank', [0.78, 0.6, 0.42]); B.beam([0.2, 0.52, 0.233], [0.26, 0.565, 0.236], 0.04, 'iron', [1.2, 1.2, 1.2]); });
+    // his pack with a coiled rope and a cooking pot beside it
+    B.with(-0.74, 0, 0.06, 0.2, 1.25, () => { ell(B, 0, 0.13, 0, 0.12, 0.14, 0.09, [0.48, 0.33, 0.2]); ell(B, 0, 0.21, 0.05, 0.1, 0.05, 0.05, [0.42, 0.28, 0.17]); ell(B, 0, 0.09, 0.08, 0.07, 0.05, 0.03, [0.44, 0.3, 0.18]);
+      for (const s2 of [-1, 1]) B.box(s2 * 0.05 - 0.01, 0.02, 0.085, s2 * 0.05 + 0.01, 0.24, 0.1, 'white', 'white', [0.3, 0.2, 0.12]); K.rope(B, 0, 0.25, 0, 0.07); ell(B, -0.02, 0.33, -0.01, 0.045, 0.04, 0.045, [0.36, 0.36, 0.38]); B.cyl(-0.02, 0.37, -0.01, 0.008, 0.008, 0.02, 6, 'iron', [1, 1, 1], 'iron');
+      B.cyl(0.02, 0, 0.18, 0.07, 0.075, 0.09, 12, 'iron', [0.55, 0.55, 0.58], 'iron'); B.cyl(0.02, 0.09, 0.18, 0.077, 0.06, 0.015, 12, 'iron', [0.45, 0.45, 0.48], 'iron'); B.cyl(0.02, 0.105, 0.18, 0.01, 0.01, 0.02, 6, 'iron', [1, 1, 1], 'iron'); });
+    // campfire: a ring of stones, crossed logs and ash
+    const FIRE = [0.18, 0, 0.5]; B.with(FIRE[0], 0, FIRE[2], 0, 1, () => { for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2, rr = 0.13 + 0.01 * Math.sin(k * 3); ell(B, Math.cos(a) * rr, 0.015, Math.sin(a) * rr, 0.035, 0.028, 0.03, [0.55 + 0.1 * Math.sin(k), 0.53, 0.5], 8); }
+      B.cyl(0, 0.0, 0, 0.11, 0.11, 0.008, 12, 'white', [0.22, 0.2, 0.18], 'white'); for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; B.beam([Math.cos(a) * 0.1, 0.012, Math.sin(a) * 0.1], [Math.cos(a) * 0.01, 0.07, Math.sin(a) * 0.01], 0.028, 'bark', [0.6, 0.45, 0.32]); } });
+    const mat = K.material(); GX.islandMat = mat; const mesh = new THREE.Mesh(B.geo(), mat); mesh.scale.setScalar(S); mesh.castShadow = true; mesh.receiveShadow = true; grp.add(mesh); grp.updateMatrixWorld(true);
+    const wp = (p) => new THREE.Vector3(p[0], p[1], p[2]).multiplyScalar(S).applyMatrix4(grp.matrixWorld);
+    for (const c of B.chim) { const p = wp(c); PR.smoke.push([p.x, p.y, p.z, Math.random()]); } for (const l of B.lamps) { const p = wp(l); PR.glow.push([p.x, p.y, p.z, null]); }
+    GX.smokeAt = B.chim.map(wp); GX.lampAt = B.lamps.map(wp);
+    // the glowing pickaxe head: a curved blade traced with cyan runes, and its halo
+    { const pts = []; for (let k = 0; k <= 16; k++) { const t = k / 16 - 0.5, a = t * 1.9; pts.push(new THREE.Vector3(0.23 + Math.sin(a) * 0.17 * 0.95, 0.545 + (Math.cos(a) - 1) * 0.12 + 0.0, 0.236 - Math.sin(a) * 0.04)); }
+      const runes = cvTex(256, 32, (g, w, h) => { g.fillStyle = '#0d3b44'; g.fillRect(0, 0, w, h); g.strokeStyle = '#bffcff'; g.lineWidth = 2.5; const r = prng(3); for (let x = 8; x < w - 8; x += 18) { g.beginPath(); g.moveTo(x, 8 + r() * 6); g.lineTo(x + 6 + r() * 4, 16); g.lineTo(x + r() * 8, 24); if (r() < 0.5) { g.moveTo(x + 2, 16); g.lineTo(x + 10, 10); } g.stroke(); } });
+      const blade = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 24, 0.022, 6, false); { const P = blade.attributes.position; for (let i = 0; i < P.count; i++) { const k = Math.floor(i / 7) / 24, tp = 1 - Math.pow(Math.abs(k - 0.5) * 2, 3); } }
+      GX.pickM = new THREE.MeshBasicMaterial({ map: runes, color: 0x9ff8ff, toneMapped: false }); const bm = new THREE.Mesh(blade, GX.pickM);
+      const holder = new THREE.Group(); holder.position.set(-0.38, 0, 0.12); holder.rotation.y = 0.35; holder.scale.setScalar(1.25); holder.add(bm); const hs = new THREE.Group(); hs.scale.setScalar(S); hs.add(holder); grp.add(hs);
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex('rgba(170,255,255,1)', 'rgba(60,220,240,.35)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); halo.position.set(0.23, 0.53, 0.25); halo.scale.set(0.5, 0.5, 1); holder.add(halo); GX.pickHalo = halo; }
+    // the fire: flickering flame cards, embers, a warm pool of light and a small local light
+    { const fw = wp([FIRE[0], 0.02, FIRE[2]]), fg = new THREE.Group(); fg.position.copy(fw); scene.add(fg); GX.fire = fg;
+      GX.flameM = wmat('attribute vec2 aU; varying vec2 vU; void main(){ vU = aU; ' + VS_END, `uniform float uT; uniform float uN; varying vec2 vU; void main(){ vec2 u = vU; float n = fb(vec2(u.x * 4.0, u.y * 3.0 - uT * 3.5)); float w = (1.0 - u.y) * 0.5 + 0.1; float d = abs(u.x - 0.5) + (n - 0.5) * 0.25 * u.y;
+  float f = smoothstep(w, w - 0.18, d) * smoothstep(1.0, 0.55, u.y + n * 0.25); vec3 col = mix(vec3(1.0, 0.95, 0.6), vec3(1.0, 0.38, 0.06), smoothstep(0.1, 0.8, u.y + d)); float a = f; col *= 1.6; ` + FS_END);
+      GX.flameM.blending = THREE.AdditiveBlending; mats_push(GX.flameM);
+      for (let k = 0; k < 3; k++) { const g = new THREE.PlaneGeometry(26, 44, 1, 1); g.translate(0, 22, 0); g.setAttribute('aU', new THREE.Float32BufferAttribute([0, 1, 1, 1, 0, 0, 1, 0], 2)); const m = new THREE.Mesh(g, GX.flameM); m.rotation.y = k * Math.PI / 3; fg.add(m); }
+      GX.fireLight = new THREE.PointLight(0xff9a48, 1.2, 420, 1.5); GX.fireLight.position.set(0, 40, 0); fg.add(GX.fireLight);
+      GX.firePool = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,180,90,.9)', 'rgba(255,120,40,.3)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0.4 })); GX.firePool.rotation.x = -Math.PI / 2; GX.firePool.position.y = 2; fg.add(GX.firePool);
+      const ep = [], eph = []; for (let k = 0; k < 40; k++) { ep.push((Math.random() - 0.5) * 16, 10, (Math.random() - 0.5) * 16); eph.push(Math.random()); } const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.Float32BufferAttribute(ep, 3)); eg.setAttribute('aPh', new THREE.Float32BufferAttribute(eph, 1));
+      GX.emberM = new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uS: { value: 1 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, vertexShader: 'attribute float aPh; uniform float uT; uniform float uS; varying float vA; void main(){ float f = fract(uT * 0.4 + aPh); vec3 p = position + vec3(sin(aPh * 30.0 + f * 6.0) * 10.0 * f, f * 120.0, cos(aPh * 17.0 + f * 5.0) * 10.0 * f); vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = uS * 5.0 * 600.0 / -mv.z; vA = 1.0 - f; }', fragmentShader: 'varying float vA; void main(){ float d = length(gl_PointCoord - 0.5); gl_FragColor = vec4(1.0, 0.6, 0.2, vA * smoothstep(0.5, 0.1, d)); }' });
+      fg.add(new THREE.Points(eg, GX.emberM)); } }
+  function animIsland(t, night, ps) { if (!GX.island) return; const fl = 0.8 + 0.12 * Math.sin(t * 11.0) + 0.08 * Math.sin(t * 17.3 + 1) + 0.05 * Math.sin(t * 29.0);
+    GX.fireLight.intensity = (0.6 + 1.4 * night) * fl; GX.firePool.material.opacity = (0.15 + 0.5 * night) * fl; GX.emberM.uniforms.uT.value = t; GX.emberM.uniforms.uS.value = ps || 1;
+    const pk = 0.75 + 0.5 * night + 0.1 * Math.sin(t * 1.7); GX.pickM.color.setRGB(0.62 * pk, 0.97 * pk, 1.0 * pk); GX.pickHalo.material.opacity = 0.35 + 0.55 * night; GX.islandMat.emissiveIntensity = night * 0.8; }
   function doorCard() { const btn = (h) => `<div class="wrapgap" style="margin-top:10px">${h}</div>`;
     openModal(`<h2>🌳 The Lumen Tree</h2><p>The great door stands a hand's width open, and Lumen light spills out over the roots. Inside is the commune of the Hollow, where every delver's road meets.</p><p class="dim">Coming soon.</p>${btn('<button class="btn deep" data-act="close">Enter the Lumen Tree</button><button class="btn ghost" data-act="close">Not now</button>')}`, 'city'); }
-  function build(C) { if (GX.built) return; GX.built = true; buildDoor(C); if (G) buildWater(C); }
-  function anim(t, night, ps) { animDoor(t, night); animWater(t, night, { ps }); }
+  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); if (G) { buildWater(C); buildIsland(C); } } else if (GX.smokeAt) { for (const p of GX.smokeAt) C.PR.smoke.push([p.x, p.y, p.z, 0.3]); for (const p of GX.lampAt) C.PR.glow.push([p.x, p.y, p.z, null]); } }
+  function anim(t, night, ps) { animDoor(t, night); animWater(t, night, { ps }); animIsland(t, night, ps); }
   return { build, anim, wet, carve, fit, doorCard, toW, toL, lipD, LIP, LIPH, WL, FALLS, lakeSdf, dFar, halfW, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
 })();
 

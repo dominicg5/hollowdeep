@@ -96,7 +96,7 @@ const HOUSE_KIT = (() => {
     B.with = (x, y, z, rotY, s, fn, mirror) => { B.stack.push(B.M.clone()); const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotY || 0), new THREE.Vector3((s || 1) * (mirror ? -1 : 1), s || 1, s || 1));
       B.M.multiply(m); B.NM.getNormalMatrix(B.M); B.flip = B.M.determinant() < 0; fn(); B.M.copy(B.stack.pop()); B.NM.getNormalMatrix(B.M); B.flip = B.M.determinant() < 0; };
     B.pt = (x, y, z) => { v.set(x, y, z).applyMatrix4(B.M); return [v.x, v.y, v.z]; };
-    const uvr = (k, a, b) => { const [x0, y0, x1, y1] = R[k], pad = 1.5; return [(x0 + pad + (x1 - x0 - 2 * pad) * a) / AU, 1 - (y0 + pad + (y1 - y0 - 2 * pad) * (1 - b)) / AU]; };
+    const uvr = (k, a, b) => { const [x0, y0, x1, y1] = R[k], pad = 1.5; return [(x0 + pad + (x1 - x0 - 2 * pad) * a) / AU, 1 - (y0 + pad + (y1 - y0 - 2 * pad) * (1 - b)) / AU]; }; B.uvr = uvr;
     // quad a,b,c,d counter-clockwise seen from outside (a,b bottom; d,c top); col: one colour or four (a,b,c,d)
     B.quad = (a, b, c, d, k, col, uw) => { const w = uw || [0, 0, 1, 1], e1 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], e2 = [d[0] - a[0], d[1] - a[1], d[2] - a[2]]; let nx = e1[1] * e2[2] - e1[2] * e2[1], ny = e1[2] * e2[0] - e1[0] * e2[2], nz = e1[0] * e2[1] - e1[1] * e2[0];
       if (Math.abs(nx) + Math.abs(ny) + Math.abs(nz) < 1e-12) { const e3 = [c[0] - a[0], c[1] - a[1], c[2] - a[2]]; nx = e1[1] * e3[2] - e1[2] * e3[1]; ny = e1[2] * e3[0] - e1[0] * e3[2]; nz = e1[0] * e3[1] - e1[1] * e3[0]; }
@@ -408,5 +408,5 @@ const HOUSE_KIT = (() => {
     return B.geo(); }
   function trees() { if (!treeAtlas) treeAtlas = paintTreeAtlas(); const mat = new THREE.MeshLambertMaterial({ map: treeAtlas, vertexColors: true, side: THREE.DoubleSide });
     return { oak: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true } }; }
-  return { houses, trees, keyFor, KEYS, atlas: () => atlas };
+  return { houses, trees, keyFor, KEYS, atlas: () => atlas, kit: { Builder, material, gableRoof, windowOn, doorOn, lantern, chimney, crate, barrel, sack, woodpile, pickaxe, rope, pot, plinth, halfTimber, wallFace, sideX, SHUT } };
 })();
