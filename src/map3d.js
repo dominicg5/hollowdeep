@@ -238,7 +238,6 @@ void main() {
   function glowTex(inner, outer) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, inner); gr.addColorStop(0.4, outer); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); return t; }
 
   /* ---------- real 3D models: houses + trees (meshopt-compressed LODs, instanced), yard props, the Heartwood ---------- */
-    const TIER_MODEL = ['shack', 'shack2', 'cottage', 'cottage2', 'townhouse', 'townhouse2', 'workshop', 'workshop2'];
   let MD = null, mdState = 'idle'; const IM = { homes: [], trees: [], props: null, all: [] }; let hero = null, lodTick = 0, lodAt = null;
   const LU = { uLumenC: { value: new THREE.Color(0, 0, 0) }, uWin: { value: 0 } };
   function loadScript(src) { return new Promise((res, rej) => { const e = document.createElement('script'); e.src = src; e.onload = res; e.onerror = rej; document.head.appendChild(e); }); }
@@ -272,9 +271,10 @@ void main() {
   function block(arr, x, y, z, sx, sy, sz, rot, col, owner) { arr.push({ m: new THREE.Matrix4().compose(v3().set(x, y + sy / 2, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rot, 0)), v3().set(sx, sy, sz)), c: col, o: owner }); }
   const WOOD = [[0.45, 0.32, 0.2], [0.55, 0.4, 0.26], [0.38, 0.27, 0.17], [0.6, 0.47, 0.3]], ROPE = [0.62, 0.52, 0.36], IRON = [0.25, 0.24, 0.23];
   // the models carry their own lanterns, barrels, crates and ladders; here only the chimney smoke is added
-  const CHIMNEY = { shack: [-0.36, 1.04, -0.25], cottage: [-0.34, 1.16, -0.03], townhouse: [0.1, 1.82, -0.12], workshop: [0.24, 1.59, -0.12] };
-  function yardProps(h, i, key, w) { const c = CHIMNEY[key.replace('2', '')]; if (!c || h.heartwood || hash1(i * 3.3 + 1) > 0.4) return; const rot = h._rot, cs = Math.cos(rot), sn = Math.sin(rot), x = h.x + (c[0] * cs + c[2] * sn) * w, y = h.y + (-c[0] * sn + c[2] * cs) * w;
-    PR.smoke.push([x, homeElev(h) + c[1] * w, y, hash1(i * 7.7) * 10, h]); }
+  // chimney smoke and night lantern glows come from the points each house model records (chimney tops, lantern bodies)
+  function yardProps(h, i, key, w) { const m = MD[key]; if (!m) return; const rot = h._rot, cs = Math.cos(rot), sn = Math.sin(rot), y0 = homeElev(h), at = (c) => [h.x + (c[0] * cs + c[2] * sn) * w, y0 + c[1] * w, h.y + (-c[0] * sn + c[2] * cs) * w];
+    if (m.chim && m.chim[0] && (h.heartwood || hash1(i * 3.3 + 1) < 0.45)) { const p = at(m.chim[0]); PR.smoke.push([p[0], p[1], p[2], hash1(i * 7.7) * 10, h]); }
+    if (m.lamps) for (const c of m.lamps) { const p = at(c); PR.glow.push([p[0], p[1], p[2], h]); } }
   /* ---------- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall (merged geometry, instanced foliage) ---------- */
   function hwCanvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; if (rep) t.repeat.set(rep[0], rep[1]); return t; }
   function barkTex() { return hwCanvasTex(256, 512, (g, w, h) => { g.fillStyle = '#7b6552'; g.fillRect(0, 0, w, h); let s = 7; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
@@ -484,9 +484,9 @@ void main() {
     for (const s2 of IM.all) for (const m of s2.meshes) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = [];
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
     const byKey = {}; const push = (k, o) => (byKey[k] || (byKey[k] = [])).push(o);
-    W.homes.forEach((h, i) => { const tier = tierOf(h), key = h.heartwood ? (h.slot % 3 === 1 ? 'shack2' : 'cottage2') : TIER_MODEL[tier], w = h.heartwood ? HW_HOUSE : homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = h.heartwood ? Math.PI / 2 - h.hwTh : (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
+    W.homes.forEach((h, i) => { const tier = tierOf(h), key = h.heartwood ? (h.slot % 2 ? 'seatb' : 'seata') : HOUSE_KIT.keyFor(tier, hash1(i * 3.71 + 0.3)), w = h.heartwood ? HW_HOUSE : homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = h.heartwood ? Math.PI / 2 - h.hwTh : (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
       h._rot = rot; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i, key, w); });
-    for (const k of TIER_MODEL) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
+    for (const k of HOUSE_KIT.KEYS.concat(['seata', 'seatb'])) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
     let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - 2; nt++;
       push('t_' + k, { x: o.x, y, z: o.y, rot: (o.seed || 0.5) * TAU * 7, s, c: tintFor(o.seed * 100 + 3, 0.6), lum: lumAt(o.x, o.y) * 0.8 }); }
     for (const k of ['oak', 'sequoia', 'willow']) if (byKey['t_' + k]) { MD['t_' + k] = MD[k]; IM.trees.push(makeSet('t_' + k, byKey['t_' + k], { near: 1800, far: 26000, minZ: 0.0, shadow: true })); }
@@ -517,7 +517,7 @@ void main() {
     if (key !== lodAt || ++lodTick > 30) { lodAt = key; lodTick = 0; pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frus.setFromProjectionMatrix(pm);
       for (const s2 of IM.all) fillSet(s2, cam.z); fillProps(cam.z > 0.14); }
     IM.props.lamp.material.color.setRGB(0.35 + night * 0.75, 0.27 + night * 0.5, 0.16 + night * 0.25);
-    IM.glow.material.opacity = night * 0.28; for (const k of TIER_MODEL) if (MD[k]) { MD[k].mat.emissiveIntensity = night * 0.8; break; } IM.glow.visible = night > 0.05;
+    IM.glow.material.opacity = night * 0.28; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; IM.glow.visible = night > 0.05;
     IM.smoke.material.uniforms.uT.value = t; IM.smoke.visible = cam.z > 0.12; IM.smoke.material.uniforms.uS.value = renderer.getPixelRatio() * cssH / 900; IM.smoke.material.uniforms.uC.value.setRGB(0.86 - night * 0.6, 0.86 - night * 0.6, 0.88 - night * 0.55);
     animPulley(t, night); }
 

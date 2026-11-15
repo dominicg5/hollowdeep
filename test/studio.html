@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#cfe0ec}canvas{display:block}</style></head><body>
+<script src="../assets/vendor/three.min.js"></script>
+<script src="../src/map_houses.js"></script>
+<script>
+// Art studio: renders the procedural houses / trees in a grid of viewports with the map's lighting (dev tool, not shipped)
+const Q = new URLSearchParams(location.search), night = +(Q.get('night') || 0), lod = +(Q.get('lod') || 0);
+const keys = (Q.get('keys') || 'h0a,h1a,h2a,h3a,h4a,h5a,h6a,h7a').split(','), cols = +(Q.get('cols') || 4), cell = +(Q.get('cell') || 360), yaw = +(Q.get('yaw') || 0.62), pitch = +(Q.get('pitch') || 0.42);
+const rows = Math.ceil(keys.length / cols), W = cols * cell, H = rows * cell;
+const R = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); R.setSize(W, H); R.outputEncoding = THREE.sRGBEncoding; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.25; R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.setScissorTest(true); document.body.appendChild(R.domElement);
+const S = new THREE.Scene(); S.background = new THREE.Color(night ? 0x141c2c : 0xbcd3e6);
+const hemi = new THREE.HemisphereLight(0xdfeeff, 0x5a6a40, night ? 0.12 : 0.55); S.add(hemi);
+const sun = new THREE.DirectionalLight(night ? 0x8090c0 : 0xfff1d6, night ? 0.25 : 1.15); sun.position.set(3, 5, 2.2); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2 }); sun.shadow.bias = -0.0008; S.add(sun);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(1.6, 48), new THREE.MeshLambertMaterial({ color: night ? 0x2a3a22 : 0x7f9a4a })); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.04; ground.receiveShadow = true; S.add(ground);
+const out = Object.assign({}, HOUSE_KIT.houses(), HOUSE_KIT.trees());
+for (const k in out) if (out[k].mat.emissive && !out[k].tree) out[k].mat.emissiveIntensity = night ? 0.8 : 0;
+const cam = new THREE.PerspectiveCamera(30, 1, 0.05, 50); let cur = null;
+keys.forEach((k, i) => { const M = out[k]; if (!M) return; if (cur) S.remove(cur); cur = new THREE.Mesh(M.geos[Math.min(lod, M.geos.length - 1)], M.mat); cur.castShadow = cur.receiveShadow = true; S.add(cur);
+  M.geos[0].computeBoundingBox(); const bb = M.geos[0].boundingBox, c = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3()), r = Math.max(sz.x, sz.y, sz.z) * 0.62 + 0.25;
+  const d = r / Math.tan(15 * Math.PI / 180); cam.position.set(c.x + Math.sin(yaw) * Math.cos(pitch) * d, c.y + Math.sin(pitch) * d, c.z + Math.cos(yaw) * Math.cos(pitch) * d); cam.lookAt(c); cam.aspect = 1; cam.updateProjectionMatrix();
+  const x = (i % cols) * cell, y = H - (Math.floor(i / cols) + 1) * cell; R.setViewport(x, y, cell, cell); R.setScissor(x, y, cell, cell); R.render(S, cam); });
+window.TRIS = Object.fromEntries(Object.entries(out).map(([k, m]) => [k, m.geos.map((g) => (g.index ? g.index.count : g.attributes.position.count) / 3)]));
+window.DONE = true;
+</script></body></html>
