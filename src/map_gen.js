@@ -420,6 +420,7 @@ function generateCity() {
   // Piers on the lake shore
   for (let i = 0; i < (CITY.water ? 9 : 0); i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
 
+  if (typeof GRAND !== 'undefined') GRAND.fit(); // the Lumen Tree's streams, falls and lake: clear the water, re-house anyone standing in it
   // Spatial index for drawing & hit tests
   W.bucket = 256; W.buckets = new Map();
   const put = (o) => { const k = Math.floor(o.x / W.bucket) + ',' + Math.floor(o.y / W.bucket); (W.buckets.get(k) || W.buckets.set(k, []).get(k)).push(o); };

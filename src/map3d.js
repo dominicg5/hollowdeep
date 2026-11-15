@@ -70,6 +70,7 @@ const M3 = (() => {
     let mh = mtnH(x, y) + rock * 0.55;
     // the world's edge rises into a wall of rocky peaks fading into haze (no sea, no coastline)
     const eg = smooth01(CITY.R - 700, CITY.R + 900, r); if (eg > 0) { const rn = (u, v) => 1 - Math.abs(2 * vnoise(u, v) - 1); { const q = 0.6 * rn(x / 420, y / 420) + 0.4 * rn(x / 150 + 3, y / 150); mh = Math.max(mh, eg * (260 + 760 * q * q)); } }
+    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh); return c; } // the Lumen Tree's streams, falls and lake
     return [h + mh - rock * 0.55, mh];
   }
   // terrain probe used when placing homes (height + slope), before or after the meshes exist
@@ -523,7 +524,7 @@ void main() {
     IM.props.lamp.material.color.setRGB(0.35 + night * 0.75, 0.27 + night * 0.5, 0.16 + night * 0.25);
     IM.glow.material.opacity = night * 0.28; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; if (HWX.signs) for (const b of HWX.signs) b.material.emissiveIntensity = night * 0.3; IM.glow.visible = night > 0.05;
     IM.smoke.material.uniforms.uT.value = t; IM.smoke.visible = cam.z > 0.12; IM.smoke.material.uniforms.uS.value = renderer.getPixelRatio() * cssH / 900; IM.smoke.material.uniforms.uC.value.setRGB(0.86 - night * 0.6, 0.86 - night * 0.6, 0.88 - night * 0.55);
-    animPulley(t, night); GRAND.anim(t, night); }
+    animPulley(t, night); GRAND.anim(t, night, renderer.getPixelRatio() * cssH / 900); }
 
   /* ---------- build ---------- */
   function supported() { try { const c = document.createElement('canvas'); return !!(window.THREE && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; } }
