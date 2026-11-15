@@ -150,7 +150,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 #charCanvas{width:100%;height:100%;display:block;touch-action:none}
 #charTop{position:absolute;top:10px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between;color:#4a2e1a;font-family:Georgia,serif;font-size:17px;text-shadow:0 1px 0 rgba(255,255,255,.5)}
 #charSex{display:flex;background:rgba(74,46,26,.18);border-radius:20px;padding:3px}#charSex button{border:0;background:none;color:#4a2e1a;font:600 13px system-ui;padding:6px 14px;border-radius:16px;cursor:pointer}#charSex button.on{background:#4a2e1a;color:#ffe9c4}
-#charPick{position:absolute;bottom:30px;left:0;right:0;display:flex;justify-content:center;gap:5px;flex-wrap:wrap;padding:0 8px}#charPick button{border:0;background:rgba(255,246,230,.75);color:#4a2e1a;font:600 11px system-ui;padding:5px 9px 5px 7px;border-radius:14px;display:flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 1px 2px rgba(74,46,26,.25)}#charPick button i{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}#charPick button.on{background:#4a2e1a;color:#ffe9c4}
+#charPick{position:absolute;bottom:30px;left:0;right:0;display:flex;justify-content:center;gap:4px;flex-wrap:nowrap;padding:0 6px}#charPick button span{display:none}#charPick button.on span{display:inline}#charPick button{border:0;background:rgba(255,246,230,.75);color:#4a2e1a;font:600 11px system-ui;padding:5px 9px 5px 7px;border-radius:14px;display:flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 1px 2px rgba(74,46,26,.25)}#charPick button i{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}#charPick button.on{background:#4a2e1a;color:#ffe9c4}
 #charHint{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:rgba(74,46,26,.75);font:12px system-ui}
 .tabe{font-size:22px;line-height:26px;height:26px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
 #cityCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
@@ -5034,8 +5034,10 @@ const CharView = (() => {
   const hex = (c) => '#' + c.toString(16).padStart(6, '0');
   // painted fabric: base colour, mottled wear, a fine weave, optional stitched seams
   function fabric(col, o = {}) { const r = prng(o.seed || 7); return cv(256, 256, (g, w, h) => { g.fillStyle = hex(col); g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 260; i++) { const a = r() * 0.09; g.fillStyle = r() < 0.5 ? `rgba(0,0,0,${a})` : `rgba(255,240,220,${a * 0.8})`; g.beginPath(); g.arc(r() * w, r() * h, 4 + r() * 22, 0, TAU); g.fill(); }
+    for (let i = 0; i < 260; i++) { const a = r() * (o.mottle ?? 0.05); g.fillStyle = r() < 0.5 ? `rgba(0,0,0,${a})` : `rgba(255,240,220,${a * 0.8})`; g.beginPath(); g.arc(r() * w, r() * h, 4 + r() * 22, 0, TAU); g.fill(); }
     g.globalAlpha = o.weave ?? 0.07; for (let y = 0; y < h; y += 3) { g.fillStyle = y % 6 ? '#000' : '#fff'; g.fillRect(0, y, w, 1); } for (let x = 0; x < w; x += 4) { g.fillStyle = '#000'; g.fillRect(x, 0, 1, h); } g.globalAlpha = 1;
+    if (o.folds) { g.save(); g.filter = 'blur(2.2px)'; g.lineCap = 'round'; for (let i = 0; i < o.folds; i++) { const x = r() * w, y = r() * h, L = 30 + r() * 90, a = (r() - 0.5) * (o.foldTilt ?? 0.6), dx = Math.cos(a) * L, dy = Math.sin(a) * L, bw = (r() - 0.5) * 26;
+        for (const [ox, c, lw] of [[0, 'rgba(30,15,5,.22)', 6], [4, 'rgba(255,240,215,.16)', 4]]) for (const sx of [0, -w, w]) { g.strokeStyle = c; g.lineWidth = lw; g.beginPath(); g.moveTo(x + sx, y + ox); g.quadraticCurveTo(x + sx + dx / 2, y + dy / 2 + bw + ox, x + sx + dx, y + dy + ox); g.stroke(); } } g.restore(); }
     if (o.stitch) { g.strokeStyle = o.stitch; g.lineWidth = 2; g.setLineDash([6, 5]); for (const y of o.seams || [24, 232]) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } g.setLineDash([]); }
     if (o.laces) { g.strokeStyle = '#d8c29a'; g.lineWidth = 5; for (let y = 20; y < h - 10; y += 34) { g.beginPath(); g.moveTo(100, y); g.lineTo(156, y + 20); g.moveTo(156, y); g.lineTo(100, y + 20); g.stroke(); } g.fillStyle = '#2a1b12'; for (let y = 20; y < h; y += 34) { g.beginPath(); g.arc(100, y, 4, 0, TAU); g.arc(156, y, 4, 0, TAU); g.fill(); } }
   }); }
@@ -5062,8 +5064,8 @@ const CharView = (() => {
 
   /* ---------- palettes (picked from the turnaround sheets) ---------- */
   const PAL = {
-    m: { skin: 0xf0b892, blush: 'rgba(240,120,110,.5)', hair: 0x2b211c, iris: '#6a4426', jacket: 0x8a4f33, jacketDk: 0x6c3a25, shirt: 0xcdb48e, pants: 0x7a6748, patch: 0x5d6168, glove: 0x4a3022, belt: 0x4b3020, boot: 0x7a5236, bootDk: 0x4a3020, pack: 0x7b5638, packDk: 0x5c3e28, helmet: 0x9b7a4e, brass: 0xb08a4a, rope: 0xa8743f, sock: 0x8b8b84 },
-    f: { skin: 0xf2bf9d, blush: 'rgba(245,125,120,.55)', hair: 0x5a3a26, iris: '#6b4122', jacket: 0x8d8259, jacketDk: 0x6b6342, shirt: 0x4e4a38, pants: 0x5e5038, patch: 0x5c5f55, glove: 0x4a3324, belt: 0x5a3a24, boot: 0x7a5034, bootDk: 0x4a2e1c, pack: 0x7a5634, packDk: 0x5a3e26, helmet: 0x9a7c50, brass: 0xb38f4f, rope: 0xa8743f, sock: 0x8c8c86 },
+    m: { skin: 0xf0b892, blush: 'rgba(240,120,110,.5)', hair: 0x2e231a, iris: '#6a4426', jacket: 0x6e4732, jacketDk: 0x4f3324, shirt: 0xa8916f, pants: 0x6c5b41, patch: 0x55524c, glove: 0x4f3e2e, belt: 0x45301f, boot: 0x684c33, bootDk: 0x45301f, pack: 0x725438, packDk: 0x553c27, helmet: 0x8f7454, brass: 0xa8874c, rope: 0x9c7446, sock: 0x7c766a },
+    f: { skin: 0xf2bf9d, blush: 'rgba(245,125,120,.55)', hair: 0x4a3322, iris: '#6b4122', jacket: 0x8f7a55, jacketDk: 0x6a5838, shirt: 0x58432f, pants: 0x5a4834, patch: 0x5d5c50, glove: 0x45332a, belt: 0x553823, boot: 0x684a32, bootDk: 0x45301f, pack: 0x765a3c, packDk: 0x584029, helmet: 0x8f7a5c, brass: 0xab8a50, rope: 0x9c7446, sock: 0x6e675a },
   };
   /* ---------- pickaxe: a swappable module, one palette per grade (head / handle / binding, optional runes + glow) ---------- */
   const GRADES = { // in upgrade order; each tier adds geometry, not just colour
@@ -5216,8 +5218,8 @@ const CharView = (() => {
 
   /* ---------- the character ---------- */
   function build(sex) { const P = PAL[sex], F = sex === 'f', root = new THREE.Group(); root.name = 'delver'; const skins = [];
-    const M = { skin: toon(P.skin), skinDk: toon(F ? 0xe7a888 : 0xe0a080), hair: toon(P.hair), jacket: toon(0, fabric(P.jacket, { stitch: 'rgba(40,20,10,.45)', seed: 11 }), { side: THREE.DoubleSide }), jacketDk: toon(0, fabric(P.jacketDk, { seed: 12 })),
-      shirt: toon(0, fabric(P.shirt, { seed: 13 })), pants: toon(0, fabric(P.pants, { seed: 14, stitch: 'rgba(40,25,10,.35)', seams: [128] })), patch: toon(0, patchTex(P.patch, 'rgba(230,220,200,.55)')), glove: toon(0, fabric(P.glove, { seed: 15, weave: 0.03 })),
+    const M = { skin: toon(P.skin), skinDk: toon(F ? 0xe7a888 : 0xe0a080), hair: toon(P.hair), jacket: toon(0, fabric(P.jacket, { stitch: 'rgba(40,20,10,.45)', seed: 11, folds: 34 }), { side: THREE.DoubleSide }), jacketDk: toon(0, fabric(P.jacketDk, { seed: 12 })),
+      shirt: toon(0, fabric(P.shirt, { seed: 13, folds: 12 })), pants: toon(0, fabric(P.pants, { seed: 14, folds: 24, stitch: 'rgba(40,25,10,.35)', seams: [128] })), patch: toon(0, patchTex(P.patch, 'rgba(230,220,200,.55)')), glove: toon(0, fabric(P.glove, { seed: 15, weave: 0.03 })),
       belt: toon(0, fabric(P.belt, { seed: 16, weave: 0.02, stitch: 'rgba(220,190,140,.35)', seams: [40, 216] })), boot: toon(0, fabric(P.boot, { seed: 17, weave: 0.02 })), bootLace: toon(0, fabric(P.boot, { seed: 18, weave: 0.02, laces: true })), bootDk: toon(P.bootDk),
       pack: toon(0, fabric(P.pack, { seed: 19, stitch: 'rgba(30,18,8,.4)' })), packDk: toon(0, fabric(P.packDk, { seed: 20 })), helmet: toon(0, fabric(P.helmet, { seed: 21, weave: 0.015 })), brass: toon(P.brass), dark: toon(0x2c2420), rope: toon(0, fabric(P.rope, { seed: 22, weave: 0.18 })),
       sock: toon(0, fabric(P.sock, { seed: 24, weave: 0.14 })), lens: new THREE.MeshBasicMaterial({ color: 0x2f4c52 }) };
@@ -5253,7 +5255,7 @@ const CharView = (() => {
     { const bl = new THREE.MeshBasicMaterial({ map: radial(P.blush, 'rgba(240,120,110,.18)'), transparent: true, depthWrite: false }); for (const s of [-1, 1]) { const c = new THREE.Mesh(new THREE.PlaneGeometry(0.046, 0.03), bl); c.position.set(...onFace(s * 0.07, -0.05, 0.004)); c.rotation.y = s * 0.6; head.add(c); } }
     // ---- hair: a cap plus layered, tapered clumps (fringe, side locks, back) ----
     const lock = (pts, r0, o = {}) => { const cur = new THREE.CatmullRomCurve3(pts.map((p) => V(...p))), ts = 12, rs = 7, g = new THREE.TubeGeometry(cur, ts, r0, rs, false), Pp = g.attributes.position, c = V(0, 0, 0), v = V(0, 0, 0), n = V(0, 0, 0);
-      for (let i = 0; i < Pp.count; i++) { const t = Math.floor(i / (rs + 1)) / ts; cur.getPointAt(t, c); v.set(Pp.getX(i), Pp.getY(i), Pp.getZ(i)).sub(c); n.copy(c).normalize(); v.addScaledVector(n, -v.dot(n) * (o.flat ?? 0.5)); v.multiplyScalar(Math.pow(1 - t, o.tp ?? 0.8) * (1 + 0.3 * Math.sin(Math.PI * t)) + 0.04); Pp.setXYZ(i, c.x + v.x, c.y + v.y, c.z + v.z); }
+      for (let i = 0; i < Pp.count; i++) { const t = Math.floor(i / (rs + 1)) / ts; cur.getPointAt(t, c); v.set(Pp.getX(i), Pp.getY(i), Pp.getZ(i)).sub(c); n.copy(c).normalize(); v.addScaledVector(n, -v.dot(n) * (o.flat ?? 0.66)); v.multiplyScalar(Math.pow(1 - t, o.tp ?? 0.8) * (1 + 0.5 * Math.sin(Math.PI * Math.pow(t, 0.8))) + 0.03); Pp.setXYZ(i, c.x + v.x, c.y + v.y, c.z + v.z); }
       g.computeVertexNormals(); return part(o.parent || head, g, M.hair, null, null, null, { ink: o.ink }); };
     const sz = (x, y, off) => Math.sqrt(Math.max(0, HR * HR - x * x - y * y)) + off;
     part(head, new THREE.SphereGeometry(HR * 1.045, 28, 18, 0, TAU, 0, Math.PI * 0.6), M.hair, [0, 0.004, -0.008], [-0.42, 0, 0]);
@@ -5270,10 +5272,10 @@ const CharView = (() => {
       for (let i = 0; i < 9; i++) { const ln = bone('braid' + (i + 1), par, 0, i ? -0.05 : 0, 0); const w = 0.038 * (1 - i * 0.05); for (const s of [-1, 1]) part(ln, ell(w, 0.034, w * 0.82), M.hair, [s * w * 0.38, -0.024, 0], [0, 0, s * 0.5]); built.braid.push({ b: ln, rx: i ? -0.08 : 0.95, ax: 0, az: 0, vx: 0, vz: 0 }); ln.rotation.x = i ? -0.08 : 0.95; par = ln; }
       const tip = bone('braidTip', par, 0, -0.054, 0); part(tip, cyl(0.014, 0.018, 0.022), M.belt, [0, 0.01, 0]); for (let k = 0; k < 5; k++) { const g = new THREE.ConeGeometry(0.012, 0.06, 6); g.translate(0, -0.03, 0); const m = part(tip, g, M.hair); m.rotation.set(0.05 * k, 0, (k - 2) * 0.2); } }
     // ---- helmet: brass-olive dome, brim, leather band with rivets, headlamp and goggles ----
-    { const hg = new THREE.Group(); hg.position.set(0, 0.03, -0.004); hg.rotation.x = -0.08; head.add(hg); built.helmet = hg;
+    { const hg = new THREE.Group(); hg.position.set(0, 0.04, -0.008); hg.rotation.x = -0.15; head.add(hg); built.helmet = hg;
       part(hg, new THREE.SphereGeometry(0.153, 32, 16, 0, TAU, 0, Math.PI / 2), M.helmet, [0, 0.0, 0], null, [1, 0.9, 1.07]);
       part(hg, new THREE.TorusGeometry(0.13, 0.008, 6, 40, Math.PI), M.helmet, [0, 0.0, 0], [0, Math.PI / 2, 0], [1, 1.05, 1.07]);
-      part(hg, lathe([[0.149, 0.006], [0.172, -0.002], [0.196, -0.016], [0.205, -0.03], [0.197, -0.034], [0.176, -0.02], [0.149, -0.008]], 48), M.helmet, [0, -0.004, 0.004], null, [1, 1, 1.08]);
+      part(hg, lathe([[0.149, 0.006], [0.172, -0.002], [0.196, -0.016], [0.205, -0.03], [0.197, -0.034], [0.176, -0.02], [0.149, -0.008]], 48), M.helmet, [0, -0.004, 0.004], null, [0.92, 1, 1.0]);
       part(hg, cyl(0.1555, 0.1545, 0.032, 40, true), M.belt, [0, 0.016, 0], null, [1, 1, 1.07]);
       for (let k = 0; k < 10; k++) { const a = k / 10 * TAU; part(hg, ell(0.005, 0.005, 0.004, 8, 6), M.brass, [Math.sin(a) * 0.157, 0.016, Math.cos(a) * 0.157 * 1.07], null, null, { ink: false }); }
       const lampX = F ? -0.055 : 0, lamp = new THREE.Group(); lamp.position.set(lampX, 0.03, 0.166 - Math.abs(lampX) * 0.12); lamp.rotation.y = -lampX * 2.2; hg.add(lamp);
@@ -5307,7 +5309,7 @@ const CharView = (() => {
     part(B.hips, new THREE.TorusGeometry(0.127, 0.02, 8, 36), M.belt, [0, 0.085, 0.002], [Math.PI / 2, 0, 0], [1, 0.76, 1.3]);
     part(B.hips, rbox(0.05, 0.04, 0.012, 0.004), M.brass, [0, 0.085, 0.1]); part(B.hips, rbox(0.03, 0.022, 0.014, 0.003), M.belt, [0, 0.085, 0.103]);
     for (const [px0, pz0, ry0] of F ? [[-0.075, 0.112, -0.38], [0.075, 0.112, 0.38]] : [[-0.07, 0.114, -0.36], [-0.122, 0.085, -0.85]]) { const pz = part(B.hips, rbox(0.052, 0.066, 0.034, 0.01), M.belt, [px0, 0.05, pz0], [0, ry0, 0]); part(pz, rbox(0.055, 0.026, 0.038, 0.008), M.packDk, [0, 0.026, 0.002]); part(pz, rbox(0.012, 0.012, 0.006, 0.002), M.brass, [0, 0.018, 0.022], null, null, { ink: false }); }
-    { const pv = F ? bone('ropePivot', B.hips, -0.15, 0.06, 0.03) : bone('ropePivot', B.hips, 0.07, 0.06, 0.118), ry = F ? Math.PI / 2 : 0.12; built.rope = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; for (let k = 0; k < 5; k++) part(pv, new THREE.TorusGeometry(0.058 - k * 0.003, 0.0105, 6, 26), M.rope, F ? [-0.012, -0.08 + k * 0.006, (k - 2) * 0.007] : [(k - 2) * 0.005, -0.085 + k * 0.006, 0.012], [0.1 * k, ry, 0.15], [1, 1.4, 1]); }
+    { const pv = F ? bone('ropePivot', B.hips, -0.15, 0.06, 0.03) : bone('ropePivot', B.hips, 0.142, 0.05, 0.07), ry = F ? Math.PI / 2 : 1.05; built.rope = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; for (let k = 0; k < 5; k++) part(pv, new THREE.TorusGeometry(0.058 - k * 0.003, 0.0105, 6, 26), M.rope, F ? [-0.012, -0.08 + k * 0.006, (k - 2) * 0.007] : [0.01, -0.1 + k * 0.006, (k - 2) * 0.006], [0.1 * k, ry, 0.08], [1, 1.75, 1]); }
     // ---- pelvis, legs (skinned: hips > thigh > shin > foot) ----
     part(B.hips, lathe([[0.0, -0.11], [0.11, -0.1], [0.126, -0.05], [0.128, 0.03], [0.125, 0.1], [0.0, 0.1]], 28), M.pants, null, null, [1, 1, 0.78]);
     for (const [s, k] of [[-1, 'R'], [1, 'L']]) { const th = B['th' + k], sn = B['sn' + k], ft = B['ft' + k], yh = HY - 0.045, yk = yh - LT, ya = yk - LS, cx = s * 0.082;
@@ -5316,10 +5318,10 @@ const CharView = (() => {
         shell(skins, [[yh - 0.1, 0.066, 0.066], [yh - 0.17, 0.061, 0.062], [yh - 0.25, 0.054, 0.055], [yk + 0.02, 0.05, 0.051], [yk - 0.03, 0.048, 0.05], [yk - 0.1, 0.046, 0.049], [yk - 0.17, 0.041, 0.043], [ya + 0.1, 0.035, 0.036]], [[th], [sn, yk, 0.05]], M.skin, { cx, seg: 16 });
         const st = -0.045, sb = -LS + 0.12; part(sn, cyl(0.046, 0.051, st - sb, 16), M.sock, [0, (st + sb) / 2, 0]); part(sn, new THREE.TorusGeometry(0.051, 0.013, 6, 18), M.sock, [0, st, 0], [Math.PI / 2, 0, 0]);
         part(sn, cyl(0.057, 0.061, 0.17, 18), M.bootLace, [0, -LS + 0.085, 0]); part(sn, new THREE.TorusGeometry(0.06, 0.011, 6, 20), M.boot, [0, -LS + 0.17, 0], [Math.PI / 2, 0, 0]); }
-      else { shell(skins, [[yh + 0.07, 0.07, 0.07], [yh + 0.02, 0.083, 0.082], [yh - 0.08, 0.083, 0.081], [yh - 0.2, 0.078, 0.076], [yk + 0.06, 0.072, 0.071], [yk, 0.071, 0.074], [yk - 0.08, 0.068, 0.069], [yk - 0.18, 0.067, 0.066], [ya + 0.15, 0.068, 0.068], [ya + 0.1, 0.069, 0.069]], [[B.hips], [th, yh, 0.06], [sn, yk, 0.06]], M.pants, { cx, seg: 18 });
+      else { shell(skins, [[yh + 0.07, 0.07, 0.07], [yh + 0.02, 0.083, 0.082], [yh - 0.08, 0.083, 0.081], [yh - 0.2, 0.078, 0.076], [yk + 0.06, 0.072, 0.071], [yk, 0.071, 0.074], [yk - 0.08, 0.068, 0.069], [yk - 0.12, 0.068, 0.067], [ya + 0.27, 0.073, 0.073], [ya + 0.215, 0.075, 0.075], [ya + 0.19, 0.068, 0.068]], [[B.hips], [th, yh, 0.06], [sn, yk, 0.06]], M.pants, { cx, seg: 18 });
         part(th, rbox(0.03, 0.095, 0.08, 0.012), M.pants, [s * 0.082, -0.2, 0.0]); part(th, rbox(0.034, 0.03, 0.085, 0.01), M.pants, [s * 0.085, -0.155, 0.0]); part(th, rbox(0.006, 0.012, 0.012, 0.002), M.brass, [s * 0.103, -0.155, 0.0], null, null, { ink: false });
-        part(sn, rbox(0.082, 0.085, 0.012, 0.006), M.patch, [0, -0.015, 0.071], [-0.08, 0, 0]);
-        part(sn, cyl(0.061, 0.065, 0.15, 18), M.bootLace, [0, -LS + 0.075, 0]); part(sn, new THREE.TorusGeometry(0.066, 0.012, 6, 20), M.boot, [0, -LS + 0.15, 0], [Math.PI / 2, 0, 0]); }
+        part(sn, rbox(0.086, 0.09, 0.014, 0.008), M.patch, [0, -0.02, 0.075], [-0.06, 0, 0], [1, 1, 1]);
+        part(sn, cyl(0.064, 0.067, 0.22, 18), M.bootLace, [0, -LS + 0.11, 0.004]); part(sn, new THREE.TorusGeometry(0.067, 0.013, 6, 20), M.boot, [0, -LS + 0.215, 0.004], [Math.PI / 2, 0, 0]); }
       part(ft, rbox(0.1, 0.085, 0.2, 0.038), M.boot, [0, -0.03, 0.045]); part(ft, rbox(0.106, 0.024, 0.212, 0.01), M.bootDk, [0, -0.07, 0.046]); part(ft, rbox(0.04, 0.03, 0.09, 0.012), M.bootLace, [0, 0.01, 0.07], [0.5, 0, 0], null, { ink: false }); }
     // ---- arms (skinned: shoulder > upper arm > forearm > hand) ----
     for (const [s, k] of [[-1, 'R'], [1, 'L']]) { const sh = B['sh' + k], ua = B['ua' + k], fa = B['fa' + k], hd = B['hd' + k], ys = HY + 0.345, cx = s * 0.15, cz = -0.005, AC = [[sh], [ua, ys, 0.05], [fa, ys - 0.245, 0.045], [hd, ys - 0.46, 0.02]];
@@ -5359,7 +5361,7 @@ const CharView = (() => {
     return { root, B, sex, P, built, LT, LS, HY };
   }
   function setLid(L, c, rx = 0.029, ry = 0.037) { const R = rx * 1.12, RY = ry * 1.1, LN = 16, yt = lerp(ry * 1.0, -0.3 * ry, c), edgeC = yt - 0.8 * ry * c * c;
-    for (let i = 0; i <= LN; i++) { const x = -R + 2 * R * i / LN, nx = x / R, top = RY * Math.sqrt(Math.max(0, 1 - nx * nx)), e = c <= 0.001 ? top : clamp(edgeC + 0.45 * ry * c * nx * nx, -top, top); L.lp.set([x, top, 0, x, e, 0], i * 6); }
+    for (let i = 0; i <= LN; i++) { const x = -R + 2 * R * i / LN, nx = x / R, top = RY * Math.sqrt(Math.max(0, 1 - nx * nx)), e = c <= 0.001 ? top : clamp(edgeC + 0.45 * ry * c * nx * nx, -top, top); const bz = 0.0042 * (1 - nx * nx); L.lp.set([x, top, bz * 0.6, x, e, bz * (1 + 0.6 * c)], i * 6); }
     L.lg.attributes.position.needsUpdate = true; const sy = 1 - 1.25 * c; L.lash.scale.y = sy; L.lash.position.y = yt - ry * 1.0 * sy; }
 
   /* ---------- posing: rest pose, IK ---------- */
@@ -5468,7 +5470,7 @@ const CharView = (() => {
       if (pts.size === 1) { const dx = e.clientX - pr[0]; st.yaw += dx * 0.011; st.yawV = dx * 0.011 / 0.016; } else if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) st.dist = clamp(dist0 * pinch0 / d, 2.0, 5.6); } });
     const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
     canvas.addEventListener('wheel', (e) => { e.preventDefault(); st.dist = clamp(st.dist * Math.exp(e.deltaY * 0.0012), 2.0, 5.6); st.lastInput = clk; }, { passive: false });
-    const cp = document.getElementById('charPick'); if (cp) { cp.innerHTML = Object.entries(GRADES).map(([k, G]) => `<button data-grade="${k}"><i style="background:${hex(G.chip || (G.runes ? G.glow : G.head))}"></i>${G.name}</button>`).join('');
+    const cp = document.getElementById('charPick'); if (cp) { cp.innerHTML = Object.entries(GRADES).map(([k, G]) => `<button data-grade="${k}" title="${G.name}"><i style="background:${hex(G.chip || (G.runes ? G.glow : G.head))}"></i><span>${G.name}</span></button>`).join('');
       cp.addEventListener('click', (e) => { const b = e.target.closest('[data-grade]'); if (!b) return; S.pickGrade = b.dataset.grade; setPick(S.pickGrade); if (typeof save === 'function') save(); st.lastInput = clk; }); }
     document.getElementById('charSex').addEventListener('click', (e) => { const b = e.target.closest('[data-sex]'); if (!b) return; S.charSex = b.dataset.sex; setChar(S.charSex); if (typeof save === 'function') save(); st.lastInput = clk; });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else if (st.visible) start(); }); }
