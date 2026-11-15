@@ -13,14 +13,21 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 150000 }).catch(() => {}); await p.waitForTimeout(1500);
   ok(await p.evaluate(() => typeof THREE !== 'undefined' && THREE.REVISION === '149'), 'Three.js r149 vendored locally (no CDN)');
   ok(await p.evaluate(() => CityMap.is3d()), '3D renderer running (WebGL)');
-  const g3 = await p.evaluate(() => ({ sprites: M3.st.sprites, calls: M3.st.calls, tris: M3.st.tris, shadows: M3.dbgShadow ? M3.dbgShadow() : true }));
-  ok(g3.sprites > 100 && g3.calls > 3 && g3.tris > 1e5, `terrain + billboards drawn: ${g3.sprites} sprites, ${g3.calls} draw calls, ${g3.tris} tris`);
+  await p.waitForFunction(() => M3.models === 'ready' || M3.models === 'failed', null, { timeout: 60000 }).catch(() => {}); await p.waitForTimeout(1500);
+  const g3 = await p.evaluate(() => ({ models: M3.models, mm: M3.st.models, sprites: M3.st.sprites, calls: M3.st.calls, tris: M3.st.tris, shadows: M3.dbgShadow ? M3.dbgShadow() : true }));
+  ok(g3.models === 'ready' && g3.mm && g3.mm.homes > 700 && g3.calls > 3 && g3.tris > 1e5, `3D models loaded and instanced (${JSON.stringify(g3.mm)}), ${g3.calls} draw calls, ${g3.tris} tris`);
   ok(await p.isVisible('#cityCanvas'), 'Rim City is default tab and canvas visible');
   const g = await p.evaluate(() => ({ homes: W.homes.length, cracks: W.cracks.length, R: CITY.R, mk: W.markets.length, vt: W.vaults.length, mtn: W.mountains.length, br: W.bridges.length, fish: (W.dayFish||[]).length + (W.nightFish||[]).length, obs: !!CONFIG.resources.obsidian, wx: WEATHER_TYPES.filter((w) => w === 'storm' || w === 'rain').length, tiers: [...new Set(W.homes.map((h) => h.level))].length }));
   const hc = await p.evaluate(() => CITY.homeCount); ok(g.homes === hc && hc <= 1200, `light home count from one config value (CITY.homeCount=${hc}): ${g.homes}`); ok(g.cracks > 10, 'crevices: ' + g.cracks); ok(g.mk === 0 && g.vt === 0, 'no bazaars or vaults on the map');
   ok(g.R >= 10000, 'big map radius ' + g.R); ok(g.mtn > 100, 'mountains: ' + g.mtn);
   const v2 = await p.evaluate(() => ({ op: W.outposts.length, falls: !!W.lakeFalls, pass: !!W.pass, rivers: W.rivers.length - 1, water: CITY.water, stairs: W.stairs.length, fields: W.sets.length, onCliff: W.homes.filter((h) => onCliff(h.x, h.y, 0)).length, plateau: W.homes.filter((h) => plateauDist(h.x, h.y) < 0).length, radial: W.radial.length }));
-  ok(v2.plateau > g.homes * 0.5 && v2.onCliff === 0, `Hollow on a raised plateau: ${v2.plateau} homes up top, ${v2.onCliff} on the cliffs`);
+  const rg = await p.evaluate(() => { const N = W.homes.length, cnt = {}; for (const h of W.homes) cnt[h.ring] = (cnt[h.ring] || 0) + 1; const gs = W.homes.filter((h) => !h.heartwood).map((h) => ({ k: h.ring, ...M3.ground(h.x, h.y) }));
+    const B = rimBoard(); let mono = true; for (let i = 1; i < B.length; i++) if (!B[i].isPlayer && !B[i - 1].isPlayer && B[i].ring < B[i - 1].ring && B[i].deepest < B[i - 1].deepest) mono = false;
+    return { N, cnt, hw: cnt[0] || 0, steep: gs.filter((g) => g.slope > 0.4).length, sum1: gs.filter((g) => g.k === 1 && g.h > CITY.summitH - 120).length, n1: gs.filter((g) => g.k === 1).length, low: gs.filter((g) => g.k >= 2 && g.h < CITY.summitH * 0.75).length, nOut: gs.filter((g) => g.k >= 2).length, mono,
+      r2: Math.round(W.homes.filter((h) => h.ring === 2).reduce((s, h) => s + Math.hypot(h.x, h.y), 0) / (cnt[2] || 1)), r10: Math.round(W.homes.filter((h) => h.ring === 10).reduce((s, h) => s + Math.hypot(h.x, h.y), 0) / (cnt[10] || 1)) }; });
+  ok(rg.hw === Math.round(rg.N * 0.01) && Object.keys(rg.cnt).length === 11 && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((k) => Math.abs(rg.cnt[k] - rg.N / 10) < rg.N * 0.02 + 8), `ranks split into the Heartwood (top 1%) + 10 decile rings: ${JSON.stringify(rg.cnt)}`);
+  ok(rg.sum1 >= rg.n1 * 0.95 && rg.low >= rg.nOut * 0.95 && rg.steep <= 8 && rg.r10 > rg.r2 + 4000, `ring 1 on the summit (${rg.sum1}/${rg.n1}), rings 2-10 below on lowlands/slopes (${rg.low}/${rg.nOut}), ${rg.steep} on steep ground, ring 2 r=${rg.r2} .. ring 10 r=${rg.r10}`);
+  ok(rg.mono, 'rings follow rank (deeper delvers never sit in an outer ring)');
   ok(v2.radial >= 12, 'cracks spread out from the plateau: ' + v2.radial);   ok(!v2.falls && v2.rivers <= 0 && !v2.water, 'no water features (no lake, rivers or falls) for now');
   // approved base only
   const base = await p.evaluate(() => ({ mole: currentMole(), fest: festival(), npcs: W.npcs.length, lifts: W.lifts.length, lm: W.landmarks.length, op: W.outposts.length, pass: !!W.pass, br: W.bridges.length, stairs: W.stairs.length, civic: W.civic.map((c) => c.type).join(','), ticker: getComputedStyle(document.getElementById('ticker')).display, btns: [...document.querySelectorAll('button[data-city]')].filter((b) => b.offsetParent !== null).map((b) => b.dataset.city).join(',') }));
@@ -33,6 +40,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(dp.top < dp.bot && dp.all && dp.max < 90 && dp.med < 15, `deeper delvers live nearer the rim (top quarter ${dp.top} vs bottom ${dp.bot} from the rim; median Lv ${dp.med}, max Lv ${dp.max})`);
   const mv = await p.evaluate(() => { const d0 = hollowDist(W.player.x, W.player.y), r0 = rimRank(W.player); S.stats.deepest = (S.stats.deepest || 0) + 6; const moved = relocatePlayer(); const d1 = hollowDist(W.player.x, W.player.y), r1 = rimRank(W.player); S.stats.deepest -= 6; relocatePlayer(); M3.refresh(); return { moved, d0: Math.round(d0), d1: Math.round(d1), r0, r1 }; });
   ok(mv.moved && mv.d1 < mv.d0 && mv.r1 < mv.r0, `player's Ledge moves inward when their record improves (${mv.d0} -> ${mv.d1} from the rim, rank #${mv.r0} -> #${mv.r1})`);
+  const hwv = await p.evaluate(() => { const d0 = S.stats.deepest; S.stats.deepest = 20; relocatePlayer(); const r = { ring: W.player.ring, hw: !!W.player.heartwood, elev: Math.round(W.player.elev || 0), lbl: ringLabel(W.player) }; S.stats.deepest = d0; relocatePlayer(); M3.refresh(); r.back = W.player.ring; return r; });
+  ok(hwv.ring === 0 && hwv.hw && hwv.elev > 1900 && hwv.lbl === 'Heartwood' && hwv.back > 0, `player moves into the Heartwood at the top 1% and back out (${JSON.stringify(hwv)})`);
+  ok(await p.evaluate(() => CONFIG.raidsEnabled === false && S.nextRaidAt > 1e14 && !S.pendingReveal), 'raids are off game-wide (no raid timer, no pending raid)');
   ok(g.fish === 0, 'no flying fish'); ok(g.wx === 0, 'no storms or rain in weather table'); ok(g.obs, 'obsidian resource still in economy');
   // canvas non-blank
   const varied = await p.evaluate(() => { M3.render(performance.now() / 1000, CityMap.cam); const c = document.createElement('canvas'); c.width = M3.canvas.width; c.height = M3.canvas.height; c.getContext('2d').drawImage(M3.canvas, 0, 0); const x = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; const set = new Set(); for (let i = 0; i < x.length; i += 4 * 997) set.add((x[i] >> 4) + ',' + (x[i + 1] >> 4) + ',' + (x[i + 2] >> 4)); return set.size; });
@@ -45,7 +55,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const c1 = await p.evaluate(() => ({ ...CityMap.cam }));
   ok(c1.x > c0.x + 20 && c1.y > c0.y + 20, `drag pans camera (${(c1.x - c0.x).toFixed(0)},${(c1.y - c0.y).toFixed(0)})`);
   // labels anchored in world space while dragging and rotating (screen position == projection of the world anchor)
-  await p.evaluate(() => { const h = rimBoard().find((o) => !o.isPlayer); CityMap.flyTo(h.x, h.y, 1.0, true); }); await p.waitForTimeout(2500);
+  await p.evaluate(() => { const h = rimBoard().find((o) => !o.isPlayer && !o.heartwood); CityMap.flyTo(h.x, h.y, 1.0, true); }); await p.waitForTimeout(2500);
   const L0 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l })));
   await p.mouse.move(200, 520); await p.mouse.down(); await p.mouse.move(140, 470, { steps: 6 }); await p.waitForTimeout(150);
   const L1 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l, pr: CityMap.w2sUp(l.wx, l.wy, l.up) })));
@@ -82,7 +92,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForTimeout(300); const za = await p.evaluate(() => CityMap.cam.z); ok(za > zb * 1.3, `pinch zooms in ${zb.toFixed(2)} -> ${za.toFixed(2)}`);
   await p.evaluate(() => clearInterval(window.__ac));
   // tap an AI home → card with Raid
-  await p.evaluate(() => { const h = W.homes.find((h) => !h.player && Math.hypot(h.x - W.player.x, h.y - W.player.y) > 300); CityMap.flyTo(h.x, h.y, 1.4, true); window.__h = h; });
+  await p.evaluate(() => { const h = W.homes.find((h) => !h.isPlayer && !h.heartwood && Math.hypot(h.x - W.player.x, h.y - W.player.y) > 300); CityMap.flyTo(h.x, h.y, 1.4, true); window.__h = h; });
   await p.waitForTimeout(400);
   const pt = await p.evaluate(() => { const [x, y] = CityMap.w2sUp(__h.x, __h.y, homeW(__h) * 0.4); return [x, y]; });
   const box = await p.locator('#cityCanvas').boundingBox(); await p.evaluate(() => closeModalQuiet());
@@ -108,6 +118,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.click('[data-city=board]'); await p.waitForTimeout(300);
   { const bt = await p.textContent('#modalBody'); const pin = await p.textContent('#boardPin'); ok(/Rim Leaderboard/.test(bt) && /You/.test(pin) && /Lv \d+/.test(pin), 'leaderboard ranks homes by rim proximity with your row pinned: ' + pin.trim().replace(/\s+/g, ' '));
     ok(await p.evaluate(() => { const r = rimBoard(); return r.every((h, i) => i === 0 || r[i - 1].deepest >= h.deepest); }), 'leaderboard sorted by deepest level'); await p.screenshot({ path: 'city-board.png' }); }
+  ok(/🌳 Heartwood/.test(await p.textContent('#modalBody')), 'leaderboard marks Heartwood residents');
+  { const hc2 = await p.evaluate(() => { closeModalQuiet(); const h = W.homes.find((o) => o.heartwood && !o.isPlayer); CityMap.homeCard(h); return document.getElementById('modalBody').textContent; }); ok(/Heartwood/.test(hc2) && /Rim rank #\d+/.test(hc2) && /'s Ledge/.test(hc2), 'a Heartwood Ledge card shows Heartwood as its ring'); await p.evaluate(() => closeModalQuiet()); }
   await p.evaluate(() => closeModalQuiet());
   // Ticker
   // other tabs still work

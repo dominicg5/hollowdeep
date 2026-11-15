@@ -7,9 +7,10 @@ const CITY = {
   base: true,       // approved base only: terrain, homes, the Exchange, trees, day/night, clouds (no events, NPCs, landmarks...)
   maxDepth: 99,     // the Hollow's depth levels (99 is the far goalpost)
   homeCount: 760,   // total homes on the map (one value: raise or lower it here)
-  lipShare: 0.86,   // share of homes packed in tight rings along the Hollow lip; the rest dot the lowlands
+  rings: 10,        // players are split into deciles by rank: ring 1 (top 10%) on the summit by the lip ... ring 10 out by the far mountains
+  heartwoodShare: 0.01, // the top 1% live in the Heartwood, the giant tree leaning over the Hollow
   homeGap: 1.9,     // spacing between Ledges (x their footprint)
-  lipBand: 760,     // depth of the lip city ring (world units)
+  summitH: 1800,    // height of the raised plateau (the summit around the Hollow) above the lowlands
      // share of homes ringing the Hollow lip; the rest form small lowland towns              // in-world name for each player's capital
   seed: 20261114,
   R: 13000, hollowR: 3000, plateauR: 5400, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
@@ -363,9 +364,19 @@ function generateCity() {
   { const N = CITY.homeCount - 1, depths = [];
     for (let i = 0; i < N; i++) depths.push(Math.max(1, Math.min(72, 1 + Math.floor(-Math.log(1 - rnd() * 0.9999) * 9))));
     depths.sort((a, b) => b - a);
-    for (let i = 0; i < N; i++) { const q = (i + 0.5) / N; let h = null;
-      for (let k = 0; k < 120 && !h; k++) { const a = rnd() * TAU - Math.PI, [x, y] = polar(rimRadiusQ(q, a) + (rnd() - 0.5) * (80 + k * 4), a); if (q < CITY.lipShare ? plateauDist(x, y) > -60 : !lowland(x, y)) continue; h = addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.6, q < 0.3 ? -1.3 : q < CITY.lipShare ? -0.6 : 0.3); }
-      if (h) { h.deepest = depths[i]; h.battered = false; h.banners = 0; h.trophies = 0; h.pet = null; } }
+    W.heartwood = makeHeartwood(rnd);
+    // ring by rank decile; within a ring homes gather in small clusters with natural jitter
+    const byRing = []; for (let i = 0; i < N; i++) { const k = ringForRank(i, N + 1); (byRing[k] || (byRing[k] = [])).push(i); }
+    for (let k = 0; k <= CITY.rings; k++) { const L = byRing[k]; if (!L) continue;
+      if (k === 0) { L.forEach((i, j) => { const h = addHeartwoodHome(depths[i], j, rnd, used); if (h) h.deepest = depths[i]; }); continue; }
+      const nc = Math.max(3, Math.ceil(L.length / 5)), ph = rnd() * TAU, cs = [];
+      for (let c = 0; c < nc; c++) cs.push([ph + (c + 0.2 + rnd() * 0.6) * TAU / nc, 0.15 + rnd() * 0.7]);
+      L.forEach((i, j) => { let h = null; const c = cs[j % nc];
+        for (let t = 0; t < 70 && !h; t++) { const far = t > 40, a = far ? rnd() * TAU - Math.PI : c[0] + (rnd() - 0.5) * (0.06 + t * 0.006) * (3600 / ringR(k, c[0], 0.5)), u = far ? rnd() : clamp(c[1] + (rnd() - 0.5) * (0.35 + t * 0.02), 0.02, 0.98);
+          const [x, y] = polar(ringR(k, a, u), a); if (!ringGround(x, y, k)) continue; h = addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.6, k <= 1 ? -1.3 : k < 4 ? -0.6 : 0.3); }
+        for (let t = 0; t < 200 && !h; t++) { const a = rnd() * TAU - Math.PI, [x, y] = polar(ringR(k, a, rnd()), a); if (t < 120 && !ringGround(x, y, k)) continue; h = addHome(x, y, Math.atan2(-y, -x), 0); } // rare fallback
+        if (h) { h.deepest = depths[i]; h.ring = k; h.battered = false; h.banners = 0; h.trophies = 0; h.pet = null; } }); }
+    W.homes.forEach((h) => { if (h.heartwood) { h.battered = false; h.banners = 0; h.trophies = 0; h.pet = null; } });
     // the player's home: placed by their own record (see relocatePlayer)
     let P = null; for (let k = 0; k < 400 && !P; k++) { const a = regionAngle(7) + (rnd() - 0.5) * 0.6, [x, y] = polar(CITY.plateauR + 900 + rnd() * 800, a); P = addHome(x, y, Math.atan2(-y, -x), 0); }
     P.isPlayer = true; P.owner = 'You'; P.name = 'Your ' + CITY.homeTerm; P.size = 40; P.style = 3; P.wing = 1; P.tower = true; P.deepest = 0; P.battered = false; P.banners = 0; P.trophies = 0; P.pet = null; W.player = P; }
@@ -422,23 +433,52 @@ function generateCity() {
 // ring radius for a rim-proximity percentile q (0 = deepest delver, on the lip; 1 = shallowest, far out in the lowlands)
 // every home is a Ledge (like a portaledge), named after its owner
 function ledgeName(owner) { return `${owner}'s ${CITY.homeTerm}`; }
-function rimRadiusQ(q, a) { const L = CITY.lipShare; if (q < L) return hollowR(a) + 130 + (q / L) * Math.min(CITY.lipBand, plateauR(a) - hollowR(a) - 420);
-  return plateauR(a) + cliffW(a) + 320 + ((q - L) / (1 - L)) * (CITY.R - 1600 - plateauR(a) - cliffW(a)); }
+// rank (0-based, of total) -> ring: 0 = the Heartwood (top 1%), 1 = summit lip (rest of the top 10%), ... 10 = far mountains (bottom 10%)
+function heartwoodCount(total) { return Math.max(1, Math.round((total || CITY.homeCount) * CITY.heartwoodShare)); }
+function ringForRank(i, total) { if (i < heartwoodCount(total)) return 0; return Math.min(CITY.rings, 1 + Math.floor(i * CITY.rings / total)); }
+// radius of ring k at angle a, u = 0..1 across the ring's band. Ring 1 sits on the summit; rings 2..10 spread from the foot of
+// the plateau across the lowlands to the mountain slopes at the world's edge.
+function ringR(k, a, u) { const hr = hollowR(a), pr = plateauR(a);
+  if (k <= 1) { const r0 = hr + 160, r1 = hr + 0.55 * (pr - hr); return r0 + (r1 - r0) * u; }
+  const r0 = pr + 1100, w = (CITY.R - 1500 - r0) / (CITY.rings - 1); return r0 + (k - 2 + u) * w; }
+// follow the terrain: no steep slopes or cliffs; ring 1 stays on the summit, outer rings stay below it
+function ringGround(x, y, k) { if (typeof M3 === 'undefined' || !M3.ground) return true; const g = M3.ground(x, y); if (g.slope > 0.33) return false;
+  return k <= 1 ? g.h > CITY.summitH - 90 : g.h < CITY.summitH * 0.72; }
+/* ---- the Heartwood: a giant willow on the Hollow's lip, leaning out over the pit; the top 1% live in it ---- */
+const HW_SLOTS = [ // tree-local spots (x out over the Hollow, y up, z sideways; tree height = 1): homes perched on the canopy, portaledges hung over the pit, a few on the trunk
+  [0.0, 1.0, 0.0], [0.22, 0.95, -0.07], [-0.2, 0.95, 0.06], [0.5, 0.5, -0.05], [0.33, 0.85, 0.06], [-0.33, 0.84, -0.04], [0.1, 0.97, 0.12], [0.48, 0.38, 0.11],
+  [-0.1, 0.97, -0.13], [0.08, 0.27, 0.15], [-0.25, 0.9, 0.12], [0.3, 0.92, -0.12], [0.52, 0.62, 0.0], [-0.06, 0.22, -0.15]];
+function makeHeartwood(rnd) { let best = null, bd = -1;
+  for (let a = -Math.PI / 2 - 0.9; a <= -Math.PI / 2 + 0.9; a += 0.05) { const [x, y] = polar(hollowR(a) + 40, a); let d = 1e9; for (let r = -200; r <= 1400; r += 100) { const [x2, y2] = polar(hollowR(a) + r, a); d = Math.min(d, chasmDist(x2, y2)); } for (const da of [-0.12, 0.12]) { const [x3, y3] = polar(hollowR(a + da) + 40, a + da); d = Math.min(d, chasmDist(x3, y3) * 1.5); }
+    if (W.exchange) d = Math.min(d, Math.hypot(W.exchange.x - x, W.exchange.y - y) * 0.5); d -= Math.abs(a + Math.PI / 2) * 120; if (d > bd) { bd = d; best = a; } }
+  const a = best, n = heartwoodCount(), ht = 1500 * clamp(Math.sqrt(n / 8), 0.8, 1.6), [bx, by] = polar(hollowR(a) + 70, a);
+  void rnd; return { a, x: bx, y: by, ht, lean: 0.36, n, r: 260, type: 'heartwood' }; }
+// tree-local (x toward the pit, y up, z sideways; units of tree height) -> world, matching the leaning 3D model
+function heartwoodPoint(lx, ly, lz) { const T = W.heartwood, ix = -Math.cos(T.a), iy = -Math.sin(T.a), tx = -iy, ty = ix, S = T.ht * 1.05, c = Math.cos(T.lean), sn = Math.sin(T.lean);
+  const o = S * (lx * c + ly * sn), up = S * (-lx * sn + ly * c), sd = S * lz; return { x: T.x + ix * o + tx * sd, y: T.y + iy * o + ty * sd, elev: CITY.summitH - T.ht * 0.16 + up }; }
+function heartwoodSlot(j) { const S = HW_SLOTS[j % HW_SLOTS.length]; return heartwoodPoint(S[0], S[1] + 0.012, S[2]); }
+function addHeartwoodHome(depth, j, rnd, used) { const p = heartwoodSlot(j), h = { id: W.homes.length, x: p.x, y: p.y, elev: p.elev, heartwood: true, ring: 0, slot: j, ang: W.heartwood.a + Math.PI, size: 30, level: Math.min(40, 20 + depth / 3 | 0), region: 0, style: 0,
+    roof: '#b5533c', roofL: '#c96a50', roofD: '#8e3b28', owner: makeOwner(rnd, used), name: '', nm2: 'Heartwood', power: 100, banners: 0, trophies: 0, battered: false, pet: null, petPhase: 0, petSleep: true, lanternPhase: (j * 2.39) % TAU, wing: 0, tower: false };
+  h.name = ledgeName(h.owner); W.homes.push(h); return h; }
 // the player's deepest Hollow level on the 1..99 scale: each layer the hero has reached counts as six levels (placeholder mapping)
 function playerDeepest() { const d = (typeof S !== 'undefined' && S && S.stats) ? (S.stats.deepest || 0) : 0; return Math.max(1, Math.min(CITY.maxDepth - 1, 1 + d * 6)); }
 // rim ranking: deeper record first, then nearer the rim
-function rimBoard() { return W.homes.slice().sort((a, b) => (b.deepest - a.deepest) || (hollowDist(a.x, a.y) - hollowDist(b.x, b.y))); }
+function rimBoard() { return W.homes.slice().sort((a, b) => (b.deepest - a.deepest) || ((a.ring || 0) - (b.ring || 0)) || (hollowDist(a.x, a.y) - hollowDist(b.x, b.y))); }
 function rimRank(h) { if (!W.rankOf || W.rankStamp !== W.player.deepest) { W.rankOf = new Map(); rimBoard().forEach((o, i) => W.rankOf.set(o, i + 1)); W.rankStamp = W.player.deepest; } return W.rankOf.get(h); }
-function rimRing(h) { return 1 + Math.floor(Math.max(0, hollowDist(h.x, h.y)) / 450); }
+function rimRing(h) { return h.ring || 0; }
+function ringLabel(h) { return h.ring === 0 ? 'Heartwood' : 'Ring ' + h.ring; }
 // move the player's home to the ring that matches their record (called on load and whenever the record improves)
 function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P || (!force && P.deepest === d)) return false;
-  const others = W.homes.filter((h) => !h.isPlayer), q = clamp(others.filter((h) => h.deepest > d).length / Math.max(1, others.length), 0, 0.999), rr = mulberry32(d * 7919 + 13);
-  let spot = null; for (let k = 0; k < 400 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), [x, y] = polar(rimRadiusQ(q, a) + (rr() - 0.5) * (60 + k * 3), a), rad = P.size * 0.62;
-    if (hollowDist(x, y) < 150 || onCliff(x, y, rad + 14) || chasmDist(x, y) < rad + 8 || (q < CITY.lipShare ? plateauDist(x, y) > -60 : !lowland(x, y))) continue;
+  const others = W.homes.filter((h) => !h.isPlayer), total = others.length + 1, rank0 = others.filter((h) => h.deepest > d).length, ring = ringForRank(rank0, total), rr = mulberry32(d * 7919 + 13);
+  let spot = null, elev;
+  if (ring === 0) { const j = others.filter((h) => h.heartwood).length; const p = heartwoodSlot(j); spot = [p.x, p.y]; elev = p.elev; }
+  for (let k = 0; k < 500 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), u = rr(), [x, y] = polar(ringR(ring, a, u), a), rad = P.size * 0.62;
+    if (hollowDist(x, y) < 150 || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
     if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (W.exchange && Math.hypot(W.exchange.x - x, W.exchange.y - y) < 150)) continue; spot = [x, y]; }
   if (!spot) return false;
   if (W.buckets) { const k = Math.floor(P.x / W.bucket) + ',' + Math.floor(P.y / W.bucket), L = W.buckets.get(k); if (L) { const i = L.indexOf(P); if (i >= 0) L.splice(i, 1); } }
-  P.x = spot[0]; P.y = spot[1]; P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.deepest = d; if (W.put) W.put(P); W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }
+  P.x = spot[0]; P.y = spot[1]; P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.deepest = d; P.ring = ring; P.heartwood = ring === 0; if (ring === 0) { P.elev = elev; P.slot = others.filter((h) => h.heartwood).length; } else delete P.elev;
+  if (W.put) W.put(P); W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }
 function bboxOf(pts, pad) { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const p of pts) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); } return [x0 - pad, y0 - pad, x1 + pad, y1 + pad]; }
 function segIndex(rd, s) { let lo = 0, hi = rd.cum.length - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (rd.cum[m] <= s) lo = m; else hi = m; } return lo; }
 function roadPos(rd, s) {
