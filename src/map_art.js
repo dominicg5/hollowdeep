@@ -190,8 +190,8 @@ function artHollow(c, s, bx0, by0, bx1, by1) {
   let mr = 0; for (const p of W.hollowPts) mr = Math.max(mr, Math.hypot(p[0], p[1]));
   c.save();
   // rocky rim
-  pathPoly(c, W.hollowPts.map((p) => [p[0] * 1.035, p[1] * 1.035])); c.fillStyle = texPattern(c, 'rock', s); c.fill();
-  c.strokeStyle = 'rgba(60,50,40,.35)'; c.lineWidth = 6; c.stroke();
+  if (!ART.ground3d) { pathPoly(c, W.hollowPts.map((p) => [p[0] * 1.035, p[1] * 1.035])); c.fillStyle = texPattern(c, 'rock', s); c.fill();
+  c.strokeStyle = 'rgba(60,50,40,.35)'; c.lineWidth = 6; c.stroke(); }
   pathPoly(c, W.hollowPts); c.clip();
   const R = mr * 1.06; c.imageSmoothingEnabled = true; c.drawImage(ART.hollow, -R, -R + 18, R * 2, R * 2);
   // terraced walls: the wall texture wrapped around the pit so its ledges run as concentric terraces that follow the rim
@@ -231,7 +231,7 @@ function artHollow(c, s, bx0, by0, bx1, by1) {
   const rr = mulberry32(7); for (let k = 0; k < 140; k++) { const a = rr() * TAU, f = 0.38 + rr() * 0.58; const [x, y] = polar(hollowR(a) * f, a); const al = (0.35 + rr() * 0.5) * (0.4 + f * 0.6), r = (0.8 + rr() * 1.4) * (0.5 + f * 0.6); c.fillStyle = `rgba(255,${200 + Math.floor(rr() * 50)},120,${al})`; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); }
   c.restore();
   // lip highlight
-  c.strokeStyle = 'rgba(255,240,200,.25)'; c.lineWidth = 3; pathPoly(c, W.hollowPts.map((p) => [p[0] - 2, p[1] - 3])); c.stroke();
+  if (!ART.ground3d) { c.strokeStyle = 'rgba(255,240,200,.25)'; c.lineWidth = 3; pathPoly(c, W.hollowPts.map((p) => [p[0] - 2, p[1] - 3])); c.stroke(); }
 }
 function artCrack(c, k, s) {
   const mw = Math.max(...k.ws), d = Math.min(26, mw * 0.55 + 4);
@@ -473,7 +473,7 @@ function artRingStreet(c, s) { // cobbled ring street round the lip of the Hollo
 function artStatic(c, x0, y0, x1, y1, s) {
   drawTerrain(c, x0, y0, x1, y1, s);
   { const e = CITY.plateauR * 1.25 + 400; if (!ART.ground3d && x1 > -e && x0 < e && y1 > -e && y0 < e) artPlateau(c, s, x0, y0, x1, y1); }
-  { const e = CITY.hollowR * 1.3 + 200; if (x1 > -e && x0 < e && y1 > -e && y0 < e) artRingStreet(c, s); }
+  // (no paved ring street round the lip: grass and rock meet the pit edge directly)
   const objs = queryObjs(x0, y0, x1, y1, 160, 150);
   for (const o of objs) if (o.layer === 0) artDecal(c, o, s);
   artWater(c, x0, y0, x1, y1, s);
@@ -485,7 +485,7 @@ function artStatic(c, x0, y0, x1, y1, s) {
   for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s);
   for (const f of W.falls) if (boxHit([f.x - 80, f.y - 60, f.x + 80, f.y + 140], x0, y0, x1, y1)) { softShadow(c, f.x + 6, f.y + 40, 30, 14, 0.7); drawSprite(c, 'props2_2', f.x, f.y, 62, 0.42, 0.1); }
   if (ART.ground3d) { // ground texture for the 3D map: only footprints/shadows here, buildings and trees stand up as billboards
-    for (const o of objs) { if (o.layer !== 1 || o.isPlayer) continue; if (o.type === 'home') { const w = homeW(o); softShadow(c, o.x + w * 0.12, o.y + w * 0.06, w * 0.5, w * 0.3, 0.75); } else if (o.type === 'tree') softShadow(c, o.x + o.r * 0.5, o.y + o.r * 0.2, o.r * 1.3, o.r * 0.7, 0.7); }
+    for (const o of objs) { if (o.layer !== 1 || o.isPlayer || o.heartwood) continue; if (o.type === 'home') { const w = homeW(o); softShadow(c, o.x + w * 0.12, o.y + w * 0.06, w * 0.5, w * 0.3, 0.75); } else if (o.type === 'tree') softShadow(c, o.x + o.r * 0.5, o.y + o.r * 0.2, o.r * 1.3, o.r * 0.7, 0.7); }
     return; }
   if (s < 0.05) { for (const m of W.mountains) if (mtnHit(m, x0, y0, x1, y1)) artObj(c, m, s); // far LOD: settlements read as warm roof specks, big features only
     for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9), rc = ROOF_SPECK[roofVar(o)]; c.fillStyle = rc[0]; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = rc[1]; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }

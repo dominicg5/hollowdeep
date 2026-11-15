@@ -365,14 +365,14 @@ function generateCity() {
     for (let i = 0; i < N; i++) depths.push(Math.max(1, Math.min(72, 1 + Math.floor(-Math.log(1 - rnd() * 0.9999) * 9))));
     depths.sort((a, b) => b - a);
     W.heartwood = makeHeartwood(rnd);
-    // ring by rank decile; within a ring homes gather in small clusters with natural jitter
+    // ring by rank decile
     const byRing = []; for (let i = 0; i < N; i++) { const k = Math.max(1, ringForRank(i, N + 1)); (byRing[k] || (byRing[k] = [])).push(i); }
     for (let k = 0; k <= CITY.rings; k++) { const L = byRing[k]; if (!L) continue;
-      const nc = Math.max(3, Math.ceil(L.length / 5)), ph = rnd() * TAU, cs = [];
-      for (let c = 0; c < nc; c++) cs.push([ph + (c + 0.2 + rnd() * 0.6) * TAU / nc, 0.15 + rnd() * 0.7]);
-      L.forEach((i, j) => { let h = null; const c = cs[j % nc];
-        for (let t = 0; t < 70 && !h; t++) { const far = t > 40, a = far ? rnd() * TAU - Math.PI : c[0] + (rnd() - 0.5) * (0.06 + t * 0.006) * (3600 / ringR(k, c[0], 0.5)), u = far ? rnd() : clamp(c[1] + (rnd() - 0.5) * (0.35 + t * 0.02), 0.02, 0.98);
-          const [x, y] = polar(ringR(k, a, u), a); if (!ringGround(x, y, k)) continue; h = addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.6, k <= 1 ? -1.3 : k < 4 ? -0.6 : 0.3); }
+      // spread evenly round the ring: one slot per home, natural jitter in angle and across the band, no clumps
+      const ph = rnd() * TAU, n = L.length, da = TAU / n;
+      L.forEach((i, j) => { let h = null; const a0 = ph + j * da, u0 = 0.12 + 0.76 * ((j * 0.618034 + rnd() * 0.25) % 1);
+        for (let t = 0; t < 70 && !h; t++) { const sp = Math.min(1, 0.35 + t * 0.03), a = a0 + (rnd() - 0.5) * da * 0.7 * (t < 20 ? 1 : 1 + t * 0.1), u = clamp(u0 + (rnd() - 0.5) * sp * (t < 10 ? 0.3 : 1), 0.02, 0.98);
+          const [x, y] = polar(ringR(k, a, u), a); if (!ringGround(x, y, k) || nearHeartwood(x, y)) continue; h = addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.6, k <= 1 ? -1.3 : k < 4 ? -0.6 : 0.3); }
         for (let t = 0; t < 200 && !h; t++) { const a = rnd() * TAU - Math.PI, [x, y] = polar(ringR(k, a, rnd()), a); if (t < 120 && !ringGround(x, y, k)) continue; h = addHome(x, y, Math.atan2(-y, -x), 0); } // rare fallback
         if (h) { h.deepest = depths[i]; h.ring = k; h.battered = false; h.banners = 0; h.trophies = 0; h.pet = null; } }); }
     // the player's home: placed by their own record (see relocatePlayer)
@@ -458,6 +458,7 @@ function hwTrunkR(f) { const g = Math.max(0, f); return HW_R0 * (0.58 + 0.42 * M
 function hwAxis(f) { const T = W.heartwood; return [T.x + Math.sin(f * 5.1 + 0.7) * HW_H * 0.016, T.y + Math.sin(f * 4.3 + 2.1) * HW_H * 0.012]; }
 function heartwoodSlot(j) { const T = W.heartwood, S = HW_SEATS[j], f = S[0], th = T.in + S[1], [ax, ay] = hwAxis(f), r = S[2] || hwTrunkR(f) + 330;
   return { x: ax + Math.cos(th) * r, y: ay + Math.sin(th) * r, elev: T.base + f * HW_H + 20, th, f, limb: S[2] }; }
+function nearHeartwood(x, y) { const T = W.heartwood; return !!T && Math.hypot(x - T.x, y - T.y) < HW_R0 * 2.2; }
 function moveHome(h, x, y) { if (W.buckets) { const k = Math.floor(h.x / W.bucket) + ',' + Math.floor(h.y / W.bucket), L = W.buckets.get(k); if (L) { const i = L.indexOf(h); if (i >= 0) L.splice(i, 1); } }
   h.x = x; h.y = y; if (W.put) W.put(h); }
 // seat the Rim's top 10 (by deepest level) in the Heartwood: seat #N = rank #N. Anyone bumped out returns to their ground spot on ring 1.
@@ -479,7 +480,7 @@ function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P
   if (ring === 0) { seatHeartwood(); W.playerMoves = (W.playerMoves || 0) + 1; return true; }
   let spot = null;
   for (let k = 0; k < 500 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), u = rr(), [x, y] = polar(ringR(ring, a, u), a), rad = P.size * 0.62;
-    if (hollowDist(x, y) < 150 || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
+    if (hollowDist(x, y) < 150 || nearHeartwood(x, y) || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
     if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (W.exchange && Math.hypot(W.exchange.x - x, W.exchange.y - y) < 150)) continue; spot = [x, y]; }
   if (!spot) { seatHeartwood(); return false; }
   P.heartwood = false; delete P.elev; delete P.slot; moveHome(P, spot[0], spot[1]); P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.ring = ring;

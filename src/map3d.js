@@ -60,8 +60,8 @@ const M3 = (() => {
     if (r < hr + 2) { // the pit: broken, irregular strata ledges of varied depth (not concentric rings), rough rock between
       const g = clamp(1 - r / hr, 0, 1), TT = 8, warp = 1.3 * fbm(x / 1100 + 3, y / 1100 - 2, 3) + 0.45 * Math.sin(a * 3 + g * 6 + 1.3) + 0.3 * Math.sin(a * 7 - g * 4);
       const gt = g * TT + warp * smooth01(0, 0.08, g), fi = Math.floor(gt), fr = gt - fi, sh = 0.35 + 0.45 * vnoise(fi * 3.7 + Math.cos(a) * 2, Math.sin(a) * 2 + fi);
-      const step = clamp((fi + smooth01(sh, 1, fr)) / TT, 0, 1), brk = smooth01(0.3, 0.62, vnoise(x / 760 + fi * 1.7, y / 760 - fi)), base = (Math.pow(step, 0.8) * brk + Math.pow(g, 0.8) * (1 - brk)) * 0.86 + Math.pow(g, 0.8) * 0.14;
-      h = P_H - PIT * base - 30 * g - 110 * ridged(x / 380, y / 380, 3) * smooth01(0, 0.05, g) * (1 - smooth01(0.85, 1, g)); }
+      const step = clamp((fi + smooth01(sh, 1, fr)) / TT, 0, 1), brk = smooth01(0.3, 0.62, vnoise(x / 760 + fi * 1.7, y / 760 - fi)), base = (Math.pow(step, 0.8) * brk + Math.pow(g, 0.8) * (1 - brk)) * 0.86 + Math.pow(g, 0.8) * 0.14; const base2 = Math.max(base, (1 - smooth01(0.06, 0.16, g)) * Math.pow(g, 0.85) * 1.15); // no flat terrace at the lip: grass and rock break straight over the edge
+      h = P_H - PIT * base2 - 30 * g - 110 * ridged(x / 380, y / 380, 3) * smooth01(0, 0.05, g) * (1 - smooth01(0.85, 1, g)); }
     // fissures: carved trenches; where they meet the Hollow they keep cutting down the pit wall as channels
     const cd = chasmDist(x, y); if (cd < 8) h -= 460 * smooth01(8, -20, cd);
     if (r < hr + 60 && r > hr - 2200) for (const nt of notches) { let da = a - nt.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; const dist = Math.abs(da) * r, into = hr - r, wd = nt.w * (0.55 + Math.max(0, into) / 900);
@@ -238,31 +238,15 @@ void main() {
   function glowTex(inner, outer) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, inner); gr.addColorStop(0.4, outer); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); return t; }
 
   /* ---------- real 3D models: houses + trees (meshopt-compressed LODs, instanced), yard props, the Heartwood ---------- */
-  const MODEL_KEYS = ['shack', 'cottage', 'townhouse', 'workshop', 'oak', 'sequoia', 'willow'];
-  const TIER_MODEL = ['shack', 'shack', 'cottage', 'cottage', 'townhouse', 'townhouse', 'workshop', 'workshop'];
+    const TIER_MODEL = ['shack', 'shack2', 'cottage', 'cottage2', 'townhouse', 'townhouse2', 'workshop', 'workshop2'];
   let MD = null, mdState = 'idle'; const IM = { homes: [], trees: [], props: null, all: [] }; let hero = null, lodTick = 0, lodAt = null;
   const LU = { uLumenC: { value: new THREE.Color(0, 0, 0) }, uWin: { value: 0 } };
   function loadScript(src) { return new Promise((res, rej) => { const e = document.createElement('script'); e.src = src; e.onload = res; e.onerror = rej; document.head.appendChild(e); }); }
-  async function parseModel(key) { const ab = await (await fetch('assets/models/' + key + '.bin')).arrayBuffer(), dv = new DataView(ab), hl = dv.getUint32(4, true);
-    const H = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, 8, hl))); let off = 8 + hl; const tree = /oak|sequoia|willow/.test(key), geos = [];
-    const sx = H.mx[0] - H.mn[0], sy = H.mx[1] - H.mn[1], sz = H.mx[2] - H.mn[2], cx = (H.mx[0] + H.mn[0]) / 2, cz = (H.mx[2] + H.mn[2]) / 2;
-    const k = tree ? 1 / sy : 1 / Math.max(sx, sz), y0 = H.mn[1] + sy * (tree ? 0 : 0.07); // houses: sink the dirt slab a little into the ground
-    for (const L of H.lods) { const vs = new Uint8Array(ab, off, L.vb); off += L.vb; const is = new Uint8Array(ab, off, L.ib); off += L.ib;
-      const vb = new Uint8Array(L.vc * 16); MeshoptDecoder.decodeVertexBuffer(vb, L.vc, 16, vs); const ib = new Uint32Array(L.ic); MeshoptDecoder.decodeIndexBuffer(new Uint8Array(ib.buffer), L.ic, 4, is);
-      const d = new DataView(vb.buffer), P = new Float32Array(L.vc * 3), N = new Float32Array(L.vc * 3), UV = new Float32Array(L.vc * 2);
-      for (let i = 0; i < L.vc; i++) { const o = i * 16; for (let j = 0; j < 3; j++) { P[i * 3 + j] = H.mn[j] + (d.getInt16(o + j * 2, true) / 32767 + 1) / 2 * (H.mx[j] - H.mn[j]); N[i * 3 + j] = d.getInt8(o + 8 + j) / 127; }
-        P[i * 3] = (P[i * 3] - cx) * k; P[i * 3 + 1] = (P[i * 3 + 1] - y0) * k; P[i * 3 + 2] = (P[i * 3 + 2] - cz) * k;
-        for (let j = 0; j < 2; j++) UV[i * 2 + j] = H.umn[j] + d.getUint16(o + 12 + j * 2, true) / 65535 * (H.umx[j] - H.umn[j]); }
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.BufferAttribute(N, 3)); g.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); g.setIndex(new THREE.BufferAttribute(L.ic < 65536 && L.vc < 65536 ? new Uint16Array(ib) : ib, 1)); g.computeBoundingSphere(); geos.push(g); }
-    const tl = new THREE.TextureLoader(), tex = (u) => new Promise((res) => tl.load(u, (t) => { t.flipY = false; t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; res(t); }, undefined, () => res(null)));
-    const map = await tex('assets/models/' + key + '.webp'), nrm = /shack|cottage|townhouse|workshop/.test(key) ? await tex('assets/models/' + key + '_n.webp') : null; if (nrm) nrm.encoding = THREE.LinearEncoding;
-    const mat = tree ? new THREE.MeshLambertMaterial({ map, color: key === 'willow' ? 0x9cb48a : 0xb6bd96 }) : new THREE.MeshPhongMaterial({ map, normalMap: nrm, shininess: 6, specular: 0x161310, color: 0xffffff });
-    mat.onBeforeCompile = (sh) => { sh.uniforms.uLumenC = LU.uLumenC; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float iLum; varying float vLum;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLum = iLum;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uLumenC; varying float vLum;').replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += uLumenC * vLum * diffuseColor.rgb;'); };
-    return { geos, mat, tree }; }
-  async function loadModels() { if (mdState !== 'idle') return; mdState = 'loading';
-    try { if (!window.MeshoptDecoder) await loadScript('assets/vendor/meshopt_decoder.js'); await MeshoptDecoder.ready;
-      const out = {}; await Promise.all(MODEL_KEYS.map(async (k) => { out[k] = await parseModel(k); })); MD = out; mdState = 'ready'; buildModelScene(); }
+  function lumenify(mat) { mat.onBeforeCompile = (sh) => { sh.uniforms.uLumenC = LU.uLumenC; sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float iLum; varying float vLum;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvLum = iLum;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uLumenC; varying float vLum;').replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += uLumenC * vLum * diffuseColor.rgb;'); }; return mat; }
+  // houses and trees are procedural models built from the concept art (see map_houses.js), not loaded files
+  function loadModels() { if (mdState !== 'idle') return; mdState = 'loading';
+    try { const out = Object.assign({}, HOUSE_KIT.houses(), HOUSE_KIT.trees()); const mats = new Set(); for (const k in out) mats.add(out[k].mat); for (const m of mats) lumenify(m); MD = out; mdState = 'ready'; buildModelScene(); }
     catch (e) { console.warn('3D models unavailable, keeping billboards', e); mdState = 'failed'; } }
   // an instanced set: one InstancedMesh per LOD, refilled with only the instances in view (nearest get the detailed LOD)
   function makeSet(key, list, opt) { const m = MD[key], meshes = m.geos.map((g0, li) => { const g = new THREE.BufferGeometry(); for (const n in g0.attributes) g.setAttribute(n, g0.attributes[n]); g.setIndex(g0.index);
@@ -287,17 +271,10 @@ void main() {
     arr.push({ m: new THREE.Matrix4().compose(v3().addVectors(a, b).multiplyScalar(0.5), q, v3().set(th, L, th)), c: col, o: owner }); }
   function block(arr, x, y, z, sx, sy, sz, rot, col, owner) { arr.push({ m: new THREE.Matrix4().compose(v3().set(x, y + sy / 2, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, rot, 0)), v3().set(sx, sy, sz)), c: col, o: owner }); }
   const WOOD = [[0.45, 0.32, 0.2], [0.55, 0.4, 0.26], [0.38, 0.27, 0.17], [0.6, 0.47, 0.3]], ROPE = [0.62, 0.52, 0.36], IRON = [0.25, 0.24, 0.23];
-  function yardProps(h, i) { const sd = homeSeed(h) * 1000 + i, R = (k) => hash1(sd * 3.7 + k * 1.91), w = homeW(h) * 0.95, rot = h._rot, cs = Math.cos(rot), sn = Math.sin(rot), y0 = homeElev(h);
-    const at = (lx, lz) => { const x = h.x + lx * cs + lz * sn, y = h.y - lx * sn + lz * cs; return [x, h.elev != null ? y0 : meshH(x, y), y]; };
-    const wood = WOOD[(R(1) * 4) | 0];
-    if (h.elev == null && R(2) < 0.65) { const f = w * 0.82, sides = R(3) < 0.5 ? [[-1, 1], [1, 1], [1, -1]] : [[-1, -1], [-1, 1], [1, 1]];
-      for (let s2 = 0; s2 < 2; s2++) { const [ax, az] = sides[s2], [bx, bz] = sides[s2 + 1], n = 4; let prev = null;
-        for (let k = 0; k <= n; k++) { const u = k / n; if (s2 === 1 && k === 2 && R(4) < 0.7) { prev = null; continue; } const [x, gy, y] = at(f * (ax + (bx - ax) * u), f * (az + (bz - az) * u)), top = v3().set(x, gy + 11, y);
-          stick(PR.box, v3().set(x, gy - 3, y), top.clone().setY(gy + 13), 2.4, wood, h); if (prev) { stick(PR.box, prev, top, 1.3, wood, h); stick(PR.box, prev.clone().setY(prev.y - 6), top.clone().setY(top.y - 6), 1.3, wood, h); } prev = top; } } }
-    const nc = 1 + ((R(5) * 3) | 0); for (let k = 0; k < nc; k++) { const sz = 7 + R(6 + k) * 5, [x, gy, y] = at(w * (0.45 + 0.12 * k), w * (0.42 - 0.1 * k)); block(PR.box, x, gy - 1, y, sz, sz, sz, R(9 + k) * 3, WOOD[(R(11 + k) * 4) | 0], h); }
-    if (R(13) < 0.6) for (let k = 0; k < 1 + (R(14) < 0.5); k++) { const [x, gy, y] = at(-w * (0.5 + 0.13 * k), w * 0.45); block(PR.cyl, x, gy - 1, y, 7, 10, 7, 0, [0.42, 0.28, 0.16], h); }
-    if (R(15) < 0.75 || h.elev != null) { const [x, gy, y] = at(w * 0.62, -w * 0.5); stick(PR.box, v3().set(x, gy - 3, y), v3().set(x, gy + 24, y), 2, IRON, h); block(PR.lamp, x, gy + 22, y, 4.5, 5, 4.5, 0, [1, 0.75, 0.4], h); PR.glow.push([x, gy + 25, y, h]); }
-    if (R(17) < 0.35 && h.elev == null) { const [x, gy, y] = at(w * 0.2, -w * 0.18); PR.smoke.push([x, gy + w * 0.85, y, R(18) * 10, h]); } }
+  // the models carry their own lanterns, barrels, crates and ladders; here only the chimney smoke is added
+  const CHIMNEY = { shack: [-0.36, 1.04, -0.25], cottage: [-0.34, 1.16, -0.03], townhouse: [0.1, 1.82, -0.12], workshop: [0.24, 1.59, -0.12] };
+  function yardProps(h, i, key, w) { const c = CHIMNEY[key.replace('2', '')]; if (!c || h.heartwood || hash1(i * 3.3 + 1) > 0.4) return; const rot = h._rot, cs = Math.cos(rot), sn = Math.sin(rot), x = h.x + (c[0] * cs + c[2] * sn) * w, y = h.y + (-c[0] * sn + c[2] * cs) * w;
+    PR.smoke.push([x, homeElev(h) + c[1] * w, y, hash1(i * 7.7) * 10, h]); }
   /* ---------- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall (merged geometry, instanced foliage) ---------- */
   function hwCanvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; if (rep) t.repeat.set(rep[0], rep[1]); return t; }
   function barkTex() { return hwCanvasTex(256, 512, (g, w, h) => { g.fillStyle = '#6a5240'; g.fillRect(0, 0, w, h); let s = 7; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
@@ -467,10 +444,10 @@ void main() {
     for (const s2 of IM.all) for (const m of s2.meshes) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = [];
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
     const byKey = {}; const push = (k, o) => (byKey[k] || (byKey[k] = [])).push(o);
-    W.homes.forEach((h, i) => { const tier = tierOf(h), key = h.heartwood ? (h.slot % 3 === 1 ? 'shack' : 'cottage') : TIER_MODEL[tier], w = h.heartwood ? HW_HOUSE : homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = h.heartwood ? Math.PI / 2 - h.hwTh : (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
-      h._rot = rot; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i); });
-    for (const k of ['shack', 'cottage', 'townhouse', 'workshop']) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
-    let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - (k === 'willow' ? s * 0.16 : 3); nt++;
+    W.homes.forEach((h, i) => { const tier = tierOf(h), key = h.heartwood ? (h.slot % 3 === 1 ? 'shack2' : 'cottage2') : TIER_MODEL[tier], w = h.heartwood ? HW_HOUSE : homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = h.heartwood ? Math.PI / 2 - h.hwTh : (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
+      h._rot = rot; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i, key, w); });
+    for (const k of TIER_MODEL) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
+    let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - 2; nt++;
       push('t_' + k, { x: o.x, y, z: o.y, rot: (o.seed || 0.5) * TAU * 7, s, c: tintFor(o.seed * 100 + 3, 0.6), lum: lumAt(o.x, o.y) * 0.8 }); }
     for (const k of ['oak', 'sequoia', 'willow']) if (byKey['t_' + k]) { MD['t_' + k] = MD[k]; IM.trees.push(makeSet('t_' + k, byKey['t_' + k], { near: 1800, far: 26000, minZ: 0.0, shadow: true })); }
     buildHeartwood();
@@ -495,12 +472,12 @@ void main() {
         if (!ok) continue; p.m.toArray(im.instanceMatrix.array, n * 16); im.instanceColor.array.set(p.c, n * 3); n++; }
       im.count = n; im.visible = n > 0; im.instanceMatrix.needsUpdate = true; im.instanceColor.needsUpdate = true; } }
   function updateModels(t, cam, night, pulse, LC) { if (!MD || !IM.all.length) return;
-    LU.uLumenC.value.copy(LC).multiplyScalar(night * 1.1 * pulse + 0.05);
+    LU.uLumenC.value.copy(LC).multiplyScalar(night * 0.22 * pulse + 0.02);
     const key = Math.round(camera.position.x / 60) + ',' + Math.round(camera.position.y / 60) + ',' + Math.round(camera.position.z / 60) + ',' + cam.rot.toFixed(2) + ',' + cam.tilt.toFixed(1);
     if (key !== lodAt || ++lodTick > 30) { lodAt = key; lodTick = 0; pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frus.setFromProjectionMatrix(pm);
       for (const s2 of IM.all) fillSet(s2, cam.z); fillProps(cam.z > 0.14); }
     IM.props.lamp.material.color.setRGB(0.35 + night * 0.75, 0.27 + night * 0.5, 0.16 + night * 0.25);
-    IM.glow.material.opacity = night * 0.5; IM.glow.visible = night > 0.05;
+    IM.glow.material.opacity = night * 0.28; for (const k of TIER_MODEL) if (MD[k]) { MD[k].mat.emissiveIntensity = night * 0.8; break; } IM.glow.visible = night > 0.05;
     IM.smoke.material.uniforms.uT.value = t; IM.smoke.visible = cam.z > 0.12; IM.smoke.material.uniforms.uS.value = renderer.getPixelRatio() * cssH / 900; IM.smoke.material.uniforms.uC.value.setRGB(0.86 - night * 0.6, 0.86 - night * 0.6, 0.88 - night * 0.55);
     animPulley(t, night); }
 
@@ -625,5 +602,5 @@ void main() {
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }
-  return { refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();
