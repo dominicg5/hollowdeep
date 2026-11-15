@@ -41,9 +41,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const mv = await p.evaluate(() => { const d0 = hollowDist(W.player.x, W.player.y), r0 = rimRank(W.player); S.stats.deepest = (S.stats.deepest || 0) + 6; const moved = relocatePlayer(); const d1 = hollowDist(W.player.x, W.player.y), r1 = rimRank(W.player); S.stats.deepest -= 6; relocatePlayer(); M3.refresh(); return { moved, d0: Math.round(d0), d1: Math.round(d1), r0, r1 }; });
   ok(mv.moved && mv.d1 < mv.d0 && mv.r1 < mv.r0, `player's Ledge moves inward when their record improves (${mv.d0} -> ${mv.d1} from the rim, rank #${mv.r0} -> #${mv.r1})`);
   const seats = await p.evaluate(() => { const B = rimBoard(), R = W.homes.filter((h) => h.heartwood).sort((a, b) => a.slot - b.slot); return { n: R.length, slots: R.map((h) => h.slot).join(','), rankOk: R.every((h) => B.indexOf(h) === h.slot), higher: R.every((h, i) => !i || h.elev < R[i - 1].elev), lbl: ringLabel(R[0]) }; });
-  ok(seats.n === 10 && seats.slots === '0,1,2,3,4,5,6,7,8,9' && seats.rankOk && seats.higher && seats.lbl === 'Grand Tree #1', `the Heartwood seats the top 10 in numbered seats, #1 highest (${JSON.stringify(seats)})`);
+  ok(seats.n === 10 && seats.slots === '0,1,2,3,4,5,6,7,8,9' && seats.rankOk && seats.higher && seats.lbl === 'Lumen Tree #1', `the Heartwood seats the top 10 in numbered seats, #1 highest (${JSON.stringify(seats)})`);
   const hwv = await p.evaluate(() => { const d0 = S.stats.deepest; S.stats.deepest = 20; relocatePlayer(); const snap = () => W.homes.filter((h) => h.heartwood && !h.isPlayer).map((h) => h.id + ':' + Math.round(h.x)).sort().join(); const before = W.__hw0 || snap(); const r = { ring: W.player.ring, hw: !!W.player.heartwood, elev: Math.round(W.player.elev || 0), lbl: ringLabel(W.player), n: W.homes.filter((h) => h.heartwood).length, bumped: W.homes.some((h) => !h.heartwood && h.gx != null && h.ring === 1) }; S.stats.deepest = d0; relocatePlayer(); M3.refresh(); r.back = W.player.ring; r.n2 = W.homes.filter((h) => h.heartwood).length; r.restored = snap().split(',').length === 10; return r; });
-  ok(hwv.ring === 0 && hwv.hw && hwv.elev > 1900 && hwv.lbl === 'Grand Tree #1' && hwv.n === 10 && hwv.bumped && hwv.back > 0 && hwv.n2 === 10 && hwv.restored, `player moves into Heartwood seat #1 when in the top 10 (bumping #10 to ring 1) and back out (${JSON.stringify(hwv)})`);
+  ok(hwv.ring === 0 && hwv.hw && hwv.elev > 1900 && hwv.lbl === 'Lumen Tree #1' && hwv.n === 10 && hwv.bumped && hwv.back > 0 && hwv.n2 === 10 && hwv.restored, `player moves into Heartwood seat #1 when in the top 10 (bumping #10 to ring 1) and back out (${JSON.stringify(hwv)})`);
   ok(await p.evaluate(() => CONFIG.raidsEnabled === false && S.nextRaidAt > 1e14 && !S.pendingReveal), 'raids are off game-wide (no raid timer, no pending raid)');
   ok(g.fish === 0, 'no flying fish'); ok(g.wx === 0, 'no storms or rain in weather table'); ok(g.obs, 'obsidian resource still in economy');
   // canvas non-blank
@@ -105,14 +105,18 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(/'s Ledge$/.test(hname), 'homes are Ledges named after their owner: ' + hname);
   await p.screenshot({ path: 'city-home-card.png' });
     await p.evaluate(() => closeModalQuiet());
-  // the outdoor Exchange is gone from the map (the Grand Tree is the commune now)
+  // the outdoor Exchange is gone from the map (the Lumen Tree is the commune now)
   ok(await p.evaluate(() => !W.exchange && !W.civic.some((c) => c.type === 'exchange')), 'no outdoor Exchange on the map');
+  // the Lumen Tree's great door: tapping it opens the Enter prompt
+  { const D = await p.evaluate(() => { const D = GRAND.door; if (!D) return null; const T = W.heartwood, o = T.in + Math.PI; CityMap.flyTo(D.x + Math.cos(o) * 900, D.y + Math.sin(o) * 900, 0.25, true); CityMap.cam.rot = Math.atan2(Math.cos(o), Math.sin(o)); CityMap.cam.tilt = 35; return { x: D.x, y: D.y, up: D.up, h: D.hgt }; });
+    ok(!!D, 'the Lumen Tree has its great door'); if (D) { await p.waitForTimeout(1500); await p.evaluate((D) => { closeModalQuiet(); CityMap.handleTap(...CityMap.w2sUp(D.x, D.y, D.up + D.h * 0.4)); }, D); await p.waitForTimeout(400);
+      ok(/Enter the Lumen Tree/.test(await p.textContent('#modalBody')), 'tapping the door opens the Enter the Lumen Tree prompt'); await p.screenshot({ path: 'city-door.png' }); await p.evaluate(() => closeModalQuiet()); } }
   // Rim Leaderboard
   await p.click('[data-city=board]'); await p.waitForTimeout(300);
   { const bt = await p.textContent('#modalBody'); const pin = await p.textContent('#boardPin'); ok(/Rim Leaderboard/.test(bt) && /You/.test(pin) && /Lv \d+/.test(pin), 'leaderboard ranks homes by rim proximity with your row pinned: ' + pin.trim().replace(/\s+/g, ' '));
     ok(await p.evaluate(() => { const r = rimBoard(); return r.every((h, i) => i === 0 || r[i - 1].deepest >= h.deepest); }), 'leaderboard sorted by deepest level'); await p.screenshot({ path: 'city-board.png' }); }
-  ok(/🌳 Grand Tree #\d/.test(await p.textContent('#modalBody')), 'leaderboard marks Grand Tree residents');
-  { const hc2 = await p.evaluate(() => { closeModalQuiet(); const h = W.homes.find((o) => o.heartwood && !o.isPlayer); CityMap.homeCard(h); return document.getElementById('modalBody').textContent; }); ok(/Grand Tree #\d+/.test(hc2) && /Rim rank #\d+/.test(hc2) && /'s Ledge/.test(hc2), 'a Grand Tree Ledge card shows the Grand Tree as its ring'); await p.evaluate(() => closeModalQuiet()); }
+  ok(/🌳 Lumen Tree #\d/.test(await p.textContent('#modalBody')), 'leaderboard marks Lumen Tree residents');
+  { const hc2 = await p.evaluate(() => { closeModalQuiet(); const h = W.homes.find((o) => o.heartwood && !o.isPlayer); CityMap.homeCard(h); return document.getElementById('modalBody').textContent; }); ok(/Lumen Tree #\d+/.test(hc2) && /Rim rank #\d+/.test(hc2) && /'s Ledge/.test(hc2), 'a Grand Tree Ledge card shows the Lumen Tree as its ring'); await p.evaluate(() => closeModalQuiet()); }
   await p.evaluate(() => closeModalQuiet());
   // Ticker
   // other tabs still work
