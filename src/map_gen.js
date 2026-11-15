@@ -445,7 +445,7 @@ function ringGround(x, y, k) { if (typeof M3 === 'undefined' || !M3.ground) retu
   return k <= 1 ? g.h > CITY.summitH - 90 : g.h < CITY.summitH * 0.72; }
 /* ---- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall, its roots gripping the lip.
    The Rim's top 10 players live in it, in 10 fixed, numbered seats (#1 near the crown ... #10 low on the trunk). ---- */
-const HW_H = 8600, HW_R0 = 1250, HW_HOUSE = 340;
+const HW_H = 8600, HW_R0 = 1250, HW_HOUSE = 440;
 // seats: [height (fraction of HW_H), angle offset from the side facing the Hollow, limb distance (0 = deck wrapped round the trunk)]
 const HW_SEATS = [[0.585, 0.15, 0], [0.555, -1.25, 1650], [0.51, 1.2, 0], [0.465, -0.2, 1850], [0.415, 2.35, 0], [0.365, -1.05, 0], [0.315, 0.7, 0], [0.265, -2.3, 1600], [0.205, -0.15, 0], [0.145, 1.55, 0]];
 function makeHeartwood() { let best = null, bd = -1;

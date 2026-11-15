@@ -440,18 +440,31 @@ void main() {
       // seat number badges (always face the camera)
       for (const s2 of HWX.seats) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#5a3b22'; g.beginPath(); g.arc(64, 64, 58, 0, TAU); g.fill(); g.lineWidth = 8; g.strokeStyle = '#e8c27a'; g.stroke();
         g.fillStyle = '#ffe7a8'; g.font = 'bold 60px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('#' + (s2.j + 1), 64, 68); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false })); const p = s2.limb ? v3().copy(s2.m).addScaledVector(s2.d, s2.hw2 * 0.8) : v3().copy(s2.c).addScaledVector(dirAt(s2.th + s2.span * 0.75), s2.ro - 40); sp.position.set(p.x, s2.y + 150, p.z); sp.scale.set(150, 150, 1); add(sp); HWX.badges.push(sp); } }
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false })); const p = s2.limb ? v3().copy(s2.m).addScaledVector(s2.d, s2.hw2 * 0.8) : v3().copy(s2.c).addScaledVector(dirAt(s2.th + s2.span * 0.75), s2.ro - 40); sp.position.set(p.x, s2.y + 150, p.z); sp.scale.set(150, 150, 1); add(sp); HWX.badges.push(sp); }
+      // carved, hanging number boards on each deck's rail (#1 gilded), readable from the street below
+      HWX.signs = []; for (const s2 of HWX.seats) { const c = document.createElement('canvas'); c.width = 256; c.height = 160; const g = c.getContext('2d'); const top = s2.j === 0;
+        g.fillStyle = '#6b4526'; g.fillRect(0, 0, 256, 160); for (let k = 0; k < 5; k++) { g.fillStyle = k % 2 ? 'rgba(0,0,0,.12)' : 'rgba(255,220,170,.06)'; g.fillRect(0, k * 32, 256, 30); g.fillStyle = 'rgba(30,18,8,.6)'; g.fillRect(0, k * 32 + 30, 256, 2); }
+        g.lineWidth = 12; g.strokeStyle = top ? '#d9a93c' : '#3b2614'; g.strokeRect(6, 6, 244, 148); g.fillStyle = '#2a190c'; for (const [x, y] of [[20, 20], [236, 20], [20, 140], [236, 140]]) { g.beginPath(); g.arc(x, y, 6, 0, TAU); g.fill(); }
+        g.font = 'bold 108px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 10; g.strokeStyle = '#24160a'; g.strokeText('#' + (s2.j + 1), 128, 86); g.fillStyle = top ? '#ffd65a' : '#f3dca0'; g.fillText('#' + (s2.j + 1), 128, 86);
+        const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; const board = new THREE.Mesh(new THREE.PlaneGeometry(190, 119), new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide, emissive: 0xffc070, emissiveIntensity: 0, emissiveMap: t }));
+        let at, nrm; if (s2.limb) { at = v3().copy(s2.m).addScaledVector(s2.d, s2.hw2 + 6).setY(s2.y - 20); nrm = s2.d; } else { const a = s2.th + s2.span * 0.42; nrm = dirAt(a); at = v3().copy(s2.c).addScaledVector(nrm, s2.ro + 4).setY(s2.y - 20); }
+        board.position.copy(at); board.lookAt(v3().copy(at).add(nrm)); add(board); HWX.signs.push(board); } }
     // railings, posts, struts, ladders, walkways and hanging lanterns (instanced props, rebuilt with the scene)
     const ST = WOOD[2], RL = WOOD[0], lamp = (p) => { stick(PR.box, p, v3().copy(p).add(v3().set(0, -40, 0)), 3, ROPE, null); block(PR.lamp, p.x, p.y - 70, p.z, 22, 30, 22, 0, [1, 0.75, 0.4], null); PR.glow.push([p.x, p.y - 55, p.z, null]); };
     const rail = (pts, ht) => { let prev = null; pts.forEach((p, i) => { const top = v3().copy(p).add(v3().set(0, ht, 0)); stick(PR.box, p, top, 12, ST, null); if (prev) { stick(PR.box, prev, top, 6, RL, null); stick(PR.box, v3().copy(prev).add(v3().set(0, -ht * 0.5, 0)), v3().copy(top).add(v3().set(0, -ht * 0.5, 0)), 4, RL, null); } prev = top; }); };
     const anchor = [];
     for (const s2 of HWX.seats) { const { th, y } = s2;
       if (!s2.limb) { const pts = []; for (let k = 0; k <= 12; k++) { const a = th - s2.span + (k / 12) * s2.span * 2; pts.push(v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 14).setY(y)); } rail(pts, 70);
-        for (const k of [0, 6, 12]) { const a = th - s2.span + (k / 12) * s2.span * 2, o = v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 30).setY(y - 34), tk = v3().copy(ax(s2.f - 0.045)).addScaledVector(dirAt(a), hwTrunkR(s2.f - 0.045) * 0.9); stick(PR.box, o, tk, 26, WOOD[0], null); }
+        for (const k of [0, 3, 6, 9, 12]) { const a = th - s2.span + (k / 12) * s2.span * 2, o = v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 30).setY(y - 34), tk = v3().copy(ax(s2.f - 0.045)).addScaledVector(dirAt(a), hwTrunkR(s2.f - 0.045) * 0.9); stick(PR.box, o, tk, 26, WOOD[0], null);
+          const ti = v3().copy(s2.c).addScaledVector(dirAt(a), s2.ri + 40).setY(y - 40); stick(PR.box, v3().copy(o).setY(y - 40), ti, 22, WOOD[2], null); const mid = v3().lerpVectors(o, tk, 0.45); stick(PR.box, mid, v3().lerpVectors(o, ti, 0.55).setY(y - 40), 14, WOOD[3], null); }
+        for (const k of [0, 12]) { const a = th - s2.span + (k / 12) * s2.span * 2, b = v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 14).setY(y), tp = v3().copy(b).add(v3().set(0, 190, 0)), arm = v3().copy(tp).addScaledVector(dirAt(a), 70); stick(PR.box, b, tp, 14, ST, null); stick(PR.box, tp, arm, 8, IRON, null); lamp(arm); }
         for (const k of [3, 9]) { const a = th - s2.span + (k / 12) * s2.span * 2; lamp(v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro + 10).setY(y + 70)); }
         anchor.push({ a: th, y, r: hwTrunkR(s2.f) + 200, span: s2.span }); }
       else { const { m, d, sd, hw2 } = s2, cn = (u, v) => v3().copy(m).addScaledVector(d, u * hw2).addScaledVector(sd, v * hw2).setY(y); rail([cn(-1, -1), cn(1, -1), cn(1, 1), cn(-1, 1)], 70);
-        for (const v of [-1, 1]) lamp(v3().copy(cn(1, v)).add(v3().set(0, 70, 0))); for (const v of [-1, 1]) for (let k = 1; k < 6; k++) { const p = v3().copy(s2.c).addScaledVector(d, hwTrunkR(s2.f) + (s2.limb - hw2 - hwTrunkR(s2.f)) * k / 6).addScaledVector(sd, v * 70).setY(y - 6); stick(PR.box, p, v3().copy(p).add(v3().set(0, 55, 0)), 7, ST, null); }
+        for (const v of [-1, 1]) lamp(v3().copy(cn(1, v)).add(v3().set(0, 70, 0)));
+        const knee = v3().copy(m).setY(y - 300); for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) stick(PR.box, v3().copy(cn(u * 0.9, v * 0.9)).setY(y - 34), knee, 22, WOOD[0], null); stick(PR.box, v3().copy(m).setY(y - 34), knee, 30, WOOD[2], null);
+        for (const u of [-0.6, 0, 0.6]) stick(PR.box, v3().copy(cn(u, -1)).setY(y - 40), v3().copy(cn(u, 1)).setY(y - 40), 22, WOOD[2], null);
+        for (const v of [-1, 1]) { const b = cn(-1, v), tp = v3().copy(b).add(v3().set(0, 190, 0)), arm = v3().copy(tp).addScaledVector(sd, v * 70); stick(PR.box, b, tp, 14, ST, null); stick(PR.box, tp, arm, 8, IRON, null); lamp(arm); } for (const v of [-1, 1]) for (let k = 1; k < 6; k++) { const p = v3().copy(s2.c).addScaledVector(d, hwTrunkR(s2.f) + (s2.limb - hw2 - hwTrunkR(s2.f)) * k / 6).addScaledVector(sd, v * 70).setY(y - 6); stick(PR.box, p, v3().copy(p).add(v3().set(0, 55, 0)), 7, ST, null); }
         anchor.push({ a: th, y, r: hwTrunkR(s2.f) + 200, span: 0.12 }); } }
     // seat k+1 (lower) climbs to seat k: a ladder up the trunk at the lower deck's edge, a landing, then a plank walk round the trunk
     for (let j = anchor.length - 1; j > 0; j--) { const lo = anchor[j], hi = anchor[j - 1]; let dA = Math.atan2(Math.sin(hi.a - lo.a), Math.cos(hi.a - lo.a)); const sg = dA >= 0 ? 1 : -1, a0 = lo.a + sg * Math.min(lo.span * 0.8, Math.abs(dA)), fH = (hi.y - B) / H;
@@ -517,7 +530,7 @@ void main() {
     if (key !== lodAt || ++lodTick > 30) { lodAt = key; lodTick = 0; pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frus.setFromProjectionMatrix(pm);
       for (const s2 of IM.all) fillSet(s2, cam.z); fillProps(cam.z > 0.14); }
     IM.props.lamp.material.color.setRGB(0.35 + night * 0.75, 0.27 + night * 0.5, 0.16 + night * 0.25);
-    IM.glow.material.opacity = night * 0.28; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; IM.glow.visible = night > 0.05;
+    IM.glow.material.opacity = night * 0.28; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; if (HWX.signs) for (const b of HWX.signs) b.material.emissiveIntensity = night * 0.3; IM.glow.visible = night > 0.05;
     IM.smoke.material.uniforms.uT.value = t; IM.smoke.visible = cam.z > 0.12; IM.smoke.material.uniforms.uS.value = renderer.getPixelRatio() * cssH / 900; IM.smoke.material.uniforms.uC.value.setRGB(0.86 - night * 0.6, 0.86 - night * 0.6, 0.88 - night * 0.55);
     animPulley(t, night); }
 
