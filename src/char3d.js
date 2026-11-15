@@ -52,6 +52,7 @@ const CharView = (() => {
   };
   /* ---------- pickaxe: a swappable module, one palette per grade (head / handle / binding, optional runes + glow) ---------- */
   const GRADES = { // in upgrade order; each tier adds geometry, not just colour
+    stick: { name: 'Stickaxe', tier: -1, head: 0x8d8a82, handle: 0x6e4c2e, bind: 0xb89a62, chip: 0x7a5a36, stick: true },
     bronze: { name: 'Bronze', tier: 0, head: 0xb07f45, handle: 0x8a5a34, bind: 0xa8743f },
     iron: { name: 'Iron', tier: 1, head: 0x80858d, handle: 0x6e4628, bind: 0x55585e },
     steel: { name: 'Steel', tier: 2, head: 0x6b7580, handle: 0x5b3a22, bind: 0x7d8792, wrap: 0x3a2618, emissive: 0x0a0d10, shine: 0xd8e2ec, shin: 55, chip: 0x8e99a6 },
@@ -112,12 +113,82 @@ const CharView = (() => {
   function faceLines(head, lines, mat, z, r) { for (const side of [-1, 1]) for (const l of lines) part(head, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(l.map(([x, y]) => V(x, y, side * z))), Math.max(10, l.length * 6), r, 4, false), mat, null, null, null, { ink: false, shadow: false }); }
   const spiral = (cx, cy, r0, turns, dir = 1, n = 18) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, a = dir * t * turns * TAU, rr = r0 * (1 - 0.8 * t); o.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]); } return o; };
   // grip at the origin, handle along +y, blade in the local x/y plane (x = the pick's forward)
-  function makePickaxe(grade) { const key = GRADES[grade] ? grade : 'bronze', G = GRADES[key], T = G.tier, px = new THREE.Group(); px.name = 'pickaxe'; px.userData.grade = key; px.userData.fx = [];
+  /* ---------- Stickaxe: a gnarled, twisting branch with a forked spur and a lashed stone ---------- */
+  function barkTex() { return cv(256, 64, (g, w, h) => { g.fillStyle = '#6e4c2e'; g.fillRect(0, 0, w, h); const r = prng(31);
+    for (let i = 0; i < 90; i++) { const y = r() * h; g.strokeStyle = r() < 0.55 ? 'rgba(38,22,10,.55)' : 'rgba(160,120,78,.35)'; g.lineWidth = 1 + r() * 2.5; g.beginPath(); const x0 = r() * w; g.moveTo(x0, y); g.bezierCurveTo(x0 + 20, y + (r() - 0.5) * 6, x0 + 45, y + (r() - 0.5) * 6, x0 + 30 + r() * 50, y + (r() - 0.5) * 5); g.stroke(); }
+    for (let i = 0; i < 5; i++) { g.fillStyle = 'rgba(35,20,8,.55)'; g.beginPath(); g.ellipse(r() * w, r() * h, 5 + r() * 4, 3 + r() * 3, 0, 0, TAU); g.fill(); } }); }
+  function gnarl(pts, r0, r1, seed, knots = []) { const cur = new THREE.CatmullRomCurve3(pts.map((p) => V(...p))), ts = 64, rs = 10, g = new THREE.TubeGeometry(cur, ts, 1, rs, false), P = g.attributes.position, c = V(0, 0, 0), v = V(0, 0, 0), r = prng(seed), ph = [r() * 6, r() * 6];
+    for (let i = 0; i < P.count; i++) { const ti = Math.floor(i / (rs + 1)), t = ti / ts, a = (i % (rs + 1)) / rs * TAU; cur.getPointAt(t, c); let rad = lerp(r0, r1, t) * (1 + 0.11 * Math.sin(t * 23 + ph[0] + a * 2) + 0.06 * Math.sin(t * 57 + ph[1]));
+      for (const [kt, ka, kd] of knots) rad += ka * Math.exp(-(((t - kt) / 0.03) ** 2)) * Math.max(0, Math.cos(a - kd)) ** 2; v.set(P.getX(i), P.getY(i), P.getZ(i)).sub(c); P.setXYZ(i, c.x + v.x * rad, c.y + v.y * rad, c.z + v.z * rad); }
+    g.computeVertexNormals(); return g; }
+  function makeStickaxe(px) { const bt = barkTex(); bt.wrapS = bt.wrapT = THREE.RepeatWrapping; bt.repeat.set(3, 1); const bark = toon(0, bt), r = prng(13);
+    const hp = []; for (let i = 0; i <= 9; i++) { const y = -0.3 + i * 0.115; hp.push([0.011 * Math.sin(i * 1.4), y, 0.009 * Math.cos(i * 1.9)]); }
+    part(px, gnarl(hp, 0.0195, 0.0165, 3, [[0.28, 0.009, 1.2], [0.55, 0.007, 4.0], [0.8, 0.006, 2.4]]), bark);
+    // the forked spur: a side branch bending out and down to a whittled point
+    const bt2 = bt.clone(); bt2.needsUpdate = true; bt2.repeat.set(1.2, 1); part(px, gnarl([[0, 0.62, 0], [-0.07, 0.69, 0.004], [-0.15, 0.71, 0.0], [-0.22, 0.67, -0.004], [-0.27, 0.6, 0]], 0.016, 0.003, 9, [[0.35, 0.004, 0]]), toon(0, bt2));
+    // a sharpened stone lashed on the other side with twine
+    const sg = new THREE.DodecahedronGeometry(0.05, 0); sg.scale(1.75, 0.62, 0.55); { const P = sg.attributes.position; for (let i = 0; i < P.count; i++) if (P.getX(i) > 0.02) P.setY(i, P.getY(i) * 0.55); sg.computeVertexNormals(); }
+    part(px, sg, new THREE.MeshPhongMaterial({ color: 0x8d8a82, flatShading: true, shininess: 8 }), [0.085, 0.675, 0], [0, 0, -0.12]);
+    helix(px, 0.635, 0.715, 5, 0.022, 0.0042, toon(0, fabric(0xb89a62, { seed: 22, weave: 0.25 })));
+    // a leaf still clinging to the broken tip
+    const ls = new THREE.Shape(); ls.moveTo(0, 0); ls.quadraticCurveTo(0.022, 0.03, 0, 0.065); ls.quadraticCurveTo(-0.022, 0.03, 0, 0); const leaf = part(px, new THREE.ShapeGeometry(ls, 6), toon(0x6f9a3c, null, { side: THREE.DoubleSide }), [0.004, 0.735, 0.012], [0.3, 0.4, -0.6], null, { ink: false }); void leaf; void r;
+    return px; }
+  /* ---------- Tether: the coiled rope (hip + pack) as a swappable, graded module ---------- */
+  const TGRADES = {
+    regular: { name: 'Regular', tier: 0, col: 0xa07a48, chip: 0xa07a48 },
+    bronze: { name: 'Bronze', tier: 1, col: 0x9a7446, metal: 0xb07f45, chip: 0xb07f45 },
+    iron: { name: 'Iron', tier: 2, col: 0x7e6446, metal: 0x7d828a, chip: 0x80858d },
+    steel: { name: 'Steel', tier: 3, col: 0x8f99a4, metal: 0xc8d1da, shine: 0xe0e8f0, chip: 0x8e99a6 },
+    gold: { name: 'Gold', tier: 4, col: 0xd6a63a, metal: 0xe6b640, shine: 0xfff0b0, chip: 0xe6b640 },
+    mithril: { name: 'Mithril', tier: 5, col: 0x8fb6e0, metal: 0xcfe2f4, shine: 0xf0f8ff, chip: 0x93b8de },
+    rune: { name: 'Rune', tier: 6, col: 0x3a3442, metal: 0x8f8160, glow: 0xb48cff, chip: 0x8f66ee },
+    lumen: { name: 'Lumen', tier: 7, col: 0x7ff4ff, metal: 0x5fd8f0, glow: 0x7ff4ff, chip: 0x7ff4ff },
+    onyx: { name: 'Ember Onyx', tier: 8, col: 0x1a161d, metal: 0x2a2228, chip: 0xc8301c, onyx: true },
+  };
+  function braidTex(col, o = {}) { return cv(256, 32, (g, w, h) => { g.fillStyle = hex(col); g.fillRect(0, 0, w, h); g.strokeStyle = o.dark || 'rgba(30,18,8,.45)'; g.lineWidth = o.lw || 3; for (let x = -h; x < w + h; x += o.step || 10) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + h, h); g.stroke(); if (o.cross) { g.beginPath(); g.moveTo(x + h, 0); g.lineTo(x, h); g.stroke(); } } if (o.hi) { g.strokeStyle = o.hi; g.lineWidth = 1.5; for (let x = 3; x < w + h; x += o.step || 10) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + h, h); g.stroke(); } } }); }
+  // o: { R outer loop radius, dr radius step, n loops, tr cord radius, dz loop spacing (local z), sy loop squash, flat (pack spiral) }
+  function makeTether(grade, o = {}) { const key = TGRADES[grade] ? grade : 'regular', G = TGRADES[key], T = G.tier, grp = new THREE.Group(); grp.name = 'tether'; grp.userData = { grade: key, fx: [] };
+    const R = o.R || 0.058, n = (o.n || 5) + (T === 5 ? 2 : 0), dr = o.dr ?? 0.003, tr = (o.tr || 0.0105) * (T === 3 ? 0.8 : T === 5 ? 0.72 : 1), dz = o.dz ?? 0.006, sy = o.sy || 1;
+    let cord; if (T === 7) cord = new THREE.MeshBasicMaterial({ color: G.col }); else if (G.shine) { const tx = braidTex(G.col, { cross: T !== 3, step: T === 3 ? 6 : 8, lw: T === 3 ? 1.5 : 2, hi: 'rgba(255,255,255,.35)' }); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(8, 1); cord = new THREE.MeshPhongMaterial({ map: tx, specular: G.shine, shininess: 60 }); }
+    else { const tx = braidTex(G.col, { step: T === 6 || T === 8 ? 14 : 9, dark: T === 8 ? 'rgba(0,0,0,.7)' : undefined }); tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(10, 1); cord = toon(0, tx); }
+    const loops = []; for (let k = 0; k < n; k++) { const rr = R - k * dr, z = o.flat ? -k * 0.004 : (k - (n - 1) / 2) * dz; loops.push([rr, z]); part(grp, new THREE.TorusGeometry(rr, tr, 7, 34), cord, [0, 0, z], [0, 0, 0.1 * k], [1, sy, 1], { ink: true }); }
+    if (o.flat) part(grp, new THREE.CircleGeometry(R - (n - 1) * dr - tr * 0.6, 16), cord, [0, 0, -(n - 1) * 0.004 - 0.003], [0, Math.PI, 0], null, { ink: false });
+    const Rin = R - (n - 1) * dr, zA = Math.min(...loops.map((l) => l[1])), zB = Math.max(...loops.map((l) => l[1])), Rm = (R + Rin) / 2, zm = (zA + zB) / 2;
+    const metal = G.metal ? (G.shine ? new THREE.MeshPhongMaterial({ color: G.metal, specular: G.shine, shininess: 70 }) : toon(G.metal)) : null;
+    const at = (a, rad = R) => V(rad * Math.cos(a), rad * sy * Math.sin(a), zm), basis = (a) => { const rd = V(Math.cos(a), Math.sin(a) * sy, 0).normalize(), tg = V(-Math.sin(a), Math.cos(a) * sy, 0).normalize(); return new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(rd, V(0, 0, 1), tg)); };
+    // wire wraps / ferrules around the bundle (more with each grade)
+    const nb = [0, 2, 2, 6, 6, 7, 7, 8, 8][T]; for (let i = 0; i < nb; i++) { const a = Math.PI * 0.12 + i * TAU / Math.max(nb, 1), m = part(grp, new THREE.TorusGeometry(1, 0.2, 5, 18), T === 8 ? new THREE.MeshBasicMaterial({ color: 0xff4a1c }) : metal, null, null, null, { ink: false }); m.position.copy(at(a, Rm)); m.quaternion.copy(basis(a)); m.scale.set((R - Rin) / 2 + tr + 0.003, (zB - zA) / 2 + tr + 0.003, 0.045); }
+    // clasp hanging at the bottom of the coil
+    if (T >= 1) { const cg = new THREE.Group(); cg.position.copy(at(-Math.PI / 2, R + tr)); grp.add(cg); const s = o.flat ? 1.4 : 1;
+      part(cg, new THREE.TorusGeometry(0.012 * s, 0.0032 * s, 6, 16), metal, [0, -0.01 * s, 0], [0, Math.PI / 2, 0]);
+      if (T === 1) part(cg, new THREE.TorusGeometry(0.009 * s, 0.0026 * s, 5, 12, Math.PI * 1.3), metal, [0, -0.028 * s, 0], [0, 0, Math.PI * 0.85]);
+      if (T === 2) { for (let k = 0; k < 4; k++) part(cg, new THREE.TorusGeometry(0.0085 * s, 0.0024 * s, 5, 12), metal, [0, (-0.026 - k * 0.012) * s, 0], [0, k % 2 ? Math.PI / 2 : 0, 0], [0.7, 1, 1], { ink: false }); part(cg, new THREE.TorusGeometry(0.011 * s, 0.003 * s, 5, 14, Math.PI * 1.4), metal, [0, -0.085 * s, 0], [0, 0, Math.PI * 0.8]); }
+      if (T >= 3) { const cb = part(cg, new THREE.TorusGeometry(0.014 * s, 0.003 * s, 6, 20), metal, [0, -0.034 * s, 0], [0, Math.PI / 2, 0], [1, 1.6, 1]); void cb; part(cg, cyl(0.0022 * s, 0.0022 * s, 0.03 * s, 6), metal, [0, -0.034 * s, 0.011 * s], null, null, { ink: false }); }
+      if (T >= 4) for (const sgn of [-1, 1]) part(cg, ell(0.005 * s, 0.005 * s, 0.005 * s, 10, 8), metal, [0, (-0.034 + sgn * 0.024) * s, 0], null, null, { ink: false });
+      if (T === 4) part(cg, new THREE.ConeGeometry(0.005 * s, 0.014 * s, 8), metal, [0, -0.07 * s, 0], [Math.PI, 0, 0]);
+      if (T === 5) { for (const sgn of [-1, 1]) part(cg, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spiral(0, 0, 0.008 * s, 1.3, sgn, 12).map(([x, y]) => V(0.004 * sgn * s, y - 0.034 * s, x))), 24, 0.0012 * s, 4, false), metal, null, null, null, { ink: false }); part(cg, ell(0.005 * s, 0.006 * s, 0.004 * s, 10, 8), toon(0x9fd8ff, null, { emissive: 0x2a6a9a }), [0.006 * s, -0.034 * s, 0], null, null, { ink: false }); }
+      if (T >= 6) part(cg, new THREE.OctahedronGeometry(0.008 * s, 0), new THREE.MeshBasicMaterial({ color: T === 8 ? 0xff3a1c : G.glow }), [0, -0.034 * s, 0], null, [1, 1.4, 1], { ink: false }); }
+    // rune beads strung on the outer loop
+    if (T === 6) { const bm = new THREE.MeshBasicMaterial({ color: 0xc9a2ff }); for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + 0.6 + i * 0.75, m = part(grp, new THREE.OctahedronGeometry(tr * 0.95, 0), bm, null, null, [1, 1.5, 1], { ink: false }); m.position.copy(at(a)); m.position.z = zB + tr * 0.5; }
+      const pl = new THREE.PointLight(G.glow, 0.25, 0.5, 2); grp.add(pl); grp.userData.light = pl; }
+    // lumen: crystal-thread glow + sparkles
+    if (T === 7) { const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial('rgba(120,240,255,.45)', 'rgba(90,220,255,.12)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); gl.scale.set(R * 4, R * 4 * sy, 1); grp.add(gl); grp.userData.glow = gl;
+      const pl = new THREE.PointLight(G.glow, 0.35, 0.7, 2); grp.add(pl); grp.userData.light = pl; const rr = prng(71), sp = [], seed = [];
+      for (let i = 0; i < 26; i++) { const a = rr() * TAU, p = at(a, Rin + (R - Rin) * rr()); sp.push(p.x + (rr() - 0.5) * 0.02, p.y + (rr() - 0.5) * 0.02, p.z + (rr() - 0.5) * 0.03); seed.push(rr()); }
+      const sgm = new THREE.BufferGeometry(); sgm.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); sgm.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1)); const spk = new THREE.Points(sgm, SPARK_MAT(G.glow)); spk.frustumCulled = false; spk.renderOrder = 5; grp.add(spk); grp.userData.fx.push(spk); }
+    if (T === 7) { const cm = new THREE.MeshPhongMaterial({ color: 0x8ff6ff, emissive: 0x1d93ad, specular: 0xffffff, shininess: 90, flatShading: true }); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.2, m = part(grp, new THREE.OctahedronGeometry(1, 0), cm, null, null, [tr * 0.7, tr * 1.8, tr * 0.7], { ink: false }); m.position.copy(at(a, R + tr * 0.6)); m.rotation.z = a - Math.PI / 2; } }
+    if (T === 8) { const em = new THREE.MeshBasicMaterial({ color: 0xff6a24 }); for (let i = 0; i < 8; i++) { const a = i / 8 * TAU + 0.35, m = part(grp, new THREE.OctahedronGeometry(tr * 0.6, 0), em, null, null, null, { ink: false }); m.position.copy(at(a, R)); m.position.z = (o.flat ? 0 : zB) + tr * 0.7; } }
+    // ember onyx: a red-hot vein wound through the outer loop, little flames licking off it
+    if (T === 8) { const vm = new THREE.MeshBasicMaterial({ color: 0xff3418 }); grp.userData.veins = vm; const vp = []; for (let i = 0; i <= 80; i++) { const a = i / 80 * TAU, p = at(a, R), w = a * 9; vp.push(V(p.x + Math.cos(a) * Math.cos(w) * tr * 0.95, p.y + Math.sin(a) * sy * Math.cos(w) * tr * 0.95, (o.flat ? 0 : zB) + Math.sin(w) * tr * 0.95)); }
+      part(grp, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(vp, true), 160, tr * 0.22, 4, true), vm, null, null, null, { ink: false });
+      const sites = []; for (let i = 0; i < 40; i++) { const a = i / 40 * TAU, p = at(a, R + tr * 0.7); sites.push([p, V(Math.cos(a), Math.sin(a), 0.3).normalize()]); } const fl = flamePoints(sites); grp.add(fl); grp.userData.fx.push(fl); grp.userData.flames = fl; }
+    return grp; }
+  function makePickaxe(grade) { const key = GRADES[grade] ? grade : 'stick', G = GRADES[key], T = G.tier, px = new THREE.Group(); px.name = 'pickaxe'; px.userData.grade = key; px.userData.fx = []; if (G.stick) return makeStickaxe(px);
     const metal = G.shine ? new THREE.MeshPhongMaterial({ color: G.head, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }) : toon(G.head, null, G.emissive ? { emissive: G.emissive } : {}), bindM = toon(G.bind), wood = toon(0, fabric(G.handle, { seed: 23, weave: T >= 4 ? 0.03 : 0.06 })), wrapM = toon(0, fabric(G.wrap || 0x4b3020, { seed: 25, weave: 0.22 }));
     // handle
     if (G.onyx) part(px, twistedHandle(1.04, 0.0165), toon(G.handle), [0, 0.22, 0]); else part(px, cyl(0.016, 0.0138, 1.04, T >= 4 ? 14 : 10), wood, [0, 0.22, 0]);
     // grip: rope (bronze) > plain leather (iron) > spiral leather strap (steel+) > cross-wrapped (mithril+)
-    if (T === 0) helix(px, -0.065, 0.075, 9, 0.0178, 0.0047, toon(0, fabric(G.bind, { seed: 22, weave: 0.2 })));
+    if (T === 0) { const rm = toon(0, fabric(G.bind, { seed: 22, weave: 0.2 })); helix(px, -0.065, 0.075, 9, 0.0178, 0.0047, rm); for (const y of [-0.068, 0.078]) part(px, ell(0.007, 0.006, 0.007, 10, 8), rm, [0.017, y, 0], null, null, { ink: false }); }
     else if (T === 1) part(px, cyl(0.0182, 0.0182, 0.13, 10), wrapM, [0, 0, 0]);
     else { part(px, cyl(0.0172, 0.0172, 0.15, 12), wrapM, [0, 0, 0]); helix(px, -0.072, 0.072, 6, 0.0178, 0.0032, toon(G.wrap || 0x3a2618)); if (T >= 4) helix(px, -0.072, 0.072, 6, 0.0178, 0.0026, bindM, Math.PI);
       for (const y of [-0.08, 0.08]) part(px, cyl(0.0198, 0.0198, 0.012, 14), bindM, [0, y, 0]); }
@@ -302,7 +373,7 @@ const CharView = (() => {
     part(B.hips, new THREE.TorusGeometry(0.127, 0.02, 8, 36), M.belt, [0, 0.085, 0.002], [Math.PI / 2, 0, 0], [1, 0.76, 1.3]);
     part(B.hips, rbox(0.05, 0.04, 0.012, 0.004), M.brass, [0, 0.085, 0.1]); part(B.hips, rbox(0.03, 0.022, 0.014, 0.003), M.belt, [0, 0.085, 0.103]);
     for (const [px0, pz0, ry0] of F ? [[-0.075, 0.112, -0.38], [0.075, 0.112, 0.38]] : [[-0.07, 0.114, -0.36], [-0.122, 0.085, -0.85]]) { const pz = part(B.hips, rbox(0.052, 0.066, 0.034, 0.01), M.belt, [px0, 0.05, pz0], [0, ry0, 0]); part(pz, rbox(0.055, 0.026, 0.038, 0.008), M.packDk, [0, 0.026, 0.002]); part(pz, rbox(0.012, 0.012, 0.006, 0.002), M.brass, [0, 0.018, 0.022], null, null, { ink: false }); }
-    { const pv = F ? bone('ropePivot', B.hips, -0.15, 0.06, 0.03) : bone('ropePivot', B.hips, 0.142, 0.05, 0.07), ry = F ? Math.PI / 2 : 1.05; built.rope = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; for (let k = 0; k < 5; k++) part(pv, new THREE.TorusGeometry(0.058 - k * 0.003, 0.0105, 6, 26), M.rope, F ? [-0.012, -0.08 + k * 0.006, (k - 2) * 0.007] : [0.01, -0.1 + k * 0.006, (k - 2) * 0.006], [0.1 * k, ry, 0.08], [1, 1.75, 1]); }
+    { const pv = F ? bone('ropePivot', B.hips, -0.15, 0.06, 0.03) : bone('ropePivot', B.hips, 0.142, 0.05, 0.07), ry = F ? Math.PI / 2 : 1.05; built.rope = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; built.tethers = []; const tg = { parent: pv, pos: F ? [-0.012, -0.068, 0] : [0.01, -0.088, 0], rot: [0, ry, 0.08], o: { R: 0.058, n: 5, dr: 0.003, tr: 0.0105, dz: 0.0065, sy: 1.75 } }; built.tethers.push(tg); mountTether(tg, S && S.tetherGrade); }
     // ---- pelvis, legs (skinned: hips > thigh > shin > foot) ----
     part(B.hips, lathe([[0.0, -0.11], [0.11, -0.1], [0.126, -0.05], [0.128, 0.03], [0.125, 0.1], [0.0, 0.1]], 28), M.pants, null, null, [1, 1, 0.78]);
     for (const [s, k] of [[-1, 'R'], [1, 'L']]) { const th = B['th' + k], sn = B['sn' + k], ft = B['ft' + k], yh = HY - 0.045, yk = yh - LT, ya = yk - LS, cx = s * 0.082;
@@ -352,7 +423,7 @@ const CharView = (() => {
         part(B.chest, rbox(0.032, 0.024, 0.012, 0.003), M.brass, [s * 0.096, -0.02, 0.105], null, null, { ink: false }); part(B.chest, tube([[s * 0.094, -0.1, 0.09], [s * 0.11, -0.2, 0.05], [s * 0.13, -0.25, -0.06]], 0.008, 5, 10), M.packDk, null, null, [1, 1, 0.7]); }
       if (F) part(B.chest, rbox(0.17, 0.016, 0.008, 0.003), M.packDk, [0, 0.05, 0.108]);
       if (!F) { // rope coil on the right side, bedroll strapped across the top
-        const cx0 = -(W / 2 + 0.04); for (let k = 0; k < 6; k++) part(pk, new THREE.TorusGeometry(0.105 - k * 0.013, 0.015, 7, 30), M.rope, [cx0 - k * 0.004, y0 + H * 0.06, zc], [0, Math.PI / 2, 0]); part(pk, new THREE.CircleGeometry(0.032, 14), M.rope, [cx0 - 0.026, y0 + H * 0.06, zc], [0, -Math.PI / 2, 0], null, { ink: false });
+        const cx0 = -(W / 2 + 0.04); { const tg = { parent: pk, pos: [cx0, y0 + H * 0.06, zc], rot: [0, Math.PI / 2, 0], o: { R: 0.105, n: 6, dr: 0.013, tr: 0.015, flat: true } }; built.tethers.push(tg); mountTether(tg, S && S.tetherGrade); }
         part(pk, new THREE.TorusGeometry(0.06, 0.007, 5, 16), M.belt, [cx0 + 0.01, y0 + H * 0.06, zc], [0, 0, 0], [1, 1.9, 0.6]);
         const by = y0 - H / 2 - 0.045; part(pk, cyl(0.052, 0.052, W * 1.06, 22), M.packDk, [0, by, zc + 0.005], [0, 0, Math.PI / 2]); const sp = toon(0, spiralTex(P.packDk)); for (const s of [-1, 1]) part(pk, new THREE.CircleGeometry(0.051, 22), sp, [s * W * 0.531, by, zc + 0.005], [0, s * Math.PI / 2, 0], null, { ink: false });
         for (const s of [-1, 1]) part(pk, new THREE.TorusGeometry(0.054, 0.008, 6, 20), M.belt, [s * W * 0.3, by, zc + 0.005], [0, Math.PI / 2, 0]); }
@@ -371,6 +442,7 @@ const CharView = (() => {
     root.traverse((o) => { if (o.isMesh && o.material !== OUT) o.receiveShadow = false; });
     return { root, B, sex, P, built, LT, LS, HY };
   }
+  function mountTether(tg, grade) { if (tg.grp) { tg.parent.remove(tg.grp); tg.grp.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); } const g = makeTether(grade, tg.o); g.position.set(...tg.pos); g.rotation.set(...tg.rot); tg.parent.add(g); tg.grp = g; return g; }
   /* ---------- painted anime face (front-projected decal); cached per sex / blink / smile ---------- */
   const _faceCache = {}, FY = (F) => (F ? { n: -0.06, m: -0.083, c: -0.108 } : { n: -0.066, m: -0.092, c: -0.118 });
   function faceTex(F, lidK, smileK) { const key = (F ? 'f' : 'm') + lidK + smileK; if (_faceCache[key]) return _faceCache[key];
@@ -492,7 +564,7 @@ const CharView = (() => {
     let lid = 1; if (an.blink > 0) { an.blink += dt; const b = an.blink / 0.16; lid = b < 0.5 ? 1 - b * 2 : (b - 0.5) * 2; if (b >= 1) { an.blink = an.dbl ? -0.12 : 0; an.dbl = false; } } else if (an.blink < 0) { an.blink += dt; if (an.blink >= 0) an.blink = 0.0001; }
     if (fid === 'sigh') lid = Math.min(lid, 1 - 0.85 * Math.sin(Math.PI * ss(0.45, 0.85, u))); for (const L of built.lids) setLid(L, clamp(1 - lid, 0, 1)); setFace(built, clamp(1 - lid, 0, 1), smile);
     built.mouth.scale.set(1 + 0.45 * smile, 1 + 0.35 * smile, 1);
-    updatePickFx(built.pick, t); if (showPick) updatePickFx(showPick, t);
+    updatePickFx(built.pick, t); if (showPick) updatePickFx(showPick, t); for (const tg of built.tethers || []) updatePickFx(tg.grp, t);
     // secondary motion: braid, rope and lantern swing with inertia (driven by their anchors' acceleration)
     c.root.updateMatrixWorld(true); const sec = (o, anchor, gain, k, cdamp) => { const p = anchor.getWorldPosition(V(0, 0, 0)); c.root.worldToLocal(p); if (!o.p) { o.p = p.clone(); o.v = V(0, 0, 0); }
       const v = p.clone().sub(o.p).divideScalar(Math.max(dt, 1e-3)), a = v.clone().sub(o.v).divideScalar(Math.max(dt, 1e-3)); o.p.copy(p); o.v.copy(v); a.clampLength(0, 30); pend(o, a.z * gain + (st.yawV || 0) * 0.0, -a.x * gain, dt, k, cdamp); };
@@ -521,17 +593,21 @@ const CharView = (() => {
   // showcase: one pickaxe alone on the stage (for previews / screenshots)
   let showPick = null;
   function showcase(g, rz = 0.55) { if (showPick) { scene.remove(showPick.parent); showPick = null; } if (rig) rig.root.visible = !g; if (!g) return; const grp = new THREE.Group(), pk = makePickaxe(g); grp.add(pk); pk.rotation.z = rz; grp.position.set(Math.sin(rz) * 0.68, 1.16 - Math.cos(rz) * 0.68, 0); scene.add(grp); showPick = pk; }
+  function showcaseTether(g) { if (showPick) { scene.remove(showPick.parent); showPick = null; } if (rig) rig.root.visible = !g; if (!g) return; const grp = new THREE.Group(), t = makeTether(g, { R: 0.1, n: 6, dr: 0.004, tr: 0.016, dz: 0.011, sy: 1.25 }); grp.add(t); t.rotation.set(0.15, 0.45, 0); grp.position.set(0, 1.3, 0); scene.add(grp); showPick = t; }
   // swap the pickaxe module in the right hand (keeps its current pose)
   function setPick(g) { if (!rig) return; const b = rig.built, old = b.pick; b.pick = makePickaxe(g); b.pick.position.copy(old.position); b.pick.quaternion.copy(old.quaternion); old.parent.add(b.pick); old.parent.remove(old); old.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); markPick(); }
-  function markPick() { const g = rig ? rig.built.pick.userData.grade : 'bronze'; document.querySelectorAll('#charPick [data-grade]').forEach((b) => b.classList.toggle('on', b.dataset.grade === g)); }
+  function setTether(g) { if (!rig) return; for (const tg of rig.built.tethers || []) mountTether(tg, g); markPick(); }
+  let gear = 'pick';
+  function markPick() { const cp = document.getElementById('charPick'); if (!cp) return; const T = gear === 'pick' ? GRADES : TGRADES, cur = gear === 'pick' ? (rig ? rig.built.pick.userData.grade : S.pickGrade) : (rig && rig.built.tethers ? rig.built.tethers[0].grp.userData.grade : S.tetherGrade || 'regular');
+    cp.innerHTML = `<span class="gear" role="tablist"><button data-gear="pick" title="Pickaxe" aria-label="Pickaxe" class="${gear === 'pick' ? 'on' : ''}">⛏️</button><button data-gear="tether" title="Tether" aria-label="Tether" class="${gear === 'tether' ? 'on' : ''}">🪢</button></span>` + Object.entries(T).map(([k, G]) => `<button data-grade="${k}" title="${G.name}" class="${k === cur ? 'on' : ''}"><i style="background:${hex(G.chip || (G.runes ? G.glow : G.head))}"></i><span>${G.name}</span></button>`).join(''); }
   function bindInput() { const pts = new Map(); let pinch0 = 0, dist0 = 0;
     canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); st.lastInput = clk; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = st.dist; } });
     canvas.addEventListener('pointermove', (e) => { if (!pts.has(e.pointerId)) return; const pr = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); st.lastInput = clk;
       if (pts.size === 1) { const dx = e.clientX - pr[0]; st.yaw += dx * 0.011; st.yawV = dx * 0.011 / 0.016; } else if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) st.dist = clamp(dist0 * pinch0 / d, 2.0, 5.6); } });
     const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
     canvas.addEventListener('wheel', (e) => { e.preventDefault(); st.dist = clamp(st.dist * Math.exp(e.deltaY * 0.0012), 2.0, 5.6); st.lastInput = clk; }, { passive: false });
-    const cp = document.getElementById('charPick'); if (cp) { cp.innerHTML = Object.entries(GRADES).map(([k, G]) => `<button data-grade="${k}" title="${G.name}"><i style="background:${hex(G.chip || (G.runes ? G.glow : G.head))}"></i><span>${G.name}</span></button>`).join('');
-      cp.addEventListener('click', (e) => { const b = e.target.closest('[data-grade]'); if (!b) return; S.pickGrade = b.dataset.grade; setPick(S.pickGrade); if (typeof save === 'function') save(); st.lastInput = clk; }); }
+    const cp = document.getElementById('charPick'); if (cp) { markPick();
+      cp.addEventListener('click', (e) => { const gb = e.target.closest('[data-gear]'); if (gb) { gear = gb.dataset.gear; markPick(); return; } const b = e.target.closest('[data-grade]'); if (!b) return; if (gear === 'pick') { S.pickGrade = b.dataset.grade; setPick(S.pickGrade); } else { S.tetherGrade = b.dataset.grade; setTether(S.tetherGrade); } if (typeof save === 'function') save(); st.lastInput = clk; }); }
     document.getElementById('charSex').addEventListener('click', (e) => { const b = e.target.closest('[data-sex]'); if (!b) return; S.charSex = b.dataset.sex; setChar(S.charSex); if (typeof save === 'function') save(); st.lastInput = clk; });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else if (st.visible) start(); }); }
   function resize() { const w = wrap.clientWidth || 390, h = wrap.clientHeight || 600; R.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
@@ -548,5 +624,5 @@ const CharView = (() => {
   function show() { wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; setChar(sex); resize(); start(); }
   function hide() { const w = document.getElementById('charWrap'); if (w) w.classList.add('hidden'); st.visible = false; stop(); }
   window.addEventListener('resize', () => { if (running) resize(); });
-  return { show, hide, st, get rig() { return rig; }, setPick, showcase, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, an };
+  return { show, hide, st, get rig() { return rig; }, setPick, setTether, TGRADES, makeTether, showcase, showcaseTether, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, an };
 })();
