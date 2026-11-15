@@ -362,10 +362,12 @@ function awayModal(sum, realMs) {
 }
 
 /* ---------- render loop ---------- */
-const VIEWS = { city: () => '', capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
+const VIEWS = { city: () => '', char: () => '', capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
 function rerender(force) {
   renderResbar();
   document.querySelectorAll('nav#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === ui.tab));
+  if (ui.tab === 'char') { $('#view').style.display = 'none'; CityMap.hide(); CharView.show(); return; }
+  CharView.hide();
   if (ui.tab === 'city') { $('#view').style.display = 'none'; CityMap.show(); return; }
   $('#view').style.display = ''; CityMap.hide();
   if (ui.tab === 'training' && !force && document.getElementById('tapzone')) {
