@@ -97,7 +97,7 @@ const GRAND = (() => {
     const n = new THREE.Vector3(Math.cos(OUT), 0, Math.sin(OUT));
     // ground just in front of the trunk on the plateau side, and the trunk's outer surface over the door's span
     const { gy, rD } = doorSpot(C);
-    const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD + 60), gy, c.z + n.z * (rD + 60));
+    const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD - 50), gy, c.z + n.z * (rD - 50));
     const hw = 330, ys = 620, H = 1020, grp = new THREE.Group(); grp.position.copy(P0); grp.rotation.y = Math.atan2(n.x, n.z); grp.scale.setScalar(1.35); scene.add(grp); GX.door = { x: P0.x, y: P0.z, up: gy, hgt: H * 1.35, grp };
     const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x2c2724 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
     const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.slice().reverse().map(([x, y]) => [-x, y]), A.slice(1), [[hw, 0]]); // left foot -> apex -> right foot
@@ -121,7 +121,12 @@ const GRAND = (() => {
       /* slim timber casing only: the trunk and its roots frame the rest */
       /* no keystone or board over the arch: the door and its light carry it */
       // threshold step and side bases
-      const stoneM = new THREE.MeshLambertMaterial({ color: 0x5a554e }); const step = new THREE.Mesh(new THREE.BoxGeometry(2 * hw + 160, 36, 150), stoneM); step.position.set(0, 4, 30); grp.add(step); for (const s of [-1, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(150, 140, 170), stoneM); b.position.set(s * (hw + 120), 50, -40); grp.add(b); } }
+      const stoneM = new THREE.MeshLambertMaterial({ color: 0x5a554e }); /* (the grey stone step and side plinths are gone: the bark lips meet the ground instead) */ void stoneM;
+      // the trunk grew round the door: bark lips bulge and fold over the casing, flaring into roots at the foot so nothing floats
+      const barkL = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xa08a74 }), lip = (kx, ky, z, rad) => { const pts = [new THREE.Vector3(-hw * kx - 30, -110, z + 40)].concat(outline.map(([x, y]) => new THREE.Vector3(x * kx, y * (y > 5 ? ky : 1), z)), [new THREE.Vector3(hw * kx + 30, -110, z + 40)]); const m = new THREE.Mesh(rtube(pts, rad, 10), barkL); m.castShadow = true; grp.add(m); };
+      lip(1.12, 1.06, -16, (u) => 46 + 14 * Math.sin(u * 23) + 9 * Math.sin(u * 61) + 70 * (sm(0.14, 0, u) + sm(0.86, 1, u)));
+      lip(1.32, 1.14, -70, (u) => 88 + 26 * Math.sin(u * 17 + 1) + 14 * Math.sin(u * 47) + 120 * (sm(0.16, 0, u) + sm(0.84, 1, u)));
+      lip(1.58, 1.22, -150, (u) => 120 + 30 * Math.sin(u * 13 + 2) + 150 * (sm(0.18, 0, u) + sm(0.82, 1, u))); }
     // lanterns on iron brackets either side of the frame
     GX.lampM = new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false }); const lampPts = [];
     for (const s of [-1, 1]) { const bx = s * (hw + 230), post = new THREE.Mesh(new THREE.CylinderGeometry(10, 14, 620, 6), ironM); post.position.set(bx, 310, 40); grp.add(post); const arm = new THREE.Mesh(new THREE.BoxGeometry(110, 10, 10), ironM); arm.position.set(bx - s * 40, 600, 40); grp.add(arm);
@@ -137,9 +142,7 @@ const GRAND = (() => {
         L.forEach(([x, z, sz], i) => { wp.set(x, 0, z).applyMatrix4(grp.matrixWorld.compose(grp.position, grp.quaternion, grp.scale)); const y = meshH(wp.x, wp.z) - gy + sz * 1.1; e.set((r() - 0.5) * 0.4, 0, (r() - 0.5) * 0.4); q.setFromEuler(e); mt.compose(v3().set(x, y, z), q, v3().set(sz, sz * 1.2, sz)); cap.setMatrixAt(i, mt); st.setMatrixAt(i, mt); gp.push(x, y + 10, z); });
         grp.add(cap); grp.add(st); }
       const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); GX.doorMushGlow = new THREE.Points(gg, new THREE.PointsMaterial({ size: 160, map: radialTex('rgba(150,210,255,.9)', 'rgba(120,120,255,.25)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.3 })); grp.add(GX.doorMushGlow);
-      const mossG = new THREE.IcosahedronGeometry(1, 1), mossM = new THREE.MeshLambertMaterial({ color: 0x4a6326 }), mpts = []; for (let i = 0; i < outline.length; i += 1) { const [x, y] = outline[i]; if (y < 200) continue; if (r() < 0.6) mpts.push([x * 1.42 + (r() - 0.5) * 120, y * (1 + 0.42 * 0.55) + (r() - 0.3) * 100, -40 + r() * 60, 18 + r() * 26]); }
-      const mm = new THREE.InstancedMesh(mossG, mossM, mpts.length); mpts.forEach(([x, y, z, s2], i) => { mt.compose(v3().set(x, y, z), q.identity(), v3().set(s2, s2 * 0.6, s2 * 0.8)); mm.setMatrixAt(i, mt); }); grp.add(mm);
-      const hgM = new THREE.MeshLambertMaterial({ color: 0x55702e }), hang = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 0.2, 1, 4).translate(0, -0.5, 0), hgM, 26); for (let i = 0; i < 26; i++) { const [x, y] = outline[(2 + (i * 7) % (outline.length - 4))]; mt.compose(v3().set(x * 1.3, y * 1.2 + 60, 30), q.identity(), v3().set(7, 120 + r() * 260, 7)); hang.setMatrixAt(i, mt); } grp.add(hang); }
+      /* no moss or hanging strands on the door frame */ }
     // the worn stone path out from the step
     { const r = prng(5), stones = []; for (let k = 0; k < 64; k++) { const t = r(), z = 140 + t * 900, x = (r() - 0.5) * (300 - t * 80); stones.push([x, z, 34 + r() * 30]); }
       const sg = new THREE.CylinderGeometry(1, 1.05, 1, 7), smat = new THREE.MeshLambertMaterial({ color: 0x4f4a44 }), im = new THREE.InstancedMesh(sg, smat, stones.length), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), wp = v3(); grp.updateMatrixWorld(true);
@@ -342,7 +345,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     const rf = prng(57), V3 = (x, y, z) => new THREE.Vector3(x, y, z), L = pts.map((p) => toL(p.x, p.z)), foam = [];
     const nearS = (sT, minDeck) => { let bi = -1, bd = 1e9; L.forEach(([, ss], i) => { if (deck[i] >= minDeck && Math.abs(ss - sT) < bd) { bd = Math.abs(ss - sT); bi = i; } }); return bi; };
     for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f], nF = 6 + (rf() < 0.5 ? 1 : 0); for (let k = 0; k < nF; k++) { const sT = s0 - 120 + (s1 - s0 + 240) * (k + rf()) / nF, i = nearS(sT, 0.5); if (i < 0) continue;
-        const p = pts[i], [pd, ps] = L[i], r0 = 13 + rf() * 18, drape = k % 2 === 0 || rf() < 0.25, P2 = [V3(p.x, p.y + rs[i] * 0.1, p.z)], R2 = [r0];
+        const p = pts[i], [pd, ps] = L[i], r0 = 20 + rf() * 22, drape = k % 2 === 0 || rf() < 0.25, P2 = [V3(p.x, p.y + rs[i] * 0.1, p.z)], R2 = [r0];
         const add = (d, s2, y, rr) => { const [x, z] = toW(d, s2); P2.push(V3(x, y, z)); R2.push(rr); }, side = rf() < 0.5 ? -1 : 1;
         // which way it runs: out over the pool toward the lip, or back across the pool behind the bridge, wandering sideways
         const eS = Math.max(s0 - 60, Math.min(s1 + 60, sT + side * (150 + rf() * 420))), eLd = lipD(eS), toLip = drape || rf() < 0.5, eD = toLip ? eLd - 20 : eLd - 330 - rf() * 120;
