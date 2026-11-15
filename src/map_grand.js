@@ -326,11 +326,11 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     for (let i = 0; i < n; i++) for (let j = 0; j < seg; j++) { const a = i * (seg + 1) + j, b = a + seg + 1; I.push(a, b, a + 1, a + 1, b, b + 1); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I); return g; }
   // the bridge root's course in plan (local d,s): out of the trunk on one side, along the plateau, over the pools in a long arc, down into the far side
-  const BCTL = [[1500, -1450], [2450, -2350], [3230, -2150], [3440, -1150], [3480, 0], [3420, 1150], [3220, 2150], [2700, 2750]];
+  const BCTL = [[1500, -1450], [2450, -2350], [3200, -2250], [3570, -1560], [3200, -800], [3470, -60], [3190, 700], [3560, 1480], [3230, 2200], [2700, 2750]];
   function bridgePlan(c0) { const c = (c0 ? [c0] : []).concat(BCTL).map(([d, s2]) => new THREE.Vector3(d, 0, s2)); return new THREE.CatmullRomCurve3(c, false, 'centripetal').getPoints(c0 ? 110 : 90); }
   function bridgeRoot(C) { if (!G) return null; if (GX.bpath) return GX.bpath; const D = doorSpot(C), { meshH } = C, a0 = 0.8, P = bridgePlan([D.rD * 0.82 * Math.cos(a0), -D.rD * 0.82 * Math.sin(a0)]), n = P.length - 1, pts = [], rs = [], deck = [];
     P.forEach((p, i) => { const u = i / n, [x, z] = toW(p.x, p.z), g = meshH(x, z), rr = (135 - 55 * u) * (1 - 0.75 * sm(0.9, 1, u)) * (0.75 + 0.25 * sm(0, 0.06, u) + 0.4 * (1 - sm(0, 0.05, u)));
-      const b = sm(0.3, 0.42, u) * sm(0.93, 0.83, u), yD = LIPH + 50 + 55 * Math.cos(Math.PI * p.z / 4800); let y = g + rr * 0.15 + (1 - sm(0, 0.12, u)) * 260;
+      const b = sm(0.3, 0.42, u) * sm(0.93, 0.83, u), yD = LIPH + 45 + 50 * Math.cos(Math.PI * p.z / 4800) + 40 * Math.sin(p.z / 430 + 0.6) + 18 * Math.sin(p.z / 170); let y = g + rr * 0.15 + (1 - sm(0, 0.12, u)) * 260;
       y = y + (Math.max(yD, g + rr * 0.6) - y) * b; if (u > 0.93) y = g - rr * 0.6 * sm(0.93, 1, u); pts.push(new THREE.Vector3(x, y, z)); rs.push(rr); deck.push(b); });
     for (let k = 0; k < 3; k++) for (let i = 1; i < n; i++) if (deck[i] > 0.02) pts[i].y = Math.max(pts[i].y, (pts[i - 1].y + pts[i + 1].y) / 2 - 2);
     const out = [{ pts, rs, k: 0 }];
@@ -341,12 +341,19 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     // root fingers: seeded, irregular, tapering; some drape over the falls (water runs round them), some creep to the door and curl up its frame
     const rf = prng(57), V3 = (x, y, z) => new THREE.Vector3(x, y, z), L = pts.map((p) => toL(p.x, p.z)), foam = [];
     const nearS = (sT, minDeck) => { let bi = -1, bd = 1e9; L.forEach(([, ss], i) => { if (deck[i] >= minDeck && Math.abs(ss - sT) < bd) { bd = Math.abs(ss - sT); bi = i; } }); return bi; };
-    for (let f = 0; f < 3; f++) { const nF = 2 + (rf() < 0.6 ? 1 : 0); for (let k = 0; k < nF; k++) { const [s0, s1] = FALLS[f], sT = s0 + (s1 - s0) * (0.08 + 0.84 * rf()), i = nearS(sT, 0.5); if (i < 0) continue;
-        const p = pts[i], [pd, ps] = L[i], r0 = 9 + rf() * 16, ld = lipD(sT), len = 0.18 + rf() * 0.32, wob = (rf() - 0.5) * 60, P2 = [V3(p.x, p.y + rs[i] * 0.1, p.z)], R2 = [r0];
-        const add = (d, s2, y, rr) => { const [x, z] = toW(d, s2); P2.push(V3(x, y, z)); R2.push(rr); };
-        add(pd + rs[i] * 0.9, ps + (sT - ps) * 0.4, p.y - rs[i] * 0.35, r0 * 0.9); add(ld - 90 - rf() * 60, sT + wob * 0.3, LIPH + 4 + r0 * 0.3, r0 * 0.8); add(ld + 4, sT + wob * 0.5, LIPH + r0 * 0.4, r0 * 0.7);
-        for (const v of [0.04, 0.1, 0.18, 0.28, 0.4, 0.55].filter((v) => v <= len + 0.02)) { const dd = ld - 6 + 40 + 300 * Math.pow(v, 0.6) + 12, y = LIPH - 4 - (LIPH - WL + 8) * Math.pow(v, 1.15); add(dd, sT + wob * (0.5 + v), y, r0 * Math.max(0.12, 0.6 - v * 1.1)); }
-        for (let j = 3; j < Math.min(P2.length, 6); j++) foam.push([P2[j], 10 + r0 * 0.8]); out.push({ pts: P2, rs: R2, k: 10 + f * 3 + k }); } }
+    for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f], nF = 6 + (rf() < 0.5 ? 1 : 0); for (let k = 0; k < nF; k++) { const sT = s0 - 120 + (s1 - s0 + 240) * (k + rf()) / nF, i = nearS(sT, 0.5); if (i < 0) continue;
+        const p = pts[i], [pd, ps] = L[i], r0 = 13 + rf() * 18, drape = k % 2 === 0 || rf() < 0.25, P2 = [V3(p.x, p.y + rs[i] * 0.1, p.z)], R2 = [r0];
+        const add = (d, s2, y, rr) => { const [x, z] = toW(d, s2); P2.push(V3(x, y, z)); R2.push(rr); }, side = rf() < 0.5 ? -1 : 1;
+        // which way it runs: out over the pool toward the lip, or back across the pool behind the bridge, wandering sideways
+        const eS = Math.max(s0 - 60, Math.min(s1 + 60, sT + side * (150 + rf() * 420))), eLd = lipD(eS), toLip = drape || rf() < 0.5, eD = toLip ? eLd - 20 : eLd - 330 - rf() * 120;
+        add(pd + (toLip ? 1 : -1) * rs[i] * 0.85, ps + side * rs[i] * 0.3, p.y - rs[i] * 0.4, r0 * 0.9);
+        for (let j = 1; j <= 6; j++) { const u = j / 6, d = pd + (eD - pd) * u + Math.sin(u * Math.PI * 2 + k) * 50 * (1 - u), s2 = ps + (eS - ps) * u + Math.sin(u * Math.PI + k * 1.7) * 90 * side;
+          add(d, s2, LIPH - 2 + r0 * (0.25 + 0.15 * Math.sin(u * 7 + k)) * (1 - 0.4 * u), r0 * (0.85 - 0.45 * u)); }
+        if (toLip && drape) { const len = 0.16 + rf() * 0.34, wob = (rf() - 0.5) * 50; add(eLd + 4, eS + wob * 0.2, LIPH + r0 * 0.3, r0 * 0.4);
+          for (const v of [0.04, 0.1, 0.18, 0.28, 0.4, 0.55].filter((v) => v <= len + 0.02)) { const dd = eLd - 6 + 40 + 300 * Math.pow(v, 0.6) + 12, y = LIPH - 4 - (LIPH - WL + 8) * Math.pow(v, 1.15); add(dd, eS + wob * (0.4 + v), y, r0 * Math.max(0.1, 0.38 - v * 0.6)); }
+          for (let j = P2.length - 5; j < P2.length - 2; j++) if (j > 0) foam.push([P2[j], 8 + r0 * 0.7]); }
+        else { foam.push([P2[P2.length - 2], 6 + r0 * 0.5]); }
+        out.push({ pts: P2, rs: R2, k: 10 + f * 8 + k }); } }
     // toward the door: creep along the ground, keep clear of the doorway and the stepping stones, curl up beside the frame
     const D2 = doorSpot(C), [dd0] = toL(D2.cx + Math.cos(D2.OUT) * (D2.rD + 60), D2.cz + Math.sin(D2.OUT) * (D2.rD + 60)), clear = 600;
     const creep = (i0, ctl, sideS, k) => { const p = pts[i0], cu = new THREE.CatmullRomCurve3([V3(L[i0][0], 0, L[i0][1])].concat(ctl.map(([d, s2]) => V3(d, 0, s2))), false, 'centripetal').getPoints(16), r0 = 14 + rf() * 14, P2 = [], R2 = [];
