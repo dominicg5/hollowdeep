@@ -1,6 +1,6 @@
 const { chromium } = require('playwright-core');
 const path = require('path');
-const URL = 'file://' + path.resolve(__dirname, '../hollowdeep-prototype.html');
+const URL = process.env.URL || 'file://' + path.resolve(__dirname, '../hollowdeep-prototype.html');
 const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.log('  ✓ ' + m); };
 (async () => {
   const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox'] });
@@ -24,7 +24,7 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   for (const t of ['hollow', 'outposts', 'raids', 'training', 'capital']) {
     await page.click(`nav [data-tab=${t}]`); await page.waitForTimeout(150);
     const len = await page.evaluate(() => document.getElementById('view').innerHTML.length);
-    assert(len > 500, `tab ${t} renders (${len} chars)`);
+    assert(len > (t === "raids" ? 100 : 500), `tab ${t} renders (${len} chars)`);
     await page.screenshot({ path: `shot-${t}.png`, fullPage: true });
   }
 
@@ -58,14 +58,11 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   st = await page.evaluate(() => ({ exp: HD.S.stats.expeditions, task: HD.S.hero.task, log: HD.S.log.slice(0, 4).map((l) => l.msg) }));
   assert(st.exp === 1 || (st.task && st.task.type === 'stranded'), 'expedition resolved in real time: ' + st.log[0]);
   await page.screenshot({ path: 'shot-hollow-after.png', fullPage: true });
-  // The first AI raid happens at 1.5 game hours; wait for it to reveal
-  console.log('Waiting for tutorial raid (~30s)...');
-  await page.waitForSelector('#rscene', { timeout: 45000 });
-  await page.waitForTimeout(4200);
-  await page.screenshot({ path: 'shot-reveal.png' });
-  st = await page.evaluate(() => HD.S.lastRaid);
-  assert(st && st.kind === 'defense' && st.stars === 0, 'tutorial raid repelled with golem reveal');
-  await page.click('#modal [data-act=close]');
+  // Raids are off (CONFIG.raidsEnabled=false): no tutorial raid, no popup, even across a long simulation
+  await page.evaluate(() => HD.simulate(40 * 3600e3)); await page.waitForTimeout(500);
+  st = await page.evaluate(() => ({ lr: HD.S.lastRaid, pr: HD.S.pendingReveal, modal: !document.getElementById('modal').classList.contains('hidden') && /Raid on your capital/.test(document.getElementById('modalBody').textContent) }));
+  assert(!st.lr && !st.pr && !st.modal, 'raids disabled: no AI raid on the capital after 40 game hours');
+  await page.evaluate(() => closeModalQuiet());
 
   console.log('Build + outposts + chain');
   await page.click('nav [data-tab=capital]');
@@ -92,20 +89,16 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   assert(await page.isVisible('text=Iron Seam'), 'move menu opened');
   await page.click('#modal [data-act=close]');
 
-  console.log('Attack rival');
+  console.log('Raids tab');
   await page.evaluate(() => { HD.S.hero.task = null; });
   await page.click('nav [data-tab=raids]');
-  await page.click('[data-act=attack][data-id="0"]');
-  assert(await page.evaluate(() => HD.S.hero.task && HD.S.hero.task.type === 'raid'), 'raid march started');
-  await page.evaluate(() => HD.simulate(31 * 60e3));
-  assert(await page.isVisible('#modal:not(.hidden) >> text=Raid on'), 'attack report shown');
+  assert(await page.isVisible('text=Raids are coming later') && !(await page.isVisible('[data-act=attack]')), 'Raids tab shows the coming-later note');
   await page.screenshot({ path: 'shot-attack.png' });
-  await page.click('#modal [data-act=close]');
 
   console.log('Save / load / offline');
   const before = await page.evaluate(() => { HD.save(); return { gt: HD.S.gameTime, crowns: HD.S.res.crowns, lvl: HD.S.hero.level }; });
   // pretend we left 10 real minutes ago
-  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('hollowdeep.save.v1')); s.lastReal -= 10 * 60e3; localStorage.setItem('hollowdeep.save.v1', JSON.stringify(s)); window.onbeforeunload = null; });
+  await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('hollowdeep.save.v1')); s.lastReal -= 10 * 60e3; /* an old save with a pending raid must be cleaned up */ s.pendingReveal = { kind: 'defense', who: 'x', stars: 1, lost: {}, gained: {}, atk: 1, def: 1, golems: 1, golemPower: 1, t: 0 }; s.nextRaidAt = 0; s.hero.task = { type: 'raid', rival: 0, start: 0, end: 1 }; localStorage.setItem('hollowdeep.save.v1', JSON.stringify(s)); window.onbeforeunload = null; });
   // prevent pagehide save from overwriting: override save
   await page.evaluate(() => { HD.save = () => {}; window.removeEventListener('pagehide', () => {}); });
   const raw = await page.evaluate(() => localStorage.getItem('hollowdeep.save.v1'));
@@ -117,10 +110,11 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   const after = await page2.evaluate(() => ({ gt: HD.S.gameTime, crowns: HD.S.res.crowns, lvl: HD.S.hero.level }));
   assert(after.gt >= before.gt + 9.9 * 3600e3, `offline time simulated: +${((after.gt - before.gt) / 3600e3).toFixed(2)} game h`);
   assert(await page2.isVisible('#modal:not(.hidden) >> text=While you were away'), 'while-you-were-away summary shown');
+  assert(await page2.evaluate(() => !HD.S.pendingReveal && !HD.S.lastRaid && !(HD.S.hero.task && HD.S.hero.task.type === 'raid') && HD.S.nextRaidAt > 1e14), 'old save with pending raid cleared on load');
+  await page2.click('#modal [data-act=close]'); await page2.waitForTimeout(500); assert(!(await page2.isVisible('#rscene')), 'no raid reveal after the away summary');
   await page2.screenshot({ path: 'shot-away.png' });
 
   console.log('Skip + reset');
-  await page2.click('#modal [data-act=close]');
   await page2.waitForTimeout(500);
   if (await page2.isVisible('#rscene')) await page2.click('#modal [data-act=close]');
   await page2.click('[data-act=settings]');

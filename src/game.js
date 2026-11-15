@@ -110,6 +110,7 @@ const CONFIG = {
   petLevelPower: 0.4, petMax: 10, petUpgrade: { crowns: 60, amber: 2 },
   kennelPetBoost: 0.10,
 
+  raidsEnabled: false,                    // all raiding (incoming AI raids on your capital/outposts, outgoing raids) is off for now
   raids: {
     firstRaidHours: 1.5, intervalHours: [8, 14], shieldHours: 8,
     attackLumen: 10, marchMinutes: 30, rivalShieldHours: 4,
@@ -164,7 +165,7 @@ function newState() {
     pets: [{ uid: 1, id: 'pup', level: 1 }], slots: [1, null],
     outposts: [{ uid: 2, type: 'strider', name: 'Longstep', layer: 1, vein: 'l1gold', state: 'anchored', anchoredSince: 0, stock: {}, module: null, ship: 'all', move: null, dark: false }],
     veins, nextShipAt: HOUR * CONFIG.pull.shipEveryHours, lastShip: null,
-    nextRaidAt: CONFIG.raids.firstRaidHours * HOUR, shieldUntil: 0, raidCount: 0, lastRaid: null, pendingReveal: null,
+    nextRaidAt: CONFIG.raidsEnabled ? CONFIG.raids.firstRaidHours * HOUR : 1e15, shieldUntil: 0, raidCount: 0, lastRaid: null, pendingReveal: null,
     rivals: [], log: [], nextUid: 10, seen: {},
     mapShields: {}, moleDone: {}, discovered: {}, journal: [], seasonOverride: null, festivalOverride: false, cityCam: null,
     stats: { expeditions: 0, raidsWon: 0, defended: 0, tapsAll: 0, deepest: 0, moles: 0 },
@@ -467,6 +468,7 @@ function rivalLoot(i) {
 }
 function starsFor(ratio) { return ratio >= 1.3 ? 3 : ratio >= 1.0 ? 2 : ratio >= 0.75 ? 1 : 0; }
 function startAttack(i) {
+  if (!CONFIG.raidsEnabled) return toast('Raids are coming later');
   ensureRivals(); const r = S.rivals[i];
   if (!heroHome()) return toast('Your hero is busy');
   if (S.gameTime < r.shieldUntil) return toast('That base is shielded');
@@ -491,6 +493,7 @@ function resolveAttack(i) {
 function mapRaidLoot(level, region) { const L = { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level };
   if (typeof REGIONS !== 'undefined' && REGIONS[region] && REGIONS[region].key === 'lava') L.obsidian = 2 + Math.round(level * 0.35); return L; }
 function startMapRaid(h) {
+  if (!CONFIG.raidsEnabled) return toast('Raids are coming later');
   if (!heroHome()) return toast('Your hero is busy');
   if ((S.mapShields[h.id] || 0) > S.gameTime) return toast('That Ledge is shielded');
   if (!pay({ lumen: CONFIG.mapRaid.lumen })) return toast(`Needs ${CONFIG.mapRaid.lumen} Lumen`);
@@ -567,6 +570,7 @@ function marketSell(k, lot, mult) {
 function scheduleNextRaid() { const [a, b] = CONFIG.raids.intervalHours; S.nextRaidAt = S.gameTime + rand(a, b) * HOUR; }
 const RAIDER_NAMES = ['the Ashgull Lodge', 'Brakka\'s Cable-Cutters', 'the Hollow Jackals', 'a Kite crew from the east rim', 'the Lantern Thieves'];
 function aiRaid() {
+  if (!CONFIG.raidsEnabled) { S.nextRaidAt = 1e15; return; }
   scheduleNextRaid();
   if (S.gameTime < S.shieldUntil) return;
   const R = CONFIG.raids, who = pick(RAIDER_NAMES), first = S.raidCount === 0;
@@ -621,7 +625,7 @@ function step(dt) {
   const used = new Set(S.outposts.map((o) => o.vein));
   for (const k in S.veins) if (!used.has(k)) S.veins[k] = Math.min(1, S.veins[k] + CONFIG.veinRegenPerDay * h / 24);
   while (S.gameTime >= S.nextShipAt) { shipAll(); S.nextShipAt += CONFIG.pull.shipEveryHours * HOUR; }
-  if (S.gameTime >= S.nextRaidAt) aiRaid();
+  if (CONFIG.raidsEnabled && S.gameTime >= S.nextRaidAt) aiRaid();
   pruneTaps();
 }
 function simulate(dtGame) {
@@ -641,7 +645,10 @@ function simulateAway(dtGame) {
 
 /* ---------------- save / load ---------------- */
 function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.saveKey, JSON.stringify(S)); } catch (e) { /* storage full or blocked */ } }
+// raids are off: drop any pending raid reveal, raid march, shields or battered state left in older saves
+function clearRaids(s) { if (CONFIG.raidsEnabled) return s; s.pendingReveal = null; s.lastRaid = null; s.nextRaidAt = 1e15; s.shieldUntil = 0;
+  if (s.hero && s.hero.task && s.hero.task.type === 'raid') s.hero.task = null; return s; }
 function load() {
-  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); return Object.assign(d, s); } catch (e) { return null; }
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); return clearRaids(Object.assign(d, s)); } catch (e) { return null; }
 }
 function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }

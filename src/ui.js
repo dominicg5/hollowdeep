@@ -57,7 +57,7 @@ function viewCapital() {
   const def = Math.round(defensePower());
   h += `<div class="card"><div class="row between"><h2>Rim Capital</h2><span class="tag">🛡️ Defense ${def}</span></div>
     <div class="small">Storage cap <b>${fmt(storageCap())}</b> each · ${Math.round(protectedShare() * 100)}% safe from raids.
-    ${S.gameTime < S.shieldUntil ? `<br>🛡️ Shield up: ${countdown(S.shieldUntil)}` : `<br>⚠️ No shield. Raiders may come.`}</div>
+    ${!CONFIG.raidsEnabled ? `<br>🕊️ Raids are off for now. Your stock is safe.` : S.gameTime < S.shieldUntil ? `<br>🛡️ Shield up: ${countdown(S.shieldUntil)}` : `<br>⚠️ No shield. Raiders may come.`}</div>
     ${S.build ? `<div class="small" style="margin-top:6px">🔨 Building <b>${CONFIG.buildings[S.build.id].name} Lv ${S.build.to}</b> · ${countdown(S.build.end)}</div>${pbar(S.build.start, S.build.end)}` : `<div class="dim" style="margin-top:6px">Builders idle. Pick an upgrade.</div>`}
   </div>`;
   for (const id in CONFIG.buildings) {
@@ -192,6 +192,7 @@ function moveMenu(uidv) {
 
 /* ---------- Raids ---------- */
 function viewRaids() {
+  if (!CONFIG.raidsEnabled) return `<div class="card"><h2>⚔️ Raids</h2><div class="dim">Raids are coming later. For now the Rim is peaceful: nobody raids your capital or outposts, and you can't raid anyone.</div></div>`;
   ensureRivals();
   const gp = golemPower(), g = golemCount();
   let h = `<div class="card"><h2>🗿 Your defense</h2><div class="golemrow">${Array.from({ length: Math.min(g, 8) }, (_, i) => pic('golem_sleep', 'gs', 'sleeping golem')).join('')}</div>
@@ -334,7 +335,7 @@ function doTap(x, y) {
 
 /* ---------- modal ---------- */
 function openModal(html, kind) { ui.modalAt = performance.now(); ui.modal = kind || 'x'; $('#modalBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
-function closeModal() { ui.modal = null; $('#modal').classList.add('hidden'); $('#modalBody').innerHTML = ''; rerender(true); if (S.pendingReveal) { const r = S.pendingReveal; setTimeout(() => showReveal(r), 250); } }
+function closeModal() { ui.modal = null; $('#modal').classList.add('hidden'); $('#modalBody').innerHTML = ''; rerender(true); if (S.pendingReveal && CONFIG.raidsEnabled) { const r = S.pendingReveal; setTimeout(() => showReveal(r), 250); } }
 function settingsModal() {
   openModal(`<h2>⚙️ Settings</h2>
     <div class="switch"><div><b>Test mode</b><div class="dim">Speeds every timer: 1 game hour = ${fmtDur(HOUR / CONFIG.testMode.speed)} real. Training thresholds scale ×${CONFIG.tap.testScale}.</div></div>
