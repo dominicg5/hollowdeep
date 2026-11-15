@@ -88,10 +88,10 @@ const GRAND = (() => {
     let gy = 0, rD = 0; { const c0 = ax(0.08); for (let k = 0; k < 3; k++) { let rr = 0; const f0 = Math.max(0, (gy - T.base) / T.H);
         for (let f = f0; f <= f0 + 0.13; f += 0.01) for (let a = -0.34; a <= 0.341; a += 0.04) rr = Math.max(rr, trunkRad(f, OUT + a) * Math.cos(a));
         rD = rr; gy = meshH(c0.x + n.x * (rD + 120), c0.z + n.z * (rD + 120)); } }
-    const c = ax((gy - T.base) / T.H); return (GX.spot = { gy, rD, cx: c.x, cz: c.z, OUT, top: gy + 1020 * 1.35 * 1.3, span: (330 * 1.42 * 1.35 + 260) / rD }); }
+    const c = ax((gy - T.base) / T.H); return (GX.spot = { gy, rD, cx: c.x, cz: c.z, OUT, top: gy + 1020 * 1.35 * 1.3, span: (330 * 1.35 + 260 * 1.35 + 160) / rD }); }
   // bend root points out of the doorway so they curl round the portal instead of cutting through it
-  function dodge(pts, C) { const D = doorSpot(C); for (const p of pts) { if (p.y > D.top + 250) continue; const dx = p.x - D.cx, dz = p.z - D.cz, dist = Math.hypot(dx, dz); if (dist > D.rD + 650) continue;
-      let da = Math.atan2(dz, dx) - D.OUT; da = Math.atan2(Math.sin(da), Math.cos(da)); const ys = sm(D.top + 250, D.top - 300, p.y), span = D.span * (0.55 + 0.45 * ys) * sm(D.rD + 650, D.rD + 250, dist); if (Math.abs(da) >= span) continue;
+  function dodge(pts, C, rs) { const D = doorSpot(C); for (let i = 0; i < pts.length; i++) { const p = pts[i]; if (p.y > D.top + 250) continue; const dx = p.x - D.cx, dz = p.z - D.cz, dist = Math.hypot(dx, dz); if (dist > D.rD + 650) continue;
+      let da = Math.atan2(dz, dx) - D.OUT; da = Math.atan2(Math.sin(da), Math.cos(da)); const ys = sm(D.top + 250, D.top - 300, p.y), span = (D.span * (0.55 + 0.45 * ys) + (rs ? rs[i] * 1.1 / Math.max(dist, 1) : 0)) * sm(D.rD + 650 + (rs ? rs[i] : 0), D.rD + 250, dist); if (Math.abs(da) >= span) continue;
       const na = D.OUT + (da < 0 ? -1 : 1) * span; p.x = D.cx + Math.cos(na) * dist; p.z = D.cz + Math.sin(na) * dist; } return pts; }
   function buildDoor(C) { const { scene, T, trunkRad, ax, meshH, OUT, barkMat } = C; const v3 = () => new THREE.Vector3();
     const n = new THREE.Vector3(Math.cos(OUT), 0, Math.sin(OUT));
@@ -133,7 +133,11 @@ const GRAND = (() => {
         RING.forEach(([o, z], k) => { const oo = k ? o * w * foot : o, px = x + nrm[i][0] * oo, py = y + nrm[i][1] * oo; P.push(px, py, z(px) + (k === 1 ? 6 * Math.sin(u * 37) : 0)); UV.push(acc / 260, k / 3); }); });
       const NR = RING.length; for (let i = 0; i < NO - 1; i++) for (let k = 0; k < NR - 1; k++) { const a = i * NR + k, b = a + NR; I.push(a, b, a + 1, a + 1, b, b + 1); }
       const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); bg.setIndex(I); bg.computeVertexNormals();
-      const rim = new THREE.Mesh(bg, new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xb48c66, side: THREE.DoubleSide })); rim.receiveShadow = true; grp.add(rim); }
+      { grp.updateMatrixWorld(true); const Pp = bg.attributes.position, Nn = bg.attributes.normal, Uu = bg.attributes.uv, cols = [], wv = v3(), wn = v3(), nm = new THREE.Matrix3().getNormalMatrix(grp.matrixWorld); let prev = null, acc2 = 0;
+        for (let i = 0; i < Pp.count; i++) { wv.set(Pp.getX(i), Pp.getY(i), Pp.getZ(i)).applyMatrix4(grp.matrixWorld); wn.set(Nn.getX(i), Nn.getY(i), Nn.getZ(i)).applyMatrix3(nm).normalize(); const c = C.moss ? C.moss(wv, wn, 0) : [1, 1, 1]; cols.push(c[0], c[1], c[2]);
+          const ring = i % NR, row = (i / NR) | 0; Uu.setXY(i, (UV[i * 2] * 260 * 1.35) / 1170, (RING[ring][0] * 1.35) / 900 + row * 0); }
+        bg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); Uu.needsUpdate = true; }
+      const rim = new THREE.Mesh(bg, C.trunkMat || barkMat); rim.receiveShadow = true; grp.add(rim); }
     // lanterns on iron brackets either side of the frame
     GX.lampM = new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false }); const lampPts = [];
     const lampIron = new THREE.MeshLambertMaterial({ color: 0x3a2618 }); for (const s of [-1, 1]) { const bx = s * (hw + 165), cord = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 90, 4), lampIron); cord.position.set(bx, 655, 30); grp.add(cord);
