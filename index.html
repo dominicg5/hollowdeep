@@ -3359,7 +3359,7 @@ const GRAND = (() => {
   /* ---------- the door ---------- */
   function doorWoodTex(hw, H) { return cvTex(512, 768, (g, w, h) => { const r = prng(41);
     // planks
-    for (let i = 0; i < 8; i++) { const v = 0.82 + r() * 0.25; g.fillStyle = `rgb(${196 * v | 0},${172 * v | 0},${140 * v | 0})`; g.fillRect(i * w / 8, 0, w / 8, h);
+    for (let i = 0; i < 8; i++) { const v = 0.82 + r() * 0.25; g.fillStyle = `rgb(${172 * v | 0},${146 * v | 0},${112 * v | 0})`; g.fillRect(i * w / 8, 0, w / 8, h);
       for (let k = 0; k < 40; k++) { g.strokeStyle = `rgba(${r() < 0.5 ? '110,90,66' : '235,220,195'},${0.15 + r() * 0.2})`; g.lineWidth = 1 + r() * 2; const x = i * w / 8 + r() * w / 8; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (r() - 0.5) * 10, h * 0.3, x + (r() - 0.5) * 10, h * 0.7, x + (r() - 0.5) * 6, h); g.stroke(); }
       g.fillStyle = 'rgba(70,54,38,.6)'; g.fillRect(i * w / 8, 0, 3, h); }
     // carved panels with glyphs (two per leaf)
@@ -3416,7 +3416,7 @@ const GRAND = (() => {
     { const tm = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.04, -40), 60, 34, 8, false), new THREE.MeshLambertMaterial({ color: 0xa8957c })); grp.add(tm);
       const tm2 = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.16, -50), 60, 46, 8, false), new THREE.MeshLambertMaterial({ map: wood, color: 0xd6c6ae })); grp.add(tm2);
       const portal = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.42, -120), 64, 130, 10, false), frameM); portal.castShadow = true; grp.add(portal);
-      const ks = new THREE.Shape(); ks.moveTo(0, -120); ks.lineTo(90, 10); ks.lineTo(40, 70); ks.lineTo(0, 150); ks.lineTo(-40, 70); ks.lineTo(-90, 10); ks.closePath(); const kg = new THREE.ExtrudeGeometry(ks, { depth: 50, bevelEnabled: true, bevelThickness: 10, bevelSize: 8, bevelSegments: 2 }); const key = new THREE.Mesh(kg, new THREE.MeshLambertMaterial({ map: wood, color: 0xdccbb2 })); key.position.set(0, H * 1.04 + 30, -20); grp.add(key);
+      /* no keystone or board over the arch: the door and its light carry it */
       // threshold step and side bases
       const stoneM = new THREE.MeshLambertMaterial({ color: 0x5a554e }); const step = new THREE.Mesh(new THREE.BoxGeometry(2 * hw + 160, 36, 150), stoneM); step.position.set(0, 4, 30); grp.add(step); for (const s of [-1, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(150, 140, 170), stoneM); b.position.set(s * (hw + 120), 50, -40); grp.add(b); } }
     // lanterns on iron brackets either side of the frame
@@ -3529,22 +3529,29 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
   const tubeW = (B, p, q, r0, r1, col) => B.tube(p, q, r0, r1, 10, 'white', col, 'white');
   function buildIsland(C) { const { scene, PR } = C, K = HOUSE_KIT.kit; if (!K) return; const [ix, iz] = toW(ID, IS), y0 = WL + ITOP;
     const grp = new THREE.Group(); grp.position.set(ix, y0, iz); grp.rotation.y = Math.atan2(G.ox, G.oy); scene.add(grp); GX.island = grp; grp.updateMatrixWorld(true);
-    // the island: grassy mound with a sandy, stony shore
-    { const nA = 64, nR = 16, P = [], Cc = [], I = [], rq = (a) => IR * (1 + 0.12 * Math.sin(3 * a + 1) + 0.07 * Math.sin(5 * a + 2) + 0.04 * Math.sin(9 * a)), r = prng(31);
-      for (let i = 0; i <= nR; i++) for (let j = 0; j < nA; j++) { const a = j / nA * Math.PI * 2, t = i / nR * 1.12, rr = rq(a) * t, x = Math.cos(a) * rr, z = Math.sin(a) * rr;
-        let h = t < 0.78 ? 0 + 6 * Math.sin(x / 40) * Math.sin(z / 50) * (1 - t) : -ITOP * 1.9 * sm(0.78, 1.12, t) * 1.0 + 0; if (t >= 0.78) h += 4 * Math.sin(a * 7);
-        const n = 0.85 + 0.3 * r(), dirt = Math.max(0, 1 - Math.hypot(x - 20, z - 50) / 120) + Math.max(0, 1 - Math.hypot(x - 60, z + 10) / 70) * 0.7;
-        let c = [0.4 * n, 0.55 * n, 0.24 * n]; if (dirt > 0) c = c.map((v, k) => v + ([0.52, 0.42, 0.28][k] * n - v) * Math.min(1, dirt * 1.4)); const sand = sm(0.74, 0.86, t); c = c.map((v, k) => v + ([0.74, 0.66, 0.5][k] * n - v) * sand); if (t > 0.98) c = c.map((v) => v * 0.7);
-        P.push(x, h, z); Cc.push(...c); }
-      P.push(0, 6, 0); Cc.push(0.42, 0.56, 0.25); const ctr = P.length / 3 - 1;
-      for (let j = 0; j < nA; j++) I.push(ctr, (j + 1) % nA, j); for (let i = 0; i < nR; i++) for (let j = 0; j < nA; j++) { const a = i * nA + j, b = i * nA + (j + 1) % nA, c = a + nA, d = b + nA; I.push(a, b, c, b, d, c); }
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(Cc, 3)); g.setIndex(I); g.computeVertexNormals();
-      const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true })); m.receiveShadow = true; grp.add(m);
+    // the island: a low, smooth grey mound under patchy turf
+    { const nA = 96, nR = 30, P = [], Cc = [], I = [], P2 = [], C2 = [], I2 = [], rq = (a) => IR * (1 + 0.1 * Math.sin(3 * a + 1) + 0.05 * Math.sin(5 * a + 2) + 0.03 * Math.sin(9 * a)) * (1 + 0.26 * Math.cos(2 * a)) * 0.9, r = prng(31);
+      // a smooth, gently domed grey back; turf, moss and dirt lie over it in patches, the bare skin glossy where it shows
+      const hAt = (t, a, x, z) => t < 0.6 ? 6 * Math.sin(x / 40) * Math.sin(z / 50) * (1 - t) : -ITOP * 2.1 * (1 - Math.cos(Math.PI * Math.min(1, (t - 0.6) / 0.52))) / 2 + 1.5 * Math.sin(a * 5) * (t < 1 ? 1 : 0);
+      const cov = (x, z, t) => { if (t < 0.5) return 1; const n = 0.5 + 0.35 * Math.sin(x / 37 + 1.3) * Math.sin(z / 29 + 0.7) + 0.25 * Math.sin((x + z) / 23) + 0.12 * Math.sin(x / 11 - z / 13); return n - (t - 0.5) * 1.5 > 0.2 ? 1 : 0; };
+      const cv = []; for (let i = 0; i <= nR; i++) for (let j = 0; j < nA; j++) { const a = j / nA * Math.PI * 2, t = i / nR * 1.12, rr = rq(a) * t, x = Math.cos(a) * rr, z = Math.sin(a) * rr, h = hAt(t, a, x, z);
+        const n = 0.88 + 0.16 * r(), pl = t > 0.78 ? 0.86 + 0.14 * Math.abs(Math.sin(z / 7 + Math.sin(x / 40))) : 1, wet = t > 1.0 ? 0.75 : 1; const sk = [0.13 * n * pl * wet, 0.145 * n * pl * wet, 0.165 * n * pl * wet];
+        P.push(x, h, z); Cc.push(...sk);
+        const dirt = Math.max(0, 1 - Math.hypot(x - 20, z - 50) / 120) + Math.max(0, 1 - Math.hypot(x - 60, z + 10) / 70) * 0.7, moss = 0.5 + 0.5 * Math.sin(x / 19 + z / 23); let c = [0.4 * n, 0.55 * n, 0.24 * n]; c = c.map((v, k) => v + ([0.3, 0.42, 0.2][k] * n - v) * moss * sm(0.35, 0.7, t)); if (dirt > 0) c = c.map((v, k) => v + ([0.52, 0.42, 0.28][k] * n - v) * Math.min(1, dirt * 1.4));
+        P2.push(x, h + 1.6, z); C2.push(...c); cv.push(cov(x, z, t)); }
+      P.push(0, 6, 0); Cc.push(0.25, 0.27, 0.3); P2.push(0, 7.6, 0); C2.push(0.42, 0.56, 0.25); const ctr = P.length / 3 - 1; cv.push(1);
+      for (let j = 0; j < nA; j++) { I.push(ctr, (j + 1) % nA, j); I2.push(ctr, (j + 1) % nA, j); } for (let i = 0; i < nR; i++) for (let j = 0; j < nA; j++) { const a = i * nA + j, b = i * nA + (j + 1) % nA, c = a + nA, d = b + nA; I.push(a, b, c, b, d, c); if (cv[a] + cv[b] + cv[c] >= 2) I2.push(a, b, c); if (cv[b] + cv[d] + cv[c] >= 2) I2.push(b, d, c); }
+      const mk = (PP, CC, II, mat) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(PP, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(CC, 3)); g.setIndex(II); g.computeVertexNormals(); const m = new THREE.Mesh(g, mat); m.receiveShadow = true; grp.add(m); return m; };
+      mk(P, Cc, I, new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 55, specular: 0x3c454c }));
+      const m = mk(P2, C2, I2, new THREE.MeshLambertMaterial({ vertexColors: true }));
+      // a few faint barnacle clusters on the bare skin near the waterline
+      { const bg = new THREE.ConeGeometry(1, 1, 6, 1, true).translate(0, 0.5, 0), bm = new THREE.MeshLambertMaterial({ color: 0x9c978c }), Nb = 54, bi = new THREE.InstancedMesh(bg, bm, Nb), mb = new THREE.Matrix4(), qb = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+        for (let k = 0; k < Nb; k++) { const ca = [0.6, 2.4, 4.3][k % 3] + (r() - 0.5) * 0.18, t = 0.93 + r() * 0.08, rr = rq(ca) * t, x = Math.cos(ca) * rr, z = Math.sin(ca) * rr, h = hAt(t, ca, x, z), s2 = 1.6 + r() * 2.6; qb.setFromUnitVectors(up, new THREE.Vector3(Math.cos(ca) * 0.6, 1, Math.sin(ca) * 0.6).normalize()); mb.compose(new THREE.Vector3(x, h - 0.5, z), qb, new THREE.Vector3(s2, s2 * 0.8, s2)); bi.setMatrixAt(k, mb); } grp.add(bi); }
       // tufts, stones, a few flowers
       const tg = new THREE.ConeGeometry(1, 1, 4).translate(0, 0.5, 0), tm = new THREE.MeshLambertMaterial({ color: 0x5f7d34 }), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), N = 200, tuft = new THREE.InstancedMesh(tg, tm, N); tuft.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(N * 3), 3);
-      for (let k = 0; k < N; k++) { const a = r() * Math.PI * 2, t = Math.sqrt(r()) * 0.8, x = Math.cos(a) * rq(a) * t, z = Math.sin(a) * rq(a) * t; if (Math.hypot(x - 20, z - 50) < 60) { k--; continue; } e.set((r() - 0.5) * 0.4, r() * 3, (r() - 0.5) * 0.4); q.setFromEuler(e); const s2 = 4 + r() * 5; mt.compose(new THREE.Vector3(x, 0, z), q, new THREE.Vector3(s2 * 0.9, s2 * 0.8, s2 * 0.9)); tuft.setMatrixAt(k, mt); const v = 0.75 + r() * 0.5; tuft.instanceColor.setXYZ(k, v * (r() < 0.2 ? 1.3 : 1), v, v * 0.9); } grp.add(tuft);
+      for (let k = 0; k < N; k++) { const a = r() * Math.PI * 2, t = Math.sqrt(r()) * 0.62, x = Math.cos(a) * rq(a) * t, z = Math.sin(a) * rq(a) * t; if (Math.hypot(x - 20, z - 50) < 60) { k--; continue; } e.set((r() - 0.5) * 0.4, r() * 3, (r() - 0.5) * 0.4); q.setFromEuler(e); const s2 = 4 + r() * 5; mt.compose(new THREE.Vector3(x, 0, z), q, new THREE.Vector3(s2 * 0.9, s2 * 0.8, s2 * 0.9)); tuft.setMatrixAt(k, mt); const v = 0.75 + r() * 0.5; tuft.instanceColor.setXYZ(k, v * (r() < 0.2 ? 1.3 : 1), v, v * 0.9); } grp.add(tuft);
       const sg = new THREE.DodecahedronGeometry(1, 0), sm2 = new THREE.MeshLambertMaterial({ color: 0x6c665e, flatShading: true }), M2 = 46, st = new THREE.InstancedMesh(sg, sm2, M2);
-      for (let k = 0; k < M2; k++) { const a = r() * Math.PI * 2, t = k < 30 ? 0.82 + r() * 0.2 : r() * 0.7, x = Math.cos(a) * rq(a) * t, z = Math.sin(a) * rq(a) * t, s2 = k < 30 ? 9 + r() * 16 : 4 + r() * 6; e.set(r() * 3, r() * 3, 0); q.setFromEuler(e); mt.compose(new THREE.Vector3(x, (t > 0.8 ? -ITOP * 1.9 * sm(0.78, 1.12, t) : 0) + s2 * 0.2, z), q, new THREE.Vector3(s2, s2 * 0.6, s2 * 0.85)); st.setMatrixAt(k, mt); } st.castShadow = true; grp.add(st);
+      for (let k = 0; k < M2; k++) { const a = r() * Math.PI * 2, t = k < 30 ? 0.55 + r() * 0.2 : r() * 0.6, x = Math.cos(a) * rq(a) * t, z = Math.sin(a) * rq(a) * t, s2 = k < 30 ? 9 + r() * 16 : 4 + r() * 6; e.set(r() * 3, r() * 3, 0); q.setFromEuler(e); mt.compose(new THREE.Vector3(x, (t > 0.6 ? -ITOP * 2.1 * (1 - Math.cos(Math.PI * Math.min(1, (t - 0.6) / 0.52))) / 2 : 0) + s2 * 0.2, z), q, new THREE.Vector3(s2, s2 * 0.6, s2 * 0.85)); st.setMatrixAt(k, mt); } st.castShadow = true; grp.add(st);
       const fg = new THREE.SphereGeometry(1, 5, 3), fl = new THREE.InstancedMesh(fg, new THREE.MeshBasicMaterial({ color: 0xffffff }), 40); fl.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(120), 3);
       for (let k = 0; k < 40; k++) { const a = r() * Math.PI * 2, t = 0.2 + r() * 0.55, x = Math.cos(a) * rq(a) * t, z = Math.sin(a) * rq(a) * t; mt.compose(new THREE.Vector3(x, 6, z), q.identity(), new THREE.Vector3(2.2, 2.2, 2.2)); fl.setMatrixAt(k, mt); const c = [[1, 0.95, 0.6], [1, 1, 1], [0.8, 0.7, 1], [1, 0.7, 0.6]][k % 4]; fl.instanceColor.setXYZ(k, ...c); } grp.add(fl); }
     // the shack, the miner, his pack and the campfire: built with the house kit (same painted atlas as the Ledges)
