@@ -1388,10 +1388,13 @@ const CITY = {
   homeTerm: 'Ledge', functional: false, water: false,
   base: true,       // approved base only: terrain, homes, the Exchange, trees, day/night, clouds (no events, NPCs, landmarks...)
   maxDepth: 99,     // the Hollow's depth levels (99 is the far goalpost)
-  homeCount: 240,   // total homes on the map: raise this later (performance first for now)
-  lipShare: 0.7,    // share of homes ringing the Hollow lip; the rest form small lowland towns              // in-world name for each player's capital
+  homeCount: 760,   // total homes on the map (one value: raise or lower it here)
+  lipShare: 0.86,   // share of homes packed in tight rings along the Hollow lip; the rest dot the lowlands
+  homeGap: 1.9,     // spacing between Ledges (x their footprint)
+  lipBand: 760,     // depth of the lip city ring (world units)
+     // share of homes ringing the Hollow lip; the rest form small lowland towns              // in-world name for each player's capital
   seed: 20261114,
-  R: 11000, hollowR: 1800, plateauR: 4500, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
+  R: 13000, hollowR: 3000, plateauR: 5400, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
   tilePx: 256, levels: [0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 300,
   zoomMin: 0.018, zoomMax: 3.2, startZoom: 1.05,
@@ -1711,7 +1714,8 @@ function generateCity() {
   W.mountains = [];
   const addMtn = (x, y, r) => { if (hollowDist(x, y) < 900 || !lowland(x, y) || onCliff(x, y, r) || (W.pass && Math.hypot(x - W.pass.x, y - W.pass.y) < 700) || chasmDist(x, y) < r * 0.5 || isWet(x, y, r)) return; const m = { type: 'mountain', x, y, r, layer: 1, seed: rnd(), spr: 'mtn_' + Math.floor(rnd() * 9) }; W.mountains.push(m); occMark(OCC.obj, x, y, r * 0.8); };
   for (let row = 0; row < 3; row++) { const rr = R - 260 - row * 520, n = Math.floor(TAU * rr / (420 + row * 60)); for (let i = 0; i < n; i++) { if (row === 2 && rnd() < 0.45) continue; const a = (i + rnd() * 0.6) / n * TAU; addMtn(Math.cos(a) * (rr + (rnd() - 0.5) * 200), Math.sin(a) * (rr + (rnd() - 0.5) * 200), 200 + rnd() * 140 - row * 25); } }
-  for (let k = 0; k < 6; k++) { let a = rnd() * TAU, r = 5600 + rnd() * 4400; const da = (rnd() < 0.5 ? 1 : -1) * (0.04 + rnd() * 0.03), dr = (rnd() - 0.5) * 120, n = 6 + Math.floor(rnd() * 10);
+  for (let row = 0; row < 3; row++) { const rr = CITY.R - 1300 - row * 650, n = Math.floor(2.2 * rr / 380); for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (i / n - 0.5) * 2.2 + (rnd() - 0.5) * 0.03; if (rnd() < 0.15 * row) continue; addMtn(Math.cos(a) * (rr + (rnd() - 0.5) * 260), Math.sin(a) * (rr + (rnd() - 0.5) * 260), 260 + rnd() * 160 - row * 40); } }
+  for (let k = 0; k < 6; k++) { let a = rnd() * TAU, r = CITY.plateauR + 1800 + rnd() * (CITY.R - CITY.plateauR - 3600); const da = (rnd() < 0.5 ? 1 : -1) * (0.04 + rnd() * 0.03), dr = (rnd() - 0.5) * 120, n = 6 + Math.floor(rnd() * 10);
     for (let i = 0; i < n; i++) { a += da; r += dr; addMtn(Math.cos(a) * r + (rnd() - 0.5) * 120, Math.sin(a) * r + (rnd() - 0.5) * 120, 150 + rnd() * 120); } }
   W.mountains.sort((p, q) => p.y - q.y);
 
@@ -1719,8 +1723,8 @@ function generateCity() {
   W.homes = []; const used = new Set();
   const addHome = (x, y, face, lvlBias) => {
     const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3 + (lvlBias || 0)))));
-    const size = 22 + level * 0.55 + rnd() * 6, rad = size * 0.62;
-    if (hollowDist(x, y) < 150 || onCliff(x, y, rad + 14) || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, rad + 3)) return null;
+    const size = 22 + level * 0.55 + rnd() * 6, rad = size * 0.62, gap = rad * (CITY.homeGap || 1);
+    if (hollowDist(x, y) < 110 || onCliff(x, y, rad + 14) || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, gap + 3)) return null;
     const region = regionAt(x, y), reg = REGIONS[region];
     const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
     const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
@@ -1731,7 +1735,7 @@ function generateCity() {
       banners: Math.min(4, Math.floor(level / 8 + rnd() * 1.5)), trophies: rnd() < 0.25 + level / 80 ? 1 + Math.floor(rnd() * Math.min(5, level / 6 + 1)) : 0,
       battered: rnd() < 0.12, pet: rnd() < CITY.homePetShare ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, petPhase: rnd() * TAU, petSleep: true,
       lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
-    h.name = ledgeName(h.owner); W.homes.push(h); occMark(OCC.obj, x, y, rad + 2); return h;
+    h.name = ledgeName(h.owner); W.homes.push(h); occMark(OCC.obj, x, y, gap + 2); return h;
   };
   // the metropolis: homes packed shoulder to shoulder around the Hollow, thinning into dense districts between the
   // mountains and crevices of the outer lands. Tall, high-level homes crowd the lip.
@@ -1800,7 +1804,7 @@ function generateCity() {
 // ring radius for a rim-proximity percentile q (0 = deepest delver, on the lip; 1 = shallowest, far out in the lowlands)
 // every home is a Ledge (like a portaledge), named after its owner
 function ledgeName(owner) { return `${owner}'s ${CITY.homeTerm}`; }
-function rimRadiusQ(q, a) { const L = CITY.lipShare; if (q < L) return hollowR(a) + 170 + (q / L) * Math.min(1150, plateauR(a) - hollowR(a) - 420);
+function rimRadiusQ(q, a) { const L = CITY.lipShare; if (q < L) return hollowR(a) + 130 + (q / L) * Math.min(CITY.lipBand, plateauR(a) - hollowR(a) - 420);
   return plateauR(a) + cliffW(a) + 320 + ((q - L) / (1 - L)) * (CITY.R - 1600 - plateauR(a) - cliffW(a)); }
 // the player's deepest Hollow level on the 1..99 scale: each layer the hero has reached counts as six levels (placeholder mapping)
 function playerDeepest() { const d = (typeof S !== 'undefined' && S && S.stats) ? (S.stats.deepest || 0) : 0; return Math.max(1, Math.min(CITY.maxDepth - 1, 1 + d * 6)); }
@@ -2536,7 +2540,7 @@ function artRingStreet(c, s) { // cobbled ring street round the lip of the Hollo
 }
 function artStatic(c, x0, y0, x1, y1, s) {
   drawTerrain(c, x0, y0, x1, y1, s);
-  { const e = CITY.plateauR * 1.25 + 400; if (x1 > -e && x0 < e && y1 > -e && y0 < e) artPlateau(c, s, x0, y0, x1, y1); }
+  { const e = CITY.plateauR * 1.25 + 400; if (!ART.ground3d && x1 > -e && x0 < e && y1 > -e && y0 < e) artPlateau(c, s, x0, y0, x1, y1); }
   { const e = CITY.hollowR * 1.3 + 200; if (x1 > -e && x0 < e && y1 > -e && y0 < e) artRingStreet(c, s); }
   const objs = queryObjs(x0, y0, x1, y1, 160, 150);
   for (const o of objs) if (o.layer === 0) artDecal(c, o, s);
@@ -2825,7 +2829,7 @@ function drawSkyFish(c, kind, x, y, ang, size, t, ph, glow, alpha, shadow) {
    The 2D canvas on top only carries labels/HUD. Falls back to the 2D painter when WebGL is missing.
    ===================================================================== */
 const M3 = (() => {
-  const P_H = 700, PIT = 3000, FOV = 40;
+  const P_H = 700, PIT = 3600, FOV = 40; const IN = () => CITY.plateauR + 1700; // half-size of the fine inner terrain grid
   const st = { ok: false, building: false, tris: 0, calls: 0 };
   let renderer, scene, camera, sun, hemi, lumen, lumenSpr, ring, ringGlow, terrainMat, bbMat = [], bbMesh = [], lightPts, moleSpr, clouds = [], cv3;
   const grids = []; // [{half, N, step, h:Float32Array}]
@@ -2837,26 +2841,41 @@ const M3 = (() => {
   function buildMtGrid() { mtGrid = new Map(); for (const m of W.mountains) { if (m.type !== 'mountain') continue; const k = Math.floor(m.x / 1000) + ',' + Math.floor(m.y / 1000); (mtGrid.get(k) || mtGrid.set(k, []).get(k)).push(m); } }
   function mtnH(x, y) { const gx = Math.floor(x / 1000), gy = Math.floor(y / 1000); let h = 0;
     for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const L = mtGrid.get((gx + i) + ',' + (gy + j)); if (!L) continue;
-      for (const m of L) { const s = m.r * 1.45, dx = x - m.x, dy = y - m.y, d2 = (dx * dx + dy * dy) / (s * s); if (d2 > 9) continue; const hp = m.r * 2.7 * (0.85 + m.seed * 0.3);
+      for (const m of L) { const s = m.r * 1.45, dx = x - m.x, dy = y - m.y, d2 = (dx * dx + dy * dy) / (s * s); if (d2 > 9) continue; const hp = m.r * 2.7 * (0.85 + m.seed * 0.3) * (1 + 0.45 * clamp(-m.y / CITY.R, 0, 1));
         h = Math.max(h, hp * Math.exp(-d2 * (1.0 + 0.3 * Math.sin(Math.atan2(dy, dx) * 3 + m.seed * 9)))); } }
     if (h > 1) { // ridged relief so peaks read as rock, not cones
       const rn = (u, v) => 1 - Math.abs(2 * vnoise(u, v) - 1); const r = 0.55 * rn(x / 260, y / 260) + 0.3 * rn(x / 110 + 7, y / 110) + 0.15 * rn(x / 47, y / 47 + 3);
       h *= 0.62 + 0.55 * r; }
     return h; }
+  // ridged multifractal (0..~1): sharp crests, weighted octaves
+  function ridged(x, y, oct) { let sum = 0, amp = 0.55, fr = 1, w = 1; for (let i = 0; i < oct; i++) { let n = 1 - Math.abs(2 * vnoise(x * fr + i * 17.3, y * fr - i * 9.1) - 1); n *= n; n *= w; w = clamp(n * 1.7, 0, 1); sum += n * amp; fr *= 2.07; amp *= 0.5; } return sum; }
+  function fbm(x, y, oct) { let sum = 0, amp = 0.5, fr = 1; for (let i = 0; i < oct; i++) { sum += (vnoise(x * fr + i * 5.7, y * fr + i * 3.1) - 0.5) * amp; fr *= 2.03; amp *= 0.5; } return sum; }
   function heightAt(x, y) {
-    const r = Math.hypot(x, y), a = Math.atan2(y, x), pr = plateauR(a), cw = cliffW(a);
-    const low = 40 + 90 * vnoise(x / 1900 + 5, y / 1900 - 3) + 35 * vnoise(x / 650, y / 650 + 9);
-    const d = r - pr; let h;
-    if (d <= 0) h = P_H + 10 * vnoise(x / 500, y / 500);
-    else if (d < cw) { const u = d / cw; h = P_H + (low - P_H) * smooth01(0, 1, Math.pow(u, 0.8)); }
+    const r = Math.hypot(x, y), a = Math.atan2(y, x);
+    // domain-warped outline: the summit edge wanders organically instead of a clean cylinder
+    const wx = x + 900 * fbm(x / 2600 + 3.1, y / 2600 - 1.7, 3), wy = y + 900 * fbm(x / 2600 - 7.3, y / 2600 + 4.2, 3);
+    const rw = Math.hypot(wx, wy), aw = Math.atan2(wy, wx), pr = plateauR(aw) * (1 + 0.06 * fbm(Math.cos(aw) * 2 + 9, Math.sin(aw) * 2, 3));
+    const low = 40 + 90 * vnoise(x / 1900 + 5, y / 1900 - 3) + 35 * vnoise(x / 650, y / 650 + 9) + 120 * Math.max(0, fbm(x / 1400 + 2, y / 1400, 4));
+    const d = rw - pr; let h, rock = 0;
+    // only some sections of the edge are sheer cliffs; elsewhere foothills roll up to the summit
+    const cliffy = smooth01(0.5, 0.68, vnoise(Math.cos(aw) * 1.7 + 5.5, Math.sin(aw) * 1.7 + 2.5)), cw = cliffW(aw), slopeW = cw + (1 - cliffy) * (1500 + 900 * vnoise(Math.cos(aw) * 3 + 1, Math.sin(aw) * 3));
+    if (d <= 0) h = P_H + 10 * vnoise(x / 500, y / 500) + 140 * Math.max(0, fbm(x / 900, y / 900 + 7, 3)) * smooth01(-1300, 0, d);
+    else if (d < slopeW) { const u = d / slopeW; const prof = cliffy * (1 - smooth01(0, 1, Math.pow(u, 0.8))) + (1 - cliffy) * Math.pow(1 - u, 1.7);
+      const hills = (1 - cliffy) * Math.sin(Math.PI * u) * (260 * (0.5 + fbm(x / 700 + 4, y / 700, 4)) + 180 * ridged(x / 1300, y / 1300, 3));
+      h = low + (P_H - low) * prof + hills; }
     else h = low;
+    // rocky spurs and ridges radiating out from the summit, fading into the foothills
+    const zone = smooth01(-500, 250, d) * (1 - smooth01(900, 4200, d));
+    if (zone > 0) { const ang = (A) => ridged(A * (CITY.plateauR / 1150), d / 2300 + 0.35 * fbm(x / 1800, y / 1800, 2), 4);
+      const sw = smooth01(2.5, Math.PI, Math.abs(aw)), n = sw > 0 ? ang(aw) * (1 - sw) + ang(aw < 0 ? aw + TAU : aw) * sw : ang(aw);
+      const sp = zone * Math.pow(n, 1.6) * (520 + 240 * cliffy); h += sp * (1 - 0.55 * smooth01(0, -400, d)); rock = sp; }
     const hr = hollowR(a);
     if (r < hr + 2) { const g = clamp(1 - r / hr, 0, 1), TT = 9, gt = g * TT, fi = Math.floor(gt), fr = gt - fi, step = (fi + smooth01(0.5, 1, fr)) / TT; h = P_H - PIT * Math.pow(step, 0.8) - 30 * g; }
     const cd = chasmDist(x, y); if (cd < 8) h -= 460 * smooth01(8, -20, cd);
-    let mh = mtnH(x, y);
+    let mh = mtnH(x, y) + rock * 0.55;
     // the world's edge rises into a wall of rocky peaks fading into haze (no sea, no coastline)
     const eg = smooth01(CITY.R - 700, CITY.R + 900, r); if (eg > 0) { const rn = (u, v) => 1 - Math.abs(2 * vnoise(u, v) - 1); { const q = 0.6 * rn(x / 420, y / 420) + 0.4 * rn(x / 150 + 3, y / 150); mh = Math.max(mh, eg * (260 + 760 * q * q)); } }
-    return [h + mh, mh];
+    return [h + mh - rock * 0.55, mh];
   }
   function buildGrid(half, N, hide) {
     const g = { half, N, step: (2 * half) / N, h: new Float32Array((N + 1) * (N + 1)), m: new Float32Array((N + 1) * (N + 1)) };
@@ -2886,7 +2905,7 @@ const M3 = (() => {
       drawStatic(g, sx0, sy0, sx0 + sw, sy0 + sw, s); g.restore(); } finally { ART.ground3d = false; }
   }
   function canvasTex(cv) { const t = new THREE.CanvasTexture(cv); t.flipY = false; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.encoding = THREE.sRGBEncoding; return t; }
-  function imgTex(img, rep) { const t = new THREE.Texture(img); t.needsUpdate = true; t.flipY = false; t.encoding = THREE.sRGBEncoding; if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; } t.anisotropy = 4; return t; }
+  function imgTex(img, rep, an) { const t = new THREE.Texture(img); t.needsUpdate = true; t.flipY = false; t.encoding = THREE.sRGBEncoding; if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; } t.anisotropy = Math.min(an || 4, renderer.capabilities.getMaxAnisotropy()); return t; }
 
   /* ---------- terrain material ---------- */
   function makeTerrainMat(U) {
@@ -2897,7 +2916,7 @@ const M3 = (() => {
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal); vMt = aMt;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 varying vec3 vWP; varying vec3 vWN; varying float vMt;
-uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn;
+uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn;
 uniform float uPH; uniform float uHR; uniform vec3 uLumen; uniform float uDeep;
 float edgeF(vec2 u, float w) { return smoothstep(0.0, w, min(min(u.x, 1.0 - u.x), min(u.y, 1.0 - u.y))); }`)
         .replace('#include <map_fragment>', `
@@ -2906,13 +2925,22 @@ vec2 ub = (wp - uB.xy) / uB.zw; if (ub.x > 0.0 && ub.x < 1.0 && ub.y > 0.0 && ub
 if (uCOn > 0.5) { vec2 uc = (wp - uC.xy) / uC.zw; if (uc.x > 0.0 && uc.x < 1.0 && uc.y > 0.0 && uc.y < 1.0) tc = mix(tc, texture2D(tC, uc), edgeF(uc, 0.08)); }
 vec3 nn = normalize(vWN); float slope = 1.0 - clamp(nn.y, 0.0, 1.0);
 vec3 bw = pow(abs(nn), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
-vec3 rockV = texture2D(tRock, vec2(vWP.z, -vWP.y) / 300.0).rgb * bw.x + texture2D(tRock, vec2(vWP.x, -vWP.y) / 300.0).rgb * bw.z + texture2D(tRock, wp / 300.0).rgb * bw.y;
-vec3 rockT = texture2D(tRock, wp / 480.0).rgb * vec3(0.92, 0.9, 0.88);
+vec3 rockV = texture2D(tRock, vec2(vWP.z, -vWP.y) / 260.0).rgb * bw.x + texture2D(tRock, vec2(vWP.x, -vWP.y) / 260.0).rgb * bw.z + texture2D(tRock, wp / 260.0).rgb * bw.y;
+rockV = mix(rockV, rockV * vec3(1.05, 0.98, 0.9), 0.5) * 1.08;
+vec3 rockT = (texture2D(tRock, wp / 420.0).rgb * bw.y + rockV * (1.0 - bw.y)) * vec3(0.95, 0.93, 0.92);
 float steep = smoothstep(0.38, 0.62, slope);
 tc.rgb = mix(tc.rgb, rockT, smoothstep(0.2, 0.75, vMt) * (1.0 - steep));
 tc.rgb = mix(tc.rgb, rockV, steep);
-float snow = smoothstep(820.0, 1060.0, vWP.y + 120.0 * texture2D(tRock, wp / 700.0).r) * smoothstep(0.25, 0.7, vMt) * (1.0 - 0.7 * smoothstep(0.5, 0.8, slope));
+float snow = smoothstep(1050.0, 1300.0, vWP.y + 160.0 * texture2D(tRock, wp / 700.0).r) * smoothstep(0.25, 0.7, vMt) * (1.0 - smoothstep(0.35, 0.6, slope));
 tc.rgb = mix(tc.rgb, vec3(0.94, 0.96, 1.0), snow);
+// tiled grass detail near the camera + richer painterly greens on open ground
+float camD = length(vWP - cameraPosition); float nearF = 1.0 - smoothstep(2500.0, 9000.0, camD);
+float grassM = (1.0 - steep) * (1.0 - smoothstep(0.15, 0.6, vMt)) * (1.0 - snow);
+vec3 gd = texture2D(tGrass, wp / 150.0).rgb; vec3 gd2 = texture2D(tGrass, wp / 37.0 + 0.37).rgb;
+float gl = dot(gd * 0.6 + gd2 * 0.4, vec3(0.3, 0.59, 0.11));
+tc.rgb *= mix(1.0, clamp(gl / 0.36, 0.6, 1.45), 0.6 * grassM * nearF);
+float tl = dot(tc.rgb, vec3(0.3, 0.59, 0.11)); tc.rgb = mix(vec3(tl), tc.rgb, 1.0 + 0.1 * grassM);
+tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.86, 1.0, 0.78), 0.35 * grassM);
 float inPit = 1.0 - smoothstep(uHR * 0.98, uHR * 1.04, length(wp));
 float dep = clamp((uPH - vWP.y) / 3000.0, 0.0, 1.0);
 tc.rgb *= mix(1.0, mix(1.0, 0.28, dep), inPit);
@@ -2920,7 +2948,8 @@ float crack = smoothstep(uPH - 60.0, uPH - 380.0, vWP.y) * (1.0 - inPit) * step(
 float low = smoothstep(-40.0, -420.0, vWP.y - 0.0) * (1.0 - inPit); tc.rgb *= mix(1.0, 0.45, low);
 diffuseColor *= tc;`)
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-totalEmissiveRadiance += uLumen * inPit * pow(dep, 1.3) * 1.2 + uLumen * 0.25 * inPit * smoothstep(0.7, 1.0, dep);`);
+float ledge = 0.55 + 0.45 * smoothstep(0.3, 0.8, slope); // terrace walls catch more glow than their ledges, so the steps read
+totalEmissiveRadiance += uLumen * inPit * (pow(dep, 1.2) * 1.1 * ledge) * (tc.rgb * 1.7 + 0.03) + uLumen * 0.18 * inPit * smoothstep(0.75, 1.0, dep);`);
     };
     return m;
   }
@@ -2949,13 +2978,14 @@ void main() {
   vec4 c = texture2D(map, vUv); if (c.a < 0.5) discard;
   vec3 col = c.rgb * uLight + c.rgb * uLumen * vLum;
   gl_FragColor = vec4(mix(col, uFogC, vFog), 1.0);
+  #include <tonemapping_fragment>
   #include <encodings_fragment>
 }`;
   function lumAt(x, y) { const d = Math.hypot(x, y) - CITY.hollowR, u = clamp(1 - d / (CITY.hollowR * 0.7), 0, 1); return u * u; }
   function spriteList() {
     const L = [];
     const add = (spr, x, y, w, ay, flip, lum) => { const e = ART_MANIFEST.s[spr]; if (!e) return; L.push({ e, x, y, w, ay, flip, lum: lum == null ? lumAt(x, y) : lum }); };
-    for (const h of W.homes) { const tier = tierOf(h); add(homeSprite(h), h.x, h.y, homeW(h, tier) * 1.15, TIER_AY[tier], homeFlip(h)); }
+    for (const h of W.homes) { const tier = tierOf(h); add(homeSprite(h), h.x, h.y, homeW(h, tier) * 1.4, TIER_AY[tier], homeFlip(h)); }
     for (const o of W.objs) if (o.type === 'tree') add(pickOf(TREES.def.concat(['p_forest_5', 'p_forest_4']), o.seed || 0.5), o.x, o.y, o.r * 2.9, 0.9, (o.seed || 0) > 0.5);
     for (const o of W.civic) { if (o.type === 'exchange') { add('civ_market', o.x, o.y, 230, 0.78, false); continue; } if (o.type === 'lift') add('civ_lift', o.x, o.y, 54, 0.95, false); else if (o.type === 'statue') add('landmarks_0', o.x, o.y, o.r * 2.8, 0.78); else if (o.type === 'memorial') add('landmarks_1', o.x, o.y, 96, 0.78); else if (o.type === 'gate') add('landmarks_2', o.x, o.y, o.r * 3.2, 0.82); else if (o.type === 'rift') add('landmarks_2', o.x, o.y, o.r * 3, 0.82); else if (o.type === 'outpost') add('sp_outpost_0', o.x, o.y, 300, 0.62); }
     for (const m of W.mountains) if (m.type === 'pass') add('sp_pass_0', m.x, m.y, m.r * 2.7, 0.9);
@@ -2975,6 +3005,20 @@ void main() {
       const mesh = new THREE.Mesh(g, bbMat[ai]); mesh.frustumCulled = false; scene.add(mesh); bbMesh.push(mesh); }
     st.sprites = L.length; st.playerTier = playerTier();
   }
+  // the player's ring is draped over the terrain so it never clips into slopes
+  let ringAt = null;
+  function drapeRing() { const h = W.player, w = homeW(h), r0 = w * 0.7, r1 = w * 0.82, n = 72, pos = [], idx = [];
+    for (let i = 0; i <= n; i++) { const a = (i / n) * TAU; for (const r of [r0, r1]) { const x = h.x + Math.cos(a) * r, y = h.y + Math.sin(a) * r; pos.push(x, meshH(x, y) + 4, y); } }
+    for (let i = 0; i < n; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); ring.geometry.dispose(); ring.geometry = g; ringAt = h.x + ',' + h.y; }
+  // far LOD: roof-coloured blobs so the lip reads as a red-roofed city ring from far away
+  let roofPts = null;
+  function roofTex() { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 30, 4, 32, 32, 30); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.7, 'rgba(235,235,235,1)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.beginPath(); g.arc(32, 32, 30, 0, TAU); g.fill(); return new THREE.CanvasTexture(c); }
+  function buildRoofLOD() { if (roofPts) { scene.remove(roofPts); roofPts.geometry.dispose(); }
+    const pos = [], col = [], c = new THREE.Color();
+    for (const h of W.homes) { const w = homeW(h); pos.push(h.x, meshH(h.x, h.y) + w * 0.35, h.y); c.set(h.roof || '#b5533c'); c.convertSRGBToLinear(); col.push(c.r, c.g, c.b); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    roofPts = new THREE.Points(g, new THREE.PointsMaterial({ size: 130, sizeAttenuation: true, vertexColors: true, map: roofTex(), transparent: true, alphaTest: 0.4, depthWrite: true, fog: true })); roofPts.frustumCulled = false; scene.add(roofPts); }
   function glowTex(inner, outer) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, inner); gr.addColorStop(0.4, outer); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); return t; }
 
   /* ---------- build ---------- */
@@ -2984,24 +3028,24 @@ void main() {
     st.building = true; const prog = onProgress || (() => {});
     cv3 = document.createElement('canvas'); cv3.id = 'city3d'; wrap.insertBefore(cv3, wrap.firstChild);
     renderer = new THREE.WebGLRenderer({ canvas: cv3, antialias: false, powerPreference: 'high-performance' });
-    renderer.outputEncoding = THREE.sRGBEncoding; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     scene = new THREE.Scene(); scene.background = new THREE.Color(0xbcd3e6); scene.fog = new THREE.Fog(0xbcd3e6, 1e4, 4e4);
     camera = new THREE.PerspectiveCamera(FOV, 1, 20, 2e5);
     hemi = new THREE.HemisphereLight(0xdfeeff, 0x5a6a40, 0.55); scene.add(hemi);
     sun = new THREE.DirectionalLight(0xfff1d6, 1.15); sun.castShadow = true; const mob = Math.min(screen.width, screen.height) < 700; sun.shadow.mapSize.set(mob ? 1024 : 2048, mob ? 1024 : 2048);
     sun.shadow.bias = -0.0006; sun.shadow.normalBias = 1.5; scene.add(sun); scene.add(sun.target);
-    lumen = new THREE.PointLight(0xffc878, 1, CITY.hollowR * 3.4, 1.1); lumen.position.set(0, P_H - 1100, 0); scene.add(lumen);
+    lumen = new THREE.PointLight(0xffc878, 1, CITY.hollowR * 3.4, 1.1); lumen.position.set(0, P_H - 1500, 0); scene.add(lumen);
     const steps = [
-      () => { buildMtGrid(); grids[0] = buildGrid(CITY.R + 1500, mob ? 170 : 220, 5600); },
-      () => { grids[1] = buildGrid(5600, mob ? 300 : 380, 0); },
+      () => { buildMtGrid(); grids[0] = buildGrid(CITY.R + 1500, mob ? 170 : 220, IN()); },
+      () => { grids[1] = buildGrid(IN(), mob ? 320 : 400, 0); },
       () => { const a = document.createElement('canvas'); a.width = a.height = 2048; paint(a, -(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2048); texA = canvasTex(a); },
-      () => { const b = document.createElement('canvas'); b.width = b.height = 2048; paint(b, -5600, -5600, 11200, 2048); texB = canvasTex(b); },
+      () => { const b = document.createElement('canvas'); b.width = b.height = 2048; paint(b, -IN(), -IN(), 2 * IN(), 2048); texB = canvasTex(b); },
       () => { cCanvas = document.createElement('canvas'); cCanvas.width = cCanvas.height = 2048; texC = canvasTex(cCanvas);
-        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.bluff, true) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-5600, -5600, 11200, 11200) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uLumen: { value: new THREE.Color(0, 0, 0) } };
+        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uLumen: { value: new THREE.Color(0, 0, 0) } };
         terrainMat = makeTerrainMat(U); terrainMat.userData.U = U; scene.add(makeTerrain(grids[0])); scene.add(makeTerrain(grids[1])); },
       () => { buildBillboards();
-        lumenSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,236,190,1)', 'rgba(255,190,100,.45)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); lumenSpr.position.set(0, P_H - 900, 0); lumenSpr.scale.set(CITY.hollowR * 2.2, CITY.hollowR * 2.2, 1); scene.add(lumenSpr);
-        ring = new THREE.Mesh(new THREE.RingGeometry(1, 1.12, 48), new THREE.MeshBasicMaterial({ color: 0xffd46b, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide })); ring.rotation.x = -Math.PI / 2; scene.add(ring);
+        lumenSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,214,140,.9)', 'rgba(255,170,80,.3)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); lumenSpr.position.set(0, P_H - PIT * 0.55, 0); lumenSpr.scale.set(CITY.hollowR * 2.2, CITY.hollowR * 2.2, 1); scene.add(lumenSpr);
+        ring = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0xffd46b, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, toneMapped: false })); ring.frustumCulled = false; scene.add(ring); buildRoofLOD();
         ringGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,220,120,1)', 'rgba(255,200,90,.35)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); scene.add(ringGlow);
         // dim, sparse window lights for night
         const pts = []; for (const h of W.homes) if (((h.lanternPhase * 10) | 0) % 3 === 0) { const w = homeW(h); pts.push(h.x + (homeSeed(h) - 0.5) * w * 0.4, meshH(h.x, h.y) + w * 0.38, h.y + w * 0.12); }
@@ -3050,7 +3094,7 @@ void main() {
   }
 
   /* ---------- per frame ---------- */
-  const cDay = new THREE.Color(0xbfd5e8), cNight = new THREE.Color(0x101830), tmpC = new THREE.Color();
+  const cDay = new THREE.Color(0xbfd5e8), cNight = new THREE.Color(0x101830), tmpC = new THREE.Color(), tmpL = new THREE.Color(), tmpT = new THREE.Color();
   function render(t, cam) {
     if (!st.ok) return;
     if (playerTier() !== st.playerTier) buildBillboards();
@@ -3065,15 +3109,18 @@ void main() {
     const sky = tmpC.copy(cDay).lerp(cNight, night); scene.background.copy(sky); scene.fog.color.copy(sky);
     scene.fog.near = D * 1.4 + 1500; scene.fog.far = D * 5 + 12000;
     // the Hollow: the great light at night
-    const lum = (0.35 + night * 2.6) * pulse; lumen.intensity = lum; lumen.distance = CITY.hollowR * (3.2 + night * 0.8);
-    lumenSpr.material.opacity = (0.18 + night * 0.62) * pulse; lumenSpr.scale.setScalar(CITY.hollowR * (2.0 + 0.25 * pulse));
-    const U = terrainMat.userData.U; U.uLumen.value.setRGB(1.0, 0.72, 0.38).multiplyScalar((0.12 + night * 0.9) * pulse);
+    // Lumen: a rich pulse that drifts between warm gold and soft teal (tone-mapped, so it never clips to white)
+    const hue = 0.5 + 0.5 * Math.sin(t * 0.23), LC = tmpL.setRGB(1.0, 0.68, 0.3).lerp(tmpT.setRGB(0.35, 0.9, 0.85), hue * 0.55);
+    const lum = (0.25 + night * 1.5) * pulse; lumen.intensity = lum; lumen.distance = CITY.hollowR * (3.0 + night * 0.6); lumen.color.copy(LC);
+    lumenSpr.material.opacity = (0.06 + night * 0.26) * pulse; lumenSpr.material.color.copy(LC); lumenSpr.scale.setScalar(CITY.hollowR * (1.9 + 0.2 * pulse));
+    const U = terrainMat.userData.U; U.uLumen.value.copy(LC).multiplyScalar((0.08 + night * 0.55) * pulse);
     const light = 1.0 - night * 0.62, bl = new THREE.Color(light, light * (1 - night * 0.05), light * (1 + night * 0.12));
-    for (const m of bbMat) if (m) { m.uniforms.uLight.value.copy(bl); m.uniforms.uFogC.value.copy(sky); m.uniforms.uFogN.value = scene.fog.near; m.uniforms.uFogF.value = scene.fog.far; m.uniforms.uLumen.value.setRGB(1.0, 0.7, 0.35).multiplyScalar(night * 0.85 * pulse); }
+    for (const m of bbMat) if (m) { m.uniforms.uLight.value.copy(bl); m.uniforms.uFogC.value.copy(sky); m.uniforms.uFogN.value = scene.fog.near; m.uniforms.uFogF.value = scene.fog.far; m.uniforms.uLumen.value.copy(LC).multiplyScalar(night * 0.7 * pulse); }
+    if (roofPts) { const f = clamp((0.16 - cam.z) / 0.08, 0, 1); roofPts.visible = f > 0.01; roofPts.material.opacity = f; roofPts.material.color.copy(bl); }
     lightPts.material.opacity = night * 0.55; lightPts.visible = night > 0.05 && cam.z > 0.12;
     // player highlight
     const h = W.player, w = homeW(h), gy = meshH(h.x, h.y) + 3, p2 = 0.5 + 0.5 * Math.sin(t * 2.5);
-    ring.position.set(h.x, gy, h.y); ring.scale.setScalar(w * 0.72 + p2 * 6); ring.material.opacity = 0.55 + p2 * 0.35;
+    if (ringAt !== h.x + ',' + h.y) drapeRing(); ring.material.opacity = 0.5 + p2 * 0.4;
     ringGlow.position.set(h.x, gy + w * 0.3, h.y); ringGlow.scale.setScalar(w * 2.4); ringGlow.material.opacity = 0.35 + 0.2 * p2;
     // mole
     const mole = currentMole(); moleSpr.visible = !!mole; if (mole) moleSpr.position.set(mole.x, meshH(mole.x, mole.y) + Math.sin(t * 3) * 3, mole.y);
@@ -3089,7 +3136,7 @@ void main() {
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }
-  return { refresh: () => { if (st.ok) { buildBillboards(); } }, st, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); } }, st, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();
 
 /* =====================================================================
@@ -3502,7 +3549,7 @@ const CityMap = (() => {
     if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
     if (b === 'home') return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
-    if (b === 'overview') return flyTo(0, 0, Math.min(Wc, Hc) / dpr / (CITY.R * 2.1));
+    if (b === 'overview') return flyTo(0, is3d() ? CITY.plateauR * 0.25 : 0, Math.min(Wc, Hc) / dpr / ((is3d() ? CITY.plateauR * 2.9 : CITY.R * 2.1)));
     if (b === 'board') return boardModal();
     if (b === 'legend') { buildLegend(); return $('#legend').classList.toggle('hidden'); }
     if (b === 'journal') return journalModal();

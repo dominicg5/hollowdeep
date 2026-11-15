@@ -409,7 +409,7 @@ const CityMap = (() => {
     if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
     if (b === 'home') return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
-    if (b === 'overview') return flyTo(0, 0, Math.min(Wc, Hc) / dpr / (CITY.R * 2.1));
+    if (b === 'overview') return flyTo(0, is3d() ? CITY.plateauR * 0.25 : 0, Math.min(Wc, Hc) / dpr / ((is3d() ? CITY.plateauR * 2.9 : CITY.R * 2.1)));
     if (b === 'board') return boardModal();
     if (b === 'legend') { buildLegend(); return $('#legend').classList.toggle('hidden'); }
     if (b === 'journal') return journalModal();

@@ -6,10 +6,13 @@ const CITY = {
   homeTerm: 'Ledge', functional: false, water: false,
   base: true,       // approved base only: terrain, homes, the Exchange, trees, day/night, clouds (no events, NPCs, landmarks...)
   maxDepth: 99,     // the Hollow's depth levels (99 is the far goalpost)
-  homeCount: 240,   // total homes on the map: raise this later (performance first for now)
-  lipShare: 0.7,    // share of homes ringing the Hollow lip; the rest form small lowland towns              // in-world name for each player's capital
+  homeCount: 760,   // total homes on the map (one value: raise or lower it here)
+  lipShare: 0.86,   // share of homes packed in tight rings along the Hollow lip; the rest dot the lowlands
+  homeGap: 1.9,     // spacing between Ledges (x their footprint)
+  lipBand: 760,     // depth of the lip city ring (world units)
+     // share of homes ringing the Hollow lip; the rest form small lowland towns              // in-world name for each player's capital
   seed: 20261114,
-  R: 11000, hollowR: 1800, plateauR: 4500, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
+  R: 13000, hollowR: 3000, plateauR: 5400, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
   tilePx: 256, levels: [0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 300,
   zoomMin: 0.018, zoomMax: 3.2, startZoom: 1.05,
@@ -329,7 +332,8 @@ function generateCity() {
   W.mountains = [];
   const addMtn = (x, y, r) => { if (hollowDist(x, y) < 900 || !lowland(x, y) || onCliff(x, y, r) || (W.pass && Math.hypot(x - W.pass.x, y - W.pass.y) < 700) || chasmDist(x, y) < r * 0.5 || isWet(x, y, r)) return; const m = { type: 'mountain', x, y, r, layer: 1, seed: rnd(), spr: 'mtn_' + Math.floor(rnd() * 9) }; W.mountains.push(m); occMark(OCC.obj, x, y, r * 0.8); };
   for (let row = 0; row < 3; row++) { const rr = R - 260 - row * 520, n = Math.floor(TAU * rr / (420 + row * 60)); for (let i = 0; i < n; i++) { if (row === 2 && rnd() < 0.45) continue; const a = (i + rnd() * 0.6) / n * TAU; addMtn(Math.cos(a) * (rr + (rnd() - 0.5) * 200), Math.sin(a) * (rr + (rnd() - 0.5) * 200), 200 + rnd() * 140 - row * 25); } }
-  for (let k = 0; k < 6; k++) { let a = rnd() * TAU, r = 5600 + rnd() * 4400; const da = (rnd() < 0.5 ? 1 : -1) * (0.04 + rnd() * 0.03), dr = (rnd() - 0.5) * 120, n = 6 + Math.floor(rnd() * 10);
+  for (let row = 0; row < 3; row++) { const rr = CITY.R - 1300 - row * 650, n = Math.floor(2.2 * rr / 380); for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + (i / n - 0.5) * 2.2 + (rnd() - 0.5) * 0.03; if (rnd() < 0.15 * row) continue; addMtn(Math.cos(a) * (rr + (rnd() - 0.5) * 260), Math.sin(a) * (rr + (rnd() - 0.5) * 260), 260 + rnd() * 160 - row * 40); } }
+  for (let k = 0; k < 6; k++) { let a = rnd() * TAU, r = CITY.plateauR + 1800 + rnd() * (CITY.R - CITY.plateauR - 3600); const da = (rnd() < 0.5 ? 1 : -1) * (0.04 + rnd() * 0.03), dr = (rnd() - 0.5) * 120, n = 6 + Math.floor(rnd() * 10);
     for (let i = 0; i < n; i++) { a += da; r += dr; addMtn(Math.cos(a) * r + (rnd() - 0.5) * 120, Math.sin(a) * r + (rnd() - 0.5) * 120, 150 + rnd() * 120); } }
   W.mountains.sort((p, q) => p.y - q.y);
 
@@ -337,8 +341,8 @@ function generateCity() {
   W.homes = []; const used = new Set();
   const addHome = (x, y, face, lvlBias) => {
     const level = Math.max(1, Math.min(40, Math.floor(1 + 39 * Math.pow(rnd(), 2.3 + (lvlBias || 0)))));
-    const size = 22 + level * 0.55 + rnd() * 6, rad = size * 0.62;
-    if (hollowDist(x, y) < 150 || onCliff(x, y, rad + 14) || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, rad + 3)) return null;
+    const size = 22 + level * 0.55 + rnd() * 6, rad = size * 0.62, gap = rad * (CITY.homeGap || 1);
+    if (hollowDist(x, y) < 110 || onCliff(x, y, rad + 14) || Math.hypot(x, y) > CITY.R - 90 || chasmDist(x, y) < rad + 8 || isWet(x, y, rad + 6) || !occFree(OCC.obj, x, y, gap + 3)) return null;
     const region = regionAt(x, y), reg = REGIONS[region];
     const style = reg.styles[Math.floor(rnd() * reg.styles.length)];
     const base = hexRgb(reg.roofs[Math.floor(rnd() * reg.roofs.length)]), lf = 0.9 + rnd() * 0.2;
@@ -349,7 +353,7 @@ function generateCity() {
       banners: Math.min(4, Math.floor(level / 8 + rnd() * 1.5)), trophies: rnd() < 0.25 + level / 80 ? 1 + Math.floor(rnd() * Math.min(5, level / 6 + 1)) : 0,
       battered: rnd() < 0.12, pet: rnd() < CITY.homePetShare ? PET_KINDS[Math.floor(rnd() * PET_KINDS.length)] : null, petPhase: rnd() * TAU, petSleep: true,
       lanternPhase: rnd() * TAU, wing: level > 12 ? (rnd() < 0.5 ? -1 : 1) : 0, tower: level > 24 };
-    h.name = ledgeName(h.owner); W.homes.push(h); occMark(OCC.obj, x, y, rad + 2); return h;
+    h.name = ledgeName(h.owner); W.homes.push(h); occMark(OCC.obj, x, y, gap + 2); return h;
   };
   // the metropolis: homes packed shoulder to shoulder around the Hollow, thinning into dense districts between the
   // mountains and crevices of the outer lands. Tall, high-level homes crowd the lip.
@@ -418,7 +422,7 @@ function generateCity() {
 // ring radius for a rim-proximity percentile q (0 = deepest delver, on the lip; 1 = shallowest, far out in the lowlands)
 // every home is a Ledge (like a portaledge), named after its owner
 function ledgeName(owner) { return `${owner}'s ${CITY.homeTerm}`; }
-function rimRadiusQ(q, a) { const L = CITY.lipShare; if (q < L) return hollowR(a) + 170 + (q / L) * Math.min(1150, plateauR(a) - hollowR(a) - 420);
+function rimRadiusQ(q, a) { const L = CITY.lipShare; if (q < L) return hollowR(a) + 130 + (q / L) * Math.min(CITY.lipBand, plateauR(a) - hollowR(a) - 420);
   return plateauR(a) + cliffW(a) + 320 + ((q - L) / (1 - L)) * (CITY.R - 1600 - plateauR(a) - cliffW(a)); }
 // the player's deepest Hollow level on the 1..99 scale: each layer the hero has reached counts as six levels (placeholder mapping)
 function playerDeepest() { const d = (typeof S !== 'undefined' && S && S.stats) ? (S.stats.deepest || 0) : 0; return Math.max(1, Math.min(CITY.maxDepth - 1, 1 + d * 6)); }

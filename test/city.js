@@ -17,7 +17,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(g3.sprites > 100 && g3.calls > 3 && g3.tris > 1e5, `terrain + billboards drawn: ${g3.sprites} sprites, ${g3.calls} draw calls, ${g3.tris} tris`);
   ok(await p.isVisible('#cityCanvas'), 'Rim City is default tab and canvas visible');
   const g = await p.evaluate(() => ({ homes: W.homes.length, cracks: W.cracks.length, R: CITY.R, mk: W.markets.length, vt: W.vaults.length, mtn: W.mountains.length, br: W.bridges.length, fish: (W.dayFish||[]).length + (W.nightFish||[]).length, obs: !!CONFIG.resources.obsidian, wx: WEATHER_TYPES.filter((w) => w === 'storm' || w === 'rain').length, tiers: [...new Set(W.homes.map((h) => h.level))].length }));
-  const hc = await p.evaluate(() => CITY.homeCount); ok(g.homes === hc && hc <= 400, `light home count from one config value (CITY.homeCount=${hc}): ${g.homes}`); ok(g.cracks > 10, 'crevices: ' + g.cracks); ok(g.mk === 0 && g.vt === 0, 'no bazaars or vaults on the map');
+  const hc = await p.evaluate(() => CITY.homeCount); ok(g.homes === hc && hc <= 1200, `light home count from one config value (CITY.homeCount=${hc}): ${g.homes}`); ok(g.cracks > 10, 'crevices: ' + g.cracks); ok(g.mk === 0 && g.vt === 0, 'no bazaars or vaults on the map');
   ok(g.R >= 10000, 'big map radius ' + g.R); ok(g.mtn > 100, 'mountains: ' + g.mtn);
   const v2 = await p.evaluate(() => ({ op: W.outposts.length, falls: !!W.lakeFalls, pass: !!W.pass, rivers: W.rivers.length - 1, water: CITY.water, stairs: W.stairs.length, fields: W.sets.length, onCliff: W.homes.filter((h) => onCliff(h.x, h.y, 0)).length, plateau: W.homes.filter((h) => plateauDist(h.x, h.y) < 0).length, radial: W.radial.length }));
   ok(v2.plateau > g.homes * 0.5 && v2.onCliff === 0, `Hollow on a raised plateau: ${v2.plateau} homes up top, ${v2.onCliff} on the cliffs`);
@@ -66,8 +66,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   // desktop: right-drag orbits; rotate buttons
   { const mo = await p.evaluate(() => { const o = !document.getElementById('modal').classList.contains('hidden') ? document.getElementById('modalBody').textContent.slice(0, 80) : ''; closeModalQuiet(); return o; }); if (mo) console.log('note: modal was open before right-drag:', mo.replace(/\s+/g, ' ')); const r0 = await p.evaluate(() => CityMap.cam.rot); await p.mouse.move(200, 500); await p.mouse.down({ button: 'right' }); await p.mouse.move(280, 500, { steps: 6 }); await p.mouse.up({ button: 'right' });
     const r1 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(r1 - r0) > 0.2, `right-drag rotates (${r0.toFixed(2)} -> ${r1.toFixed(2)})`);
-    await p.click('[data-city=rotl]'); await p.waitForFunction(() => !CityMap.cam.fly, null, { timeout: 15000 }); const r2 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(Math.abs(r2 - r1) - Math.PI / 4) < 0.05, 'rotate button turns 45deg');
-    await p.click('[data-city=tilt]'); await p.waitForTimeout(100); ok(await p.evaluate(() => CityMap.cam.tilt >= 35 && CityMap.cam.tilt <= 70), 'tilt button');
+    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=rotl]'); await p.waitForFunction(() => !CityMap.cam.fly, null, { timeout: 15000 }); const r2 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(Math.abs(r2 - r1) - Math.PI / 4) < 0.05, 'rotate button turns 45deg');
+    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=tilt]'); await p.waitForTimeout(100); ok(await p.evaluate(() => CityMap.cam.tilt >= 35 && CityMap.cam.tilt <= 70), 'tilt button');
     await p.evaluate(() => { CityMap.cam.rot = 0; CityMap.cam.tilt = 55; }); }
   await p.evaluate(() => CityMap.flyTo(W.player.x, W.player.y, 1.05, true)); await p.waitForTimeout(300);
   // wheel zoom
@@ -83,7 +83,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { const h = W.homes.find((h) => !h.player && Math.hypot(h.x - W.player.x, h.y - W.player.y) > 300); CityMap.flyTo(h.x, h.y, 1.4, true); window.__h = h; });
   await p.waitForTimeout(400);
   const pt = await p.evaluate(() => { const [x, y] = CityMap.w2sUp(__h.x, __h.y, homeW(__h) * 0.4); return [x, y]; });
-  const box = await p.locator('#cityCanvas').boundingBox();
+  const box = await p.locator('#cityCanvas').boundingBox(); await p.evaluate(() => closeModalQuiet());
   await p.touchscreen.tap(box.x + pt[0], box.y + pt[1]); await p.waitForTimeout(500);
   const card = await p.textContent('#modalBody').catch(() => '');
   const hname = await p.evaluate(() => __h.name); console.log('card:', card.replace(/\s+/g, ' ').slice(0, 200));

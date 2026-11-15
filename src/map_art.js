@@ -472,7 +472,7 @@ function artRingStreet(c, s) { // cobbled ring street round the lip of the Hollo
 }
 function artStatic(c, x0, y0, x1, y1, s) {
   drawTerrain(c, x0, y0, x1, y1, s);
-  { const e = CITY.plateauR * 1.25 + 400; if (x1 > -e && x0 < e && y1 > -e && y0 < e) artPlateau(c, s, x0, y0, x1, y1); }
+  { const e = CITY.plateauR * 1.25 + 400; if (!ART.ground3d && x1 > -e && x0 < e && y1 > -e && y0 < e) artPlateau(c, s, x0, y0, x1, y1); }
   { const e = CITY.hollowR * 1.3 + 200; if (x1 > -e && x0 < e && y1 > -e && y0 < e) artRingStreet(c, s); }
   const objs = queryObjs(x0, y0, x1, y1, 160, 150);
   for (const o of objs) if (o.layer === 0) artDecal(c, o, s);
