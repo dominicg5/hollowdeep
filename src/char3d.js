@@ -59,7 +59,7 @@ const CharView = (() => {
   /* ---------- palettes (picked from the turnaround sheets) ---------- */
   const PAL = {
     m: { skin: 0xe6b994, blush: 'rgba(240,120,110,.5)', hair: 0x2e211a, iris: '#6a4426', jacket: 0x6e4732, jacketDk: 0x4f3324, shirt: 0xa8916f, pants: 0x6c5b41, patch: 0x55524c, glove: 0x4f3e2e, belt: 0x45301f, boot: 0x684c33, bootDk: 0x45301f, pack: 0x725438, packDk: 0x553c27, helmet: 0x76583c, brass: 0xa8874c, rope: 0x9c7446, sock: 0x7c766a },
-    f: { skin: 0xecc2a2, blush: 'rgba(245,125,120,.55)', hair: 0x3b281d, iris: '#6b4122', jacket: 0x857150, jacketDk: 0x625234, shirt: 0x58432f, pants: 0x5a4834, patch: 0x5d5c50, glove: 0x45332a, belt: 0x553823, boot: 0x684a32, bootDk: 0x45301f, pack: 0x765a3c, packDk: 0x584029, helmet: 0x8d8063, brass: 0xab8a50, rope: 0x9c7446, sock: 0x6e675a },
+    f: { skin: 0xecc2a2, blush: 'rgba(245,125,120,.55)', hair: 0x32231a, iris: '#6b4122', jacket: 0x857150, jacketDk: 0x625234, shirt: 0x58432f, pants: 0x5a4834, patch: 0x5d5c50, glove: 0x45332a, belt: 0x553823, boot: 0x684a32, bootDk: 0x45301f, pack: 0x765a3c, packDk: 0x584029, helmet: 0x7f7356, brass: 0xab8a50, rope: 0x9c7446, sock: 0x6e675a },
   };
   /* ---------- pickaxe: a swappable module, one palette per grade (head / handle / binding, optional runes + glow) ---------- */
   const GRADES = { // in upgrade order; each tier adds geometry, not just colour
@@ -344,8 +344,8 @@ const CharView = (() => {
       const tip = bone('braidTip', par, 0, -0.054, 0); part(tip, cyl(0.014, 0.018, 0.022), M.belt, [0, 0.01, 0]); for (let k = 0; k < 5; k++) { const g = new THREE.ConeGeometry(0.012, 0.06, 6); g.translate(0, -0.03, 0); const m = part(tip, g, M.hair); m.rotation.set(0.05 * k, 0, (k - 2) * 0.2); } }
     // ---- helmet, rebuilt from the sheet's front / side / back views: tall round dome with a raised front-to-back ridge, a junction bead, a rolled brim that droops toward the back,
     //      a stitched leather band with a side buckle, back buckle + tab, side clips and rivets, a gunmetal headlamp on a mount plate, and a pair of smoked goggles ----
-    { const HL = F ? { y: 0.05, z: -0.016, rx: -0.3, r0: 0.148, ds: 0.9, bw: 0.044, bwb: 0.054, droop: 0.026, lampT: -0.5, gog: [0.0, 0.37], bf: 0.068, bb: 0.03, buck: 0.95 }
-        : { y: 0.042, z: -0.012, rx: -0.24, r0: 0.15, ds: 0.95, bw: 0.03, bwb: 0.042, droop: 0.022, lampT: 0, gog: [-0.4, 0.4], bf: 0.075, bb: 0.03, buck: 1.12 };
+    { const HL = F ? { y: 0.05, z: -0.016, rx: -0.3, r0: 0.148, ds: 0.9, bw: 0.044, bwb: 0.054, droop: 0.026, lampT: -0.5, gog: [-0.06, 0.32], gs: 1.2, ls: 1.05, bf: 0.068, bb: 0.03, buck: 0.95 }
+        : { y: 0.042, z: -0.012, rx: -0.24, r0: 0.15, ds: 0.95, bw: 0.03, bwb: 0.042, droop: 0.022, lampT: 0, gog: [-0.47, 0.47], gs: 1.4, ls: 1.2, bf: 0.075, bb: 0.03, buck: 1.12 };
       const hg = new THREE.Group(); hg.position.set(0, HL.y, HL.z); hg.rotation.x = HL.rx; head.add(hg); built.helmet = hg; built.helmetCfg = HL;
       const ZS = 1.05, rd = (y) => HL.r0 * Math.sqrt(Math.max(0, 1 - (y / (HL.r0 * HL.ds)) ** 2)), slope = (y) => Math.atan2(HL.r0 * HL.r0 * y / (HL.r0 * HL.ds) ** 2, Math.max(1e-4, rd(y)));
       const onDome = (th, y, off = 0) => { const r = rd(y) + off; return [Math.sin(th) * r, y, Math.cos(th) * r * ZS]; };
@@ -379,14 +379,14 @@ const CharView = (() => {
         const t = atBand(th, null, 0.0055); part(t, ell(0.0034, 0.0034, 0.0022, 8, 6), toon(P.brass), [0, 0, 0], null, null, { ink: false }); }
       for (const [th, y] of F ? [[1.25, 0.085], [1.4, 0.07]] : [[1.3, 0.09]]) { const t = atBand(th, y, 0.0005); part(t, ell(0.0045, 0.0045, 0.002, 10, 6), MET, [0, 0, 0], null, null, { ink: false }); }
       // headlamp: mount plate, gunmetal housing, front bezel, bright lens, back cap and side knob
-      { const t = atBand(HL.lampT, null, 0.004); part(t, rbox(0.036, 0.034, 0.008, 0.003), MET, [0, 0, 0.002]); const L = new THREE.Group(); L.position.set(0, 0.004, 0.006); L.rotation.x = -0.12 + slope(bandY(HL.lampT)); t.add(L);
+      { const t = atBand(HL.lampT, null, 0.004); part(t, rbox(0.036, 0.034, 0.008, 0.003), MET, [0, 0, 0.002]); const L = new THREE.Group(); L.position.set(0, 0.002, 0.006); L.scale.setScalar(HL.ls); L.rotation.x = -0.12 + slope(bandY(HL.lampT)); t.add(L);
         part(L, cyl(0.024, 0.029, 0.048, 20), MET, [0, 0, 0.026], [Math.PI / 2, 0, 0]); part(L, new THREE.TorusGeometry(0.028, 0.0055, 8, 22), MET2, [0, 0, 0.05]); part(L, cyl(0.02, 0.024, 0.006, 16), MET, [0, 0, 0.0], [Math.PI / 2, 0, 0], null, { ink: false });
         part(L, ell(0.005, 0.007, 0.006, 8, 6), MET2, [0.026, 0, 0.022], null, null, { ink: false });
         built.lampLens = new THREE.MeshBasicMaterial({ color: 0xfff6d8 }); const lens = new THREE.Mesh(new THREE.CircleGeometry(0.0235, 20), built.lampLens); lens.position.z = 0.0505; L.add(lens);
         const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial('rgba(255,248,215,1)', 'rgba(255,220,150,.35)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); glow.position.z = 0.062; glow.scale.set(0.075, 0.075, 1); L.add(glow); built.lampGlow = glow; }
       // goggles: two round lenses in thick dark rims on the band, smoked glass with a highlight, joined by a short bridge
       const GL = new THREE.MeshBasicMaterial({ color: 0x24272b }), GH = new THREE.MeshBasicMaterial({ color: 0x8d949c, transparent: true, opacity: 0.7 });
-      for (const th of HL.gog) { const t = atBand(th, null, 0.005); const G = new THREE.Group(); G.rotation.x = slope(bandY(th)) * 0.6 - 0.15; t.add(G);
+      for (const th of HL.gog) { const t = atBand(th, null, 0.005); const G = new THREE.Group(); G.scale.setScalar(HL.gs); G.position.y = -0.003; G.rotation.x = slope(bandY(th)) * 0.6 - 0.15; t.add(G);
         part(G, cyl(0.022, 0.021, 0.016, 20), MET, [0, 0, 0.008], [Math.PI / 2, 0, 0]); part(G, new THREE.TorusGeometry(0.0205, 0.0042, 8, 22), MET, [0, 0, 0.0165]);
         const ln = new THREE.Mesh(new THREE.CircleGeometry(0.0175, 20), GL); ln.position.z = 0.0168; G.add(ln); const hl = new THREE.Mesh(new THREE.CircleGeometry(0.0052, 10), GH); hl.position.set(-0.006, 0.006, 0.0172); hl.scale.set(1, 0.6, 1); hl.rotation.z = 0.6; G.add(hl); }
       { const [a, b] = HL.gog, mid = (a + b) / 2, t = atBand(mid, null, 0.004); part(t, new THREE.BoxGeometry(Math.abs(b - a) * rd(bandY(mid)) * 0.5, 0.008, 0.006), MET, [0, 0, 0], null, null, { ink: false }); } }
