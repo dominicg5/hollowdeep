@@ -3393,15 +3393,15 @@ const GRAND = (() => {
     const n = new THREE.Vector3(Math.cos(OUT), 0, Math.sin(OUT));
     // ground just in front of the trunk on the plateau side, and the trunk's outer surface over the door's span
     const { gy, rD } = doorSpot(C);
-    const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD - 50), gy, c.z + n.z * (rD - 50));
+    const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD - 15), gy, c.z + n.z * (rD - 15));
     const hw = 330, ys = 620, H = 1020, grp = new THREE.Group(); grp.position.copy(P0); grp.rotation.y = Math.atan2(n.x, n.z); grp.scale.setScalar(1.35); scene.add(grp); GX.door = { x: P0.x, y: P0.z, up: gy, hgt: H * 1.35, grp };
-    const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x2c2724 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
+    const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x3b2e24 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
     const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.slice().reverse().map(([x, y]) => [-x, y]), A.slice(1), [[hw, 0]]); // left foot -> apex -> right foot
     // the glow inside: a bright plane set back in the doorway (you can't see in, only the light)
     { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ map: glowTex2(), color: 0xffffff, toneMapped: false });
       const g = new THREE.ShapeGeometry(sh); { const P = g.attributes.position, uv = g.attributes.uv; for (let i = 0; i < P.count; i++) uv.setXY(i, (P.getX(i) + hw) / (2 * hw), P.getY(i) / H); } const m = new THREE.Mesh(g, gm); m.position.z = -150; grp.add(m); GX.doorGlow = gm;
       // a dark recess box behind the leaves so the trunk never shows through the gap
-      const back = new THREE.Mesh(new THREE.BoxGeometry(2 * hw + 40, H + 30, 160), new THREE.MeshBasicMaterial({ color: 0x0c1a1c })); back.position.set(0, H / 2, -235); grp.add(back); }
+      const back = new THREE.Mesh(new THREE.BoxGeometry(2 * hw + 40, H + 30, 160), new THREE.MeshBasicMaterial({ color: 0x1a120c })); back.position.set(0, H / 2, -235); grp.add(back); }
     // the two leaves: planked, carved, strapped in iron; each hinged at its outer edge and swung a little inward
     const gap = 70; for (const s of [-1, 1]) { const sh = new THREE.Shape(), pts = outline.filter(([x]) => x * s >= -1).map(([x, y]) => [x, y]); const xi = s * gap / 2; sh.moveTo(xi, 0); sh.lineTo(s * hw, 0);
       for (const [x, y] of (s > 0 ? pts.slice().reverse() : pts)) if (Math.abs(x) >= gap / 2) sh.lineTo(x, y); sh.lineTo(xi, A.find(([x]) => x <= gap / 2)[1]); sh.lineTo(xi, 0);
@@ -3419,10 +3419,13 @@ const GRAND = (() => {
       // threshold step and side bases
       const stoneM = new THREE.MeshLambertMaterial({ color: 0x5a554e }); /* (the grey stone step and side plinths are gone: the bark lips meet the ground instead) */ void stoneM;
       // the trunk grew round the door: bark lips bulge and fold over the casing, flaring into roots at the foot so nothing floats
-      const barkL = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xa08a74 }), lip = (kx, ky, z, rad) => { const pts = [new THREE.Vector3(-hw * kx - 30, -110, z + 40)].concat(outline.map(([x, y]) => new THREE.Vector3(x * kx, y * (y > 5 ? ky : 1), z)), [new THREE.Vector3(hw * kx + 30, -110, z + 40)]); const m = new THREE.Mesh(rtube(pts, rad, 10), barkL); m.castShadow = true; grp.add(m); };
-      lip(1.12, 1.06, -16, (u) => 46 + 14 * Math.sin(u * 23) + 9 * Math.sin(u * 61) + 70 * (sm(0.14, 0, u) + sm(0.86, 1, u)));
-      lip(1.32, 1.14, -70, (u) => 88 + 26 * Math.sin(u * 17 + 1) + 14 * Math.sin(u * 47) + 120 * (sm(0.16, 0, u) + sm(0.84, 1, u)));
-      lip(1.58, 1.22, -150, (u) => 120 + 30 * Math.sin(u * 13 + 2) + 150 * (sm(0.18, 0, u) + sm(0.82, 1, u))); }
+      // bark lips are laid OUTSIDE the casing's outer edge (offset along the arch's outward normal), so nothing covers the leaves or the frame
+      const barkL = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xa08a74 }), NO = outline.length, nrm = outline.map(([x, y], i) => { const a = outline[Math.max(0, i - 1)], b = outline[Math.min(NO - 1, i + 1)]; let nx = b[1] - a[1], ny = -(b[0] - a[0]); const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l; if (nx * x + ny * (y - ys * 0.5) < 0) { nx = -nx; ny = -ny; } if (y < ys) { nx = Math.sign(x) || 1; ny = 0; } return [nx, ny]; });
+      const R1 = (u) => 44 + 12 * Math.sin(u * 23) + 8 * Math.sin(u * 61) + 60 * (sm(0.14, 0, u) + sm(0.86, 1, u)), R2 = (u) => 80 + 24 * Math.sin(u * 17 + 1) + 12 * Math.sin(u * 47) + 100 * (sm(0.16, 0, u) + sm(0.84, 1, u)), R3 = (u) => 110 + 28 * Math.sin(u * 13 + 2) + 130 * (sm(0.18, 0, u) + sm(0.82, 1, u));
+      const lip = (off, rad, z) => { const pts = outline.map(([x, y], i) => { const u = i / (NO - 1), o = off(u); return new THREE.Vector3(x + nrm[i][0] * o, y + nrm[i][1] * o, z(u)); }); const f0 = pts[0], f1 = pts[NO - 1]; pts.unshift(new THREE.Vector3(f0.x - 20, -120, f0.z + 30)); pts.push(new THREE.Vector3(f1.x + 20, -120, f1.z + 30)); const m = new THREE.Mesh(rtube(pts, (u) => rad(Math.max(0, Math.min(1, (u * (NO + 1) - 1) / (NO - 1)))), 10), barkL); m.castShadow = true; grp.add(m); };
+      lip((u) => 26 + R1(u), R1, (u) => -40 - R1(u) * 0.35);
+      lip((u) => 26 + 2 * R1(u) + R2(u) * 0.7, R2, (u) => -90 - R2(u) * 0.3);
+      lip((u) => 26 + 2 * R1(u) + 1.7 * R2(u) + R3(u) * 0.7, R3, (u) => -170 - R3(u) * 0.2); }
     // lanterns on iron brackets either side of the frame
     GX.lampM = new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false }); const lampPts = [];
     for (const s of [-1, 1]) { const bx = s * (hw + 230), post = new THREE.Mesh(new THREE.CylinderGeometry(10, 14, 620, 6), ironM); post.position.set(bx, 310, 40); grp.add(post); const arm = new THREE.Mesh(new THREE.BoxGeometry(110, 10, 10), ironM); arm.position.set(bx - s * 40, 600, 40); grp.add(arm);
@@ -3628,7 +3631,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
   const BCTL = [[1500, -1450], [2450, -2350], [3200, -2250], [3570, -1560], [3200, -800], [3470, -60], [3190, 700], [3560, 1480], [3230, 2200], [2700, 2750]];
   function bridgePlan(c0) { const c = (c0 ? [c0] : []).concat(BCTL).map(([d, s2]) => new THREE.Vector3(d, 0, s2)); return new THREE.CatmullRomCurve3(c, false, 'centripetal').getPoints(c0 ? 110 : 90); }
   function bridgeRoot(C) { if (!G) return null; if (GX.bpath) return GX.bpath; const D = doorSpot(C), { meshH } = C, a0 = 0.8, P = bridgePlan([D.rD * 0.82 * Math.cos(a0), -D.rD * 0.82 * Math.sin(a0)]), n = P.length - 1, pts = [], rs = [], deck = [];
-    P.forEach((p, i) => { const u = i / n, [x, z] = toW(p.x, p.z), g = meshH(x, z), rr = (135 - 55 * u) * (1 - 0.75 * sm(0.9, 1, u)) * (0.75 + 0.25 * sm(0, 0.06, u) + 0.4 * (1 - sm(0, 0.05, u)));
+    P.forEach((p, i) => { const u = i / n, [x, z] = toW(p.x, p.z), g = meshH(x, z), rr = (190 - 70 * u) * (1 - 0.75 * sm(0.9, 1, u)) * (0.75 + 0.25 * sm(0, 0.06, u) + 0.4 * (1 - sm(0, 0.05, u)));
       const b = sm(0.3, 0.42, u) * sm(0.93, 0.83, u), yD = LIPH + 45 + 50 * Math.cos(Math.PI * p.z / 4800) + 40 * Math.sin(p.z / 430 + 0.6) + 18 * Math.sin(p.z / 170); let y = g + rr * 0.15 + (1 - sm(0, 0.12, u)) * 260;
       y = y + (Math.max(yD, g + rr * 0.6) - y) * b; if (u > 0.93) y = g - rr * 0.6 * sm(0.93, 1, u); pts.push(new THREE.Vector3(x, y, z)); rs.push(rr); deck.push(b); });
     for (let k = 0; k < 3; k++) for (let i = 1; i < n; i++) if (deck[i] > 0.02) pts[i].y = Math.max(pts[i].y, (pts[i - 1].y + pts[i + 1].y) / 2 - 2);
@@ -3637,8 +3640,20 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     for (const ph of [0, Math.PI]) { const p2 = [], r2 = []; for (let i = Math.round(n * 0.26); i <= Math.round(n * 0.97); i++) { const u = i / n, p = pts[i], q = pts[Math.min(n, i + 1)], t = new THREE.Vector3().subVectors(q, p).setY(0).normalize(), sd = new THREE.Vector3(-t.z, 0, t.x), a = ph + u * 26, rr = rs[i];
         p2.push(new THREE.Vector3().copy(p).addScaledVector(sd, Math.cos(a) * rr * 0.95).add(new THREE.Vector3(0, Math.sin(a) * rr * 0.7 - rr * 0.1, 0))); r2.push(rr * 0.28); } out.push({ pts: p2, rs: r2, k: 1 + ph }); }
     const e = pts[Math.round(n * 0.9)]; for (let k = 0; k < 4; k++) { const [d0, s0] = toL(e.x, e.z), fa = 0.4 + k * 0.55, p2 = [], r2 = []; for (let i = 0; i <= 10; i++) { const u = i / 10, dd = d0 - Math.cos(fa) * 420 * u, ss = s0 + Math.sin(fa) * 420 * u * (k % 2 ? 1 : 0.6), [x, z] = toW(dd, ss), g = meshH(x, z); p2.push(new THREE.Vector3(x, e.y + (g - 10 - e.y) * Math.min(1, u * 1.6) + Math.sin(u * Math.PI) * 20, z)); r2.push(40 * (1 - 0.85 * u) + 4); } out.push({ pts: p2, rs: r2, k: 5 + k }); }
+    const foam = [];
+    // three major splits: thick tapering branches off the bridge root (one lands over the stream before the door, clear of the stones)
+    { const V3 = (x, y, z) => new THREE.Vector3(x, y, z), LL = pts.map((p) => toL(p.x, p.z)), near = (sT, dT) => { let bi = 0, bd = 1e9; LL.forEach(([dd, ss], i) => { const q = Math.hypot(ss - sT, (dd - dT) * 0.6); if (deck[i] > 0.3 && q < bd) { bd = q; bi = i; } }); return bi; };
+      const surf = (d, s2) => { const [x, z] = toW(d, s2); let g = meshH(x, z); if (d < lipD(s2) && d > 300) { const st = streamAt(d, s2); if (st && st.dd < 20) g = Math.max(g, st.wl + 2); for (let f = 0; f < 3; f++) if (poolSdf(d, s2, f) < 0) g = Math.max(g, LIPH - 4); } return g; };
+      const split = (i0, ctl, k, drape) => { const p = pts[i0], r0 = rs[i0] * 0.58, cu = new THREE.CatmullRomCurve3([V3(LL[i0][0], 0, LL[i0][1])].concat(ctl.map(([d, s2]) => V3(d, 0, s2))), false, 'centripetal').getPoints(16), P2 = [], R2 = [];
+        cu.forEach((c, j) => { const u = j / 16, rr = r0 * (1 - 0.72 * u), [x, z] = toW(c.x, c.z), h = surf(c.x, c.z) + rr * 0.3 + Math.sin(u * Math.PI) * 40, y = j === 0 ? p.y : p.y + (h - p.y) * sm(0, 0.45, u); P2.push(V3(x, y, z)); R2.push(rr); });
+        if (drape) { const [eD, eS] = ctl[ctl.length - 1], ld = lipD(eS); for (const v of [0.05, 0.13, 0.24, 0.36]) { const [x, z] = toW(ld - 6 + 40 + 300 * Math.pow(v, 0.6) + 14, eS), y = LIPH - 4 - (LIPH - WL + 8) * Math.pow(v, 1.15); P2.push(V3(x, y, z)); R2.push(r0 * Math.max(0.1, 0.28 - v * 0.4)); } foam.push([P2[17], 14 + r0 * 0.3], [P2[18], 12 + r0 * 0.3]); }
+        else { const q = P2[P2.length - 1]; P2.push(V3(q.x, q.y - R2[R2.length - 1] * 1.4, q.z)); R2.push(R2[R2.length - 1] * 0.6); }
+        out.push({ pts: P2, rs: R2, k: 40 + k, big: true }); };
+      split(near(-850, 3220), [[2950, -800], [2650, -700], [2420, -630], [2290, -700]], 0, false);
+      split(near(700, 3190), [[2950, 980], [2650, 1350], [2380, 1650], [2200, 1800]], 1, false);
+      split(near(1480, 3560), [[3650, 1300], [3760, 1150]].map(([d, s2]) => [Math.min(d, lipD(s2) - 10), s2]).concat([[lipD(1050) + 2, 1050]]), 2, true); }
     // root fingers: seeded, irregular, tapering; some drape over the falls (water runs round them), some creep to the door and curl up its frame
-    const rf = prng(57), V3 = (x, y, z) => new THREE.Vector3(x, y, z), L = pts.map((p) => toL(p.x, p.z)), foam = [];
+    const rf = prng(57), V3 = (x, y, z) => new THREE.Vector3(x, y, z), L = pts.map((p) => toL(p.x, p.z));
     const nearS = (sT, minDeck) => { let bi = -1, bd = 1e9; L.forEach(([, ss], i) => { if (deck[i] >= minDeck && Math.abs(ss - sT) < bd) { bd = Math.abs(ss - sT); bi = i; } }); return bi; };
     for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f], nF = 6 + (rf() < 0.5 ? 1 : 0); for (let k = 0; k < nF; k++) { const sT = s0 - 120 + (s1 - s0 + 240) * (k + rf()) / nF, i = nearS(sT, 0.5); if (i < 0) continue;
         const p = pts[i], [pd, ps] = L[i], r0 = 20 + rf() * 22, drape = k % 2 === 0 || rf() < 0.25, P2 = [V3(p.x, p.y + rs[i] * 0.1, p.z)], R2 = [r0];
@@ -3672,6 +3687,15 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     { const capG = new THREE.SphereGeometry(1, 10, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.6, 1), stG = new THREE.CylinderGeometry(0.18, 0.26, 1, 5).translate(0, -0.5, 0), stM = new THREE.MeshLambertMaterial({ color: 0xe0e6e0 }), gp = [];
       for (const mat of [GX.mushB, GX.mushV]) { const N = 14, cap = new THREE.InstancedMesh(capG, mat, N), st = new THREE.InstancedMesh(stG, stM, N);
         for (let k = 0; k < N; k++) { const { p, sd, rr } = onDeck(), s1 = r() < 0.5 ? -1 : 1, h = 3 + r() * 4, c = 2 + r() * 2.5, pp = V(p.x + sd.x * rr * 0.75 * s1, p.y + rr * 0.6 + h, p.z + sd.z * rr * 0.75 * s1); mt.compose(pp, q.identity(), V(c, c, c)); cap.setMatrixAt(k, mt); mt.compose(pp, q.identity(), V(c, h, c)); st.setMatrixAt(k, mt); if (k % 3 === 0) gp.push(pp.x, pp.y + 6, pp.z); } grp.add(cap, st); }
+      // lantern posts rooted into the top of the main root, alternating sides along the curve
+      { const L = []; let side = 1; for (let i = 6; i < n - 6; i += 7) if (B.deck[i] > 0.6) { const p = B.pts[i], qn = B.pts[i + 1], t = V(qn.x - p.x, 0, qn.z - p.z).normalize(); L.push({ p, sd: V(-t.z, 0, t.x).multiplyScalar(side), rr: B.rs[i] }); side = -side; }
+        const barkP = new THREE.MeshLambertMaterial({ map: C.barkMat.map, color: 0x8e7a64 }), post = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.75, 1, 1, 6), barkP, L.length * 3), cage = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.75, 1, 1, 6), new THREE.MeshLambertMaterial({ color: 0x2a2420 }), L.length * 2), glass = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6), GX.lampM, L.length), up = V(0, 1, 0), lamps = [];
+        L.forEach(({ p, sd, rr }, i) => { const b0 = V(p.x + sd.x * rr * 0.55, p.y + rr * 0.78, p.z + sd.z * rr * 0.55), lean = V(sd.x * 0.12 + (r() - 0.5) * 0.08, 1, sd.z * 0.12 + (r() - 0.5) * 0.08).normalize(), H = 130 + r() * 30, top = V().copy(b0).addScaledVector(lean, H);
+          q.setFromUnitVectors(up, lean); mt.compose(V().copy(b0).addScaledVector(lean, H / 2), q, V(9, H, 9)); post.setMatrixAt(i * 3, mt);
+          mt.compose(V().copy(b0).addScaledVector(lean, 18), q, V(15, 36, 15)); post.setMatrixAt(i * 3 + 1, mt); // flared, rooted foot
+          const arm = V(-sd.x, 0, -sd.z).normalize(), am = V().copy(top).addScaledVector(arm, 22); q.setFromUnitVectors(up, arm); mt.compose(am, q, V(5, 46, 5)); post.setMatrixAt(i * 3 + 2, mt);
+          const lp = V().copy(top).addScaledVector(arm, 40).add(V(0, -30, 0)); mt.compose(V(lp.x, lp.y + 14, lp.z), q.identity(), V(1.2, 26, 1.2)); cage.setMatrixAt(i * 2, mt); mt.compose(V(lp.x, lp.y - 13, lp.z), q.identity(), V(10, 5, 10)); cage.setMatrixAt(i * 2 + 1, mt); mt.compose(V(lp.x, lp.y - 26, lp.z), q.identity(), V(7, 20, 7)); glass.setMatrixAt(i, mt); lamps.push(V(lp.x, lp.y - 26, lp.z)); });
+        grp.add(post, cage, glass); GX.lampAt = (GX.lampAt || []).concat(lamps); for (const lp of lamps) PR.glow.push([lp.x, lp.y, lp.z, null]); }
       if (B.foam.length) { const fm = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ color: 0xeef7fb, transparent: true, opacity: 0.42, depthWrite: false }), B.foam.length * 4); let j = 0; for (const [p, sc] of B.foam) for (let k = 0; k < 4; k++) { mt.compose(V(p.x + (r() - 0.5) * sc * 2, p.y + (r() - 0.5) * sc, p.z + (r() - 0.5) * sc * 2), q.identity(), V(sc * (0.8 + r() * 0.7), sc * (0.25 + r() * 0.2), sc * (0.8 + r() * 0.7))); fm.setMatrixAt(j++, mt); } fm.renderOrder = 6; grp.add(fm); }
       const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); GX.bridgeGlow = new THREE.Points(gg, GX.doorMushGlow.material); grp.add(GX.bridgeGlow); } }
   function doorCard() { const btn = (h) => `<div class="wrapgap" style="margin-top:10px">${h}</div>`;
@@ -4026,7 +4050,7 @@ void main() {
         const R1 = lipRoot(a, 0.1 + hash1(k + 5) * 0.16, L, r0, k);
         for (const s of [-1, 1]) if (hash1(k * 5 + s) < 0.75) { const i = 8 + ((hash1(k * 2 + s) * 8) | 0); if (R1.pts[i]) lipRoot(a + s * (0.5 + hash1(k + s) * 0.4), 0, L * 0.45, R1.rs[i] * 0.55, k + s * 20, { p: v3().copy(R1.pts[i]) }); } }
       // the bridge root: one of the lip roots, grown long, arching over the pools above the falls
-      { const BR = GRAND.bridgeRoot(DC); if (BR) for (const b of BR.out) { if (b.dodge) GRAND.dodge(b.pts, DC); gaTube(A, b.pts, b.k ? 8 : 14, (i, aa) => b.rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))) * (b.k ? 1 : 1 - 0.24 * Math.max(0, Math.cos(aa - Math.PI / 2 - i * 0.09))), (i, aa, p, d) => moss(p, d, 60 + b.k), [3, 520]); } }
+      { const BR = GRAND.bridgeRoot(DC); if (BR) for (const b of BR.out) { if (b.dodge) GRAND.dodge(b.pts, DC); gaTube(A, b.pts, b.k ? (b.big ? 12 : 8) : 14, (i, aa) => b.rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))) * (b.k ? 1 : 1 - 0.24 * Math.max(0, Math.cos(aa - Math.PI / 2 - i * 0.09))), (i, aa, p, d) => moss(p, d, 60 + b.k), [3, 520]); } }
       // WALL ROOTS: from the trunk's Hollow side straight down the inner wall, clawing into the rock, holding the tree up
       const wallRoot = (phiOff, fTop, drop, r0, k) => { const pts = [], rs = [], aT = T.in + phiOff * 1.6, nS = 6;
         for (let i = 0; i <= nS; i++) { const f = fTop * (1 - i / nS) + 0.0, aa = aT + (fTop - f) * 1.2 * (k % 2 ? 1 : -1); pts.push(tr(f, aa, trunkRad(f, aa) * 0.9)); rs.push(r0 * (0.4 + 0.6 * i / nS)); }
@@ -4086,7 +4110,7 @@ void main() {
         const hm = new THREE.InstancedMesh(hg, new THREE.MeshLambertMaterial({ color: 0xffffff }), hang.length); hm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(hang.length * 3), 3);
         hang.forEach((h2, i) => { e.set(0, hash1(i * 1.1) * TAU, 0); q.setFromEuler(e); mt.compose(v3().set(h2[0], h2[1], h2[2]), q, v3().set(6 + hash1(i) * 7, h2[3], 6 + hash1(i) * 7)); hm.setMatrixAt(i, mt); const v = hash1(i * 2.2); hm.instanceColor.setXYZ(i, 0.22 + v * 0.14, 0.3 + v * 0.14, 0.13 + v * 0.07); }); hm.castShadow = true; add(hm); }
       // rocks gripped by the roots
-      { const rk = []; rootPts.forEach((pts, ri) => { for (let i = 3; i < pts.length; i += 3) if (hash1(i + pts[i].x) < 0.3) { const rr = (rootR[ri][Math.min(rootR[ri].length - 1, i)] || 100); rk.push([pts[i].x + (hash1(i * 3 + pts[i].z) - 0.5) * rr * 3, pts[i].z + (hash1(i * 7 + pts[i].x) - 0.5) * rr * 3, 50 + hash1(i + pts[i].z) * 120]); } });
+      { const rk = []; rootPts.forEach((pts, ri) => { for (let i = 3; i < pts.length; i += 3) if (hash1(i + pts[i].x) < 0.3) { const rr = (rootR[ri][Math.min(rootR[ri].length - 1, i)] || 100); { const rx = pts[i].x + (hash1(i * 3 + pts[i].z) - 0.5) * rr * 3, rz = pts[i].z + (hash1(i * 7 + pts[i].x) - 0.5) * rr * 3, DS = GRAND.doorSpot(DC), dx = DS.cx + Math.cos(DS.OUT) * DS.rD, dz = DS.cz + Math.sin(DS.OUT) * DS.rD; if (Math.hypot(rx - dx, rz - dz) > 1300) rk.push([rx, rz, 50 + hash1(i + pts[i].z) * 120]); } } }); /* no boulders in front of the Lumen Tree door */
         const rg = new THREE.DodecahedronGeometry(1, 1); { const P = rg.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), n = 1 + 0.18 * Math.sin(x * 5 + z * 3) * Math.cos(y * 4); P.setXYZ(i, x * n, y * n * 0.8, z * n); } } rg.computeVertexNormals();
         const rm = new THREE.InstancedMesh(rg, new THREE.MeshLambertMaterial({ color: 0x4e4740, flatShading: true }), rk.length); rm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(rk.length * 3), 3);
         rk.forEach((r, i) => { e.set(hash1(i) * 3, hash1(i + 1) * 3, 0); q.setFromEuler(e); mt.compose(v3().set(r[0], meshH(r[0], r[1]) - r[2] * 0.1, r[1]), q, v3().set(r[2], r[2] * 0.7, r[2] * 0.9)); rm.setMatrixAt(i, mt); const v = 0.62 + hash1(i * 3) * 0.25, mo = hash1(i * 5) < 0.4 ? 0.85 : 1; rm.instanceColor.setXYZ(i, v * mo, v * 0.98, v * 0.9 * mo); });
