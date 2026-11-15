@@ -579,9 +579,11 @@ void main() {
   let cssW = 1, cssH = 1;
   function resize(w, h, dpr) { if (!renderer) return; cssW = w; cssH = h; renderer.setPixelRatio(Math.min(2, dpr)); renderer.setSize(w, h, false); cv3.style.width = w + 'px'; cv3.style.height = h + 'px'; camera.aspect = w / h; camera.updateProjectionMatrix(); }
   function dist(cam) { return cssH / (cam.z * 2 * Math.tan((FOV * Math.PI) / 360)); }
+  function targetH(x, y) { let th = Math.max(meshH(x, y), P_H * (1 - clamp((Math.hypot(x, y) - CITY.hollowR) / 600, 0, 1)) - 200);
+    if (W.heartwood) { let bw = 0, be = 0; for (const h of W.homes) if (h.heartwood) { const w = 1 - smooth01(260, 700, Math.hypot(x - h.x, y - h.y)); if (w > bw) { bw = w; be = h.elev; } } if (bw > 0) th = th + (be - th) * bw; } // look at the Heartwood seat, not the pit floor below
+    return th; }
   function place(cam, snap) {
-    let th = Math.max(meshH(cam.x, cam.y), P_H * (1 - clamp((Math.hypot(cam.x, cam.y) - CITY.hollowR) / 600, 0, 1)) - 200);
-    if (W.heartwood) { let bw = 0, be = 0; for (const h of W.homes) if (h.heartwood) { const w = 1 - smooth01(260, 700, Math.hypot(cam.x - h.x, cam.y - h.y)); if (w > bw) { bw = w; be = h.elev; } } if (bw > 0) th = th + (be - th) * bw; } // look at the Heartwood seat, not the pit floor below
+    const th = targetH(cam.x, cam.y);
     if (snap === 'keep') snap = Math.hypot(T.x - cam.x, T.y - cam.y) > 300 ? true : null;
     T.x = cam.x; T.y = cam.y; T.h = snap === null ? T.h : snap ? th : T.h + (th - T.h) * 0.12;
     const D = dist(cam), ph = (cam.tilt * Math.PI) / 180, th2 = cam.rot;
@@ -599,6 +601,29 @@ void main() {
     if (!blockedAt(C, T.x, T.h, T.y, cp.x, cp.y, cp.z)) return;
     for (let p2 = ph - 0.06; p2 > -0.12; p2 -= 0.06) { const x = T.x + Math.sin(rot) * Math.cos(p2) * D, y = T.h + Math.sin(p2) * D, z = T.y + Math.cos(rot) * Math.cos(p2) * D; if (y < meshH(x, z) + 60) break; if (!blockedAt(C, T.x, T.h, T.y, x, y, z)) { cp.set(x, y, z); return; } }
     const hit = blockedAt(C, T.x, T.h, T.y, cp.x, cp.y, cp.z), L = Math.hypot(cp.x - T.x, cp.y - T.h, cp.z - T.y), k = Math.max(hit - 60, Math.min(L, 260)) / L; cp.set(T.x + (cp.x - T.x) * k, T.h + (cp.y - T.h) * k, T.y + (cp.z - T.y) * k); }
+  // is the straight line from a target point to a camera position clear of terrain, the Heartwood's trunk, its seat decks and houses, and its foliage?
+  function sightBlocked(tx, ty, tz, px, py, pz) { const Tw = W.heartwood, nearHW = Tw && (Math.hypot(tx - Tw.x, tz - Tw.y) < 9000 || Math.hypot(px - Tw.x, pz - Tw.y) < 9000);
+    const L = Math.hypot(px - tx, py - ty, pz - tz) || 1, mx = (tx + px) / 2, mz = (tz + pz) / 2, R2 = Math.hypot(px - tx, pz - tz) / 2 + 300;
+    const nb = []; for (const h of W.homes) { if (h.heartwood || Math.hypot(h.x - mx, h.y - mz) > R2 || Math.hypot(h.x - tx, h.y - tz) < 30) continue; const w = homeW(h); nb.push([h.x, h.y, w * 0.62, meshH(h.x, h.y) + w * 1.45]); } // neighbouring houses in the way
+    for (let i = 1; i <= 40; i++) { const u = i / 40, x = tx + (px - tx) * u, y = ty + (py - ty) * u, z = tz + (pz - tz) * u; for (const q of nb) if (y < q[3] && Math.hypot(x - q[0], z - q[1]) < q[2]) return 'house'; }
+    for (let i = 1; i <= 40; i++) { const u = i / 40, x = tx + (px - tx) * u, y = ty + (py - ty) * u, z = tz + (pz - tz) * u; if (u * L < 70) continue; // the house's own yard
+      if (y < meshH(x, z) + 12) return 'ground';
+      if (!nearHW) continue; const f = (y - Tw.base) / Tw.H;
+      if (f > -0.12 && f < 0.82) { const [ax0, az0] = hwAxis(f), r = hwTrunkR(f) * (f < 0.12 ? 1.7 : 1.3) + 60; if (Math.hypot(x - ax0, z - az0) < r) return 'trunk'; }
+      for (const s2 of HWX.seats) { if (y < s2.y - 380 || y > s2.y + HW_HOUSE * 1.5) continue; if (Math.hypot(tx - (s2.limb ? s2.m.x : s2.c.x + Math.cos(s2.th) * (s2.ro + s2.ri) / 2), tz - (s2.limb ? s2.m.z : s2.c.z + Math.sin(s2.th) * (s2.ro + s2.ri) / 2)) < 1000) continue; // the target's own deck
+        if (s2.limb) { if (Math.hypot(x - s2.m.x, z - s2.m.z) < s2.hw2 * 1.5) return 'deck'; }
+        else { const dx = x - s2.c.x, dz = z - s2.c.z, r = Math.hypot(dx, dz), da = Math.atan2(Math.sin(Math.atan2(dz, dx) - s2.th), Math.cos(Math.atan2(dz, dx) - s2.th)); if (r > s2.ri * 0.9 && r < s2.ro + 80 && Math.abs(da) < s2.span + 0.08) return 'deck'; } } }
+    if (nearHW && HWX.clumps.length && blockedAt(HWX.clumps, tx, ty, tz, px, py, pz)) return 'leaves';
+    return null; }
+  // pick a camera direction, tilt and zoom that see a spot clearly: start from the preferred view, then turn round it, tilt up, and move in
+  // (second pass: foliage alone is acceptable, since place() then slips the camera under the canopy at the same distance)
+  function focusView(x, y, z, rot0, tilt0) { const th = targetH(x, y), base = clamp(tilt0 || 40, 35, 70);
+    for (const soft of [false, true]) { const tried = [];
+      for (const zk of [1, 1.3, 1.7, 2.3]) for (const tl of [base, base + 10, base + 20, 70]) { const tilt = Math.min(70, tl); if (tried.includes(zk + ':' + tilt)) continue; tried.push(zk + ':' + tilt);
+        const D = dist({ z: z * zk }), ph = (tilt * Math.PI) / 180;
+        for (let k = 0; k < 18; k++) { const rot = rot0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.35, px = x + Math.sin(rot) * Math.cos(ph) * D, py = th + Math.sin(ph) * D, pz = y + Math.cos(rot) * Math.cos(ph) * D;
+          if (py < meshH(px, pz) + 60) continue; const b = sightBlocked(x, th, y, px, py, pz); if (!b || (soft && b === 'leaves')) return { rot, tilt, z: z * zk, clear: !b }; } } }
+    return { rot: rot0, tilt: 70, z: z * 2.3, clear: false }; }
   function project(x, y, up, abs) { const p = v3().set(x, (abs ? 0 : meshH(x, y)) + (up || 0), y).project(camera); if (p.z > 1) return [-9999, -9999]; return [((p.x + 1) / 2) * cssW, ((1 - p.y) / 2) * cssH]; }
   function unproject(sx, sy) {
     const o = camera.position.clone(), d = v3().set((sx / cssW) * 2 - 1, -(sy / cssH) * 2 + 1, 0.5).unproject(camera).sub(o).normalize();
@@ -665,5 +690,5 @@ void main() {
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }
-  return { treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();

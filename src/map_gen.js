@@ -369,11 +369,12 @@ function generateCity() {
     const byRing = []; for (let i = 0; i < N; i++) { const k = Math.max(1, ringForRank(i, N + 1)); (byRing[k] || (byRing[k] = [])).push(i); }
     for (let k = 0; k <= CITY.rings; k++) { const L = byRing[k]; if (!L) continue;
       // spread evenly round the ring: one slot per home, natural jitter in angle and across the band, no clumps
-      const ph = rnd() * TAU, n = L.length, da = TAU / n;
-      L.forEach((i, j) => { let h = null; const a0 = ph + j * da, u0 = 0.12 + 0.76 * ((j * 0.618034 + rnd() * 0.25) % 1);
+      const ph = rnd() * TAU, n = L.length, freeA = []; for (let q = 0; q < 1440; q++) { const a = ph + (q / 1440) * TAU, [x, y] = polar(ringR(k, a, 0.5), a); if (!underHeartwood(x, y, 250)) freeA.push(a); } // slots only round the arc clear of the Heartwood
+      const da = TAU * (freeA.length / 1440) / n;
+      L.forEach((i, j) => { let h = null; const a0 = freeA.length ? freeA[Math.floor(((j + 0.5) / n) * freeA.length)] : ph + j * da, u0 = 0.12 + 0.76 * ((j * 0.618034 + rnd() * 0.25) % 1);
         for (let t = 0; t < 70 && !h; t++) { const sp = Math.min(1, 0.35 + t * 0.03), a = a0 + (rnd() - 0.5) * da * 0.7 * (t < 20 ? 1 : 1 + t * 0.1), u = clamp(u0 + (rnd() - 0.5) * sp * (t < 10 ? 0.3 : 1), 0.02, 0.98);
-          const [x, y] = polar(ringR(k, a, u), a); if (!ringGround(x, y, k) || nearHeartwood(x, y)) continue; h = addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.6, k <= 1 ? -1.3 : k < 4 ? -0.6 : 0.3); }
-        for (let t = 0; t < 200 && !h; t++) { const a = rnd() * TAU - Math.PI, [x, y] = polar(ringR(k, a, rnd()), a); if (t < 120 && !ringGround(x, y, k)) continue; h = addHome(x, y, Math.atan2(-y, -x), 0); } // rare fallback
+          const [x, y] = polar(ringR(k, a, u), a); if (!ringGround(x, y, k) || underHeartwood(x, y)) continue; h = addHome(x, y, Math.atan2(-y, -x) + (rnd() - 0.5) * 0.6, k <= 1 ? -1.3 : k < 4 ? -0.6 : 0.3); }
+        for (let t = 0; t < 200 && !h; t++) { const a = rnd() * TAU - Math.PI, [x, y] = polar(ringR(k, a, rnd()), a); if ((t < 120 && !ringGround(x, y, k)) || underHeartwood(x, y)) continue; h = addHome(x, y, Math.atan2(-y, -x), 0); } // rare fallback
         if (h) { h.deepest = depths[i]; h.ring = k; h.battered = false; h.banners = 0; h.trophies = 0; h.pet = null; } }); }
     // the player's home: placed by their own record (see relocatePlayer)
     let P = null; for (let k = 0; k < 400 && !P; k++) { const a = regionAngle(7) + (rnd() - 0.5) * 0.6, [x, y] = polar(CITY.plateauR + 900 + rnd() * 800, a); P = addHome(x, y, Math.atan2(-y, -x), 0); }
@@ -458,6 +459,8 @@ function hwTrunkR(f) { const g = Math.max(0, f); return HW_R0 * (0.62 + 0.38 * M
 function hwAxis(f) { const T = W.heartwood, g = Math.max(0, f); return [T.x + Math.sin(g * 5.1 + 0.7) * HW_H * 0.009 - Math.sin(0.7) * HW_H * 0.009, T.y + Math.sin(g * 4.3 + 2.1) * HW_H * 0.007 - Math.sin(2.1) * HW_H * 0.007]; } // nearly plumb: the roots hold it straight up
 function heartwoodSlot(j) { const T = W.heartwood, S = HW_SEATS[j], f = S[0], th = T.in + S[1], [ax, ay] = hwAxis(f), r = S[2] || hwTrunkR(f) + 330;
   return { x: ax + Math.cos(th) * r, y: ay + Math.sin(th) * r, elev: T.base + f * HW_H + 20, th, f, limb: S[2] }; }
+// no Ledge under the Heartwood's crown (its florets reach ~4,100 from the trunk) or on its roots: a clear disc round the tree
+const HW_CLEAR = 4500; function underHeartwood(x, y, pad) { const T = W.heartwood; return !!T && Math.hypot(x - T.x, y - T.y) < HW_CLEAR + (pad || 0); }
 function nearHeartwood(x, y) { const T = W.heartwood; if (!T) return false; const dx = x - T.x, dy = y - T.y, d = Math.hypot(dx, dy); return d < 2700 + 1700 * Math.max(0, -(dx * Math.cos(T.in) + dy * Math.sin(T.in)) / (d || 1)); } // clear of the trunk and the great roots spread over the lip
 function moveHome(h, x, y) { if (W.buckets) { const k = Math.floor(h.x / W.bucket) + ',' + Math.floor(h.y / W.bucket), L = W.buckets.get(k); if (L) { const i = L.indexOf(h); if (i >= 0) L.splice(i, 1); } }
   h.x = x; h.y = y; if (W.put) W.put(h); }
@@ -480,7 +483,7 @@ function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P
   if (ring === 0) { seatHeartwood(); W.playerMoves = (W.playerMoves || 0) + 1; return true; }
   let spot = null;
   for (let k = 0; k < 500 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), u = rr(), [x, y] = polar(ringR(ring, a, u), a), rad = P.size * 0.62;
-    if (hollowDist(x, y) < 150 || nearHeartwood(x, y) || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
+    if (hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
     if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (W.exchange && Math.hypot(W.exchange.x - x, W.exchange.y - y) < 150)) continue; spot = [x, y]; }
   if (!spot) { seatHeartwood(); return false; }
   P.heartwood = false; delete P.elev; delete P.slot; moveHome(P, spot[0], spot[1]); P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.ring = ring;

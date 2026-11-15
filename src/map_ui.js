@@ -51,6 +51,10 @@ const CityMap = (() => {
   function w2s(x, y, up) { if (is3d()) { M3.place(cam, 'keep'); return M3.project(x, y, up || 0); } return [((x - cam.x) * kpx() + Wc / 2) / dpr, ((y - cam.y) * kpx() + Hc / 2) / dpr]; }
   function clampCam() { cam.z = clamp(cam.z, CITY.zoomMin, CITY.zoomMax); const r = Math.hypot(cam.x, cam.y), m = CITY.R + 200; if (r > m) { cam.x *= m / r; cam.y *= m / r; } }
   function zoomAt(sx, sy, f) { if (is3d()) { M3.place(cam, true); const [wx, wy] = s2w(sx, sy); cam.z = clamp(cam.z * f, CITY.zoomMin, CITY.zoomMax); M3.place(cam, true); const [nx, ny] = s2w(sx, sy); cam.x += wx - nx; cam.y += wy - ny; cam.fly = null; clampCam(); return; } const [wx, wy] = s2w(sx, sy); cam.z = clamp(cam.z * f, CITY.zoomMin, CITY.zoomMax); const [nx, ny] = s2w(sx, sy); cam.x += wx - nx; cam.y += wy - ny; cam.fly = null; clampCam(); }
+  // fly to a Ledge with a clear line of sight (never from inside the ground, a cliff, the Heartwood's bark, decks or leaves)
+  function focusHome(h, z, now, rot0, tilt0) { z = z || Math.max(1.05, cam.z); if (!is3d() || !M3.focusView) return flyTo(h.x, h.y, z, now);
+    const v = M3.focusView(h.x, h.y, z, rot0 != null ? rot0 : cam.rot, tilt0 || cam.tilt), r1 = cam.rot + Math.atan2(Math.sin(v.rot - cam.rot), Math.cos(v.rot - cam.rot));
+    cam.tilt = v.tilt; if (now) { cam.rot = r1; return flyTo(h.x, h.y, v.z, true); } cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x: h.x, y: h.y, z: v.z, r0: cam.rot, r1, t0: performance.now(), d: 900 }; return v; }
   function flyTo(x, y, z, now) { if (now) { cam.x = x; cam.y = y; if (z) cam.z = z; cam.fly = null; cam.vx = cam.vy = 0; clampCam(); if (is3d()) M3.place(cam, true); return; } cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x, y, z: z || cam.z, t0: performance.now(), d: 900 }; }
 
   /* ---------- input ---------- */
@@ -409,7 +413,7 @@ const CityMap = (() => {
     if (b === 'tilt') { if (is3d()) cam.tilt = cam.tilt < 45 ? 55 : cam.tilt < 62 ? 70 : 38; return; }
     if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
-    if (b === 'home') return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
+    if (b === 'home') return focusHome(W.player, Math.max(1.05, cam.z));
     if (b === 'overview') return flyTo(0, is3d() ? CITY.plateauR * 0.25 : 0, Math.min(Wc, Hc) / dpr / ((is3d() ? CITY.plateauR * 2.9 : CITY.R * 2.1)));
     if (b === 'board') return boardModal();
     if (b === 'legend') { buildLegend(); return $('#legend').classList.toggle('hidden'); }
@@ -571,7 +575,7 @@ const CityMap = (() => {
       case 'mapvisit': { const h = W.homes[+ds.id]; toast(`👋 Visiting ${h.owner} is coming soon.`); return; }
       case 'exbuy': case 'exsell': case 'excancel': return exAct(act, ds);
       case 'mapboard': return boardModal();
-      case 'mapgohome': closeModalQuiet(); return flyTo(W.player.x, W.player.y, Math.max(1.05, cam.z));
+      case 'mapgohome': closeModalQuiet(); return focusHome(W.player, Math.max(1.05, cam.z));
       case 'mbuy': marketBuy(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
       case 'msell': marketSell(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
       case 'mopen': return marketCard(W.markets[+ds.id]);
@@ -588,5 +592,5 @@ const CityMap = (() => {
     }
     return false;
   }
-  return { boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
+  return { boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
 })();

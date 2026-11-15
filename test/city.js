@@ -140,6 +140,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await shot('city-night.png', 0, 2800, 0.13, 3000); await shot('city-night-close.png', ph[0], ph[1], 0.8, 2000);
   await p.evaluate(() => { window.nightFactor = window.__nf; });
   const fps = await p.evaluate(() => CityMap.fps); console.log('fps (SwiftShader software GL, not a phone GPU): ' + fps.toFixed(1));
+  { const f = await p.evaluate(() => { if (!CityMap.is3d() || !M3.focusView) return null; const T = W.heartwood; let blocked = 0, under = 0;
+      for (const h of W.homes) { if (!h.heartwood && Math.hypot(h.x - T.x, h.y - T.y) < HW_CLEAR) under++; const z = h.heartwood ? 0.42 : 230 / (homeW(h) * 1.25), r0 = h.heartwood ? Math.atan2(Math.cos(h.hwTh), Math.sin(h.hwTh)) : (h._rot || 0) + 0.75, v = M3.focusView(h.x, h.y, z, r0, 34);
+        const D = M3.dist({ z: v.z }), ph = v.tilt * Math.PI / 180, th = M3.targetH(h.x, h.y), b = M3.sightBlocked(h.x, th, h.y, h.x + Math.sin(v.rot) * Math.cos(ph) * D, th + Math.sin(ph) * D, h.y + Math.cos(v.rot) * Math.cos(ph) * D); if (b && b !== 'leaves') blocked++; }
+      return { blocked, under }; });
+    if (f) { ok(f.blocked === 0, 'focusing any Ledge finds a clear view (no ground, cliff, bark, deck or house in the way): ' + f.blocked + ' blocked'); ok(f.under === 0, 'no ground Ledge under the Heartwood crown or on its roots: ' + f.under); } }
   ok(errs.length === 0, 'no JS errors ' + errs.slice(0, 3).join(' | '));
   await b.close(); console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
 })();
