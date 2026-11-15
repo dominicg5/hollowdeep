@@ -1394,7 +1394,7 @@ const ART_MANIFEST = {"v":1794699487,"atlases":3,"s":{"sp_pass_0":[0,0,0,857,836
    ===================================================================== */
 const CITY = {
   homeTerm: 'Ledge', functional: false, water: false,
-  base: true,       // approved base only: terrain, homes, the Exchange, trees, day/night, clouds (no events, NPCs, landmarks...)
+  base: true,       // approved base only: terrain, homes, the Grand Tree, trees, day/night, clouds (no events, NPCs, landmarks...)
   maxDepth: 99,     // the Hollow's depth levels (99 is the far goalpost)
   homeCount: 760,   // total homes on the map (one value: raise or lower it here)
   rings: 10,        // players are split into deciles by rank: ring 1 (top 10%) on the summit by the lip ... ring 10 out by the far mountains
@@ -1715,10 +1715,11 @@ function generateCity() {
   if (CITY.base) { // approved base only: no lifts, cranes, landmarks, rift mouths, outposts, farm sets, pass, bridges or stairs
     W.lifts = []; W.cranes = []; W.landmarks = []; W.rifts = []; W.outposts = []; W.sets = []; W.pass = null; W.lakeFalls = null; W.bridges = []; W.stairs = []; W.civic = [];
     for (const c of W.cracks) { c.mouth = null; c.frontier = false; } }
-  // The Exchange: one grand market hall near the Hollow, where players trade resources for Lumen
+  // The outdoor Exchange is retired (the Grand Tree is the Hollow's commune now). Its old site is still worked out and kept
+  // clear so the seeded map (and the Grand Tree's footing) stays exactly where it was.
   { const a0 = regionAngle(7) + 0.42; let ex = null;
-    for (let k = 0; k < 200 && !ex; k++) { const a = a0 + (k % 2 ? 1 : -1) * k * 0.01, [x, y] = polar(hollowR(a) + 430, a); if (chasmDist(x, y) < 120 || plateauDist(x, y) > -150 || !occFree(OCC.obj, x, y, 110)) continue; ex = { type: 'exchange', x, y, r: 70, name: 'The Exchange', layer: 1, region: regionAt(x, y) }; }
-    W.exchange = ex; if (ex) { W.civic.push(ex); occMark(OCC.obj, ex.x, ex.y, 130); } }
+    for (let k = 0; k < 200 && !ex; k++) { const a = a0 + (k % 2 ? 1 : -1) * k * 0.01, [x, y] = polar(hollowR(a) + 430, a); if (chasmDist(x, y) < 120 || plateauDist(x, y) > -150 || !occFree(OCC.obj, x, y, 110)) continue; ex = { x, y }; }
+    W.exSite = ex; W.exchange = null; if (ex) occMark(OCC.obj, ex.x, ex.y, 130); }
   // Mountains: a ring of peaks round the edge of the world and a few ridges that split the outer districts
   W.mountains = [];
   const addMtn = (x, y, r) => { if (hollowDist(x, y) < 900 || !lowland(x, y) || onCliff(x, y, r) || (W.pass && Math.hypot(x - W.pass.x, y - W.pass.y) < 700) || chasmDist(x, y) < r * 0.5 || isWet(x, y, r)) return; const m = { type: 'mountain', x, y, r, layer: 1, seed: rnd(), spr: 'mtn_' + Math.floor(rnd() * 9) }; W.mountains.push(m); occMark(OCC.obj, x, y, r * 0.8); };
@@ -1841,7 +1842,7 @@ const HW_H = 8600, HW_R0 = 1250, HW_HOUSE = 440;
 const HW_SEATS = [[0.585, 0.15, 0], [0.555, -1.25, 1650], [0.51, 1.2, 0], [0.465, -0.2, 1850], [0.415, 2.35, 0], [0.365, -1.05, 0], [0.315, 0.7, 0], [0.265, -2.3, 1600], [0.205, -0.15, 0], [0.145, 1.55, 0]];
 function makeHeartwood() { let best = null, bd = -1;
   for (let a = -Math.PI / 2 - 0.9; a <= -Math.PI / 2 + 0.9; a += 0.05) { const [x, y] = polar(hollowR(a) + 40, a); let d = 1e9; for (let r = -200; r <= 1400; r += 100) { const [x2, y2] = polar(hollowR(a) + r, a); d = Math.min(d, chasmDist(x2, y2)); } for (const da of [-0.12, 0.12]) { const [x3, y3] = polar(hollowR(a + da) + 40, a + da); d = Math.min(d, chasmDist(x3, y3) * 1.5); }
-    if (W.exchange) d = Math.min(d, Math.hypot(W.exchange.x - x, W.exchange.y - y) * 0.5); d -= Math.abs(a + Math.PI / 2) * 120; if (d > bd) { bd = d; best = a; } }
+    if (W.exSite) d = Math.min(d, Math.hypot(W.exSite.x - x, W.exSite.y - y) * 0.5); d -= Math.abs(a + Math.PI / 2) * 120; if (d > bd) { bd = d; best = a; } }
   const a = best, [bx, by] = polar(hollowR(a) - HW_R0 * 0.5, a); // the trunk stands against the inner wall, just inside the rim: its back half is sunk into the lip
   return { a, x: bx, y: by, H: HW_H, R0: HW_R0, base: CITY.summitH - 650, in: Math.atan2(-by, -bx), type: 'heartwood' }; }
 // trunk radius at height fraction f (flared base, gently tapering), and the trunk's slightly wandering axis
@@ -1865,7 +1866,7 @@ function playerDeepest() { const d = (typeof S !== 'undefined' && S && S.stats) 
 function rimBoard() { return W.homes.slice().sort((a, b) => (b.deepest - a.deepest) || ((a.heartwood ? a.slot : 99) - (b.heartwood ? b.slot : 99)) || ((a.ring || 0) - (b.ring || 0)) || (hollowDist(a.x, a.y) - hollowDist(b.x, b.y))); }
 function rimRank(h) { if (!W.rankOf || W.rankStamp !== W.player.deepest) { W.rankOf = new Map(); rimBoard().forEach((o, i) => W.rankOf.set(o, i + 1)); W.rankStamp = W.player.deepest; } return W.rankOf.get(h); }
 function rimRing(h) { return h.ring || 0; }
-function ringLabel(h) { return h.heartwood ? 'Heartwood #' + (h.slot + 1) : 'Ring ' + h.ring; }
+function ringLabel(h) { return h.heartwood ? 'Grand Tree #' + (h.slot + 1) : 'Ring ' + h.ring; }
 // move the player's home to the ring that matches their record (called on load and whenever the record improves)
 function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P || (!force && P.deepest === d)) return false;
   const others = W.homes.filter((h) => !h.isPlayer), total = others.length + 1, rank0 = others.filter((h) => h.deepest > d).length, ring = ringForRank(rank0, total), rr = mulberry32(d * 7919 + 13);
@@ -1874,7 +1875,7 @@ function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P
   let spot = null;
   for (let k = 0; k < 500 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), u = rr(), [x, y] = polar(ringR(ring, a, u), a), rad = P.size * 0.62;
     if (hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
-    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (W.exchange && Math.hypot(W.exchange.x - x, W.exchange.y - y) < 150)) continue; spot = [x, y]; }
+    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (typeof GRAND !== 'undefined' && GRAND.wet(x, y, rad + 60))) continue; spot = [x, y]; }
   if (!spot) { seatHeartwood(); return false; }
   P.heartwood = false; delete P.elev; delete P.slot; moveHome(P, spot[0], spot[1]); P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.ring = ring;
   seatHeartwood(); W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }
@@ -3769,20 +3770,10 @@ void main() {
       const a1 = hi.a - sg * hi.span * 0.85, rem = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0)); if (Math.abs(rem) < 0.05 || Math.sign(rem) !== sg) continue;
       const n = Math.max(2, Math.ceil(Math.abs(rem) * rTop / 70)); let prev = p1, prevR = null;
       for (let k = 1; k <= n; k++) { const a = a0 + rem * k / n, q = v3().copy(ax(fH)).addScaledVector(dirAt(a), rTop).setY(hi.y - 4); stick(PR.box, prev, q, 30, WOOD[2], null); const qr = v3().copy(ax(fH)).addScaledVector(dirAt(a), rTop + 40).setY(hi.y + 60); stick(PR.box, v3().copy(qr).setY(hi.y), qr, 6, ST, null); if (prevR) stick(PR.box, prevR, qr, 4, ROPE, null); prevR = qr; prev = q; } }
-    // the pulley: a wheel off the great limb, a rope back to the trunk, and a crate dangling deep into the Hollow
-    if (!hero) { const at = HWX.pulleyAt, wheel = new THREE.Mesh(new THREE.TorusGeometry(60, 14, 6, 18), new THREE.MeshLambertMaterial({ color: 0x4a3828 })); wheel.position.copy(at).add(v3().set(0, -160, 0)); wheel.rotation.y = Math.PI / 2 - (T.in + 0.55); add(wheel); stick(PR.box, at, wheel.position, 10, IRON, null);
-      const ropeM = new THREE.MeshLambertMaterial({ color: 0x9c8460 }), rope = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 5), ropeM), rope2 = new THREE.Mesh(rope.geometry, ropeM);
-      const load = new THREE.Group(); { const crate = new THREE.Mesh(new THREE.BoxGeometry(200, 170, 200), new THREE.MeshLambertMaterial({ color: 0x8a6440 })); crate.position.y = -85; load.add(crate); for (const y of [-22, -148]) { const band = new THREE.Mesh(new THREE.BoxGeometry(206, 14, 206), new THREE.MeshLambertMaterial({ color: 0x333030 })); band.position.y = y; load.add(band); }
-        for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) { const r = new THREE.Mesh(rope.geometry, ropeM); poseRope(r, v3().set(sx * 95, -4, sz * 95), v3().set(0, 110, 0), 4); load.add(r); } }
-      const lanternL = new THREE.Mesh(new THREE.BoxGeometry(30, 40, 30), new THREE.MeshBasicMaterial({ color: 0xffc070 })); lanternL.position.y = 130; load.add(lanternL);
-      for (const o of [rope, rope2, load]) { o.castShadow = true; add(o); }
-      hero = { pulley: { top: wheel.position.clone().add(v3().set(0, -60, 0)), winch: v3().copy(HWX.pulleyBase), rope, rope2, load, lanternL, dir: dirAt(T.in + 0.55 + Math.PI / 2), wheel } }; }
-    PR.glow.push([HWX.pulleyAt.x, HWX.pulleyAt.y - 200, HWX.pulleyAt.z, null]);
+    // (the old pulley rig - wheel, rope and the crate dangling into the Hollow - is retired; the great limb stays)
     const res = W.homes.filter((h) => h.heartwood); if (res.length) { T.cx = T.x; T.cy = T.y; T.ce = res.reduce((s2, h) => s2 + h.elev, 0) / res.length; } }
   function poseRope(r, a, b, th) { r.position.lerpVectors(a, b, 0.5); r.scale.set(th, a.distanceTo(b), th); r.quaternion.setFromUnitVectors(v3().set(0, 1, 0), v3().subVectors(b, a).normalize()); }
-  function animPulley(t, night) { const P = hero && hero.pulley; if (!P) return; const len = 2600 + 1800 * (0.5 - 0.5 * Math.cos(t * 0.06)), sw = Math.sin(t * 0.5) * 60 + Math.sin(t * 1.3) * 14;
-    const lp = P.top.clone().add(v3().set(0, -len, 0)).addScaledVector(P.dir, sw); P.load.position.copy(lp).add(v3().set(0, -110, 0)); P.load.rotation.set(sw * 0.002, t * 0.04, -sw * 0.0015);
-    poseRope(P.rope, P.top, lp, 7); poseRope(P.rope2, P.winch, P.top.clone().add(v3().set(0, 60, 0)), 7); P.wheel.rotation.x = len * 0.02; P.lanternL.material.color.setRGB(0.5 + night * 0.6, 0.36 + night * 0.4, 0.2 + night * 0.15);
+  function animPulley(t, night) {
     if (HWX.mush) { const k = 0.45 + night * 0.75; HWX.mush.color.setRGB(0.32 * k, 0.78 * k, 1.0 * k); HWX.hollowGlow.color.setRGB(0.3 * k, 0.75 * k, 0.95 * k); HWX.mushGlow.material.opacity = 0.12 + night * 0.5; } }
   // props meshes: rebuilt (instances near the camera only) on each LOD pass
   function propMesh(geo, mat, cap) { const im = new THREE.InstancedMesh(geo, mat, cap); im.count = 0; im.frustumCulled = false; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); scene.add(im); return im; }
@@ -4309,7 +4300,7 @@ const CityMap = (() => {
     const z = cam.z, rects = hudRects.slice();
     const free = (r) => { for (const q of rects) if (r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1]) return false; rects.push(r); return true; };
     // player label always
-    { const h = W.player, [sx, sy] = S2(h.x, h.y, h.size, (h.heartwood ? HW_HOUSE * 0.8 : homeW(h) * 1.05) + hUp(h)); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · Deepest Lv ${W.player.deepest} · Rank #${rimRank(W.player)}${h.heartwood ? ' · 🌳 Heartwood #' + (h.slot + 1) : ''}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
+    { const h = W.player, [sx, sy] = S2(h.x, h.y, h.size, (h.heartwood ? HW_HOUSE * 0.8 : homeW(h) * 1.05) + hUp(h)); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · Deepest Lv ${W.player.deepest} · Rank #${rimRank(W.player)}${h.heartwood ? ' · 🌳 Grand Tree #' + (h.slot + 1) : ''}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
     // mole
     const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y, 40, 110); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
     // region names at far zoom
@@ -4449,11 +4440,11 @@ const CityMap = (() => {
   function homeCard(h) {
     openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · ${typeof tierName === 'function' ? tierName(h) : ''}</div>
       ${rimLines(h)}
-      <div class="dim" style="margin-top:6px">${h.heartwood ? `Heartwood seat #${h.slot + 1}: built into the Heartwood, the colossal tree rising out of the Hollow's wall. Its ten numbered seats belong to the Rim's top 10 delvers; the higher the seat, the higher the rank.` : 'The Rim is a safe place: homes nearer the Hollow belong to those who have delved deepest.'}</div>
+      <div class="dim" style="margin-top:6px">${h.heartwood ? `Grand Tree seat #${h.slot + 1}: built into the Grand Tree, the colossal tree rising out of the Hollow's wall. Its ten numbered seats belong to the Rim's top 10 delvers; the higher the seat, the higher the rank.` : 'The Rim is a safe place: homes nearer the Hollow belong to those who have delved deepest.'}</div>
       ${btnRow(`<button class="btn" data-act="mapvisit" data-id="${h.id}">👋 Visit</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
   }
   function boardModal() { const B = rimBoard(), me = B.indexOf(W.player);
-    const row = (h, i, pin) => `<tr class="${h.isPlayer ? 'me' : ''}"${h.isPlayer ? ` style="background:#ffe7a3;font-weight:700${pin ? ';position:sticky;top:0;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.15)' : ''}"` : ''}><td>#${i + 1}</td><td>${esc(h.isPlayer ? 'You' : h.owner)}${pin ? ' 📌' : ''}</td><td>Lv ${h.deepest}</td><td>${h.heartwood ? '🌳 Heartwood #' + (h.slot + 1) : rimRing(h)}</td></tr>`;
+    const row = (h, i, pin) => `<tr class="${h.isPlayer ? 'me' : ''}"${h.isPlayer ? ` style="background:#ffe7a3;font-weight:700${pin ? ';position:sticky;top:0;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.15)' : ''}"` : ''}><td>#${i + 1}</td><td>${esc(h.isPlayer ? 'You' : h.owner)}${pin ? ' 📌' : ''}</td><td>Lv ${h.deepest}</td><td>${h.heartwood ? '🌳 Grand Tree #' + (h.slot + 1) : rimRing(h)}</td></tr>`;
     openModal(`<h2>🏆 Rim Leaderboard</h2><div class="small">Ranked by deepest Hollow level reached. The top 10 players live in 🌳 the Heartwood (seats #1–#10, #1 highest); then ten rings, each a tenth of the Rim, from the summit lip (ring 1) out to the far mountains (ring 10). Perks for rim proximity: <span class="dim">(coming soon)</span></div>
       <table class="board" style="width:100%;margin-top:6px;border-collapse:collapse;font-size:13px"><thead><tr><th align="left">Rank</th><th align="left">Player</th><th align="left">Deepest</th><th align="left">Ring</th></tr></thead>
       <tbody id="boardPin">${row(W.player, me, true)}</tbody><tbody><tr><td colspan="4"><hr style="margin:4px 0"></td></tr>${B.slice(0, 100).map((h, i) => row(h, i)).join('')}</tbody></table>

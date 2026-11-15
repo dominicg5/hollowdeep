@@ -476,20 +476,10 @@ void main() {
       const a1 = hi.a - sg * hi.span * 0.85, rem = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0)); if (Math.abs(rem) < 0.05 || Math.sign(rem) !== sg) continue;
       const n = Math.max(2, Math.ceil(Math.abs(rem) * rTop / 70)); let prev = p1, prevR = null;
       for (let k = 1; k <= n; k++) { const a = a0 + rem * k / n, q = v3().copy(ax(fH)).addScaledVector(dirAt(a), rTop).setY(hi.y - 4); stick(PR.box, prev, q, 30, WOOD[2], null); const qr = v3().copy(ax(fH)).addScaledVector(dirAt(a), rTop + 40).setY(hi.y + 60); stick(PR.box, v3().copy(qr).setY(hi.y), qr, 6, ST, null); if (prevR) stick(PR.box, prevR, qr, 4, ROPE, null); prevR = qr; prev = q; } }
-    // the pulley: a wheel off the great limb, a rope back to the trunk, and a crate dangling deep into the Hollow
-    if (!hero) { const at = HWX.pulleyAt, wheel = new THREE.Mesh(new THREE.TorusGeometry(60, 14, 6, 18), new THREE.MeshLambertMaterial({ color: 0x4a3828 })); wheel.position.copy(at).add(v3().set(0, -160, 0)); wheel.rotation.y = Math.PI / 2 - (T.in + 0.55); add(wheel); stick(PR.box, at, wheel.position, 10, IRON, null);
-      const ropeM = new THREE.MeshLambertMaterial({ color: 0x9c8460 }), rope = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 5), ropeM), rope2 = new THREE.Mesh(rope.geometry, ropeM);
-      const load = new THREE.Group(); { const crate = new THREE.Mesh(new THREE.BoxGeometry(200, 170, 200), new THREE.MeshLambertMaterial({ color: 0x8a6440 })); crate.position.y = -85; load.add(crate); for (const y of [-22, -148]) { const band = new THREE.Mesh(new THREE.BoxGeometry(206, 14, 206), new THREE.MeshLambertMaterial({ color: 0x333030 })); band.position.y = y; load.add(band); }
-        for (const [sx, sz] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) { const r = new THREE.Mesh(rope.geometry, ropeM); poseRope(r, v3().set(sx * 95, -4, sz * 95), v3().set(0, 110, 0), 4); load.add(r); } }
-      const lanternL = new THREE.Mesh(new THREE.BoxGeometry(30, 40, 30), new THREE.MeshBasicMaterial({ color: 0xffc070 })); lanternL.position.y = 130; load.add(lanternL);
-      for (const o of [rope, rope2, load]) { o.castShadow = true; add(o); }
-      hero = { pulley: { top: wheel.position.clone().add(v3().set(0, -60, 0)), winch: v3().copy(HWX.pulleyBase), rope, rope2, load, lanternL, dir: dirAt(T.in + 0.55 + Math.PI / 2), wheel } }; }
-    PR.glow.push([HWX.pulleyAt.x, HWX.pulleyAt.y - 200, HWX.pulleyAt.z, null]);
+    // (the old pulley rig - wheel, rope and the crate dangling into the Hollow - is retired; the great limb stays)
     const res = W.homes.filter((h) => h.heartwood); if (res.length) { T.cx = T.x; T.cy = T.y; T.ce = res.reduce((s2, h) => s2 + h.elev, 0) / res.length; } }
   function poseRope(r, a, b, th) { r.position.lerpVectors(a, b, 0.5); r.scale.set(th, a.distanceTo(b), th); r.quaternion.setFromUnitVectors(v3().set(0, 1, 0), v3().subVectors(b, a).normalize()); }
-  function animPulley(t, night) { const P = hero && hero.pulley; if (!P) return; const len = 2600 + 1800 * (0.5 - 0.5 * Math.cos(t * 0.06)), sw = Math.sin(t * 0.5) * 60 + Math.sin(t * 1.3) * 14;
-    const lp = P.top.clone().add(v3().set(0, -len, 0)).addScaledVector(P.dir, sw); P.load.position.copy(lp).add(v3().set(0, -110, 0)); P.load.rotation.set(sw * 0.002, t * 0.04, -sw * 0.0015);
-    poseRope(P.rope, P.top, lp, 7); poseRope(P.rope2, P.winch, P.top.clone().add(v3().set(0, 60, 0)), 7); P.wheel.rotation.x = len * 0.02; P.lanternL.material.color.setRGB(0.5 + night * 0.6, 0.36 + night * 0.4, 0.2 + night * 0.15);
+  function animPulley(t, night) {
     if (HWX.mush) { const k = 0.45 + night * 0.75; HWX.mush.color.setRGB(0.32 * k, 0.78 * k, 1.0 * k); HWX.hollowGlow.color.setRGB(0.3 * k, 0.75 * k, 0.95 * k); HWX.mushGlow.material.opacity = 0.12 + night * 0.5; } }
   // props meshes: rebuilt (instances near the camera only) on each LOD pass
   function propMesh(geo, mat, cap) { const im = new THREE.InstancedMesh(geo, mat, cap); im.count = 0; im.frustumCulled = false; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); scene.add(im); return im; }

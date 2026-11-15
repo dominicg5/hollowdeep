@@ -4,7 +4,7 @@
    ===================================================================== */
 const CITY = {
   homeTerm: 'Ledge', functional: false, water: false,
-  base: true,       // approved base only: terrain, homes, the Exchange, trees, day/night, clouds (no events, NPCs, landmarks...)
+  base: true,       // approved base only: terrain, homes, the Grand Tree, trees, day/night, clouds (no events, NPCs, landmarks...)
   maxDepth: 99,     // the Hollow's depth levels (99 is the far goalpost)
   homeCount: 760,   // total homes on the map (one value: raise or lower it here)
   rings: 10,        // players are split into deciles by rank: ring 1 (top 10%) on the summit by the lip ... ring 10 out by the far mountains
@@ -325,10 +325,11 @@ function generateCity() {
   if (CITY.base) { // approved base only: no lifts, cranes, landmarks, rift mouths, outposts, farm sets, pass, bridges or stairs
     W.lifts = []; W.cranes = []; W.landmarks = []; W.rifts = []; W.outposts = []; W.sets = []; W.pass = null; W.lakeFalls = null; W.bridges = []; W.stairs = []; W.civic = [];
     for (const c of W.cracks) { c.mouth = null; c.frontier = false; } }
-  // The Exchange: one grand market hall near the Hollow, where players trade resources for Lumen
+  // The outdoor Exchange is retired (the Grand Tree is the Hollow's commune now). Its old site is still worked out and kept
+  // clear so the seeded map (and the Grand Tree's footing) stays exactly where it was.
   { const a0 = regionAngle(7) + 0.42; let ex = null;
-    for (let k = 0; k < 200 && !ex; k++) { const a = a0 + (k % 2 ? 1 : -1) * k * 0.01, [x, y] = polar(hollowR(a) + 430, a); if (chasmDist(x, y) < 120 || plateauDist(x, y) > -150 || !occFree(OCC.obj, x, y, 110)) continue; ex = { type: 'exchange', x, y, r: 70, name: 'The Exchange', layer: 1, region: regionAt(x, y) }; }
-    W.exchange = ex; if (ex) { W.civic.push(ex); occMark(OCC.obj, ex.x, ex.y, 130); } }
+    for (let k = 0; k < 200 && !ex; k++) { const a = a0 + (k % 2 ? 1 : -1) * k * 0.01, [x, y] = polar(hollowR(a) + 430, a); if (chasmDist(x, y) < 120 || plateauDist(x, y) > -150 || !occFree(OCC.obj, x, y, 110)) continue; ex = { x, y }; }
+    W.exSite = ex; W.exchange = null; if (ex) occMark(OCC.obj, ex.x, ex.y, 130); }
   // Mountains: a ring of peaks round the edge of the world and a few ridges that split the outer districts
   W.mountains = [];
   const addMtn = (x, y, r) => { if (hollowDist(x, y) < 900 || !lowland(x, y) || onCliff(x, y, r) || (W.pass && Math.hypot(x - W.pass.x, y - W.pass.y) < 700) || chasmDist(x, y) < r * 0.5 || isWet(x, y, r)) return; const m = { type: 'mountain', x, y, r, layer: 1, seed: rnd(), spr: 'mtn_' + Math.floor(rnd() * 9) }; W.mountains.push(m); occMark(OCC.obj, x, y, r * 0.8); };
@@ -451,7 +452,7 @@ const HW_H = 8600, HW_R0 = 1250, HW_HOUSE = 440;
 const HW_SEATS = [[0.585, 0.15, 0], [0.555, -1.25, 1650], [0.51, 1.2, 0], [0.465, -0.2, 1850], [0.415, 2.35, 0], [0.365, -1.05, 0], [0.315, 0.7, 0], [0.265, -2.3, 1600], [0.205, -0.15, 0], [0.145, 1.55, 0]];
 function makeHeartwood() { let best = null, bd = -1;
   for (let a = -Math.PI / 2 - 0.9; a <= -Math.PI / 2 + 0.9; a += 0.05) { const [x, y] = polar(hollowR(a) + 40, a); let d = 1e9; for (let r = -200; r <= 1400; r += 100) { const [x2, y2] = polar(hollowR(a) + r, a); d = Math.min(d, chasmDist(x2, y2)); } for (const da of [-0.12, 0.12]) { const [x3, y3] = polar(hollowR(a + da) + 40, a + da); d = Math.min(d, chasmDist(x3, y3) * 1.5); }
-    if (W.exchange) d = Math.min(d, Math.hypot(W.exchange.x - x, W.exchange.y - y) * 0.5); d -= Math.abs(a + Math.PI / 2) * 120; if (d > bd) { bd = d; best = a; } }
+    if (W.exSite) d = Math.min(d, Math.hypot(W.exSite.x - x, W.exSite.y - y) * 0.5); d -= Math.abs(a + Math.PI / 2) * 120; if (d > bd) { bd = d; best = a; } }
   const a = best, [bx, by] = polar(hollowR(a) - HW_R0 * 0.5, a); // the trunk stands against the inner wall, just inside the rim: its back half is sunk into the lip
   return { a, x: bx, y: by, H: HW_H, R0: HW_R0, base: CITY.summitH - 650, in: Math.atan2(-by, -bx), type: 'heartwood' }; }
 // trunk radius at height fraction f (flared base, gently tapering), and the trunk's slightly wandering axis
@@ -475,7 +476,7 @@ function playerDeepest() { const d = (typeof S !== 'undefined' && S && S.stats) 
 function rimBoard() { return W.homes.slice().sort((a, b) => (b.deepest - a.deepest) || ((a.heartwood ? a.slot : 99) - (b.heartwood ? b.slot : 99)) || ((a.ring || 0) - (b.ring || 0)) || (hollowDist(a.x, a.y) - hollowDist(b.x, b.y))); }
 function rimRank(h) { if (!W.rankOf || W.rankStamp !== W.player.deepest) { W.rankOf = new Map(); rimBoard().forEach((o, i) => W.rankOf.set(o, i + 1)); W.rankStamp = W.player.deepest; } return W.rankOf.get(h); }
 function rimRing(h) { return h.ring || 0; }
-function ringLabel(h) { return h.heartwood ? 'Heartwood #' + (h.slot + 1) : 'Ring ' + h.ring; }
+function ringLabel(h) { return h.heartwood ? 'Grand Tree #' + (h.slot + 1) : 'Ring ' + h.ring; }
 // move the player's home to the ring that matches their record (called on load and whenever the record improves)
 function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P || (!force && P.deepest === d)) return false;
   const others = W.homes.filter((h) => !h.isPlayer), total = others.length + 1, rank0 = others.filter((h) => h.deepest > d).length, ring = ringForRank(rank0, total), rr = mulberry32(d * 7919 + 13);
@@ -484,7 +485,7 @@ function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P
   let spot = null;
   for (let k = 0; k < 500 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), u = rr(), [x, y] = polar(ringR(ring, a, u), a), rad = P.size * 0.62;
     if (hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
-    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (W.exchange && Math.hypot(W.exchange.x - x, W.exchange.y - y) < 150)) continue; spot = [x, y]; }
+    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (typeof GRAND !== 'undefined' && GRAND.wet(x, y, rad + 60))) continue; spot = [x, y]; }
   if (!spot) { seatHeartwood(); return false; }
   P.heartwood = false; delete P.elev; delete P.slot; moveHome(P, spot[0], spot[1]); P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.ring = ring;
   seatHeartwood(); W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }
