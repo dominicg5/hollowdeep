@@ -139,6 +139,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.click('#charPick [data-grade=onyx]'); await p.waitForTimeout(300);
   const ox = await p.evaluate(() => { const pk = CharView.rig.built.pick, fl = pk.userData.flames; return { g: pk.userData.grade, n: fl ? fl.geometry.attributes.position.count : 0, t: fl ? fl.material.uniforms.uTime.value : -1 }; });
   ok(ox.g === 'onyx' && ox.n > 60, 'Black Onyx pickaxe has vein flame emitters (' + JSON.stringify(ox) + ')');
+  const gr = await p.evaluate(() => { const ks = [...document.querySelectorAll('#charPick [data-grade]')].map(b => b.dataset.grade); const cnt = ks.map(k => { let n = 0; CharView.makePickaxe(k).traverse(o => { if (o.isMesh || o.isPoints) n++; }); return n; }); return { ks, cnt }; });
+  ok(gr.ks.join() === 'bronze,iron,steel,gold,mithril,rune,lumen,onyx' && gr.cnt.every((n, j) => !j || n > gr.cnt[j - 1]), 'pickaxe chips in grade order, each grade adds geometry (' + JSON.stringify(gr) + ')');
   await p.click('#charPick [data-grade=bronze]'); await p.waitForTimeout(200);
   await p.click('#charSex [data-sex=m]'); await p.waitForTimeout(300); ok((await p.evaluate(() => CharView.rig.sex)) === 'm', 'male toggle');
   await p.click('nav#tabs [data-tab=capital]'); await p.waitForTimeout(300); ok(await p.evaluate(() => document.getElementById('charWrap').classList.contains('hidden') && !CharView.st.visible), 'character stage hidden + paused on other tabs');
