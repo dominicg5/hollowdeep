@@ -3341,7 +3341,7 @@ const GRAND = (() => {
       if (L < 0) h = WL - 18 - Math.min(150, -L * 0.3); else { h = Math.min(h, WL + 6 + L * k); const wt = sm(560, 220, L); h += (Math.max(h, WL + 8 + L * 0.12) - h) * wt; }
       mh *= sm(0, 500, L); }
     return [h, mh]; }
-  function wet(x, y, m) { if (!G) return false; const [d, s] = toL(x, y); m = m || 0; if ((Math.abs(d - DB) < 170 + m && Math.abs(s) < BL + 200 + m)) return true; if (lakeSdf(d, s) < m) return true; if (d < lipD(s) + 10 && d > 300 && Math.abs(s) < 3300) { const st = streamAt(d, s); if (st && st.dd < m) return true; for (let f = 0; f < 3; f++) if (poolSdf(d, s, f) < m) return true; } return false; }
+  function wet(x, y, m) { if (!G) return false; const [d, s] = toL(x, y); m = m || 0; if (d > 1300 && d < 3700 && Math.abs(s) < 2900) { const BP = GX.bplan || (GX.bplan = bridgePlan()); for (let i = 0; i < BP.length; i += 2) if (Math.hypot(BP[i].x - d, BP[i].z - s) < 150 + m) return true; } if (lakeSdf(d, s) < m) return true; if (d < lipD(s) + 10 && d > 300 && Math.abs(s) < 3300) { const st = streamAt(d, s); if (st && st.dd < m) return true; for (let f = 0; f < 3; f++) if (poolSdf(d, s, f) < m) return true; } return false; }
   // after the seeded map is laid out: plan the water, then clear (and re-house) anything standing in it
   function fit() { const T = W.heartwood; if (!T) return; G = null; const o = T.in + Math.PI, ox = Math.cos(o), oy = Math.sin(o);
     const g0 = { T, ox, oy, lx: -oy, ly: ox, rT: Math.hypot(T.x, T.y) }, pre = (x, y) => { const k = G; G = null; const h = typeof M3 !== 'undefined' && M3.ground ? M3.ground(x, y).h : CITY.summitH; G = k; return h; };
@@ -3622,47 +3622,36 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
         P.push(c.x + (nx.x * dx + bx.x * dy) * rr, c.y + (nx.y * dx + bx.y * dy) * rr, c.z + (nx.z * dx + bx.z * dy) * rr); N.push(nx.x * dx + bx.x * dy, nx.y * dx + bx.y * dy, nx.z * dx + bx.z * dy); UV.push(j / seg, acc / 220); } }
     for (let i = 0; i < n; i++) for (let j = 0; j < seg; j++) { const a = i * (seg + 1) + j, b = a + seg + 1; I.push(a, b, a + 1, a + 1, b, b + 1); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I); return g; }
-  function buildBridge(C) { const { scene, meshH, PR, barkMat } = C, grp = new THREE.Group(); scene.add(grp); GX.bridge = grp; const r = prng(23), V = (x, y, z) => new THREE.Vector3(x, y, z), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
-    const tex = barkMat.map.clone(); tex.needsUpdate = true; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; const bark = new THREE.MeshLambertMaterial({ map: tex, color: 0xb8a58e }), bark2 = new THREE.MeshLambertMaterial({ map: tex, color: 0x9c8a74 });
-    // the walking line: level over the shelf with a gentle organic arch, easing into the ground at both ends
-    const NS = 48, base = []; for (let i = 0; i <= NS; i++) { const s2 = -BL + 2 * BL * i / NS, g = Math.max(meshH(...toW(DB - 110, s2)), meshH(...toW(DB, s2)), meshH(...toW(DB + 110, s2))); base.push(Math.max(LIPH + 40, g + 18)); }
-    for (let k = 0; k < 4; k++) for (let i = 1; i < NS; i++) base[i] = Math.max(base[i], (base[i - 1] + base[i + 1]) / 2 - 3);
-    const yAt = (s2) => { const t = Math.max(0, Math.min(NS, (s2 + BL) / (2 * BL) * NS)), i = Math.min(NS - 1, t | 0), f = t - i; return base[i] * (1 - f) + base[i + 1] * f + 70 * Math.sin(Math.PI * (s2 + BL) / (2 * BL)) + 12 * Math.sin(s2 / 310); };
-    const W3 = (d, s2, y) => { const [x, z] = toW(d, s2); return V(x, y, z); };
-    // braided deck: strands wound round each other along the span; each end frays into roots gripping the plateau
-    const E = BL + 120, strands = [];
-    for (let k = 0; k < 9; k++) { const ph = k / 9 * Math.PI * 2, wd = 105 + 25 * r(), ht = 22 + 10 * r(), om = (k % 2 ? 1 : -1) * (2.2 + r() * 1.2) / 1000, rr = 17 + r() * 10, pts = [];
-      for (let i = 0; i <= 70; i++) { const s2 = -E + 2 * E * i / 70, a = ph + s2 * om, endk = sm(BL - 260, E, Math.abs(s2)); let d = DB + Math.cos(a) * wd * (1 + 0.6 * endk), y = yAt(Math.max(-BL, Math.min(BL, s2))) - 14 + Math.sin(a) * ht;
-        if (endk > 0) { const g = meshH(...toW(d, s2)); y = y + (g - 10 - y) * endk * endk; } pts.push(W3(d, s2, y)); }
-      strands.push([pts, rr]); grp.add(new THREE.Mesh(rtube(pts, (u) => rr * (1 - 0.55 * sm(0.42, 0.5, Math.abs(u - 0.5)) ), 7), k % 3 ? bark : bark2)); }
-    // splayed roots at both ends, clawing down into the ground
-    for (const sd of [-1, 1]) for (let k = 0; k < 7; k++) { const fan = (k / 6 - 0.5) * 2.6 + (r() - 0.5) * 0.3, L = 260 + r() * 260, s0 = sd * (BL - 60), d0 = DB + (r() - 0.5) * 80, pts = [], y0 = yAt(s0) - 10;
-      for (let i = 0; i <= 12; i++) { const u = i / 12, dd = d0 + Math.sin(fan) * L * u + Math.sin(u * 5 + k) * 25, ss = s0 + sd * Math.cos(fan) * L * u, g = meshH(...toW(dd, ss)); pts.push(W3(dd, ss, Math.max(g - 8 - 14 * u, y0 + (g - 12 - y0) * Math.min(1, u * 1.8)) + Math.sin(u * Math.PI) * 26)); }
-      const rr = 15 + r() * 9; grp.add(new THREE.Mesh(rtube(pts, (u) => rr * (1 - 0.85 * u) + 2, 6), bark2)); }
-    // twisting side rails: two thinner roots arching above each edge, tied down to the deck by little climbing roots
-    const railPts = []; for (const sd of [-1, 1]) for (let k = 0; k < 2; k++) { const pts = []; for (let i = 0; i <= 60; i++) { const s2 = -BL + 2 * BL * i / 60, a = s2 / 140 + k * Math.PI; pts.push(W3(DB + sd * (128 + Math.cos(a) * 9), s2, yAt(s2) + 52 * sm(BL, BL - 380, Math.abs(s2)) + 30 * Math.abs(Math.sin(s2 / 260)) + Math.sin(a) * 9)); }
-      if (!k) railPts.push([sd, pts]); grp.add(new THREE.Mesh(rtube(pts, (u) => 7 + 3 * Math.sin(u * 40), 5), bark)); }
-    for (const [sd, pts] of railPts) for (let i = 4; i < pts.length - 4; i += 3) { const p = pts[i], [dd, ss] = toL(p.x, p.z), b0 = W3(DB + sd * 105, ss + 30, yAt(ss) - 4), m0 = W3(DB + sd * 122, ss + 14, (p.y + yAt(ss)) / 2); grp.add(new THREE.Mesh(rtube([b0, m0, p], (u) => 5 - 2 * u, 4), bark2)); }
-    // moss on top, hanging moss and vines off the sides, glowing mushrooms in the crooks
-    const along = (n, f) => { for (let k = 0; k < n; k++) f(k, -BL + 140 + (2 * BL - 280) * r()); };
-    { const n = 150, im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ color: 0x324a1c }), n); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
-      along(n, (k, s2) => { const sd = r() < 0.5 ? -1 : 1, dd = DB + sd * (40 + r() * 90), sc = 8 + r() * 14; mt.compose(W3(dd, s2, yAt(s2) + 2), q.identity(), V(sc * 1.3, sc * 0.5, sc)); im.setMatrixAt(k, mt); const v = 0.8 + r() * 0.4; im.instanceColor.setXYZ(k, v * 0.95, v, v * 0.85); }); grp.add(im); }
-    { const n = 190, im = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 0.25, 1, 4).translate(0, -0.5, 0), new THREE.MeshLambertMaterial({ color: 0x55702e }), n); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(n * 3), 3);
-      along(n, (k, s2) => { const sd = r() < 0.5 ? -1 : 1, L = 30 + r() * r() * 150; e.set((r() - 0.5) * 0.15, 0, (r() - 0.5) * 0.15); q.setFromEuler(e); mt.compose(W3(DB + sd * (118 + r() * 20), s2, yAt(s2) - 18), q, V(3 + r() * 4, L, 3 + r() * 4)); im.setMatrixAt(k, mt); const v = 0.7 + r() * 0.5; im.instanceColor.setXYZ(k, v, v, v * (r() < 0.3 ? 0.7 : 1)); }); grp.add(im); }
+  // the bridge root's course in plan (local d,s): out of the trunk on one side, along the plateau, over the pools in a long arc, down into the far side
+  const BCTL = [[1500, -1450], [2450, -2350], [3230, -2150], [3440, -1150], [3480, 0], [3420, 1150], [3220, 2150], [2700, 2750]];
+  function bridgePlan(c0) { const c = (c0 ? [c0] : []).concat(BCTL).map(([d, s2]) => new THREE.Vector3(d, 0, s2)); return new THREE.CatmullRomCurve3(c, false, 'centripetal').getPoints(c0 ? 110 : 90); }
+  function bridgeRoot(C) { if (!G) return null; if (GX.bpath) return GX.bpath; const D = doorSpot(C), { meshH } = C, a0 = 0.8, P = bridgePlan([D.rD * 0.82 * Math.cos(a0), -D.rD * 0.82 * Math.sin(a0)]), n = P.length - 1, pts = [], rs = [], deck = [];
+    P.forEach((p, i) => { const u = i / n, [x, z] = toW(p.x, p.z), g = meshH(x, z), rr = (135 - 55 * u) * (1 - 0.75 * sm(0.9, 1, u)) * (0.75 + 0.25 * sm(0, 0.06, u) + 0.4 * (1 - sm(0, 0.05, u)));
+      const b = sm(0.3, 0.42, u) * sm(0.93, 0.83, u), yD = LIPH + 50 + 55 * Math.cos(Math.PI * p.z / 4800); let y = g + rr * 0.15 + (1 - sm(0, 0.12, u)) * 260;
+      y = y + (Math.max(yD, g + rr * 0.6) - y) * b; if (u > 0.93) y = g - rr * 0.6 * sm(0.93, 1, u); pts.push(new THREE.Vector3(x, y, z)); rs.push(rr); deck.push(b); });
+    for (let k = 0; k < 3; k++) for (let i = 1; i < n; i++) if (deck[i] > 0.02) pts[i].y = Math.max(pts[i].y, (pts[i - 1].y + pts[i + 1].y) / 2 - 2);
+    const out = [{ pts, rs, k: 0 }];
+    // two thinner roots twining round the span, and a few rootlets splaying into the ground at the far end
+    for (const ph of [0, Math.PI]) { const p2 = [], r2 = []; for (let i = Math.round(n * 0.26); i <= Math.round(n * 0.97); i++) { const u = i / n, p = pts[i], q = pts[Math.min(n, i + 1)], t = new THREE.Vector3().subVectors(q, p).setY(0).normalize(), sd = new THREE.Vector3(-t.z, 0, t.x), a = ph + u * 26, rr = rs[i];
+        p2.push(new THREE.Vector3().copy(p).addScaledVector(sd, Math.cos(a) * rr * 0.95).add(new THREE.Vector3(0, Math.sin(a) * rr * 0.7 - rr * 0.1, 0))); r2.push(rr * 0.28); } out.push({ pts: p2, rs: r2, k: 1 + ph }); }
+    const e = pts[Math.round(n * 0.9)]; for (let k = 0; k < 4; k++) { const [d0, s0] = toL(e.x, e.z), fa = 0.4 + k * 0.55, p2 = [], r2 = []; for (let i = 0; i <= 10; i++) { const u = i / 10, dd = d0 - Math.cos(fa) * 420 * u, ss = s0 + Math.sin(fa) * 420 * u * (k % 2 ? 1 : 0.6), [x, z] = toW(dd, ss), g = meshH(x, z); p2.push(new THREE.Vector3(x, e.y + (g - 10 - e.y) * Math.min(1, u * 1.6) + Math.sin(u * Math.PI) * 20, z)); r2.push(40 * (1 - 0.85 * u) + 4); } out.push({ pts: p2, rs: r2, k: 5 + k }); }
+    GX.bpath = { pts, rs, deck, out }; return GX.bpath; }
+  function buildBridge(C) { const { scene, PR } = C, B = GX.bpath; if (!B) return; const grp = new THREE.Group(); scene.add(grp); GX.bridge = grp; const r = prng(23), V = (x, y, z) => new THREE.Vector3(x, y, z), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+    const n = B.pts.length - 1, onDeck = () => { for (;;) { const i = 2 + ((r() * (n - 4)) | 0); if (B.deck[i] > 0.5) { const p = B.pts[i], qn = B.pts[i + 1], t = V(qn.x - p.x, 0, qn.z - p.z).normalize(); return { p, sd: V(-t.z, 0, t.x), rr: B.rs[i] }; } } };
+    // extra moss on top, hanging moss and vines off the sides, glowing mushrooms in the crooks
+    { const N = 110, im = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshLambertMaterial({ color: 0x324a1c }), N); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(N * 3), 3);
+      for (let k = 0; k < N; k++) { const { p, sd, rr } = onDeck(), o = (r() - 0.5) * 1.4, sc = 8 + r() * 14; mt.compose(V(p.x + sd.x * rr * o, p.y + rr * Math.cos(o) * 0.92, p.z + sd.z * rr * o), q.identity(), V(sc * 1.3, sc * 0.5, sc)); im.setMatrixAt(k, mt); const v = 0.8 + r() * 0.4; im.instanceColor.setXYZ(k, v * 0.95, v, v * 0.85); } grp.add(im); }
+    { const N = 180, im = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 0.25, 1, 4).translate(0, -0.5, 0), new THREE.MeshLambertMaterial({ color: 0x55702e }), N); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(N * 3), 3);
+      for (let k = 0; k < N; k++) { const { p, sd, rr } = onDeck(), s1 = r() < 0.5 ? -1 : 1, L = 30 + r() * r() * 170; e.set((r() - 0.5) * 0.15, 0, (r() - 0.5) * 0.15); q.setFromEuler(e); mt.compose(V(p.x + sd.x * rr * 0.92 * s1, p.y - rr * 0.1, p.z + sd.z * rr * 0.92 * s1), q, V(3 + r() * 4, L, 3 + r() * 4)); im.setMatrixAt(k, mt); const v = 0.7 + r() * 0.5; im.instanceColor.setXYZ(k, v, v, v * (r() < 0.3 ? 0.7 : 1)); } grp.add(im); }
     { const capG = new THREE.SphereGeometry(1, 10, 4, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.6, 1), stG = new THREE.CylinderGeometry(0.18, 0.26, 1, 5).translate(0, -0.5, 0), stM = new THREE.MeshLambertMaterial({ color: 0xe0e6e0 }), gp = [];
-      for (const mat of [GX.mushB, GX.mushV]) { const n = 26, cap = new THREE.InstancedMesh(capG, mat, n), st = new THREE.InstancedMesh(stG, stM, n);
-        along(n, (k, s2) => { const sd = r() < 0.5 ? -1 : 1, h = 8 + r() * 12, c = 6 + r() * 9, p = W3(DB + sd * (112 + r() * 18), s2, yAt(s2) + 2 + h); mt.compose(p, q.identity(), V(c, c, c)); cap.setMatrixAt(k, mt); mt.compose(p, q.identity(), V(c, h, c)); st.setMatrixAt(k, mt); if (k % 3 === 0) gp.push(p.x, p.y + 6, p.z); }); grp.add(cap, st); }
-      const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); GX.bridgeGlow = new THREE.Points(gg, GX.doorMushGlow.material); grp.add(GX.bridgeGlow); }
-    // a few small lanterns hung from the rail roots
-    const lamps = []; { const L = []; for (const s2 of [-1700, -600, 600, 1700]) for (const sd of [-1, 1]) L.push([s2 + sd * 120, sd]); const cord = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 4), new THREE.MeshLambertMaterial({ color: 0x3a3028 }), L.length), cage = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.7, 1, 1, 6), new THREE.MeshLambertMaterial({ color: 0x2a2420 }), L.length), glass = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6), GX.lampM, L.length);
-      L.forEach(([s2, sd], i) => { const top = yAt(s2) + 52 * sm(BL, BL - 380, Math.abs(s2)) + 30 * Math.abs(Math.sin(s2 / 260)), d = DB + sd * 128; mt.compose(W3(d, s2, top - 18), q.identity(), V(1.5, 36, 1.5)); cord.setMatrixAt(i, mt); mt.compose(W3(d, s2, top - 38), q.identity(), V(11, 6, 11)); cage.setMatrixAt(i, mt); mt.compose(W3(d, s2, top - 52), q.identity(), V(8, 22, 8)); glass.setMatrixAt(i, mt); lamps.push(W3(d, s2, top - 52)); }); grp.add(cord, cage, glass); }
-    grp.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-    GX.lampAt = (GX.lampAt || []).concat(lamps); for (const p of lamps) PR.glow.push([p.x, p.y, p.z, null]); }
+      for (const mat of [GX.mushB, GX.mushV]) { const N = 14, cap = new THREE.InstancedMesh(capG, mat, N), st = new THREE.InstancedMesh(stG, stM, N);
+        for (let k = 0; k < N; k++) { const { p, sd, rr } = onDeck(), s1 = r() < 0.5 ? -1 : 1, h = 4 + r() * 6, c = 3 + r() * 3.5, pp = V(p.x + sd.x * rr * 0.75 * s1, p.y + rr * 0.6 + h, p.z + sd.z * rr * 0.75 * s1); mt.compose(pp, q.identity(), V(c, c, c)); cap.setMatrixAt(k, mt); mt.compose(pp, q.identity(), V(c, h, c)); st.setMatrixAt(k, mt); if (k % 3 === 0) gp.push(pp.x, pp.y + 6, pp.z); } grp.add(cap, st); }
+      const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); GX.bridgeGlow = new THREE.Points(gg, GX.doorMushGlow.material); grp.add(GX.bridgeGlow); } }
   function doorCard() { const btn = (h) => `<div class="wrapgap" style="margin-top:10px">${h}</div>`;
     openModal(`<h2>🌳 The Lumen Tree</h2><p>The great door stands a hand's width open, and Lumen light spills out over the roots. Inside is the commune of the Hollow, where every delver's road meets.</p><p class="dim">Coming soon.</p>${btn('<button class="btn deep" data-act="close">Enter the Lumen Tree</button><button class="btn ghost" data-act="close">Not now</button>')}`, 'city'); }
   function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); if (G) { buildWater(C); buildIsland(C); buildBridge(C); } } else if (GX.smokeAt) { for (const p of GX.smokeAt) C.PR.smoke.push([p.x, p.y, p.z, 0.3]); for (const p of GX.lampAt) C.PR.glow.push([p.x, p.y, p.z, null]); } }
   function anim(t, night, ps) { animDoor(t, night); animWater(t, night, { ps }); animIsland(t, night, ps); }
-  return { build, anim, wet, dodge, doorSpot, carve, fit, doorCard, toW, toL, lipD, LIP, LIPH, WL, FALLS, lakeSdf, dFar, halfW, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
+  return { build, anim, wet, dodge, doorSpot, bridgeRoot, carve, fit, doorCard, toW, toL, lipD, LIP, LIPH, WL, FALLS, lakeSdf, dFar, halfW, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
 })();
 
 /* =====================================================================
@@ -4009,6 +3998,8 @@ void main() {
       for (let k = 0; k < 11; k++) { if (k === 5) continue; /* the Lumen Tree's great door stands where this root ran */ const a = OUT + (k / 10 - 0.5) * 3.9 + (hash1(k * 3.1) - 0.5) * 0.2, side = Math.abs(Math.cos(a - OUT)), L = H * (0.13 + 0.15 * side) * (0.8 + 0.4 * hash1(k + 9)), r0 = HW_R0 * (0.3 + 0.12 * hash1(k + 2));
         const R1 = lipRoot(a, 0.1 + hash1(k + 5) * 0.16, L, r0, k);
         for (const s of [-1, 1]) if (hash1(k * 5 + s) < 0.75) { const i = 8 + ((hash1(k * 2 + s) * 8) | 0); if (R1.pts[i]) lipRoot(a + s * (0.5 + hash1(k + s) * 0.4), 0, L * 0.45, R1.rs[i] * 0.55, k + s * 20, { p: v3().copy(R1.pts[i]) }); } }
+      // the bridge root: one of the lip roots, grown long, arching over the pools above the falls
+      { const BR = GRAND.bridgeRoot(DC); if (BR) for (const b of BR.out) { gaTube(A, b.pts, b.k ? 8 : 14, (i, aa) => b.rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))) * (b.k ? 1 : 1 - 0.22 * Math.max(0, Math.cos(aa - Math.PI / 2))), (i, aa, p, d) => moss(p, d, 60 + b.k), [3, 520]); if (!b.k) { rootPts.push(b.pts); rootR.push(b.rs); } } }
       // WALL ROOTS: from the trunk's Hollow side straight down the inner wall, clawing into the rock, holding the tree up
       const wallRoot = (phiOff, fTop, drop, r0, k) => { const pts = [], rs = [], aT = T.in + phiOff * 1.6, nS = 6;
         for (let i = 0; i <= nS; i++) { const f = fTop * (1 - i / nS) + 0.0, aa = aT + (fTop - f) * 1.2 * (k % 2 ? 1 : -1); pts.push(tr(f, aa, trunkRad(f, aa) * 0.9)); rs.push(r0 * (0.4 + 0.6 * i / nS)); }
