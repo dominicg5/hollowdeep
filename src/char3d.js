@@ -45,7 +45,7 @@ const CharView = (() => {
 
   /* ---------- palettes (picked from the turnaround sheets) ---------- */
   const PAL = {
-    m: { skin: 0xf0b892, blush: 'rgba(240,120,110,.5)', hair: 0x2b211c, iris: '#6a4426', jacket: 0x8a4f33, jacketDk: 0x6c3a25, shirt: 0xcdb48e, pants: 0x8b7556, patch: 0x5d6168, glove: 0x4a3022, belt: 0x4b3020, boot: 0x7a5236, bootDk: 0x4a3020, pack: 0x7b5638, packDk: 0x5c3e28, helmet: 0x9b7a4e, brass: 0xb08a4a, rope: 0xa8743f, sock: 0x8b8b84 },
+    m: { skin: 0xf0b892, blush: 'rgba(240,120,110,.5)', hair: 0x2b211c, iris: '#6a4426', jacket: 0x8a4f33, jacketDk: 0x6c3a25, shirt: 0xcdb48e, pants: 0x7a6748, patch: 0x5d6168, glove: 0x4a3022, belt: 0x4b3020, boot: 0x7a5236, bootDk: 0x4a3020, pack: 0x7b5638, packDk: 0x5c3e28, helmet: 0x9b7a4e, brass: 0xb08a4a, rope: 0xa8743f, sock: 0x8b8b84 },
     f: { skin: 0xf2bf9d, blush: 'rgba(245,125,120,.55)', hair: 0x5a3a26, iris: '#6b4122', jacket: 0x8d8259, jacketDk: 0x6b6342, shirt: 0x4e4a38, pants: 0x5e5038, patch: 0x5c5f55, glove: 0x4a3324, belt: 0x5a3a24, boot: 0x7a5034, bootDk: 0x4a2e1c, pack: 0x7a5634, packDk: 0x5a3e26, helmet: 0x9a7c50, brass: 0xb38f4f, rope: 0xa8743f, sock: 0x8c8c86 },
   };
   /* ---------- pickaxe: a swappable module, one palette per grade (head / handle / binding, optional runes + glow) ---------- */
@@ -198,9 +198,9 @@ const CharView = (() => {
         shell(skins, [[yh - 0.1, 0.066, 0.066], [yh - 0.17, 0.061, 0.062], [yh - 0.25, 0.054, 0.055], [yk + 0.02, 0.05, 0.051], [yk - 0.03, 0.048, 0.05], [yk - 0.1, 0.046, 0.049], [yk - 0.17, 0.041, 0.043], [ya + 0.1, 0.035, 0.036]], [[th], [sn, yk, 0.05]], M.skin, { cx, seg: 16 });
         const st = -0.045, sb = -LS + 0.12; part(sn, cyl(0.046, 0.051, st - sb, 16), M.sock, [0, (st + sb) / 2, 0]); part(sn, new THREE.TorusGeometry(0.051, 0.013, 6, 18), M.sock, [0, st, 0], [Math.PI / 2, 0, 0]);
         part(sn, cyl(0.057, 0.061, 0.17, 18), M.bootLace, [0, -LS + 0.085, 0]); part(sn, new THREE.TorusGeometry(0.06, 0.011, 6, 20), M.boot, [0, -LS + 0.17, 0], [Math.PI / 2, 0, 0]); }
-      else { shell(skins, [[yh + 0.07, 0.068, 0.068], [yh + 0.02, 0.079, 0.078], [yh - 0.08, 0.078, 0.076], [yh - 0.2, 0.072, 0.07], [yk + 0.06, 0.066, 0.066], [yk, 0.065, 0.068], [yk - 0.08, 0.062, 0.063], [yk - 0.18, 0.062, 0.061], [ya + 0.15, 0.066, 0.066], [ya + 0.1, 0.068, 0.068]], [[B.hips], [th, yh, 0.06], [sn, yk, 0.06]], M.pants, { cx, seg: 18 });
-        part(th, rbox(0.03, 0.095, 0.08, 0.012), M.pants, [s * 0.075, -0.2, 0.0]); part(th, rbox(0.034, 0.03, 0.085, 0.01), M.jacketDk ? M.pants : M.pants, [s * 0.078, -0.155, 0.0]); part(th, rbox(0.012, 0.012, 0.006, 0.002), M.brass, [s * 0.094, -0.155, 0.0], null, null, { ink: false });
-        part(sn, rbox(0.078, 0.08, 0.012, 0.006), M.patch, [0, -0.015, 0.064], [-0.08, 0, 0]);
+      else { shell(skins, [[yh + 0.07, 0.07, 0.07], [yh + 0.02, 0.083, 0.082], [yh - 0.08, 0.083, 0.081], [yh - 0.2, 0.078, 0.076], [yk + 0.06, 0.072, 0.071], [yk, 0.071, 0.074], [yk - 0.08, 0.068, 0.069], [yk - 0.18, 0.067, 0.066], [ya + 0.15, 0.068, 0.068], [ya + 0.1, 0.069, 0.069]], [[B.hips], [th, yh, 0.06], [sn, yk, 0.06]], M.pants, { cx, seg: 18 });
+        part(th, rbox(0.03, 0.095, 0.08, 0.012), M.pants, [s * 0.082, -0.2, 0.0]); part(th, rbox(0.034, 0.03, 0.085, 0.01), M.pants, [s * 0.085, -0.155, 0.0]); part(th, rbox(0.006, 0.012, 0.012, 0.002), M.brass, [s * 0.103, -0.155, 0.0], null, null, { ink: false });
+        part(sn, rbox(0.082, 0.085, 0.012, 0.006), M.patch, [0, -0.015, 0.071], [-0.08, 0, 0]);
         part(sn, cyl(0.061, 0.065, 0.15, 18), M.bootLace, [0, -LS + 0.075, 0]); part(sn, new THREE.TorusGeometry(0.066, 0.012, 6, 20), M.boot, [0, -LS + 0.15, 0], [Math.PI / 2, 0, 0]); }
       part(ft, rbox(0.1, 0.085, 0.2, 0.038), M.boot, [0, -0.03, 0.045]); part(ft, rbox(0.106, 0.024, 0.212, 0.01), M.bootDk, [0, -0.07, 0.046]); part(ft, rbox(0.04, 0.03, 0.09, 0.012), M.bootLace, [0, 0.01, 0.07], [0.5, 0, 0], null, { ink: false }); }
     // ---- arms (skinned: shoulder > upper arm > forearm > hand) ----
@@ -256,7 +256,7 @@ const CharView = (() => {
     // fixed ankle targets (character space) and the pickaxe mount (its origin is the grip)
     c.ankle = { R: V(-0.095, 0.08, 0.0), L: V(0.1, 0.08, -0.02) };
     const mt = c.built.mount; { // per the sheets: he carries it short over the right shoulder; she rests it across the back of her neck
-      const F = c.sex === 'f', d = (F ? V(0.625, 0.404, -0.673) : V(0.02, 0.55, -0.83)).normalize(), bl = F ? V(0, 1, 0).addScaledVector(d, -d.y).normalize() : V(-1, 0, 0).addScaledVector(d, d.x).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); mt.quaternion.setFromRotationMatrix(_m); mt.position.copy(F ? V(-0.2, 0.09, 0.1) : V(-0.19, 0.09, 0.11)); c.gripAt = F ? 0.0 : 0.12; }
+      const F = c.sex === 'f', d = (F ? V(0.625, 0.404, -0.673) : V(0.3, 0.55, -0.78)).normalize(), bl = F ? V(0, 1, 0).addScaledVector(d, -d.y).normalize() : V(-1, 0.8, 0).addScaledVector(d, -V(-1, 0.8, 0).dot(d)).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); mt.quaternion.setFromRotationMatrix(_m); mt.position.copy(F ? V(-0.2, 0.09, 0.1) : V(-0.21, 0.075, 0.12)); c.gripAt = F ? 0.0 : 0.08; }
     c.pickRest = { p: mt.position.clone(), q: mt.quaternion.clone() }; c.restQ = {}; for (const k in B) if (B[k] && B[k].isObject3D) c.restQ[k] = B[k].quaternion.clone(); }
   const PALM = V(0, -0.045, -0.031);
   function solveLimbs(c, f) { const { B } = c, root = c.root; root.updateMatrixWorld(true);
