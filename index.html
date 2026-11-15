@@ -3382,7 +3382,7 @@ const GRAND = (() => {
     out[out.length - 1] = [0, H]; return out; }
   function doorSpot(C) { if (GX.spot) return GX.spot; const { T, trunkRad, ax, meshH, OUT } = C, n = { x: Math.cos(OUT), z: Math.sin(OUT) };
     let gy = 0, rD = 0; { const c0 = ax(0.08); for (let k = 0; k < 3; k++) { let rr = 0; const f0 = Math.max(0, (gy - T.base) / T.H);
-        for (let f = f0; f <= f0 + 0.13; f += 0.01) for (let a = -0.34; a <= 0.341; a += 0.04) rr = Math.max(rr, trunkRad(f, OUT + a) * Math.cos(a));
+        for (let f = f0; f <= f0 + 1900 / T.H; f += 0.006) for (let a = -0.5; a <= 0.501; a += 0.04) rr = Math.max(rr, trunkRad(f, OUT + a) * Math.cos(a));
         rD = rr; gy = meshH(c0.x + n.x * (rD + 120), c0.z + n.z * (rD + 120)); } }
     const c = ax((gy - T.base) / T.H); return (GX.spot = { gy, rD, cx: c.x, cz: c.z, OUT, top: gy + 1020 * 1.35 * 1.3, span: (330 * 1.35 + 260 * 1.35 + 160) / rD }); }
   // bend root points out of the doorway so they curl round the portal instead of cutting through it
@@ -3393,21 +3393,21 @@ const GRAND = (() => {
     const n = new THREE.Vector3(Math.cos(OUT), 0, Math.sin(OUT));
     // ground just in front of the trunk on the plateau side, and the trunk's outer surface over the door's span
     const { gy, rD } = doorSpot(C);
-    const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD - 15), gy, c.z + n.z * (rD - 15));
+    const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD + 40), gy, c.z + n.z * (rD + 40));
     const hw = 330, ys = 620, H = 1020, grp = new THREE.Group(); grp.position.copy(P0); grp.rotation.y = Math.atan2(n.x, n.z); grp.scale.setScalar(1.35); scene.add(grp); GX.door = { x: P0.x, y: P0.z, up: gy, hgt: H * 1.35, grp };
     const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
-    const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.slice().reverse().map(([x, y]) => [-x, y]), A.slice(1), [[hw, 0]]); // left foot -> apex -> right foot
+    const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.map(([x, y]) => [-x, y]), A.slice().reverse().slice(1), [[hw, 0]]); // left foot -> left springing -> apex -> right springing -> right foot (the old order zig-zagged through the opening)
     // the glow inside: a bright plane set back in the doorway (you can't see in, only the light)
     { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0xfff7ec, toneMapped: false, side: THREE.DoubleSide, fog: false });
-      const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), gm); m.position.z = -150; grp.add(m); GX.doorGlow = gm;
+      const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), gm); m.position.z = -125; grp.add(m); GX.doorGlow = gm;
       // the reveal: the doorway's inner walls are light too, so at any angle you only ever see white
-      const P = [], I = []; outline.forEach(([x, y]) => { P.push(x * 1.01, y, -18, x * 1.01, y, -152); }); for (let i = 0; i < outline.length - 1; i++) { const a = i * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+      const P = [], I = []; outline.forEach(([x, y]) => { P.push(x * 1.01, y, -18, x * 1.01, y, -127); }); for (let i = 0; i < outline.length - 1; i++) { const a = i * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
       const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); rg.setIndex(I); grp.add(new THREE.Mesh(rg, gm)); }
     // the two leaves: planked, carved, strapped in iron; each hinged at its outer edge and swung a little inward
     const gap = 110; for (const s of [-1, 1]) { const sh = new THREE.Shape(), pts = outline.filter(([x]) => x * s >= -1).map(([x, y]) => [x, y]); const xi = s * gap / 2; sh.moveTo(xi, 0); sh.lineTo(s * hw, 0);
       for (const [x, y] of (s > 0 ? pts.slice().reverse() : pts)) if (Math.abs(x) >= gap / 2) sh.lineTo(x, y); sh.lineTo(xi, A.find(([x]) => x <= gap / 2)[1]); sh.lineTo(xi, 0);
       const g = new THREE.ExtrudeGeometry(sh, { depth: 40, bevelEnabled: true, bevelThickness: 6, bevelSize: 6, bevelSegments: 1, curveSegments: 4 }); { const P = g.attributes.position, uv = g.attributes.uv; for (let i = 0; i < P.count; i++) uv.setXY(i, (P.getX(i) + hw) / (2 * hw), P.getY(i) / H); }
-      g.translate(-s * hw, 0, -60); const leaf = new THREE.Mesh(g, woodM); const piv = new THREE.Group(); piv.position.set(s * hw, 0, 0); piv.rotation.y = s * 0.3; piv.add(leaf); grp.add(piv); leaf.castShadow = true;
+      g.translate(-s * hw, 0, -60); const leaf = new THREE.Mesh(g, woodM); const piv = new THREE.Group(); piv.position.set(s * hw, 0, 0); piv.rotation.y = s * 0.18; piv.add(leaf); grp.add(piv); leaf.castShadow = true;
       // raised iron straps, hinge plates and a ring pull
       for (const y of [0.17, 0.5, 0.84]) { const yy = H * y, half = (s > 0 ? hw : hw) - gap / 2, strap = new THREE.Mesh(new THREE.BoxGeometry(half + 30, 26, 10), ironM); strap.position.set(-s * (half / 2 + 10), yy, -10); if (yy < ys + 200 || y < 0.8) piv.add(strap);
         const hinge = new THREE.Mesh(new THREE.BoxGeometry(70, 50, 18), ironM); hinge.position.set(-s * 10, yy, -12); piv.add(hinge); }
@@ -3423,15 +3423,20 @@ const GRAND = (() => {
       // bark lips are laid OUTSIDE the casing's outer edge (offset along the arch's outward normal), so nothing covers the leaves or the frame
       // one clean bark rim lofted from the casing's outer edge back into the trunk (replaces the three intersecting lips)
       const OL = [[-hw, -160]].concat(outline, [[hw, -160]]), NO = OL.length, nrm = OL.map(([x, y], i) => { if (y < ys) return [Math.sign(x) || 1, 0]; const a = OL[Math.max(0, i - 1)], b = OL[Math.min(NO - 1, i + 1)]; let nx = b[1] - a[1], ny = -(b[0] - a[0]); const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l; if (nx * x + ny * (y - ys * 0.5) < 0) { nx = -nx; ny = -ny; } return [nx, ny]; });
-      const zt = (x) => { const X = Math.min(rD * 0.97, Math.abs(x) * 1.35); return (Math.sqrt(rD * rD - X * X) - (rD - 15)) / 1.35; };
-      const RING = [[20, () => -50], [52, () => -26], [105, () => -44], [190, (x) => Math.min(-70, zt(x) - 60)], [260, (x) => Math.min(-110, zt(x) - 120)]], P = [], UV = [], I = []; let acc = 0;
+      const zt = (x) => { const X = Math.min(rD * 0.97, Math.abs(x) * 1.35); return (Math.sqrt(rD * rD - X * X) - (rD + 40)) / 1.35; };
+      const RING = [[38, () => -40], [62, () => -32], [110, () => -46], [190, (x) => Math.min(-70, zt(x) - 60)], [260, (x) => Math.min(-110, zt(x) - 120)]], P = [], UV = [], I = []; let acc = 0;
       OL.forEach(([x, y], i) => { if (i) acc += Math.hypot(x - OL[i - 1][0], y - OL[i - 1][1]); const u = i / (NO - 1), w = 1 + 0.14 * Math.sin(u * 29) + 0.08 * Math.sin(u * 71), foot = 1 + 0.6 * (sm(0.12, 0, u) + sm(0.88, 1, u));
-        RING.forEach(([o, z], k) => { const oo = k ? o * w * foot : o, px = x + nrm[i][0] * oo, py = y + nrm[i][1] * oo; P.push(px, py, z(px) + (k === 1 ? 6 * Math.sin(u * 37) : 0)); UV.push(acc / 260, k / 3); }); });
+        RING.forEach(([o, z], k) => { const oo = k > 1 ? o * w * foot : o, px = x + nrm[i][0] * oo, py = y + nrm[i][1] * oo; P.push(px, py, z(px) - (k === 1 ? 4 + 4 * Math.sin(u * 37) : 0)); UV.push(acc / 260, k / 3); }); });
       const NR = RING.length; for (let i = 0; i < NO - 1; i++) for (let k = 0; k < NR - 1; k++) { const a = i * NR + k, b = a + NR; I.push(a, b, a + 1, a + 1, b, b + 1); }
       const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); bg.setIndex(I); bg.computeVertexNormals();
-      { grp.updateMatrixWorld(true); const Pp = bg.attributes.position, Nn = bg.attributes.normal, Uu = bg.attributes.uv, cols = [], wv = v3(), wn = v3(), nm = new THREE.Matrix3().getNormalMatrix(grp.matrixWorld); let prev = null, acc2 = 0;
+      { const D0 = doorSpot(C); grp.updateMatrixWorld(true); const Pp = bg.attributes.position, Nn = bg.attributes.normal, Uu = bg.attributes.uv, cols = [], wv = v3(), wn = v3(), nm = new THREE.Matrix3().getNormalMatrix(grp.matrixWorld); let prev = null, acc2 = 0;
+        // hard clip: no rim vertex may come inside the trim's outer edge (trim = casing tube along the outline scaled 1.03, radius 13)
+        const TR = outline.map(([x, y]) => [x * 1.03, y * (y > 5 ? 1.0165 : 1)]), LIM = 13 + 22, inside = (x, y) => { let c = false; for (let a = 0, b = TR.length - 1; a < TR.length; b = a++) { const [xa, ya] = TR[a], [xb, yb] = TR[b]; if ((ya > y) !== (yb > y) && x < (xb - xa) * (y - ya) / (yb - ya) + xa) c = !c; } return c || y < 0 && Math.abs(x) < hw * 1.03; };
+        for (let i = 0; i < Pp.count; i++) { let x = Pp.getX(i), y = Pp.getY(i); for (let it = 0; it < 3; it++) { let bd = 1e9, bx = 0, by = 0; for (let a = 0; a < TR.length - 1; a++) { const [xa, ya] = TR[a], [xb, yb] = TR[a + 1], vx = xb - xa, vy = yb - ya, t = Math.max(0, Math.min(1, ((x - xa) * vx + (y - ya) * vy) / (vx * vx + vy * vy || 1))), qx = xa + vx * t, qy = ya + vy * t, dd = Math.hypot(x - qx, y - qy); if (dd < bd) { bd = dd; bx = qx; by = qy; } }
+            const inn = inside(x, y); if (!inn && bd >= LIM) break; let nx = x - bx, ny = y - by; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l; if (inn) { nx = -nx; ny = -ny; } if (!isFinite(nx) || (nx === 0 && ny === 0)) { nx = Math.sign(x) || 1; ny = 0; } x = bx + nx * LIM; y = by + ny * LIM; } Pp.setXY(i, x, y); }
+        Pp.needsUpdate = true; bg.computeVertexNormals();
         for (let i = 0; i < Pp.count; i++) { wv.set(Pp.getX(i), Pp.getY(i), Pp.getZ(i)).applyMatrix4(grp.matrixWorld); wn.set(Nn.getX(i), Nn.getY(i), Nn.getZ(i)).applyMatrix3(nm).normalize(); const c = C.moss ? C.moss(wv, wn, 0) : [1, 1, 1]; cols.push(c[0], c[1], c[2]);
-          const ring = i % NR, row = (i / NR) | 0; Uu.setXY(i, (UV[i * 2] * 260 * 1.35) / 1170, (RING[ring][0] * 1.35) / 900 + row * 0); }
+          const ring = i % NR, row = (i / NR) | 0; const ang = Math.atan2(wv.z - D0.cz, wv.x - D0.cx) - D0.OUT; Uu.setXY(i, Math.atan2(Math.sin(ang), Math.cos(ang)) / (Math.PI * 2) * 7, (wv.y - (C.T.base - 0.07 * C.T.H)) / 900); void ring; void row; }
         bg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); Uu.needsUpdate = true; }
       const rim = new THREE.Mesh(bg, C.trunkMat || barkMat); rim.receiveShadow = true; grp.add(rim); }
     // lanterns on iron brackets either side of the frame
