@@ -350,7 +350,7 @@ function homeYard(h, w) {
     out.push({ spr: 'yard_' + k, x: h.x + Math.cos(a) * w * 0.62, y: h.y + Math.sin(a) * w * 0.32 + w * 0.06, w: YARD_W[k] * (0.9 + r * 0.3), flip: r > 0.5 }); }
   return out;
 }
-function homeW(h, tier) { if (tier == null) tier = tierOf(h); return (h.size * 1.5 + 8) * 1.22 * TIER_WF[tier]; } function homeWOld(h, tier) { return (h.size * (1.55 + tier * 0.09) + 8) * 1.22; }
+function homeW(h, tier) { if (tier == null) tier = tierOf(h); return (h.size * 1.5 + 8) * 1.22 * TIER_WF[tier] * (CITY.houseScale || 1); } function homeWOld(h, tier) { return (h.size * (1.55 + tier * 0.09) + 8) * 1.22; }
 function artHome(c, h, s) {
   const tier = tierOf(h), w = homeW(h, tier);
   softShadow(c, h.x + w * 0.1, h.y + w * 0.05, w * 0.55, w * 0.3, 0.9);

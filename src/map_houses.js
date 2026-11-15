@@ -124,7 +124,7 @@ const HOUSE_KIT = (() => {
       const a = th / 2, b = (th2 || th) / 2, cn = (s1, s2, t) => [P.x + sx.x * s1 * a + sy.x * s2 * b + d.x * L * t, P.y + sx.y * s1 * a + sy.y * s2 * b + d.y * L * t, P.z + sx.z * s1 * a + sy.z * s2 * b + d.z * L * t];
       for (const [s0, s1] of [[[1, -1], [1, 1]], [[1, 1], [-1, 1]], [[-1, 1], [-1, -1]], [[-1, -1], [1, -1]]]) B.quad(cn(s0[0], s0[1], 0), cn(s0[0], s0[1], 1), cn(s1[0], s1[1], 1), cn(s1[0], s1[1], 0), k, col, [0, 0, 1, Math.min(1, L * 2)]); };
     B.cyl = (x, y0, z, r0, r1, h, n, k, col, cap, uRep) => { const ur = uRep || 1; for (let j = 0; j < n; j++) { const a0 = j / n * Math.PI * 2, a1 = (j + 1) / n * Math.PI * 2, c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
-        B.quad([x + c0 * r0, y0, z + s0 * r0], [x + c1 * r0, y0, z + s1 * r0], [x + c1 * r1, y0 + h, z + s1 * r1], [x + c0 * r1, y0 + h, z + s0 * r1], k, col, [((j / n) * ur) % 1, 0, ((j / n) * ur) % 1 + ur / n, 1]); }
+        B.quad([x + c1 * r0, y0, z + s1 * r0], [x + c0 * r0, y0, z + s0 * r0], [x + c0 * r1, y0 + h, z + s0 * r1], [x + c1 * r1, y0 + h, z + s1 * r1], k, col, [((j / n) * ur) % 1 + ur / n, 0, ((j / n) * ur) % 1, 1]); } // wound outward (front faces out), so towers, barrels and pots are solid
       if (cap && r1 > 0) for (let j = 0; j < n; j++) { const a0 = j / n * Math.PI * 2, a1 = (j + 1) / n * Math.PI * 2; B.tri([x + Math.cos(a1) * r1, y0 + h, z + Math.sin(a1) * r1], [x + Math.cos(a0) * r1, y0 + h, z + Math.sin(a0) * r1], [x, y0 + h, z], cap, col); } };
     /* one roof slope from the eave edge P0->P1 up to the ridge edge Q0->Q1 (P0 left, seen from outside).
        Detailed: overlapping courses of clay tiles (each course's butt is lifted off the slope, shadowed under the course above),

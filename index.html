@@ -1406,7 +1406,8 @@ const CITY = {
   R: 13000, hollowR: 3000, plateauR: 5400, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
   tilePx: 256, levels: [0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 300,
-  zoomMin: 0.018, zoomMax: 3.2, startZoom: 1.05,
+  houseScale: 0.45, // Ledges are drawn small so the Rim feels vast (room for ~10,000 homes later); the Grand Tree and its seat houses keep their size
+  zoomMin: 0.018, zoomMax: 7, startZoom: 1.05, homeZoom: 2.3, // homeZoom: how close the Home button / Ledge focus comes (scaled to the small Ledges)
   homePetShare: 0.12, innerR: 3150,
   villageP: { docks: 0.6, dunes: 0.4, bluffs: 0.45, wood: 0.5, crystal: 0.35, farms: 0.7, badlands: 0.35, moss: 0.6, amber: 0.6, lava: 0.15 },
   seasonDays: 7, testSeasonDays: 1,     // game days per season (test mode uses testSeasonDays)
@@ -2476,7 +2477,7 @@ function homeYard(h, w) {
     out.push({ spr: 'yard_' + k, x: h.x + Math.cos(a) * w * 0.62, y: h.y + Math.sin(a) * w * 0.32 + w * 0.06, w: YARD_W[k] * (0.9 + r * 0.3), flip: r > 0.5 }); }
   return out;
 }
-function homeW(h, tier) { if (tier == null) tier = tierOf(h); return (h.size * 1.5 + 8) * 1.22 * TIER_WF[tier]; } function homeWOld(h, tier) { return (h.size * (1.55 + tier * 0.09) + 8) * 1.22; }
+function homeW(h, tier) { if (tier == null) tier = tierOf(h); return (h.size * 1.5 + 8) * 1.22 * TIER_WF[tier] * (CITY.houseScale || 1); } function homeWOld(h, tier) { return (h.size * (1.55 + tier * 0.09) + 8) * 1.22; }
 function artHome(c, h, s) {
   const tier = tierOf(h), w = homeW(h, tier);
   softShadow(c, h.x + w * 0.1, h.y + w * 0.05, w * 0.55, w * 0.3, 0.9);
@@ -3006,7 +3007,7 @@ const HOUSE_KIT = (() => {
       const a = th / 2, b = (th2 || th) / 2, cn = (s1, s2, t) => [P.x + sx.x * s1 * a + sy.x * s2 * b + d.x * L * t, P.y + sx.y * s1 * a + sy.y * s2 * b + d.y * L * t, P.z + sx.z * s1 * a + sy.z * s2 * b + d.z * L * t];
       for (const [s0, s1] of [[[1, -1], [1, 1]], [[1, 1], [-1, 1]], [[-1, 1], [-1, -1]], [[-1, -1], [1, -1]]]) B.quad(cn(s0[0], s0[1], 0), cn(s0[0], s0[1], 1), cn(s1[0], s1[1], 1), cn(s1[0], s1[1], 0), k, col, [0, 0, 1, Math.min(1, L * 2)]); };
     B.cyl = (x, y0, z, r0, r1, h, n, k, col, cap, uRep) => { const ur = uRep || 1; for (let j = 0; j < n; j++) { const a0 = j / n * Math.PI * 2, a1 = (j + 1) / n * Math.PI * 2, c0 = Math.cos(a0), s0 = Math.sin(a0), c1 = Math.cos(a1), s1 = Math.sin(a1);
-        B.quad([x + c0 * r0, y0, z + s0 * r0], [x + c1 * r0, y0, z + s1 * r0], [x + c1 * r1, y0 + h, z + s1 * r1], [x + c0 * r1, y0 + h, z + s0 * r1], k, col, [((j / n) * ur) % 1, 0, ((j / n) * ur) % 1 + ur / n, 1]); }
+        B.quad([x + c1 * r0, y0, z + s1 * r0], [x + c0 * r0, y0, z + s0 * r0], [x + c0 * r1, y0 + h, z + s0 * r1], [x + c1 * r1, y0 + h, z + s1 * r1], k, col, [((j / n) * ur) % 1 + ur / n, 0, ((j / n) * ur) % 1, 1]); } // wound outward (front faces out), so towers, barrels and pots are solid
       if (cap && r1 > 0) for (let j = 0; j < n; j++) { const a0 = j / n * Math.PI * 2, a1 = (j + 1) / n * Math.PI * 2; B.tri([x + Math.cos(a1) * r1, y0 + h, z + Math.sin(a1) * r1], [x + Math.cos(a0) * r1, y0 + h, z + Math.sin(a0) * r1], [x, y0 + h, z], cap, col); } };
     /* one roof slope from the eave edge P0->P1 up to the ridge edge Q0->Q1 (P0 left, seen from outside).
        Detailed: overlapping courses of clay tiles (each course's butt is lifted off the slope, shadowed under the course above),
@@ -3797,8 +3798,8 @@ void main() {
     { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(PR.glow.flatMap((p) => p.slice(0, 3)), 3)); IM.glow = new THREE.Points(g, new THREE.PointsMaterial({ size: 26, map: glowTex('rgba(255,236,180,1)', 'rgba(255,170,80,.4)'), color: 0xffc070, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })); IM.glow.frustumCulled = false; scene.add(IM.glow); }
     { const pos = [], ph = []; for (const p of PR.smoke) for (let k = 0; k < 7; k++) { pos.push(p[0], p[1], p[2]); ph.push(p[3] + k / 7); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aPh', new THREE.Float32BufferAttribute(ph, 1));
-      IM.smoke = new THREE.Points(g, new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uC: { value: new THREE.Color(0.85, 0.85, 0.85) }, uS: { value: 1 }, map: { value: glowTex('rgba(255,255,255,.75)', 'rgba(255,255,255,.3)') } }, transparent: true, depthWrite: false,
-        vertexShader: 'attribute float aPh; uniform float uT; uniform float uS; varying float vA; void main(){ float f = fract(uT * 0.07 + aPh); vec3 p = position + vec3(sin(aPh * 17.0 + f * 3.0) * 6.0 + f * 40.0, f * 120.0, cos(aPh * 11.0) * 6.0 + f * 18.0); vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = uS * (14.0 + f * 50.0) * 600.0 / -mv.z; vA = (1.0 - f) * smoothstep(0.0, 0.12, f); }',
+      IM.smoke = new THREE.Points(g, new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uC: { value: new THREE.Color(0.85, 0.85, 0.85) }, uS: { value: 1 }, uK: { value: CITY.houseScale || 1 }, map: { value: glowTex('rgba(255,255,255,.75)', 'rgba(255,255,255,.3)') } }, transparent: true, depthWrite: false,
+        vertexShader: 'attribute float aPh; uniform float uT; uniform float uS; uniform float uK; varying float vA; void main(){ float f = fract(uT * 0.07 + aPh); vec3 p = position + uK * vec3(sin(aPh * 17.0 + f * 3.0) * 6.0 + f * 40.0, f * 120.0, cos(aPh * 11.0) * 6.0 + f * 18.0); vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = uS * uK * (14.0 + f * 50.0) * 600.0 / -mv.z; vA = (1.0 - f) * smoothstep(0.0, 0.12, f); }',
         fragmentShader: 'uniform sampler2D map; uniform vec3 uC; varying float vA; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(uC, c.a * vA * 0.55); }' })); IM.smoke.frustumCulled = false; scene.add(IM.smoke); }
     // homes and trees are 3D now: billboards keep only the Exchange
     buildBillboards(); lodAt = null; st.models = { homes: W.homes.length, trees: nt, props: PR.box.length + PR.cyl.length + PR.lamp.length, smoke: PR.smoke.length }; }
@@ -4030,7 +4031,7 @@ const CityMap = (() => {
   function clampCam() { cam.z = clamp(cam.z, CITY.zoomMin, CITY.zoomMax); const r = Math.hypot(cam.x, cam.y), m = CITY.R + 200; if (r > m) { cam.x *= m / r; cam.y *= m / r; } }
   function zoomAt(sx, sy, f) { if (is3d()) { M3.place(cam, true); const [wx, wy] = s2w(sx, sy); cam.z = clamp(cam.z * f, CITY.zoomMin, CITY.zoomMax); M3.place(cam, true); const [nx, ny] = s2w(sx, sy); cam.x += wx - nx; cam.y += wy - ny; cam.fly = null; clampCam(); return; } const [wx, wy] = s2w(sx, sy); cam.z = clamp(cam.z * f, CITY.zoomMin, CITY.zoomMax); const [nx, ny] = s2w(sx, sy); cam.x += wx - nx; cam.y += wy - ny; cam.fly = null; clampCam(); }
   // fly to a Ledge with a clear line of sight (never from inside the ground, a cliff, the Heartwood's bark, decks or leaves)
-  function focusHome(h, z, now, rot0, tilt0) { z = z || Math.max(1.05, cam.z); if (!is3d() || !M3.focusView) return flyTo(h.x, h.y, z, now);
+  function focusHome(h, z, now, rot0, tilt0) { z = z || Math.max(CITY.homeZoom || 1.05, cam.z); if (!is3d() || !M3.focusView) return flyTo(h.x, h.y, z, now);
     const v = M3.focusView(h.x, h.y, z, rot0 != null ? rot0 : cam.rot, tilt0 || cam.tilt), r1 = cam.rot + Math.atan2(Math.sin(v.rot - cam.rot), Math.cos(v.rot - cam.rot));
     cam.tilt = v.tilt; if (now) { cam.rot = r1; return flyTo(h.x, h.y, v.z, true); } cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x: h.x, y: h.y, z: v.z, r0: cam.rot, r1, t0: performance.now(), d: 900 }; return v; }
   function flyTo(x, y, z, now) { if (now) { cam.x = x; cam.y = y; if (z) cam.z = z; cam.fly = null; cam.vx = cam.vy = 0; clampCam(); if (is3d()) M3.place(cam, true); return; } cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x, y, z: z || cam.z, t0: performance.now(), d: 900 }; }
@@ -4391,7 +4392,7 @@ const CityMap = (() => {
     if (b === 'tilt') { if (is3d()) cam.tilt = cam.tilt < 45 ? 55 : cam.tilt < 62 ? 70 : 38; return; }
     if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
-    if (b === 'home') return focusHome(W.player, Math.max(1.05, cam.z));
+    if (b === 'home') return focusHome(W.player, Math.max(CITY.homeZoom || 1.05, cam.z));
     if (b === 'overview') return flyTo(0, is3d() ? CITY.plateauR * 0.25 : 0, Math.min(Wc, Hc) / dpr / ((is3d() ? CITY.plateauR * 2.9 : CITY.R * 2.1)));
     if (b === 'board') return boardModal();
     if (b === 'legend') { buildLegend(); return $('#legend').classList.toggle('hidden'); }
@@ -4553,7 +4554,7 @@ const CityMap = (() => {
       case 'mapvisit': { const h = W.homes[+ds.id]; toast(`👋 Visiting ${h.owner} is coming soon.`); return; }
       case 'exbuy': case 'exsell': case 'excancel': return exAct(act, ds);
       case 'mapboard': return boardModal();
-      case 'mapgohome': closeModalQuiet(); return focusHome(W.player, Math.max(1.05, cam.z));
+      case 'mapgohome': closeModalQuiet(); return focusHome(W.player, Math.max(CITY.homeZoom || 1.05, cam.z));
       case 'mbuy': marketBuy(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
       case 'msell': marketSell(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;
       case 'mopen': return marketCard(W.markets[+ds.id]);

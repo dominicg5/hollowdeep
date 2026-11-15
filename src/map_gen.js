@@ -16,7 +16,8 @@ const CITY = {
   R: 13000, hollowR: 3000, plateauR: 5400, // the Hollow sits on a raised plateau; the cracked lowlands spread out below                // world radius, hollow base radius (world units)
   ringRoads: [1080, 1580, 2120, 2700], radialRoads: 20,
   tilePx: 256, levels: [0.015625, 0.03125, 0.0625, 0.125, 0.25, 0.5, 1, 2], maxTiles: 300,
-  zoomMin: 0.018, zoomMax: 3.2, startZoom: 1.05,
+  houseScale: 0.45, // Ledges are drawn small so the Rim feels vast (room for ~10,000 homes later); the Grand Tree and its seat houses keep their size
+  zoomMin: 0.018, zoomMax: 7, startZoom: 1.05, homeZoom: 2.3, // homeZoom: how close the Home button / Ledge focus comes (scaled to the small Ledges)
   homePetShare: 0.12, innerR: 3150,
   villageP: { docks: 0.6, dunes: 0.4, bluffs: 0.45, wood: 0.5, crystal: 0.35, farms: 0.7, badlands: 0.35, moss: 0.6, amber: 0.6, lava: 0.15 },
   seasonDays: 7, testSeasonDays: 1,     // game days per season (test mode uses testSeasonDays)
