@@ -141,10 +141,25 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(ox.g === 'onyx' && ox.n > 60, 'Ember Onyx pickaxe has vein flame emitters (' + JSON.stringify(ox) + ')');
   const oxl = await p.evaluate(() => { const b = document.querySelector('#charPick [data-grade=onyx]'); return { t: b.title, l: b.textContent.trim(), any: document.getElementById('charPick').textContent.includes('Black') }; });
   ok(oxl.t === 'Ember Onyx' && oxl.l === 'Ember Onyx' && !oxl.any, 'top grade is labelled Ember Onyx (saved id "onyx" unchanged) (' + JSON.stringify(oxl) + ')');
-  const dflt = await p.evaluate(() => newState().pickGrade + '/' + newState().tetherGrade);
-  ok(dflt === 'stick/regular', 'new saves start with the Stickaxe and the Vine tether (saved id "regular" unchanged) (' + dflt + ')');
+  const dflt = await p.evaluate(() => newState().pickGrade + '/' + newState().tetherGrade + '/' + newState().toolMode + '/' + newState().climbGrade);
+  ok(dflt === 'stick/regular/pick/stone', 'new saves start with the Stickaxe and the Vine tether (saved id "regular" unchanged) (' + dflt + ')');
   { const res = []; for (const k of ['run', 'mine', 'idle']) { await p.click('#charAnim [data-anim=' + k + ']'); await p.waitForFunction((k) => k === 'idle' || CharView.st[k + 'Ph'] !== undefined, k, { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(300); res.push(await p.evaluate(() => ({ a: CharView.st.anim, on: (document.querySelector('#charAnim button.on') || {}).dataset?.anim, run: CharView.st.runPh, mine: CharView.st.minePh }))); }
     ok(res[0].a === 'run' && res[0].on === 'run' && res[0].run >= 0 && res[1].a === 'mine' && res[1].on === 'mine' && res[1].mine >= 0 && res[2].a === 'idle' && res[2].on === 'idle', 'Character tab Idle / Run / Mine preview buttons switch the animation (' + JSON.stringify(res) + ')'); }
+  { // equip: Pickaxe | Climbing Picks - stows the pickaxe on the back, draws a climbing pick into each hand, persists; Mine switches back to the pickaxe
+    const lab = await p.evaluate(() => [...document.querySelectorAll('#charEquip [data-tool]')].map((b) => b.textContent).join('|') + (/ice ?ax/i.test(document.body.innerText) ? ' ICE' : ''));
+    await p.click('#charEquip [data-tool=climb]'); await p.waitForFunction(() => CharView.st.toolPh === 2.2, null, { timeout: 15000 }).catch(() => {});
+    const eq = await p.evaluate(() => { const B = CharView.rig.built, R = CharView.rig.B, ch = R.chest; ch.updateMatrixWorld(true); const pp = ch.worldToLocal(B.pick.getWorldPosition(new THREE.Vector3()));
+      return { ph: CharView.st.toolPh, s: S.toolMode, saved: JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').toolMode, on: (document.querySelector('#charEquip button.on') || {}).dataset?.tool, r: B.climb.R.parent === R.hdR, l: B.climb.L.parent === R.hdL, back: +pp.z.toFixed(3) }; });
+    ok(lab === 'Pickaxe|Climbing Picks' && eq.ph === 2.2 && eq.s === 'climb' && eq.saved === 'climb' && eq.on === 'climb' && eq.r && eq.l && eq.back < -0.08, 'Pickaxe | Climbing Picks equip stows the pickaxe on the back and puts a climbing pick in each hand, persisted (' + JSON.stringify({ lab, ...eq }) + ')');
+    await p.click('#charPick [data-gear=climb]'); await p.waitForTimeout(200);
+    const cg = await p.evaluate(() => { const ks = [...document.querySelectorAll('#charPick [data-grade]')].map((b) => b.dataset.grade), nm = [...document.querySelectorAll('#charPick [data-grade]')].map((b) => b.title); const cnt = ks.map((k) => { let n = 0; CharView.makeClimbPick(k).traverse((o) => { if (o.isMesh || o.isPoints) n++; }); return n; }); return { ks, nm: nm[0] + '..' + nm[8], cnt }; });
+    await p.click('#charPick [data-grade=mithril]'); await p.waitForTimeout(300);
+    const cm = await p.evaluate(() => { const B = CharView.rig.built; return { s: S.climbGrade, saved: JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').climbGrade, g: B.climb.R.userData.grade + ',' + B.climb.L.userData.grade, pick: B.pick.userData.grade }; });
+    ok(cg.ks.join() === 'stone,bronze,iron,steel,gold,mithril,rune,lumen,onyx' && cg.nm === 'Stone..Ember Onyx' && cg.cnt.every((n, j) => !j || n > cg.cnt[j - 1]) && cm.s === 'mithril' && cm.saved === 'mithril' && cm.g === 'mithril,mithril' && cm.pick !== 'mithril', 'Climbing Picks tab: Stone..Ember Onyx in grade order, each adds detail, swaps both picks and persists (' + JSON.stringify({ ...cg, ...cm }) + ')');
+    await p.click('#charAnim [data-anim=mine]'); await p.waitForFunction(() => CharView.st.toolPh === 0 && CharView.an.act === 'mine', null, { timeout: 15000 }).catch(() => {});
+    const mn = await p.evaluate(() => ({ ph: CharView.st.toolPh, s: S.toolMode, act: CharView.an.act, on: (document.querySelector('#charEquip button.on') || {}).dataset?.tool }));
+    ok(mn.ph === 0 && mn.s === 'pick' && mn.act === 'mine' && mn.on === 'pick', 'Mine preview with the climbing picks out switches back to the pickaxe first, then mines (' + JSON.stringify(mn) + ')');
+    await p.click('#charAnim [data-anim=idle]'); await p.waitForTimeout(200); }
   await p.click('#charPick [data-gear=tether]'); await p.waitForTimeout(200);
   const tks = await p.evaluate(() => [...document.querySelectorAll('#charPick [data-grade]')].map((b) => b.dataset.grade).join());
   const vin = await p.evaluate(() => { const b = document.querySelector('#charPick [data-grade=regular]'); return b ? b.title : ''; }); ok(vin === 'Vine', 'starter tether is labelled Vine (' + vin + ')');

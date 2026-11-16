@@ -297,6 +297,54 @@ const CharView = (() => {
       for (const sz of [-1, 1]) for (const ry of [0.02, -0.02]) part(head, new THREE.OctahedronGeometry(0.007, 0), rg, [0, ry, sz * 0.026], null, [1, 1.3, 0.5], { ink: false });
       part(px, new THREE.OctahedronGeometry(0.018, 0), toon(0x16131a), [0, -0.34, 0], null, [1, 1.8, 1]); }
     return px; }
+  /* ---------- Climbing Picks: a pair of rock dry-tooling tools, one per hand, graded like the pickaxe ----------
+     Local frame like the pickaxe: grip at the origin, shaft along +y, the hooking pick pointing +x. Short, aggressively curved shaft (bows back
+     behind the grip, then sweeps forward into the head), a thin hooking pick with a drooping tip, an offset ergonomic grip with a finger rest,
+     a pommel spike, and a wrist leash. No adze. Stone: a twisting branch with knapped stone hooks lashed on (Stickaxe style). */
+  const CGRADES = Object.assign({ stone: { name: 'Stone', tier: -1, head: 0x8d8a82, handle: 0x6e4c2e, bind: 0xb89a62, chip: 0x8d8a82, stone: true } }, Object.fromEntries(Object.entries(GRADES).filter(([k]) => k !== 'stick')));
+  function curveHelix(cur, r, turns, ph, n = 120) { const fr = cur.computeFrenetFrames(n, false), pts = []; for (let i = 0; i <= n; i++) { const t = i / n, p = cur.getPointAt(t), a = ph + t * turns * TAU; pts.push(p.addScaledVector(fr.normals[i], Math.cos(a) * r).addScaledVector(fr.binormals[i], Math.sin(a) * r)); } return new THREE.CatmullRomCurve3(pts); }
+  function makeClimbPick(grade) { const key = CGRADES[grade] ? grade : 'stone', G = CGRADES[key], T = G.tier, px = new THREE.Group(); px.name = 'climbPick'; px.userData = { grade: key, fx: [] }; const stone = !!G.stone;
+    const shine = (col, o = {}) => G.shine ? new THREE.MeshPhongMaterial(Object.assign({ color: col, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }, o)) : toon(col, null, Object.assign(G.emissive ? { emissive: G.emissive } : {}, o));
+    const metal = shine(G.head), bindM = toon(G.bind), cordM = toon(0, fabric(G.bind, { seed: 23, weave: 0.25 })), leather = toon(T >= 3 ? (G.wrap || 0x3a2618) : 0x5a3a22);
+    // shaft centreline: pommel > offset grip > bowed-back shaft > head
+    const SP = [[0.012, -0.072], [0.004, -0.04], [0, 0], [-0.004, 0.05], [-0.022, 0.12], [-0.04, 0.2], [-0.037, 0.27], [-0.014, 0.332], [0.012, 0.366]].map(([x, y]) => V(x, y, 0)), cur = new THREE.CatmullRomCurve3(SP);
+    if (stone) { const bt = barkTex(); bt.wrapS = bt.wrapT = THREE.RepeatWrapping; bt.repeat.set(1.5, 1); part(px, gnarl(SP.map((p, i) => [p.x + 0.004 * Math.sin(i * 1.7), p.y, 0.004 * Math.cos(i * 2.1)]), 0.0135, 0.011, 5, [[0.3, 0.006, 1.0], [0.62, 0.005, 3.6]]), toon(0, bt)); }
+    else if (G.onyx) { part(px, new THREE.TubeGeometry(cur, 64, 0.0115, 9, false), toon(G.handle)); for (let k = 0; k < 3; k++) part(px, new THREE.TubeGeometry(curveHelix(cur, 0.0108, 5, k * TAU / 3), 160, 0.0042, 5, false), toon(G.handle), null, null, null, { ink: false }); }
+    else part(px, new THREE.TubeGeometry(cur, 64, 0.0115, T >= 2 ? 12 : 9, false), T >= 2 ? shine(G.bind) : toon(0, fabric(G.handle, { seed: 31, weave: 0.1 })));
+    // grip: lashed twine (stone/bronze) > leather sleeve (iron) > ridged rubber grip (steel+); finger rest under the grip, pommel spike below
+    if (T <= 0) helix(px, -0.045, 0.045, 7, 0.0128, 0.0034, cordM); else { part(px, cyl(0.0138, 0.0138, 0.095, 12), leather, [0, 0, 0]); if (T >= 2) for (const y of [-0.03, 0, 0.03]) part(px, new THREE.TorusGeometry(0.014, 0.0022, 5, 14), toon(0x2a2a2e), [0, y, 0], [Math.PI / 2, 0, 0], null, { ink: false }); }
+    const rest = new THREE.CatmullRomCurve3([V(0.0, 0.058, 0), V(0.022, 0.06, 0), V(0.036, 0.048, 0), V(0.038, 0.034, 0)]); part(px, new THREE.TubeGeometry(rest, 16, stone ? 0.0068 : 0.0058, 7, false), stone ? toon(0, fabric(G.handle, { seed: 5 })) : T >= 1 ? metal : bindM);
+    if (stone) { const sp = new THREE.ConeGeometry(0.009, 0.034, 5); part(px, sp, new THREE.MeshPhongMaterial({ color: G.head, flatShading: true, shininess: 8 }), [0.016, -0.088, 0], [0, 0, 0.25]); helix(px, -0.078, -0.058, 3, 0.0125, 0.0028, cordM); }
+    else { part(px, new THREE.ConeGeometry(0.0085, 0.038, T >= 2 ? 10 : 6), metal, [0.016, -0.09, 0], [0, 0, 0.25]); if (T >= 1) part(px, cyl(0.0125, 0.012, 0.016, 12), T >= 3 ? bindM : metal, [0.011, -0.068, 0], [0, 0, 0.25]); }
+    if (T >= 2) part(px, new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V(-0.026, 0.165, 0), V(-0.008, 0.168, 0), V(0.004, 0.158, 0)]), 10, 0.0048, 6, false), metal, null, null, null, { ink: false }); // upper rest for matching hands
+    // the hooking pick: thin, drooping, teeth along the underside (more teeth with the grade)
+    const nT = stone ? 0 : [3, 5, 6, 7, 8, 8, 9, 9][T], top = (x) => 0.383 - 2.4 * x * x - 0.06 * x, th = (u) => (stone ? 0.034 : 0.028) * (1 - u) + 0.0045 + (nT && u > 0.25 && u < 0.92 ? 0.0045 * Math.max(0, Math.sin(u * nT * Math.PI * 1.35)) : 0);
+    const sh = bladeShape(top, th, -0.012, stone ? 0.15 : 0.165, 40), D = stone ? 0.012 : T >= 2 ? 0.0045 : 0.006, bev = stone ? 0.0025 : 0.0016; const bg = extrudeHead(sh, D, bev);
+    if (stone) { const P = bg.attributes.position, r = prng(17); for (let i = 0; i < P.count; i++) { P.setY(i, P.getY(i) + (r() - 0.5) * 0.003); P.setZ(i, P.getZ(i) * (0.8 + r() * 0.4)); } bg.computeVertexNormals(); }
+    const bladeM = stone ? new THREE.MeshPhongMaterial({ color: G.head, flatShading: true, shininess: 8 }) : T === 6 ? new THREE.MeshPhongMaterial({ color: 0x8ff6ff, emissive: 0x1d93ad, specular: 0xffffff, shininess: 90, flatShading: true, transparent: true, opacity: 0.9 }) : metal;
+    part(px, bg, bladeM); const faceZ = D / 2 + bev, mid = (u, f = 0.5) => { const x = -0.012 + (0.165 + 0.012) * u; return [x, top(x) - th(u) * f]; };
+    // head: socket over the shaft top (no adze), lashing for stone
+    if (stone) { helix(px, 0.338, 0.385, 5, 0.0145, 0.0034, cordM); helix(px, 0.35, 0.375, 3, 0.016, 0.003, cordM, 1.4); const ls = new THREE.Shape(); ls.moveTo(0, 0); ls.quadraticCurveTo(0.016, 0.022, 0, 0.046); ls.quadraticCurveTo(-0.016, 0.022, 0, 0); part(px, new THREE.ShapeGeometry(ls, 6), toon(0x6f9a3c, null, { side: THREE.DoubleSide }), [-0.016, 0.372, 0.006], [0.3, 0.3, 0.7], null, { ink: false }); }
+    else { part(px, rbox(0.03, 0.05, 0.022, 0.008), T === 6 ? toon(0x2b3038) : metal, [0.006, 0.36, 0], [0, 0, -0.35]); for (const sz of [-1, 1]) part(px, ell(0.0035, 0.0035, 0.0025, 8, 6), T >= 3 ? bindM : toon(0x4a4d52), [0.006, 0.36, sz * 0.012], null, null, { ink: false }); part(px, cyl(0.0135, 0.0128, 0.014, 12), T >= 3 ? bindM : metal, [-0.006, 0.33, 0], [0, 0, 0.5]); }
+    // wrist leash: a strap from the shaft to a loop round the wrist (the forearm runs along -x behind the grip)
+    { const lm = stone ? cordM : T >= 4 ? toon(G.wrap || 0x3a2618) : leather; part(px, new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V(-0.016, 0.1, 0), V(-0.04, 0.07, 0.006), V(-0.062, 0.04, 0.008)]), 14, stone ? 0.003 : 0.0032, 5, false), lm, null, null, null, { ink: false });
+      part(px, new THREE.TorusGeometry(0.034, stone ? 0.003 : 0.0036, 6, 22), lm, [-0.07, 0.008, 0], [0, Math.PI / 2, 0], [1, 1.05, 1], { ink: false }); if (T >= 2) part(px, rbox(0.008, 0.012, 0.01, 0.002), bindM, [-0.066, 0.042, 0.004], null, null, { ink: false }); }
+    // grade detail
+    if (T >= 3 && !G.onyx && T !== 6) for (const y of [0.29, 0.22]) part(px, cyl(0.0132, 0.0132, 0.008, 12), bindM, [cur.getPointAt(y / 0.44).x, y, 0], null, null, { ink: false });
+    if (T === 3) { faceLines(px, [Array.from({ length: 9 }, (_, i) => mid(0.05 + i * 0.09, 0.55))], toon(0x8a6418), faceZ, 0.0011); part(px, ell(0.006, 0.006, 0.006, 10, 8), toon(0xc8301c, null, { emissive: 0x401008 }), [0.004, 0.385, 0], null, null, { ink: false }); }
+    if (T === 4) { const fil = toon(0xf6fbff, null, { emissive: 0x223040 }); faceLines(px, [Array.from({ length: 9 }, (_, i) => mid(0.05 + i * 0.09, 0.5)), spiral(...mid(0.3, 0.45), 0.008, 1.3, 1), spiral(...mid(0.6, 0.45), 0.007, 1.3, -1)], fil, faceZ, 0.0009); part(px, ell(0.0062, 0.0062, 0.0062, 10, 8), toon(0x9fd8ff, null, { emissive: 0x2a6a9a }), [0.004, 0.386, 0], null, null, { ink: false }); part(px, new THREE.TubeGeometry(curveHelix(cur, 0.0122, 7, 0.4), 160, 0.0016, 4, false), bindM, null, null, null, { ink: false }); }
+    if (T === 5) { const rm = new THREE.MeshBasicMaterial({ map: runeTex(), color: G.glow, transparent: true, depthWrite: false }); for (const sz of [-1, 1]) for (const uu of [0.3, 0.68]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.06, 0.012), rm); m.position.set(mid(uu, 0.5)[0], mid(uu, 0.5)[1], sz * (faceZ + 0.0006)); m.rotation.set(0, sz < 0 ? Math.PI : 0, -0.25 - uu * 0.5); px.add(m); }
+      const gem = new THREE.MeshBasicMaterial({ color: 0xc9a2ff }); part(px, new THREE.OctahedronGeometry(0.007, 0), gem, [0.004, 0.388, 0], null, [1, 1.4, 1], { ink: false }); part(px, new THREE.OctahedronGeometry(0.005, 0), gem, [0.016, -0.11, 0], null, [1, 1.4, 1], { ink: false }); for (const y of [0.12, 0.18, 0.24]) part(px, new THREE.TorusGeometry(0.0128, 0.0022, 5, 16), gem, [cur.getPointAt(y / 0.44).x, y, 0], [Math.PI / 2, 0, 0], null, { ink: false });
+      const pl = new THREE.PointLight(G.glow, 0.15, 0.4, 2); pl.position.set(0.06, 0.36, 0); px.add(pl); px.userData.light = pl; }
+    if (T === 6) { const cm = new THREE.MeshPhongMaterial({ color: 0x8ff6ff, emissive: 0x1d93ad, specular: 0xffffff, shininess: 90, flatShading: true }); for (let i = 0; i < 9; i++) { const [x, y] = mid(0.06 + i * 0.105, 0.5); part(px, new THREE.OctahedronGeometry(1, 0), cm, [x, y, 0], [0, 0, -0.5 - i * 0.07], [0.008, 0.013, 0.0055], { ink: false }); } for (const p of [[0.04, 0.034, 0], [0.016, -0.11, 0]]) part(px, new THREE.OctahedronGeometry(0.0065, 0), new THREE.MeshBasicMaterial({ color: 0xbffcff }), p, null, [1, 1.4, 1], { ink: false });
+      const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial('rgba(170,250,255,1)', 'rgba(90,220,255,.3)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); gl.position.set(0.07, 0.35, 0); gl.scale.set(0.2, 0.14, 1); px.add(gl); const pl = new THREE.PointLight(G.glow, 0.25, 0.6, 2); pl.position.copy(gl.position); px.add(pl); px.userData.glow = gl; px.userData.light = pl;
+      const r = prng(63), sp = [], seed = []; for (let i = 0; i < 20; i++) { const [x, y] = mid(r(), r()); sp.push(x + (r() - 0.5) * 0.02, y + (r() - 0.5) * 0.03, (r() - 0.5) * 0.03); seed.push(r()); } const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); sg.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1)); const spk = new THREE.Points(sg, SPARK_MAT(G.glow)); spk.frustumCulled = false; spk.renderOrder = 5; px.add(spk); px.userData.fx.push(spk); }
+    if (G.onyx) { const vm = new THREE.MeshBasicMaterial({ color: 0xff3418 }); px.userData.veins = vm; const vc = curveHelix(cur, 0.0118, 5, TAU / 6); part(px, new THREE.TubeGeometry(vc, 160, 0.0016, 4, false), vm, null, null, null, { ink: false, shadow: false });
+      const bl = new THREE.CatmullRomCurve3(Array.from({ length: 9 }, (_, i) => { const [x, y] = mid(0.04 + i * 0.11, 0.45); return V(x, y, 0); })); for (const sz of [-1, 1]) part(px, new THREE.TubeGeometry(bl, 30, 0.0013, 4, false), vm, [0, 0, sz * faceZ], null, null, { ink: false, shadow: false });
+      for (const sz of [-1, 1]) part(px, new THREE.OctahedronGeometry(0.005, 0), new THREE.MeshBasicMaterial({ color: 0xff3a1c }), [0.006, 0.36, sz * 0.0125], null, [1, 1.3, 0.5], { ink: false }); for (const y of [0.2, 0.27]) part(px, cyl(0.0148, 0.0148, 0.01, 8), shine(0x2a2230, { flatShading: true }), [cur.getPointAt(y / 0.44).x, y, 0]);
+      const sites = []; for (let i = 0; i < 18; i++) { const p = vc.getPointAt((i + 0.5) / 18); if (Math.abs(p.y) < 0.06) continue; sites.push([p, V(p.x - cur.getPointAt((i + 0.5) / 18).x, 0, p.z).normalize()]); } for (let i = 0; i < 8; i++) { const p = bl.getPointAt((i + 0.5) / 8); sites.push([p.clone().setZ(faceZ), V(0, 0, 1)]); sites.push([p.clone().setZ(-faceZ), V(0, 0, -1)]); }
+      const fl = flamePoints(sites); px.add(fl); px.userData.fx.push(fl); px.userData.flames = fl; }
+    return px; }
   function updatePickFx(pk, t) { if (!pk) return; pk.getWorldQuaternion(_q2); _q2.invert(); for (const fx of pk.userData.fx) { const u = fx.material.uniforms; u.uTime.value = t; u.uUp.value.set(0, 1, 0).applyQuaternion(_q2); u.uScale.value = R ? R.domElement.height / 2 : 400; }
     if (pk.userData.veins) pk.userData.veins.color.setRGB(1, 0.18 + 0.06 * Math.sin(t * 5.3), 0.07);
     if (pk.userData.glow) { const pg = 0.8 + 0.2 * Math.sin(t * 2.4) + 0.05 * Math.sin(t * 13); pk.userData.glow.material.opacity = 0.75 * pg; }
@@ -494,7 +542,7 @@ const CharView = (() => {
       const th = bone('thumb' + k, hd, s * -0.031, -0.024, -0.01); th.rotation.set(0.3, 0, s * 0.6); part(th, capsule(0.0105, 0.018, 8), M.glove, [0, -0.012, 0], null, null, { ink: false }); part(th, capsule(0.0085, 0.01, 8), M.skin, [0, -0.031, 0], null, null, { ink: false });
       B['kn' + k] = kn; B['tp' + k] = tp; B['thumb' + k] = th; }
     // ---- backpack: big canvas rucksack (body, buckled top flap, outer pocket, side pockets, rope coil / bedroll / lantern) ----
-    { const pk = new THREE.Group(); pk.position.set(0, -0.02, -0.095); B.chest.add(pk); built.pack = pk;
+    { const pk = new THREE.Group(); pk.position.set(0, -0.02, -0.125); B.chest.add(pk); built.pack = pk;
       const W = F ? 0.31 : 0.345, H = F ? 0.37 : 0.41, D = F ? 0.17 : 0.19, y0 = F ? -0.065 : -0.08, zc = -0.004 - D / 2, zb = zc - D / 2;
       part(pk, rbox(W, H, D, 0.05), M.pack, [0, y0, zc]);
       for (const s of [-1, 1]) part(pk, rbox(0.012, H * 0.94, D * 0.9, 0.005), M.packDk, [s * (W / 2 - 0.004), y0, zc], null, null, { ink: false });
@@ -527,6 +575,11 @@ const CharView = (() => {
     }
     // ---- pickaxe: a logical mount on the chest (what the fidgets move) + the swappable visual pick parented to the right hand ----
     { const mt = new THREE.Object3D(); mt.name = 'pickMount'; B.chest.add(mt); built.mount = mt; built.pick = makePickaxe(S && S.pickGrade); B.hdR.add(built.pick); }
+    // the back slot: a leather keeper on the pack's front edge that the stowed pick handle slides through (between the pack and the back)
+    { const lp = SLOT_O.clone().addScaledVector(SLOT_D, 0.414), lm = toon(P.belt), lg = part(B.chest, new THREE.TorusGeometry(0.024, 0.005, 6, 18), lm, [lp.x, lp.y, lp.z]); lg.quaternion.setFromUnitVectors(V(0, 0, 1), SLOT_D); lg.scale.set(1, 1.3, 1); }
+    // belt hooks for the climbing picks (their picks hook over these), and the picks themselves
+    for (const s of [-1, 1]) { part(B.hips, new THREE.TorusGeometry(0.016, 0.005, 6, 14), toon(P.belt), [s * 0.19, 0.085, -0.04], [0, Math.PI / 2, 0]); part(B.hips, rbox(0.012, 0.03, 0.02, 0.004), toon(P.brass), [s * 0.185, 0.1, -0.04], null, null, { ink: false }); }
+    built.climb = { R: makeClimbPick(S && S.climbGrade), L: makeClimbPick(S && S.climbGrade) }; B.hdR.add(built.climb.R); B.hdL.add(built.climb.L);
     bindShells(root, skins); built.skins = skins;
     root.traverse((o) => { if (o.isMesh && o.material !== OUT) o.receiveShadow = false; });
     return { root, B, sex, P, built, LT, LS, HY };
@@ -631,8 +684,10 @@ const CharView = (() => {
     c.ankle = { R: V(-0.095, 0.08, 0.0), L: V(0.1, 0.08, -0.02) };
     const mt = c.built.mount; { // per the sheets: he carries it short over the right shoulder; she rests it across the back of her neck
       const F = c.sex === 'f', d = (F ? V(0.625, 0.404, -0.673) : V(0.14, 0.58, -0.8)).normalize(), bl = F ? V(0, 1, 0).addScaledVector(d, -d.y).normalize() : V(-1, 0.8, 0).addScaledVector(d, -V(-1, 0.8, 0).dot(d)).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); mt.quaternion.setFromRotationMatrix(_m); mt.position.copy(F ? V(-0.2, 0.09, 0.1) : V(-0.21, 0.075, 0.12)); c.gripAt = F ? 0.0 : 0.08; }
+    { const key = (o, d, x, h) => { d = d.normalize(); x = x.addScaledVector(d, -x.dot(d)).normalize(); return { o, q: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, d, x.clone().cross(d))), h }; };
+      c.stowK = [key(V(-0.23, -0.14, -0.05), V(-0.12, 1, -0.12), V(0, 0, 1), 0.3), key(SLOT_O.clone(), SLOT_D.clone(), V(-0.8, -0.6, 0), 0.5)]; }
     c.pickRest = { p: mt.position.clone(), q: mt.quaternion.clone() }; c.restQ = {}; for (const k in B) if (B[k] && B[k].isObject3D) c.restQ[k] = B[k].quaternion.clone(); }
-  const PALM = V(0, -0.045, -0.031);
+  const PALM = V(0, -0.045, -0.031), SLOT_O = V(0.02, -0.25, -0.123), SLOT_D = V(-0.75, 1, 0).normalize();
   function solveLimbs(c, f) { const { B } = c, root = c.root; root.updateMatrixWorld(true);
     // legs: feet planted on their ankle targets, knees forward
     const fwd = V(0, 0, 1).applyQuaternion(root.quaternion);
@@ -646,15 +701,33 @@ const CharView = (() => {
       _m.makeBasis(bl, d, z); const Qd = new THREE.Quaternion().setFromRotationMatrix(_m).premultiply(root.quaternion), Pd = root.localToWorld(m.G.clone());
       mt0.updateMatrixWorld(true); const P0 = mt0.getWorldPosition(V(0, 0, 0)), Q0 = mt0.getWorldQuaternion(new THREE.Quaternion()); P0.lerp(Pd, m.w); Q0.slerp(Qd, m.w);
       mt0.position.copy(mt0.parent.worldToLocal(P0)); mt0.parent.getWorldQuaternion(_q2); mt0.quaternion.copy(_q2.invert().multiply(Q0)); mt0.updateMatrixWorld(true); gripAt = lerp(gripAt, MINE_GRIP, m.w); }
-    // right arm: the wrist is placed so the palm closes round the pick grip; hand x runs along the handle, y back to the elbow (no broken wrist)
-    const mt = c.built.mount; mt.updateMatrixWorld(true); const grip = mt.getWorldPosition(V(0, 0, 0)), Qm = mt.getWorldQuaternion(new THREE.Quaternion()), d = V(0, 1, 0).applyQuaternion(Qm), pole = (f.mine ? V(-0.3, -1, -0.15).lerp(V(-0.9, -0.6, -0.2), f.mine.w) : V(-0.3, -1, -0.15)).applyQuaternion(root.quaternion), Qh = new THREE.Quaternion(); let wrist = grip.clone();
-    for (let it = 0; it < 3; it++) { ik(B.uaR, B.faR, 0.245, 0.215, wrist, pole, false); const y = B.faR.getWorldPosition(V(0, 0, 0)).sub(wrist).normalize(); y.addScaledVector(d, -y.dot(d)).normalize(); const z = V(0, 0, 0).crossVectors(d, y); _m.makeBasis(d, y, z); Qh.setFromRotationMatrix(_m); wrist = grip.clone().sub(PALM.clone().applyQuaternion(Qh)); }
-    B.hdR.parent.getWorldQuaternion(_q2); B.hdR.quaternion.copy(_q2.invert().multiply(Qh)); B.hdR.updateMatrixWorld(true);
-    const pk = c.built.pick; pk.position.copy(B.hdR.worldToLocal(grip.clone().addScaledVector(d, -gripAt))); pk.quaternion.copy(Qh.clone().invert().multiply(Qm));
-    B.knR.rotation.x = 1.3; B.tpR.rotation.x = 1.25; B.thumbR.rotation.set(1.05, 0, -0.35);
+    // ---- tools, driven by the equip timeline tau (0 = pickaxe carried, TOOL_T = climbing picks in hand): the pickaxe rides the carry/mine pose, then the
+    // stow path (lift over the right shoulder, slide head-up and diagonal into the slot between the pack and the back); the climbing picks come off their
+    // belt hooks into a two-handed ready hold. Every hand closes on its tool through gripSolve (palm on the grip, hand x along the shaft, y back to the elbow).
+    const RQ = root.quaternion, tau = f.tau || 0, mt = c.built.mount; B.chest.updateMatrixWorld(true); const chQ = B.chest.getWorldQuaternion(new THREE.Quaternion());
+    const dM = V(0, 1, 0).applyQuaternion(mt.quaternion); let pO = mt.position.clone().addScaledVector(dM, -gripAt), pQ = mt.quaternion.clone(), pH = gripAt;
+    const uS = clamp(tau / STOW_T, 0, 1); if (uS > 0) { const a = ss(0, 0.45, uS), b = ss(0.45, 1, uS), K = c.stowK; pO.lerp(K[0].o, a).lerp(K[1].o, b); pQ.slerp(K[0].q, a).slerp(K[1].q, b); pH = lerp(lerp(pH, K[0].h, a), K[1].h, b); }
+    const pOw = B.chest.localToWorld(pO.clone()), pQw = chQ.clone().multiply(pQ), pdW = V(0, 1, 0).applyQuaternion(pQw), pGw = pOw.clone().addScaledVector(pdW, pH), wP = 1 - ss(STOW_T - 0.1, STOW_T + 0.1, tau);
+    const wC = ss(STOW_T + 0.05, STOW_T + 0.4, tau), vC = ss(STOW_T + 0.4, TOOL_T, tau), cT = {}; B.hips.updateMatrixWorld(true); const hipQ = B.hips.getWorldQuaternion(new THREE.Quaternion());
+    for (const [k, s] of [['R', -1], ['L', 1]]) { // climbing pick pose: belt hook > ready hold (with an arc out to the side while drawing)
+      const dH = V(s * 0.1, 1, 0).normalize(), qH = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(V(0, 0, -1), dH, V(0, 0, -1).cross(dH))), oH = B.hips.localToWorld(V(s * 0.2, 0.09, -0.04).addScaledVector(dH, -0.37)), qHw = hipQ.clone().multiply(qH);
+      const G = V(s * 0.19, 0.92 + 0.006 * (f.br || 0), 0.22); if (f.run) { const sw = (s > 0 ? -1 : 1) * Math.cos(TAU * f.run.ph); G.z += 0.12 * sw * f.run.w; G.y += 0.05 * Math.max(0, sw) * f.run.w; G.x += s * 0.02 * f.run.w; }
+      const dR = V(s * 0.32, 1, 0.22).normalize(), xR = V(0, 0, 1).addScaledVector(dR, -dR.z).normalize(), qR = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xR, dR, xR.clone().cross(dR))).premultiply(RQ);
+      const o = oH.clone().lerp(root.localToWorld(G), vC).add(V(s * 0.07, 0.05, 0.05).multiplyScalar(Math.sin(Math.PI * vC)).applyQuaternion(RQ)), q = qHw.slerp(qR, vC); cT[k] = { o, q, d: V(0, 1, 0).applyQuaternion(q) }; }
+    // right arm: rest (hangs like the left), the pickaxe grip and/or the right climbing pick
+    { const shR = B.shR.getWorldPosition(V(0, 0, 0)), wr0 = shR.clone().add(V(-0.06, -0.445, 0.03).applyQuaternion(RQ)), pr0 = V(-0.12, -0.05, -1).applyQuaternion(RQ);
+      const poleP = (f.mine ? V(-0.3, -1, -0.15).lerp(V(-0.9, -0.6, -0.2), f.mine.w) : V(-0.3, -1, -0.15)).lerp(V(-0.8, 0.6, -0.5), ss(0.05, 0.4, uS)).lerp(V(-0.5, 0.2, -1), ss(0.6, 1, uS)).applyQuaternion(RQ), poleC = V(-0.6, -1, -0.5).applyQuaternion(RQ);
+      const gp = wP > 0 ? gripSolve(c, 'R', pGw, pdW, poleP) : null, gc = wC > 0 ? gripSolve(c, 'R', cT.R.o, cT.R.d, poleC) : null;
+      const wr = wr0.clone(), pr = pr0.clone(); if (gp) { wr.lerp(gp.wrist, wP); pr.lerp(poleP, wP); } if (gc) { wr.lerp(gc.wrist, wC); pr.lerp(poleC, wC); } ik(B.uaR, B.faR, 0.245, 0.215, wr, pr, false);
+      const y = B.faR.getWorldPosition(V(0, 0, 0)).sub(B.hdR.getWorldPosition(V(0, 0, 0))).normalize(), z = V(-1, 0, 0.18).applyQuaternion(RQ); z.addScaledVector(y, -z.dot(y)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(y, z), y, z);
+      const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, -0.06))); if (gp) Qr.slerp(gp.Q, wP); if (gc) Qr.slerp(gc.Q, wC);
+      B.hdR.parent.getWorldQuaternion(_q2); B.hdR.quaternion.copy(_q2.invert().multiply(Qr)); B.hdR.updateMatrixWorld(true);
+      const g = Math.max(wP, wC); B.knR.rotation.x = lerp(0.32, 1.3, g); B.tpR.rotation.x = lerp(0.42, 1.25, g); B.thumbR.rotation.set(lerp(0.3, 1.05, g), 0, lerp(-0.6, -0.35, g)); }
+    const placeT = (obj, hand, o, q) => { if (!obj) return; obj.position.copy(hand.worldToLocal(o.clone())); hand.getWorldQuaternion(_q2); obj.quaternion.copy(_q2.invert().multiply(q)); };
+    placeT(c.built.pick, B.hdR, pOw, pQw); if (c.built.climb) placeT(c.built.climb.R, B.hdR, cT.R.o, cT.R.q);
     // left arm: hangs relaxed (palm toward the thigh, thumb forward, elbow straight back so the upper arm has no twist), or reaches up so the
     // finger tips scratch the cheek (elbow swinging down and out, palm toward the face). Hand frame: -y = finger direction, +z = the back of the hand.
-    const sh = B.shL.getWorldPosition(V(0, 0, 0)), RQ = root.quaternion, r = f.reach || 0; let wristL = sh.clone().add(V(0.06, -0.445, 0.03).applyQuaternion(RQ));
+    const sh = B.shL.getWorldPosition(V(0, 0, 0)), r = f.reach || 0; let wristL = sh.clone().add(V(0.06, -0.445, 0.03).applyQuaternion(RQ));
     let pole2 = V(0.12, -0.05, -1).applyQuaternion(RQ), Qsc = null;
     if (r) { B.headC.updateMatrixWorld(true); const w = Math.sin(f.scr || 0), hcW = B.headC.getWorldPosition(V(0, 0, 0));
       // treat forearm + hand as one straight segment to the finger tips (no bent wrist), elbow swung down and out
@@ -668,15 +741,21 @@ const CharView = (() => {
       const pl = V(1, -0.7, -0.1).applyQuaternion(RQ), w0 = wristL.clone(), p0 = pole2.clone(); let wl = gL.clone(); QmL = new THREE.Quaternion(); pole2 = p0.clone().lerp(pl, w);
       for (let it = 0; it < 3; it++) { ik(B.uaL, B.faL, 0.245, 0.215, w0.clone().lerp(wl, w), pole2, false); const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(wl).normalize(), x = dd.clone().negate(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); QmL.setFromRotationMatrix(_m); wl = gL.clone().sub(PALM.clone().applyQuaternion(QmL)); }
       wristL = w0.lerp(wl, w); }
+    let gcl = null; if (wC > 0) { const pc = V(0.6, -1, -0.5).applyQuaternion(RQ); gcl = gripSolve(c, 'L', cT.L.o, cT.L.d, pc); wristL.lerp(gcl.wrist, wC); pole2.lerp(pc, wC); }
     if (f.sighDrop) wristL.y -= f.sighDrop * 0.015; ik(B.uaL, B.faL, 0.245, 0.215, wristL, pole2, false);
     { const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(B.hdL.getWorldPosition(V(0, 0, 0))).normalize(), z = V(1, 0, 0.18).applyQuaternion(RQ); z.addScaledVector(y, -z.dot(y)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(y, z), y, z);
-      const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, 0.06))); if (Qsc) Qr.slerp(Qsc, ss(0, 0.85, r)); if (QmL) Qr.slerp(QmL, f.mine.w);
+      const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, 0.06))); if (Qsc) Qr.slerp(Qsc, ss(0, 0.85, r)); if (QmL) Qr.slerp(QmL, f.mine.w); if (gcl) Qr.slerp(gcl.Q, wC);
       B.hdL.parent.getWorldQuaternion(_q2); B.hdL.quaternion.copy(_q2.invert().multiply(Qr)); }
     B.knL.rotation.x = lerp(0.32, 0.8 + 0.35 * Math.sin(f.scr || 0), r); B.tpL.rotation.x = lerp(0.42, 0.6 + 0.3 * Math.sin((f.scr || 0) + 1), r); B.thumbL.rotation.set(0.35, 0, 0.6);
-    const fist = Math.max(f.run ? f.run.w * 0.8 : 0, f.mine ? f.mine.w : 0); if (fist) { B.knL.rotation.x = lerp(B.knL.rotation.x, 1.3, fist); B.tpL.rotation.x = lerp(B.tpL.rotation.x, 1.25, fist); B.thumbL.rotation.set(lerp(0.35, 1.05, fist), 0, lerp(0.6, 0.35, fist)); } }
+    const fist = Math.max(f.run ? f.run.w * 0.8 : 0, f.mine ? f.mine.w : 0, wC); if (fist) { B.knL.rotation.x = lerp(B.knL.rotation.x, 1.3, fist); B.tpL.rotation.x = lerp(B.tpL.rotation.x, 1.25, fist); B.thumbL.rotation.set(lerp(0.35, 1.05, fist), 0, lerp(0.6, 0.35, fist)); }
+    if (c.built.climb) { B.hdL.updateMatrixWorld(true); placeT(c.built.climb.L, B.hdL, cT.L.o, cT.L.q); } }
+  // close a hand on a tool: palm on the grip point, hand x along the shaft (thumb toward the head: +d for the right hand, -d for the left), y back to the elbow
+  function gripSolve(c, k, gW, dW, pole) { const B = c.B, up = B['ua' + k], lo = B['fa' + k], x = dW.clone().multiplyScalar(k === 'R' ? 1 : -1), Q = new THREE.Quaternion(); let wr = gW.clone();
+    for (let it = 0; it < 3; it++) { ik(up, lo, 0.245, 0.215, wr, pole, false); const y = lo.getWorldPosition(V(0, 0, 0)).sub(wr).normalize(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); Q.setFromRotationMatrix(_m); wr = gW.clone().sub(PALM.clone().applyQuaternion(Q)); }
+    return { wrist: wr, Q }; }
 
   /* ---------- locomotion + work cycles ---------- */
-  const RUN_T = 0.62, MINE_T = 1.7, MINE_SPIKE = 1, MINE_GRIP = -0.255;
+  const STOW_T = 1.2, TOOL_T = 2.2, RUN_T = 0.62, MINE_T = 1.7, MINE_SPIKE = 1, MINE_GRIP = -0.255;
   // run foot path (character space) for a leg phase q in [0,1): stance 0-0.38 (heel strike > flat > toe push-off), then the swing (heel kick, knee drive, reach)
   function runFoot(q) { q = ((q % 1) + 1) % 1; if (q < 0.38) { const u = q / 0.38; return { z: lerp(0.13, -0.16, u), y: 0.08 + 0.01 * ss(0.6, 1, u), p: lerp(-0.22, 0.12, ss(0, 0.4, u)) + 0.5 * ss(0.65, 1, u) }; }
     const v = (q - 0.38) / 0.62; return { z: -0.16 - 0.05 * Math.sin(Math.PI * Math.min(1, v * 1.6)) + 0.34 * ss(0.12, 0.92, v), y: 0.08 + 0.23 * Math.pow(Math.sin(Math.PI * Math.pow(v, 0.75)), 1.2), p: lerp(0.62, -0.25, ss(0.05, 0.85, v)) }; }
@@ -711,15 +790,18 @@ const CharView = (() => {
   const FIDGETS = ['shift', 'scratch', 'tap', 'pick', 'glance', 'sigh'];
   const DUR = { shift: 3.4, scratch: 2.8, tap: 2.4, pick: 2.2, glance: 2.6, sigh: 2.6 };
   const an = { next: 3, blinkAt: 1.5, blink: 0, lookT: 0, look: [0, 0], lookTo: [0, 0], dartT: 0, dart: [0, 0], dartTo: [0, 0], fid: null, ft: 0, prev: null, last: '' };
-  function pickFidget(now) { const idle = now - st.lastInput > 20; let k; do k = FIDGETS[(Math.random() * FIDGETS.length) | 0]; while (k === an.last); an.last = k; an.fid = k; an.ft = 0; st.fidget = k; an.next = now + (idle ? 2.5 + Math.random() * 2.5 : 4 + Math.random() * 6) + DUR[k]; }
+  function pickFidget(now) { const idle = now - st.lastInput > 20; const L = st.tool === 'climb' || an.tau > 0 ? FIDGETS.filter((q) => q !== 'scratch' && q !== 'pick') : FIDGETS; let k; do k = L[(Math.random() * L.length) | 0]; while (k === an.last); an.last = k; an.fid = k; an.ft = 0; st.fidget = k; an.next = now + (idle ? 2.5 + Math.random() * 2.5 : 4 + Math.random() * 6) + DUR[k]; }
   function pend(o, ax, az, dt, k = 38, c = 4.5) { // damped pendulum driven by the parent's acceleration (character space)
     o.vx += (-k * o.ax - c * o.vx + ax) * dt; o.vz += (-k * o.az - c * o.vz + az) * dt; o.ax += o.vx * dt; o.az += o.vz * dt; o.ax = clamp(o.ax, -0.9, 0.9); o.az = clamp(o.az, -0.9, 0.9); }
   function animate(c, t, dt) { const { B } = c, f = {};
     // run / mine modes: ease in over ~0.25 s, and back out to idle before switching
-    const want = st.anim === 'run' || st.anim === 'mine' ? st.anim : null; if (want !== an.act) { an.mw = Math.max(0, (an.mw || 0) - dt / 0.22); if (an.mw <= 0 || !an.act) { an.act = want; an.at = 0; an.mw = 0; } } else if (an.act) an.mw = Math.min(1, (an.mw || 0) + dt / 0.25);
+    // equip timeline: tau runs 0 -> TOOL_T (stow the pickaxe on the back, draw the climbing picks) or back down (holster the picks, draw the pickaxe)
+    { const tg = st.tool === 'climb' ? TOOL_T : 0; if (an.tau === undefined) an.tau = tg; an.tau = an.tau < tg ? Math.min(tg, an.tau + dt) : Math.max(tg, an.tau - dt); st.toolPh = an.tau; }
+    const switching = an.tau !== (st.tool === 'climb' ? TOOL_T : 0); if (switching && an.fid) { an.fid = null; st.fidget = null; an.next = t + 3; }
+    const want = st.anim === 'run' || (st.anim === 'mine' && an.tau === 0) ? st.anim : null; if (want !== an.act) { an.mw = Math.max(0, (an.mw || 0) - dt / 0.22); if (an.mw <= 0 || !an.act) { an.act = want; an.at = 0; an.mw = 0; } } else if (an.act) an.mw = Math.min(1, (an.mw || 0) + dt / 0.25);
     const mw = an.act ? ss(0, 1, an.mw) : 0; if (an.act) { an.at += dt; if (an.fid) { an.fid = null; st.fidget = null; } an.next = t + 4; }
     const fid = an.fid, u = fid ? an.ft / DUR[fid] : 0, env = fid ? ss(0, 0.18, u) * ss(1, 0.78, u) : 0;
-    if (fid) { an.ft += dt; if (an.ft >= DUR[fid]) { an.fid = null; st.fidget = null; } } if (t > an.next && !an.fid && !st.calm && !an.act) pickFidget(t);
+    if (fid) { an.ft += dt; if (an.ft >= DUR[fid]) { an.fid = null; st.fidget = null; } } if (t > an.next && !an.fid && !st.calm && !an.act && !switching) pickFidget(t);
     // idle layers
     const br = Math.sin(t * 2 * Math.PI / 3.6), sway = Math.sin(t * 0.55), sway2 = Math.sin(t * 0.37 + 1);
     let hx = 0.008 * sway, hy = 0, hz = 0.012 * sway2, hrz = -0.018 * sway, cx = 0.018 * br, crz = 0.014 * sway, cry = 0, nrx = 0, hry = 0, hrx = 0, hrzH = 0, shY = 0.004 * br, pickRx = 0, pickY = 0, smile = 0;
@@ -743,6 +825,9 @@ const CharView = (() => {
     if (an.act === 'mine') { const um = (an.at / MINE_T) % 1, k = mineKey(um), w = mw; f.mine = Object.assign(k, { w, u: um }); st.minePh = um;
       if (an.mu !== undefined && an.mu < 0.52 && um >= 0.52 && w > 0.9) an.hit = true; an.mu = um;
       leanS += w * k.lean * 0.45; cx += w * k.lean * 0.55; hy -= w * k.drop; hz += w * (k.hz - k.drop * 0.4); cry += w * k.tw; hipY += w * k.tw * 0.45; hrx += w * (k.hp - k.lean * 0.6); nrx += w * k.hp * 0.3; }
+    // equip body motion: look over the right shoulder and turn into the stow, then dip and glance down to the belt while drawing the climbing picks
+    { const tau = an.tau; f.tau = tau; const e1 = Math.sin(Math.PI * clamp(tau / STOW_T, 0, 1)), e2 = Math.sin(Math.PI * clamp((tau - STOW_T) / (TOOL_T - STOW_T), 0, 1)), e3 = ss(0, 0.5, clamp(tau / STOW_T, 0, 1)) * (1 - ss(0.5, 1, clamp(tau / STOW_T, 0, 1)));
+      hry -= 0.4 * e1; cry -= 0.16 * e1; crz += 0.05 * e1; shY += 0.015 * e3; hy -= 0.03 * e2; cx += 0.09 * e2; hrx += 0.22 * e2; hz -= 0.01 * e2; }
     if (fid === 'sigh') { const s1 = Math.sin(Math.PI * ss(0.05, 0.45, u)), s2 = Math.sin(Math.PI * ss(0.4, 0.95, u)); cx += 0.085 * s1 - 0.08 * s2; shY += 0.03 * s1 - 0.04 * s2; nrx += 0.14 * s2; hrx += 0.15 * s2; hy -= 0.012 * s2; f.sighDrop = s2; }
     // apply: hips, spine, chest, neck, head
     const E = (k, x, y, z) => { B[k].quaternion.copy(c.restQ[k]).multiply(_q.setFromEuler(new THREE.Euler(x, y, z))); };
@@ -757,7 +842,7 @@ const CharView = (() => {
     if (t > an.blinkAt) { an.blink = 0.0001; an.blinkAt = t + 2 + Math.random() * 3.8; if (Math.random() < 0.2) an.dbl = true; }
     let lid = 1; if (an.blink > 0) { an.blink += dt; const b = an.blink / 0.16; lid = b < 0.5 ? 1 - b * 2 : (b - 0.5) * 2; if (b >= 1) { an.blink = an.dbl ? -0.12 : 0; an.dbl = false; } } else if (an.blink < 0) { an.blink += dt; if (an.blink >= 0) an.blink = 0.0001; }
     if (fid === 'sigh') lid = Math.min(lid, 1 - 0.85 * Math.sin(Math.PI * ss(0.45, 0.85, u))); setFace(built, clamp(1 - lid, 0, 1)); if (built.face) built.face.uD.value.set(an.dart[0], an.dart[1]);
-    updatePickFx(built.pick, t); if (showPick) updatePickFx(showPick, t); for (const tg of built.tethers || []) updatePickFx(tg.grp, t);
+    updatePickFx(built.pick, t); if (built.climb) { updatePickFx(built.climb.R, t); updatePickFx(built.climb.L, t); } if (showPick) for (const sp of showPick.userData.all || [showPick]) updatePickFx(sp, t); for (const tg of built.tethers || []) updatePickFx(tg.grp, t);
     // secondary motion: braid, rope and lantern swing with inertia (driven by their anchors' acceleration)
     c.root.updateMatrixWorld(true); const sec = (o, anchor, gain, k, cdamp) => { const p = anchor.getWorldPosition(V(0, 0, 0)); c.root.worldToLocal(p); if (!o.p) { o.p = p.clone(); o.v = V(0, 0, 0); }
       const v = p.clone().sub(o.p).divideScalar(Math.max(dt, 1e-3)), a = v.clone().sub(o.v).divideScalar(Math.max(dt, 1e-3)); o.p.copy(p); o.v.copy(v); a.clampLength(0, 30); pend(o, a.z * gain + (st.yawV || 0) * 0.0, -a.x * gain, dt, k, cdamp); };
@@ -787,14 +872,18 @@ const CharView = (() => {
   // showcase: one pickaxe alone on the stage (for previews / screenshots)
   let showPick = null;
   function showcase(g, rz = 0.55) { if (showPick) { scene.remove(showPick.parent); showPick = null; } if (rig) rig.root.visible = !g; if (!g) return; const grp = new THREE.Group(), pk = makePickaxe(g); grp.add(pk); pk.rotation.z = rz; grp.position.set(Math.sin(rz) * 0.68, 1.16 - Math.cos(rz) * 0.68, 0); scene.add(grp); showPick = pk; }
+  function showcaseClimb(g) { if (showPick) { scene.remove(showPick.parent); showPick = null; } if (rig) rig.root.visible = !g; if (!g) return; const grp = new THREE.Group(); for (const s of [-1, 1]) { const t = makeClimbPick(g); t.position.set(s * 0.15 - 0.05, 0, s * 0.02); t.rotation.set(0, s * 0.25, 0); grp.add(t); } grp.scale.setScalar(1.45); grp.position.set(0, 0.68, 0); scene.add(grp); showPick = grp.children[0]; showPick.userData.all = grp.children; }
   function showcaseTether(g) { if (showPick) { scene.remove(showPick.parent); showPick = null; } if (rig) rig.root.visible = !g; if (!g) return; const grp = new THREE.Group(), t = makeTether(g, { R: 0.1, n: 6, dr: 0.004, tr: 0.016, dz: 0.011, sy: 1.25 }); grp.add(t); t.rotation.set(0.15, 0.45, 0); grp.position.set(0, 1.3, 0); scene.add(grp); showPick = t; }
   // swap the pickaxe module in the right hand (keeps its current pose)
   function setPick(g) { if (!rig) return; const b = rig.built, old = b.pick; b.pick = makePickaxe(g); b.pick.position.copy(old.position); b.pick.quaternion.copy(old.quaternion); old.parent.add(b.pick); old.parent.remove(old); old.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); markPick(); }
   function setTether(g) { if (!rig) return; for (const tg of rig.built.tethers || []) mountTether(tg, g); markPick(); }
-  function setAnim(k) { st.anim = k === 'run' || k === 'mine' ? k : 'idle'; document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', b.dataset.anim === st.anim)); }
+  // equip: 'pick' (pickaxe in hand) or 'climb' (the climbing picks, one per hand); the switch animates through an.tau
+  function setTool(k, quiet) { st.tool = k === 'climb' ? 'climb' : 'pick'; if (!quiet && typeof S !== 'undefined' && S) { S.toolMode = st.tool; if (typeof save === 'function') save(); } document.querySelectorAll('#charEquip [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === st.tool)); }
+  function setClimb(g) { if (!rig) return; const b = rig.built; for (const k of ['R', 'L']) { const old = b.climb[k], nw = makeClimbPick(g); nw.position.copy(old.position); nw.quaternion.copy(old.quaternion); old.parent.add(nw); old.parent.remove(old); old.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); b.climb[k] = nw; } markPick(); }
+  function setAnim(k) { st.anim = k === 'run' || k === 'mine' ? k : 'idle'; if (st.anim === 'mine' && st.tool === 'climb') setTool('pick'); document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', b.dataset.anim === st.anim)); }
   let gear = 'pick';
-  function markPick() { const cp = document.getElementById('charPick'); if (!cp) return; const T = gear === 'pick' ? GRADES : TGRADES, cur = gear === 'pick' ? (rig ? rig.built.pick.userData.grade : S.pickGrade) : (rig && rig.built.tethers ? rig.built.tethers[0].grp.userData.grade : S.tetherGrade || 'regular');
-    cp.innerHTML = `<span class="gear" role="tablist"><button data-gear="pick" title="Pickaxe" aria-label="Pickaxe" class="${gear === 'pick' ? 'on' : ''}">⛏️</button><button data-gear="tether" title="Tether" aria-label="Tether" class="${gear === 'tether' ? 'on' : ''}">🪢</button></span>` + Object.entries(T).map(([k, G]) => `<button data-grade="${k}" title="${G.name}" class="${k === cur ? 'on' : ''}"><i style="background:${hex(G.chip || (G.runes ? G.glow : G.head))}"></i><span>${G.name}</span></button>`).join(''); }
+  function markPick() { const cp = document.getElementById('charPick'); if (!cp) return; const T = gear === 'pick' ? GRADES : gear === 'climb' ? CGRADES : TGRADES, cur = gear === 'pick' ? (rig ? rig.built.pick.userData.grade : S.pickGrade) : gear === 'climb' ? (rig && rig.built.climb ? rig.built.climb.R.userData.grade : S.climbGrade || 'stone') : (rig && rig.built.tethers ? rig.built.tethers[0].grp.userData.grade : S.tetherGrade || 'regular');
+    cp.innerHTML = `<span class="gear" role="tablist"><button data-gear="pick" title="Pickaxe" aria-label="Pickaxe" class="${gear === 'pick' ? 'on' : ''}">⛏️</button><button data-gear="tether" title="Tether" aria-label="Tether" class="${gear === 'tether' ? 'on' : ''}">🪢</button><button data-gear="climb" title="Climbing Picks" aria-label="Climbing Picks" class="${gear === 'climb' ? 'on' : ''}">🧗</button></span>` + Object.entries(T).map(([k, G]) => `<button data-grade="${k}" title="${G.name}" class="${k === cur ? 'on' : ''}"><i style="background:${hex(G.chip || (G.runes ? G.glow : G.head))}"></i><span>${G.name}</span></button>`).join(''); }
   function bindInput() { const pts = new Map(); let pinch0 = 0, dist0 = 0;
     canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); st.lastInput = clk; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = st.dist; } });
     canvas.addEventListener('pointermove', (e) => { if (!pts.has(e.pointerId)) return; const pr = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); st.lastInput = clk;
@@ -802,7 +891,8 @@ const CharView = (() => {
     const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
     canvas.addEventListener('wheel', (e) => { e.preventDefault(); st.dist = clamp(st.dist * Math.exp(e.deltaY * 0.0012), 2.0, 5.6); st.lastInput = clk; }, { passive: false });
     const cp = document.getElementById('charPick'); if (cp) { markPick();
-      cp.addEventListener('click', (e) => { const gb = e.target.closest('[data-gear]'); if (gb) { gear = gb.dataset.gear; markPick(); return; } const b = e.target.closest('[data-grade]'); if (!b) return; if (gear === 'pick') { S.pickGrade = b.dataset.grade; setPick(S.pickGrade); } else { S.tetherGrade = b.dataset.grade; setTether(S.tetherGrade); } if (typeof save === 'function') save(); st.lastInput = clk; }); }
+      cp.addEventListener('click', (e) => { const gb = e.target.closest('[data-gear]'); if (gb) { gear = gb.dataset.gear; markPick(); return; } const b = e.target.closest('[data-grade]'); if (!b) return; if (gear === 'pick') { S.pickGrade = b.dataset.grade; setPick(S.pickGrade); } else if (gear === 'climb') { S.climbGrade = b.dataset.grade; setClimb(S.climbGrade); } else { S.tetherGrade = b.dataset.grade; setTether(S.tetherGrade); } if (typeof save === 'function') save(); st.lastInput = clk; }); }
+    const ce = document.getElementById('charEquip'); if (ce) ce.addEventListener('click', (e) => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); st.lastInput = clk; });
     const ca = document.getElementById('charAnim'); if (ca) ca.addEventListener('click', (e) => { const b = e.target.closest('[data-anim]'); if (b) setAnim(b.dataset.anim); st.lastInput = clk; });
     document.getElementById('charSex').addEventListener('click', (e) => { const b = e.target.closest('[data-sex]'); if (!b) return; S.charSex = b.dataset.sex; setChar(S.charSex); if (typeof save === 'function') save(); st.lastInput = clk; });
     document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else if (st.visible) start(); }); }
@@ -818,8 +908,8 @@ const CharView = (() => {
   function renderAt(dt) { clk += dt; step(dt); }
   function start() { if (running || !st.ok) return; running = true; tPrev = 0; resize(); raf = requestAnimationFrame(frame); }
   function stop() { running = false; cancelAnimationFrame(raf); }
-  function show() { wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; setChar(sex); resize(); start(); }
+  function show() { wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; if (st.tool === undefined) { st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.tau = st.tool === 'climb' ? TOOL_T : 0; setTool(st.tool, true); } setChar(sex); resize(); start(); }
   function hide() { const w = document.getElementById('charWrap'); if (w) w.classList.add('hidden'); st.visible = false; stop(); }
   window.addEventListener('resize', () => { if (running) resize(); });
-  return { show, hide, st, get rig() { return rig; }, setPick, setTether, setAnim, TGRADES, makeTether, showcase, showcaseTether, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, an };
+  return { show, hide, st, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, an };
 })();
