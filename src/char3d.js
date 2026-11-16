@@ -493,11 +493,11 @@ const CharView = (() => {
   /* ---------- concept-projected head: a head sculpted to the sheet's front + side silhouettes, textured by projecting the concept art itself ---------- */
   // tables [y, half-width W, front depth Zf, back depth Zb] (head-local metres) measured from the front and side views; nose / lip bumps from the side profile
   const HEADS = {
-    m: { K: 0.0023, xref: 730.4, rows: [[0.132, 0, -0.012, -0.012], [0.12, 0.058, 0.05, -0.078], [0.1, 0.086, 0.078, -0.106], [0.07, 0.102, 0.095, -0.12], [0.04, 0.107, 0.102, -0.125], [0.01, 0.107, 0.103, -0.124], [-0.015, 0.105, 0.1, -0.121], [-0.03, 0.102, 0.097, -0.117], [-0.045, 0.098, 0.091, -0.108], [-0.053, 0.095, 0.092, -0.096], [-0.062, 0.09, 0.093, -0.068], [-0.08, 0.082, 0.095, -0.036], [-0.095, 0.073, 0.092, -0.018], [-0.11, 0.059, 0.083, -0.004], [-0.122, 0.046, 0.077, 0.012], [-0.132, 0.032, 0.075, 0.032], [-0.14, 0.018, 0.073, 0.054], [-0.147, 0, 0.07, 0.07]],
-      nose: [[-0.035, 0], [-0.045, 0.003], [-0.055, 0.009], [-0.063, 0.017], [-0.068, 0.021], [-0.073, 0.015], [-0.079, 0.005], [-0.084, 0]], lips: [-0.094, 0.0045], ear: [-0.044, -0.05],
+    m: { K: 0.0023, xref: 730.4, rows: [[0.132, 0, -0.012, -0.012], [0.12, 0.058, 0.05, -0.078], [0.1, 0.086, 0.078, -0.106], [0.07, 0.102, 0.095, -0.12], [0.04, 0.107, 0.102, -0.125], [0.01, 0.107, 0.103, -0.124], [-0.015, 0.105, 0.1, -0.121], [-0.03, 0.102, 0.097, -0.117], [-0.045, 0.098, 0.091, -0.108], [-0.053, 0.095, 0.092, -0.096], [-0.062, 0.09, 0.093, -0.068], [-0.08, 0.082, 0.095, -0.036], [-0.095, 0.073, 0.092, -0.018], [-0.11, 0.059, 0.087, -0.004], [-0.122, 0.046, 0.083, 0.012], [-0.132, 0.032, 0.078, 0.032], [-0.14, 0.018, 0.072, 0.052], [-0.147, 0, 0.066, 0.066]],
+      nose: [[-0.022, 0], [-0.032, 0.0025], [-0.045, 0.0055], [-0.055, 0.011], [-0.063, 0.0195], [-0.068, 0.024], [-0.073, 0.0165], [-0.079, 0.005], [-0.084, 0]], lips: [-0.094, 0.0062], relief: { eye: [0.05, -0.026], ck: 1 }, ear: [-0.044, -0.05],
       eyesF: [[-32.6, -14.1, -7.3, 3.4], [14.2, 33.4, -7.8, 3.6]], pe: 120, skin: '#d2a87f' },
     f: { K: 0.0023, xref: 730.4, rows: [[0.132, 0, -0.012, -0.012], [0.12, 0.058, 0.05, -0.078], [0.1, 0.085, 0.078, -0.106], [0.07, 0.1, 0.095, -0.12], [0.04, 0.106, 0.103, -0.125], [0.01, 0.106, 0.104, -0.124], [-0.015, 0.104, 0.1, -0.121], [-0.03, 0.101, 0.096, -0.117], [-0.045, 0.097, 0.097, -0.108], [-0.053, 0.094, 0.098, -0.096], [-0.065, 0.087, 0.099, -0.064], [-0.085, 0.077, 0.104, -0.028], [-0.1, 0.067, 0.1, -0.005], [-0.114, 0.052, 0.092, 0.02], [-0.128, 0.034, 0.087, 0.048], [-0.137, 0.02, 0.084, 0.068], [-0.144, 0.009, 0.082, 0.077], [-0.149, 0, 0.08, 0.08]],
-      nose: [[-0.033, 0], [-0.043, 0.003], [-0.053, 0.008], [-0.061, 0.015], [-0.066, 0.018], [-0.071, 0.012], [-0.077, 0.004], [-0.082, 0]], lips: [-0.088, 0.004], ear: [-0.047, -0.052],
+      nose: [[-0.022, 0], [-0.032, 0.002], [-0.043, 0.0045], [-0.053, 0.0095], [-0.061, 0.0165], [-0.066, 0.02], [-0.071, 0.0135], [-0.077, 0.004], [-0.082, 0]], lips: [-0.088, 0.0055], relief: { eye: [0.053, -0.028], ck: 0.8 }, ear: [-0.047, -0.052],
       eyesF: [[-40.6, -16.5, -8.8, 11], [14.4, 35.5, -11.3, 7.6]], pe: 179.4, skin: '#d6a784' } };
   // body skin (neck, hands, legs): the face atlas's median skin with the same tint, Lambert lighting and emissive lift as the projected head, so there is no tone step at the jaw
   // soft anime shading on skin: a gentle, wide gradient away from the key light (far cheek, under the chin), on top of the flat concept colour;
@@ -529,8 +529,9 @@ const CharView = (() => {
     return (2 * t3 - 3 * t2 + 1) * p1[k] + (t3 - 2 * t2 + t) * m1 + (-2 * t3 + 3 * t2) * p2[k] + (t3 - t2) * m2; };
   function headGeo(F) { const H = HEADS[F ? 'f' : 'm'], R = H.rows, NR = 84, NC = 96, y0 = R[0][0], y1 = R[R.length - 1][0], pos = [], col = [], uv = [], idx = [];
     for (let i = 0; i <= NR; i++) { const t = i / NR, y = lerp(y0, y1, t), W = tab(R, y, 1), Zf = tab(R, y, 2), Zb = tab(R, y, 3), zc = (Zf + Zb) / 2, nb = tab(H.nose, y, 1), lp = H.lips[1] * Math.exp(-(((y - H.lips[0]) / 0.006) ** 2));
-      for (let j = 0; j <= NC; j++) { const th = -Math.PI + j / NC * TAU, s = Math.sin(th), c = Math.cos(th), pf = c > 0 ? 2.6 : 2.2, x = W * Math.sign(s) * Math.pow(Math.abs(s), 2 / pf);
+      for (let j = 0; j <= NC; j++) { const th = -Math.PI + j / NC * TAU, s = Math.sin(th), c = Math.cos(th), pf = c > 0 ? 2.6 - 0.32 * ss(0.02, -0.01, y) * ss(-0.1, -0.06, y) : 2.2, x = W * Math.sign(s) * Math.pow(Math.abs(s), 2 / pf);
         let z = c > 0 ? zc + (Zf - zc) * Math.pow(c, 2 / pf) : zc - (zc - Zb) * Math.pow(-c, 2 / pf);
+        if (c > 0) { const rl = H.relief, ax = Math.abs(x), ec = rl.eye; z += c * (-0.006 * Math.exp(-(((ax - ec[0]) / 0.021) ** 2 + ((y - ec[1]) / 0.015) ** 2)) + 0.0026 * Math.exp(-(((ax - ec[0] + 0.008) / 0.03) ** 2 + ((y - ec[1] - 0.027) / 0.008) ** 2)) + 0.0032 * rl.ck * Math.exp(-(((ax - 0.07) / 0.02) ** 2 + ((y - ec[1] + 0.03) / 0.018) ** 2))); }
         if (c > 0) z += nb * Math.exp(-((x / (0.0065 + 0.004 * ss(-0.045, -0.068, y))) ** 2)) + lp * Math.exp(-((x / 0.014) ** 2));
         pos.push(x, y, z); uv.push(j / NC, 1 - t); const m = 1 - 0.08 * ss(0.0, -0.1, z) * ss(-0.08, -0.02, y); col.push(m, m, m); } }
     for (let i = 0; i < NR; i++) for (let j = 0; j < NC; j++) { const a = i * (NC + 1) + j, b = a + NC + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); }
@@ -554,7 +555,7 @@ const CharView = (() => {
         // fixed on the surface (no view dependence): front projection, the side projection past |n.x| 0.8 and under the jaw
         'vec3 nn = normalize(vON); float ws = ' + (ear ? '1.0' : 'max(smoothstep(0.8, 0.85, abs(nn.x)), smoothstep(-0.3, -0.36, nn.z))') + ';',
         'vec4 hc = mix(texture2D(map, uF), texture2D(map, uS), ws);',
-        shell ? 'hc.a *= smoothstep(-0.5, -0.28, nn.y); diffuseColor *= hc;' : 'diffuseColor.rgb *= hc.rgb * vec3(' + SKTINT.join(', ') + ');'].join('\n')).replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + TONE2('1.0', SKMASK) + '0.2;'); };
+        shell ? 'hc.a *= smoothstep(-0.5, -0.28, nn.y); diffuseColor *= hc;' : 'diffuseColor.rgb *= hc.rgb * vec3(' + SKTINT.join(', ') + ') * (1.0 - 0.075 * (1.0 - smoothstep(0.12, 0.62, normalize(vNormal).z)));'].join('\n')).replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n' + TONE2('1.0', SKMASK) + '0.2;'); };
     m.customProgramCacheKey = () => 'headproj4' + (F ? 'f' : 'm') + (shell ? 's' : '') + (ear ? 'e' : ''); return m; }
   // hair shell: the head pushed out along its normals, showing only the concept's hair pixels (alpha mask), so painted hair gets real volume
   function hairShell(g, F) { const s = g.clone(), P = s.attributes.position, N = s.attributes.normal; for (let i = 0; i < P.count; i++) { const y = P.getY(i), d = 0.006 + 0.008 * ss(0.0, 0.08, y) + 0.004 * ss(0.0, -0.1, P.getZ(i)); P.setXYZ(i, P.getX(i) + N.getX(i) * d, y + N.getY(i) * d, P.getZ(i) + N.getZ(i) * d); }
