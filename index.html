@@ -5596,12 +5596,22 @@ const CharView = (() => {
     B.hdR.parent.getWorldQuaternion(_q2); B.hdR.quaternion.copy(_q2.invert().multiply(Qh)); B.hdR.updateMatrixWorld(true);
     const pk = c.built.pick; pk.position.copy(B.hdR.worldToLocal(grip.clone().addScaledVector(d, -(c.gripAt || 0)))); pk.quaternion.copy(Qh.clone().invert().multiply(Qm));
     B.knR.rotation.x = 1.3; B.tpR.rotation.x = 1.25; B.thumbR.rotation.set(1.05, 0, -0.35);
-    // left arm: hangs relaxed, or reaches for the cheek when scratching
-    const sh = B.shL.getWorldPosition(V(0, 0, 0)); let hand = sh.clone().add(V(0.07, -0.43, 0.06).applyQuaternion(root.quaternion)); const pole2 = V(0.3, 0, -1).applyQuaternion(root.quaternion);
-    if (f.reach) { const cheek = B.headC.localToWorld(V(0.085, -0.055, 0.075 + 0.014 * Math.sin(f.scr || 0))); hand = hand.lerp(cheek.add(V(0.0, -0.06, 0.03)), f.reach); }
-    if (f.sighDrop) hand.y -= f.sighDrop * 0.015; ik(B.uaL, B.faL, 0.245, 0.215, hand, pole2.add(V(0.4, -0.3, 0)), false);
-    { B.hdL.parent.getWorldQuaternion(_q2); _q.copy(B.faL.getWorldQuaternion(new THREE.Quaternion())).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(f.reach ? -0.9 * f.reach + Math.sin(f.scr || 0) * 0.3 * f.reach : 0.1, -0.5, 0.05))); B.hdL.quaternion.copy(_q2.invert().multiply(_q)); }
-    const r = f.reach || 0; B.knL.rotation.x = lerp(0.32, 0.8 + 0.35 * Math.sin(f.scr || 0), r); B.tpL.rotation.x = lerp(0.42, 0.6 + 0.3 * Math.sin((f.scr || 0) + 1), r); B.thumbL.rotation.set(0.35, 0, 0.6); }
+    // left arm: hangs relaxed (palm toward the thigh, thumb forward, elbow straight back so the upper arm has no twist), or reaches up so the
+    // finger tips scratch the cheek (elbow swinging down and out, palm toward the face). Hand frame: -y = finger direction, +z = the back of the hand.
+    const sh = B.shL.getWorldPosition(V(0, 0, 0)), RQ = root.quaternion, r = f.reach || 0; let wristL = sh.clone().add(V(0.06, -0.445, 0.03).applyQuaternion(RQ));
+    let pole2 = V(0.12, -0.05, -1).applyQuaternion(RQ), Qsc = null;
+    if (r) { B.headC.updateMatrixWorld(true); const w = Math.sin(f.scr || 0), hcW = B.headC.getWorldPosition(V(0, 0, 0));
+      // treat forearm + hand as one straight segment to the finger tips (no bent wrist), elbow swung down and out
+      const tip = B.headC.localToWorld(V(0.084, -0.066 + 0.007 * w, 0.06)), Lf = 0.215 + 0.1, S = sh.clone(), D = tip.clone().sub(S), dd = clamp(D.length(), 0.05, (0.245 + Lf) * 0.999), dir = D.normalize();
+      const pp = V(1.1, -1.0, 0.25).applyQuaternion(RQ), pn = pp.addScaledVector(dir, -pp.dot(dir)).normalize(), cA = clamp((0.245 * 0.245 + dd * dd - Lf * Lf) / (2 * 0.245 * dd), -1, 1);
+      const E = S.clone().addScaledVector(dir, 0.245 * cA).addScaledVector(pn, 0.245 * Math.sqrt(1 - cA * cA)), fd = tip.clone().sub(E).normalize(), ws = E.clone().addScaledVector(fd, 0.215 + 0.008 * w);
+      wristL.lerp(ws, r); pole2.lerp(E.clone().sub(S.clone().lerp(ws, 0.5)), r);
+      const yv = fd.clone().negate(), zv = ws.clone().sub(hcW); zv.addScaledVector(yv, -zv.dot(yv)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(yv, zv), yv, zv); Qsc = new THREE.Quaternion().setFromRotationMatrix(_m); }
+    if (f.sighDrop) wristL.y -= f.sighDrop * 0.015; ik(B.uaL, B.faL, 0.245, 0.215, wristL, pole2, false);
+    { const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(B.hdL.getWorldPosition(V(0, 0, 0))).normalize(), z = V(1, 0, 0.18).applyQuaternion(RQ); z.addScaledVector(y, -z.dot(y)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(y, z), y, z);
+      const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, 0.06))); if (Qsc) Qr.slerp(Qsc, ss(0, 0.85, r));
+      B.hdL.parent.getWorldQuaternion(_q2); B.hdL.quaternion.copy(_q2.invert().multiply(Qr)); }
+    B.knL.rotation.x = lerp(0.32, 0.8 + 0.35 * Math.sin(f.scr || 0), r); B.tpL.rotation.x = lerp(0.42, 0.6 + 0.3 * Math.sin((f.scr || 0) + 1), r); B.thumbL.rotation.set(0.35, 0, 0.6); }
 
   /* ---------- animation: layered idle + fidgets + secondary motion ---------- */
   const FIDGETS = ['shift', 'scratch', 'tap', 'pick', 'glance', 'sigh'];
