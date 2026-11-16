@@ -165,14 +165,28 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     { const pad = await p.evaluate(() => !document.getElementById('charClimb').classList.contains('off') && document.querySelectorAll('#charClimb [data-dir]').length);
       const x0 = await p.evaluate(() => CharView.st.climbPos.x); await p.click('#charClimb [data-dir=l]');
       await p.waitForFunction((x0) => CharView.st.climbPos.x > x0 + 0.12, x0, { timeout: 45000 }).catch(() => {});
-      const lt = await p.evaluate(() => ({ x: +CharView.st.climbPos.x.toFixed(2), y: +CharView.st.climbPos.y.toFixed(2), dir: CharView.st.climbDir, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
+      const lt = await p.evaluate(() => ({ x: +CharView.st.climbPos.x.toFixed(3), y: +CharView.st.climbPos.y.toFixed(2), dir: CharView.st.climbDir, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
       ok(pad >= 9 && lt.x > x0 + 0.12 && lt.dir === 'l' && lt.on === 'l', 'Climb direction pad: Left traverses the climber across the wall (' + JSON.stringify({ pad, x0: +x0.toFixed(2), ...lt }) + ')');
       await p.click('#charClimb [data-dir=auto]'); await p.waitForTimeout(300);
       const au = await p.evaluate(() => ({ auto: !!CharView.st.climbAuto, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
       ok(au.auto && au.on === 'auto', 'Climb Auto button starts the wander demo (' + JSON.stringify(au) + ')'); 
       await p.click('#charClimb [data-dir=d]'); await p.waitForFunction(() => CharView.st.climbBlk === 'bottom', null, { timeout: 45000 }).catch(() => {});
       const gb = await p.evaluate(() => ({ blk: CharView.st.climbBlk, note: document.querySelector('#charClimb .cnote').textContent, red: !!document.querySelector('#charClimb [data-dir=d].blk'), y: +CharView.st.climbPos.y.toFixed(2) }));
-      ok(gb.blk === 'bottom' && gb.note === 'Ground reached' && gb.red, 'Climbing Down at the foot of the wall shows "Ground reached" and marks the button (' + JSON.stringify(gb) + ')'); }
+      ok(gb.blk === 'bottom' && gb.note === 'Ground reached' && gb.red, 'Climbing Down at the foot of the wall shows "Ground reached" and marks the button (' + JSON.stringify(gb) + ')'); 
+      // Tether: anchor pin + clip, rappel down in hops, winch back up, coil, back on the picks
+      await p.click('#charClimb [data-dir=u]'); await p.waitForFunction(() => CharView.st.climbPos.y > 0.6, null, { timeout: 45000 }).catch(() => {});
+      await p.click('#charClimb [data-tv=anchor]'); await p.waitForFunction(() => CharView.st.tvK === 'anchored', null, { timeout: 45000 }).catch(() => {});
+      const an1 = await p.evaluate(() => ({ k: CharView.st.tvK, pin: CharView.rig.wall.userData.pin && CharView.rig.wall.userData.pin.visible, rope: CharView.rig.wall.userData.ropes && CharView.rig.wall.userData.ropes[0].visible, y: +CharView.st.climbPos.y.toFixed(2), on: !!document.querySelector('#charClimb [data-tv=anchor].on') }));
+      ok(an1.k === 'anchored' && an1.pin && an1.rope && an1.on, 'Tether Anchor drives a pin into the wall and clips the Tether to it (' + JSON.stringify(an1) + ')');
+      await p.click('#charClimb [data-tv=rappel]'); await p.waitForFunction((y0) => CharView.st.tvK === 'rappel' && CharView.st.climbPos.y < y0 - 0.25, an1.y, { timeout: 45000 }).catch(() => {});
+      const rp = await p.evaluate(() => ({ k: CharView.st.tvK, y: +CharView.st.climbPos.y.toFixed(2), held: CharView.an.eq.held, rope: CharView.rig.wall.userData.ropes[0].visible }));
+      ok(/rappel|hang/.test(rp.k) && rp.y < an1.y - 0.25 && rp.held === 'none' && rp.rope, 'Rappel stows the picks and drops down the wall on the Tether (' + JSON.stringify(rp) + ')');
+      await p.waitForFunction(() => CharView.st.tvK === 'hang', null, { timeout: 45000 }).catch(() => {}); await p.click('#charClimb [data-tv=ascend]');
+      await p.waitForFunction(() => CharView.st.tvK === 'ascend' && CharView.rig.built.winch.visible, null, { timeout: 45000 }).catch(() => {});
+      const as = await p.evaluate(() => ({ k: CharView.st.tvK, winch: CharView.rig.built.winch.visible }));
+      await p.waitForFunction(() => !CharView.an.tv && CharView.an.eq.held === 'climb' && !CharView.an.eq.seq, null, { timeout: 45000 }).catch(() => {});
+      const bk2 = await p.evaluate(() => ({ tv: CharView.an.tv, held: CharView.an.eq.held, y: +CharView.st.climbPos.y.toFixed(2), pin: CharView.rig.wall.userData.pin.visible, winch: CharView.rig.built.winch.visible, act: CharView.an.act }));
+      ok(as.k === 'ascend' && as.winch && bk2.tv === null && bk2.held === 'climb' && bk2.y > rp.y && !bk2.pin && !bk2.winch && bk2.act === 'climb', 'Ascend winches back up to the anchor, then unclips, coils the Tether and returns to the picks (' + JSON.stringify({ as, ...bk2 }) + ')'); }
     await p.click('#charEquip [data-tool=pick]'); await p.waitForFunction(() => CharView.st.toolPh === 0, null, { timeout: 45000 }).catch(() => {});
     const bk = await p.evaluate(() => ({ a: CharView.st.anim, s: S.toolMode, wall: CharView.rig.wall.visible })); ok(bk.a === 'idle' && bk.s === 'pick' && !bk.wall, 'switching back to the Pickaxe ends the climb (' + JSON.stringify(bk) + ')');
     await p.click('#charAnim [data-anim=idle]'); await p.waitForTimeout(200); }

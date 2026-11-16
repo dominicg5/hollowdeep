@@ -153,7 +153,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 #charPick{position:absolute;bottom:30px;left:0;right:0;display:flex;justify-content:center;gap:4px;flex-wrap:nowrap;padding:0 6px}#charPick .gear{display:flex;gap:1px;margin-right:3px;background:rgba(74,46,26,.18);border-radius:15px;padding:2px}#charPick .gear button{padding:3px 6px;font-size:12px;box-shadow:none;background:transparent}#charPick .gear button.on{background:rgba(255,246,230,.95)}#charPick button span{display:none}#charPick button.on span{display:inline}#charPick button{border:0;background:rgba(255,246,230,.75);color:#4a2e1a;font:600 11px system-ui;padding:5px 6px 5px 6px;border-radius:14px;display:flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 1px 2px rgba(74,46,26,.25)}#charPick button i{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}#charPick button.on{background:#4a2e1a;color:#ffe9c4}
 #charAnim{position:absolute;top:48px;right:12px;display:flex;background:rgba(74,46,26,.18);border-radius:18px;padding:3px}#charAnim button{border:0;background:none;color:#4a2e1a;font:600 12px system-ui;padding:5px 11px;border-radius:15px;cursor:pointer}#charAnim button.on{background:#4a2e1a;color:#ffe9c4}
 #charEquip{position:absolute;top:84px;right:12px;display:flex;background:rgba(74,46,26,.18);border-radius:18px;padding:3px}#charEquip button{border:0;background:none;color:#4a2e1a;font:600 12px system-ui;padding:5px 11px;border-radius:15px;cursor:pointer}#charEquip button.on{background:#4a2e1a;color:#ffe9c4}
-#charClimb{position:absolute;top:122px;right:12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(74,46,26,.18);border-radius:12px;padding:4px}#charClimb.off{display:none}#charClimb .pad{display:grid;grid-template-columns:repeat(3,30px);gap:2px}#charClimb button{border:0;background:rgba(255,240,220,.55);color:#4a2e1a;font:700 14px system-ui;height:28px;border-radius:8px;cursor:pointer;padding:0}#charClimb button.auto{width:94px;font-size:12px}#charClimb button.on{background:#4a2e1a;color:#ffe9c4}#charClimb button.blk{background:#b9573c;color:#fff}#charClimb .cnote{font:700 10px system-ui;color:#4a2e1a;background:rgba(255,240,220,.8);border-radius:6px;padding:2px 5px;max-width:92px;text-align:center}#charClimb .cnote:empty{display:none}
+#charClimb{position:absolute;top:122px;right:12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(74,46,26,.18);border-radius:12px;padding:4px}#charClimb.off{display:none}#charClimb .pad{display:grid;grid-template-columns:repeat(3,30px);gap:2px}#charClimb button{border:0;background:rgba(255,240,220,.55);color:#4a2e1a;font:700 14px system-ui;height:28px;border-radius:8px;cursor:pointer;padding:0}#charClimb button.auto{width:94px;font-size:12px}#charClimb button.on{background:#4a2e1a;color:#ffe9c4}#charClimb button.blk{background:#b9573c;color:#fff}#charClimb .tvb{display:flex;flex-direction:column;gap:2px;width:94px}#charClimb .tvb button{font-size:11px;height:24px}#charClimb button.dis{opacity:.45}#charClimb .cnote{font:700 10px system-ui;color:#4a2e1a;background:rgba(255,240,220,.8);border-radius:6px;padding:2px 5px;max-width:92px;text-align:center}#charClimb .cnote:empty{display:none}
 #charHint{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:rgba(74,46,26,.75);font:12px system-ui}
 .tabe{font-size:22px;line-height:26px;height:26px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
 #cityCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
@@ -258,7 +258,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   <div id="charWrap" class="hidden"><canvas id="charCanvas" aria-label="Your delver"></canvas>
     <div id="charTop"><b>Your Delver</b><div id="charSex"><button data-sex="m">Male</button><button data-sex="f">Female</button></div></div>
     <div id="charAnim" role="tablist" aria-label="Animation preview"><button data-anim="idle" class="on">Idle</button><button data-anim="run">Run</button><button data-anim="mine">Mine</button><button data-anim="climb">Climb</button></div>
-    <div id="charClimb" class="off" aria-label="Climb direction"><div class="pad"><button data-dir="ul" title="Up-left">↖</button><button data-dir="u" title="Up">↑</button><button data-dir="ur" title="Up-right">↗</button><button data-dir="l" title="Left">←</button><button data-dir="stop" title="Hold">■</button><button data-dir="r" title="Right">→</button><button data-dir="dl" title="Down-left">↙</button><button data-dir="d" title="Down">↓</button><button data-dir="dr" title="Down-right">↘</button></div><button data-dir="auto" class="auto" title="Auto-wander demo">Auto</button><div class="cnote" aria-live="polite"></div></div>
+    <div id="charClimb" class="off" aria-label="Climb direction"><div class="pad"><button data-dir="ul" title="Up-left">↖</button><button data-dir="u" title="Up">↑</button><button data-dir="ur" title="Up-right">↗</button><button data-dir="l" title="Left">←</button><button data-dir="stop" title="Hold">■</button><button data-dir="r" title="Right">→</button><button data-dir="dl" title="Down-left">↙</button><button data-dir="d" title="Down">↓</button><button data-dir="dr" title="Down-right">↘</button></div><button data-dir="auto" class="auto" title="Auto-wander demo">Auto</button><div class="tvb"><button data-tv="anchor" title="Drive an anchor pin and clip the Tether">Anchor</button><button data-tv="rappel" class="dis" title="Rappel down on the Tether">Rappel</button><button data-tv="ascend" class="dis" title="Winch back up to the anchor">Ascend</button></div><div class="cnote" aria-live="polite"></div></div>
     <div id="charEquip" role="tablist" aria-label="Equip"><button data-tool="pick" class="on">Pickaxe</button><button data-tool="climb">Climbing Picks</button></div>
     <div id="charPick" aria-label="Pickaxe grade"></div>
     <div id="charHint">Drag to turn · pinch or scroll to zoom</div></div>
@@ -5593,6 +5593,10 @@ const CharView = (() => {
       { // the Tether coil hangs from a strap on the right side of the pack (where the side pocket was), coil plane flat against the pack side
         const pv = bone('ropePivot', pk, -(W / 2 + 0.052), y0 + H * 0.16, zc - 0.035); part(pk, rbox(0.024, 0.05, 0.022, 0.003), M.belt, [-(W / 2 + 0.018), y0 + H * 0.16, zc - 0.035], null, null, { ink: false }); part(pk, rbox(0.014, 0.014, 0.014, 0.003), M.brass, [-(W / 2 + 0.034), y0 + H * 0.16 - 0.02, zc - 0.035], null, null, { ink: false });
         built.rope = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; built.tethers = []; const tg = { parent: pv, pos: [-0.004, -0.09, 0], rot: [0, -Math.PI / 2, 0.04], o: { R: 0.058, n: 5, dr: 0.003, tr: 0.0105, dz: 0.0065, sy: 1.75 } }; built.tethers.push(tg); mountTether(tg, S && S.tetherGrade); }
+      { // ascender winch: clips to the back panel, upper right corner (above the Tether coil, outside the flap straps); shown while ascending
+        const wn = new THREE.Group(); wn.position.set(-(W / 2 - 0.045), y0 + H * 0.36, zb - 0.05); pk.add(wn); built.winch = wn; const wm = toon(0x4a4e55), wb = toon(P.brass);
+        part(wn, rbox(0.068, 0.054, 0.044, 0.008), wm); const dr = new THREE.Group(); dr.position.set(0, 0.032, -0.004); wn.add(dr); built.winchDrum = dr; part(dr, cyl(0.016, 0.016, 0.05, 12), toon(0x2c2f34), null, [0, 0, Math.PI / 2]); part(dr, rbox(0.052, 0.006, 0.01, 0.002), wb, [0, 0.014, 0], null, null, { ink: false });
+        part(wn, rbox(0.014, 0.03, 0.012, 0.003), wb, [0.026, -0.03, 0.02], null, null, { ink: false }); part(wn, rbox(0.014, 0.03, 0.012, 0.003), wb, [-0.026, -0.03, 0.02], null, null, { ink: false }); wn.visible = false; }
       { // the lantern on its ring, swinging off the left side of the pack (same model and placement for both delvers)
         const pv = bone('lanternPivot', pk, W / 2 + 0.07, y0 + 0.01, zc + 0.03); built.lantern = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; part(pv, new THREE.TorusGeometry(0.014, 0.003, 5, 12), M.dark, [0, -0.01, 0], [0, Math.PI / 2, 0]);
         const L = new THREE.Group(); L.position.y = -0.09; pv.add(L); part(L, new THREE.ConeGeometry(0.038, 0.035, 8), M.dark, [0, 0.055, 0]); part(L, cyl(0.036, 0.036, 0.016, 10), M.dark, [0, -0.05, 0]); part(L, cyl(0.03, 0.03, 0.01, 10), M.dark, [0, 0.035, 0]);
@@ -5723,7 +5727,7 @@ const CharView = (() => {
     for (const k of ['R', 'L']) { const a = c.ankle[k].clone(); let pitch = f.tap && k === 'R' ? -f.tap * 0.7 : 0, fy = k === 'R' ? -0.14 : 0.16; if (k === 'R' && f.tap) { a.y += f.tap * 0.05; a.z += f.tap * 0.015; }
       if (f.run) { const g = runFoot(f.run.ph + (k === 'L' ? 0 : 0.5)), w = f.run.w; a.lerp(V(k === 'R' ? -0.085 : 0.085, g.y, g.z), w); pitch = lerp(pitch, g.p, w); fy = lerp(fy, k === 'R' ? -0.05 : 0.05, w); }
       if (f.mine) { const w = f.mine.w; a.lerp(k === 'R' ? V(-0.13, 0.08, -0.1) : V(0.13, 0.08, 0.09), w); fy = lerp(fy, k === 'R' ? -0.35 : 0.2, w); }
-      if (f.climb) { const F = f.climb.F[k], w = f.climb.w; a.lerp(F.a, w); pitch = lerp(pitch, 0.12 * F.sn, w); fy = lerp(fy, k === 'R' ? -0.1 : 0.1, w); }
+      if (f.climb) { const F = f.climb.F[k], w = f.climb.w; a.lerp(F.a, w); pitch = lerp(pitch, F.p ?? 0.12 * F.sn, w); fy = lerp(fy, k === 'R' ? -0.1 : 0.1, w); }
       const kp = fwd.clone().add(V(0, 0.2, 0)); if (f.climb) kp.add(V(k === 'R' ? -0.6 : 0.6, 0, 0).applyQuaternion(root.quaternion).multiplyScalar(f.climb.w)); if (f.mine) kp.add(V(k === 'R' ? -0.55 : 0.55, 0, 0).applyQuaternion(root.quaternion).multiplyScalar(f.mine.w)); ik(B['th' + k], B['sn' + k], c.LT, c.LS, root.localToWorld(a), kp, false);
       B['ft' + k].parent.getWorldQuaternion(_q2); _q.setFromEuler(new THREE.Euler(pitch, fy, 0)); _q.premultiply(root.quaternion); B['ft' + k].quaternion.copy(_q2.invert().multiply(_q)); }
     // mining: the pick is held two-handed - its grip pose comes from the swing keys (character space), blended over the carry pose
@@ -5754,18 +5758,18 @@ const CharView = (() => {
       const G = V(s * 0.19, 0.92 + 0.006 * (f.br || 0), 0.22); if (f.run) { const sw = (s > 0 ? -1 : 1) * Math.cos(TAU * f.run.ph); G.z += (sw > 0 ? 0.12 : 0.05) * sw * f.run.w; G.y += 0.015 * Math.max(0, sw) * f.run.w; G.x += s * 0.02 * f.run.w; }
       const dR = V(s * (0.32 + (f.run ? 0.18 * f.run.w : 0)), 1, 0.22).normalize(), xR = V(0, 0, 1).addScaledVector(dR, -dR.z).normalize(), qR = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xR, dR, xR.clone().cross(dR))).premultiply(RQ);
       const dHw = V(s * 0.35, 1, 0.25).normalize().applyQuaternion(hipQ), o = oH.clone().addScaledVector(dHw, 0.15 * lC).lerp(root.localToWorld(G), vC).add(V(s * 0.13, 0.03, 0.12).multiplyScalar(Math.sin(Math.PI * vC)).applyQuaternion(RQ)), q = qHw.slerp(qR, vC);
-      if (f.climb && f.climb.w > 0) { const Hc = f.climb.H[k], a = Hc.a, dC = V(s * 0.08, Math.cos(a), Math.sin(a)).normalize(), xC = V(0, -Math.sin(a), Math.cos(a)); xC.addScaledVector(dC, -xC.dot(dC)).normalize();
-        const qC = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xC, dC, xC.clone().cross(dC))).premultiply(RQ); o.lerp(root.localToWorld(Hc.g.clone()), f.climb.w); q.slerp(qC, f.climb.w); }
+      if (f.climb && f.climb.w > 0 && f.climb.H && vC > 0) { const Hc = f.climb.H[k], a = Hc.a, dC = V(s * 0.08, Math.cos(a), Math.sin(a)).normalize(), xC = V(0, -Math.sin(a), Math.cos(a)); xC.addScaledVector(dC, -xC.dot(dC)).normalize();
+        const qC = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xC, dC, xC.clone().cross(dC))).premultiply(RQ); o.lerp(root.localToWorld(Hc.g.clone()), f.climb.w * vC); q.slerp(qC, f.climb.w * vC); }
       const d = V(0, 1, 0).applyQuaternion(q); cT[k] = { o, q, d, g: o.clone().addScaledVector(d, hC * (1 - (f.climb ? f.climb.w : 0))) }; }
     // right arm: rest (hangs like the left), the pickaxe grip and/or the right climbing pick
     { const shR = B.shR.getWorldPosition(V(0, 0, 0)), wr0 = shR.clone().add(V(-0.105, -0.44, 0.03).applyQuaternion(RQ)), pr0 = V(-0.12, -0.05, -1).applyQuaternion(RQ);
       const poleP = (f.mine ? V(-0.3, -1, -0.15).lerp(V(-0.9, -0.6, -0.2), f.mine.w) : V(-0.3, -1, -0.15)).lerp(V(-0.55, 0.9, 0.5), pUp).applyQuaternion(RQ), poleC = (f.climb ? V(-0.6, -1, -0.5).lerp(V(-1, -0.4, -0.3), f.climb.w) : V(-0.6, -1, -0.5)).applyQuaternion(RQ);
       const gp = wP > 0 ? gripSolve(c, 'R', pGw, pdW, poleP) : null, gc = wC > 0 ? gripSolve(c, 'R', cT.R.g, cT.R.d, poleC) : null;
-      const wr = wr0.clone(), pr = pr0.clone(); if (gp) { wr.lerp(gp.wrist, wP); pr.lerp(poleP, wP); } if (gc) { wr.lerp(gc.wrist, wC); pr.lerp(poleC, wC); } ikA(c, 'R', wr, pr);
+      const wr = wr0.clone(), pr = pr0.clone(); if (f.rope && f.rope.w > 0) { wr.lerp(root.localToWorld(f.rope.R.clone()), f.rope.w); pr.lerp(V(-0.8, -0.5, -0.4).applyQuaternion(RQ), f.rope.w); } if (gp) { wr.lerp(gp.wrist, wP); pr.lerp(poleP, wP); } if (gc) { wr.lerp(gc.wrist, wC); pr.lerp(poleC, wC); } ikA(c, 'R', wr, pr);
       const y = B.faR.getWorldPosition(V(0, 0, 0)).sub(B.hdR.getWorldPosition(V(0, 0, 0))).normalize(), z = V(-1, 0, 0.18).applyQuaternion(RQ); z.addScaledVector(y, -z.dot(y)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(y, z), y, z);
       const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, -0.06))); if (gp) Qr.slerp(gp.Q, wP); if (gc) Qr.slerp(gc.Q, wC);
       B.hdR.parent.getWorldQuaternion(_q2); B.hdR.quaternion.copy(_q2.invert().multiply(Qr)); B.hdR.updateMatrixWorld(true);
-      const g = Math.max(wP, wC); B.knR.rotation.x = lerp(0.32, 1.3, g); B.tpR.rotation.x = lerp(0.42, 1.25, g); B.thumbR.rotation.set(lerp(0.3, 1.05, g), 0, lerp(-0.6, -0.35, g)); }
+      const g = Math.max(wP, wC, f.rope ? f.rope.w : 0); B.knR.rotation.x = lerp(0.32, 1.3, g); B.tpR.rotation.x = lerp(0.42, 1.25, g); B.thumbR.rotation.set(lerp(0.3, 1.05, g), 0, lerp(-0.6, -0.35, g)); }
     const placeT = (obj, hand, o, q) => { if (!obj) return; obj.position.copy(hand.worldToLocal(o.clone())); hand.getWorldQuaternion(_q2); obj.quaternion.copy(_q2.invert().multiply(q)); };
     placeT(c.built.pick, B.hdR, pOw, pQw); if (c.built.climb) placeT(c.built.climb.R, B.hdR, cT.R.o, cT.R.q);
     // left arm: hangs relaxed (palm toward the thigh, thumb forward, elbow straight back so the upper arm has no twist), or reaches up so the
@@ -5785,12 +5789,12 @@ const CharView = (() => {
       for (let it = 0; it < 3; it++) { ikA(c, 'L', w0.clone().lerp(wl, w), pole2); const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(wl).normalize(), x = dd.clone().negate(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); QmL.setFromRotationMatrix(_m); wl = gL.clone().sub(PALM.clone().applyQuaternion(QmL)); }
       wristL = w0.lerp(wl, w); }
     let gcl = null; if (wC > 0) { const pc = (f.climb ? V(0.6, -1, -0.5).lerp(V(1, -0.4, -0.3), f.climb.w) : V(0.6, -1, -0.5)).applyQuaternion(RQ); gcl = gripSolve(c, 'L', cT.L.g, cT.L.d, pc); wristL.lerp(gcl.wrist, wC); pole2.lerp(pc, wC); }
-    if (f.sighDrop) wristL.y -= f.sighDrop * 0.015; ikA(c, 'L', wristL, pole2);
+    if (f.rope && f.rope.w > 0 && f.rope.L) { const rw2 = f.rope.w * (1 - wC); wristL.lerp(root.localToWorld(f.rope.L.clone()), rw2); pole2.lerp(V(0.8, -0.5, -0.4).applyQuaternion(RQ), rw2); } if (f.sighDrop) wristL.y -= f.sighDrop * 0.015; ikA(c, 'L', wristL, pole2);
     { const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(B.hdL.getWorldPosition(V(0, 0, 0))).normalize(), z = V(1, 0, 0.18).applyQuaternion(RQ); z.addScaledVector(y, -z.dot(y)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(y, z), y, z);
       const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, 0.06))); if (Qsc) Qr.slerp(Qsc, ss(0, 0.85, r)); if (QmL) Qr.slerp(QmL, f.mine.w); if (gcl) Qr.slerp(gcl.Q, wC);
       B.hdL.parent.getWorldQuaternion(_q2); B.hdL.quaternion.copy(_q2.invert().multiply(Qr)); }
     B.knL.rotation.x = lerp(0.32, 0.8 + 0.35 * Math.sin(f.scr || 0), r); B.tpL.rotation.x = lerp(0.42, 0.6 + 0.3 * Math.sin((f.scr || 0) + 1), r); B.thumbL.rotation.set(0.35, 0, 0.6);
-    const fist = Math.max(f.run ? f.run.w * 0.8 : 0, f.mine ? f.mine.w : 0, wC); if (fist) { B.knL.rotation.x = lerp(B.knL.rotation.x, 1.3, fist); B.tpL.rotation.x = lerp(B.tpL.rotation.x, 1.25, fist); B.thumbL.rotation.set(lerp(0.35, 1.05, fist), 0, lerp(0.6, 0.35, fist)); }
+    const fist = Math.max(f.run ? f.run.w * 0.8 : 0, f.mine ? f.mine.w : 0, wC, f.rope ? f.rope.w : 0); if (fist) { B.knL.rotation.x = lerp(B.knL.rotation.x, 1.3, fist); B.tpL.rotation.x = lerp(B.tpL.rotation.x, 1.25, fist); B.thumbL.rotation.set(lerp(0.35, 1.05, fist), 0, lerp(0.6, 0.35, fist)); }
     if (c.built.climb) { B.hdL.updateMatrixWorld(true); placeT(c.built.climb.L, B.hdL, cT.L.o, cT.L.q); } }
   // close a hand on a tool: palm on the grip point, hand x along the shaft (thumb toward the head: +d for the right hand, -d for the left), y back to the elbow
   // arm IK with body clearance: while mining, the hand target is pushed out of the torso (an ellipse in chest space, with a sleeve margin), and if the
@@ -5834,11 +5838,11 @@ const CharView = (() => {
   const DIRS = { u: [0, 1], d: [0, -1], l: [1, 0], r: [-1, 0], ul: [0.7071, 0.7071], ur: [-0.7071, 0.7071], dl: [0.7071, -0.7071], dr: [-0.7071, -0.7071], stop: [0, 0] };
   function gaitOrder(dx, dy) { const s = dx > 0.3 ? 'L' : 'R', o = s === 'L' ? 'R' : 'L'; if (dy > 0.3) return [s + 'H', o + 'F', o + 'H', s + 'F']; if (dy < -0.3) return [s + 'F', o + 'H', o + 'F', s + 'H']; return [s + 'H', s + 'F', o + 'H', o + 'F']; }
   const isH = (k) => k[1] === 'H';
-  function climbInit() { const P = V(0, 0, 0), L = {}; for (const k of ['RH', 'LH', 'RF', 'LF']) { const t = P.clone().add(CL.N[k]); if (isH(k)) t.add(CL.tipH); L[k] = snapHold(isH(k) ? HG.hand : HG.foot, t); }
+  function climbInit(P0) { const P = P0 ? V(P0.x, P0.y, 0) : V(0, 0, 0), L = {}; for (const k of ['RH', 'LH', 'RF', 'LF']) { const t = P.clone().add(CL.N[k]); if (isH(k)) t.add(CL.tipH); L[k] = snapHold(isH(k) ? HG.hand : HG.foot, t); }
     return { P, L, slotT: 1, idx: 0, mv: null, from: null, to: null, bf: P.clone(), bt: P.clone(), wt: 0 }; }
   // limb rest offset relative to the body for a hold (hands: grip = pocket - tip)
   const relOf = (k, h, P) => { const r = h.clone().sub(P); if (isH(k)) r.sub(CL.tipH); return r.sub(CL.N[k]); };
-  function climbStep(C, dt) { C.slotT += dt / CL.TS;
+  function climbStep(C, dt) { C.slotT += dt * (st.climbFac || 1) / CL.TS;
     if (C.slotT >= 1) { if (C.mv) C.L[C.mv] = C.to; C.mv = null; C.P.copy(C.bt); C.slotT = Math.min(C.slotT - 1, 0.5);
       if (st.climbAuto) { C.wt -= CL.TS; if (C.wt <= 0) { const ks = Object.keys(DIRS).filter((k) => k !== 'stop').filter((k) => { const d = DIRS[k]; return Math.abs(C.P.x + d[0] * 0.8) < CL.BX && C.P.y + d[1] * 0.8 > CL.BY0 - 0.01 && C.P.y + d[1] * 0.8 < CL.BY1; });
         st.climbDir = Math.random() < 0.1 ? 'stop' : ks[(Math.random() * ks.length) | 0] || 'u'; C.wt = 2.5 + Math.random() * 2.5; markClimb(); } }
@@ -5848,13 +5852,56 @@ const CharView = (() => {
         // the limb furthest behind moves first if it is near its reach limit, else the gait order
         let k = ord[C.idx % 4], worst = 0; for (const q of ord) { const lag = -relOf(q, C.L[q], Pn).dot(sn) / sl; if (lag > 0.62 && lag > worst) { worst = lag; k = q; } } C.idx++;
         const tg = C.P.clone().add(CL.N[k]).addScaledVector(s, 0.75); if (isH(k)) { tg.add(CL.tipH); tg.x = k === 'RH' ? Math.min(tg.x, C.P.x - 0.21) : Math.max(tg.x, C.P.x + 0.21); } C.mv = k; C.from = C.L[k].clone(); C.to = snapHold(isH(k) ? HG.hand : HG.foot, tg);
-        let ok = true; for (const q of ['RH', 'LH', 'RF', 'LF']) { if (q === k) continue; const r = relOf(q, C.L[q], Pn); if (Math.abs(r.x) > 0.3 || Math.abs(r.y) > 0.34) ok = false; } if (ok) C.bt = Pn; } }
+        let ok = true; for (const q of ['RH', 'LH', 'RF', 'LF']) { if (q === k) continue; const r = relOf(q, C.L[q], Pn); if (Math.abs(r.x) > 0.3 || Math.abs(r.y) > 0.34 || (isH(q) && (q[0] === 'L' ? r.x : -r.x) < -0.05)) ok = false; } if (ok) C.bt = Pn; } }
     const u = C.slotT, P = C.bf.clone().lerp(C.bt, ss(0.3, 0.95, u)), out = { P, H: {}, F: {}, mv: C.mv, mu: 0, up: 0, blk: C.blk || '' };
     for (const k of ['RH', 'LH', 'RF', 'LF']) { let h = C.L[k], sn = 0, a = 0, m = 0; if (k === C.mv) { m = clamp(u / 0.62, 0, 1); h = C.from.clone().lerp(C.to, ss(0.12, 0.88, m)); sn = Math.sin(Math.PI * m); out.mu = m; out.up = C.to.y - C.from.y;
         if (isH(k)) a = m < 0.38 ? -1.05 * ss(0, 0.38, m) : -1.05 * (1 - ((m - 0.38) / 0.62) ** 2); }
       const r = h.clone().sub(P); if (isH(k)) out.H[k[0]] = { g: V(r.x - CL.tip.x * 0, r.y - CL.tip.y + 0.04 * sn, CL.ZW + 0.004 - CL.tip.x - 0.14 * sn), a, tipW: h };
       else out.F[k[0]] = { a: V(r.x, r.y + CL.AH + 0.06 * sn, CL.ZW - CL.TOE - 0.09 * sn), sn }; }
     return out; }
+  /* ---------- Tether vertical system: anchor pin > rappel (bounding hops, rope feeding from the anchor) / ascender winch (reels up, feet walk the wall) > unclip + coil > picks.
+     an.tv = { k: 'anchor' | 'clip' | 'prep' | 'rappel' | 'hang' | 'ascend' | 'coil' | 'draw', t, A: anchor (wall frame), P: body (wall frame), fac: tether-grade speed } */
+  const TV = { anchorT: 1.6, coilT: 1.9, hop: 0.46, hopT: 0.62, asc: 0.62, foot: 0.44, top: 1.08 };
+  function tetherPose(T, dt) { const P = T.P, out = { P: P.clone(), H: null, F: {}, mv: null, mu: 0, up: 0, blk: '' }; let hz = -0.27, hipX = -0.36, rope = null;
+    if (T.k === 'rappel') { T.h = (T.h || 0) + dt * T.fac / TV.hopT; if (T.h >= 1) { T.h -= 1; T.y0 = P.y; } if (T.y0 === undefined) T.y0 = P.y; const h = T.h, D = TV.hop;
+      P.y = Math.max(0, T.y0 - D * ss(0.18, 0.86, h)); if (P.y <= 0 && h > 0.86) { T.k = 'hang'; T.h = 0; } out.P.copy(P);
+      const push = Math.sin(Math.PI * ss(0, 0.3, h)), air = Math.sin(Math.PI * ss(0.18, 0.86, h)), land = Math.sin(Math.PI * ss(0.8, 1, h));
+      hz += -0.14 * push - 0.08 * air + 0.06 * land; hipX += -0.06 * air;
+      for (const [k, sx, ph] of [['R', -0.12, 0], ['L', 0.12, 0.06]]) { const a2 = air * (1 - ph); out.F[k] = { a: V(sx, 0.4 + 0.06 * a2 - 0.03 * land, CL.ZW - 0.13 - 0.1 * a2), sn: a2, p: -0.55 + 0.25 * a2 }; }
+      rope = { L: V(0.04, 1.06 - 0.03 * air, -0.2), R: V(-0.21, 0.66 + 0.05 * air, -0.42 - 0.04 * push) }; out.blk = ''; }
+    else if (T.k === 'hang') { out.F.R = { a: V(-0.12, 0.4, CL.ZW - 0.13), sn: 0, p: -0.55 }; out.F.L = { a: V(0.12, 0.4, CL.ZW - 0.13), sn: 0, p: -0.55 }; rope = { L: V(0.04, 1.06, -0.2), R: V(-0.21, 0.66, -0.42) }; out.blk = P.y <= 0.001 ? 'bottom' : ''; }
+    else if (T.k === 'ascend' || T.k === 'coil' || T.k === 'draw') { const top = T.A.y - TV.top; if (T.k === 'ascend') { P.y = Math.min(top, P.y + dt * TV.asc * T.fac); T.ph = (T.ph || 0) + dt * TV.asc * T.fac / TV.foot; if (P.y >= top - 1e-4) { T.k = 'coil'; T.t = 0; } } out.P.copy(P);
+      hz = -0.24; hipX = -0.26; const S2 = TV.foot, moving = T.k === 'ascend';
+      for (const [k, sx, o] of [['R', -0.12, 0], ['L', 0.12, 0.5]]) { const q = ((T.ph || 0) + o) % 1; let y, sn = 0;
+        if (!moving) y = 0.42; else if (q < 0.5) y = 0.42 + S2 / 4 - S2 * q; else { const m = ss(0, 1, (q - 0.5) * 2); y = lerp(0.42 - S2 / 4, 0.42 + S2 / 4, m); sn = Math.sin(Math.PI * m); }
+        out.F[k] = { a: V(sx, y + 0.05 * sn, CL.ZW - 0.13 - 0.09 * sn), sn, p: -0.5 + 0.3 * sn }; }
+      rope = T.k === 'draw' ? null : T.k === 'coil' ? (() => { const u = T.t / TV.coilT, a = TAU * 2.5 * ss(0.15, 0.85, u); return { L: V(-0.08, 1.02, -0.14), R: V(-0.26 + 0.06 * Math.cos(a), 0.86 + 0.08 * Math.sin(a), -0.2 + 0.05 * Math.sin(a)) }; })() : { L: V(-0.02, 1.16, -0.14), R: V(-0.14, 1.08, -0.16) }; }
+    out.hz = hz; out.hipX = hipX; out.rope = rope; return out; }
+  function tetherTick(T, dt) { T.t = (T.t || 0) + dt; if (T.pose) T.bw = Math.min(1, (T.bw || 0) + dt / 0.5); const Q = an.eq;
+    if (T.k === 'anchor' && T.t >= TV.anchorT) { T.k = 'clip'; T.t = 0; T.clipped = true; T.depth = 0.4; }
+    else if (T.k === 'clip' && T.t >= 0.35) { T.k = 'anchored'; T.t = 0; }
+    else if (T.k === 'prep' && Q && !Q.seq && Q.held === 'none') { T.k = T.next; T.t = 0; T.pose = true; T.bw = 0; T.h = 0; T.y0 = undefined; }
+    else if (T.k === 'coil' && T.t >= TV.coilT) { T.k = 'draw'; T.t = 0; T.free = false; T.clipped = false; }
+    else if (T.k === 'draw' && Q && !Q.seq && Q.held === 'climb') { an.cl = climbInit(T.P); an.tv = null; markTether(); return; }
+    if (T.k === 'coil' && T.t > 0.3) T.pin = false; }
+  function tetherAct(k) { if (an.act !== 'climb' && st.anim !== 'climb') return; const P = an.cl ? an.cl.P.clone() : V(0, 0, 0); let T = an.tv; st.climbAuto = false; st.climbDir = 'stop'; markClimb(); const g = rig && rig.built.tethers && rig.built.tethers[0] && rig.built.tethers[0].grp, tier = g ? (TGRADES[g.userData.grade] || { tier: 0 }).tier : 0, fac = 1 + 0.07 * tier;
+    if (k === 'anchor') { if (T) return; an.tv = { k: 'anchor', t: 0, A: V(clamp(P.x - 0.42, WALL.X0 + 0.2, WALL.X1 - 0.2), P.y + 1.02, 0), P, fac, depth: 1 }; }
+    else if (k === 'rappel' || k === 'ascend') { if (!T || !T.clipped || T.k === 'coil' || T.k === 'draw' || T.k === 'anchor') return; T.fac = fac;
+      if (k === 'ascend' && T.P.y >= T.A.y - TV.top - 1e-3) return;
+      if (T.pose) { T.k = k; T.t = 0; T.h = 0; T.y0 = undefined; } else { T.k = 'prep'; T.next = k; T.free = true; T.t = 0; } }
+    markTether(); }
+  function markTether() { const T = an.tv; document.querySelectorAll('#charClimb [data-tv]').forEach((b) => { const k = b.dataset.tv; b.classList.toggle('on', !!T && (T.k === k || (T.k === 'hang' && k === 'rappel') || (T.k === 'prep' && T.next === k) || (k === 'anchor' && !!T.clipped)));
+      b.classList.toggle('dis', k === 'anchor' ? !!T : !T || !T.clipped); }); }
+  function tetherRope(c, T) { if (!c.wall) return; const W2 = c.wall; if (!W2.userData.pin) { const g = new THREE.Group(), m = toon(0x6a6e74); part(g, cyl(0.007, 0.007, 0.07, 8), m, [0, 0, -0.03], [Math.PI / 2, 0, 0]); part(g, rbox(0.03, 0.05, 0.006, 0.003), m, [0, -0.012, -0.066]); part(g, new THREE.TorusGeometry(0.013, 0.0035, 6, 14), toon(0xb8902c), [0, -0.03, -0.072], [0, 0, 0], null, { ink: false }); g.visible = false; W2.add(g); W2.userData.pin = g;
+      const rm = toon(0xcdb57e); W2.userData.ropes = [0, 1].map(() => { const r = part(scene, cyl(0.0075, 0.0075, 1, 6), rm, null, null, null, { ink: false }); r.visible = false; return r; }); }
+    const pin = W2.userData.pin, ropes = W2.userData.ropes, B = c.B, show = !!T && T.k !== 'anchor0';
+    for (const r of ropes) r.visible = false; pin.visible = !!T && !!T.A && T.pin !== false; if (!pin.visible) return; pin.position.set(T.A.x, T.A.y, CL.ZW - 0.002 + 0.03 * (1 - (T.depth ?? 1)));
+    if (!show || !T.clipped) return; const coil = c.built.tethers && c.built.tethers[0] && c.built.tethers[0].grp; if (coil && ropes[0].material !== null) { let cm = null; coil.traverse((o) => { if (!cm && o.isMesh && o.material && o.material.color) cm = o.material; }); if (cm) for (const r of ropes) r.material = cm; }
+    W2.updateMatrixWorld(true); const top = W2.localToWorld(V(T.A.x, T.A.y - 0.03, CL.ZW - 0.072)); let end; const asc = T.k === 'ascend' || T.k === 'coil';
+    if (asc && c.built.winch) end = c.built.winch.localToWorld(V(0, 0.035, 0)); else end = B.hips.localToWorld(V(-0.02, 0.06, 0.13));
+    if (T.k === 'coil') { const u = ss(0.12, 0.9, T.t / TV.coilT), cw = coil ? coil.getWorldPosition(V(0, 0, 0)) : end; top.lerp(B.hdR.getWorldPosition(V(0, 0, 0)), u); end = cw; }
+    const seg = (r, a, b2) => { const d = b2.clone().sub(a), L = d.length(); if (L < 0.01) return; r.visible = true; r.position.copy(a).addScaledVector(d, 0.5); r.scale.set(1, L, 1); r.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); };
+    seg(ropes[0], top, end); if (!asc && T.k !== 'clip') seg(ropes[1], end, B.hdR.getWorldPosition(V(0, 0, 0))); }
   function makeWall() { const g = new THREE.Group(), r = prng(31), Wd = WALL.X1 - WALL.X0, H = WALL.Y1 - WALL.Y0, P = 0.7;
     const tex = cv(256, 512, (x, w, h) => { x.fillStyle = '#8d7c68'; x.fillRect(0, 0, w, h); for (let i = 0; i < 520; i++) { const a = r() * 0.13; x.fillStyle = r() < 0.5 ? `rgba(40,28,18,${a})` : `rgba(255,240,215,${a * 0.8})`; x.beginPath(); x.ellipse(r() * w, r() * h, 6 + r() * 30, 3 + r() * 12, (r() - 0.5) * 0.6, 0, TAU); x.fill(); }
       x.fillStyle = 'rgba(60,40,25,.28)'; for (let y = 20; y < h; y += 128) x.fillRect(0, y + r() * 10, w, 3); x.strokeStyle = 'rgba(48,32,20,.6)'; x.lineWidth = 2;
@@ -5902,11 +5949,11 @@ const CharView = (() => {
     // equip timeline: tau runs 0 -> TOOL_T (stow the pickaxe on the back, draw the climbing picks) or back down (holster the picks, draw the pickaxe)
     // equip sequencer: stow the tool in hand, then draw the wanted one (each a dedicated motion, not a reverse playback)
     if (!an.eq) an.eq = { held: st.tool === 'climb' ? 'climb' : 'pick', seq: null, t: 0 };
-    { const Q = an.eq; if (!Q.seq && Q.held !== st.tool) { Q.seq = Q.held === 'pick' ? 'pickStow' : Q.held === 'climb' ? 'climbStow' : st.tool === 'pick' ? 'pickDraw' : 'climbDraw'; Q.t = 0; }
-      if (Q.seq) { Q.t += dt / SEQ_T[Q.seq]; if (Q.t >= 1) { const dn = Q.seq; Q.seq = null; Q.t = 0; Q.held = /Stow$/.test(dn) ? 'none' : dn === 'pickDraw' ? 'pick' : 'climb'; if (Q.held === 'none') { Q.seq = st.tool === 'pick' ? 'pickDraw' : 'climbDraw'; } } }
+    { const Q = an.eq, wantT = an.tv && an.tv.free ? 'none' : st.tool; if (!Q.seq && Q.held !== wantT) { Q.seq = Q.held === 'pick' ? 'pickStow' : Q.held === 'climb' ? 'climbStow' : wantT === 'pick' ? 'pickDraw' : 'climbDraw'; Q.t = 0; }
+      if (Q.seq) { Q.t += dt / SEQ_T[Q.seq]; if (Q.t >= 1) { const dn = Q.seq; Q.seq = null; Q.t = 0; Q.held = /Stow$/.test(dn) ? 'none' : dn === 'pickDraw' ? 'pick' : 'climb'; if (Q.held === 'none' && wantT !== 'none') { Q.seq = wantT === 'pick' ? 'pickDraw' : 'climbDraw'; } } }
       st.toolPh = Q.seq ? 1.1 : Q.held === 'climb' ? TOOL_T : 0; st.toolSeq = Q.seq; f.eq = { held: Q.held, seq: Q.seq, t: Q.t }; }
-    const ready = (k) => !an.eq.seq && an.eq.held === k, switching = !ready(st.tool); if (switching && an.fid) { an.fid = null; st.fidget = null; an.next = t + 3; }
-    const want = st.anim === 'run' || (st.anim === 'mine' && ready('pick')) || (st.anim === 'climb' && ready('climb')) ? st.anim : null; if (want !== an.act) { an.mw = Math.max(0, (an.mw || 0) - dt / 0.22); if (an.mw <= 0 || !an.act) { an.act = want; an.at = 0; an.mw = 0; } } else if (an.act) an.mw = Math.min(1, (an.mw || 0) + dt / 0.25);
+    const ready = (k) => !an.eq.seq && an.eq.held === k, switching = !ready(st.tool) && !an.tv; if (switching && an.fid) { an.fid = null; st.fidget = null; an.next = t + 3; }
+    const want = st.anim === 'run' || (st.anim === 'mine' && ready('pick')) || (st.anim === 'climb' && (ready('climb') || !!an.tv)) ? st.anim : null; if (want !== an.act) { an.mw = Math.max(0, (an.mw || 0) - dt / 0.22); if (an.mw <= 0 || !an.act) { an.act = want; an.at = 0; an.mw = 0; an.mp = undefined; } } else if (an.act) an.mw = Math.min(1, (an.mw || 0) + dt / 0.25);
     const mw = an.act ? ss(0, 1, an.mw) : 0; if (an.act) { an.at += dt; if (an.fid) { an.fid = null; st.fidget = null; } an.next = t + 4; }
     const fid = an.fid, u = fid ? an.ft / DUR[fid] : 0, env = fid ? ss(0, 0.18, u) * ss(1, 0.78, u) : 0;
     if (fid) { an.ft += dt; if (an.ft >= DUR[fid]) { an.fid = null; st.fidget = null; } } if (t > an.next && !an.fid && !st.calm && !an.act && !switching) pickFidget(t);
@@ -5926,11 +5973,11 @@ const CharView = (() => {
     if (fid === 'tap') { const on = ss(0.05, 0.2, u) * ss(1, 0.85, u); f.tap = on * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI * 2.2)); hrx += 0.09 * on; hry -= 0.14 * on; crz += 0.025 * on; hrz -= 0.02 * on; hx += 0.012 * on; }
     if (fid === 'pick') { const e = Math.sin(Math.PI * ss(0.05, 0.85, u)); pickY = 0.07 * e - 0.015 * Math.sin(Math.PI * ss(0.55, 1, u)); pickRx = -0.45 * Math.sin(Math.PI * ss(0.1, 0.6, u)) + 0.15 * Math.sin(Math.PI * ss(0.5, 0.95, u)); crz -= 0.07 * e; hrzH += 0.1 * e; shY += 0.02 * e; hry += 0.25 * e; }
     if (fid === 'glance') { const g = ss(0.05, 0.3, u) * ss(1, 0.7, u), toCam = Math.atan2(Math.sin(-st.yaw), Math.cos(-st.yaw)); hry = lerp(hry, clamp(toCam, -1.1, 1.1) * 0.75, g); hrx = lerp(hrx, -0.06, g); cry += clamp(toCam, -1.1, 1.1) * 0.26 * g; smile += g; }
-    let leanS = 0, hipY = 0; const iw = 1 - mw; hry *= iw; hrx *= iw;
+    let leanS = 0, hipY = 0, hipX = 0; const iw = 1 - mw; hry *= iw; hrx *= iw;
     if (an.act === 'run') { const ph = (an.at / RUN_T) % 1, s1 = Math.sin(TAU * ph), w = mw; f.run = { ph, w }; st.runPh = ph;
       hy += w * (-0.036 + 0.028 * Math.cos(2 * TAU * (ph - 0.44))); hz += w * 0.03; leanS += w * 0.22; cx += w * 0.15; hipY += w * 0.13 * s1; cry -= w * 0.2 * s1; hrz += w * 0.035 * Math.cos(TAU * ph); crz -= w * 0.02 * Math.cos(TAU * ph);
       hrx -= w * 0.24; nrx -= w * 0.07; hry += w * 0.08 * s1; pickY += w * 0.012 * Math.cos(2 * TAU * ph); pickRx += w * 0.05 * Math.sin(2 * TAU * ph); shY += w * 0.008 * Math.cos(2 * TAU * ph); }
-    if (an.act === 'mine') { const um = (an.at / MINE_T) % 1, k = mineKey(um), w = mw; f.mine = Object.assign(k, { w, u: um }); st.minePh = um;
+    if (an.act === 'mine') { const pg = c.built.pick && GRADES[c.built.pick.userData.grade], sf = 1 + 0.15 * (pg && pg.tier > 0 ? pg.tier : 0) / 7; an.mp = ((an.mp ?? an.at / MINE_T) + dt * sf / MINE_T); st.mineFac = sf; const um = an.mp % 1, k = mineKey(um), w = mw; f.mine = Object.assign(k, { w, u: um }); st.minePh = um;
       if (an.mu !== undefined && an.mu < 0.52 && um >= 0.52 && w > 0.9) an.hit = true; an.mu = um;
       leanS += w * k.lean * 0.45; cx += w * k.lean * 0.55; hy -= w * k.drop; hz += w * (k.hz - k.drop * 0.4); cry += w * k.tw; hipY += w * k.tw * 0.45; hrx += w * (k.hp - k.lean * 0.6); nrx += w * k.hp * 0.3; }
     // equip body motion: look over the right shoulder and turn into the stow, then dip and glance down to the belt while drawing the climbing picks
@@ -5938,21 +5985,28 @@ const CharView = (() => {
     { const Q = an.eq, t2 = Q.t; let e1 = 0, e2 = 0; if (Q.seq === 'pickDraw') e1 = Math.sin(Math.PI * ss(0, 0.62, t2)); if (Q.seq === 'pickStow') e1 = Math.sin(Math.PI * ss(0.3, 1, t2));
       if (Q.seq === 'climbDraw') e2 = Math.sin(Math.PI * ss(0, 0.62, t2)); if (Q.seq === 'climbStow') e2 = Math.sin(Math.PI * ss(0.38, 1, t2));
       hry -= 0.42 * e1; cry -= 0.18 * e1; crz += 0.05 * e1; shY += 0.018 * e1; hy -= 0.06 * e2; cx += 0.12 * e2; hrx += 0.3 * e2; hz -= 0.012 * e2; }
-    if (an.act === 'climb') { if (!an.cl) an.cl = climbInit(); const C = climbStep(an.cl, dt), w = mw; f.climb = Object.assign(C, { w }); st.climbPh = ((an.cl.idx % 4) + an.cl.slotT) / 4; st.climbPos = { x: C.P.x, y: C.P.y }; if ((C.blk || '') !== (st.climbBlk || '') || st._bd !== st.climbDir) { st.climbBlk = C.blk || ''; st._bd = st.climbDir; const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = { bottom: 'Ground reached', top: 'Top of the wall', side: 'Edge of the wall' }[C.blk] || ''; document.querySelectorAll('#charClimb [data-dir]').forEach((b) => b.classList.toggle('blk', !!C.blk && b.dataset.dir === st.climbDir)); }
-      const ms = C.mv ? (C.mv[0] === 'R' ? -1 : 1) : 0, e = Math.sin(Math.PI * C.mu), hand = C.mv && isH(C.mv);
-      hy -= w * 0.04; hz += w * 0.02; cx += w * 0.1; hx -= w * (hand ? 0 : 0.03 * ms * e); hrz += w * 0.045 * e * (hand ? 1 : -ms); crz -= w * 0.035 * ms * e;
+    if (an.act === 'climb') { if (!an.cl) an.cl = climbInit(); { const cg = c.built.climb && CGRADES[c.built.climb.R.userData.grade]; st.climbFac = 1 + 0.05 * ((cg ? cg.tier : -1) + 1); } const T = an.tv; if (T) tetherTick(T, dt);
+      let C = T && T.pose ? tetherPose(T, dt) : climbStep(an.cl, dt); if (T && !T.pose) { T.P = C.P.clone(); T.C0 = { P: C.P.clone(), F: { R: { a: C.F.R.a.clone() }, L: { a: C.F.L.a.clone() } } }; }
+      if (T && T.k === 'anchor' && C.H) { const u = T.t / TV.anchorT, r0 = C.H.R, inb = ss(0, 0.18, u) * (1 - ss(0.86, 1, u)), g = V(T.A.x - C.P.x, T.A.y - C.P.y - CL.tip.y, CL.ZW + 0.004 - CL.tip.x), tap = u > 0.18 && u < 0.86 ? Math.abs(Math.sin(Math.PI * 3 * (u - 0.18) / 0.68)) : 0;
+        C.H.R = { g: r0.g.clone().lerp(g, inb), a: lerp(r0.a, -0.75 * tap, inb), tipW: r0.tipW }; T.depth = 1 - 0.6 * ss(0.2, 0.84, u); }
+      if (T && T.bw !== undefined && T.C0) { const b = ss(0, 1, T.bw); if (b < 1) { C.P.lerp(T.C0.P, 1 - b); for (const k of ['R', 'L']) C.F[k].a.lerp(T.C0.F[k].a, 1 - b); } C.hz = (C.hz || 0) * b; C.hipX = (C.hipX || 0) * b; if (C.rope) C.rope.w = b; }
+      const w = mw; f.climb = Object.assign(C, { w }); st.climbPh = ((an.cl.idx % 4) + an.cl.slotT) / 4; st.climbPos = { x: C.P.x, y: C.P.y }; st.tvK = T ? T.k : null; if (T && T.pose) { hz += w * C.hz; hipX += w * C.hipX; if (C.rope) f.rope = Object.assign({}, C.rope, { w: w * (C.rope.w ?? 1) }); } if ((C.blk || '') !== (st.climbBlk || '') || st._bd !== st.climbDir) { st.climbBlk = C.blk || ''; st._bd = st.climbDir; const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = { bottom: 'Ground reached', top: 'Top of the wall', side: 'Edge of the wall' }[C.blk] || ''; document.querySelectorAll('#charClimb [data-dir]').forEach((b) => b.classList.toggle('blk', !!C.blk && b.dataset.dir === st.climbDir)); }
+      const ms = C.mv ? (C.mv[0] === 'R' ? -1 : 1) : 0, e = Math.sin(Math.PI * C.mu), hand = C.mv && isH(C.mv), tp = T && T.pose ? 1 : 0;
+      hy -= w * (0.04 - 0.02 * tp); hz += w * 0.02; cx += w * (0.1 - 0.16 * tp); if (tp) { hrx -= w * 0.25; nrx -= w * 0.1; } hx -= w * (hand ? 0 : 0.03 * ms * e); hrz += w * 0.04 * ms * e * (hand ? 1 : -1); crz -= w * 0.035 * ms * e;
       hrx -= w * (hand ? 0.3 + 0.12 * Math.sign(C.up) * e : -0.05 - 0.3 * e); hry += w * (hand ? 0.16 : 0.1) * ms * e; nrx -= w * 0.08; }
-    else if (an.cl && !an.act) an.cl = null;
+    else if (an.cl && !an.act) { an.cl = null; if (an.tv) { an.tv = null; markTether(); } }
     { const P = an.act === 'climb' && f.climb ? f.climb.P : null; c.root.position.set(P ? P.x : 0, P ? P.y : 0, 0).applyAxisAngle(V(0, 1, 0), st.yaw); const wl = c.wall; if (wl) { wl.visible = an.act === 'climb'; wl.rotation.y = st.yaw; for (const fl of FLOOR) fl.visible = !wl.visible; } }
     if (fid === 'sigh') { const s1 = Math.sin(Math.PI * ss(0.05, 0.45, u)), s2 = Math.sin(Math.PI * ss(0.4, 0.95, u)); cx += 0.085 * s1 - 0.08 * s2; shY += 0.03 * s1 - 0.04 * s2; nrx += 0.14 * s2; hrx += 0.15 * s2; hy -= 0.012 * s2; f.sighDrop = s2; }
     // apply: hips, spine, chest, neck, head
     const E = (k, x, y, z) => { B[k].quaternion.copy(c.restQ[k]).multiply(_q.setFromEuler(new THREE.Euler(x, y, z))); };
-    B.hips.position.set(hx, c.HY + hy - 0.004 * Math.abs(sway), hz); E('hips', 0, hipY, hrz); E('spine', cx * 0.4 + leanS, cry * 0.4 - hipY * 0.5, -hrz * 0.6 + crz * 0.3); E('chest', cx, cry, crz); B.chest.scale.set(1 + 0.008 * br, 1 + 0.006 * br, 1 + 0.012 * br);
+    B.hips.position.set(hx, c.HY + hy - 0.004 * Math.abs(sway), hz); E('hips', hipX, hipY, hrz); E('spine', cx * 0.4 + leanS, cry * 0.4 - hipY * 0.5, -hrz * 0.6 + crz * 0.3); E('chest', cx, cry, crz); B.chest.scale.set(1 + 0.008 * br, 1 + 0.006 * br, 1 + 0.012 * br);
     E('neck', nrx + hrx * 0.3, hry * 0.35, hrzH * 0.4); E('head', hrx * 0.7, hry * 0.65, hrzH * 0.6 - crz * 0.4);
     for (const k of ['shR', 'shL']) B[k].position.y = 0.085 + shY; B.shR.rotation.z = -shY * 2; B.shL.rotation.z = shY * 2;
     // pickaxe rides on the chest; the adjust fidget lifts and resettles it
     const px = c.built.mount; px.position.copy(c.pickRest.p).add(V(0, pickY, 0)); px.quaternion.copy(c.pickRest.q).premultiply(_q.setFromEuler(new THREE.Euler(pickRx, 0, 0)));
     f.dt = dt; solveLimbs(c, f);
+    { const T = an.act === 'climb' ? an.tv : null, wv = !!T && T.pose && (T.k === 'ascend' || T.k === 'coil' || (T.k === 'draw' && T.t < 0.3)); tetherRope(c, T); if (c.built.winch) { c.built.winch.visible = wv; if (wv && T.k === 'ascend') c.built.winchDrum.rotation.x -= dt * 14 * T.fac; }
+      const cg = c.built.tethers && c.built.tethers[0] && c.built.tethers[0].grp; if (cg) { const out = !!T && T.clipped && T.pose ? (T.k === 'coil' ? 1 - ss(0.2, 0.95, T.t / TV.coilT) : 1) : 0; cg.scale.setScalar(1 - 0.42 * out); } }
     if (an.hit) { an.hit = false; const pk = built.pick; pk.updateMatrixWorld(true); const p = pk.localToWorld(V(MINE_SPIKE * 0.24, 0.7, 0)); p.y = 0.004; spawnDebris(p, pk.userData.grade !== 'stick'); } updDebris(dt);
     // blinks (random, sometimes double), held shut through a sigh
     if (t > an.blinkAt) { an.blink = 0.0001; an.blinkAt = t + 2 + Math.random() * 3.8; if (Math.random() < 0.2) an.dbl = true; }
@@ -6011,7 +6065,7 @@ const CharView = (() => {
     canvas.addEventListener('wheel', (e) => { e.preventDefault(); st.dist = clamp(st.dist * Math.exp(e.deltaY * 0.0012), 2.0, 5.6); st.lastInput = clk; }, { passive: false });
     const cp = document.getElementById('charPick'); if (cp) { markPick();
       cp.addEventListener('click', (e) => { const gb = e.target.closest('[data-gear]'); if (gb) { gear = gb.dataset.gear; markPick(); return; } const b = e.target.closest('[data-grade]'); if (!b) return; if (gear === 'pick') { S.pickGrade = b.dataset.grade; setPick(S.pickGrade); } else if (gear === 'climb') { S.climbGrade = b.dataset.grade; setClimb(S.climbGrade); } else { S.tetherGrade = b.dataset.grade; setTether(S.tetherGrade); } if (typeof save === 'function') save(); st.lastInput = clk; }); }
-    const cl = document.getElementById('charClimb'); if (cl) cl.addEventListener('click', (e) => { const b = e.target.closest('[data-dir]'); if (b) setClimbDir(b.dataset.dir); st.lastInput = clk; });
+    const cl = document.getElementById('charClimb'); if (cl) cl.addEventListener('click', (e) => { const b = e.target.closest('[data-dir]'); if (b && (!an.tv || an.tv.k === 'anchored')) setClimbDir(b.dataset.dir); const tb = e.target.closest('[data-tv]'); if (tb) tetherAct(tb.dataset.tv); st.lastInput = clk; });
     const ce = document.getElementById('charEquip'); if (ce) ce.addEventListener('click', (e) => { const b = e.target.closest('[data-tool]'); if (b) setTool(b.dataset.tool); st.lastInput = clk; });
     const ca = document.getElementById('charAnim'); if (ca) ca.addEventListener('click', (e) => { const b = e.target.closest('[data-anim]'); if (b) setAnim(b.dataset.anim); st.lastInput = clk; });
     document.getElementById('charSex').addEventListener('click', (e) => { const b = e.target.closest('[data-sex]'); if (!b) return; S.charSex = b.dataset.sex; setChar(S.charSex); if (typeof save === 'function') save(); st.lastInput = clk; });
@@ -6031,7 +6085,7 @@ const CharView = (() => {
   function show() { wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; if (st.tool === undefined) { st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; setTool(st.tool, true); } setChar(sex); resize(); start(); }
   function hide() { const w = document.getElementById('charWrap'); if (w) w.classList.add('hidden'); st.visible = false; stop(); }
   window.addEventListener('resize', () => { if (running) resize(); });
-  return { show, hide, st, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, an };
+  return { show, hide, st, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, an };
 })();
 </script>
 </body></html>
