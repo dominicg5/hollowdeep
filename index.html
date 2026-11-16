@@ -153,7 +153,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 #charPick{position:absolute;bottom:30px;left:0;right:0;display:flex;justify-content:center;gap:4px;flex-wrap:nowrap;padding:0 6px}#charPick .gear{display:flex;gap:1px;margin-right:3px;background:rgba(74,46,26,.18);border-radius:15px;padding:2px}#charPick .gear button{padding:3px 6px;font-size:12px;box-shadow:none;background:transparent}#charPick .gear button.on{background:rgba(255,246,230,.95)}#charPick button span{display:none}#charPick button.on span{display:inline}#charPick button{border:0;background:rgba(255,246,230,.75);color:#4a2e1a;font:600 11px system-ui;padding:5px 6px 5px 6px;border-radius:14px;display:flex;align-items:center;gap:5px;cursor:pointer;box-shadow:0 1px 2px rgba(74,46,26,.25)}#charPick button i{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}#charPick button.on{background:#4a2e1a;color:#ffe9c4}
 #charAnim{position:absolute;top:48px;right:12px;display:flex;background:rgba(74,46,26,.18);border-radius:18px;padding:3px}#charAnim button{border:0;background:none;color:#4a2e1a;font:600 12px system-ui;padding:5px 11px;border-radius:15px;cursor:pointer}#charAnim button.on{background:#4a2e1a;color:#ffe9c4}
 #charEquip{position:absolute;top:84px;right:12px;display:flex;background:rgba(74,46,26,.18);border-radius:18px;padding:3px}#charEquip button{border:0;background:none;color:#4a2e1a;font:600 12px system-ui;padding:5px 11px;border-radius:15px;cursor:pointer}#charEquip button.on{background:#4a2e1a;color:#ffe9c4}
-#charClimb{position:absolute;top:122px;right:12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(74,46,26,.18);border-radius:12px;padding:4px}#charClimb.off{display:none}#charClimb .pad{display:grid;grid-template-columns:repeat(3,30px);gap:2px}#charClimb button{border:0;background:rgba(255,240,220,.55);color:#4a2e1a;font:700 14px system-ui;height:28px;border-radius:8px;cursor:pointer;padding:0}#charClimb button.auto{width:94px;font-size:12px}#charClimb button.on{background:#4a2e1a;color:#ffe9c4}
+#charClimb{position:absolute;top:122px;right:12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(74,46,26,.18);border-radius:12px;padding:4px}#charClimb.off{display:none}#charClimb .pad{display:grid;grid-template-columns:repeat(3,30px);gap:2px}#charClimb button{border:0;background:rgba(255,240,220,.55);color:#4a2e1a;font:700 14px system-ui;height:28px;border-radius:8px;cursor:pointer;padding:0}#charClimb button.auto{width:94px;font-size:12px}#charClimb button.on{background:#4a2e1a;color:#ffe9c4}#charClimb button.blk{background:#b9573c;color:#fff}#charClimb .cnote{font:700 10px system-ui;color:#4a2e1a;background:rgba(255,240,220,.8);border-radius:6px;padding:2px 5px;max-width:92px;text-align:center}#charClimb .cnote:empty{display:none}
 #charHint{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:rgba(74,46,26,.75);font:12px system-ui}
 .tabe{font-size:22px;line-height:26px;height:26px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
 #cityCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
@@ -258,7 +258,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   <div id="charWrap" class="hidden"><canvas id="charCanvas" aria-label="Your delver"></canvas>
     <div id="charTop"><b>Your Delver</b><div id="charSex"><button data-sex="m">Male</button><button data-sex="f">Female</button></div></div>
     <div id="charAnim" role="tablist" aria-label="Animation preview"><button data-anim="idle" class="on">Idle</button><button data-anim="run">Run</button><button data-anim="mine">Mine</button><button data-anim="climb">Climb</button></div>
-    <div id="charClimb" class="off" aria-label="Climb direction"><div class="pad"><button data-dir="ul" title="Up-left">↖</button><button data-dir="u" title="Up">↑</button><button data-dir="ur" title="Up-right">↗</button><button data-dir="l" title="Left">←</button><button data-dir="stop" title="Hold">■</button><button data-dir="r" title="Right">→</button><button data-dir="dl" title="Down-left">↙</button><button data-dir="d" title="Down">↓</button><button data-dir="dr" title="Down-right">↘</button></div><button data-dir="auto" class="auto" title="Auto-wander demo">Auto</button></div>
+    <div id="charClimb" class="off" aria-label="Climb direction"><div class="pad"><button data-dir="ul" title="Up-left">↖</button><button data-dir="u" title="Up">↑</button><button data-dir="ur" title="Up-right">↗</button><button data-dir="l" title="Left">←</button><button data-dir="stop" title="Hold">■</button><button data-dir="r" title="Right">→</button><button data-dir="dl" title="Down-left">↙</button><button data-dir="d" title="Down">↓</button><button data-dir="dr" title="Down-right">↘</button></div><button data-dir="auto" class="auto" title="Auto-wander demo">Auto</button><div class="cnote" aria-live="polite"></div></div>
     <div id="charEquip" role="tablist" aria-label="Equip"><button data-tool="pick" class="on">Pickaxe</button><button data-tool="climb">Climbing Picks</button></div>
     <div id="charPick" aria-label="Pickaxe grade"></div>
     <div id="charHint">Drag to turn · pinch or scroll to zoom</div></div>
@@ -5591,7 +5591,7 @@ const CharView = (() => {
       else { const ry = y0 - H / 2 - 0.055; part(pk, cyl(0.068, 0.068, W * 1.12, 22), M.packDk, [0, ry, zc - 0.005], [0, 0, Math.PI / 2]); const sp = toon(0, spiralTex(P.packDk)); for (const s of [-1, 1]) part(pk, new THREE.CircleGeometry(0.067, 22), sp, [s * W * 0.561, ry, zc - 0.005], [0, s * Math.PI / 2, 0], null, { ink: false });
         for (const s of [-1, 1]) part(pk, new THREE.TorusGeometry(0.07, 0.008, 6, 20), M.belt, [s * W * 0.3, ry, zc - 0.005], [0, Math.PI / 2, 0]); }
       { // the Tether coil hangs from a strap on the right side of the pack (where the side pocket was), coil plane flat against the pack side
-        const pv = bone('ropePivot', pk, -(W / 2 + 0.045), y0 + H * 0.16, zc - 0.005); part(pk, rbox(0.024, 0.05, 0.022, 0.003), M.belt, [-(W / 2 + 0.014), y0 + H * 0.16, zc - 0.005], null, null, { ink: false }); part(pk, rbox(0.014, 0.014, 0.014, 0.003), M.brass, [-(W / 2 + 0.03), y0 + H * 0.16 - 0.02, zc - 0.005], null, null, { ink: false });
+        const pv = bone('ropePivot', pk, -(W / 2 + 0.052), y0 + H * 0.16, zc - 0.035); part(pk, rbox(0.024, 0.05, 0.022, 0.003), M.belt, [-(W / 2 + 0.018), y0 + H * 0.16, zc - 0.035], null, null, { ink: false }); part(pk, rbox(0.014, 0.014, 0.014, 0.003), M.brass, [-(W / 2 + 0.034), y0 + H * 0.16 - 0.02, zc - 0.035], null, null, { ink: false });
         built.rope = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; built.tethers = []; const tg = { parent: pv, pos: [-0.004, -0.09, 0], rot: [0, -Math.PI / 2, 0.04], o: { R: 0.058, n: 5, dr: 0.003, tr: 0.0105, dz: 0.0065, sy: 1.75 } }; built.tethers.push(tg); mountTether(tg, S && S.tetherGrade); }
       { // the lantern on its ring, swinging off the left side of the pack (same model and placement for both delvers)
         const pv = bone('lanternPivot', pk, W / 2 + 0.07, y0 + 0.01, zc + 0.03); built.lantern = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; part(pv, new THREE.TorusGeometry(0.014, 0.003, 5, 12), M.dark, [0, -0.01, 0], [0, Math.PI / 2, 0]);
@@ -5606,7 +5606,7 @@ const CharView = (() => {
     // the back slot: a leather keeper on the pack's front edge that the stowed pick handle slides through (between the pack and the back)
     { const lp = SLOT_O.clone().addScaledVector(SLOT_D, 0.08), lm = toon(P.belt), lg = part(B.chest, new THREE.TorusGeometry(0.024, 0.005, 6, 18), lm, [lp.x, lp.y, lp.z]); lg.quaternion.setFromUnitVectors(V(0, 0, 1), SLOT_D); lg.scale.set(1, 1.3, 1); }
     // belt hooks for the climbing picks (their picks hook over these), and the picks themselves
-    for (const s of [-1, 1]) { const hp = HOLSTER(s); part(B.hips, rbox(0.03, 0.03, 0.036, 0.006), toon(P.belt), [hp.x - s * 0.004, hp.y + 0.005, hp.z - 0.03]); part(B.hips, rbox(0.016, 0.05, 0.03, 0.005), toon(P.belt), [s * 0.215, 0.075, hp.z], null, null, { ink: false }); part(B.hips, rbox(0.012, 0.03, 0.02, 0.004), toon(P.brass), [s * 0.215 + 0.0 * 0.1, -0.04], null, null, { ink: false }); }
+    for (const s of [-1, 1]) { const hp = HOLSTER(s); part(B.hips, rbox(0.02, 0.05, 0.034, 0.006), toon(P.belt), [hp.x - s * 0.006, hp.y + 0.006, hp.z], [0, 0, s * 0.08]); part(B.hips, rbox(0.012, 0.012, 0.012, 0.003), toon(P.brass), [hp.x + s * 0.006, hp.y + 0.028, hp.z], null, null, { ink: false }); }
     built.climb = { R: makeClimbPick(S && S.climbGrade), L: makeClimbPick(S && S.climbGrade) }; B.hdR.add(built.climb.R); B.hdL.add(built.climb.L);
     bindShells(root, skins); built.skins = skins;
     root.traverse((o) => { if (o.isMesh && o.material !== OUT) o.receiveShadow = false; });
@@ -5711,13 +5711,13 @@ const CharView = (() => {
     // fixed ankle targets (character space) and the pickaxe mount (its origin is the grip)
     c.ankle = { R: V(-0.095, 0.08, 0.0), L: V(0.1, 0.08, -0.02) };
     const mt = c.built.mount; { // per the sheets: he carries it short over the right shoulder; she rests it across the back of her neck
-      const F = c.sex === 'f', d = (F ? V(0.625, 0.404, -0.673) : V(0.14, 0.58, -0.8)).normalize(), bl = F ? V(0, 1, 0).addScaledVector(d, -d.y).normalize() : V(-1, 0.8, 0).addScaledVector(d, -V(-1, 0.8, 0).dot(d)).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); mt.quaternion.setFromRotationMatrix(_m); mt.position.copy(F ? V(-0.2, 0.09, 0.1) : V(-0.21, 0.075, 0.12)); c.gripAt = F ? 0.0 : 0.08; }
+      const F = c.sex === 'f', d = (F ? V(0.1, 0.6, -0.8) : V(0.14, 0.58, -0.8)).normalize(), bl = V(-1, 0.8, 0).addScaledVector(d, -V(-1, 0.8, 0).dot(d)).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); mt.quaternion.setFromRotationMatrix(_m); mt.position.copy(F ? V(-0.195, 0.07, 0.12) : V(-0.21, 0.075, 0.12)); c.gripAt = 0.08; }
     { const key = (o, d, x, h) => { d = d.normalize(); x = x.addScaledVector(d, -x.dot(d)).normalize(); return { o, q: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, d, x.clone().cross(d))), h }; };
-      const xs = V(-1, -0.55, 0).normalize(), Sk = key(SLOT_O.clone(), SLOT_D.clone(), xs.clone(), 0.56); c.pk = { S: Sk, A: { o: SLOT_O.clone().addScaledVector(SLOT_D, 0.4), q: Sk.q.clone(), h: 0.56 }, O: key(V(-0.27, -0.12, 0.05), V(-0.12, 1, 0.12), V(0, 0.1, 1), 0.48) }; c.pk.B = { o: c.pk.A.o.clone().add(V(-0.2, 0.06, -0.05)), q: c.pk.A.q.clone().slerp(c.pk.O.q, 0.5), h: 0.52 }; }
+      const xs = V(-1, -0.55, 0).normalize(), Sk = key(SLOT_O.clone(), SLOT_D.clone(), xs.clone(), 0.56); c.pk = { S: Sk, A: { o: SLOT_O.clone().addScaledVector(SLOT_D, 0.24), q: Sk.q.clone(), h: 0.56 }, O: key(V(-0.27, -0.12, 0.05), V(-0.12, 1, 0.12), V(0, 0.1, 1), 0.48) }; c.pk.B = { o: c.pk.A.o.clone().add(V(-0.12, 0.02, 0.02)), q: c.pk.A.q.clone().slerp(c.pk.O.q, 0.5), h: 0.52 }; }
     if (!WALLG) { WALLG = makeWall(); scene.add(WALLG); } c.wall = WALLG;
     c.pickRest = { p: mt.position.clone(), q: mt.quaternion.clone() }; c.restQ = {}; for (const k in B) if (B[k] && B[k].isObject3D) c.restQ[k] = B[k].quaternion.clone(); }
-  const PALM = V(0, -0.045, -0.031), SLOT_O = V(0.03, -0.4, -0.123), SLOT_D = V(-0.55, 1, 0).normalize(), HOLSTER = (s) => V(s * 0.235, 0.03, -0.07);
-  function solveLimbs(c, f) { const { B } = c, root = c.root; root.updateMatrixWorld(true); c._clr = !!((f.mine && f.mine.w > 0.01) || (f.climb && f.climb.w > 0.01) || (f.eq && f.eq.seq));
+  const PALM = V(0, -0.045, -0.031), SLOT_O = V(0.03, -0.4, -0.123), SLOT_D = V(-0.55, 1, 0).normalize(), HOLSTER = (s) => V(s * 0.174, 0.035, -0.06);
+  function solveLimbs(c, f) { const { B } = c, root = c.root; if (!c.hol) c.hol = { R: { ax: 0, az: 0, vx: 0, vz: 0 }, L: { ax: 0, az: 0, vx: 0, vz: 0 } }; root.updateMatrixWorld(true); c._clr = !!((f.mine && f.mine.w > 0.01) || (f.climb && f.climb.w > 0.01) || (f.eq && f.eq.seq));
     // legs: feet planted on their ankle targets, knees forward
     const fwd = V(0, 0, 1).applyQuaternion(root.quaternion);
     for (const k of ['R', 'L']) { const a = c.ankle[k].clone(); let pitch = f.tap && k === 'R' ? -f.tap * 0.7 : 0, fy = k === 'R' ? -0.14 : 0.16; if (k === 'R' && f.tap) { a.y += f.tap * 0.05; a.z += f.tap * 0.015; }
@@ -5747,15 +5747,18 @@ const CharView = (() => {
     else if (E.held === 'climb') { wC = 1; vC = 1; hC = 0; }
     const cT = {}; B.hips.updateMatrixWorld(true); const hipQ = B.hips.getWorldQuaternion(new THREE.Quaternion());
     for (const [k, s] of [['R', -1], ['L', 1]]) { // climbing pick pose: hip holster (hung by the head, blade out to the side) > lifted off > ready hold
-      const dH = V(s * 0.1, 1, 0).normalize(), xH = V(0, 0, 1), qH = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xH, dH, xH.clone().cross(dH))), oH = B.hips.localToWorld(HOLSTER(s).addScaledVector(dH, -0.37)), qHw = hipQ.clone().multiply(qH);
+      const hs = c.hol[k], Pv = HOLSTER(s), pw = B.hips.localToWorld(Pv.clone()); root.worldToLocal(pw); const dt = Math.min(f.dt || 0, 0.05);
+      if (dt > 0) { if (!hs.p) { hs.p = pw.clone(); hs.v = V(0, 0, 0); } const v = pw.clone().sub(hs.p).divideScalar(dt), a = v.clone().sub(hs.v).divideScalar(dt).clampLength(0, 25); hs.p.copy(pw); hs.v.copy(v); pend(hs, a.z * 0.9, -a.x * 0.6, dt, 34, 5.5); hs.ax = clamp(hs.ax, -0.33, 0.33); hs.az = clamp(hs.az, -0.16, 0.16); }
+      const rs = f.run ? f.run.w * 0.13 * Math.sin(TAU * f.run.ph + (s > 0 ? 0 : Math.PI) - 0.9) : 0, qS = new THREE.Quaternion().setFromEuler(new THREE.Euler(hs.ax + rs, 0, hs.az + s * Math.abs(rs) * 0.25));
+      const dH = V(-s * 0.3, 1, 0.26).normalize(), xH = V(-s * 0.1, 0, 1).addScaledVector(dH, -V(-s * 0.1, 0, 1).dot(dH)).normalize(), qH = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xH, dH, xH.clone().cross(dH))).premultiply(qS), oH = B.hips.localToWorld(Pv.clone().sub(V(0.006, 0.36, 0).applyQuaternion(qH))), qHw = hipQ.clone().multiply(qH);
       const G = V(s * 0.19, 0.92 + 0.006 * (f.br || 0), 0.22); if (f.run) { const sw = (s > 0 ? -1 : 1) * Math.cos(TAU * f.run.ph); G.z += (sw > 0 ? 0.12 : 0.05) * sw * f.run.w; G.y += 0.015 * Math.max(0, sw) * f.run.w; G.x += s * 0.02 * f.run.w; }
       const dR = V(s * (0.32 + (f.run ? 0.18 * f.run.w : 0)), 1, 0.22).normalize(), xR = V(0, 0, 1).addScaledVector(dR, -dR.z).normalize(), qR = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xR, dR, xR.clone().cross(dR))).premultiply(RQ);
-      const dHw = V(0, 1, 0).applyQuaternion(qHw), o = oH.clone().addScaledVector(dHw, 0.17 * lC).lerp(root.localToWorld(G), vC).add(V(s * 0.08, 0.04, 0.06).multiplyScalar(Math.sin(Math.PI * vC)).applyQuaternion(RQ)), q = qHw.slerp(qR, vC);
+      const dHw = V(s * 0.35, 1, 0.25).normalize().applyQuaternion(hipQ), o = oH.clone().addScaledVector(dHw, 0.15 * lC).lerp(root.localToWorld(G), vC).add(V(s * 0.13, 0.03, 0.12).multiplyScalar(Math.sin(Math.PI * vC)).applyQuaternion(RQ)), q = qHw.slerp(qR, vC);
       if (f.climb && f.climb.w > 0) { const Hc = f.climb.H[k], a = Hc.a, dC = V(s * 0.08, Math.cos(a), Math.sin(a)).normalize(), xC = V(0, -Math.sin(a), Math.cos(a)); xC.addScaledVector(dC, -xC.dot(dC)).normalize();
         const qC = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xC, dC, xC.clone().cross(dC))).premultiply(RQ); o.lerp(root.localToWorld(Hc.g.clone()), f.climb.w); q.slerp(qC, f.climb.w); }
       const d = V(0, 1, 0).applyQuaternion(q); cT[k] = { o, q, d, g: o.clone().addScaledVector(d, hC * (1 - (f.climb ? f.climb.w : 0))) }; }
     // right arm: rest (hangs like the left), the pickaxe grip and/or the right climbing pick
-    { const shR = B.shR.getWorldPosition(V(0, 0, 0)), wr0 = shR.clone().add(V(-0.06, -0.445, 0.03).applyQuaternion(RQ)), pr0 = V(-0.12, -0.05, -1).applyQuaternion(RQ);
+    { const shR = B.shR.getWorldPosition(V(0, 0, 0)), wr0 = shR.clone().add(V(-0.105, -0.44, 0.03).applyQuaternion(RQ)), pr0 = V(-0.12, -0.05, -1).applyQuaternion(RQ);
       const poleP = (f.mine ? V(-0.3, -1, -0.15).lerp(V(-0.9, -0.6, -0.2), f.mine.w) : V(-0.3, -1, -0.15)).lerp(V(-0.55, 0.9, 0.5), pUp).applyQuaternion(RQ), poleC = (f.climb ? V(-0.6, -1, -0.5).lerp(V(-1, -0.4, -0.3), f.climb.w) : V(-0.6, -1, -0.5)).applyQuaternion(RQ);
       const gp = wP > 0 ? gripSolve(c, 'R', pGw, pdW, poleP) : null, gc = wC > 0 ? gripSolve(c, 'R', cT.R.g, cT.R.d, poleC) : null;
       const wr = wr0.clone(), pr = pr0.clone(); if (gp) { wr.lerp(gp.wrist, wP); pr.lerp(poleP, wP); } if (gc) { wr.lerp(gc.wrist, wC); pr.lerp(poleC, wC); } ikA(c, 'R', wr, pr);
@@ -5767,7 +5770,7 @@ const CharView = (() => {
     placeT(c.built.pick, B.hdR, pOw, pQw); if (c.built.climb) placeT(c.built.climb.R, B.hdR, cT.R.o, cT.R.q);
     // left arm: hangs relaxed (palm toward the thigh, thumb forward, elbow straight back so the upper arm has no twist), or reaches up so the
     // finger tips scratch the cheek (elbow swinging down and out, palm toward the face). Hand frame: -y = finger direction, +z = the back of the hand.
-    const sh = B.shL.getWorldPosition(V(0, 0, 0)), r = f.reach || 0; let wristL = sh.clone().add(V(0.06, -0.445, 0.03).applyQuaternion(RQ));
+    const sh = B.shL.getWorldPosition(V(0, 0, 0)), r = f.reach || 0; let wristL = sh.clone().add(V(0.105, -0.44, 0.03).applyQuaternion(RQ));
     let pole2 = V(0.12, -0.05, -1).applyQuaternion(RQ), Qsc = null;
     if (r) { B.headC.updateMatrixWorld(true); const w = Math.sin(f.scr || 0), hcW = B.headC.getWorldPosition(V(0, 0, 0));
       // treat forearm + hand as one straight segment to the finger tips (no bent wrist), elbow swung down and out
@@ -5776,7 +5779,7 @@ const CharView = (() => {
       const E = S.clone().addScaledVector(dir, 0.245 * cA).addScaledVector(pn, 0.245 * Math.sqrt(1 - cA * cA)), fd = tip.clone().sub(E).normalize(), ws = E.clone().addScaledVector(fd, 0.215 + 0.008 * w);
       wristL.lerp(ws, r); pole2.lerp(E.clone().sub(S.clone().lerp(ws, 0.5)), r);
       const yv = fd.clone().negate(), zv = ws.clone().sub(hcW); zv.addScaledVector(yv, -zv.dot(yv)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(yv, zv), yv, zv); Qsc = new THREE.Quaternion().setFromRotationMatrix(_m); }
-    if (f.run) { const w = f.run.w, sw = -Math.cos(TAU * f.run.ph), fwdA = Math.max(0, sw); wristL.lerp(sh.clone().add(V(0.075 - 0.03 * fwdA, -0.31 + 0.13 * fwdA + 0.03 * Math.min(0, sw), 0.03 + 0.2 * sw).applyQuaternion(RQ)), w); pole2.lerp(V(0.35, -0.35, -1).applyQuaternion(RQ), w); }
+    if (f.run) { const w = f.run.w, sw = -Math.cos(TAU * f.run.ph), fwdA = Math.max(0, sw); wristL.lerp(sh.clone().add(V(0.1 + 0.035 * Math.max(0, -sw) - 0.025 * fwdA, -0.31 + 0.13 * fwdA + 0.03 * Math.min(0, sw), 0.03 + 0.2 * sw).applyQuaternion(RQ)), w); pole2.lerp(V(0.35, -0.35, -1).applyQuaternion(RQ), w); }
     let QmL = null; if (f.mine && f.mine.w > 0) { const w = f.mine.w, mt0 = c.built.mount, gL = mt0.getWorldPosition(V(0, 0, 0)), dd = V(0, 1, 0).applyQuaternion(mt0.getWorldQuaternion(new THREE.Quaternion())); 
       const pl = V(1, -0.7, -0.1).applyQuaternion(RQ), w0 = wristL.clone(), p0 = pole2.clone(); let wl = gL.clone(); QmL = new THREE.Quaternion(); pole2 = p0.clone().lerp(pl, w);
       for (let it = 0; it < 3; it++) { ikA(c, 'L', w0.clone().lerp(wl, w), pole2); const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(wl).normalize(), x = dd.clone().negate(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); QmL.setFromRotationMatrix(_m); wl = gL.clone().sub(PALM.clone().applyQuaternion(QmL)); }
@@ -5813,14 +5816,14 @@ const CharView = (() => {
   // keys: [u, bottom-hand grip x,y,z (character space; the LEFT hand holds the butt), shaft pitch deg, shaft side lean, body lean, drop, head pitch, ease,
   //        h2 = how far up the shaft the RIGHT (sliding) hand sits, hip shift, torso twist]. Wind-up: left fist in front of the sternum, pick cocked over the right
   //        shoulder, right hand up by the ear near the head; strike: right hand slides down to the left as the hips drive forward; recoil + settle; pull out.
-  const MINE_K = [[0, 0.03, 0.88, 0.25, 75, 0, 0.1, 0.02, 0.15, 1, 0.3, 0, 0], [0.14, 0, 0.98, 0.26, 25, -0.15, 0.03, 0.0, 0.05, 1, 0.42, -0.015, -0.12], [0.4, -0.07, 1.06, 0.23, -35, -0.5, -0.12, -0.005, -0.12, 2, 0.42, -0.04, -0.3],
-    [0.47, -0.03, 1.07, 0.3, 45, -0.12, 0.17, 0.03, 0.12, 0, 0.25, 0.01, -0.04], [0.52, 0, 0.71, 0.29, 128, 0, 0.5, 0.1, 0.45, 1, 0.06, 0.05, 0.12], [0.565, 0, 0.77, 0.28, 117, 0, 0.42, 0.08, 0.36, 1, 0.08, 0.03, 0.09],
-    [0.66, 0, 0.73, 0.29, 125, 0, 0.47, 0.095, 0.42, 1, 0.08, 0.04, 0.1], [0.82, 0.02, 0.82, 0.27, 100, 0, 0.3, 0.06, 0.3, 1, 0.18, 0.02, 0.05], [1, 0.03, 0.88, 0.25, 75, 0, 0.1, 0.02, 0.15, 1, 0.3, 0, 0]];
+  const MINE_K = [[0, 0.03, 0.88, 0.25, 75, 0, 0.1, 0.03, 0.15, 1, 0.3, 0, 0], [0.14, 0, 0.98, 0.26, 25, -0.15, 0.0, 0.04, 0.05, 1, 0.42, -0.03, -0.16], [0.4, -0.07, 1.06, 0.23, -35, -0.5, -0.18, 0.075, -0.12, 2, 0.42, -0.06, -0.42],
+    [0.47, -0.03, 1.07, 0.3, 45, -0.12, 0.2, 0.05, 0.12, 0, 0.25, 0.02, -0.06], [0.52, 0, 0.71, 0.29, 128, 0, 0.54, 0.15, 0.45, 1, 0.06, 0.075, 0.2], [0.565, 0, 0.77, 0.28, 117, 0, 0.46, 0.115, 0.36, 1, 0.08, 0.05, 0.14],
+    [0.66, 0, 0.73, 0.29, 125, 0, 0.5, 0.13, 0.42, 1, 0.08, 0.06, 0.15], [0.82, 0.02, 0.82, 0.27, 100, 0, 0.32, 0.075, 0.3, 1, 0.18, 0.03, 0.06], [1, 0.03, 0.88, 0.25, 75, 0, 0.1, 0.03, 0.15, 1, 0.3, 0, 0]];
   // ---------- wall climbing with the picks: a big rock wall (fixed in the stage), jittered pick pockets + foot ledges; the climber really moves on it.
   // One limb moves at a time in a gait that depends on the direction (up: hand leads, down: feet lead, traverse: lead side first), each move lands
   // the pick tip in a pocket / the toes on a ledge, and the body shifts between moves (push). The camera follows.
-  const CL = { ZW: 0.36, TS: 0.52, SV: 0.34, SH: 0.22, tip: V(0.166, 0.308, 0), tipH: V(0, 0.308, 0), AH: 0.085, TOE: 0.168, BX: 2.3, BY0: 0, BY1: 2.5,
-    N: { RH: V(-0.23, 1.23, 0), LH: V(0.23, 1.23, 0), RF: V(-0.12, 0.25, 0), LF: V(0.12, 0.25, 0) } };
+  const CL = { ZW: 0.36, TS: 0.4, SV: 0.46, SH: 0.32, tip: V(0.166, 0.308, 0), tipH: V(0, 0.308, 0), AH: 0.085, TOE: 0.168, BX: 2.3, BY0: 0, BY1: 2.5,
+    N: { RH: V(-0.24, 1.3, 0), LH: V(0.24, 1.3, 0), RF: V(-0.13, 0.16, 0), LF: V(0.13, 0.16, 0) } };
   const WALL = { X0: -3, X1: 3, Y0: -0.1, Y1: 4.4 };
   function holdGrid(sp, seed) { const r = prng(seed), nx = Math.floor((WALL.X1 - WALL.X0) / sp) + 1, ny = Math.floor((WALL.Y1 - 0.12) / sp) + 1, pts = [];
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) pts.push(V(WALL.X0 + i * sp + (r() - 0.5) * sp * 0.6, 0.12 + j * sp + (r() - 0.5) * sp * 0.6, 0)); return { sp, nx, ny, pts }; }
@@ -5840,15 +5843,15 @@ const CharView = (() => {
       if (st.climbAuto) { C.wt -= CL.TS; if (C.wt <= 0) { const ks = Object.keys(DIRS).filter((k) => k !== 'stop').filter((k) => { const d = DIRS[k]; return Math.abs(C.P.x + d[0] * 0.8) < CL.BX && C.P.y + d[1] * 0.8 > CL.BY0 - 0.01 && C.P.y + d[1] * 0.8 < CL.BY1; });
         st.climbDir = Math.random() < 0.1 ? 'stop' : ks[(Math.random() * ks.length) | 0] || 'u'; C.wt = 2.5 + Math.random() * 2.5; markClimb(); } }
       const dv = DIRS[st.climbDir] || DIRS.stop, s = V(dv[0] * CL.SH, dv[1] * CL.SV, 0);
-      if (Math.abs(C.P.x + s.x * 0.25) > CL.BX) s.x = 0; if (C.P.y + s.y * 0.25 < CL.BY0 || C.P.y + s.y * 0.25 > CL.BY1) s.y = 0; C.bf = C.P.clone(); C.bt = C.P.clone();
+      let blk = ''; if (Math.abs(C.P.x + s.x * 0.25) > CL.BX) { s.x = 0; blk = 'side'; } if (C.P.y + s.y * 0.25 < CL.BY0) { s.y = 0; blk = 'bottom'; } else if (C.P.y + s.y * 0.25 > CL.BY1) { s.y = 0; blk = 'top'; } C.blk = blk; C.bf = C.P.clone(); C.bt = C.P.clone();
       if (s.lengthSq() > 1e-6) { const ord = gaitOrder(dv[0], dv[1]), sl = s.length(), sn = s.clone().divideScalar(sl), Pn = C.P.clone().addScaledVector(s, 0.25);
         // the limb furthest behind moves first if it is near its reach limit, else the gait order
         let k = ord[C.idx % 4], worst = 0; for (const q of ord) { const lag = -relOf(q, C.L[q], Pn).dot(sn) / sl; if (lag > 0.62 && lag > worst) { worst = lag; k = q; } } C.idx++;
-        const tg = C.P.clone().add(CL.N[k]).addScaledVector(s, 0.75); if (isH(k)) { tg.add(CL.tipH); tg.x = k === 'RH' ? Math.min(tg.x, C.P.x - 0.17) : Math.max(tg.x, C.P.x + 0.17); } C.mv = k; C.from = C.L[k].clone(); C.to = snapHold(isH(k) ? HG.hand : HG.foot, tg);
-        let ok = true; for (const q of ['RH', 'LH', 'RF', 'LF']) { if (q === k) continue; const r = relOf(q, C.L[q], Pn); if (Math.abs(r.x) > 0.21 || Math.abs(r.y) > 0.25) ok = false; } if (ok) C.bt = Pn; } }
-    const u = C.slotT, P = C.bf.clone().lerp(C.bt, ss(0.35, 1, u)), out = { P, H: {}, F: {}, mv: C.mv, mu: 0, up: 0 };
+        const tg = C.P.clone().add(CL.N[k]).addScaledVector(s, 0.75); if (isH(k)) { tg.add(CL.tipH); tg.x = k === 'RH' ? Math.min(tg.x, C.P.x - 0.21) : Math.max(tg.x, C.P.x + 0.21); } C.mv = k; C.from = C.L[k].clone(); C.to = snapHold(isH(k) ? HG.hand : HG.foot, tg);
+        let ok = true; for (const q of ['RH', 'LH', 'RF', 'LF']) { if (q === k) continue; const r = relOf(q, C.L[q], Pn); if (Math.abs(r.x) > 0.3 || Math.abs(r.y) > 0.34) ok = false; } if (ok) C.bt = Pn; } }
+    const u = C.slotT, P = C.bf.clone().lerp(C.bt, ss(0.3, 0.95, u)), out = { P, H: {}, F: {}, mv: C.mv, mu: 0, up: 0, blk: C.blk || '' };
     for (const k of ['RH', 'LH', 'RF', 'LF']) { let h = C.L[k], sn = 0, a = 0, m = 0; if (k === C.mv) { m = clamp(u / 0.62, 0, 1); h = C.from.clone().lerp(C.to, ss(0.12, 0.88, m)); sn = Math.sin(Math.PI * m); out.mu = m; out.up = C.to.y - C.from.y;
-        if (isH(k)) a = m < 0.38 ? -1.3 * ss(0, 0.38, m) : -1.3 * (1 - ((m - 0.38) / 0.62) ** 2); }
+        if (isH(k)) a = m < 0.38 ? -1.05 * ss(0, 0.38, m) : -1.05 * (1 - ((m - 0.38) / 0.62) ** 2); }
       const r = h.clone().sub(P); if (isH(k)) out.H[k[0]] = { g: V(r.x - CL.tip.x * 0, r.y - CL.tip.y + 0.04 * sn, CL.ZW + 0.004 - CL.tip.x - 0.14 * sn), a, tipW: h };
       else out.F[k[0]] = { a: V(r.x, r.y + CL.AH + 0.06 * sn, CL.ZW - CL.TOE - 0.09 * sn), sn }; }
     return out; }
@@ -5863,7 +5866,12 @@ const CharView = (() => {
     inst(new THREE.SphereGeometry(0.014, 8, 6), toon(0x5a4a3a), HG.hand, (o, p) => { o.position.set(p.x, p.y, CL.ZW - 0.002); o.rotation.set(0, 0, r()); o.scale.set(1, 1.5, 0.3); });
     g.visible = false; return g; }
   function mineKey(u) { let i = 0; while (i < MINE_K.length - 2 && u > MINE_K[i + 1][0]) i++; const A = MINE_K[i], Bk = MINE_K[i + 1], t0 = clamp((u - A[0]) / (Bk[0] - A[0]), 0, 1), e = Bk[9], t = e === 1 ? ss(0, 1, t0) : e === 2 ? t0 * t0 : t0;
-    const L = (j) => lerp(A[j], Bk[j], t); return { G: V(L(1), L(2), L(3)), th: L(4) * Math.PI / 180, dx: L(5), lean: L(6), drop: L(7), hp: L(8), h2: L(10), hz: L(11), tw: L(12) }; }
+    const L = (j) => lerp(A[j], Bk[j], t); const dr = L(7); return { G: V(L(1), L(2) - Math.max(0, dr - 0.02) * 0.45, L(3) + L(11) * 0.4), th: L(4) * Math.PI / 180, dx: L(5), lean: L(6), drop: L(7), hp: L(8), h2: mineSlide(u), hz: L(11), tw: L(12) }; }
+  // lead (right) hand position along the shaft: one continuous C2-eased glide UP the handle from the pull-out through the lift to the top of the wind-up,
+  // then the fast slide down into the strike (accelerating), and a short hold through the impact
+  const sst = (x) => { x = clamp(x, 0, 1); return x * x * x * (x * (x * 6 - 15) + 10); };
+  function mineSlide(u) { const H0 = 0.07, H1 = 0.44; if (u >= 0.66 || u < 0.4) { const w = (u >= 0.66 ? u - 0.66 : u + 0.34) / 0.74; return lerp(H0, H1, sst(w)); }
+    if (u < 0.52) { const w = (u - 0.4) / 0.12; return lerp(H1, H0 - 0.01, w * w * (3 - 2 * w) * 0.35 + w * w * 0.65); } return lerp(H0 - 0.01, H0, sst((u - 0.52) / 0.14)); }
   /* ---------- impact debris: dirt chunks + sparks + a dust puff (world space, one Points draw call) ---------- */
   const DEB = { n: 72, i: 0 };
   function initDebris() { const n = DEB.n; DEB.pos = new Float32Array(n * 3); DEB.vel = new Float32Array(n * 3); DEB.col = new Float32Array(n * 3); DEB.life = new Float32Array(n); DEB.rate = new Float32Array(n); DEB.size = new Float32Array(n);
@@ -5930,10 +5938,10 @@ const CharView = (() => {
     { const Q = an.eq, t2 = Q.t; let e1 = 0, e2 = 0; if (Q.seq === 'pickDraw') e1 = Math.sin(Math.PI * ss(0, 0.62, t2)); if (Q.seq === 'pickStow') e1 = Math.sin(Math.PI * ss(0.3, 1, t2));
       if (Q.seq === 'climbDraw') e2 = Math.sin(Math.PI * ss(0, 0.62, t2)); if (Q.seq === 'climbStow') e2 = Math.sin(Math.PI * ss(0.38, 1, t2));
       hry -= 0.42 * e1; cry -= 0.18 * e1; crz += 0.05 * e1; shY += 0.018 * e1; hy -= 0.06 * e2; cx += 0.12 * e2; hrx += 0.3 * e2; hz -= 0.012 * e2; }
-    if (an.act === 'climb') { if (!an.cl) an.cl = climbInit(); const C = climbStep(an.cl, dt), w = mw; f.climb = Object.assign(C, { w }); st.climbPh = ((an.cl.idx % 4) + an.cl.slotT) / 4; st.climbPos = { x: C.P.x, y: C.P.y };
+    if (an.act === 'climb') { if (!an.cl) an.cl = climbInit(); const C = climbStep(an.cl, dt), w = mw; f.climb = Object.assign(C, { w }); st.climbPh = ((an.cl.idx % 4) + an.cl.slotT) / 4; st.climbPos = { x: C.P.x, y: C.P.y }; if ((C.blk || '') !== (st.climbBlk || '') || st._bd !== st.climbDir) { st.climbBlk = C.blk || ''; st._bd = st.climbDir; const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = { bottom: 'Ground reached', top: 'Top of the wall', side: 'Edge of the wall' }[C.blk] || ''; document.querySelectorAll('#charClimb [data-dir]').forEach((b) => b.classList.toggle('blk', !!C.blk && b.dataset.dir === st.climbDir)); }
       const ms = C.mv ? (C.mv[0] === 'R' ? -1 : 1) : 0, e = Math.sin(Math.PI * C.mu), hand = C.mv && isH(C.mv);
-      hy -= w * 0.075; hz += w * 0.02; cx += w * 0.1; hx -= w * (hand ? 0 : 0.03 * ms * e); hrz += w * 0.04 * ms * e * (hand ? 1 : -1); crz -= w * 0.035 * ms * e;
-      hrx -= w * (hand ? 0.3 + 0.12 * Math.sign(C.up) * e : -0.05 - 0.3 * e); hry += w * (hand ? 0.3 : 0.12) * ms * e; nrx -= w * 0.08; }
+      hy -= w * 0.04; hz += w * 0.02; cx += w * 0.1; hx -= w * (hand ? 0 : 0.03 * ms * e); hrz += w * 0.045 * e * (hand ? 1 : -ms); crz -= w * 0.035 * ms * e;
+      hrx -= w * (hand ? 0.3 + 0.12 * Math.sign(C.up) * e : -0.05 - 0.3 * e); hry += w * (hand ? 0.16 : 0.1) * ms * e; nrx -= w * 0.08; }
     else if (an.cl && !an.act) an.cl = null;
     { const P = an.act === 'climb' && f.climb ? f.climb.P : null; c.root.position.set(P ? P.x : 0, P ? P.y : 0, 0).applyAxisAngle(V(0, 1, 0), st.yaw); const wl = c.wall; if (wl) { wl.visible = an.act === 'climb'; wl.rotation.y = st.yaw; for (const fl of FLOOR) fl.visible = !wl.visible; } }
     if (fid === 'sigh') { const s1 = Math.sin(Math.PI * ss(0.05, 0.45, u)), s2 = Math.sin(Math.PI * ss(0.4, 0.95, u)); cx += 0.085 * s1 - 0.08 * s2; shY += 0.03 * s1 - 0.04 * s2; nrx += 0.14 * s2; hrx += 0.15 * s2; hy -= 0.012 * s2; f.sighDrop = s2; }
@@ -5944,7 +5952,7 @@ const CharView = (() => {
     for (const k of ['shR', 'shL']) B[k].position.y = 0.085 + shY; B.shR.rotation.z = -shY * 2; B.shL.rotation.z = shY * 2;
     // pickaxe rides on the chest; the adjust fidget lifts and resettles it
     const px = c.built.mount; px.position.copy(c.pickRest.p).add(V(0, pickY, 0)); px.quaternion.copy(c.pickRest.q).premultiply(_q.setFromEuler(new THREE.Euler(pickRx, 0, 0)));
-    solveLimbs(c, f);
+    f.dt = dt; solveLimbs(c, f);
     if (an.hit) { an.hit = false; const pk = built.pick; pk.updateMatrixWorld(true); const p = pk.localToWorld(V(MINE_SPIKE * 0.24, 0.7, 0)); p.y = 0.004; spawnDebris(p, pk.userData.grade !== 'stick'); } updDebris(dt);
     // blinks (random, sometimes double), held shut through a sigh
     if (t > an.blinkAt) { an.blink = 0.0001; an.blinkAt = t + 2 + Math.random() * 3.8; if (Math.random() < 0.2) an.dbl = true; }

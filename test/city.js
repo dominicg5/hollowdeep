@@ -169,7 +169,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       ok(pad >= 9 && lt.x > x0 + 0.12 && lt.dir === 'l' && lt.on === 'l', 'Climb direction pad: Left traverses the climber across the wall (' + JSON.stringify({ pad, x0: +x0.toFixed(2), ...lt }) + ')');
       await p.click('#charClimb [data-dir=auto]'); await p.waitForTimeout(300);
       const au = await p.evaluate(() => ({ auto: !!CharView.st.climbAuto, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
-      ok(au.auto && au.on === 'auto', 'Climb Auto button starts the wander demo (' + JSON.stringify(au) + ')'); }
+      ok(au.auto && au.on === 'auto', 'Climb Auto button starts the wander demo (' + JSON.stringify(au) + ')'); 
+      await p.click('#charClimb [data-dir=d]'); await p.waitForFunction(() => CharView.st.climbBlk === 'bottom', null, { timeout: 45000 }).catch(() => {});
+      const gb = await p.evaluate(() => ({ blk: CharView.st.climbBlk, note: document.querySelector('#charClimb .cnote').textContent, red: !!document.querySelector('#charClimb [data-dir=d].blk'), y: +CharView.st.climbPos.y.toFixed(2) }));
+      ok(gb.blk === 'bottom' && gb.note === 'Ground reached' && gb.red, 'Climbing Down at the foot of the wall shows "Ground reached" and marks the button (' + JSON.stringify(gb) + ')'); }
     await p.click('#charEquip [data-tool=pick]'); await p.waitForFunction(() => CharView.st.toolPh === 0, null, { timeout: 45000 }).catch(() => {});
     const bk = await p.evaluate(() => ({ a: CharView.st.anim, s: S.toolMode, wall: CharView.rig.wall.visible })); ok(bk.a === 'idle' && bk.s === 'pick' && !bk.wall, 'switching back to the Pickaxe ends the climb (' + JSON.stringify(bk) + ')');
     await p.click('#charAnim [data-anim=idle]'); await p.waitForTimeout(200); }
