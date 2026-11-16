@@ -688,7 +688,7 @@ const CharView = (() => {
       c.stowK = [key(V(-0.23, -0.14, -0.05), V(-0.12, 1, -0.12), V(0, 0, 1), 0.3), key(SLOT_O.clone(), SLOT_D.clone(), V(-0.8, -0.6, 0), 0.5)]; }
     c.pickRest = { p: mt.position.clone(), q: mt.quaternion.clone() }; c.restQ = {}; for (const k in B) if (B[k] && B[k].isObject3D) c.restQ[k] = B[k].quaternion.clone(); }
   const PALM = V(0, -0.045, -0.031), SLOT_O = V(0.02, -0.25, -0.123), SLOT_D = V(-0.75, 1, 0).normalize();
-  function solveLimbs(c, f) { const { B } = c, root = c.root; root.updateMatrixWorld(true);
+  function solveLimbs(c, f) { const { B } = c, root = c.root; root.updateMatrixWorld(true); c._clr = !!(f.mine && f.mine.w > 0.01);
     // legs: feet planted on their ankle targets, knees forward
     const fwd = V(0, 0, 1).applyQuaternion(root.quaternion);
     for (const k of ['R', 'L']) { const a = c.ankle[k].clone(); let pitch = f.tap && k === 'R' ? -f.tap * 0.7 : 0, fy = k === 'R' ? -0.14 : 0.16; if (k === 'R' && f.tap) { a.y += f.tap * 0.05; a.z += f.tap * 0.015; }
@@ -707,7 +707,7 @@ const CharView = (() => {
     const RQ = root.quaternion, tau = f.tau || 0, mt = c.built.mount; B.chest.updateMatrixWorld(true); const chQ = B.chest.getWorldQuaternion(new THREE.Quaternion());
     const dM = V(0, 1, 0).applyQuaternion(mt.quaternion); let pO = mt.position.clone().addScaledVector(dM, -gripAt), pQ = mt.quaternion.clone(), pH = gripAt;
     const uS = clamp(tau / STOW_T, 0, 1); if (uS > 0) { const a = ss(0, 0.45, uS), b = ss(0.45, 1, uS), K = c.stowK; pO.lerp(K[0].o, a).lerp(K[1].o, b); pQ.slerp(K[0].q, a).slerp(K[1].q, b); pH = lerp(lerp(pH, K[0].h, a), K[1].h, b); }
-    const pOw = B.chest.localToWorld(pO.clone()), pQw = chQ.clone().multiply(pQ), pdW = V(0, 1, 0).applyQuaternion(pQw), pGw = pOw.clone().addScaledVector(pdW, pH), wP = 1 - ss(STOW_T - 0.1, STOW_T + 0.1, tau);
+    const pOw = B.chest.localToWorld(pO.clone()), pQw = chQ.clone().multiply(pQ), pdW = V(0, 1, 0).applyQuaternion(pQw), pGw = pOw.clone().addScaledVector(pdW, pH + (f.mine ? f.mine.w * f.mine.h2 : 0)), wP = 1 - ss(STOW_T - 0.1, STOW_T + 0.1, tau);
     const wC = ss(STOW_T + 0.05, STOW_T + 0.4, tau), vC = ss(STOW_T + 0.4, TOOL_T, tau), cT = {}; B.hips.updateMatrixWorld(true); const hipQ = B.hips.getWorldQuaternion(new THREE.Quaternion());
     for (const [k, s] of [['R', -1], ['L', 1]]) { // climbing pick pose: belt hook > ready hold (with an arc out to the side while drawing)
       const dH = V(s * 0.1, 1, 0).normalize(), qH = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(V(0, 0, -1), dH, V(0, 0, -1).cross(dH))), oH = B.hips.localToWorld(V(s * 0.2, 0.09, -0.04).addScaledVector(dH, -0.37)), qHw = hipQ.clone().multiply(qH);
@@ -718,7 +718,7 @@ const CharView = (() => {
     { const shR = B.shR.getWorldPosition(V(0, 0, 0)), wr0 = shR.clone().add(V(-0.06, -0.445, 0.03).applyQuaternion(RQ)), pr0 = V(-0.12, -0.05, -1).applyQuaternion(RQ);
       const poleP = (f.mine ? V(-0.3, -1, -0.15).lerp(V(-0.9, -0.6, -0.2), f.mine.w) : V(-0.3, -1, -0.15)).lerp(V(-0.8, 0.6, -0.5), ss(0.05, 0.4, uS)).lerp(V(-0.5, 0.2, -1), ss(0.6, 1, uS)).applyQuaternion(RQ), poleC = V(-0.6, -1, -0.5).applyQuaternion(RQ);
       const gp = wP > 0 ? gripSolve(c, 'R', pGw, pdW, poleP) : null, gc = wC > 0 ? gripSolve(c, 'R', cT.R.o, cT.R.d, poleC) : null;
-      const wr = wr0.clone(), pr = pr0.clone(); if (gp) { wr.lerp(gp.wrist, wP); pr.lerp(poleP, wP); } if (gc) { wr.lerp(gc.wrist, wC); pr.lerp(poleC, wC); } ik(B.uaR, B.faR, 0.245, 0.215, wr, pr, false);
+      const wr = wr0.clone(), pr = pr0.clone(); if (gp) { wr.lerp(gp.wrist, wP); pr.lerp(poleP, wP); } if (gc) { wr.lerp(gc.wrist, wC); pr.lerp(poleC, wC); } ikA(c, 'R', wr, pr);
       const y = B.faR.getWorldPosition(V(0, 0, 0)).sub(B.hdR.getWorldPosition(V(0, 0, 0))).normalize(), z = V(-1, 0, 0.18).applyQuaternion(RQ); z.addScaledVector(y, -z.dot(y)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(y, z), y, z);
       const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, -0.06))); if (gp) Qr.slerp(gp.Q, wP); if (gc) Qr.slerp(gc.Q, wC);
       B.hdR.parent.getWorldQuaternion(_q2); B.hdR.quaternion.copy(_q2.invert().multiply(Qr)); B.hdR.updateMatrixWorld(true);
@@ -737,12 +737,12 @@ const CharView = (() => {
       wristL.lerp(ws, r); pole2.lerp(E.clone().sub(S.clone().lerp(ws, 0.5)), r);
       const yv = fd.clone().negate(), zv = ws.clone().sub(hcW); zv.addScaledVector(yv, -zv.dot(yv)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(yv, zv), yv, zv); Qsc = new THREE.Quaternion().setFromRotationMatrix(_m); }
     if (f.run) { const w = f.run.w, sw = -Math.cos(TAU * f.run.ph), fwdA = Math.max(0, sw); wristL.lerp(sh.clone().add(V(0.075 - 0.03 * fwdA, -0.31 + 0.13 * fwdA + 0.03 * Math.min(0, sw), 0.03 + 0.2 * sw).applyQuaternion(RQ)), w); pole2.lerp(V(0.35, -0.35, -1).applyQuaternion(RQ), w); }
-    let QmL = null; if (f.mine && f.mine.w > 0) { const w = f.mine.w, mt0 = c.built.mount, gL = mt0.getWorldPosition(V(0, 0, 0)), dd = V(0, 1, 0).applyQuaternion(mt0.getWorldQuaternion(new THREE.Quaternion())); gL.addScaledVector(dd, f.mine.h2);
+    let QmL = null; if (f.mine && f.mine.w > 0) { const w = f.mine.w, mt0 = c.built.mount, gL = mt0.getWorldPosition(V(0, 0, 0)), dd = V(0, 1, 0).applyQuaternion(mt0.getWorldQuaternion(new THREE.Quaternion())); 
       const pl = V(1, -0.7, -0.1).applyQuaternion(RQ), w0 = wristL.clone(), p0 = pole2.clone(); let wl = gL.clone(); QmL = new THREE.Quaternion(); pole2 = p0.clone().lerp(pl, w);
-      for (let it = 0; it < 3; it++) { ik(B.uaL, B.faL, 0.245, 0.215, w0.clone().lerp(wl, w), pole2, false); const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(wl).normalize(), x = dd.clone().negate(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); QmL.setFromRotationMatrix(_m); wl = gL.clone().sub(PALM.clone().applyQuaternion(QmL)); }
+      for (let it = 0; it < 3; it++) { ikA(c, 'L', w0.clone().lerp(wl, w), pole2); const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(wl).normalize(), x = dd.clone().negate(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); QmL.setFromRotationMatrix(_m); wl = gL.clone().sub(PALM.clone().applyQuaternion(QmL)); }
       wristL = w0.lerp(wl, w); }
     let gcl = null; if (wC > 0) { const pc = V(0.6, -1, -0.5).applyQuaternion(RQ); gcl = gripSolve(c, 'L', cT.L.o, cT.L.d, pc); wristL.lerp(gcl.wrist, wC); pole2.lerp(pc, wC); }
-    if (f.sighDrop) wristL.y -= f.sighDrop * 0.015; ik(B.uaL, B.faL, 0.245, 0.215, wristL, pole2, false);
+    if (f.sighDrop) wristL.y -= f.sighDrop * 0.015; ikA(c, 'L', wristL, pole2);
     { const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(B.hdL.getWorldPosition(V(0, 0, 0))).normalize(), z = V(1, 0, 0.18).applyQuaternion(RQ); z.addScaledVector(y, -z.dot(y)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(y, z), y, z);
       const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, 0.06))); if (Qsc) Qr.slerp(Qsc, ss(0, 0.85, r)); if (QmL) Qr.slerp(QmL, f.mine.w); if (gcl) Qr.slerp(gcl.Q, wC);
       B.hdL.parent.getWorldQuaternion(_q2); B.hdL.quaternion.copy(_q2.invert().multiply(Qr)); }
@@ -750,8 +750,15 @@ const CharView = (() => {
     const fist = Math.max(f.run ? f.run.w * 0.8 : 0, f.mine ? f.mine.w : 0, wC); if (fist) { B.knL.rotation.x = lerp(B.knL.rotation.x, 1.3, fist); B.tpL.rotation.x = lerp(B.tpL.rotation.x, 1.25, fist); B.thumbL.rotation.set(lerp(0.35, 1.05, fist), 0, lerp(0.6, 0.35, fist)); }
     if (c.built.climb) { B.hdL.updateMatrixWorld(true); placeT(c.built.climb.L, B.hdL, cT.L.o, cT.L.q); } }
   // close a hand on a tool: palm on the grip point, hand x along the shaft (thumb toward the head: +d for the right hand, -d for the left), y back to the elbow
+  // arm IK with body clearance: while mining, the hand target is pushed out of the torso (an ellipse in chest space, with a sleeve margin), and if the
+  // elbow lands inside the torso or the head the pole swings it outward and the arm is re-solved
+  function ikA(c, k, target, pole) { const B = c.B, up = B['ua' + k], lo = B['fa' + k]; if (!c._clr) return ik(up, lo, 0.245, 0.215, target, pole, false);
+    const ch = B.chest, inT = (pw, m) => { const q = ch.worldToLocal(pw.clone()); if (q.y < -0.55 || q.y > 0.24) return null; const rx = 0.15 + m, rz = q.z > 0 ? 0.105 + m : 0.12 + m, e = (q.x / rx) ** 2 + (q.z / rz) ** 2; return e < 1 ? { q, e, rx, rz } : null; };
+    const t = target.clone(), h = inT(t, 0.05); if (h) { const s = 1 / Math.sqrt(Math.max(h.e, 1e-4)); h.q.x *= s; h.q.z *= s; if (Math.abs(h.q.x) < 0.02 && Math.abs(h.q.z) < 0.02) h.q.z = h.rz; t.copy(ch.localToWorld(h.q)); }
+    let pl = pole.clone(); for (let it = 0; it < 4; it++) { ik(up, lo, 0.245, 0.215, t, pl, false); const e = lo.getWorldPosition(V(0, 0, 0)), he = inT(e, 0.055), hc = B.headC.getWorldPosition(V(0, 0, 0)), dh = e.distanceTo(hc);
+      if (!he && dh > 0.2) break; const out = he ? V(he.q.x / he.rx, 0, he.q.z / he.rz).normalize().transformDirection(ch.matrixWorld) : e.clone().sub(hc).normalize(); pl.addScaledVector(out, 1.5).normalize(); } }
   function gripSolve(c, k, gW, dW, pole) { const B = c.B, up = B['ua' + k], lo = B['fa' + k], x = dW.clone().multiplyScalar(k === 'R' ? 1 : -1), Q = new THREE.Quaternion(); let wr = gW.clone();
-    for (let it = 0; it < 3; it++) { ik(up, lo, 0.245, 0.215, wr, pole, false); const y = lo.getWorldPosition(V(0, 0, 0)).sub(wr).normalize(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); Q.setFromRotationMatrix(_m); wr = gW.clone().sub(PALM.clone().applyQuaternion(Q)); }
+    for (let it = 0; it < 3; it++) { ikA(c, k, wr, pole); const y = lo.getWorldPosition(V(0, 0, 0)).sub(wr).normalize(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); Q.setFromRotationMatrix(_m); wr = gW.clone().sub(PALM.clone().applyQuaternion(Q)); }
     return { wrist: wr, Q }; }
 
   /* ---------- locomotion + work cycles ---------- */
@@ -763,9 +770,12 @@ const CharView = (() => {
   //   body lean, hip drop, head pitch, ease (1 smooth, 2 accelerate, 0 linear), lead-hand distance up the shaft from the bottom hand, hip shift forward, torso twist]
   // the bottom hand stays near the butt; the lead hand rides high near the head at the wind-up (pick cocked over the right shoulder) and slides down
   // to the bottom hand as the hips and torso uncoil and the arms pull through the strike
-  const MINE_K = [[0, -0.04, 0.93, 0.24, 62, 0, 0.1, 0.02, 0.15, 1, 0.28, 0, 0], [0.14, -0.08, 0.98, 0.22, 20, -0.15, 0.04, 0.0, 0.05, 1, 0.42, -0.01, -0.12], [0.4, -0.12, 1.02, 0.16, -40, -0.32, -0.12, -0.005, -0.15, 2, 0.5, -0.035, -0.28],
-    [0.47, -0.05, 1.08, 0.24, 45, -0.12, 0.15, 0.03, 0.12, 0, 0.3, 0.0, -0.05], [0.52, 0, 0.73, 0.21, 128, 0, 0.5, 0.1, 0.45, 1, 0.1, 0.04, 0.12], [0.57, 0, 0.78, 0.2, 119, 0, 0.44, 0.085, 0.38, 1, 0.1, 0.03, 0.1],
-    [0.66, 0, 0.75, 0.21, 125, 0, 0.47, 0.095, 0.42, 1, 0.1, 0.035, 0.1], [0.82, -0.02, 0.83, 0.22, 105, 0, 0.32, 0.06, 0.3, 1, 0.2, 0.02, 0.05], [1, -0.04, 0.93, 0.24, 62, 0, 0.1, 0.02, 0.15, 1, 0.28, 0, 0]];
+  // keys: [u, bottom-hand grip x,y,z (character space; the LEFT hand holds the butt), shaft pitch deg, shaft side lean, body lean, drop, head pitch, ease,
+  //        h2 = how far up the shaft the RIGHT (sliding) hand sits, hip shift, torso twist]. Wind-up: left fist in front of the sternum, pick cocked over the right
+  //        shoulder, right hand up by the ear near the head; strike: right hand slides down to the left as the hips drive forward; recoil + settle; pull out.
+  const MINE_K = [[0, 0.03, 0.88, 0.25, 75, 0, 0.1, 0.02, 0.15, 1, 0.3, 0, 0], [0.14, 0, 0.98, 0.26, 25, -0.15, 0.03, 0.0, 0.05, 1, 0.42, -0.015, -0.12], [0.4, -0.07, 1.06, 0.23, -35, -0.5, -0.12, -0.005, -0.12, 2, 0.42, -0.04, -0.3],
+    [0.47, -0.03, 1.07, 0.3, 45, -0.12, 0.17, 0.03, 0.12, 0, 0.25, 0.01, -0.04], [0.52, 0, 0.71, 0.29, 128, 0, 0.5, 0.1, 0.45, 1, 0.06, 0.05, 0.12], [0.565, 0, 0.77, 0.28, 117, 0, 0.42, 0.08, 0.36, 1, 0.08, 0.03, 0.09],
+    [0.66, 0, 0.73, 0.29, 125, 0, 0.47, 0.095, 0.42, 1, 0.08, 0.04, 0.1], [0.82, 0.02, 0.82, 0.27, 100, 0, 0.3, 0.06, 0.3, 1, 0.18, 0.02, 0.05], [1, 0.03, 0.88, 0.25, 75, 0, 0.1, 0.02, 0.15, 1, 0.3, 0, 0]];
   function mineKey(u) { let i = 0; while (i < MINE_K.length - 2 && u > MINE_K[i + 1][0]) i++; const A = MINE_K[i], Bk = MINE_K[i + 1], t0 = clamp((u - A[0]) / (Bk[0] - A[0]), 0, 1), e = Bk[9], t = e === 1 ? ss(0, 1, t0) : e === 2 ? t0 * t0 : t0;
     const L = (j) => lerp(A[j], Bk[j], t); return { G: V(L(1), L(2), L(3)), th: L(4) * Math.PI / 180, dx: L(5), lean: L(6), drop: L(7), hp: L(8), h2: L(10), hz: L(11), tw: L(12) }; }
   /* ---------- impact debris: dirt chunks + sparks + a dust puff (world space, one Points draw call) ---------- */
