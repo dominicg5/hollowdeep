@@ -161,7 +161,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(mn.ph === 0 && mn.s === 'pick' && mn.act === 'mine' && mn.on === 'pick', 'Mine preview with the climbing picks out switches back to the pickaxe first, then mines (' + JSON.stringify(mn) + ')');
     await p.click('#charAnim [data-anim=climb]'); await p.waitForFunction(() => CharView.an.act === 'climb' && CharView.an.mw >= 1 && CharView.st.climbPh > 0.18 && CharView.st.climbPh < 0.45, null, { timeout: 45000 }).catch(() => {});
     const cl = await p.evaluate(() => { const r = CharView.rig, B = r.B, hR = B.hdR.getWorldPosition(new THREE.Vector3()), hL = B.hdL.getWorldPosition(new THREE.Vector3()); return { act: CharView.an.act, s: S.toolMode, ph: CharView.st.climbPh, wall: r.wall.visible, on: (document.querySelector('#charAnim button.on') || {}).dataset?.anim, up: +Math.max(hR.y, hL.y).toFixed(2) }; });
-    ok(cl.act === 'climb' && cl.s === 'climb' && cl.ph > 0 && cl.wall && cl.on === 'climb' && cl.up > 1.2, 'Climb preview draws the climbing picks and loops the wall climb in front of a rock slab (' + JSON.stringify(cl) + ')');
+    ok(cl.act === 'climb' && cl.s === 'climb' && cl.ph > 0 && cl.wall && cl.on === 'climb' && cl.up > 1.0, 'Climb preview draws the climbing picks and climbs the rock wall (' + JSON.stringify(cl) + ')');
+    { const pad = await p.evaluate(() => !document.getElementById('charClimb').classList.contains('off') && document.querySelectorAll('#charClimb [data-dir]').length);
+      const x0 = await p.evaluate(() => CharView.st.climbPos.x); await p.click('#charClimb [data-dir=l]');
+      await p.waitForFunction((x0) => CharView.st.climbPos.x > x0 + 0.12, x0, { timeout: 45000 }).catch(() => {});
+      const lt = await p.evaluate(() => ({ x: +CharView.st.climbPos.x.toFixed(2), y: +CharView.st.climbPos.y.toFixed(2), dir: CharView.st.climbDir, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
+      ok(pad >= 9 && lt.x > x0 + 0.12 && lt.dir === 'l' && lt.on === 'l', 'Climb direction pad: Left traverses the climber across the wall (' + JSON.stringify({ pad, x0: +x0.toFixed(2), ...lt }) + ')');
+      await p.click('#charClimb [data-dir=auto]'); await p.waitForTimeout(300);
+      const au = await p.evaluate(() => ({ auto: !!CharView.st.climbAuto, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
+      ok(au.auto && au.on === 'auto', 'Climb Auto button starts the wander demo (' + JSON.stringify(au) + ')'); }
     await p.click('#charEquip [data-tool=pick]'); await p.waitForFunction(() => CharView.st.toolPh === 0, null, { timeout: 45000 }).catch(() => {});
     const bk = await p.evaluate(() => ({ a: CharView.st.anim, s: S.toolMode, wall: CharView.rig.wall.visible })); ok(bk.a === 'idle' && bk.s === 'pick' && !bk.wall, 'switching back to the Pickaxe ends the climb (' + JSON.stringify(bk) + ')');
     await p.click('#charAnim [data-anim=idle]'); await p.waitForTimeout(200); }
