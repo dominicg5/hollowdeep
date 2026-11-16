@@ -143,6 +143,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(oxl.t === 'Ember Onyx' && oxl.l === 'Ember Onyx' && !oxl.any, 'top grade is labelled Ember Onyx (saved id "onyx" unchanged) (' + JSON.stringify(oxl) + ')');
   const dflt = await p.evaluate(() => newState().pickGrade + '/' + newState().tetherGrade);
   ok(dflt === 'stick/regular', 'new saves start with the Stickaxe and the Vine tether (saved id "regular" unchanged) (' + dflt + ')');
+  { const res = []; for (const k of ['run', 'mine', 'idle']) { await p.click('#charAnim [data-anim=' + k + ']'); await p.waitForFunction((k) => k === 'idle' || CharView.st[k + 'Ph'] !== undefined, k, { timeout: 8000 }).catch(() => {}); await p.waitForTimeout(300); res.push(await p.evaluate(() => ({ a: CharView.st.anim, on: (document.querySelector('#charAnim button.on') || {}).dataset?.anim, run: CharView.st.runPh, mine: CharView.st.minePh }))); }
+    ok(res[0].a === 'run' && res[0].on === 'run' && res[0].run >= 0 && res[1].a === 'mine' && res[1].on === 'mine' && res[1].mine >= 0 && res[2].a === 'idle' && res[2].on === 'idle', 'Character tab Idle / Run / Mine preview buttons switch the animation (' + JSON.stringify(res) + ')'); }
   await p.click('#charPick [data-gear=tether]'); await p.waitForTimeout(200);
   const tks = await p.evaluate(() => [...document.querySelectorAll('#charPick [data-grade]')].map((b) => b.dataset.grade).join());
   const vin = await p.evaluate(() => { const b = document.querySelector('#charPick [data-grade=regular]'); return b ? b.title : ''; }); ok(vin === 'Vine', 'starter tether is labelled Vine (' + vin + ')');
