@@ -5661,7 +5661,7 @@ const CharView = (() => {
       const kp = fwd.clone().add(V(0, 0.2, 0)); if (f.mine) kp.add(V(k === 'R' ? -0.55 : 0.55, 0, 0).applyQuaternion(root.quaternion).multiplyScalar(f.mine.w)); ik(B['th' + k], B['sn' + k], c.LT, c.LS, root.localToWorld(a), kp, false);
       B['ft' + k].parent.getWorldQuaternion(_q2); _q.setFromEuler(new THREE.Euler(pitch, fy, 0)); _q.premultiply(root.quaternion); B['ft' + k].quaternion.copy(_q2.invert().multiply(_q)); }
     // mining: the pick is held two-handed - its grip pose comes from the swing keys (character space), blended over the carry pose
-    let gripAt = c.gripAt || 0; if (f.mine && f.mine.w > 0) { const m = f.mine, mt0 = c.built.mount, th = m.th, d = V(0, Math.cos(th), Math.sin(th)), bl = V(0, -Math.sin(th), Math.cos(th)).multiplyScalar(MINE_SPIKE), z = V(0, 0, 0).crossVectors(bl, d);
+    let gripAt = c.gripAt || 0; if (f.mine && f.mine.w > 0) { const m = f.mine, mt0 = c.built.mount, th = m.th, d = V(m.dx, Math.cos(th), Math.sin(th)).normalize(), bl = V(0, 0, 0).crossVectors(V(1, 0, 0), d).normalize().multiplyScalar(MINE_SPIKE), z = V(0, 0, 0).crossVectors(bl, d);
       _m.makeBasis(bl, d, z); const Qd = new THREE.Quaternion().setFromRotationMatrix(_m).premultiply(root.quaternion), Pd = root.localToWorld(m.G.clone());
       mt0.updateMatrixWorld(true); const P0 = mt0.getWorldPosition(V(0, 0, 0)), Q0 = mt0.getWorldQuaternion(new THREE.Quaternion()); P0.lerp(Pd, m.w); Q0.slerp(Qd, m.w);
       mt0.position.copy(mt0.parent.worldToLocal(P0)); mt0.parent.getWorldQuaternion(_q2); mt0.quaternion.copy(_q2.invert().multiply(Q0)); mt0.updateMatrixWorld(true); gripAt = lerp(gripAt, MINE_GRIP, m.w); }
@@ -5683,7 +5683,7 @@ const CharView = (() => {
       wristL.lerp(ws, r); pole2.lerp(E.clone().sub(S.clone().lerp(ws, 0.5)), r);
       const yv = fd.clone().negate(), zv = ws.clone().sub(hcW); zv.addScaledVector(yv, -zv.dot(yv)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(yv, zv), yv, zv); Qsc = new THREE.Quaternion().setFromRotationMatrix(_m); }
     if (f.run) { const w = f.run.w, sw = -Math.cos(TAU * f.run.ph), fwdA = Math.max(0, sw); wristL.lerp(sh.clone().add(V(0.075 - 0.03 * fwdA, -0.31 + 0.13 * fwdA + 0.03 * Math.min(0, sw), 0.03 + 0.2 * sw).applyQuaternion(RQ)), w); pole2.lerp(V(0.35, -0.35, -1).applyQuaternion(RQ), w); }
-    let QmL = null; if (f.mine && f.mine.w > 0) { const w = f.mine.w, mt0 = c.built.mount, gL = mt0.getWorldPosition(V(0, 0, 0)), dd = V(0, 1, 0).applyQuaternion(mt0.getWorldQuaternion(new THREE.Quaternion())); gL.addScaledVector(dd, MINE_HAND2);
+    let QmL = null; if (f.mine && f.mine.w > 0) { const w = f.mine.w, mt0 = c.built.mount, gL = mt0.getWorldPosition(V(0, 0, 0)), dd = V(0, 1, 0).applyQuaternion(mt0.getWorldQuaternion(new THREE.Quaternion())); gL.addScaledVector(dd, f.mine.h2);
       const pl = V(1, -0.7, -0.1).applyQuaternion(RQ), w0 = wristL.clone(), p0 = pole2.clone(); let wl = gL.clone(); QmL = new THREE.Quaternion(); pole2 = p0.clone().lerp(pl, w);
       for (let it = 0; it < 3; it++) { ik(B.uaL, B.faL, 0.245, 0.215, w0.clone().lerp(wl, w), pole2, false); const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(wl).normalize(), x = dd.clone().negate(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); QmL.setFromRotationMatrix(_m); wl = gL.clone().sub(PALM.clone().applyQuaternion(QmL)); }
       wristL = w0.lerp(wl, w); }
@@ -5695,15 +5695,19 @@ const CharView = (() => {
     const fist = Math.max(f.run ? f.run.w * 0.8 : 0, f.mine ? f.mine.w : 0); if (fist) { B.knL.rotation.x = lerp(B.knL.rotation.x, 1.3, fist); B.tpL.rotation.x = lerp(B.tpL.rotation.x, 1.25, fist); B.thumbL.rotation.set(lerp(0.35, 1.05, fist), 0, lerp(0.6, 0.35, fist)); } }
 
   /* ---------- locomotion + work cycles ---------- */
-  const RUN_T = 0.62, MINE_T = 1.7, MINE_SPIKE = 1, MINE_GRIP = -0.12, MINE_HAND2 = 0.14;
+  const RUN_T = 0.62, MINE_T = 1.7, MINE_SPIKE = 1, MINE_GRIP = -0.255;
   // run foot path (character space) for a leg phase q in [0,1): stance 0-0.38 (heel strike > flat > toe push-off), then the swing (heel kick, knee drive, reach)
   function runFoot(q) { q = ((q % 1) + 1) % 1; if (q < 0.38) { const u = q / 0.38; return { z: lerp(0.13, -0.16, u), y: 0.08 + 0.01 * ss(0.6, 1, u), p: lerp(-0.22, 0.12, ss(0, 0.4, u)) + 0.5 * ss(0.65, 1, u) }; }
     const v = (q - 0.38) / 0.62; return { z: -0.16 - 0.05 * Math.sin(Math.PI * Math.min(1, v * 1.6)) + 0.34 * ss(0.12, 0.92, v), y: 0.08 + 0.23 * Math.pow(Math.sin(Math.PI * Math.pow(v, 0.75)), 1.2), p: lerp(0.62, -0.25, ss(0.05, 0.85, v)) }; }
-  // mining swing keys: [u, grip y, grip z, handle angle from up toward +z (deg), body lean, hip drop, head pitch, ease] (character space, two-handed grip)
-  const MINE_K = [[0, 0.95, 0.24, 70, 0.1, 0.02, 0.15, 1], [0.12, 1.02, 0.18, 45, 0.03, 0.0, 0.05, 1], [0.4, 1.47, -0.02, -18, -0.14, -0.005, -0.2, 2], [0.47, 1.2, 0.2, 60, 0.15, 0.03, 0.15, 0], [0.52, 0.66, 0.27, 128, 0.5, 0.1, 0.45, 1],
-    [0.57, 0.71, 0.26, 119, 0.44, 0.085, 0.38, 1], [0.66, 0.68, 0.27, 125, 0.47, 0.095, 0.42, 1], [0.82, 0.76, 0.27, 108, 0.34, 0.06, 0.32, 1], [1, 0.95, 0.24, 70, 0.1, 0.02, 0.15, 1]];
-  function mineKey(u) { let i = 0; while (i < MINE_K.length - 2 && u > MINE_K[i + 1][0]) i++; const A = MINE_K[i], Bk = MINE_K[i + 1], t0 = clamp((u - A[0]) / (Bk[0] - A[0]), 0, 1), e = Bk[7], t = e === 1 ? ss(0, 1, t0) : e === 2 ? t0 * t0 : t0;
-    const L = (j) => lerp(A[j], Bk[j], t); return { G: V(0, L(1), L(2)), th: L(3) * Math.PI / 180, lean: L(4), drop: L(5), hp: L(6) }; }
+  // mining swing keys (character space, two-handed leverage grip): [u, bottom-hand grip x, y, z, handle angle from up toward +z (deg), handle lean to the right (x),
+  //   body lean, hip drop, head pitch, ease (1 smooth, 2 accelerate, 0 linear), lead-hand distance up the shaft from the bottom hand, hip shift forward, torso twist]
+  // the bottom hand stays near the butt; the lead hand rides high near the head at the wind-up (pick cocked over the right shoulder) and slides down
+  // to the bottom hand as the hips and torso uncoil and the arms pull through the strike
+  const MINE_K = [[0, -0.04, 0.93, 0.24, 62, 0, 0.1, 0.02, 0.15, 1, 0.28, 0, 0], [0.14, -0.08, 0.98, 0.22, 20, -0.15, 0.04, 0.0, 0.05, 1, 0.42, -0.01, -0.12], [0.4, -0.12, 1.02, 0.16, -40, -0.32, -0.12, -0.005, -0.15, 2, 0.5, -0.035, -0.28],
+    [0.47, -0.05, 1.08, 0.24, 45, -0.12, 0.15, 0.03, 0.12, 0, 0.3, 0.0, -0.05], [0.52, 0, 0.73, 0.21, 128, 0, 0.5, 0.1, 0.45, 1, 0.1, 0.04, 0.12], [0.57, 0, 0.78, 0.2, 119, 0, 0.44, 0.085, 0.38, 1, 0.1, 0.03, 0.1],
+    [0.66, 0, 0.75, 0.21, 125, 0, 0.47, 0.095, 0.42, 1, 0.1, 0.035, 0.1], [0.82, -0.02, 0.83, 0.22, 105, 0, 0.32, 0.06, 0.3, 1, 0.2, 0.02, 0.05], [1, -0.04, 0.93, 0.24, 62, 0, 0.1, 0.02, 0.15, 1, 0.28, 0, 0]];
+  function mineKey(u) { let i = 0; while (i < MINE_K.length - 2 && u > MINE_K[i + 1][0]) i++; const A = MINE_K[i], Bk = MINE_K[i + 1], t0 = clamp((u - A[0]) / (Bk[0] - A[0]), 0, 1), e = Bk[9], t = e === 1 ? ss(0, 1, t0) : e === 2 ? t0 * t0 : t0;
+    const L = (j) => lerp(A[j], Bk[j], t); return { G: V(L(1), L(2), L(3)), th: L(4) * Math.PI / 180, dx: L(5), lean: L(6), drop: L(7), hp: L(8), h2: L(10), hz: L(11), tw: L(12) }; }
   /* ---------- impact debris: dirt chunks + sparks + a dust puff (world space, one Points draw call) ---------- */
   const DEB = { n: 72, i: 0 };
   function initDebris() { const n = DEB.n; DEB.pos = new Float32Array(n * 3); DEB.vel = new Float32Array(n * 3); DEB.col = new Float32Array(n * 3); DEB.life = new Float32Array(n); DEB.rate = new Float32Array(n); DEB.size = new Float32Array(n);
@@ -5757,7 +5761,7 @@ const CharView = (() => {
       hrx -= w * 0.24; nrx -= w * 0.07; hry += w * 0.08 * s1; pickY += w * 0.012 * Math.cos(2 * TAU * ph); pickRx += w * 0.05 * Math.sin(2 * TAU * ph); shY += w * 0.008 * Math.cos(2 * TAU * ph); }
     if (an.act === 'mine') { const um = (an.at / MINE_T) % 1, k = mineKey(um), w = mw; f.mine = Object.assign(k, { w, u: um }); st.minePh = um;
       if (an.mu !== undefined && an.mu < 0.52 && um >= 0.52 && w > 0.9) an.hit = true; an.mu = um;
-      leanS += w * k.lean * 0.45; cx += w * k.lean * 0.55; hy -= w * k.drop; hz -= w * k.drop * 0.4; hrx += w * (k.hp - k.lean * 0.6); nrx += w * k.hp * 0.3; }
+      leanS += w * k.lean * 0.45; cx += w * k.lean * 0.55; hy -= w * k.drop; hz += w * (k.hz - k.drop * 0.4); cry += w * k.tw; hipY += w * k.tw * 0.45; hrx += w * (k.hp - k.lean * 0.6); nrx += w * k.hp * 0.3; }
     if (fid === 'sigh') { const s1 = Math.sin(Math.PI * ss(0.05, 0.45, u)), s2 = Math.sin(Math.PI * ss(0.4, 0.95, u)); cx += 0.085 * s1 - 0.08 * s2; shY += 0.03 * s1 - 0.04 * s2; nrx += 0.14 * s2; hrx += 0.15 * s2; hy -= 0.012 * s2; f.sighDrop = s2; }
     // apply: hips, spine, chest, neck, head
     const E = (k, x, y, z) => { B[k].quaternion.copy(c.restQ[k]).multiply(_q.setFromEuler(new THREE.Euler(x, y, z))); };
