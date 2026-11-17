@@ -853,7 +853,7 @@ const CharView = (() => {
      an.tv = { k: 'anchor' | 'clip' | 'prep' | 'rappel' | 'hang' | 'ascend' | 'coil' | 'draw', t, A: anchor (wall frame), P: body (wall frame), fac: tether-grade speed } */
   // Tether timing. Rappel and ascend move in push-off bounds: feet kick off the wall, the body swings out in an arc on the taut line, then swings back in to the
   // next foot contact (rappel drops hop m per bound of hopT s; the ascender winch reels aD m per bound of aT s while she pushes off). x the Tether grade factor.
-  const TV = { anchorT: 1.6, coilT: 1.9, hop: 0.9, hopT: 0.4, aD: 0.9, aT: 0.48, sw: 0.36, top: 1.08 };
+  const TV = { anchorT: 1.6, coilT: 1.9, hop: 0.9, hopT: 0.81, aD: 0.9, aT: 0.97, sw: 0.36, top: 1.08 }; // rappel 0.9/0.81 = 1.11 m/s, ascend 0.9/0.97 = 0.93 m/s: 1.5x the original 4bcd32e speeds (0.74 / 0.62 m/s) at the base grade; per-grade factor T.fac unchanged
   // one push-off bound at phase h: o = swing-out distance off the wall, contact = feet on the rock, tuck = knee flex in the air, land = absorb on the return
   function bound(h) { const o = TV.sw * Math.sin(Math.PI * ss(0.05, 0.92, h)), push = Math.sin(Math.PI * ss(0, 0.2, h)), land = Math.sin(Math.PI * ss(0.82, 1, h)), tuck = Math.sin(Math.PI * ss(0.18, 0.78, h)), fly = ss(0.12, 0.22, h) * (1 - ss(0.8, 0.9, h)); return { o, push, land, tuck, fly }; }
   function boundPose(out, b, rel) { let hz = -0.27 - b.o - 0.08 * b.push + 0.07 * b.land, hipX = -0.36 - 0.12 * b.o / TV.sw + 0.06 * b.land;
