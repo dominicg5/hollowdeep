@@ -107,6 +107,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 /* modal */
 #modal{position:fixed;inset:0;z-index:50;background:rgba(15,18,30,.6);display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(2px)}
 #modal.hidden{display:none}
+.vaultp .vsec{margin:10px 0 0;padding:10px}.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:6px}.vitem{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:12px;background:rgba(255,250,235,.7);border:1px solid rgba(110,80,40,.25)}.vitem img,.vitem .ve{width:30px;height:30px;flex:none;font-size:22px;line-height:30px;text-align:center}.vitem .vn{flex:1;font-size:12.5px;font-weight:600;line-height:1.15}.vitem .vn small{display:block;font-weight:400;color:var(--dim);font-size:10.5px}.vitem .vc{font-size:15px}.vitem.zero{opacity:.55}.vaultp>.btn{width:100%;margin-top:12px}
 #modal .sheet{width:100%;max-width:540px;max-height:88vh;overflow:auto;background:radial-gradient(circle at 20% 0%,#fffaf0,#f3e5c4);border-radius:20px 20px 0 0;padding:16px 14px calc(env(safe-area-inset-bottom) + 16px);box-shadow:0 -10px 30px rgba(0,0,0,.35);animation:rise .25s ease-out}
 @media(min-width:600px){#modal{align-items:center}#modal .sheet{border-radius:20px}}
 @keyframes rise{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
