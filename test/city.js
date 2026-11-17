@@ -7,7 +7,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message + ' ' + e.stack)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   await p.goto(URL); await p.waitForTimeout(1200);
-  if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]', { force: true });
+  if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]');
   await p.waitForFunction(() => typeof ART !== 'undefined' && ART.ready, null, { timeout: 30000 }); await p.waitForTimeout(500);
   ok(await p.evaluate(() => ART.ok), 'painted art assets loaded');
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 150000 }).catch(() => {}); await p.waitForTimeout(1500);
@@ -79,14 +79,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { window.__ac = setInterval(() => closeModalQuiet(), 100); });
   { const mo = await p.evaluate(() => { const o = !document.getElementById('modal').classList.contains('hidden') ? document.getElementById('modalBody').textContent.slice(0, 80) : ''; closeModalQuiet(); return o; }); if (mo) console.log('note: modal was open before right-drag:', mo.replace(/\s+/g, ' ')); const r0 = await p.evaluate(() => CityMap.cam.rot); await p.mouse.move(200, 500); await p.mouse.down({ button: 'right' }); await p.mouse.move(280, 500, { steps: 6 }); await p.mouse.up({ button: 'right' });
     const r1 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(r1 - r0) > 0.2, `right-drag rotates (${r0.toFixed(2)} -> ${r1.toFixed(2)})`);
-    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=rotl]', { force: true }); await p.waitForFunction(() => !CityMap.cam.fly, null, { timeout: 45000 }); const r2 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(Math.abs(r2 - r1) - Math.PI / 4) < 0.05, 'rotate button turns 45deg');
-    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=tilt]', { force: true }); await p.waitForTimeout(100); ok(await p.evaluate(() => CityMap.cam.tilt >= 35 && CityMap.cam.tilt <= 70), 'tilt button');
+    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=rotl]'); await p.waitForFunction(() => !CityMap.cam.fly, null, { timeout: 45000 }); const r2 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(Math.abs(r2 - r1) - Math.PI / 4) < 0.05, 'rotate button turns 45deg');
+    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=tilt]'); await p.waitForTimeout(100); ok(await p.evaluate(() => CityMap.cam.tilt >= 35 && CityMap.cam.tilt <= 70), 'tilt button');
     await p.evaluate(() => { CityMap.cam.rot = 0; CityMap.cam.tilt = 55; }); }
   await p.evaluate(() => CityMap.flyTo(W.player.x, W.player.y, 1.05, true)); await p.waitForTimeout(300);
   // wheel zoom
   await p.evaluate(() => closeModalQuiet()); await p.mouse.move(200, 500); await p.mouse.wheel(0, 400); await p.waitForTimeout(300);
   const c2 = await p.evaluate(() => CityMap.cam.z); ok(c2 < c1.z, `wheel zooms out ${c1.z.toFixed(2)} -> ${c2.toFixed(2)}`);
-  await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=zin]', { force: true }); await p.waitForTimeout(500); const c3 = await p.evaluate(() => CityMap.cam.z); ok(c3 > c2, 'zoom button zooms in');
+  await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=zin]'); await p.waitForTimeout(500); const c3 = await p.evaluate(() => CityMap.cam.z); ok(c3 > c2, 'zoom button zooms in');
   // touch pinch via CDP
   const cdp = await ctx.newCDPSession(p); const zb = await p.evaluate(() => CityMap.cam.z);
   const tp = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], id) => ({ x, y, id })) });
@@ -112,7 +112,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(!!D, 'the Lumen Tree has its great door'); if (D) { await p.waitForTimeout(1500); await p.evaluate((D) => { closeModalQuiet(); CityMap.handleTap(...CityMap.w2sUp(D.x, D.y, D.up + D.h * 0.4)); }, D); await p.waitForTimeout(400);
       ok(/Enter the Lumen Tree/.test(await p.textContent('#modalBody')), 'tapping the door opens the Enter the Lumen Tree prompt'); await p.screenshot({ path: 'city-door.png' }); await p.evaluate(() => closeModalQuiet()); } }
   // Rim Leaderboard
-  await p.click('[data-city=board]', { force: true }); await p.waitForTimeout(300);
+  await p.click('[data-city=board]'); await p.waitForTimeout(300);
   { const bt = await p.textContent('#modalBody'); const pin = await p.textContent('#boardPin'); ok(/Rim Leaderboard/.test(bt) && /You/.test(pin) && /Lv \d+/.test(pin), 'leaderboard ranks homes by rim proximity with your row pinned: ' + pin.trim().replace(/\s+/g, ' '));
     ok(await p.evaluate(() => { const r = rimBoard(); return r.every((h, i) => i === 0 || r[i - 1].deepest >= h.deepest); }), 'leaderboard sorted by deepest level'); await p.screenshot({ path: 'city-board.png' }); }
   ok(/🌳 Lumen Tree #\d/.test(await p.textContent('#modalBody')), 'leaderboard marks Lumen Tree residents');
@@ -185,18 +185,18 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       await p.click('#charClimb [data-dir=auto]', { force: true }); await p.waitForTimeout(300);
       const au = await p.evaluate(() => ({ auto: !!CharView.st.climbAuto, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
       ok(au.auto && au.on === 'auto', 'Climb Auto button starts the wander demo (' + JSON.stringify(au) + ')'); 
-      await p.click('#charClimb [data-dir=d]', { force: true }); await p.waitForFunction(() => CharView.st.climbBlk === 'bottom', null, { timeout: 45000 }).catch(() => {});
-      const gb = await p.evaluate(() => ({ blk: CharView.st.climbBlk, note: document.querySelector('#charClimb .cnote').textContent, red: !!document.querySelector('#charClimb [data-dir=d].blk'), y: +CharView.st.climbPos.y.toFixed(2) }));
-      ok(gb.blk === 'bottom' && gb.note === 'Ground reached' && gb.red, 'Climbing Down at the foot of the wall shows "Ground reached" and marks the button (' + JSON.stringify(gb) + ')'); 
+      await p.click('#charClimb [data-dir=d]', { force: true }); await p.waitForFunction(() => CharView.st.climbBlk === 'bottom' || !!CharView.st.gnd, null, { timeout: 45000 }).catch(() => {});
+      const gb = await p.evaluate(() => ({ blk: CharView.st.climbBlk, note: document.querySelector('#charClimb .cnote').textContent, red: !!document.querySelector('#charClimb [data-dir=d].blk'), gnd: !!CharView.st.gnd, y: +CharView.st.climbPos.y.toFixed(2) }));
+      ok((gb.blk === 'bottom' && gb.note === 'Ground reached' && gb.red) || (gb.gnd && /On the ground/.test(gb.note)), 'Climbing Down at the foot of the wall shows "Ground reached" and marks the button (' + JSON.stringify(gb) + ')'); 
       // Tether: anchor pin + clip, rappel down in hops, winch back up, coil, back on the picks
-      await p.click('#charClimb [data-dir=u]', { force: true }); await p.waitForFunction(() => CharView.st.climbPos.y > 0.6, null, { timeout: 45000 }).catch(() => {});
+      await p.click('#charClimb [data-dir=u]', { force: true }); await p.waitForFunction(() => CharView.st.climbPos.y > 1.3, null, { timeout: 45000 }).catch(() => {});
       await p.click('#charClimb [data-tv=anchor]', { force: true }); await p.waitForFunction(() => CharView.st.tvK === 'anchored', null, { timeout: 45000 }).catch(() => {});
       const an1 = await p.evaluate(() => ({ k: CharView.st.tvK, pin: CharView.rig.wall.userData.pin && CharView.rig.wall.userData.pin.visible, rope: CharView.rig.wall.userData.ropes && CharView.rig.wall.userData.ropes[0].visible, y: +CharView.st.climbPos.y.toFixed(2), on: !!document.querySelector('#charClimb [data-tv=anchor].on') }));
       ok(an1.k === 'anchored' && an1.pin && an1.rope && an1.on, 'Tether Anchor drives a pin into the wall and clips the Tether to it (' + JSON.stringify(an1) + ')');
       await p.click('#charClimb [data-tv=rappel]', { force: true }); await p.waitForFunction((y0) => CharView.st.tvK === 'rappel' && CharView.st.climbPos.y < y0 - 0.25, an1.y, { timeout: 45000 }).catch(() => {});
       const rp = await p.evaluate(() => ({ k: CharView.st.tvK, y: +CharView.st.climbPos.y.toFixed(2), held: CharView.an.eq.held, rope: CharView.rig.wall.userData.ropes[0].visible }));
       ok(/rappel|hang/.test(rp.k) && rp.y < an1.y - 0.25 && rp.held === 'none' && rp.rope, 'Rappel stows the picks and drops down the wall on the Tether (' + JSON.stringify(rp) + ')');
-      await p.waitForFunction(() => CharView.st.tvK === 'hang', null, { timeout: 45000 }).catch(() => {}); await p.click('#charClimb [data-tv=ascend]', { force: true });
+      await p.click('#charClimb [data-tv=ascend]', { force: true });
       await p.waitForFunction(() => CharView.st.tvK === 'ascend' && CharView.rig.built.winch.visible, null, { timeout: 45000 }).catch(() => {});
       const as = await p.evaluate(() => ({ k: CharView.st.tvK, winch: CharView.rig.built.winch.visible }));
       await p.waitForFunction(() => !CharView.an.tv && CharView.an.eq.held === 'climb' && !CharView.an.eq.seq, null, { timeout: 45000 }).catch(() => {});
@@ -207,7 +207,19 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
         const lab = document.querySelector('#charClimb [data-tv=anchor]').textContent; C.tetherAct('rappel'); for (let i = 0; i < 400 && !(st.tvK === 'rappel' && st.climbPos.y < 1.9); i++) C.sim(1 / 30, 1); document.querySelector('#charClimb [data-dir=stop]').click(); C.sim(1 / 30, 2); const y1 = st.climbPos.y; C.sim(1 / 30, 45); const y2 = st.climbPos.y, k1 = st.tvK;
         document.querySelector('#charClimb [data-tv=anchor]').click(); const k2 = C.an.tv && C.an.tv.k; for (let i = 0; i < 400 && C.an.tv; i++) C.sim(1 / 30, 1); C.sim(1 / 30, 20); const r = { lab, y1: +y1.toFixed(2), y2: +y2.toFixed(2), k1, k2, tv: C.an.tv, act: C.an.act, held: C.an.eq.held, y3: +st.climbPos.y.toFixed(2), lab2: document.querySelector('#charClimb [data-tv=anchor]').textContent };
         C.setClimbDir('u'); C.sim(1 / 30, 30); r.moved = +(st.climbPos.y - r.y3).toFixed(2); C.setClimbDir('stop'); st.paused = false; return r; });
-      ok(un.lab === 'Unanchor' && un.k1 === 'hang' && Math.abs(un.y2 - un.y1) < 0.02 && un.y1 > 0.8 && un.k2 === 'coil' && un.tv === null && un.act === 'climb' && un.held === 'climb' && Math.abs(un.y3 - un.y2) < 0.15 && un.lab2 === 'Anchor' && un.moved > 0.05, 'Stop holds her mid-rope; Anchor reads Unanchor and drops her back onto the picks at that spot (' + JSON.stringify(un) + ')'); }
+      ok(un.lab === 'Unanchor' && un.k1 === 'hang' && Math.abs(un.y2 - un.y1) < 0.02 && un.y1 > 0.8 && un.k2 === 'coil' && un.tv === null && un.act === 'climb' && un.held === 'climb' && Math.abs(un.y3 - un.y2) < 0.15 && un.lab2 === 'Anchor' && un.moved > 0.05, 'Stop holds her mid-rope; Anchor reads Unanchor and drops her back onto the picks at that spot (' + JSON.stringify(un) + ')');
+      // the ground: climbing down off the foot of the wall (or rappelling to it) steps off onto the feet; the pad walks; walking into the wall climbs again
+      const gw = await p.evaluate(() => { CharView.st.paused = true; const C = CharView, st = C.st, adv = (n) => C.sim(1 / 30, n), r = {};
+ C.setClimbDir('u'); adv(60); C.setClimbDir('stop'); adv(5); r.y0 = +st.climbPos.y.toFixed(2);
+ C.setClimbDir('d'); for (let i = 0; i < 600 && !st.gnd; i++) adv(1); r.gnd1 = !!st.gnd; adv(40); r.z1 = st.gnd && +st.gnd.z.toFixed(2); r.act1 = C.an.act; r.wall = C.rig.wall.visible; r.btn = document.querySelector('#charClimb [data-tv=anchor]').classList.contains('dis');
+ document.querySelector('#charClimb [data-dir=l]').click(); adv(45); r.x2 = +st.gnd.x.toFixed(2); r.act2 = C.an.act; r.face2 = +st.gnd.face.toFixed(2); r.ph = st.runPh;
+ document.querySelector('#charClimb [data-dir=d]').click(); adv(30); r.z3 = +st.gnd.z.toFixed(2); document.querySelector('#charClimb [data-dir=stop]').click(); adv(20); r.act3 = C.an.act;
+ document.querySelector('#charClimb [data-dir=u]').click(); for (let i = 0; i < 300 && st.gnd; i++) adv(1); r.mounted = !st.gnd; adv(60); r.act4 = C.an.act; r.y4 = +st.climbPos.y.toFixed(2); C.setClimbDir('stop'); adv(5);
+ // rope to the ground
+ C.setClimbDir('u'); for (let i = 0; i < 400 && st.climbPos.y < 1.6; i++) adv(1); C.setClimbDir('stop'); adv(10); C.tetherAct('anchor'); for (let i = 0; i < 300 && st.tvK !== 'anchored'; i++) adv(1); C.tetherAct('rappel'); for (let i = 0; i < 900 && !st.gnd; i++) adv(1); r.ropeGnd = !!st.gnd; r.tv = C.an.tv; adv(40); r.pin = C.rig.wall.userData.pin.visible; r.held = C.an.eq.held;
+  CharView.st.paused = false; CharView.setClimbDir('stop'); return r; });
+      ok(gw.gnd1 && Math.abs(gw.z1 + 0.45) < 0.05 && gw.act1 === null && gw.wall && gw.btn && gw.x2 > 0.5 && gw.act2 === 'run' && Math.abs(gw.face2 - Math.PI / 2) < 0.3 && gw.z3 < gw.z1 - 0.3 && gw.act3 === null && gw.mounted && gw.act4 === 'climb' && gw.y4 > 0.3, 'at the foot of the wall Down steps off onto the ground; the pad walks/runs with turns; walking into the wall climbs again (' + JSON.stringify(gw) + ')');
+      ok(gw.ropeGnd && gw.tv === null && !gw.pin && gw.held === 'climb', 'rappelling to the ground unclips and coils the Tether, then steps off onto the ground (' + JSON.stringify(gw) + ')'); }
     await p.click('#charEquip [data-tool=pick]', { force: true }); await p.waitForFunction(() => CharView.st.toolPh === 0, null, { timeout: 45000 }).catch(() => {});
     const bk = await p.evaluate(() => ({ a: CharView.st.anim, s: S.toolMode, wall: CharView.rig.wall.visible })); ok(bk.a === 'idle' && bk.s === 'pick' && !bk.wall, 'switching back to the Pickaxe ends the climb (' + JSON.stringify(bk) + ')');
     await p.click('#charAnim [data-anim=idle]', { force: true }); await p.waitForTimeout(200); }
