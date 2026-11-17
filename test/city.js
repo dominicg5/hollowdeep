@@ -255,6 +255,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       await p.mouse.move(195, 520); for (let i = 0; i < 14; i++) await p.mouse.wheel(0, 500); await p.evaluate(() => CharView.sim(1 / 30, 40));
       const zm = await p.evaluate(() => { const C = CharView, st = C.st, yw = st.yaw, on = (v) => { const q = new THREE.Vector3(v[0], v[1], v[2]).applyAxisAngle(new THREE.Vector3(0, 1, 0), yw), s = C.pgScreen({ wall: true, x: q.x, y: q.y }); return null; }; const w = (x, y) => C.pgScreen({ wall: true, x, y }), g = (x, z) => C.pgScreen({ x, z }), ins = (s) => s.x > 0 && s.x < innerWidth && s.y > 90 && s.y < innerHeight - 60; return { d: +st.dist.toFixed(1), max: C.DMAX, top: ins(w(0, 12)), foot: ins(w(0, 0.1)), me: ins(g(st.gnd.x, st.gnd.z)), field: ins(g(0, -10)) }; });
       ok(zm.d === zm.max && zm.max >= 30 && zm.top && zm.foot && zm.me && zm.field, 'wheel zooms out far enough to frame the whole wall (top and foot) and the field (' + JSON.stringify(zm) + ')');
+      const zf = await p.evaluate(() => { const C = CharView, st = C.st, cam = C.cam, nd = () => { const h = C.rig.B.hips.getWorldPosition(new THREE.Vector3()).project(cam); return Math.max(Math.abs(h.x), Math.abs(h.y)); }; st.dist = C.DMAX; st.tilt = 0; C.sim(1 / 30, 40); const r = { d: st.dist, max: 0, n: 0, moved: 0 }; const x0 = st.gnd.x, z0 = st.gnd.z;
+        C.pgGo({ x: st.gnd.x > 0 ? -14 : 14, z: -14 }); for (let i = 0; i < 500 && st.pg; i++) { C.sim(1 / 30, 1); if (i > 3) { r.max = Math.max(r.max, nd()); r.n++; } } r.moved = +Math.hypot(st.gnd.x - x0, st.gnd.z - z0).toFixed(1); r.max = +r.max.toFixed(3); return r; });
+      ok(zf.d >= 30 && zf.moved > 10 && zf.max < 0.12, 'zoomed all the way out the camera stays locked on her: running across the field she stays near screen centre (' + JSON.stringify(zf) + ')');
       const cdp = await ctx.newCDPSession(p); await p.evaluate(() => { CharView.st.dist = 4; }); const tp = (pts) => pts.map(([x, y], id) => ({ x, y, id }));
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: tp([[150, 520], [250, 520]]) }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp([[175, 520], [225, 520]]) }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: tp([[190, 520], [210, 520]]) }); await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       const pz = await p.evaluate(() => +CharView.st.dist.toFixed(1));
@@ -263,7 +266,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const t5 = await tapAt(gGrid([-10, -8, -12, -6, -14], [-6, 6, -3, 3, 0, -9, 9]));
       const z1 = await run(2500);
       ok(t5 && z1.gnd && Math.abs(z1.gx - t5.q.x) < 0.1 && Math.abs(z1.gz - t5.q.z) < 0.1, 'at max zoom-out a far ground tap runs her across the field to the spot (' + JSON.stringify({ t: t5 && t5.q, z1 }) + ')');
-      const t6 = await tapAt(wGrid([6, 5, 7, 4], [-3, 3, 0, -5, 5]));
+      const t6 = await tapAt(wGrid([6, 5, 7, 4], [-3, 3, 0, -5, 5, -7, 7, -9, 9, -11, 11]));
       const z2 = await run(4000);
       ok(t6 && z2.act === 'climb' && !z2.gnd && Math.abs(z2.x - t6.q.x) < 0.35 && Math.abs(z2.y - (t6.q.y - 1.1)) < 0.4, 'at max zoom-out a high wall tap runs her to the wall and climbs all the way up to it (' + JSON.stringify({ t: t6 && t6.q, z2 }) + ')');
       await p.evaluate(() => { CharView.st.dist = 4.1; CharView.st.paused = false; }); }
