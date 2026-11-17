@@ -334,7 +334,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await p.mouse.click(h3.s.x, h3.s.y);
     const h4 = await p.evaluate(() => { const C = CharView, st = C.st, g = st.gnd, goal = g.goal && { x: +g.goal.x.toFixed(2), z: +g.goal.z.toFixed(2) }; for (let i = 0; i < 600 && st.pg; i++) C.sim(1 / 30, 1); C.sim(1 / 30, 10); return { goal, x: +g.x.toFixed(2), z: +g.z.toFixed(2) }; });
     ok(h4.goal && Math.abs(h4.goal.x - 1.5) < 0.15 && Math.abs(h4.goal.z - 1.2) < 0.15 && Math.abs(h4.x - h4.goal.x) < 0.1 && Math.abs(h4.z - h4.goal.z) < 0.1, 'inside, a floor tap walks her there (' + JSON.stringify({ h3, h4 }) + ')');
-    const h5n = await p.evaluate(() => { const C = CharView, st = C.st, g = st.gnd, O = g.obs || [], t = O.slice().sort((a, b) => b.r - a.r)[0], B = g.bnd, a = { x: Math.max(B.X0 + 0.25, t.x - t.r - 0.6), z: t.z }, b = { x: Math.min(B.X1 - 0.25, t.x + t.r + 0.6), z: t.z };
+    const h5n = await p.evaluate(() => { const C = CharView, st = C.st, g = st.gnd, O = g.obs || [], t = O.find((o) => Math.hypot(o.x - C.HMP.table.x, o.z - C.HMP.table.z) < 0.05) || O[0], B = g.bnd, a = { x: t.x, z: Math.max(B.Z0 + 0.25, t.z - t.r - 0.6) }, b = { x: t.x, z: Math.min(B.Z1 - 0.25, t.z + t.r + 0.6) };
       g.x = a.x; g.z = a.z; g.mv = 0; C.navTo(g, b.x, b.z, () => { st.pg = null; }); st.pg = { home: true }; let minC = 9; for (let i = 0; i < 600 && st.pg; i++) { C.sim(1 / 30, 1); for (const q of O) minC = Math.min(minC, Math.hypot(g.x - q.x, g.z - q.z) - q.r); }
       return { t, minC: +minC.toFixed(3), at: +Math.hypot(g.x - b.x, g.z - b.z).toFixed(3), n: (g.path || []).length }; });
     ok(h5n.minC > 0.19 && h5n.at < 0.1, 'inside the Ledge she paths round the furniture to a tapped spot (' + JSON.stringify(h5n) + ')');
