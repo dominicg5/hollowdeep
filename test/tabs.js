@@ -10,7 +10,7 @@ const pre = process.argv[2] || 'tab';
   if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]');
   await p.evaluate(() => { S.res.crowns = 9000; S.res.stone = 9000; S.res.timber = 9000; S.res.lumen = 500; S.res.steel = 50; S.res.amber = 50; S.res.iron = 100; S.res.coal = 100; });
   for (const t of ['capital', 'hollow', 'outposts', 'raids', 'training']) {
-    await p.click(`nav#tabs [data-tab=${t}]`); await p.waitForTimeout(900);
+    await p.evaluate((t) => { const b = document.querySelector('nav#tabs [data-tab=' + t + ']'); if (b) b.click(); else setTab(t); }, t); await p.waitForTimeout(900);
     await p.screenshot({ path: `test/${pre}-${t}.png` });
     await p.screenshot({ path: `test/${pre}-${t}-full.png`, fullPage: true });
   }

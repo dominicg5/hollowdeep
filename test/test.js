@@ -16,20 +16,20 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   await page.screenshot({ path: 'shot-welcome.png' });
   await page.click('[data-act=close]');
   assert(await page.isVisible('#cityCanvas'), 'Rim City is the default view');
-  await page.click('nav#tabs [data-tab=capital]');
+  await page.evaluate(() => setTab('capital'));
   assert(await page.isVisible('text=Lantern Hall'), 'capital renders buildings');
   await page.screenshot({ path: 'shot-capital.png', fullPage: true });
 
   console.log('Tabs');
   for (const t of ['hollow', 'outposts', 'raids', 'training', 'capital']) {
-    await page.click(`nav [data-tab=${t}]`); await page.waitForTimeout(150);
+    await page.evaluate((t) => { const b = document.querySelector('nav#tabs [data-tab=' + t + ']'); if (b) b.click(); else setTab(t); }, t); await page.waitForTimeout(150);
     const len = await page.evaluate(() => document.getElementById('view').innerHTML.length);
     assert(len > (t === "raids" ? 100 : 500), `tab ${t} renders (${len} chars)`);
     await page.screenshot({ path: `shot-${t}.png`, fullPage: true });
   }
 
   console.log('Training taps');
-  await page.click('nav [data-tab=training]');
+  await page.evaluate(() => setTab('training'));
   const box = await page.locator('#tapzone').boundingBox();
   for (let i = 0; i < 20; i++) { await page.mouse.click(box.x + box.width * 0.7, box.y + box.height * 0.5); await page.waitForTimeout(110); }
   // touch taps
@@ -48,7 +48,7 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   await page.screenshot({ path: 'shot-training-tapped.png', fullPage: true });
 
   console.log('Expedition in test mode (real time)');
-  await page.click('nav [data-tab=hollow]');
+  await page.evaluate(() => setTab('hollow'));
   await page.click('[data-act=exp][data-id="1"]');
   st = await page.evaluate(() => HD.S.hero.task);
   assert(st && st.type === 'expedition', 'expedition started');
@@ -65,7 +65,7 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   await page.evaluate(() => closeModalQuiet());
 
   console.log('Build + outposts + chain');
-  await page.click('nav [data-tab=capital]');
+  await page.evaluate(() => setTab('capital'));
   await page.click('[data-act=build][data-id=hall]');
   assert(await page.evaluate(() => !!HD.S.build), 'build started');
   // Cheat resources to test chain
@@ -79,11 +79,11 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   await page.evaluate(() => HD.simulate(5 * 3600e3));
   st = await page.evaluate(() => ({ steel: HD.S.res.steel, stock: HD.S.outposts[0].stock, ship: HD.S.lastShip }));
   assert(st.steel > 0, `steel refined below and lifted to capital: ${st.steel.toFixed(1)} (last lift pull ${st.ship.cost.toFixed(2)})`);
-  await page.click('nav [data-tab=outposts]'); await page.waitForTimeout(200);
+  await page.evaluate(() => setTab('outposts')); await page.waitForTimeout(200);
   await page.screenshot({ path: 'shot-outposts-chain.png', fullPage: true });
   // move menu opens
   await page.evaluate(() => { HD.S.res.lumen = 5000; });
-  await page.click('nav [data-tab=outposts]');
+  await page.evaluate(() => setTab('outposts'));
   await page.waitForTimeout(1200);
   await page.click('[data-act=movemenu]');
   assert(await page.isVisible('text=Iron Seam'), 'move menu opened');
@@ -91,7 +91,7 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
 
   console.log('Raids tab');
   await page.evaluate(() => { HD.S.hero.task = null; });
-  await page.click('nav [data-tab=raids]');
+  await page.evaluate(() => setTab('raids'));
   assert(await page.isVisible('text=Raids are coming later') && !(await page.isVisible('[data-act=attack]')), 'Raids tab shows the coming-later note');
   await page.screenshot({ path: 'shot-attack.png' });
 

@@ -62,9 +62,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   // Ticker
   ok((await p.textContent('#ticker')).length > 10, 'rumor ticker shows: ' + (await p.textContent('#ticker')).trim());
   // other tabs still work
-  for (const t of ['capital', 'hollow', 'outposts', 'raids', 'training', 'city']) { await p.click(`nav#tabs [data-tab=${t}]`); await p.waitForTimeout(250); }
+  for (const t of ['capital', 'hollow', 'outposts', 'raids', 'training', 'city']) { await p.evaluate((t) => { const b = document.querySelector('nav#tabs [data-tab=' + t + ']'); if (b) b.click(); else setTab(t); }, t); await p.waitForTimeout(250); }
   ok(await p.isVisible('#cityCanvas'), 'tab switching round-trip');
-  await p.click('nav#tabs [data-tab=capital]'); ok(await p.isVisible('text=Lantern Hall'), 'capital tab renders'); ok(!(await p.isVisible('#cityCanvas')), 'city hidden on other tabs');
+  await p.evaluate(() => setTab('capital')); ok(await p.isVisible('text=Lantern Hall'), 'capital tab renders'); ok(!(await p.isVisible('#cityCanvas')), 'city hidden on other tabs');
   await p.click('nav#tabs [data-tab=city]'); await p.waitForTimeout(300);
   // Screenshots: far / mid / close
   const shot = async (name, x, y, z, w = 2200) => { await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [x, y, z]); await p.waitForTimeout(w); await p.screenshot({ path: name }); };

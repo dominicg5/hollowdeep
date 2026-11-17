@@ -154,6 +154,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 #charAnim{position:absolute;top:48px;right:12px;display:flex;background:rgba(74,46,26,.18);border-radius:18px;padding:3px}#charAnim button{border:0;background:none;color:#4a2e1a;font:600 12px system-ui;padding:5px 11px;border-radius:15px;cursor:pointer}#charAnim button.on{background:#4a2e1a;color:#ffe9c4}
 #charEquip{position:absolute;top:84px;right:12px;display:flex;background:rgba(74,46,26,.18);border-radius:18px;padding:3px}#charEquip button{border:0;background:none;color:#4a2e1a;font:600 12px system-ui;padding:5px 11px;border-radius:15px;cursor:pointer}#charEquip button.on{background:#4a2e1a;color:#ffe9c4}
 #charClimb{position:absolute;top:122px;right:12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(74,46,26,.18);border-radius:12px;padding:4px}#charClimb.off{display:none}#charClimb .pad{display:grid;grid-template-columns:repeat(3,30px);gap:2px}#charClimb button{border:0;background:rgba(255,240,220,.55);color:#4a2e1a;font:700 14px system-ui;height:28px;border-radius:8px;cursor:pointer;padding:0}#charClimb button.auto{width:94px;font-size:12px}#charClimb button.on{background:#4a2e1a;color:#ffe9c4}#charClimb button.blk{background:#b9573c;color:#fff}#charClimb .tvb{display:flex;flex-direction:column;gap:2px;width:94px}#charClimb .tvb button{font-size:11px;height:24px}#charClimb button.dis{opacity:.45}#charClimb .cnote{font:700 10px system-ui;color:#4a2e1a;background:rgba(255,240,220,.8);border-radius:6px;padding:2px 5px;max-width:92px;text-align:center}#charClimb .cnote:empty{display:none}
+#ledgeInfo{display:none;position:absolute;top:10px;left:12px;right:12px;padding:9px 12px;border-radius:12px;background:rgba(255,248,236,.86);color:#4a2e1a;font:13px system-ui;box-shadow:0 2px 8px rgba(60,30,10,.18)}#ledgeInfo b{display:block;font:700 17px Georgia,serif}#ledgeInfo i{font-style:normal;font-weight:700;color:#3d6f9e}#ledgeInfo small{display:block;margin-top:3px;color:rgba(74,46,26,.7)}#charWrap.ledge #ledgeInfo{display:block}#charWrap.ledge #charTop,#charWrap.ledge #charAnim,#charWrap.ledge #charClimb,#charWrap.ledge #charEquip,#charWrap.ledge #charPick,#charWrap.ledge #charHint{display:none!important}
 #charHint{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:rgba(74,46,26,.75);font:12px system-ui}
 .tabe{font-size:22px;line-height:26px;height:26px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
 #cityCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
@@ -261,15 +262,12 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
     <div id="charClimb" class="off" aria-label="Climb direction"><div class="pad"><button data-dir="ul" title="Up-left">↖</button><button data-dir="u" title="Up">↑</button><button data-dir="ur" title="Up-right">↗</button><button data-dir="l" title="Left">←</button><button data-dir="stop" title="Hold">■</button><button data-dir="r" title="Right">→</button><button data-dir="dl" title="Down-left">↙</button><button data-dir="d" title="Down">↓</button><button data-dir="dr" title="Down-right">↘</button></div><button data-dir="auto" class="auto" title="Auto-wander demo">Auto</button><div class="tvb"><button data-tv="anchor" title="Drive an anchor pin and clip the Tether">Anchor</button><button data-tv="rappel" class="dis" title="Rappel down on the Tether">Rappel</button><button data-tv="ascend" class="dis" title="Winch back up to the anchor">Ascend</button></div><div class="cnote" aria-live="polite"></div></div>
     <div id="charEquip" role="tablist" aria-label="Equip"><button data-tool="pick" class="on">Pickaxe</button><button data-tool="climb">Climbing Picks</button></div>
     <div id="charPick" aria-label="Pickaxe grade"></div>
-    <div id="charHint">Drag to turn · pinch or scroll to zoom</div></div>
+    <div id="charHint">Drag to turn · pinch or scroll to zoom</div>
+    <div id="ledgeInfo"><b>Silverseam Ledge</b><span>Ore: <i>Mithril</i></span><small>A hanging camp on the cliff at a mithril vein. Drag to orbit · pinch or scroll to zoom</small></div></div>
   <nav id="tabs"><div class="wrap">
     <button data-tab="city"><span><img class="tabi" src="assets/ui/tab_city.webp" alt=""></span>Rim City</button>
     <button data-tab="char"><span class="tabe">⛑️</span>Character</button>
-    <button data-tab="capital"><span><img class="tabi" src="assets/ui/tab_capital.webp" alt=""></span>Capital</button>
-    <button data-tab="hollow"><span><img class="tabi" src="assets/ui/tab_hollow.webp" alt=""></span>Hollow</button>
-    <button data-tab="outposts"><span><img class="tabi" src="assets/ui/tab_outposts.webp" alt=""></span>Outposts</button>
-    <button data-tab="raids"><span><img class="tabi" src="assets/ui/tab_raids.webp" alt=""></span>Raids</button>
-    <button data-tab="training"><span><img class="tabi" src="assets/ui/tab_training.webp" alt=""></span>Training</button>
+    <button data-tab="ledge"><span><img class="tabi" src="assets/ui/tab_portaledges.webp" alt=""></span>Portaledges</button>
   </div></nav>
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
@@ -1294,11 +1292,12 @@ function awayModal(sum, realMs) {
 }
 
 /* ---------- render loop ---------- */
-const VIEWS = { city: () => '', char: () => '', capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
+const VIEWS = { city: () => '', char: () => '', ledge: () => '', capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
 function rerender(force) {
   renderResbar();
   document.querySelectorAll('nav#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === ui.tab));
-  if (ui.tab === 'char') { $('#view').style.display = 'none'; CityMap.hide(); CharView.show(); return; }
+  // Capital / Hollow / Outposts / Raids / Training are dormant (no tab buttons; their views and systems stay so saves keep working and setTab() can still reach them)
+  if (ui.tab === 'char' || ui.tab === 'ledge') { $('#view').style.display = 'none'; CityMap.hide(); CharView.show(ui.tab === 'ledge' ? 'ledge' : null); return; }
   CharView.hide();
   if (ui.tab === 'city') { $('#view').style.display = 'none'; CityMap.show(); return; }
   $('#view').style.display = ''; CityMap.hide();
@@ -5942,7 +5941,7 @@ const CharView = (() => {
       for (const [t, ps] of by) { const m = new THREE.InstancedMesh(geo, mat, ps.length), o = new THREE.Object3D(); ps.forEach((p, i) => { f(o, p); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.castShadow = false; m.frustumCulled = false; t.add(m); } };
     inst(new THREE.DodecahedronGeometry(0.05, 0), toon(0x9c8a74), HG.foot, (o, p) => { o.position.set(p.x, p.y - 0.018, CL.ZW - 0.018); o.rotation.set(r() * 0.3, r() * 3, 0); o.scale.set(1.25, 0.42, 0.8); });
     inst(new THREE.SphereGeometry(0.014, 6, 4), toon(0x5a4a3a), HG.hand, (o, p) => { o.position.set(p.x, p.y, CL.ZW - 0.002); o.rotation.set(0, 0, r()); o.scale.set(1, 1.5, 0.3); });
-    g.userData.tiles = [...tiles.values()]; g.visible = false; return g; }
+    g.userData.tiles = [...tiles.values()]; g.scale.setScalar(LG.S); g.visible = false; return g; }
   function mineKey(u) { let i = 0; while (i < MINE_K.length - 2 && u > MINE_K[i + 1][0]) i++; const A = MINE_K[i], Bk = MINE_K[i + 1], t0 = clamp((u - A[0]) / (Bk[0] - A[0]), 0, 1), e = Bk[9], t = e === 1 ? ss(0, 1, t0) : e === 2 ? t0 * t0 : t0;
     const L = (j) => lerp(A[j], Bk[j], t); const dr = L(7); return { G: V(L(1), L(2) - Math.max(0, dr - 0.02) * 0.45, L(3) + L(11) * 0.4), th: L(4) * Math.PI / 180, dx: L(5), lean: L(6), drop: L(7), hp: L(8), h2: mineSlide(u), hz: L(11), tw: L(12) }; }
   // lead (right) hand position along the shaft: one continuous C2-eased glide UP the handle from the pull-out through the lift to the top of the wind-up,
@@ -6031,7 +6030,7 @@ const CharView = (() => {
       { const tg = [hand ? -0.04 * Math.sign(C.up) * e : 0.1 * e, (hand ? 0.055 : 0.035) * ms * e, 0.013 * ms * e * (hand ? 1 : -1)], hs = an.hcl || (an.hcl = [0, 0, 0]), kk = 1 - Math.exp(-dt * 4); for (let q = 0; q < 3; q++) hs[q] += (tg[q] - hs[q]) * kk;
         hrx -= w * (0.24 - hs[0]); hry += w * hs[1]; hrz += w * hs[2]; } nrx -= w * 0.08; }
     else if (an.cl && !an.act) { an.cl = null; if (an.tv) { an.tv = null; markTether(); } }
-    { const P = an.act === 'climb' && f.climb ? f.climb.P : null; c.root.position.set(P ? P.x : 0, P ? P.y : 0, 0).applyAxisAngle(V(0, 1, 0), st.yaw); const wl = c.wall; if (wl) { wl.visible = an.act === 'climb'; wl.rotation.y = st.yaw; if (wl.visible && wl.userData.tiles) { const q = P || V(0, 0, 0); for (const t of wl.userData.tiles) t.visible = Math.abs(t.userData.c.x - q.x) < 3.9 && Math.abs(t.userData.c.y - q.y + 0.6) < 3.9; } for (const fl of FLOOR) fl.visible = !wl.visible; } }
+    { const P = an.act === 'climb' && f.climb ? f.climb.P : null; c.root.position.set(P ? P.x : 0, P ? P.y : 0, 0).applyAxisAngle(V(0, 1, 0), st.yaw); if (st.ledge) c.root.position.copy(LG.char); const wl = c.wall; if (wl) { wl.visible = an.act === 'climb'; wl.rotation.y = st.yaw; if (wl.visible && wl.userData.tiles) { const q = P || V(0, 0, 0); for (const t of wl.userData.tiles) t.visible = Math.abs(t.userData.c.x - q.x) < 3.9 && Math.abs(t.userData.c.y - q.y + 0.6) < 3.9; } for (const fl of FLOOR) fl.visible = !wl.visible; } }
     if (fid === 'sigh') { const s1 = Math.sin(Math.PI * ss(0.05, 0.45, u)), s2 = Math.sin(Math.PI * ss(0.4, 0.95, u)); cx += 0.085 * s1 - 0.08 * s2; shY += 0.03 * s1 - 0.04 * s2; nrx += 0.14 * s2; hrx += 0.15 * s2; hy -= 0.012 * s2; f.sighDrop = s2; }
     // apply: hips, spine, chest, neck, head
     const E = (k, x, y, z) => { B[k].quaternion.copy(c.restQ[k]).multiply(_q.setFromEuler(new THREE.Euler(x, y, z))); };
@@ -6093,12 +6092,82 @@ const CharView = (() => {
   let gear = 'pick';
   function markPick() { const cp = document.getElementById('charPick'); if (!cp) return; const T = gear === 'pick' ? GRADES : gear === 'climb' ? CGRADES : TGRADES, cur = gear === 'pick' ? (rig ? rig.built.pick.userData.grade : S.pickGrade) : gear === 'climb' ? (rig && rig.built.climb ? rig.built.climb.R.userData.grade : S.climbGrade || 'stone') : (rig && rig.built.tethers ? rig.built.tethers[0].grp.userData.grade : S.tetherGrade || 'regular');
     cp.innerHTML = `<span class="gear" role="tablist"><button data-gear="pick" title="Pickaxe" aria-label="Pickaxe" class="${gear === 'pick' ? 'on' : ''}">⛏️</button><button data-gear="tether" title="Tether" aria-label="Tether" class="${gear === 'tether' ? 'on' : ''}">🪢</button><button data-gear="climb" title="Climbing Picks" aria-label="Climbing Picks" class="${gear === 'climb' ? 'on' : ''}">🧗</button></span>` + Object.entries(T).map(([k, G]) => `<button data-grade="${k}" title="${G.name}" class="${k === cur ? 'on' : ''}"><i style="background:${hex(G.chip || (G.runes ? G.glow : G.head))}"></i><span>${G.name}</span></button>`).join(''); }
+  /* ---------- Portaledges: a hanging camp on a cliff at a mithril vein (the Portaledges tab) ----------
+     Cliff face at z = 0 (rock behind, z < 0); the platform hangs in front of it, top at y = 0, from 4 corner ropes to one ring / carabiner on a piton.
+     The delver stands on the cliff side of the platform, facing the rock, mining the vein with the pickaxe swing. Orbit camera around the camp. */
+  const LG = { S: 1.4, W: 2.1, D: 1.5, z0: 0.06, char: V(-0.78, 0.105, 1.1), tgt: V(0.05, 0.95, 0.95) }; // camp built at 1/S scale, then scaled so the tent stands about her height
+  let LEDGE = null;
+  function rockGeo(w, h, d, seed, j = 0.07) { const g = new THREE.BoxGeometry(w, h, d, 3, Math.max(2, Math.round(h / 0.5)), 2), P = g.attributes.position, r = prng(seed), m = new Map();
+    for (let i = 0; i < P.count; i++) { const k = P.getX(i).toFixed(3) + ',' + P.getY(i).toFixed(3) + ',' + P.getZ(i).toFixed(3); if (!m.has(k)) m.set(k, [(r() - 0.5) * w * j * 2, (r() - 0.5) * h * j * 0.5, (r() - 0.5) * d * j * 2]); const o = m.get(k); P.setXYZ(i, P.getX(i) + o[0], P.getY(i) + o[1], P.getZ(i) + o[2]); }
+    g.computeVertexNormals(); return g; }
+  function makeLedge() { const g = new THREE.Group(), r = prng(77); g.name = 'portaledge';
+    const rockTex = cv(128, 128, (x, w, h) => { x.fillStyle = '#857b6e'; x.fillRect(0, 0, w, h); for (let i = 0; i < 260; i++) { const a = r() * 0.16; x.fillStyle = r() < 0.5 ? `rgba(40,34,28,${a})` : `rgba(235,225,205,${a})`; x.beginPath(); x.ellipse(r() * w, r() * h, 2 + r() * 9, 1 + r() * 5, r() * 3, 0, TAU); x.fill(); }
+      x.strokeStyle = 'rgba(40,32,26,.45)'; x.lineWidth = 1; for (let i = 0; i < 10; i++) { let px = r() * w, py = r() * h; x.beginPath(); x.moveTo(px, py); for (let j = 0; j < 4; j++) { px += (r() - 0.5) * 22; py += (r() - 0.5) * 22; x.lineTo(px, py); } x.stroke(); } });
+    const rock = toon(0xffffff, rockTex), rockDk = toon(0x6b6257), moss = toon(0x6f7d3a), wood = toon(0x6a4529), woodDk = toon(0x553722), iron = toon(0x4c4f55), ropeM = toon(0xa07a4a), canvas = toon(0xb99d72);
+    // cliff: a tall pillar of columnar blocks, stepped and broken, tapering to a point below
+    const cliff = new THREE.Group(); g.add(cliff);
+    for (let i = 0; i < 9; i++) { const x0 = -2.0 + i * 0.44 + (r() - 0.5) * 0.08; let y = -6.5 + (i % 2) * 0.3 + Math.abs(i - 4) * 0.55; const zf = -0.02 - Math.abs(i - 3.6) * 0.05 - r() * 0.12, top = 3.4 - Math.abs(i - 4) * 0.22 + (r() - 0.5) * 0.4;
+      while (y < top) { const h = Math.min(top - y, 0.7 + r() * 1.3), w = 0.42 + r() * 0.1, d = 1.6 + r() * 0.4, zf2 = zf + (r() - 0.5) * 0.1; const b = part(cliff, rockGeo(w, h, d, 1000 + i * 31 + Math.round(y * 10)), rock, [x0, y + h / 2, zf2 - d / 2]);
+        b.material = rock; if (r() < 0.35) part(cliff, new THREE.ConeGeometry(0.05 + r() * 0.04, 0.07, 5), moss, [x0 + (r() - 0.5) * 0.2, y + h + 0.02, zf2 - 0.06], null, null, { ink: false }); y += h + 0.01; } }
+    part(cliff, rockGeo(3.6, 1.2, 2.0, 9), rockDk, [-0.2, -7.0, -1.1], [0, 0, 0.15]); part(cliff, new THREE.ConeGeometry(1.4, 2.6, 7), rockDk, [-0.3, -8.6, -1.0], [Math.PI, 0.3, 0.05]);
+    // the mithril vein: a glowing silver-blue seam with branches down the face, crystal clusters along it
+    const veinM = new THREE.MeshBasicMaterial({ color: 0xbfe0ff }), glowM = new THREE.MeshBasicMaterial({ color: 0x3f8fe8, transparent: true, opacity: 0.4, depthWrite: false, blending: THREE.AdditiveBlending });
+    const crysM = toon(0x7fb6e6, null, { emissive: 0x16426e }), crysL = new THREE.MeshBasicMaterial({ color: 0x4f98e0, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending });
+    const veinX = (y) => -0.8 + 0.28 * Math.sin(y * 0.9 + 0.4) + 0.12 * Math.sin(y * 2.3), main = []; for (let y = -4.2; y <= 3.2; y += 0.2) main.push(V(veinX(y), y, 0.012));
+    const tube = (pts, rad) => { const c = new THREE.CatmullRomCurve3(pts); part(cliff, new THREE.TubeGeometry(c, pts.length * 4, rad, 6, false), veinM, null, null, null, { ink: false, shadow: false }); part(cliff, new THREE.TubeGeometry(c, pts.length * 4, rad * 3.2, 6, false), glowM, null, null, null, { ink: false, shadow: false }); };
+    tube(main, 0.03); for (let k = 0; k < 9; k++) { const y0 = -3.6 + k * 0.78 + r() * 0.3, s = r() < 0.5 ? -1 : 1, pts = [V(veinX(y0), y0, 0.012)]; for (let q = 1; q < 4; q++) pts.push(V(veinX(y0) + s * q * (0.1 + r() * 0.05), y0 + q * 0.12 * (r() < 0.5 ? 1 : -0.4), 0.012)); tube(pts, 0.012); }
+    const crystal = (p, s, tilt, par = cliff) => { const c = new THREE.Group(); c.position.copy(p); c.rotation.set(tilt[0], tilt[1], tilt[2]); par.add(c);
+      for (let q = 0; q < 5; q++) { const h = s * (q ? 0.5 + r() * 0.4 : 1), w = s * 0.18 * (q ? 0.7 : 1), sub = new THREE.Group(); sub.rotation.set((r() - 0.5) * (q ? 1.1 : 0.2), r() * 3, (r() - 0.5) * (q ? 1.1 : 0.2)); sub.position.set((r() - 0.5) * s * 0.3, 0, (r() - 0.5) * s * 0.3); c.add(sub);
+        part(sub, new THREE.CylinderGeometry(w, w * 1.05, h * 0.75, 6), crysM, [0, h * 0.375, 0], null, null, { ink: false }); part(sub, new THREE.ConeGeometry(w, h * 0.3, 6), crysM, [0, h * 0.9, 0], null, null, { ink: false }); part(sub, new THREE.CylinderGeometry(w * 1.6, w * 1.6, h * 0.9, 6), crysL, [0, h * 0.45, 0], null, null, { ink: false, shadow: false }); }
+      return c; };
+    for (let k = 0; k < 16; k++) { const y = -3.8 + k * 0.46 + r() * 0.2; crystal(V(veinX(y) + (r() - 0.5) * 0.25, y, 0.02), 0.12 + r() * 0.12, [Math.PI / 2 * 0.75 + (r() - 0.5) * 0.4, 0, (r() - 0.5) * 1.2]); }
+    // the face she is working: a crystal-studded bulge of the vein at chest height in front of her
+    const fx = LG.char.x / LG.S, fy = 0.4 / LG.S; crystal(V(fx + 0.06, fy + 0.05, 0.03), 0.16, [Math.PI / 2 * 0.8, 0, 0.3]); crystal(V(fx - 0.1, fy - 0.12, 0.02), 0.11, [Math.PI / 2 * 0.7, 0, -0.5]);
+    part(cliff, ell(0.13, 0.26, 0.05), veinM, [fx, fy, 0.0], null, null, { ink: false, shadow: false }); part(cliff, ell(0.26, 0.45, 0.06), glowM, [fx, fy, 0.0], null, null, { ink: false, shadow: false });
+    const vl = new THREE.PointLight(0x9fd0ff, 0.5, 2.6, 2); vl.position.set(fx + 0.1, fy + 0.3, 0.45); g.add(vl);
+    // platform: planks over two cross beams, iron corner rings
+    const pf = new THREE.Group(); pf.position.set(0, 0, LG.z0 + LG.D / 2); g.add(pf); const n = 7, pw = LG.D / n;
+    for (let i = 0; i < n; i++) part(pf, rbox(LG.W - (r() - 0.5) * 0.04, 0.05, pw - 0.012, 0.008), i % 2 ? wood : toon(0x76502f), [(r() - 0.5) * 0.03, 0.045, -LG.D / 2 + pw * (i + 0.5)], [0, (r() - 0.5) * 0.01, 0]);
+    for (const s of [-1, 1]) { part(pf, rbox(0.09, 0.07, LG.D + 0.08, 0.01), woodDk, [s * (LG.W / 2 - 0.12), -0.02, 0]); part(pf, rbox(LG.W + 0.1, 0.06, 0.08, 0.01), woodDk, [0, 0.0, s * (LG.D / 2 - 0.02)]); }
+    const corners = []; for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const p = V(sx * (LG.W / 2 + 0.02), 0.03, sz * (LG.D / 2 + 0.02)); part(pf, new THREE.TorusGeometry(0.035, 0.009, 6, 12), iron, [p.x, p.y, p.z], [0, Math.PI / 4 * sx * sz, 0]); corners.push(p.clone().add(pf.position)); }
+    // rigging: 4 ropes from the corners to one ring + carabiner, a short chain to a piton driven into the rock
+    const ring = V(0.05, 2.75, 0.62), pit = V(0.05, 3.05, 0.0), seg = (a, b, rad, m) => { const d = b.clone().sub(a), L = d.length(), o = part(g, cyl(rad, rad, 1, 6), m, null, null, null, { ink: false }); o.position.copy(a).addScaledVector(d, 0.5); o.scale.set(1, L, 1); o.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); return o; };
+    for (const c2 of corners) seg(c2, ring, 0.011, ropeM); part(g, new THREE.TorusGeometry(0.05, 0.012, 6, 14), iron, [ring.x, ring.y, ring.z], [0, 0, 0]); part(g, new THREE.TorusGeometry(0.035, 0.009, 6, 12), iron, [ring.x, ring.y + 0.07, ring.z], [0, Math.PI / 2, 0]);
+    for (let k = 0; k < 6; k++) { const p = ring.clone().lerp(pit, (k + 1.5) / 7.5); part(g, new THREE.TorusGeometry(0.03, 0.008, 6, 10), iron, [p.x, p.y, p.z], [Math.atan2(pit.z - ring.z, pit.y - ring.y) + Math.PI / 2, k % 2 ? Math.PI / 2 : 0, 0]); }
+    part(g, cyl(0.014, 0.02, 0.16, 8), iron, [pit.x, pit.y, pit.z + 0.03], [Math.PI / 2, 0, 0]); part(g, rbox(0.06, 0.08, 0.012, 0.004), iron, [pit.x, pit.y, pit.z + 0.1]);
+    // tent: a ridge tent on the right two-thirds, open toward the front, patched canvas, flaps tied back, lantern inside
+    const tent = new THREE.Group(); tent.position.set(0.32, 0.07, LG.z0 + LG.D / 2 + 0.05); g.add(tent); const tw = 1.25, td = 1.2, th = 1.05; g.updateMatrixWorld(true);
+    const sheet = (pts, m) => { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pts.flat(), 3)); geo.setIndex(pts.length === 4 ? [0, 1, 2, 0, 2, 3] : [0, 1, 2]); geo.computeVertexNormals(); const o = part(tent, geo, m, null, null, null, { ink: false }); o.material.side = THREE.DoubleSide; return o; };
+    const cm = toon(0xb99d72); cm.side = THREE.DoubleSide; const cmIn = toon(0x9c8460); cmIn.side = THREE.DoubleSide;
+    for (const s of [-1, 1]) { sheet([[0, th, -td / 2], [0, th, td / 2], [s * tw / 2, 0, td / 2 + 0.04], [s * tw / 2, 0, -td / 2 - 0.04]], cm); sheet([[0, th - 0.02, -td / 2 + 0.01], [0, th - 0.02, td / 2], [s * (tw / 2 - 0.02), 0.01, td / 2 + 0.03], [s * (tw / 2 - 0.02), 0.01, -td / 2 - 0.03]], cmIn); }
+    sheet([[-tw / 2, 0, -td / 2], [tw / 2, 0, -td / 2], [0, th, -td / 2]], cmIn); part(tent, new THREE.PlaneGeometry(tw * 0.95, td * 0.95).rotateX(-Math.PI / 2), cmIn, [0, 0.005, 0], null, null, { ink: false });
+    for (const s of [-1, 1]) { const fl = sheet([[0, th, td / 2], [s * tw / 2, 0, td / 2 + 0.04], [s * tw * 0.3, 0, td / 2 + 0.12]], cm); fl.position.x = 0; part(tent, cyl(0.025, 0.025, 0.24, 8), cm, [s * tw * 0.36, 0.34, td / 2 + 0.07], [0, 0, s * 0.35], null, { ink: false }); }
+    part(tent, cyl(0.018, 0.018, td + 0.12, 8), woodDk, [0, th + 0.01, 0], [Math.PI / 2, 0, 0]); for (const z of [-td / 2, td / 2]) for (const s of [-1, 1]) seg(tent.localToWorld(V(s * 0.015, th, z)).sub(g.position), tent.localToWorld(V(s * tw / 2, 0, z)).sub(g.position), 0.008, ropeM);
+    const patch = (s, u, v, w, h, col) => { const a = Math.atan2(th, tw / 2), x = s * tw / 2 * (1 - v), y = th * v; const o = part(tent, new THREE.PlaneGeometry(w, h), toon(col), [x + s * 0.004, y + 0.004, u], [0, s * Math.PI / 2, 0], null, { ink: false }); o.rotateX(-(Math.PI / 2 - a)); o.material.side = THREE.DoubleSide; };
+    patch(1, -0.2, 0.45, 0.24, 0.2, 0x8a4f34); patch(1, 0.25, 0.3, 0.2, 0.18, 0x6f7449); patch(-1, 0.1, 0.5, 0.18, 0.16, 0x7a6a3c);
+    const lan = new THREE.Group(); lan.position.set(0, th - 0.18, 0.05); tent.add(lan); part(lan, rbox(0.07, 0.1, 0.07, 0.01), iron); part(lan, rbox(0.055, 0.075, 0.055, 0.008), new THREE.MeshBasicMaterial({ color: 0xffc66a }), null, null, null, { ink: false, shadow: false });
+    part(lan, new THREE.SphereGeometry(0.085, 12, 10), new THREE.MeshBasicMaterial({ color: 0xffb04a, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending }), null, null, null, { ink: false, shadow: false }); const ll = new THREE.PointLight(0xffb060, 0.4, 1.6, 2); lan.add(ll); seg(tent.localToWorld(V(0, th, 0.05)).sub(g.position), tent.localToWorld(V(0, th - 0.13, 0.05)).sub(g.position), 0.004, iron);
+    // rope ladder hanging below the front-left corner
+    const lx = -LG.W / 2 + 0.35, lz = LG.z0 + LG.D + 0.03; for (const s of [-1, 1]) seg(V(lx + s * 0.17, 0.05, lz), V(lx + s * 0.17 + 0.02, -2.4, lz + 0.04), 0.011, ropeM); for (let k = 1; k <= 9; k++) { const y = 0.05 - k * 0.26; part(g, cyl(0.016, 0.016, 0.36, 8), wood, [lx + 0.01 * k / 9, y, lz + 0.004 * k], [0, 0, Math.PI / 2]); }
+    // pulley ore bucket on a chain below the front-right edge, with the haul line running back up to the pulley
+    const bx = LG.W / 2 - 0.45, bz = LG.z0 + LG.D + 0.05, by = -1.05; part(g, cyl(0.06, 0.06, 0.025, 14), iron, [bx, -0.04, bz], [0, 0, Math.PI / 2]); for (let k = 0; k < 9; k++) part(g, new THREE.TorusGeometry(0.025, 0.007, 6, 10), iron, [bx, -0.1 - k * 0.055, bz], [0, k % 2 ? Math.PI / 2 : 0, 0]);
+    const bucket = (par, p, s) => { const b = new THREE.Group(); b.position.copy(p); b.scale.setScalar(s); par.add(b); part(b, cyl(0.15, 0.18, 0.28, 16, true), wood, [0, 0.14, 0]); const bm = toon(0x6b4527); bm.side = THREE.DoubleSide; part(b, new THREE.CircleGeometry(0.15, 16).rotateX(-Math.PI / 2), bm, [0, 0.01, 0], null, null, { ink: false }); for (const y of [0.05, 0.23]) part(b, new THREE.TorusGeometry(0.155 + y * 0.1, 0.008, 6, 20), iron, [0, y, 0], [Math.PI / 2, 0, 0]);
+      for (let q = 0; q < 9; q++) { const a = q / 9 * TAU, rr = 0.09 * Math.sqrt(r()); crystal(V(Math.cos(a) * rr, 0.25, Math.sin(a) * rr), 0.07 + r() * 0.04, [(r() - 0.5) * 0.8, 0, (r() - 0.5) * 0.8], b); } return b; };
+    const bk = bucket(g, V(bx, by - 0.3, bz), 1.1); for (const s of [-1, 1]) seg(V(bx, by + 0.2, bz), V(bx + s * 0.19, by - 0.02, bz), 0.006, iron); seg(V(bx + 0.06, -0.04, bz), V(bx + 0.35, -0.6, bz + 0.1), 0.008, ropeM); seg(V(bx + 0.35, -0.6, bz + 0.1), V(bx + 0.2, by - 0.05, bz), 0.008, ropeM);
+    // small details: a bucket of crystals by the tent, a hammer and a coil on the planks
+    bucket(g, V(-0.12, 0.07, LG.z0 + LG.D - 0.25), 0.8); const hm = new THREE.Group(); hm.position.set(-0.2, 0.09, LG.z0 + 0.95); hm.rotation.set(0, 0.7, Math.PI / 2); g.add(hm); part(hm, cyl(0.014, 0.016, 0.34, 8), wood, [0, 0, 0]); part(hm, rbox(0.11, 0.045, 0.045, 0.008), iron, [0, 0.17, 0]);
+    part(g, new THREE.TorusGeometry(0.1, 0.022, 8, 18), ropeM, [-0.88, 0.1, LG.z0 + 1.25], [Math.PI / 2, 0, 0]);
+    g.traverse((o) => { if (o.isMesh && o.material !== OUT) o.receiveShadow = true; }); g.scale.setScalar(LG.S); g.visible = false; return g; }
+  function ledgeMode(on) { if (!R) return; if (on && !LEDGE) { LEDGE = makeLedge(); scene.add(LEDGE); LG.bg = cv(8, 256, (g2, w, h) => { const gr = g2.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#dfe9f2'); gr.addColorStop(0.6, '#efe4d0'); gr.addColorStop(1, '#c9a87c'); g2.fillStyle = gr; g2.fillRect(0, 0, w, h); }); LG.bg0 = scene.background; }
+    st.ledge = !!on; cam.fov = on ? 34 : 26; cam.updateProjectionMatrix(); if (LEDGE) LEDGE.visible = !!on; for (const fl of FLOOR) fl.visible = !on; if (LG.bg) scene.background = on ? LG.bg : LG.bg0; wrap.classList.toggle('ledge', !!on);
+    const key = scene.children.find((o) => o.isDirectionalLight && o.castShadow); if (key) { Object.assign(key.shadow.camera, on ? { left: -3.4, right: 3.4, top: 4.2, bottom: -3.4, near: 0.5, far: 18 } : { left: -1.2, right: 1.2, top: 2, bottom: -0.4, near: 0.5, far: 8 }); key.shadow.camera.updateProjectionMatrix(); key.position.set(on ? 2.2 : 1.4, on ? 4.5 : 3.2, on ? 4.2 : 2.6); }
+    if (on) { if (!st.orb) st.orb = { az: 0.62, el: 0.2, d: 7.6 }; st.tool = 'pick'; an.eq = { held: 'pick', seq: null, t: 0 }; an.cl = null; an.tv = null; setAnim('mine'); st.yaw = Math.PI; st.yawV = 0; } }
   function bindInput() { const pts = new Map(); let pinch0 = 0, dist0 = 0;
-    canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); st.lastInput = clk; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = st.dist; } });
+    canvas.addEventListener('pointerdown', (e) => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); st.lastInput = clk; if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = st.ledge && st.orb ? st.orb.d : st.dist; } });
     canvas.addEventListener('pointermove', (e) => { if (!pts.has(e.pointerId)) return; const pr = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); st.lastInput = clk;
-      if (pts.size === 1) { const dx = e.clientX - pr[0]; st.yaw += dx * 0.011; st.yawV = dx * 0.011 / 0.016; } else if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) st.dist = clamp(dist0 * pinch0 / d, 2.0, 5.6); } });
+      if (pts.size === 1 && st.ledge && st.orb) { const dx = e.clientX - pr[0], dy = e.clientY - pr[1]; st.orb.az -= dx * 0.009; st.orb.azV = -dx * 0.009 / 0.016; st.orb.el = clamp(st.orb.el + dy * 0.006, -0.35, 1.2); } else if (pts.size === 1) { const dx = e.clientX - pr[0]; st.yaw += dx * 0.011; st.yawV = dx * 0.011 / 0.016; } else if (pts.size === 2) { const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0 > 0) { if (st.ledge && st.orb) st.orb.d = clamp(dist0 * pinch0 / d, 3.2, 14); else st.dist = clamp(dist0 * pinch0 / d, 2.0, 5.6); } } });
     const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) pinch0 = 0; }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
-    canvas.addEventListener('wheel', (e) => { e.preventDefault(); st.dist = clamp(st.dist * Math.exp(e.deltaY * 0.0012), 2.0, 5.6); st.lastInput = clk; }, { passive: false });
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); if (st.ledge && st.orb) st.orb.d = clamp(st.orb.d * Math.exp(e.deltaY * 0.0012), 3.2, 14); else st.dist = clamp(st.dist * Math.exp(e.deltaY * 0.0012), 2.0, 5.6); st.lastInput = clk; }, { passive: false });
     const cp = document.getElementById('charPick'); if (cp) { markPick();
       cp.addEventListener('click', (e) => { const gb = e.target.closest('[data-gear]'); if (gb) { gear = gb.dataset.gear; markPick(); return; } const b = e.target.closest('[data-grade]'); if (!b) return; if (gear === 'pick') { S.pickGrade = b.dataset.grade; setPick(S.pickGrade); } else if (gear === 'climb') { S.climbGrade = b.dataset.grade; setClimb(S.climbGrade); } else { S.tetherGrade = b.dataset.grade; setTether(S.tetherGrade); } if (typeof save === 'function') save(); st.lastInput = clk; }); }
     const cl = document.getElementById('charClimb'); if (cl) cl.addEventListener('click', (e) => { const b = e.target.closest('[data-dir]'); if (b && (!an.tv || an.tv.k === 'anchored')) setClimbDir(b.dataset.dir); const tb = e.target.closest('[data-tv]'); if (tb) tetherAct(tb.dataset.tv); st.lastInput = clk; });
@@ -6112,16 +6181,17 @@ const CharView = (() => {
     if (st.fixedDt) return renderAt(st.fixedDt);
     step(dt); }
   function step(dt) { if (!st.dragging) { st.yaw += st.yawV * dt; st.yawV *= Math.exp(-dt * 4); } rig.root.rotation.y = st.yaw; animate(rig, clk, dt);
+    if (st.ledge) { const o = st.orb; if (!st.dragging) { o.az += (o.azV || 0) * dt; o.azV = (o.azV || 0) * Math.exp(-dt * 4); } const t = LG.tgt, ce = Math.cos(o.el); cam.position.set(t.x + Math.sin(o.az) * ce * o.d, t.y + Math.sin(o.el) * o.d, t.z + Math.cos(o.az) * ce * o.d); cam.lookAt(t); updHV(); R.render(scene, cam); return; }
     if (st.faceCam) { rig.root.updateMatrixWorld(true); const h = rig.B.headC.getWorldPosition(V(0, 0, 0)), fc = st.faceCam; cam.position.set(h.x, h.y + (fc.dy || 0), h.z + fc.d); updHV(); cam.lookAt(h.x, h.y + (fc.ly || 0), h.z); R.render(scene, cam); return; }
     const z = clamp((4.1 - st.dist) / 2.1, 0, 1), ty = lerp(0.84, 1.28, z), cf = st.camF || (st.camF = V(0, 0, 0)); cf.lerp(an.act === 'climb' ? (() => { const h = rig.B.hips.getWorldPosition(V(0, 0, 0)); return V(h.x, rig.root.position.y, h.z); })() : rig.root.position, st.paused ? 1 - Math.exp(-dt * 6) : 1 - Math.exp(-dt * 3)); cam.position.set(cf.x, cf.y + ty + 0.18 + 0.1 * (1 - z), cf.z + st.dist); cam.lookAt(cf.x, cf.y + ty, cf.z); updHV(); R.render(scene, cam); }
   function updHV() { const hc = rig && rig.B.headC; if (!hc) return; rig.root.updateMatrixWorld(true); HVIEW.value.copy(cam.position); hc.worldToLocal(HVIEW.value); HVIEW.value.normalize(); }
   function renderAt(dt) { clk += dt; step(dt); }
   function start() { if (running || !st.ok) return; running = true; tPrev = 0; resize(); raf = requestAnimationFrame(frame); }
   function stop() { running = false; cancelAnimationFrame(raf); }
-  function show() { wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; if (st.tool === undefined) { st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; setTool(st.tool, true); } setChar(sex); resize(); start(); }
+  function show(mode) { wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; if (st.tool === undefined) { st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; setTool(st.tool, true); } setChar(sex); if (mode === 'ledge') ledgeMode(true); else if (st.ledge) { ledgeMode(false); setAnim('idle'); } resize(); start(); }
   function hide() { const w = document.getElementById('charWrap'); if (w) w.classList.add('hidden'); st.visible = false; stop(); }
   window.addEventListener('resize', () => { if (running) resize(); });
-  return { show, hide, st, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, an };
+  return { show, hide, st, LG, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, an };
 })();
 </script>
 </body></html>

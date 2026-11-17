@@ -120,11 +120,17 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => closeModalQuiet());
   // Ticker
   // other tabs still work
-  for (const t of ['capital', 'hollow', 'outposts', 'raids', 'training', 'city']) { await p.click(`nav#tabs [data-tab=${t}]`); await p.waitForTimeout(250); }
+  for (const t of ['capital', 'hollow', 'outposts', 'raids', 'training', 'city']) { await p.evaluate((t) => { const b = document.querySelector('nav#tabs [data-tab=' + t + ']'); if (b) b.click(); else setTab(t); }, t); await p.waitForTimeout(250); }
   ok(await p.isVisible('#cityCanvas'), 'tab switching round-trip');
-  await p.click('nav#tabs [data-tab=capital]'); ok(await p.isVisible('text=Lantern Hall'), 'capital tab renders'); ok(!(await p.isVisible('#cityCanvas')), 'city hidden on other tabs');
+  await p.evaluate(() => setTab('capital')); ok(await p.isVisible('text=Lantern Hall'), 'capital tab renders'); ok(!(await p.isVisible('#cityCanvas')), 'city hidden on other tabs');
   // Character tab: own 3D stage, sex toggle persisted, fidgets advance, hidden on other tabs
+  ok(await p.evaluate(() => [...document.querySelectorAll('nav#tabs [data-tab]')].map((b) => b.dataset.tab).join(',')) === 'city,char,ledge', 'tab bar is Rim City, Character, Portaledges');
+  await p.click('nav#tabs [data-tab=ledge]'); await p.waitForTimeout(1500);
+  ok(await p.evaluate(() => CharView.st.ledge && !!CharView.ledge && CharView.ledge.visible && CharView.st.anim === 'mine' && document.getElementById('charWrap').classList.contains('ledge') && !document.getElementById('cityCanvas').offsetParent), 'portaledges tab shows the hanging camp with the delver mining');
+  ok(await p.isVisible('#ledgeInfo') && /Mithril/.test(await p.textContent('#ledgeInfo')), 'portaledge info panel names the ore');
+  { const a0 = await p.evaluate(() => CharView.st.orb.az); const bx = await p.locator('#charCanvas').boundingBox(); await p.mouse.move(bx.x + bx.width / 2, bx.y + bx.height / 2); await p.mouse.down(); await p.mouse.move(bx.x + bx.width / 2 + 80, bx.y + bx.height / 2, { steps: 4 }); await p.mouse.up(); ok(Math.abs((await p.evaluate(() => CharView.st.orb.az)) - a0) > 0.3, 'drag orbits the portaledge camera'); }
   await p.click('nav#tabs [data-tab=char]'); await p.waitForTimeout(1500);
+  ok(await p.evaluate(() => !CharView.st.ledge && !CharView.ledge.visible && !document.getElementById('charWrap').classList.contains('ledge')), 'character tab leaves the portaledge scene');
   const cv = await p.evaluate(() => ({ ok: CharView.st.ok, f: CharView.st.frames, vis: !document.getElementById('charWrap').classList.contains('hidden'), city: !document.getElementById('city').classList.contains('hidden') }));
   ok(cv.ok && cv.vis && !cv.city, 'character tab shows its own stage (city hidden)'); await p.waitForTimeout(800);
   ok((await p.evaluate(() => CharView.st.frames)) > cv.f, 'character stage renders frames');
@@ -202,7 +208,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(gr.ks.join() === 'stick,bronze,iron,steel,gold,mithril,rune,lumen,onyx' && gr.cnt.every((n, j) => !j || n > gr.cnt[j - 1]), 'pickaxe chips in grade order, each grade adds geometry (' + JSON.stringify(gr) + ')');
   await p.click('#charPick [data-grade=bronze]'); await p.waitForTimeout(200);
   await p.click('#charSex [data-sex=m]'); await p.waitForTimeout(300); ok((await p.evaluate(() => CharView.rig.sex)) === 'm', 'male toggle');
-  await p.click('nav#tabs [data-tab=capital]'); await p.waitForTimeout(300); ok(await p.evaluate(() => document.getElementById('charWrap').classList.contains('hidden') && !CharView.st.visible), 'character stage hidden + paused on other tabs');
+  await p.evaluate(() => setTab('capital')); await p.waitForTimeout(300); ok(await p.evaluate(() => document.getElementById('charWrap').classList.contains('hidden') && !CharView.st.visible), 'character stage hidden + paused on other tabs');
   await p.click('nav#tabs [data-tab=city]'); await p.waitForTimeout(300);
   // Screenshots: far / mid / close
   const shot = async (name, x, y, z, w = 2200) => { await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [x, y, z]); await p.waitForTimeout(w); await p.screenshot({ path: name }); };

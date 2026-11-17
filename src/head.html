@@ -154,6 +154,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 #charAnim{position:absolute;top:48px;right:12px;display:flex;background:rgba(74,46,26,.18);border-radius:18px;padding:3px}#charAnim button{border:0;background:none;color:#4a2e1a;font:600 12px system-ui;padding:5px 11px;border-radius:15px;cursor:pointer}#charAnim button.on{background:#4a2e1a;color:#ffe9c4}
 #charEquip{position:absolute;top:84px;right:12px;display:flex;background:rgba(74,46,26,.18);border-radius:18px;padding:3px}#charEquip button{border:0;background:none;color:#4a2e1a;font:600 12px system-ui;padding:5px 11px;border-radius:15px;cursor:pointer}#charEquip button.on{background:#4a2e1a;color:#ffe9c4}
 #charClimb{position:absolute;top:122px;right:12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:rgba(74,46,26,.18);border-radius:12px;padding:4px}#charClimb.off{display:none}#charClimb .pad{display:grid;grid-template-columns:repeat(3,30px);gap:2px}#charClimb button{border:0;background:rgba(255,240,220,.55);color:#4a2e1a;font:700 14px system-ui;height:28px;border-radius:8px;cursor:pointer;padding:0}#charClimb button.auto{width:94px;font-size:12px}#charClimb button.on{background:#4a2e1a;color:#ffe9c4}#charClimb button.blk{background:#b9573c;color:#fff}#charClimb .tvb{display:flex;flex-direction:column;gap:2px;width:94px}#charClimb .tvb button{font-size:11px;height:24px}#charClimb button.dis{opacity:.45}#charClimb .cnote{font:700 10px system-ui;color:#4a2e1a;background:rgba(255,240,220,.8);border-radius:6px;padding:2px 5px;max-width:92px;text-align:center}#charClimb .cnote:empty{display:none}
+#ledgeInfo{display:none;position:absolute;top:10px;left:12px;right:12px;padding:9px 12px;border-radius:12px;background:rgba(255,248,236,.86);color:#4a2e1a;font:13px system-ui;box-shadow:0 2px 8px rgba(60,30,10,.18)}#ledgeInfo b{display:block;font:700 17px Georgia,serif}#ledgeInfo i{font-style:normal;font-weight:700;color:#3d6f9e}#ledgeInfo small{display:block;margin-top:3px;color:rgba(74,46,26,.7)}#charWrap.ledge #ledgeInfo{display:block}#charWrap.ledge #charTop,#charWrap.ledge #charAnim,#charWrap.ledge #charClimb,#charWrap.ledge #charEquip,#charWrap.ledge #charPick,#charWrap.ledge #charHint{display:none!important}
 #charHint{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:rgba(74,46,26,.75);font:12px system-ui}
 .tabe{font-size:22px;line-height:26px;height:26px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
 #cityCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab;display:block}
@@ -261,15 +262,12 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
     <div id="charClimb" class="off" aria-label="Climb direction"><div class="pad"><button data-dir="ul" title="Up-left">↖</button><button data-dir="u" title="Up">↑</button><button data-dir="ur" title="Up-right">↗</button><button data-dir="l" title="Left">←</button><button data-dir="stop" title="Hold">■</button><button data-dir="r" title="Right">→</button><button data-dir="dl" title="Down-left">↙</button><button data-dir="d" title="Down">↓</button><button data-dir="dr" title="Down-right">↘</button></div><button data-dir="auto" class="auto" title="Auto-wander demo">Auto</button><div class="tvb"><button data-tv="anchor" title="Drive an anchor pin and clip the Tether">Anchor</button><button data-tv="rappel" class="dis" title="Rappel down on the Tether">Rappel</button><button data-tv="ascend" class="dis" title="Winch back up to the anchor">Ascend</button></div><div class="cnote" aria-live="polite"></div></div>
     <div id="charEquip" role="tablist" aria-label="Equip"><button data-tool="pick" class="on">Pickaxe</button><button data-tool="climb">Climbing Picks</button></div>
     <div id="charPick" aria-label="Pickaxe grade"></div>
-    <div id="charHint">Drag to turn · pinch or scroll to zoom</div></div>
+    <div id="charHint">Drag to turn · pinch or scroll to zoom</div>
+    <div id="ledgeInfo"><b>Silverseam Ledge</b><span>Ore: <i>Mithril</i></span><small>A hanging camp on the cliff at a mithril vein. Drag to orbit · pinch or scroll to zoom</small></div></div>
   <nav id="tabs"><div class="wrap">
     <button data-tab="city"><span><img class="tabi" src="assets/ui/tab_city.webp" alt=""></span>Rim City</button>
     <button data-tab="char"><span class="tabe">⛑️</span>Character</button>
-    <button data-tab="capital"><span><img class="tabi" src="assets/ui/tab_capital.webp" alt=""></span>Capital</button>
-    <button data-tab="hollow"><span><img class="tabi" src="assets/ui/tab_hollow.webp" alt=""></span>Hollow</button>
-    <button data-tab="outposts"><span><img class="tabi" src="assets/ui/tab_outposts.webp" alt=""></span>Outposts</button>
-    <button data-tab="raids"><span><img class="tabi" src="assets/ui/tab_raids.webp" alt=""></span>Raids</button>
-    <button data-tab="training"><span><img class="tabi" src="assets/ui/tab_training.webp" alt=""></span>Training</button>
+    <button data-tab="ledge"><span><img class="tabi" src="assets/ui/tab_portaledges.webp" alt=""></span>Portaledges</button>
   </div></nav>
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
