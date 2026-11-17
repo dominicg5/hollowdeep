@@ -5728,8 +5728,16 @@ const CharView = (() => {
   // run arm swing (s = +1 left, -1 right), driven from the shoulder: the upper arm pitches forward/back opposite the legs, the elbow stays bent ~80-100 deg
   // (flexing more on the forward swing), the forearm lags the upper arm a little (overlapping action), the hand crosses toward the midline in front and
   // comes back to/past the hip behind. Returns the wrist target, an elbow pole and the forearm direction (local + world).
-  function runArm(s, ph, sh, RQ, k = 1) { const sg = s > 0 ? -1 : 1, sw = sg * Math.cos(TAU * ph), sl = sg * Math.cos(TAU * (ph - 0.07)), th = sw > 0 ? lerp(0.32, 0.52, k) * sw : lerp(0.34, 0.78, k) * sw, fl = lerp(0.32 + 0.22 * (0.5 + 0.5 * sl), 1.4 + 0.36 * (0.5 + 0.5 * sl), k), cr = Math.max(0, sl) * k;
-    const d1 = V(s * 0.12, -Math.cos(th), Math.sin(th)).normalize(), a2 = th + fl, dl = V(s * 0.03 - s * 0.26 * cr, -Math.cos(a2), Math.sin(a2)).normalize(), wl = d1.multiplyScalar(0.245).addScaledVector(dl, 0.215);
+  // arm swing (s = +1 left, -1 right), opposite the legs, driven from the shoulder.
+  // walk (k = 0): relaxed, a small fore-aft swing that scales with speed, lagging the legs a touch; the elbow is always bent (~17 deg at the back
+  //   of the swing, ~40 deg at the front) and the forearm trails the upper arm (follow-through), so it swings further; the hand drifts in toward the
+  //   midline in front. run (k = 1): driven swing, elbow ~80-100 deg, the hand crossing toward the midline in front and back past the hip behind.
+  // sh: the arm root the wrist offset is measured from (the upper-arm joint for the walk, the clavicle for the run, blended by k)
+  function runArm(s, ph, sh, RQ, k = 1) { const sg = s > 0 ? -1 : 1, am = clamp((st.gaitV || GAIT.walk.v) / GAIT.walk.v, 0.35, 1.25);
+    const su = sg * Math.cos(TAU * (ph - 0.03)), sf = sg * Math.cos(TAU * (ph - 0.11)), thW = 0.03 + am * (su > 0 ? 0.25 : 0.29) * su, flW = 0.3 + (0.42 * (0.5 + 0.5 * sf)) * (0.65 + 0.35 * Math.min(1, am)), crW = Math.max(0, sf) * 0.45 * Math.min(1, am);
+    const sw = sg * Math.cos(TAU * ph), sl = sg * Math.cos(TAU * (ph - 0.07)), thR = sw > 0 ? 0.52 * sw : 0.78 * sw, flR = 1.4 + 0.36 * (0.5 + 0.5 * sl), crR = Math.max(0, sl);
+    const th = lerp(thW, thR, k), fl = lerp(flW, flR, k), cr = lerp(crW, crR, k);
+    const d1 = V(s * lerp(0.2, 0.12, k), -Math.cos(th), Math.sin(th)).normalize(), a2 = th + fl, dl = V(s * lerp(0.07, 0.03, k) - s * lerp(0.2, 0.26, k) * cr, -Math.cos(a2), Math.sin(a2)).normalize(), wl = d1.multiplyScalar(0.245).addScaledVector(dl, 0.215);
     return { wr: sh.clone().add(wl.applyQuaternion(RQ)), pole: V(s * 0.4, -0.15, -1).applyQuaternion(RQ), dl, d2: dl.clone().applyQuaternion(RQ) }; }
   const PALM = V(0, -0.045, -0.031), SLOT_O = V(0.03, -0.4, -0.123), SLOT_D = V(-0.55, 1, 0).normalize(), HOLSTER = (s) => V(s * 0.174, 0.035, -0.06);
   function solveLimbs(c, f) { const { B } = c, root = c.root; if (!c.hol) c.hol = { R: { ax: 0, az: 0, vx: 0, vz: 0 }, L: { ax: 0, az: 0, vx: 0, vz: 0 } }; root.updateMatrixWorld(true); c._clr = !!((f.mine && f.mine.w > 0.01) || (f.climb && f.climb.w > 0.01) || (f.eq && f.eq.seq));
@@ -5774,16 +5782,16 @@ const CharView = (() => {
       const dHw = V(s * 0.35, 1, 0.25).normalize().applyQuaternion(hipQ), o = oH.clone().addScaledVector(dHw, 0.15 * lC).lerp(root.localToWorld(G), vC).add(V(s * 0.13, 0.03, 0.12).multiplyScalar(Math.sin(Math.PI * vC)).applyQuaternion(RQ)), q = qHw.slerp(qR, vC);
       if (f.climb && f.climb.w > 0 && f.climb.H && vC > 0) { const Hc = f.climb.H[k], a = Hc.a, dC = V(s * 0.08, Math.cos(a), Math.sin(a)).normalize(), xC = V(0, -Math.sin(a), Math.cos(a)); xC.addScaledVector(dC, -xC.dot(dC)).normalize();
         const qC = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xC, dC, xC.clone().cross(dC))).premultiply(RQ); o.lerp(root.localToWorld(Hc.g.clone()), f.climb.w * vC); q.slerp(qC, f.climb.w * vC); }
-      let choke = 0; if (f.run && f.run.w > 0 && vC > 0 && !(f.climb && f.climb.w > 0)) { const rw = f.run.w * vC, ra = runArm(s, f.run.ph, B['sh' + k].getWorldPosition(V(0, 0, 0)), RQ, f.run.k ?? 1), dn = V(-s * 0.15, ra.dl.z, -ra.dl.y); if (dn.y < 0) dn.negate(); dn.normalize();
+      let choke = 0; if (f.run && f.run.w > 0 && vC > 0 && !(f.climb && f.climb.w > 0)) { const rw = f.run.w * vC, kk = f.run.k ?? 1, ra = runArm(s, f.run.ph, B['sh' + k].getWorldPosition(V(0, 0, 0)).lerp(B['ua' + k].getWorldPosition(V(0, 0, 0)), 1 - kk), RQ, kk), dn = V(-s * 0.15, ra.dl.z, -ra.dl.y); if (dn.y < 0) dn.negate(); dn.normalize();
         // choked up: the fist just below the head, the shaft hanging down past the hand
-        const xL = V(0, 0, 1).addScaledVector(dn, -dn.z).normalize(), qL = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xL, dn, xL.clone().cross(dn))).premultiply(RQ), dw = dn.clone().applyQuaternion(RQ), gW = ra.wr.clone().addScaledVector(ra.d2, 0.075);
+        const xL = V(0, 0, 1).addScaledVector(dn, -dn.z).normalize(), qL = new THREE.Quaternion().setFromRotationMatrix(_m.makeBasis(xL, dn, xL.clone().cross(dn))).premultiply(RQ), dw = dn.clone().applyQuaternion(RQ), gW = ra.wr.clone().addScaledVector(ra.d2, lerp(0.045, 0.075, kk));
         o.lerp(gW.addScaledVector(dw, -0.27), rw); q.slerp(qL, rw); choke = 0.27 * rw; }
       const d = V(0, 1, 0).applyQuaternion(q); cT[k] = { o, q, d, g: o.clone().addScaledVector(d, hC * (1 - (f.climb ? f.climb.w : 0)) + choke) }; }
     // right arm: rest (hangs like the left), the pickaxe grip and/or the right climbing pick
     { const shR = B.shR.getWorldPosition(V(0, 0, 0)), wr0 = shR.clone().add(V(-0.105, -0.44, 0.03).applyQuaternion(RQ)), pr0 = V(-0.12, -0.05, -1).applyQuaternion(RQ);
       const poleP = (f.mine ? V(-0.3, -1, -0.15).lerp(V(-0.9, -0.6, -0.2), f.mine.w) : V(-0.3, -1, -0.15)).lerp(V(-0.55, 0.9, 0.5), pUp).applyQuaternion(RQ), poleC = (f.climb ? V(-0.6, -1, -0.5).lerp(V(-1, -0.4, -0.3), f.climb.w) : V(-0.6, -1, -0.5)).applyQuaternion(RQ);
       const gp = wP > 0 ? gripSolve(c, 'R', pGw, pdW, poleP) : null, gc = wC > 0 ? gripSolve(c, 'R', cT.R.g, cT.R.d, poleC) : null;
-      const wr = wr0.clone(), pr = pr0.clone(); if (f.run && f.run.w > 0) { const ra = runArm(-1, f.run.ph, shR, RQ, f.run.k ?? 1); wr.lerp(ra.wr, f.run.w); pr.lerp(ra.pole, f.run.w); } if (f.rope && f.rope.w > 0) { wr.lerp(root.localToWorld(f.rope.R.clone()), f.rope.w); pr.lerp(V(-0.8, -0.5, -0.4).applyQuaternion(RQ), f.rope.w); } if (gp) { wr.lerp(gp.wrist, wP); pr.lerp(poleP, wP); } if (gc) { wr.lerp(gc.wrist, wC); pr.lerp(poleC, wC); } ikA(c, 'R', wr, pr);
+      const wr = wr0.clone(), pr = pr0.clone(); if (f.run && f.run.w > 0) { const kR = f.run.k ?? 1, ra = runArm(-1, f.run.ph, shR.clone().lerp(B.uaR.getWorldPosition(V(0, 0, 0)), 1 - kR), RQ, kR); wr.lerp(ra.wr, f.run.w); pr.lerp(ra.pole, f.run.w); } if (f.rope && f.rope.w > 0) { wr.lerp(root.localToWorld(f.rope.R.clone()), f.rope.w); pr.lerp(V(-0.8, -0.5, -0.4).applyQuaternion(RQ), f.rope.w); } if (gp) { wr.lerp(gp.wrist, wP); pr.lerp(poleP, wP); } if (gc) { wr.lerp(gc.wrist, wC); pr.lerp(poleC, wC); } ikA(c, 'R', wr, pr);
       const y = B.faR.getWorldPosition(V(0, 0, 0)).sub(B.hdR.getWorldPosition(V(0, 0, 0))).normalize(), z = V(-1, 0, 0.18).applyQuaternion(RQ); z.addScaledVector(y, -z.dot(y)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(y, z), y, z);
       const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, -0.06))); if (gp) Qr.slerp(gp.Q, wP); if (gc) Qr.slerp(gc.Q, wC);
       B.hdR.parent.getWorldQuaternion(_q2); B.hdR.quaternion.copy(_q2.invert().multiply(Qr)); B.hdR.updateMatrixWorld(true);
@@ -5801,7 +5809,7 @@ const CharView = (() => {
       const E = S.clone().addScaledVector(dir, 0.245 * cA).addScaledVector(pn, 0.245 * Math.sqrt(1 - cA * cA)), fd = tip.clone().sub(E).normalize(), ws = E.clone().addScaledVector(fd, 0.215 + 0.008 * w);
       wristL.lerp(ws, r); pole2.lerp(E.clone().sub(S.clone().lerp(ws, 0.5)), r);
       const yv = fd.clone().negate(), zv = ws.clone().sub(hcW); zv.addScaledVector(yv, -zv.dot(yv)).normalize(); _m.makeBasis(V(0, 0, 0).crossVectors(yv, zv), yv, zv); Qsc = new THREE.Quaternion().setFromRotationMatrix(_m); }
-    if (f.run) { const w = f.run.w, ra = runArm(1, f.run.ph, sh, RQ, f.run.k ?? 1); wristL.lerp(ra.wr, w); pole2.lerp(ra.pole, w); }
+    if (f.run) { const w = f.run.w, kL = f.run.k ?? 1, ra = runArm(1, f.run.ph, sh.clone().lerp(B.uaL.getWorldPosition(V(0, 0, 0)), 1 - kL), RQ, kL); wristL.lerp(ra.wr, w); pole2.lerp(ra.pole, w); }
     let QmL = null; if (f.mine && f.mine.w > 0) { const w = f.mine.w, mt0 = c.built.mount, gL = mt0.getWorldPosition(V(0, 0, 0)), dd = V(0, 1, 0).applyQuaternion(mt0.getWorldQuaternion(new THREE.Quaternion())); 
       const pl = V(1, -0.7, -0.1).applyQuaternion(RQ), w0 = wristL.clone(), p0 = pole2.clone(); let wl = gL.clone(); QmL = new THREE.Quaternion(); pole2 = p0.clone().lerp(pl, w);
       for (let it = 0; it < 3; it++) { ikA(c, 'L', w0.clone().lerp(wl, w), pole2); const y = B.faL.getWorldPosition(V(0, 0, 0)).sub(wl).normalize(), x = dd.clone().negate(); y.addScaledVector(x, -y.dot(x)).normalize(); _m.makeBasis(x, y, V(0, 0, 0).crossVectors(x, y)); QmL.setFromRotationMatrix(_m); wl = gL.clone().sub(PALM.clone().applyQuaternion(QmL)); }
