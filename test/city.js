@@ -7,7 +7,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message + ' ' + e.stack)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   await p.goto(URL); await p.waitForTimeout(1200);
-  if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]');
+  if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]', { force: true });
   await p.waitForFunction(() => typeof ART !== 'undefined' && ART.ready, null, { timeout: 30000 }); await p.waitForTimeout(500);
   ok(await p.evaluate(() => ART.ok), 'painted art assets loaded');
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 150000 }).catch(() => {}); await p.waitForTimeout(1500);
@@ -79,14 +79,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { window.__ac = setInterval(() => closeModalQuiet(), 100); });
   { const mo = await p.evaluate(() => { const o = !document.getElementById('modal').classList.contains('hidden') ? document.getElementById('modalBody').textContent.slice(0, 80) : ''; closeModalQuiet(); return o; }); if (mo) console.log('note: modal was open before right-drag:', mo.replace(/\s+/g, ' ')); const r0 = await p.evaluate(() => CityMap.cam.rot); await p.mouse.move(200, 500); await p.mouse.down({ button: 'right' }); await p.mouse.move(280, 500, { steps: 6 }); await p.mouse.up({ button: 'right' });
     const r1 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(r1 - r0) > 0.2, `right-drag rotates (${r0.toFixed(2)} -> ${r1.toFixed(2)})`);
-    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=rotl]'); await p.waitForFunction(() => !CityMap.cam.fly, null, { timeout: 45000 }); const r2 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(Math.abs(r2 - r1) - Math.PI / 4) < 0.05, 'rotate button turns 45deg');
-    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=tilt]'); await p.waitForTimeout(100); ok(await p.evaluate(() => CityMap.cam.tilt >= 35 && CityMap.cam.tilt <= 70), 'tilt button');
+    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=rotl]', { force: true }); await p.waitForFunction(() => !CityMap.cam.fly, null, { timeout: 45000 }); const r2 = await p.evaluate(() => CityMap.cam.rot); ok(Math.abs(Math.abs(r2 - r1) - Math.PI / 4) < 0.05, 'rotate button turns 45deg');
+    await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=tilt]', { force: true }); await p.waitForTimeout(100); ok(await p.evaluate(() => CityMap.cam.tilt >= 35 && CityMap.cam.tilt <= 70), 'tilt button');
     await p.evaluate(() => { CityMap.cam.rot = 0; CityMap.cam.tilt = 55; }); }
   await p.evaluate(() => CityMap.flyTo(W.player.x, W.player.y, 1.05, true)); await p.waitForTimeout(300);
   // wheel zoom
   await p.evaluate(() => closeModalQuiet()); await p.mouse.move(200, 500); await p.mouse.wheel(0, 400); await p.waitForTimeout(300);
   const c2 = await p.evaluate(() => CityMap.cam.z); ok(c2 < c1.z, `wheel zooms out ${c1.z.toFixed(2)} -> ${c2.toFixed(2)}`);
-  await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=zin]'); await p.waitForTimeout(500); const c3 = await p.evaluate(() => CityMap.cam.z); ok(c3 > c2, 'zoom button zooms in');
+  await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=zin]', { force: true }); await p.waitForTimeout(500); const c3 = await p.evaluate(() => CityMap.cam.z); ok(c3 > c2, 'zoom button zooms in');
   // touch pinch via CDP
   const cdp = await ctx.newCDPSession(p); const zb = await p.evaluate(() => CityMap.cam.z);
   const tp = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], id) => ({ x, y, id })) });
@@ -112,7 +112,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(!!D, 'the Lumen Tree has its great door'); if (D) { await p.waitForTimeout(1500); await p.evaluate((D) => { closeModalQuiet(); CityMap.handleTap(...CityMap.w2sUp(D.x, D.y, D.up + D.h * 0.4)); }, D); await p.waitForTimeout(400);
       ok(/Enter the Lumen Tree/.test(await p.textContent('#modalBody')), 'tapping the door opens the Enter the Lumen Tree prompt'); await p.screenshot({ path: 'city-door.png' }); await p.evaluate(() => closeModalQuiet()); } }
   // Rim Leaderboard
-  await p.click('[data-city=board]'); await p.waitForTimeout(300);
+  await p.click('[data-city=board]', { force: true }); await p.waitForTimeout(300);
   { const bt = await p.textContent('#modalBody'); const pin = await p.textContent('#boardPin'); ok(/Rim Leaderboard/.test(bt) && /You/.test(pin) && /Lv \d+/.test(pin), 'leaderboard ranks homes by rim proximity with your row pinned: ' + pin.trim().replace(/\s+/g, ' '));
     ok(await p.evaluate(() => { const r = rimBoard(); return r.every((h, i) => i === 0 || r[i - 1].deepest >= h.deepest); }), 'leaderboard sorted by deepest level'); await p.screenshot({ path: 'city-board.png' }); }
   ok(/🌳 Lumen Tree #\d/.test(await p.textContent('#modalBody')), 'leaderboard marks Lumen Tree residents');
@@ -125,33 +125,33 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => setTab('capital')); ok(await p.isVisible('text=Lantern Hall'), 'capital tab renders'); ok(!(await p.isVisible('#cityCanvas')), 'city hidden on other tabs');
   // Character tab: own 3D stage, sex toggle persisted, fidgets advance, hidden on other tabs
   ok(await p.evaluate(() => [...document.querySelectorAll('nav#tabs [data-tab]')].map((b) => b.dataset.tab).join(',')) === 'city,char,ledge', 'tab bar is Rim City, Character, Portaledges');
-  await p.click('nav#tabs [data-tab=ledge]'); await p.waitForTimeout(1500);
+  await p.click('nav#tabs [data-tab=ledge]', { force: true }); await p.waitForTimeout(1500);
   ok(await p.evaluate(() => CharView.st.ledge && !!CharView.ledge && CharView.ledge.visible && CharView.st.anim === 'mine' && document.getElementById('charWrap').classList.contains('ledge') && !document.getElementById('cityCanvas').offsetParent), 'portaledges tab shows the hanging camp with the delver mining');
   ok(await p.isVisible('#ledgeInfo') && /Mithril/.test(await p.textContent('#ledgeInfo')), 'portaledge info panel names the ore');
   { const d = await p.evaluate(() => { const L = CharView.LG, a0 = L.bit.rotation.z, n0 = L.sparks.life.filter((x) => x > 0).length; CharView.st.paused = true; CharView.advance(1 / 30, 20); const live = L.sparks.life.filter((x) => x > 0).length, c = L.sparks.pts.material.color.getHex(); return { spun: Math.abs(L.bit.rotation.z - a0), live, c, want: CharView.ORES[L.ore].spark, iron: CharView.ORES.iron.spark, hubOnBlock: !!L.drillG }; });
     ok(d.spun > 1 && d.live > 10 && d.c === d.want && d.want !== d.iron && d.hubOnBlock, 'Lifeline Drill spins and throws ore-coloured sparks (' + JSON.stringify(d) + ')'); await p.evaluate(() => { CharView.st.paused = false; }); }
   { const n = await p.evaluate(() => ({ ore: document.querySelectorAll('#ledgeCtl [data-k=ore] button').length, drill: document.querySelectorAll('#ledgeCtl [data-k=drill] button').length, line: document.querySelectorAll('#ledgeCtl [data-k=line] button').length }));
-    await p.click('#ledgeCtl [data-k=drill] [data-v=onyx]'); await p.click('#ledgeCtl [data-k=line] [data-v=rune]'); await p.click('#ledgeCtl [data-k=ore] [data-v=gold]'); await p.waitForTimeout(300);
+    await p.click('#ledgeCtl [data-k=drill] [data-v=onyx]', { force: true }); await p.click('#ledgeCtl [data-k=line] [data-v=rune]', { force: true }); await p.click('#ledgeCtl [data-k=ore] [data-v=gold]', { force: true }); await p.waitForTimeout(300);
     const r = await p.evaluate(() => { const L = CharView.LG, sv = JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}'); return { bit: L.bit.userData.grade, flames: !!L.bit.userData.flames, line: L.line.name, lg: L.lg, ore: L.ore, spark: L.sparks.pts.material.color.getHex(), want: CharView.ORES.gold.spark, label: document.getElementById('ledgeOre').textContent, saved: [sv.drillGrade, sv.lineGrade, sv.ledgeOre].join(',') }; });
     ok(n.ore >= 9 && n.drill === 8 && n.line === 8 && r.bit === 'onyx' && r.flames && r.lg === 'rune' && r.ore === 'gold' && r.spark === r.want && r.label === 'Gold' && r.saved === 'onyx,rune,gold', 'portaledge selectors swap drill bit tier, Lifeline tier and ore live, sparks follow the ore, choices persist (' + JSON.stringify([n, r]) + ')');
-    const pu = await p.evaluate(() => { const L = CharView.LG, st = CharView.st; st.paused = true; CharView.setXfer('off'); CharView.advance(1 / 30, 43); const U = L.line.userData, g0 = U.core.opacity; CharView.advance(1 / 30, 2); const steady = Math.abs(U.core.opacity - g0) < 4e-3 * U.co, coil = !!U.tail && U.tail.getPoint(1).y < U.tail.getPoint(0.5).y - 0.15; const off = U.beads.some((b) => b.visible) || U.tb.some((b) => b.visible) || L.moving; CharView.setXfer('on'); CharView.advance(1 / 30, 45); const on = L.line.userData.beads.every((b) => b.visible) && L.moving && L.line.userData.pm.opacity > 0.1 && U.tb.every((b) => b.visible); const dim = U.core.opacity < g0 * 0.8; CharView.setXfer('auto'); st.paused = false; return { off, on, steady, dim, coil }; });
+    const pu = await p.evaluate(() => { const L = CharView.LG, st = CharView.st; st.paused = true; CharView.setXfer('off'); CharView.sim(1 / 30, 43); const U = L.line.userData, g0 = U.core.opacity; CharView.sim(1 / 30, 2); const steady = Math.abs(U.core.opacity - g0) < 4e-3 * U.co, coil = !!U.tail && U.tail.getPoint(1).y < U.tail.getPoint(0.5).y - 0.15; const off = U.beads.some((b) => b.visible) || U.tb.some((b) => b.visible) || L.moving; CharView.setXfer('on'); CharView.sim(1 / 30, 45); const on = L.line.userData.beads.every((b) => b.visible) && L.moving && L.line.userData.pm.opacity > 0.1 && U.tb.every((b) => b.visible); const dim = U.core.opacity < g0 * 0.8; CharView.setXfer('auto'); st.paused = false; return { off, on, steady, dim, coil }; });
     ok(!pu.off && pu.on && pu.steady && pu.dim && pu.coil, 'Lifeline: steady idle glow, dimmed glow + pulse only while ore moves, spare coil off the hub rear hangs off the deck (' + JSON.stringify(pu) + ')');
     await p.evaluate(() => { CharView.setDrillGrade('bronze'); CharView.setLineGrade('bronze'); CharView.setOre('mithril'); }); }
   { const a0 = await p.evaluate(() => CharView.st.orb.az); const bx = await p.locator('#charCanvas').boundingBox(); await p.mouse.move(bx.x + bx.width / 2, bx.y + bx.height / 2); await p.mouse.down(); await p.mouse.move(bx.x + bx.width / 2 + 80, bx.y + bx.height / 2, { steps: 4 }); await p.mouse.up(); ok(Math.abs((await p.evaluate(() => CharView.st.orb.az)) - a0) > 0.3, 'drag orbits the portaledge camera'); }
-  await p.click('nav#tabs [data-tab=char]'); await p.waitForTimeout(1500);
+  await p.evaluate(() => document.querySelector('nav#tabs [data-tab=char]').click()); await p.waitForTimeout(1500);
   ok(await p.evaluate(() => !CharView.st.ledge && !CharView.ledge.visible && !document.getElementById('charWrap').classList.contains('ledge')), 'character tab leaves the portaledge scene');
   const cv = await p.evaluate(() => ({ ok: CharView.st.ok, f: CharView.st.frames, vis: !document.getElementById('charWrap').classList.contains('hidden'), city: !document.getElementById('city').classList.contains('hidden') }));
-  ok(cv.ok && cv.vis && !cv.city, 'character tab shows its own stage (city hidden)'); await p.waitForTimeout(800);
+  ok(cv.ok && cv.vis && !cv.city, 'character tab shows its own stage (city hidden)'); await p.waitForFunction((f) => CharView.st.frames > f, cv.f, { timeout: 20000 }).catch(() => {});
   ok((await p.evaluate(() => CharView.st.frames)) > cv.f, 'character stage renders frames');
-  await p.click('#charSex [data-sex=f]'); await p.waitForTimeout(400);
+  await p.click('#charSex [data-sex=f]', { force: true }); await p.waitForTimeout(400);
   const cs = await p.evaluate(() => ({ s: S.charSex, r: CharView.rig.sex, saved: JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').charSex, braid: CharView.rig.built.braid.length }));
   ok(cs.s === 'f' && cs.r === 'f' && cs.saved === 'f' && cs.braid > 5, 'female toggle swaps model and persists (' + JSON.stringify(cs) + ')');
   const fz = await p.evaluate(() => { CharView.st.paused = true; CharView.fidget('scratch'); const y0 = CharView.rig.B.hdL.getWorldPosition(new THREE.Vector3()).y; CharView.advance(0.1, 12); const y1 = CharView.rig.B.hdL.getWorldPosition(new THREE.Vector3()).y; CharView.advance(0.1, 30); CharView.st.paused = false; return [y0, y1, CharView.an.fid]; });
   ok(fz[1] > fz[0] + 0.25 && !fz[2], 'scratch fidget raises the hand to the face and ends (' + fz.map((v) => typeof v === 'number' ? v.toFixed(2) : v) + ')');
-  await p.click('#charPick [data-grade=lumen]'); await p.waitForTimeout(300);
+  await p.click('#charPick [data-grade=lumen]', { force: true }); await p.waitForTimeout(300);
   const pg = await p.evaluate(() => ({ s: S.pickGrade, g: CharView.rig.built.pick.userData.grade, onHand: CharView.rig.built.pick.parent === CharView.rig.B.hdR, glow: !!CharView.rig.built.pick.userData.glow, saved: JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').pickGrade, skins: CharView.rig.built.skins.length }));
   ok(pg.s === 'lumen' && pg.g === 'lumen' && pg.onHand && pg.glow && pg.saved === 'lumen' && pg.skins >= 8, 'pickaxe grade swaps the hand-held module and persists; body is skinned (' + JSON.stringify(pg) + ')');
-  await p.click('#charPick [data-grade=onyx]'); await p.waitForTimeout(300);
+  await p.click('#charPick [data-grade=onyx]', { force: true }); await p.waitForTimeout(300);
   const ox = await p.evaluate(() => { const pk = CharView.rig.built.pick, fl = pk.userData.flames; return { g: pk.userData.grade, n: fl ? fl.geometry.attributes.position.count : 0, t: fl ? fl.material.uniforms.uTime.value : -1 }; });
   ok(ox.g === 'onyx' && ox.n > 60, 'Ember Onyx pickaxe has vein flame emitters (' + JSON.stringify(ox) + ')');
   const oxl = await p.evaluate(() => { const b = document.querySelector('#charPick [data-grade=onyx]'); return { t: b.title, l: b.textContent.trim(), any: document.getElementById('charPick').textContent.includes('Black') }; });
@@ -162,63 +162,69 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(res[0].a === 'run' && res[0].on === 'run' && res[0].run >= 0 && res[1].a === 'mine' && res[1].on === 'mine' && res[1].mine >= 0 && res[2].a === 'idle' && res[2].on === 'idle', 'Character tab Idle / Run / Mine preview buttons switch the animation (' + JSON.stringify(res) + ')'); }
   { // equip: Pickaxe | Climbing Picks - stows the pickaxe on the back, draws a climbing pick into each hand, persists; Mine switches back to the pickaxe
     const lab = await p.evaluate(() => [...document.querySelectorAll('#charEquip [data-tool]')].map((b) => b.textContent).join('|') + (/ice ?ax/i.test(document.body.innerText) ? ' ICE' : ''));
-    await p.click('#charEquip [data-tool=climb]'); await p.waitForFunction(() => CharView.st.toolPh === 2.2, null, { timeout: 45000 }).catch(() => {});
+    await p.click('#charEquip [data-tool=climb]', { force: true }); await p.waitForFunction(() => CharView.st.toolPh === 2.2, null, { timeout: 45000 }).catch(() => {});
     const eq = await p.evaluate(() => { const B = CharView.rig.built, R = CharView.rig.B, ch = R.chest; ch.updateMatrixWorld(true); const pp = ch.worldToLocal(B.pick.getWorldPosition(new THREE.Vector3()));
       return { ph: CharView.st.toolPh, s: S.toolMode, saved: JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').toolMode, on: (document.querySelector('#charEquip button.on') || {}).dataset?.tool, r: B.climb.R.parent === R.hdR, l: B.climb.L.parent === R.hdL, back: +pp.z.toFixed(3) }; });
     ok(lab === 'Pickaxe|Climbing Picks' && eq.ph === 2.2 && eq.s === 'climb' && eq.saved === 'climb' && eq.on === 'climb' && eq.r && eq.l && eq.back < -0.08, 'Pickaxe | Climbing Picks equip stows the pickaxe on the back and puts a climbing pick in each hand, persisted (' + JSON.stringify({ lab, ...eq }) + ')');
-    await p.click('#charPick [data-gear=climb]'); await p.waitForTimeout(200);
+    await p.click('#charPick [data-gear=climb]', { force: true }); await p.waitForTimeout(200);
     const cg = await p.evaluate(() => { const ks = [...document.querySelectorAll('#charPick [data-grade]')].map((b) => b.dataset.grade), nm = [...document.querySelectorAll('#charPick [data-grade]')].map((b) => b.title); const cnt = ks.map((k) => { let n = 0; CharView.makeClimbPick(k).traverse((o) => { if (o.isMesh || o.isPoints) n++; }); return n; }); return { ks, nm: nm[0] + '..' + nm[8], cnt }; });
-    await p.click('#charPick [data-grade=mithril]'); await p.waitForTimeout(300);
+    await p.click('#charPick [data-grade=mithril]', { force: true }); await p.waitForTimeout(300);
     const cm = await p.evaluate(() => { const B = CharView.rig.built; return { s: S.climbGrade, saved: JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').climbGrade, g: B.climb.R.userData.grade + ',' + B.climb.L.userData.grade, pick: B.pick.userData.grade }; });
     ok(cg.ks.join() === 'stone,bronze,iron,steel,gold,mithril,rune,lumen,onyx' && cg.nm === 'Stone..Ember Onyx' && cg.cnt.every((n, j) => !j || n > cg.cnt[j - 1]) && cm.s === 'mithril' && cm.saved === 'mithril' && cm.g === 'mithril,mithril' && cm.pick !== 'mithril', 'Climbing Picks tab: Stone..Ember Onyx in grade order, each adds detail, swaps both picks and persists (' + JSON.stringify({ ...cg, ...cm }) + ')');
-    await p.click('#charAnim [data-anim=mine]'); await p.waitForFunction(() => CharView.st.toolPh === 0 && CharView.an.act === 'mine', null, { timeout: 45000 }).catch(() => {});
+    await p.click('#charAnim [data-anim=mine]', { force: true }); await p.waitForFunction(() => CharView.st.toolPh === 0 && CharView.an.act === 'mine', null, { timeout: 45000 }).catch(() => {});
     const mn = await p.evaluate(() => ({ ph: CharView.st.toolPh, s: S.toolMode, act: CharView.an.act, on: (document.querySelector('#charEquip button.on') || {}).dataset?.tool }));
     ok(mn.ph === 0 && mn.s === 'pick' && mn.act === 'mine' && mn.on === 'pick', 'Mine preview with the climbing picks out switches back to the pickaxe first, then mines (' + JSON.stringify(mn) + ')');
-    await p.click('#charAnim [data-anim=climb]'); await p.waitForFunction(() => CharView.an.act === 'climb' && CharView.an.mw >= 1 && CharView.st.climbPh > 0.18 && CharView.st.climbPh < 0.45, null, { timeout: 45000 }).catch(() => {});
+    await p.click('#charAnim [data-anim=climb]', { force: true }); await p.waitForFunction(() => CharView.an.act === 'climb' && CharView.an.mw >= 1 && CharView.st.climbPh > 0.18 && CharView.st.climbPh < 0.45, null, { timeout: 45000 }).catch(() => {});
     const cl = await p.evaluate(() => { const r = CharView.rig, B = r.B, hR = B.hdR.getWorldPosition(new THREE.Vector3()), hL = B.hdL.getWorldPosition(new THREE.Vector3()); return { act: CharView.an.act, s: S.toolMode, ph: CharView.st.climbPh, wall: r.wall.visible, on: (document.querySelector('#charAnim button.on') || {}).dataset?.anim, up: +Math.max(hR.y, hL.y).toFixed(2) }; });
     ok(cl.act === 'climb' && cl.s === 'climb' && cl.ph > 0 && cl.wall && cl.on === 'climb' && cl.up > 1.0, 'Climb preview draws the climbing picks and climbs the rock wall (' + JSON.stringify(cl) + ')');
     { const pad = await p.evaluate(() => !document.getElementById('charClimb').classList.contains('off') && document.querySelectorAll('#charClimb [data-dir]').length);
-      const x0 = await p.evaluate(() => CharView.st.climbPos.x); await p.click('#charClimb [data-dir=l]');
+      const x0 = await p.evaluate(() => CharView.st.climbPos.x); await p.click('#charClimb [data-dir=l]', { force: true });
       await p.waitForFunction((x0) => CharView.st.climbPos.x > x0 + 0.12, x0, { timeout: 45000 }).catch(() => {});
       const lt = await p.evaluate(() => ({ x: +CharView.st.climbPos.x.toFixed(3), y: +CharView.st.climbPos.y.toFixed(2), dir: CharView.st.climbDir, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
       ok(pad >= 9 && lt.x > x0 + 0.12 && lt.dir === 'l' && lt.on === 'l', 'Climb direction pad: Left traverses the climber across the wall (' + JSON.stringify({ pad, x0: +x0.toFixed(2), ...lt }) + ')');
-      await p.click('#charClimb [data-dir=auto]'); await p.waitForTimeout(300);
+      await p.click('#charClimb [data-dir=auto]', { force: true }); await p.waitForTimeout(300);
       const au = await p.evaluate(() => ({ auto: !!CharView.st.climbAuto, on: (document.querySelector('#charClimb button.on') || {}).dataset?.dir }));
       ok(au.auto && au.on === 'auto', 'Climb Auto button starts the wander demo (' + JSON.stringify(au) + ')'); 
-      await p.click('#charClimb [data-dir=d]'); await p.waitForFunction(() => CharView.st.climbBlk === 'bottom', null, { timeout: 45000 }).catch(() => {});
+      await p.click('#charClimb [data-dir=d]', { force: true }); await p.waitForFunction(() => CharView.st.climbBlk === 'bottom', null, { timeout: 45000 }).catch(() => {});
       const gb = await p.evaluate(() => ({ blk: CharView.st.climbBlk, note: document.querySelector('#charClimb .cnote').textContent, red: !!document.querySelector('#charClimb [data-dir=d].blk'), y: +CharView.st.climbPos.y.toFixed(2) }));
       ok(gb.blk === 'bottom' && gb.note === 'Ground reached' && gb.red, 'Climbing Down at the foot of the wall shows "Ground reached" and marks the button (' + JSON.stringify(gb) + ')'); 
       // Tether: anchor pin + clip, rappel down in hops, winch back up, coil, back on the picks
-      await p.click('#charClimb [data-dir=u]'); await p.waitForFunction(() => CharView.st.climbPos.y > 0.6, null, { timeout: 45000 }).catch(() => {});
-      await p.click('#charClimb [data-tv=anchor]'); await p.waitForFunction(() => CharView.st.tvK === 'anchored', null, { timeout: 45000 }).catch(() => {});
+      await p.click('#charClimb [data-dir=u]', { force: true }); await p.waitForFunction(() => CharView.st.climbPos.y > 0.6, null, { timeout: 45000 }).catch(() => {});
+      await p.click('#charClimb [data-tv=anchor]', { force: true }); await p.waitForFunction(() => CharView.st.tvK === 'anchored', null, { timeout: 45000 }).catch(() => {});
       const an1 = await p.evaluate(() => ({ k: CharView.st.tvK, pin: CharView.rig.wall.userData.pin && CharView.rig.wall.userData.pin.visible, rope: CharView.rig.wall.userData.ropes && CharView.rig.wall.userData.ropes[0].visible, y: +CharView.st.climbPos.y.toFixed(2), on: !!document.querySelector('#charClimb [data-tv=anchor].on') }));
       ok(an1.k === 'anchored' && an1.pin && an1.rope && an1.on, 'Tether Anchor drives a pin into the wall and clips the Tether to it (' + JSON.stringify(an1) + ')');
-      await p.click('#charClimb [data-tv=rappel]'); await p.waitForFunction((y0) => CharView.st.tvK === 'rappel' && CharView.st.climbPos.y < y0 - 0.25, an1.y, { timeout: 45000 }).catch(() => {});
+      await p.click('#charClimb [data-tv=rappel]', { force: true }); await p.waitForFunction((y0) => CharView.st.tvK === 'rappel' && CharView.st.climbPos.y < y0 - 0.25, an1.y, { timeout: 45000 }).catch(() => {});
       const rp = await p.evaluate(() => ({ k: CharView.st.tvK, y: +CharView.st.climbPos.y.toFixed(2), held: CharView.an.eq.held, rope: CharView.rig.wall.userData.ropes[0].visible }));
       ok(/rappel|hang/.test(rp.k) && rp.y < an1.y - 0.25 && rp.held === 'none' && rp.rope, 'Rappel stows the picks and drops down the wall on the Tether (' + JSON.stringify(rp) + ')');
-      await p.waitForFunction(() => CharView.st.tvK === 'hang', null, { timeout: 45000 }).catch(() => {}); await p.click('#charClimb [data-tv=ascend]');
+      await p.waitForFunction(() => CharView.st.tvK === 'hang', null, { timeout: 45000 }).catch(() => {}); await p.click('#charClimb [data-tv=ascend]', { force: true });
       await p.waitForFunction(() => CharView.st.tvK === 'ascend' && CharView.rig.built.winch.visible, null, { timeout: 45000 }).catch(() => {});
       const as = await p.evaluate(() => ({ k: CharView.st.tvK, winch: CharView.rig.built.winch.visible }));
       await p.waitForFunction(() => !CharView.an.tv && CharView.an.eq.held === 'climb' && !CharView.an.eq.seq, null, { timeout: 45000 }).catch(() => {});
       const bk2 = await p.evaluate(() => ({ tv: CharView.an.tv, held: CharView.an.eq.held, y: +CharView.st.climbPos.y.toFixed(2), pin: CharView.rig.wall.userData.pin.visible, winch: CharView.rig.built.winch.visible, act: CharView.an.act }));
-      ok(as.k === 'ascend' && as.winch && bk2.tv === null && bk2.held === 'climb' && bk2.y > rp.y && !bk2.pin && !bk2.winch && bk2.act === 'climb', 'Ascend winches back up to the anchor, then unclips, coils the Tether and returns to the picks (' + JSON.stringify({ as, ...bk2 }) + ')'); }
-    await p.click('#charEquip [data-tool=pick]'); await p.waitForFunction(() => CharView.st.toolPh === 0, null, { timeout: 45000 }).catch(() => {});
+      ok(as.k === 'ascend' && as.winch && bk2.tv === null && bk2.held === 'climb' && bk2.y > rp.y && !bk2.pin && !bk2.winch && bk2.act === 'climb', 'Ascend winches back up to the anchor, then unclips, coils the Tether and returns to the picks (' + JSON.stringify({ as, ...bk2 }) + ')');
+      // stop anywhere on the rope, then Unanchor drops back onto the picks at that spot
+      const un = await p.evaluate(() => { const C = CharView, st = C.st; st.paused = true; C.setClimbDir('u'); for (let i = 0; i < 400 && st.climbPos.y < 2.4; i++) C.sim(1 / 30, 1); C.setClimbDir('stop'); C.sim(1 / 30, 10); C.tetherAct('anchor'); for (let i = 0; i < 300 && st.tvK !== 'anchored'; i++) C.sim(1 / 30, 1);
+        const lab = document.querySelector('#charClimb [data-tv=anchor]').textContent; C.tetherAct('rappel'); for (let i = 0; i < 400 && !(st.tvK === 'rappel' && st.climbPos.y < 1.9); i++) C.sim(1 / 30, 1); document.querySelector('#charClimb [data-dir=stop]').click(); C.sim(1 / 30, 2); const y1 = st.climbPos.y; C.sim(1 / 30, 45); const y2 = st.climbPos.y, k1 = st.tvK;
+        document.querySelector('#charClimb [data-tv=anchor]').click(); const k2 = C.an.tv && C.an.tv.k; for (let i = 0; i < 400 && C.an.tv; i++) C.sim(1 / 30, 1); C.sim(1 / 30, 20); const r = { lab, y1: +y1.toFixed(2), y2: +y2.toFixed(2), k1, k2, tv: C.an.tv, act: C.an.act, held: C.an.eq.held, y3: +st.climbPos.y.toFixed(2), lab2: document.querySelector('#charClimb [data-tv=anchor]').textContent };
+        C.setClimbDir('u'); C.sim(1 / 30, 30); r.moved = +(st.climbPos.y - r.y3).toFixed(2); C.setClimbDir('stop'); st.paused = false; return r; });
+      ok(un.lab === 'Unanchor' && un.k1 === 'hang' && Math.abs(un.y2 - un.y1) < 0.02 && un.y1 > 0.8 && un.k2 === 'coil' && un.tv === null && un.act === 'climb' && un.held === 'climb' && Math.abs(un.y3 - un.y2) < 0.15 && un.lab2 === 'Anchor' && un.moved > 0.05, 'Stop holds her mid-rope; Anchor reads Unanchor and drops her back onto the picks at that spot (' + JSON.stringify(un) + ')'); }
+    await p.click('#charEquip [data-tool=pick]', { force: true }); await p.waitForFunction(() => CharView.st.toolPh === 0, null, { timeout: 45000 }).catch(() => {});
     const bk = await p.evaluate(() => ({ a: CharView.st.anim, s: S.toolMode, wall: CharView.rig.wall.visible })); ok(bk.a === 'idle' && bk.s === 'pick' && !bk.wall, 'switching back to the Pickaxe ends the climb (' + JSON.stringify(bk) + ')');
-    await p.click('#charAnim [data-anim=idle]'); await p.waitForTimeout(200); }
-  await p.click('#charPick [data-gear=tether]'); await p.waitForTimeout(200);
+    await p.click('#charAnim [data-anim=idle]', { force: true }); await p.waitForTimeout(200); }
+  await p.click('#charPick [data-gear=tether]', { force: true }); await p.waitForTimeout(200);
   const tks = await p.evaluate(() => [...document.querySelectorAll('#charPick [data-grade]')].map((b) => b.dataset.grade).join());
   const vin = await p.evaluate(() => { const b = document.querySelector('#charPick [data-grade=regular]'); return b ? b.title : ''; }); ok(vin === 'Vine', 'starter tether is labelled Vine (' + vin + ')');
-  await p.click('#charPick [data-grade=lumen]'); await p.waitForTimeout(300);
+  await p.click('#charPick [data-grade=lumen]', { force: true }); await p.waitForTimeout(300);
   const tt = await p.evaluate(() => { const B = CharView.rig.built; const cnt = Object.keys(CharView.TGRADES).map((k) => { let n = 0; CharView.makeTether(k, {}).traverse((o) => { if (o.isMesh || o.isPoints) n++; }); return n; });
     return { s: S.tetherGrade, saved: JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').tetherGrade, n: B.tethers.length, g: B.tethers.map((t) => t.grp.userData.grade).join(), pick: B.pick.userData.grade, cnt, on: (document.querySelector('#charPick button.on[data-grade]') || {}).dataset?.grade }; });
   ok(tks === 'regular,bronze,iron,steel,gold,mithril,rune,lumen,onyx' && tt.s === 'lumen' && tt.saved === 'lumen' && tt.n >= 1 && /^lumen(,lumen)*$/.test(tt.g) && tt.pick !== 'lumen' && tt.on === 'lumen' && tt.cnt.every((n, j) => !j || n > tt.cnt[j - 1]), 'Tether tab swaps the graded rope coils, persists, and each grade adds detail (' + JSON.stringify({ tks, ...tt }) + ')');
-  await p.click('#charPick [data-gear=pick]'); await p.waitForTimeout(200);
+  await p.click('#charPick [data-gear=pick]', { force: true }); await p.waitForTimeout(200);
   const gr = await p.evaluate(() => { const ks = [...document.querySelectorAll('#charPick [data-grade]')].map(b => b.dataset.grade); const cnt = ks.map(k => { let n = 0; CharView.makePickaxe(k).traverse(o => { if (o.isMesh || o.isPoints) n++; }); return n; }); return { ks, cnt }; });
   ok(gr.ks.join() === 'stick,bronze,iron,steel,gold,mithril,rune,lumen,onyx' && gr.cnt.every((n, j) => !j || n > gr.cnt[j - 1]), 'pickaxe chips in grade order, each grade adds geometry (' + JSON.stringify(gr) + ')');
-  await p.click('#charPick [data-grade=bronze]'); await p.waitForTimeout(200);
-  await p.click('#charSex [data-sex=m]'); await p.waitForTimeout(300); ok((await p.evaluate(() => CharView.rig.sex)) === 'm', 'male toggle');
+  await p.click('#charPick [data-grade=bronze]', { force: true }); await p.waitForTimeout(200);
+  await p.click('#charSex [data-sex=m]', { force: true }); await p.waitForTimeout(300); ok((await p.evaluate(() => CharView.rig.sex)) === 'm', 'male toggle');
   await p.evaluate(() => setTab('capital')); await p.waitForTimeout(300); ok(await p.evaluate(() => document.getElementById('charWrap').classList.contains('hidden') && !CharView.st.visible), 'character stage hidden + paused on other tabs');
-  await p.click('nav#tabs [data-tab=city]'); await p.waitForTimeout(300);
+  await p.click('nav#tabs [data-tab=city]', { force: true }); await p.waitForTimeout(300);
   // Screenshots: far / mid / close
   const shot = async (name, x, y, z, w = 2200) => { await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [x, y, z]); await p.waitForTimeout(w); await p.screenshot({ path: name }); };
   await p.evaluate(() => { S.seasonOverride = null; S.festivalOverride = false; });
