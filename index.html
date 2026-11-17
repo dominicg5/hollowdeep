@@ -5214,8 +5214,9 @@ const CharView = (() => {
     const metal = G.metal ? (G.shine ? shiny(G.metal, G.shine, 80) : toon(G.metal)) : null;
     // the cord: a dark core (carries the ink outline) + twisted strands
     const NS = vine ? 2 : T <= 2 ? 3 : T <= 4 ? 6 : 8, TW = vine ? 2 : NS >= 6 ? 11 : 9, K = tr / 0.0105;
+    const cordM2 = vine ? toon(0x55652a) : cordM; grp.userData.cord = { cordM, cordM2, coreM, NS, braid: NS >= 6, vine, core: vine ? 0.7 : T === 2 ? 0.62 : 0.66, off: vine ? 0.38 : NS >= 6 ? 0.56 : 0.5, sr: (j) => vine ? (j ? 0.48 : 0.62) : NS >= 6 ? 0.42 : 0.55, pitch: Math.PI * R * (1 + sy) / TW / tr };
     for (const l of LP) { tubeOn(ring(l, (a, c) => c), tr * (vine ? 0.7 : T === 2 ? 0.62 : 0.66), coreM, 160, true);
-      const cordM2 = vine ? toon(0x55652a) : cordM; for (let j = 0; j < NS; j++) { const braid = NS >= 6, dir = braid ? (j % 2 ? -1 : 1) : 1, ph = (braid ? Math.floor(j / 2) / (NS / 2) : j / NS) * TAU;
+      for (let j = 0; j < NS; j++) { const braid = NS >= 6, dir = braid ? (j % 2 ? -1 : 1) : 1, ph = (braid ? Math.floor(j / 2) / (NS / 2) : j / NS) * TAU;
         tubeOn(strand(l, tr * (vine ? 0.38 : braid ? 0.56 : 0.5), TW, ph + l.ph, dir), tr * (vine ? (j ? 0.48 : 0.62) : braid ? 0.42 : 0.55), j % 2 ? cordM2 : cordM, braid ? 320 : 260); } }
     // binding at the top of the coil (where it hangs): a tight wrap round the whole bundle
     const a0 = Math.PI / 2, bindW = (vine ? 0.02 : 0.022) * K, aw = bindW / R, wire = (vine ? 0.0034 : 0.0019) * K;
@@ -5230,7 +5231,7 @@ const CharView = (() => {
       const hr = part(grp, new THREE.TorusGeometry(0.011, 0.0026, 6, 18), metal, null, null, null, { ink: false }); hr.position.set(0, R * sy + er + 0.006, 0); hr.rotation.y = Math.PI / 2; }
     if (vine) { // leaves still on the vine, lying along the coil, and one curling tendril
       const lm = toon(0x77a23f, null, { side: THREE.DoubleSide }), lm2 = toon(0x5d8a32, null, { side: THREE.DoubleSide }), ls = new THREE.Shape(); ls.moveTo(0, 0); ls.bezierCurveTo(0.012, 0.006, 0.014, 0.022, 0, 0.034); ls.bezierCurveTo(-0.014, 0.022, -0.012, 0.006, 0, 0);
-      const lg = new THREE.ShapeGeometry(ls, 8); { const P = lg.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i); P.setZ(i, 0.12 * y * y / 0.034 + 0.002 * Math.abs(x) / 0.012); } lg.computeVertexNormals(); }
+      const lg = new THREE.ShapeGeometry(ls, 8); { const P = lg.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i); P.setZ(i, 0.12 * y * y / 0.034 + 0.002 * Math.abs(x) / 0.012); } lg.computeVertexNormals(); } grp.userData.leaf = { lg, lm, lm2 };
       const lf = LP.reduce((b, l) => (l.z > b.z ? l : b), LP[0]); for (const [a, side, k, s] of [[-0.35, 1, 0, 1], [0.8, -1, 1, 0.85], [2.35, 1, 1, 1.1], [3.7, -1, 0, 0.9], [5.0, 1, 1, 0.8]]) { const l = lf, c = C(l, a), N = Nm(a), tg = Tg(a), out = N.clone().multiplyScalar(0.55).addScaledVector(Z, 0.83).normalize();
         const y = tg.clone().multiplyScalar(side).addScaledVector(out, 0.55).normalize(), zz = V(0, 0, 0).crossVectors(y, out).normalize(), x = V(0, 0, 0).crossVectors(y, zz); const m = part(grp, lg, k ? lm2 : lm, null, null, null, { ink: false });
         m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, V(0, 0, 0).crossVectors(x, y))); m.position.copy(c).addScaledVector(out, tr * 0.9); m.scale.setScalar(s * K * 1.25); }
@@ -5913,23 +5914,45 @@ const CharView = (() => {
     markTether(); }
   function markTether() { const T = an.tv; document.querySelectorAll('#charClimb [data-tv]').forEach((b) => { const k = b.dataset.tv; b.classList.toggle('on', !!T && (T.k === k || (T.k === 'hang' && k === 'rappel') || (T.k === 'prep' && T.next === k) || (k === 'anchor' && !!T.clipped)));
       b.classList.toggle('dis', k === 'anchor' ? !!T : !T || !T.clipped); }); }
+  /* ---------- the paid-out Tether line: built from the pack coil's own cord recipe (same core + twisted strand materials, strand count, thickness, vine leaves), drawn as live tubes ---------- */
+  // a tube whose centreline is set every frame (parallel-transport frames, uv wraps the strand texture so it twists along the length)
+  function dynTube(M, RS, mat) { const n = (M + 1) * (RS + 1), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2));
+    const idx = []; for (let i = 0; i < M; i++) for (let j = 0; j < RS; j++) { const a = i * (RS + 1) + j, b = a + RS + 1; idx.push(a, b, a + 1, b, b + 1, a + 1); } geo.setIndex(idx); const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.castShadow = true; m.userData = { M, RS }; m.visible = false; return m; }
+  const _tn = V(0, 0, 0), _tb = V(0, 0, 0), _tt = V(0, 0, 0), _tp = V(0, 0, 0);
+  function setTube(m, pts, rad, curve = true) { const { M, RS } = m.userData, P = curve && pts.length > 2 ? new THREE.CatmullRomCurve3(pts, false, 'centripetal').getSpacedPoints(M) : Array.from({ length: M + 1 }, (_, i) => { const u = i / M * (pts.length - 1), k = Math.min(pts.length - 2, Math.floor(u)); return pts[k].clone().lerp(pts[k + 1], u - k); });
+    const pos = m.geometry.attributes.position, nor = m.geometry.attributes.normal, uv = m.geometry.attributes.uv, tw = 3; let s = 0;
+    _tt.copy(P[1]).sub(P[0]).normalize(); _tn.set(0, 0, 1); if (Math.abs(_tt.z) > 0.9) _tn.set(1, 0, 0); _tn.addScaledVector(_tt, -_tn.dot(_tt)).normalize();
+    for (let i = 0; i <= M; i++) { if (i) s += P[i].distanceTo(P[i - 1]); _tt.copy(P[Math.min(M, i + 1)]).sub(P[Math.max(0, i - 1)]).normalize(); _tn.addScaledVector(_tt, -_tn.dot(_tt)).normalize(); _tb.crossVectors(_tt, _tn);
+      for (let j = 0; j <= RS; j++) { const a = j / RS * TAU, k = i * (RS + 1) + j; _tp.copy(_tn).multiplyScalar(Math.cos(a)).addScaledVector(_tb, Math.sin(a)); nor.setXYZ(k, _tp.x, _tp.y, _tp.z); pos.setXYZ(k, P[i].x + _tp.x * rad, P[i].y + _tp.y * rad, P[i].z + _tp.z * rad); uv.setXY(k, j / RS, s / (rad * TAU * tw)); } const F = m.userData.F || (m.userData.F = { N: [], B: [], s: [] }); F.N[i] = (F.N[i] || V(0, 0, 0)).copy(_tn); F.B[i] = (F.B[i] || V(0, 0, 0)).copy(_tb); F.s[i] = s; }
+    pos.needsUpdate = nor.needsUpdate = uv.needsUpdate = true; m.geometry.computeBoundingSphere(); m.visible = true; return P; }
+  // twisted strands laid round a live core tube, the same way makeTether lays them round each coil loop
+  function cordStrands(core, P, list, cd, rad, pitch) { const F = core.userData.F, M = P.length - 1; for (let j = 0; j < list.length; j++) { const st2 = list[j], dir = cd.braid ? (j % 2 ? -1 : 1) : 1, ph = (cd.braid ? Math.floor(j / 2) / (cd.NS / 2) : j / cd.NS) * TAU, off = rad * cd.off, pts = st2.userData.pts || (st2.userData.pts = P.map(() => V(0, 0, 0)));
+      for (let i = 0; i <= M; i++) { const th = dir * F.s[i] / pitch * TAU + ph; pts[i].copy(P[i]).addScaledVector(F.N[i], off * Math.cos(th)).addScaledVector(F.B[i], off * Math.sin(th)); } setTube(st2, pts, rad * cd.sr(j), false); } }
   function tetherRope(c, T) { if (!c.wall) return; const W2 = c.wall; if (!W2.userData.pin) { const g = new THREE.Group(), m = toon(0x6a6e74); part(g, cyl(0.007, 0.007, 0.07, 8), m, [0, 0, -0.03], [Math.PI / 2, 0, 0]); part(g, rbox(0.03, 0.05, 0.006, 0.003), m, [0, -0.012, -0.066]); part(g, new THREE.TorusGeometry(0.013, 0.0035, 6, 14), toon(0xb8902c), [0, -0.03, -0.072], [0, 0, 0], null, { ink: false }); g.visible = false; W2.add(g); W2.userData.pin = g;
-      const rm = toon(0xcdb57e); W2.userData.ropes = Array.from({ length: 19 }, () => { const r = part(scene, cyl(0.0075, 0.0075, 1, 6), rm, null, null, null, { ink: false }); r.visible = false; return r; }); }
+      W2.userData.ropes = [dynTube(160, 8, toon(0x4a5a26)), dynTube(220, 8, toon(0x4a5a26))]; W2.userData.str = { gk: null, s: [[], []] }; for (const r of W2.userData.ropes) scene.add(r); W2.userData.leaves = []; }
     const pin = W2.userData.pin, ropes = W2.userData.ropes, B = c.B, show = !!T && T.k !== 'anchor0';
-    for (const r of ropes) r.visible = false; pin.visible = !!T && !!T.A && T.pin !== false; if (!pin.visible) return; pin.position.set(T.A.x, T.A.y, CL.ZW - 0.002 + 0.03 * (1 - (T.depth ?? 1)));
-    if (!show || !T.clipped) return; const coil = c.built.tethers && c.built.tethers[0] && c.built.tethers[0].grp; if (coil && ropes[0].material !== null) { let cm = null; coil.traverse((o) => { if (!cm && o.isMesh && o.material && o.material.color) cm = o.material; }); if (cm) for (const r of ropes) r.material = cm; }
+    for (const r of ropes) r.visible = false; for (const L2 of W2.userData.str.s) for (const m of L2) m.visible = false; pin.visible = !!T && !!T.A && T.pin !== false; if (!pin.visible) return; pin.position.set(T.A.x, T.A.y, CL.ZW - 0.002 + 0.03 * (1 - (T.depth ?? 1)));
+    for (const lf of W2.userData.leaves) lf.visible = false; if (!show || !T.clipped) return; const tg0 = c.built.tethers && c.built.tethers[0], coil = tg0 && tg0.grp, gk = coil ? coil.userData.grade : 'regular', cd = coil && coil.userData.cord, SR = W2.userData.str;
+    if (cd && SR.gk !== gk) { SR.gk = gk; for (const L2 of SR.s) { for (const m of L2) { scene.remove(m); m.geometry.dispose(); } L2.length = 0; } for (let k = 0; k < 2; k++) { ropes[k].material = cd.coreM; for (let j = 0; j < cd.NS; j++) { const m = dynTube(ropes[k].userData.M, 6, j % 2 ? cd.cordM2 : cd.cordM); scene.add(m); SR.s[k].push(m); } } }
+    const ws = coil ? coil.getWorldScale(V(0, 0, 0)).x : 1, rad = (tg0 ? tg0.o.tr : 0.0105) * ws, pitch = cd ? cd.pitch * rad : 0.05; // same cord thickness and lay as the coil on the pack
     // rig: the line runs from the anchor down to the winch at the front centre of the belt; from the winch a slack loop sags and swings back round the
     // right hip to the spool on the pack, the lower (right) hand managing it on the rope; the upper (left) hand rides the main line above the winch
     W2.updateMatrixWorld(true); const top = W2.localToWorld(V(T.A.x, T.A.y - 0.03, CL.ZW - 0.072)), wn = c.built.winch; let end = wn ? wn.localToWorld(V(0, 0.03, 0.012)) : B.hips.localToWorld(V(0, 0.06, 0.15)), bot = wn ? wn.localToWorld(V(0, -0.03, 0.012)) : end.clone();
-    const spool = coil ? coil.getWorldPosition(V(0, 0, 0)) : B.hips.localToWorld(V(-0.2, 0.2, -0.15));
+    // the line feeds off the pack coil: leave the bundle at its lowest loop, running a short way round the coil first so it reads as unspooling
+    const co = tg0 ? tg0.o : { R: 0.058, sy: 1.75 }, onCoil = (a2, out = 0) => coil.localToWorld(V((co.R + out) * Math.cos(a2), (co.R + out) * co.sy * Math.sin(a2), 0.014)), aE = -Math.PI / 2 - 0.35;
+    const spool = coil ? onCoil(aE) : B.hips.localToWorld(V(-0.2, 0.2, -0.15)), feedIn = coil ? [onCoil(aE + 0.5, 0.004), onCoil(aE + 1.0, 0.002), onCoil(aE + 1.5, 0)] : [];
     if (T.k === 'coil') { const u = ss(0.12, 0.9, T.t / TV.coilT); top.lerp(B.hdR.getWorldPosition(V(0, 0, 0)), u); end.lerp(spool, u); bot.lerp(spool, u); }
     const seg = (r, a, b2) => { const d = b2.clone().sub(a), L = d.length(); if (L < 0.004) return; r.visible = true; r.position.copy(a).addScaledVector(d, 0.5); r.scale.set(1, L, 1); r.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); };
-    seg(ropes[0], top, end); if (T.k === 'clip') return;
+    { const P0 = setTube(ropes[0], [top, end], rad * (cd ? cd.core : 1), false); if (cd) cordStrands(ropes[0], P0, SR.s[0], cd, rad, Math.max(pitch, top.distanceTo(end) / 20)); } if (T.k === 'clip') return;
     const held = T.pose && (T.k === 'rappel' || T.k === 'hang' || T.k === 'ascend'), now = clk, sw = Math.sin(now * 2.3) * 0.025, dn = V(0, -1, 0), side = B.hips.localToWorld(V(-0.2, -0.04, 0.02)), pts = [bot];
     const sag = (a, b2, d) => a.clone().lerp(b2, 0.5).addScaledVector(dn, d).add(V(sw, 0, sw * 0.6));
     if (held) { const hd = B.hdR.localToWorld(V(0, -0.06, -0.02)); pts.push(sag(bot, hd, 0.09 + 0.03 * (T.feed || 0)), hd, sag(hd, side, 0.16 + 0.04 * (T.feed || 0))); } else pts.push(sag(bot, side, 0.2));
     pts.push(side, side.clone().lerp(spool, 0.55).add(V(0, 0.02, 0)), spool);
-    const cv2 = new THREE.CatmullRomCurve3(pts, false, 'centripetal').getPoints(ropes.length - 1); for (let k = 1; k < ropes.length && k < cv2.length; k++) seg(ropes[k], cv2[k - 1], cv2[k]); }
+    for (const q of feedIn) pts.push(q); const P = setTube(ropes[1], pts, rad * (cd ? cd.core : 1)); if (cd) cordStrands(ropes[1], P, SR.s[1], cd, rad, Math.max(pitch, (ropes[1].userData.F.s[P.length - 1] || 1) / 36));
+    // vine grade: a couple of leaves still on the paid-out line
+    if (gk === 'regular' && coil && coil.userData.leaf) { const L = coil.userData.leaf, lv = W2.userData.leaves; while (lv.length < 3) { const m = new THREE.Mesh(L.lg, lv.length % 2 ? L.lm2 : L.lm); m.castShadow = false; scene.add(m); lv.push(m); }
+      const M = P.length - 1; [[0.3, 1], [0.62, -1], [0.85, 1]].forEach(([u, sd], k) => { const i = Math.round(u * M), a2 = P[Math.max(0, i - 1)], b2 = P[Math.min(M, i + 1)], t2 = b2.clone().sub(a2).normalize(), m = lv[k]; m.visible = true; m.position.copy(P[i]); m.scale.setScalar(rad / 0.0105 * 1.1);
+        const up = V(0, 1, 0).cross(t2).normalize().multiplyScalar(sd).addScaledVector(t2, 0.5).normalize(); m.quaternion.setFromUnitVectors(V(0, 1, 0), up); m.rotateY(sd * 0.6); m.position.addScaledVector(up, rad * 0.6); }); } }
   function makeWall() { const g = new THREE.Group(), r = prng(31), Wd = WALL.X1 - WALL.X0, H = WALL.Y1 - WALL.Y0, P = 0.7;
     const tex = cv(256, 512, (x, w, h) => { x.fillStyle = '#8d7c68'; x.fillRect(0, 0, w, h); for (let i = 0; i < 520; i++) { const a = r() * 0.13; x.fillStyle = r() < 0.5 ? `rgba(40,28,18,${a})` : `rgba(255,240,215,${a * 0.8})`; x.beginPath(); x.ellipse(r() * w, r() * h, 6 + r() * 30, 3 + r() * 12, (r() - 0.5) * 0.6, 0, TAU); x.fill(); }
       x.fillStyle = 'rgba(60,40,25,.28)'; for (let y = 20; y < h; y += 128) x.fillRect(0, y + r() * 10, w, 3); x.strokeStyle = 'rgba(48,32,20,.6)'; x.lineWidth = 2;
