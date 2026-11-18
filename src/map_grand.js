@@ -11,25 +11,25 @@ const GRAND = (() => {
   function prng(seed) { let s = seed >>> 0 || 1; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 
   /* ---------- water: the plan (local frame: d out from the trunk toward the plateau edge, s across) ---------- */
-  const LIP = 3550, LIPH = 1765, WL = 130, FALLS = [[-1800, -800], [-500, 500], [800, 1800]];
+  const LIP = 2500, LIPH = 1765, WL = 130, FALLS = [[-700, -500], [-100, 100], [500, 700]]; // three falls close together under the Lumen Falls Bridge (the approved concept)
   const lipD = (s) => LIP + 6e-5 * s * s, DB = 3440, BL = 2500;
   const toW = (d, s) => [G.T.x + G.ox * d + G.lx * s, G.T.y + G.oy * d + G.ly * s];
   const toL = (x, y) => { const dx = x - G.T.x, dy = y - G.T.y; return [dx * G.ox + dy * G.oy, dx * G.lx + dy * G.ly]; };
   const halfW = (d, sd) => (2300 + 800 * sm(LIP, LIP + 2500, d)) * (1 + 0.06 * Math.sin(d / 700 + sd * 1.7) + 0.04 * Math.sin(d / 290 + sd * 3.1));
   const dFar = (s) => Math.sqrt(Math.max(0, (CITY.R + 800) ** 2 - s * s)) - G.rT;
   function lakeSdf(d, s) { return Math.max(Math.abs(s) - halfW(d, s < 0 ? -1 : 1), lipD(s) + 30 - d, d - dFar(s)); }
-  function poolSdf(d, s, f) { return Math.max(poolBack(d, s, f), d - lipD(s)); }
-  function poolBack(d, s, f) { const [s0, s1] = FALLS[f], ld = lipD(s), R = 170, qx = Math.abs(s - (s0 + s1) / 2) - (s1 - s0) / 2 - 40 + R, qy = ld - 420 - d + R;
+  function poolSdf(d, s, f) { return 1e9; } // (no pools above the lip any more: each pair of streams runs straight over the lip as one fall, as in the approved concept)
+  function poolBack(d, s, f) { const [s0, s1] = FALLS[f], ld = lipD(s), R = 110, qx = Math.abs(s - (s0 + s1) / 2) - (s1 - s0) / 2 - 30 + R, qy = ld - 210 - d + R; // a short pool behind each fall (the streams feed them between the roots)
     return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - R + 28 * Math.sin(s / 97 + f * 2) + 18 * Math.sin(d / 61 + s / 140); }
   // streams: spring (angle off the plateau side, distance from the trunk axis) -> waypoints -> the pool above one of the falls
-  const STREAMS = [[-1.0, 2300, [[2300, -1700], [3000, -1350]], 0, 110], [-1.35, 2550, [[1800, -2250], [2800, -1750]], 0, 80], [-0.45, 1900, [[2400, -520], [3150, -160]], 1, 95],
-    [0.45, 1900, [[2400, 520], [3150, 160]], 1, 95], [1.0, 2300, [[2300, 1700], [3000, 1350]], 2, 110], [1.35, 2550, [[1800, 2250], [2800, 1750]], 2, 80]];
+  const STREAMS = [[-1.0, 2300, [[1702, -1700], [2220, -1350]], 0, 110], [-1.35, 2550, [[1332, -2250], [2072, -1750]], 0, 80], [-0.45, 1900, [[1776, -520], [2331, -160]], 1, 95],
+    [0.45, 1900, [[1776, 520], [2331, 160]], 1, 95], [1.0, 2300, [[1702, 1700], [2220, 1350]], 2, 110], [1.35, 2550, [[1332, 2250], [2072, 1750]], 2, 80]];
   function planStreams(groundPre) { G.streams = []; G.sgrid = new Map(); const cell = 250;
-    for (const [th, rho, way, f, w] of STREAMS) { const ctrl = [[Math.cos(th) * rho, Math.sin(th) * rho]].concat(way), sp = [];
+    for (const [th, rho, way, f, w] of STREAMS) { const fc = (FALLS[f][0] + FALLS[f][1]) / 2, sl = fc + (way[way.length - 1][1] < fc ? -25 : 25), ctrl = [[Math.cos(th) * rho, Math.sin(th) * rho]].concat(way, [[lipD(sl) + 8, sl]]), sp = [];
       for (let i = 0; i < ctrl.length - 1; i++) { const a = ctrl[i], b = ctrl[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.ceil(L / 50);
         for (let k = 0; k < n; k++) { const t = k / n, wob = Math.sin((i + t) * 5.1 + th * 3) * 60 * Math.sin(t * Math.PI); const nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L; sp.push([a[0] + (b[0] - a[0]) * t + nx * wob, a[1] + (b[1] - a[1]) * t + ny * wob]); } }
       sp.push(ctrl[ctrl.length - 1]); // water level runs downhill from the spring to the pool
-      let wl = groundPre(...toW(sp[0][0], sp[0][1])) - 12; const pts = sp.map(([d, s2], i) => { const u = i / (sp.length - 1); if (i) wl = Math.min(wl - 0.5, groundPre(...toW(d, s2)) - 12); const lv = Math.max(wl, LIPH - 6 + (1 - u) * 6); wl = lv; return { d, s: s2, wl: lv, w: w * (0.55 + 0.45 * Math.min(1, u * 3)) * (1 + 0.5 * sm(0.75, 1, u)) }; });
+      let wl = groundPre(...toW(sp[0][0], sp[0][1])) - 12; const pts = sp.map(([d, s2], i) => { const u = i / (sp.length - 1); if (i) wl = Math.min(wl - 0.5, groundPre(...toW(d, s2)) - 12); const lv = Math.max(wl, LIPH - 6 + (1 - u) * 6); wl = lv; return { d, s: s2, wl: lv, w: w * 0.7 * (0.55 + 0.45 * Math.min(1, u * 3)) }; });
       const S = { pts, f }; G.streams.push(S); pts.forEach((p, i) => { const k = Math.floor(p.d / cell) + ',' + Math.floor(p.s / cell); (G.sgrid.get(k) || G.sgrid.set(k, []).get(k)).push([S, i]); }); } }
   function streamAt(d, s) { const cell = 250, gx = Math.floor(d / cell), gy = Math.floor(s / cell); let best = null, bd = 1e9;
     for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const L = G.sgrid.get((gx + i) + ',' + (gy + j)); if (!L) continue; for (const [S, k] of L) { const p = S.pts[k], q = S.pts[Math.min(S.pts.length - 1, k + 1)], vx = q.d - p.d, vy = q.s - p.s, l2 = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((d - p.d) * vx + (s - p.s) * vy) / l2)), dd = Math.hypot(p.d + vx * t - d, p.s + vy * t - s) - p.w; if (dd < bd) { bd = dd; best = { dd, wl: p.wl + (q.wl - p.wl) * t, w: p.w }; } } }
@@ -45,7 +45,7 @@ const GRAND = (() => {
       if (L < 0) h = WL - 18 - Math.min(150, -L * 0.3); else { h = Math.min(h, WL + 6 + L * k); const wt = sm(560, 220, L); h += (Math.max(h, WL + 8 + L * 0.12) - h) * wt; }
       mh *= sm(0, 500, L); }
     return [h, mh]; }
-  function wet(x, y, m) { if (!G) return false; const [d, s] = toL(x, y); m = m || 0; if (d > 1300 && d < 3700 && Math.abs(s) < 2900) { const BP = GX.bplan || (GX.bplan = bridgePlan()); for (let i = 0; i < BP.length; i += 2) if (Math.hypot(BP[i].x - d, BP[i].z - s) < 150 + m) return true; } if (lakeSdf(d, s) < m) return true; if (d < lipD(s) + 10 && d > 300 && Math.abs(s) < 3300) { const st = streamAt(d, s); if (st && st.dd < m) return true; for (let f = 0; f < 3; f++) if (poolSdf(d, s, f) < m) return true; } return false; }
+  function wet(x, y, m) { if (!G) return false; const [d, s] = toL(x, y); m = m || 0; if (lakeSdf(d, s) < m) return true; if (d < lipD(s) + 10 && d > 300 && Math.abs(s) < 3300) { const st = streamAt(d, s); if (st && st.dd < m) return true; for (let f = 0; f < 3; f++) if (poolSdf(d, s, f) < m) return true; } return false; }
   // after the seeded map is laid out: plan the water, then clear (and re-house) anything standing in it
   function fit() { const T = W.heartwood; if (!T) return; G = null; const o = T.in + Math.PI, ox = Math.cos(o), oy = Math.sin(o);
     const g0 = { T, ox, oy, lx: -oy, ly: ox, rT: Math.hypot(T.x, T.y) }, pre = (x, y) => { const k = G; G = null; const h = typeof M3 !== 'undefined' && M3.ground ? M3.ground(x, y).h : CITY.summitH; G = k; return h; };
@@ -207,12 +207,12 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     const smat = wmat('attribute vec2 aU; varying vec2 vU; void main(){ vU = aU; ' + VS_END,
       `uniform float uT; uniform float uN; varying vec2 vU; void main(){ float e = abs(vU.x - 0.5) * 2.0; vec2 q = vec2(vU.x * 3.0, vU.y * 0.9 - uT * 1.6);
   float st = fb(q * vec2(2.0, 1.0)), gl = smoothstep(0.78, 0.95, fb(q * vec2(5.0, 3.0) + 3.0));
-  vec3 col = mix(vec3(0.16, 0.46, 0.55), vec3(0.45, 0.74, 0.8), st); col += gl * 0.5; col = mix(col, vec3(0.92, 0.97, 1.0), smoothstep(0.85, 1.0, e) * 0.5);
+  vec3 col = mix(vec3(0.1, 0.42, 0.5), vec3(0.3, 0.64, 0.7), st); col += gl * 0.4; col = mix(col, vec3(0.92, 0.97, 1.0), smoothstep(0.85, 1.0, e) * 0.5);
   col *= mix(1.0, 0.16, uN); float a = (1.0 - smoothstep(0.86, 1.0, e)) * 0.9; ` + FS_END); mats.push(smat);
     { const P = [], UV = [], I = []; for (const S of G.streams) { const pts = S.pts.concat([{ d: lipD(S.pts[S.pts.length - 1].s) - 200, s: S.pts[S.pts.length - 1].s * 0.9, wl: LIPH - 6, w: S.pts[S.pts.length - 1].w * 1.3 }]); let acc = 0; const base = P.length / 3;
         pts.forEach((p, i) => { const q = pts[Math.min(pts.length - 1, i + 1)], o = pts[Math.max(0, i - 1)], td = q.d - o.d, ts = q.s - o.s, l = Math.hypot(td, ts) || 1, nd = -ts / l, ns = td / l; if (i) acc += Math.hypot(p.d - o.d, p.s - o.s);
           for (const side of [-1, 1]) { const [x, y] = toW(p.d + nd * p.w * side * 1.05, p.s + ns * p.w * side * 1.05); P.push(x, p.wl + 2, y); UV.push(side < 0 ? 0 : 1, acc / 260); } if (i) { const a = base + (i - 1) * 2; I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } }); }
-      for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f], base = P.length / 3; let nu, nv; nu = 30, nv = 12; for (let i = 0; i <= nv; i++) for (let j = 0; j <= nu; j++) { const s2 = s0 - 220 + (s1 - s0 + 440) * j / nu, d = lipD(s2) - 660 + 662 * i / nv, [x, y] = toW(d, s2), e = Math.max(0, Math.min(1, 1 + poolBack(d, s2, f) / 420)); P.push(x, LIPH - 6, y); UV.push(0.5 + 0.5 * e * (j < nu / 2 ? -1 : 1), d / 260); }
+      for (let f = 0; f < 0; f++) { const [s0, s1] = FALLS[f], base = P.length / 3; let nu, nv; nu = 30, nv = 12; for (let i = 0; i <= nv; i++) for (let j = 0; j <= nu; j++) { const s2 = s0 - 140 + (s1 - s0 + 280) * j / nu, d = lipD(s2) - 330 + 332 * i / nv, [x, y] = toW(d, s2), e = Math.max(0, Math.min(1, 1 + poolBack(d, s2, f) / 210)); P.push(x, LIPH - 6, y); UV.push(0.5 + 0.5 * e * (j < nu / 2 ? -1 : 1), d / 260); }
         for (let i = 0; i < nv; i++) for (let j = 0; j < nu; j++) { const a = base + i * (nu + 1) + j; I.push(a, a + nu + 1, a + 1, a + 1, a + nu + 1, a + nu + 2); } }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('aU', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I); const m = new THREE.Mesh(g, smat); m.frustumCulled = false; m.renderOrder = 3; scene.add(m); }
     // the three falls: curved sheets pouring off the lip, streaked and foaming, a second faster veil in front
@@ -419,7 +419,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
     openModal(`<h2>🌳 The Lumen Tree</h2><p>The great door stands a hand's width open, and Lumen light spills out over the roots. Inside is the commune of the Hollow, where every delver's road meets.</p><p class="dim">Coming soon.</p>${btn('<button class="btn deep" data-act="close">Enter the Lumen Tree</button><button class="btn ghost" data-act="close">Not now</button>')}`, 'city'); }
   // tapping the great door walks you straight in: the hollow heart of the tree (CharView's tree interior, the 'tree' view; no nav tab of its own)
   function enterTree() { if (typeof closeModalQuiet === 'function') closeModalQuiet(); if (typeof setTab === 'function') setTab('tree'); }
-  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); if (G) { buildWater(C); buildIsland(C); buildBridge(C); } } else if (GX.smokeAt) { for (const p of GX.smokeAt) C.PR.smoke.push([p.x, p.y, p.z, 0.3]); for (const p of GX.lampAt) C.PR.glow.push([p.x, p.y, p.z, null]); } }
+  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); if (G) { buildWater(C); buildIsland(C); /* (the great-root natural bridge is retired: the Lumen Falls Bridge is a real plank bridge in Explore's bridge kit) */ } } else if (GX.smokeAt) { for (const p of GX.smokeAt) C.PR.smoke.push([p.x, p.y, p.z, 0.3]); for (const p of GX.lampAt) C.PR.glow.push([p.x, p.y, p.z, null]); } }
   function anim(t, night, ps) { animDoor(t, night); animWater(t, night, { ps }); animIsland(t, night, ps); }
   return { build, anim, wet, dodge, doorSpot, bridgeRoot, carve, fit, doorCard, enterTree, toW, toL, lipD, LIP, LIPH, WL, FALLS, lakeSdf, dFar, halfW, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
 })();
