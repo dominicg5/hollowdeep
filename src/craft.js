@@ -43,7 +43,8 @@ const Craft = (() => {
   function sell(id, n) { n = Math.min(n, have(id)); if (n <= 0) return 0; take(id, n); S.res.lumen = (S.res.lumen || 0) + sellP(id) * n; return n; }
   function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); if (n <= 0) return 0; S.res.lumen -= buyP(id) * n; add('bag', id, n); return n; }
   // ---- UI
-  const st = { qty: 1, dest: 'bag', tab: 'sell', kind: null };
+  const st = { qty: 1, dest: 'bag', tab: 'sell', kind: null, acat: 'pick', atool: 'lifeline' };
+  const ANV_CAT = [['pick', 'Pickaxes', '⛏️'], ['climb', 'Climbing Picks', '🧗'], ['teth', 'Tethers', '🪢']], TETH_SUB = [['lifeline', '🪢 Ledge Tethers'], ['tlink', '🔗 Wren\'s Tether']];
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fmt = (n) => (n >= 1e4 ? Math.round(n / 1000) + 'k' : String(n));
   const ico = (id) => { const it = ITEMS[id] || { emoji: '📦', col: '#888' }; return `<span class="cxi" style="--c:${it.col}">${it.emoji}</span>`; };
@@ -62,9 +63,12 @@ const Craft = (() => {
   const cost = (r, x) => Object.keys(r.in).map((k) => `<span class="cxc${have(k) >= r.in[k] * x ? '' : ' short'}">${ico(k)}${r.in[k] * x} ${esc(ITEMS[k].short)}<small>/${fmt(have(k))}</small></span>`).join('');
   function recipeHTML(kind) { const F = kind === 'furnace', list = F ? SMELT : SMITH;
     let h = `<div class="cxp" data-cxv="${kind}"><div class="row between"><h2>${F ? '🔥 Furnace' : '⚒️ Anvil'}</h2><span class="tag">placeholder recipes</span></div><div class="dim">${F ? 'Smelt ore into ingots. Ore is taken from your backpack first, then the vault.' : 'Hammer ingots into tools. Ingots are taken from your backpack first, then the vault.'}</div>${qtyBar()}${destBar()}`;
-    let grp = null; h += '<div class="card cxl">';
+    // anvil: one category at a time (top tabs Pickaxes / Climbing Picks / Tethers; Tethers splits Ledge Tethers vs Wren's own Tether), each listed by material tier - no long scroll
+    if (!F) { h += `<div class="cxtabs">${ANV_CAT.map(([k, l, e]) => `<button class="cxtab${st.acat === k ? ' on' : ''}" data-cx="acat" data-v="${k}"><span>${e}</span>${l}</button>`).join('')}</div>`;
+      if (st.acat === 'teth') h += `<div class="cxq cxsub">${TETH_SUB.map(([k, l]) => `<button class="btn sm ${st.atool === k ? 'alt' : 'ghost'}" data-cx="atool" data-v="${k}">${l}</button>`).join('')}</div>`; }
+    const tool = F ? null : st.acat === 'teth' ? st.atool : st.acat; h += '<div class="card cxl">';
     for (let i = 0; i < list.length; i++) { const r = list[i], x = st.qty === 'all' ? Math.max(1, maxMake(r)) : st.qty, it = ITEMS[r.out];
-      if (!F && grp !== r.tool) { grp = r.tool; h += `<h3 class="cxh">${TOOLS.find((t) => t[0] === grp)[2]} ${TOOLS.find((t) => t[0] === grp)[1]}</h3>`; }
+      if (!F && r.tool !== tool) continue;
       h += `<div class="cxr rec" data-out="${r.out}">${ico(r.out)}<span class="cxn">${esc(it.name)}<small class="cxcs">${cost(r, x)}</small></span><button class="btn sm ${canMake(r, x) ? 'alt' : 'ghost'}" data-cx="make" data-k="${kind}" data-i="${i}" ${canMake(r, x) ? '' : 'disabled'}>${F ? 'Smelt' : 'Smith'} ×${x}</button></div>`; }
     return h + '</div><button class="btn ghost" data-cx="close">Close</button></div>'; }
   function exHTML() { const S2 = st.tab === 'sell';
@@ -80,7 +84,7 @@ const Craft = (() => {
   const nOf = (avail) => (st.qty === 'all' ? avail : Math.min(st.qty, avail));
   document.addEventListener('click', (e) => { const t = e.target.closest('[data-cx]'); if (!t || t.disabled) return; const a = t.dataset.cx, id = t.dataset.id;
     if (a === 'close') return typeof closeModal === 'function' && closeModal();
-    if (a === 'qty') st.qty = t.dataset.v === 'all' ? 'all' : +t.dataset.v; else if (a === 'dest') st.dest = t.dataset.v; else if (a === 'tab') st.tab = t.dataset.v;
+    if (a === 'qty') st.qty = t.dataset.v === 'all' ? 'all' : +t.dataset.v; else if (a === 'dest') st.dest = t.dataset.v; else if (a === 'tab') st.tab = t.dataset.v; else if (a === 'acat') st.acat = t.dataset.v; else if (a === 'atool') st.atool = t.dataset.v;
     else if (a === 'xfer') return open('xfer');
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
     else if (a === 'make') { const r = (t.dataset.k === 'furnace' ? SMELT : SMITH)[+t.dataset.i]; const x = st.qty === 'all' ? maxMake(r) : st.qty; if (make(r, x, st.dest) && typeof toast === 'function') toast(`${t.dataset.k === 'furnace' ? '🔥' : '⚒️'} ${x}× ${nm(r.out)} → ${st.dest === 'vault' ? 'Vault' : 'Backpack'}`); }
