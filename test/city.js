@@ -626,6 +626,13 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     for (const [tx, ty] of [[20, 200], [370, 640]]) await p.mouse.click(tx, ty);
     const tp = await p.evaluate(() => { const C = CharView, st = C.st; st.paused = true; for (let i = 0; i < 1500 && (st.pg || (st.gnd && st.gnd.goal)); i++) C.sim(1 / 30, 1); C.sim(1 / 30, 10); const G = st.gnd, a = [G.x, G.z, G.face]; C.sim(1 / 30, 45); const r = { mv: +Math.hypot(G.x - a[0], G.z - a[1]).toFixed(4), sp: +Math.abs(G.face - a[2]).toFixed(4), busy: !!(st.pg || G.goal || G.path) }; st.paused = false; return r; });
     ok(!tp.busy && tp.mv < 0.002 && tp.sp < 0.002, 'screen taps in the far corners (' + sc + ') settle her cleanly (' + JSON.stringify(tp) + ')'); }
+  // Backpack tab + vault <-> backpack transfer
+  { await p.evaluate(() => { closeModalQuiet(); S.backpack = { 'ore:copper': 25, 'ore:tin': 4 }; CharView.vaultState().ores.gold = 3; document.querySelector('nav#tabs [data-tab=bag]').click(); }); await p.waitForTimeout(300);
+    const bg = await p.evaluate(() => { const r = { tab: ui.tab, view: !!document.querySelector('#view .cxp[data-cxv=bag]'), rows: [...document.querySelectorAll('#view .cxr')].map((e) => e.dataset.id).join() }; document.querySelector('#view [data-cx=xfer]').click(); r.modal = ui.modal;
+      const B = (a, id) => document.querySelector(`#modalBody [data-cx=${a}][data-id="${id}"]`); document.querySelector('#modalBody [data-cx=qty][data-v="10"]').click(); B('dep', 'ore:copper').click(); r.dep10 = [Craft.get('bag', 'ore:copper'), Craft.get('vault', 'ore:copper')];
+      document.querySelector('#modalBody [data-cx=qty][data-v=all]').click(); B('wd', 'ore:gold').click(); r.wdAll = [Craft.get('bag', 'ore:gold'), Craft.get('vault', 'ore:gold')]; B('dep', 'ore:copper').click(); r.depAll = [Craft.get('bag', 'ore:copper'), Craft.get('vault', 'ore:copper')];
+      save(); r.saved = (JSON.parse(localStorage.getItem(CONFIG.saveKey)).backpack || {})['ore:gold']; closeModalQuiet(); return r; });
+    ok(bg.tab === 'bag' && bg.view && bg.rows === 'ore:copper,ore:tin' && bg.modal === 'cx-xfer' && bg.dep10.join() === '15,10' && bg.wdAll.join() === '3,0' && bg.depAll.join() === '0,25' && bg.saved === 3, 'Backpack tab lists what Wren carries; the vault transfer deposits / withdraws a chosen amount (x10, All) and it saves (' + JSON.stringify(bg) + ')'); }
   ok(errs.length === 0, 'no JS errors ' + errs.slice(0, 3).join(' | '));
   await b.close(); console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
 })();

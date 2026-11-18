@@ -350,7 +350,7 @@ function settingsModal() {
 function awayReturn(sum) { writeJournal(sum); ui.lastAway = sum; }
 
 /* ---------- render loop ---------- */
-const VIEWS = { city: () => '', char: () => '', ledge: () => '', home: () => '', tree: () => '', capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
+const VIEWS = { city: () => '', char: () => '', ledge: () => '', home: () => '', tree: () => '', bag: () => (typeof Craft !== 'undefined' ? Craft.bagHTML(false) : ''), capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
 function rerender(force) {
   renderResbar();
   document.querySelectorAll('nav#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === ui.tab));
