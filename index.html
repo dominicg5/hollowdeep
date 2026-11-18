@@ -1631,7 +1631,7 @@ function generateCity() {
   // the great chasms run from the Hollow far out into the lands
   for (const a of wideAt) { crackAngles.push(a); addCrack(...polar(hollowR(a) - 30, a), a, 4200 + rnd() * 2600, 130 + rnd() * 30, 30, 0, { glow: true }); }
   for (let i = 0; i < 4; i++) { let a; do { a = rnd() * TAU - Math.PI; } while (crackAngles.some((b) => Math.abs(((a - b + 3 * Math.PI) % TAU) - Math.PI) < 0.22) || Math.abs(((a - la + 3 * Math.PI) % TAU) - Math.PI) < 0.3);
-    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 500 + rnd() * 700, 22 + rnd() * 18, 3, 0); }
+    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 500 + rnd() * 700, 44 + rnd() * 20, 8, 0); } // opened up enough to climb down
   // out in the far lands the earth is splitting open: fissure systems that point back toward the Hollow; some breathe Lumen
   W.rifts = [];
   // the lowlands below the plateau are split by cracks that spread out from the foot of the cliffs in every direction,
@@ -4234,6 +4234,21 @@ void main() {
     if (HWX.mush) { const k = 0.45 + night * 0.75; HWX.mush.color.setRGB(0.32 * k, 0.78 * k, 1.0 * k); HWX.hollowGlow.color.setRGB(0.3 * k, 0.75 * k, 0.95 * k); HWX.mushGlow.material.opacity = 0.12 + night * 0.5; } }
   // props meshes: rebuilt (instances near the camera only) on each LOD pass
   function propMesh(geo, mat, cap) { const im = new THREE.InstancedMesh(geo, mat, cap); im.count = 0; im.frustumCulled = false; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); scene.add(im); return im; }
+  // climb spots: every crevice that runs out of the Hollow gets a glowing, tappable crack where its mouth breaks the rim - a lumen ribbon draped down the first
+  // stretch of the crack (bright along its spine, soft at its edges, pulsing slowly) and a floating climb-down marker; tapping it offers "Climb down (coming soon)"
+  const CLB = { spots: [], grp: null };
+  function buildClimbSpots() { if (CLB.grp) { scene.remove(CLB.grp); } const grp = new THREE.Group(); grp.name = 'climbSpots'; scene.add(grp); CLB.grp = grp; CLB.spots = [];
+    const glowT = hwCanvasTex(64, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(60,230,210,0)'); gr.addColorStop(0.32, 'rgba(70,240,220,.35)'); gr.addColorStop(0.5, 'rgba(220,255,250,1)'); gr.addColorStop(0.68, 'rgba(70,240,220,.35)'); gr.addColorStop(1, 'rgba(60,230,210,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); const g2 = g.createLinearGradient(0, 0, 0, h); g2.addColorStop(0, 'rgba(0,0,0,0)'); g2.addColorStop(0.12, 'rgba(0,0,0,1)'); g2.addColorStop(0.8, 'rgba(0,0,0,1)'); g2.addColorStop(1, 'rgba(0,0,0,0)'); g.globalCompositeOperation = 'destination-in'; g.fillStyle = g2; g.fillRect(0, 0, w, h); });
+    const icoT = hwCanvasTex(128, 128, (g, w, h) => { const gr = g.createRadialGradient(64, 64, 8, 64, 64, 64); gr.addColorStop(0, 'rgba(120,255,240,.55)'); gr.addColorStop(1, 'rgba(120,255,240,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#0f3d3a'; g.beginPath(); g.arc(64, 64, 34, 0, TAU); g.fill(); g.lineWidth = 5; g.strokeStyle = '#9ffff0'; g.stroke(); g.strokeStyle = '#e8fffb'; g.lineWidth = 7; g.lineCap = 'round'; g.beginPath(); g.moveTo(64, 44); g.lineTo(64, 82); g.moveTo(50, 70); g.lineTo(64, 84); g.lineTo(78, 70); g.stroke(); });
+    const mat = new THREE.MeshBasicMaterial({ map: glowT, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide, opacity: 0.8 });
+    const rimH = (a, nx, ny, w) => { let h = -1e9; for (const f of [-1, -0.6, 0, 0.6, 1]) for (const g2 of [0, Math.PI / 2]) { const cx = Math.cos(g2) * nx - Math.sin(g2) * ny, cy = Math.sin(g2) * nx + Math.cos(g2) * ny; h = Math.max(h, meshH(a[0] + cx * w * 0.9 * f, a[1] + cy * w * 0.9 * f)); } return h; };
+    let n = 0; for (const c of W.cracks || []) { const p0 = c.pts[0]; if (!p0 || hollowDist(p0[0], p0[1]) > 90 || c.pts.length < 5) continue; const K = Math.min(c.pts.length - 1, 9), pos = [], uv = [], idx = [];
+      for (let i = 0; i <= K; i++) { const a = c.pts[i], b = c.pts[Math.min(i + 1, c.pts.length - 1)], q = c.pts[Math.max(0, i - 1)], tx = b[0] - q[0], ty = b[1] - q[1], tl = Math.hypot(tx, ty) || 1, nx = -ty / tl, ny = tx / tl, hw = Math.max(26, c.ws[i] * 0.75);
+        for (const sd of [-1, 1]) { const x = a[0] + nx * hw * sd, y = a[1] + ny * hw * sd; pos.push(x, rimH(a, nx, ny, c.ws[i]) - 6 + 10 * Math.abs(sd), y); uv.push(sd < 0 ? 0 : 1, i / K); } if (i < K) { const k = i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); } }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); const rib = new THREE.Mesh(geo, mat); rib.renderOrder = 5; grp.add(rib);
+      const m = c.pts[2], hgt = rimH(m, 1, 0, c.ws[2]) + 55, ico = new THREE.Sprite(new THREE.SpriteMaterial({ map: icoT, transparent: true, depthWrite: false, depthTest: false, toneMapped: false })); ico.scale.set(120, 120, 1); ico.position.set(m[0], hgt, m[1]); ico.renderOrder = 6; grp.add(ico);
+      CLB.spots.push({ type: 'climb', i: n++, x: m[0], y: m[1], up: hgt - 40, wide: !!c.wide, ico, rib, name: c.wide ? 'Great chasm' : 'Narrow crevice' }); }
+    W.climbSpots = CLB.spots; }
   function buildModelScene() { if (!MD || !scene) return;
     for (const s2 of IM.all) for (const m of s2.meshes) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = [];
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
@@ -4244,7 +4259,7 @@ void main() {
     let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - 2; nt++;
       push('t_' + k, { x: o.x, y, z: o.y, rot: (o.seed || 0.5) * TAU * 7, s, c: tintFor(o.seed * 100 + 3, 0.6), lum: lumAt(o.x, o.y) * 0.8 }); }
     for (const k of ['oak', 'sequoia', 'willow']) if (byKey['t_' + k]) { MD['t_' + k] = MD[k]; IM.trees.push(makeSet('t_' + k, byKey['t_' + k], { near: 1800, far: 26000, minZ: 0.0, shadow: true })); }
-    buildHeartwood(); if (HWX.trunkRad) GRAND.build({ scene, T: W.heartwood, trunkRad: HWX.trunkRad, ax: HWX.ax, meshH, OUT: W.heartwood.in + Math.PI, barkMat: HWX.barkMat, trunkMat: HWX.trunkMat, moss: HWX.moss, PR });
+    buildHeartwood(); buildClimbSpots(); if (HWX.trunkRad) GRAND.build({ scene, T: W.heartwood, trunkRad: HWX.trunkRad, ax: HWX.ax, meshH, OUT: W.heartwood.in + Math.PI, barkMat: HWX.barkMat, trunkMat: HWX.trunkMat, moss: HWX.moss, PR });
     const cap = (a) => Math.max(1, a.length);
     if (!IM.props) { const lam = new THREE.MeshLambertMaterial({ color: 0xffffff }); IM.props = { box: propMesh(new THREE.BoxGeometry(1, 1, 1), lam, cap(PR.box)), cyl: propMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 9), lam, cap(PR.cyl)), lamp: propMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), cap(PR.lamp)) }; }
     else for (const k of ['box', 'cyl', 'lamp']) { const im = IM.props[k]; if (im.instanceMatrix.count < PR[k].length) { scene.remove(im); IM.props[k] = propMesh(im.geometry, im.material, cap(PR[k])); } }
@@ -4273,7 +4288,8 @@ void main() {
     IM.props.lamp.material.color.setRGB(0.35 + night * 0.75, 0.27 + night * 0.5, 0.16 + night * 0.25);
     IM.glow.material.opacity = night * 0.28; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; if (HWX.signs) for (const b of HWX.signs) b.material.emissiveIntensity = night * 0.3; IM.glow.visible = night > 0.05;
     IM.smoke.material.uniforms.uT.value = t; IM.smoke.visible = cam.z > 0.12; IM.smoke.material.uniforms.uS.value = renderer.getPixelRatio() * cssH / 900; IM.smoke.material.uniforms.uC.value.setRGB(0.86 - night * 0.6, 0.86 - night * 0.6, 0.88 - night * 0.55);
-    animPulley(t, night); GRAND.anim(t, night, renderer.getPixelRatio() * cssH / 900); }
+    animPulley(t, night); GRAND.anim(t, night, renderer.getPixelRatio() * cssH / 900);
+    if (CLB.grp) { const k = 0.75 + 0.25 * Math.sin(t * 1.6); CLB.grp.children.forEach((o) => { if (o.isMesh) o.material.opacity = k; else if (o.isSprite) { o.material.opacity = 0.75 + 0.25 * Math.sin(t * 2.2); const sc = 120 * Math.max(0.8, Math.min(4, 0.5 / Math.max(0.05, cam.z))); o.scale.set(sc, sc, 1); } }); } }
 
   /* ---------- build ---------- */
   function supported() { try { const c = document.createElement('canvas'); return !!(window.THREE && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; } }
@@ -4431,7 +4447,7 @@ void main() {
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }
-  return { get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { get climb() { return CLB; }, get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();
 
 /* =====================================================================
@@ -4862,9 +4878,9 @@ const CityMap = (() => {
   function handleTap3d(sx, sy) {
     const [x, y] = s2w(sx, sy), z = cam.z, R = Math.max(160, 260 / z);
     const mole = currentMole(); if (mole && M3.tapSprites(sx, sy, [{ x: mole.x, y: mole.y, hgt: 90, wf: 0.6, o: mole }])) return moleCard(mole);
-    const P = W.player; const cands = [{ x: P.x, y: P.y, up: hUp(P), hgt: P.heartwood ? HW_HOUSE * 0.6 : homeW(P) * 0.9, wf: P.heartwood ? 0.5 : 0.4, o: P }]; for (const o of W.homes) if (o.heartwood && !o.isPlayer) cands.push({ x: o.x, y: o.y, up: hUp(o), hgt: HW_HOUSE * 0.6, wf: 0.5, o }); { const D = GRAND.door; if (D) cands.push({ x: D.x, y: D.y, up: D.up, hgt: D.hgt, wf: 0.4, o: { type: 'lumenDoor' } }); } for (const o of queryObjs(x - R, y - R, x + R, y + R, 80)) { if (!['home', 'lift', 'statue', 'memorial', 'gate', 'rift', 'outpost'].includes(o.type) || o.isPlayer || o.heartwood) continue; cands.push({ x: o.x, y: o.y, hgt: o.type === 'home' ? homeW(o) * 0.85 : o.type === 'outpost' ? 140 : 50, wf: 0.4, o }); }
+    const P = W.player; const cands = [{ x: P.x, y: P.y, up: hUp(P), hgt: P.heartwood ? HW_HOUSE * 0.6 : homeW(P) * 0.9, wf: P.heartwood ? 0.5 : 0.4, o: P }]; for (const o of W.homes) if (o.heartwood && !o.isPlayer) cands.push({ x: o.x, y: o.y, up: hUp(o), hgt: HW_HOUSE * 0.6, wf: 0.5, o }); { const D = GRAND.door; if (D) cands.push({ x: D.x, y: D.y, up: D.up, hgt: D.hgt, wf: 0.4, o: { type: 'lumenDoor' } }); } for (const c of W.climbSpots || []) cands.push({ x: c.x, y: c.y, up: 10, hgt: 110, wf: 0.8, o: c }); for (const o of queryObjs(x - R, y - R, x + R, y + R, 80)) { if (!['home', 'lift', 'statue', 'memorial', 'gate', 'rift', 'outpost'].includes(o.type) || o.isPlayer || o.heartwood) continue; cands.push({ x: o.x, y: o.y, hgt: o.type === 'home' ? homeW(o) * 0.85 : o.type === 'outpost' ? 140 : 50, wf: 0.4, o }); }
     // nearest-to-camera first so front buildings win
-    const cp = M3.project(x, y, 0); const best = M3.tapSprites(sx, sy, cands); if (best === P) return playerCard(); if (best && best.type === 'lumenDoor') return GRAND.enterTree(); if (best) return openFor(best);
+    const cp = M3.project(x, y, 0); const best = M3.tapSprites(sx, sy, cands); if (best === P) return playerCard(); if (best && best.type === 'lumenDoor') return GRAND.enterTree(); if (best && best.type === 'climb') return climbCard(best); if (best) return openFor(best);
     for (const m of [W.lakeFalls, W.pass]) if (m && M3.tapSprites(sx, sy, [{ x: m.x, y: m.y, hgt: m.r * 2.2, wf: 0.5, o: m }])) return loreCard(m);
     void cp; if (hollowDist(x, y) < 0) return hollowCard();
   }
@@ -4967,6 +4983,8 @@ const CityMap = (() => {
   function loreCard(o) { const L = LORE[o.type]; openModal(`<h2>${L.icon || (o.type === 'statue' ? '🗿' : o.type === 'memorial' ? '🕯️' : '🚪')} ${o.type === 'outpost' ? o.name : L.title}</h2><p>${L.text}</p>${o.type === 'memorial' ? `<p class="dim">${S.stats.expeditions} of your expeditions have returned. Wren's name is not on the Wall.</p>` : ''}${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function riftCard(o) { discoverRegion(o.region); const d = Math.round(Math.hypot(o.x, o.y) / 100) / 10;
     openModal(`<h2>✨ ${o.name}</h2><p class="small">A fissure far out in the lands, ${d} leagues from the Hollow's lip. Cold air breathes out of it, and deep down the walls glow with the same Lumen as the Hollow. Delvers swear the cracks out here all run back to it underground, and that a brave rope team could go down this way.</p><p class="dim">Nobody has charted a way through yet.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">🕳️ Go to the Hollow</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
+  // a crevice running out of the Hollow: the way down to the portaledges (the climbing mode that builds them comes later)
+  function climbCard(c) { openModal(`<h2>⤓ ${c.name}</h2><p class="small">A crack in the Hollow's rim, wide enough to climb down. Glowing Lumen seeps from its walls.</p><button class="btn" data-act="climbSoon" disabled>Climb down (coming soon)</button>`, 'climb'); }
   function hollowCard() { openModal(`<h2>🕳️ The Hollow</h2><p class="small">A chasm with no bottom anyone has seen. Lumen glows in its depths; the layers step down like terraces: ${CONFIG.layers.map((l) => l.name).join(' → ')} → …</p><p class="dim">It sits on the summit of the old mountain; the whole cracked land below drains toward it. At night the Lumen breathes up out of it.</p>${btnRow('<button class="btn deep" data-act="gotab" data-id="hollow">Send Wren down</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city'); }
   function regionCard(i) {
     const R = REGIONS[i];

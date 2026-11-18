@@ -226,7 +226,7 @@ function generateCity() {
   // the great chasms run from the Hollow far out into the lands
   for (const a of wideAt) { crackAngles.push(a); addCrack(...polar(hollowR(a) - 30, a), a, 4200 + rnd() * 2600, 130 + rnd() * 30, 30, 0, { glow: true }); }
   for (let i = 0; i < 4; i++) { let a; do { a = rnd() * TAU - Math.PI; } while (crackAngles.some((b) => Math.abs(((a - b + 3 * Math.PI) % TAU) - Math.PI) < 0.22) || Math.abs(((a - la + 3 * Math.PI) % TAU) - Math.PI) < 0.3);
-    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 500 + rnd() * 700, 22 + rnd() * 18, 3, 0); }
+    crackAngles.push(a); addCrack(...polar(hollowR(a) - 15, a), a, 500 + rnd() * 700, 44 + rnd() * 20, 8, 0); } // opened up enough to climb down
   // out in the far lands the earth is splitting open: fissure systems that point back toward the Hollow; some breathe Lumen
   W.rifts = [];
   // the lowlands below the plateau are split by cracks that spread out from the foot of the cliffs in every direction,
