@@ -3947,13 +3947,19 @@ const M3 = (() => {
     const m = new THREE.MeshLambertMaterial({ color: 0xffffff });
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, U);
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aMt; varying vec3 vWP; varying vec3 vWN; varying float vMt;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal); vMt = aMt;');
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float aMt; varying vec3 vWP; varying vec3 vWN; varying float vMt; varying float vVD;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal); vMt = aMt;').replace('#include <project_vertex>', '#include <project_vertex>\nvVD = length(mvPosition.xyz);');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-varying vec3 vWP; varying vec3 vWN; varying float vMt;
-uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn;
+varying vec3 vWP; varying vec3 vWN; varying float vMt; varying float vVD;
+uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn; uniform float uExOn;
 uniform float uPH; uniform float uHR; uniform vec3 uLumen; uniform float uDeep; uniform float uSnowR; uniform float uHaze;
-float edgeF(vec2 u, float w) { return smoothstep(0.0, w, min(min(u.x, 1.0 - u.x), min(u.y, 1.0 - u.y))); }`)
+float edgeF(vec2 u, float w) { return smoothstep(0.0, w, min(min(u.x, 1.0 - u.x), min(u.y, 1.0 - u.y))); }
+float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vn2(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
+float fbm2(vec2 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn2(p); p = p * 2.03 + vec2(17.1, 9.2); a *= 0.5; } return s; }
+float h31(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float vn3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(mix(h31(i), h31(i + vec3(1.0, 0.0, 0.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 0.0)), h31(i + vec3(1.0, 1.0, 0.0)), f.x), f.y), mix(mix(h31(i + vec3(0.0, 0.0, 1.0)), h31(i + vec3(1.0, 0.0, 1.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 1.0)), h31(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z); }
+float fbm3(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn3(p); p = p * 2.01 + vec3(5.3, 1.7, 9.1); a *= 0.5; } return s; }`)
         .replace('#include <map_fragment>', `
 vec2 wp = vWP.xz; vec4 tc = texture2D(tA, (wp - uA.xy) / uA.zw);
 vec2 ub = (wp - uB.xy) / uB.zw; if (ub.x > 0.0 && ub.x < 1.0 && ub.y > 0.0 && ub.y < 1.0) tc = mix(tc, texture2D(tB, ub), edgeF(ub, 0.02));
@@ -3979,6 +3985,21 @@ float gl = dot(gd * 0.6 + gd2 * 0.4, vec3(0.3, 0.59, 0.11));
 tc.rgb *= mix(1.0, clamp(gl / 0.36, 0.6, 1.45), 0.6 * grassM * nearF);
 float tl = dot(tc.rgb, vec3(0.3, 0.59, 0.11)); tc.rgb = mix(vec3(tl), tc.rgb, 1.0 + 0.1 * grassM);
 tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.86, 1.0, 0.78), 0.35 * grassM);
+// Explore close-up: hand-made ground at true scale (4 units = 1 m) around the player - grass clumps and speckle with dry patches, bare soil with pebbles,
+// and rock as a solid noise with warped strata layers 0.6-1.2 m thick, darker bedding joints, lit lips and vertical cracks; fades out by ~150 m
+float exF = uExOn * (1.0 - smoothstep(160.0, 640.0, vVD)); /* view-space distance */
+if (exF > 0.002) {
+  float gC = fbm2(wp / 3.0), gF = vn2(wp * 2.5) * 0.6 + vn2(wp * 6.3 + 3.1) * 0.4, dry = smoothstep(0.52, 0.78, fbm2(wp / 9.0 + 3.0));
+  vec3 gpart = tc.rgb * (0.7 + 0.55 * gC) * (0.78 + 0.44 * gF); gpart = mix(gpart, gpart * vec3(1.18, 1.07, 0.68), dry * 0.55);
+  float soil = smoothstep(0.64, 0.72, fbm2(wp / 24.0 + 7.0) + 0.14 * (gC - 0.5)) * grassM;
+  vec3 soilC = vec3(0.25, 0.18, 0.11) * (0.72 + 0.5 * vn2(wp * 1.3)) * (0.85 + 0.3 * gF); float pb = smoothstep(0.82, 0.88, vn2(wp * 1.9 + 11.0)); soilC = mix(soilC, vec3(0.42, 0.4, 0.36) * (0.8 + 0.4 * gF), pb); soilC *= 1.0 - 0.35 * smoothstep(0.75, 0.8, vn2(wp * 1.9 + 11.0)) * (1.0 - pb);
+  gpart = mix(gpart, mix(gpart * vec3(0.8, 0.72, 0.5), soilC, smoothstep(0.0, 0.6, soil)), soil * 0.9); // worn ground fringes into bare soil
+  vec3 rp = vWP / 4.0; float sy = rp.y + 1.6 * fbm3(rp * vec3(0.12, 0.05, 0.12)), lid = floor(sy / 0.9), lay = fract(sy / 0.9), lt = h21(vec2(lid, 3.7));
+  float rN = fbm3(rp * 0.8), rF = vn3(rp * 5.5) * 0.6 + vn3(rp * 13.0) * 0.4, cj = abs(vn3(vec3(rp.x * 0.9 + rp.y * 0.3, lid * 3.1, rp.z * 0.9)) - 0.5) + step(lt, 0.45);
+  vec3 rpart = tc.rgb * (0.74 + 0.4 * lt) * mix(vec3(1.04, 0.98, 0.9), vec3(0.92, 0.96, 1.04), h21(vec2(lid, 9.1))) * (0.66 + 0.68 * rN) * (0.8 + 0.4 * rF);
+  rpart *= 0.72 + 0.28 * smoothstep(0.0, 0.05 + 0.08 * rN, lay); rpart += tc.rgb * 0.14 * smoothstep(0.88, 1.0, lay) * rN; rpart *= 0.7 + 0.3 * smoothstep(0.0, 0.022, cj);
+  float rockW = clamp(steep + smoothstep(0.2, 0.75, vMt) * (1.0 - steep), 0.0, 1.0) * (1.0 - snow);
+  tc.rgb = mix(tc.rgb, mix(gpart, rpart, rockW), exF); }
 float inPit = 1.0 - smoothstep(uHR * 0.98, uHR * 1.04, length(wp));
 float dep = clamp((uPH - vWP.y) / 3000.0, 0.0, 1.0);
 // pit walls: moss on the ledges, dangling roots below the lip, darker undercuts beneath each ledge
@@ -4413,7 +4434,7 @@ void main() {
       () => { const a = document.createElement('canvas'); a.width = a.height = 2048; paint(a, -(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2048); texA = canvasTex(a); },
       () => { const b = document.createElement('canvas'); b.width = b.height = 2048; paint(b, -IN(), -IN(), 2 * IN(), 2048); texB = canvasTex(b); },
       () => { cCanvas = document.createElement('canvas'); cCanvas.width = cCanvas.height = 2048; texC = canvasTex(cCanvas);
-        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
+        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uExOn: { value: 0 }, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
         terrainMat = makeTerrainMat(U); terrainMat.userData.U = U; scene.add(makeTerrain(grids[0])); scene.add(makeTerrain(grids[1])); },
       () => { buildBillboards();
         lumenSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,214,140,.9)', 'rgba(255,170,80,.3)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); lumenSpr.position.set(0, P_H - PIT * 0.55, 0);
@@ -4496,9 +4517,10 @@ void main() {
   /* ---------- detail texture around the camera ---------- */
   function updateDetail(cam) {
     const U = terrainMat.userData.U;
-    if (cam.z < 0.28) { U.uCOn.value = 0; cState = null; return; }
-    const size = 2600, px = 2048;
-    if (!cState || Math.hypot(cam.x - cState.cx, cam.y - cState.cy) > 700) { if (cState && cState.q < 4) {} else { cState = { cx: Math.round(cam.x / 100) * 100, cy: Math.round(cam.y / 100) * 100, q: 0 }; } }
+    const ex = !!st.camOv; U.uExOn.value = ex ? 1 : 0; // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
+    if (cam.z < 0.28 && !ex) { U.uCOn.value = 0; cState = null; return; }
+    const size = ex ? 1000 : 2600, px = 2048; if (cState && cState.size !== size) cState = null;
+    if (!cState || Math.hypot(cam.x - cState.cx, cam.y - cState.cy) > (ex ? 220 : 700)) { if (cState && cState.q < 4) {} else { cState = { cx: Math.round(cam.x / 50) * 50, cy: Math.round(cam.y / 50) * 50, q: 0, size }; } }
     if (cState.q < 4) { const q = cState.q, ox = (q % 2) * 1024, oy = (q >> 1) * 1024, s0 = px / size; if (q === 0) cState.parts = [];
       const tmp = document.createElement('canvas'); tmp.width = tmp.height = 1024; paint(tmp, cState.cx - size / 2 + ox / s0, cState.cy - size / 2 + oy / s0, size / 2, 1024); cState.parts.push([tmp, ox, oy]); cState.q++;
       if (cState.q === 4) { const g = cCanvas.getContext('2d'); g.clearRect(0, 0, px, px); for (const [c, x, y] of cState.parts) g.drawImage(c, x, y); cState.parts = null; texC.needsUpdate = true; U.uC.value.set(cState.cx - size / 2, cState.cy - size / 2, size, size); U.uCOn.value = 1; } }
@@ -7793,7 +7815,7 @@ const Explore = (() => {
     CharView.exploreStep(dt); const cm = CharView.exploreCam(EX.d, EX.tilt, EX.az), P = toMap(cm.P), L = toMap(cm.L); const gH = hAt(P.x, P.z) + 3; if (P.y < gH) P.y = gH;
     M3.st.camOv = { P, L, D: Math.max(60, EX.d * WS * 3), near: 1.2, far: 30000 };
     if (!EX.blob) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d'), gr = g.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); EX.blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false })); EX.blob.renderOrder = 4; } // a soft contact shadow on the map ground (she is lit in her own pass)
-    if (!EX.blob.parent) M3.scene.add(EX.blob); const bs = 2.6 - Math.min(1.2, (G.y - G.hy(G.x, G.z)) * 0.5); EX.blob.scale.set(bs * WS * 0.5, 1, bs * WS * 0.5); EX.blob.position.set(x, hAt(x, y) + 0.4, y); EX.blob.visible = true; CityMap.cam.x = x; CityMap.cam.y = y; }
+    if (!EX.blob.parent) M3.scene.add(EX.blob); const bs = 2.6 - Math.min(1.2, (G.y - G.hy(G.x, G.z)) * 0.5); EX.blob.scale.set(bs * WS * 0.5, 1, bs * WS * 0.5); EX.blob.position.set(x, hAt(x, y) + 0.4, y); EX.blob.visible = !(G.exW > 0.3); /* no ground shadow while she hangs on a face */ CityMap.cam.x = x; CityMap.cam.y = y; }
   // overlay: Walk / Run toggle + Exit
   function ui3(on) { let b = document.getElementById('exploreBar'); if (!b && on) { b = document.createElement('div'); b.id = 'exploreBar'; b.innerHTML = '<button data-ex="walk">🚶 Walk</button><button data-ex="run">🏃 Run</button><button data-ex="exit">✕ Exit</button><span id="exploreInfo"></span>'; (document.getElementById('cityWrap') || document.body).appendChild(b);
       b.addEventListener('click', (e) => { const t = e.target.closest('[data-ex]'); if (!t) return; const k = t.dataset.ex; if (k === 'exit') exit(); else { EX.gait = k; CharView.st.gait = k; } ui3(EX.on); }); }
