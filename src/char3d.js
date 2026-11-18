@@ -1244,7 +1244,7 @@ const CharView = (() => {
     lumenite: { name: 'Lumenite', feeds: 'Lumen', vein: 0xd8fcff, glow: 0x2fc8f0, gl: 0.45, spark: 0x7ff4ff, crys: 0x8ff6ff, cEm: 0x1d93ad, acc: 0xffffff, style: 'hex', bright: true },
     onyx: { name: 'Ember Onyx', feeds: 'Ember Onyx', vein: 0xff4a1c, glow: 0xe0301a, gl: 0.32, spark: 0xff5a28, crys: 0x16131a, cEm: 0x200404, acc: 0xff3418, style: 'onyx', flames: true },
   };
-  // the Lifeline per tier: strands, colours, the energy it carries (also tints the drill's flute thread and lightning) and extras
+  // the Ledge Tether per tier: strands, colours, the energy it carries (also tints the drill's flute thread and lightning) and extras
   const LGRADES = {
     bronze: { n: 2, col: 0xc07a3c, core: 0xffa860, co: 0.08, en: 0xffb070, r: 0.011 },
     iron: { n: 3, col: 0x7d8288, core: 0x9fc0ff, co: 0.08, en: 0xa8c8ff, r: 0.012, bands: 0x55585e },
@@ -1305,7 +1305,7 @@ const CharView = (() => {
     if (LG.veinL) { LG.veinL.color.setHex(O.glow); LG.veinL.intensity = 0.08 + O.gl * 0.5; } if (LG.biteL) LG.biteL.color.setHex(O.spark);
     if (LG.sparks) { LG.sparks.pts.material.color.setHex(O.spark); LG.sparks.lines.material.color.setHex(O.spark); }
     vg.traverse((o) => { if (o.isMesh) o.receiveShadow = true; }); }
-  /* ---------- Lifeline Drill bit, one look per pickaxe tier (more detail each step up); built along +z with the tip at the cliff, spins about z ---------- */
+  /* ---------- Ledge Tether Drill bit, one look per pickaxe tier (more detail each step up); built along +z with the tip at the cliff, spins about z ---------- */
   function makeDrillBit(key) { const G = GRADES[key] || GRADES.bronze, T = Math.max(0, G.tier), D = LG.drill, Lb = D.L, R0 = D.R, bit = new THREE.Group(); bit.name = 'drillbit'; bit.userData.grade = key; bit.userData.fx = [];
     const metal = T === 6 ? new THREE.MeshPhongMaterial({ color: 0x8ff6ff, emissive: 0x1d93ad, specular: 0xffffff, shininess: 90, flatShading: true, transparent: true, opacity: 0.92 })
       : G.shine ? new THREE.MeshPhongMaterial({ color: G.head, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }) : toon(G.head, null, G.emissive ? { emissive: G.emissive } : {});
@@ -1336,19 +1336,19 @@ const CharView = (() => {
       for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + 0.4; part(bit, new THREE.OctahedronGeometry(0.012, 0), new THREE.MeshBasicMaterial({ color: 0xff3a1c }), [Math.cos(a) * (R0 + 0.014), Math.sin(a) * (R0 + 0.014), zb + 0.045], null, [1, 1.3, 0.6], { ink: false }); }
       const fl = flamePoints(sites); bit.add(fl); bit.userData.fx.push(fl); bit.userData.flames = fl; }
     return bit; }
-  /* ---------- the Lifeline per tier; a pulse rises along it only while ore is moving (LG.xfer: auto = while the drill sends up a load, on, off) ---------- */
+  /* ---------- the Ledge Tether per tier; a pulse rises along it only while ore is moving (LG.xfer: auto = while the drill sends up a load, on, off) ---------- */
 
-  /* ---------- twin Lifelines: every Lifeline is two twined strands, A and B, each with its own tier and its own direction (to / from the Ledge) ---------- */
+  /* ---------- twin Ledge Tethers: every Ledge Tether is two twined strands, A and B, each with its own tier and its own direction (to / from the Ledge) ---------- */
   const TWIN0 = () => ({ a: { grade: 'bronze', dir: 'to' }, b: { grade: 'bronze', dir: 'from' } });
   function strandOf(x, d) { x = x || {}; return { grade: LGRADES[x.grade] ? x.grade : d.grade, dir: x.dir === 'from' || x.dir === 'to' ? x.dir : d.dir }; }
-  // normalise a saved Lifeline (old saves: { grade, dir: 'in' | 'out' } -> both strands that tier, A in the old flow, B the other way)
+  // normalise a saved Ledge Tether (old saves: { grade, dir: 'in' | 'out' } -> both strands that tier, A in the old flow, B the other way)
   function twinOf(P, def) { def = def || TWIN0(); if (P && P.a) return { a: strandOf(P.a, def.a), b: strandOf(P.b, def.b) }; if (P && P.grade) { const g = LGRADES[P.grade] ? P.grade : 'bronze', d = P.dir === 'out' ? 'from' : 'to'; return { a: { grade: g, dir: d }, b: { grade: g, dir: d === 'to' ? 'from' : 'to' } }; } return { a: Object.assign({}, def.a), b: Object.assign({}, def.b) }; }
   function strandMat(L) { return L.glowS ? new THREE.MeshBasicMaterial({ color: L.col }) : L.cable ? new THREE.MeshPhongMaterial({ color: L.col, specular: 0xffffff, shininess: 60 }) : toon(L.col, null, { emissive: new THREE.Color(L.core).multiplyScalar(0.15).getHex() }); }
   // the braid along a centre path: two helices half a turn apart, each strand in its own tier's material (stripe/wrap details ride on that strand),
   // each with its own glow sheath and its own transfer beads. ledgeEnd: 1 if the Ledge is at the end of the path, 0 if at its start
   function twinCord(par, pts, tw, k = 2.4, ledgeEnd = 0) { const g = braidCord(par, pts, [Object.assign({ key: 'a' }, tw.a), Object.assign({ key: 'b' }, tw.b)], k, ledgeEnd); g.userData.twin = tw; return g; }
   // the same lay for any number of strands: 2 -> the twin helix; more -> one big rope, every strand (its own tier material, sheath and beads) laid
-  // round a dark heart at a ring radius that grows with the count, so the braid thickens with each Lifeline twined in
+  // round a dark heart at a ring radius that grows with the count, so the braid thickens with each Ledge Tether twined in
   const BRAID_GAP = 1.16, BRAID_LAY = 2.8; // big rope: ring spacing (>1 leaves a thin dark gap between neighbouring strands), lay length in ring circumferences
   // a laid rope's axis: spaced points with parallel-transported frames (the same construction braidCord lays its strands on), arc length S
   function layAxis(pts, NP) { const C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), P = C.getSpacedPoints(NP), Nn = [], Bn = [], T = [], S = [0]; let n0 = Math.abs(P[1].clone().sub(P[0]).normalize().y) > 0.9 ? V(1, 0, 0) : V(0, 1, 0);
@@ -1375,7 +1375,7 @@ const CharView = (() => {
       for (let i = 0; i < 4; i++) { const b = part(g, new THREE.SphereGeometry(1, 10, 8), pm, null, null, null, { ink: false, shadow: false }); b.visible = false; beads.push(b); }
       strands.push({ key: x.key, port: x.port, seed: x.seed || 0, lj: x.lj === undefined ? j : x.lj, grade: x.grade, dir: x.dir, curve: hc, pts: hp, full: x.tube || hp, drawn: !x.noTube, core, co: L.co * (BIG ? 0.8 : 1.4), pm, beads, sr, bs: BIG ? 1.3 : 2.3, xl: 0, u: 0, len: hc.getLength() }); });
     g.userData = { C, strands, rr, R: rr + smax, len, ledgeEnd, core: strands[0].core, co: strands[0].co }; return g; }
-  // per-strand load: auto = each strand carries a load 3 s out of every 8, the two strands out of step (so each dims on its own); seed varies it per Lifeline
+  // per-strand load: auto = each strand carries a load 3 s out of every 8, the two strands out of step (so each dims on its own); seed varies it per Ledge Tether
   function strandLoad(t, j, seed = 0) { return LG.xfer === 'on' ? 1 : LG.xfer === 'off' ? 0 : ((t + j * 4 + seed) % 8 < 3 ? 1 : 0); }
   // idle: full steady glow, no pulse; under load the strand's glow dims and its pulses run in that strand's direction ('to' runs toward the Ledge end)
   function twinTick(cd, t, dt, wants) { const U = cd.userData; let mv = 0; U.strands.forEach((S2, j) => { S2.xl = lerp(S2.xl, wants[j], 1 - Math.exp(-dt * 3)); const xl = S2.xl; if (xl > 0.05) mv = 1; S2.core.opacity = S2.co * (1.25 - 0.7 * xl); S2.pm.opacity = 0.34 * xl;
@@ -1386,7 +1386,7 @@ const CharView = (() => {
     const main = twinCord(grp, [V(0, y0, 0), V(0, (y0 + top) / 2, 0), V(0, top, 0)], tw, 1, 1); grp.userData.main = main;
     main.userData.strands.forEach((S2, j) => { const L = LGRADES[S2.grade]; if (!L.vein) return; const sites = []; for (let i = 0; i < S2.pts.length; i += 5) if (S2.pts[i].y < 2.4) sites.push([S2.pts[i], V(S2.pts[i].x, 0, S2.pts[i].z).normalize()]); const fl = flamePoints(sites); grp.add(fl); grp.userData.fx.push(fl); grp.userData.flames = fl; });
     part(grp, cyl(rr + sr + 0.012, rr + sr + 0.008, 0.07, 12), DTIERS.indexOf(tw.a.grade) >= 3 ? toon(LA.bands || LA.col) : strandMat(LA), [0, y0 + 0.02, 0], null, null, { ink: false });
-    // the spare Lifeline: out of the rear of the hub, down onto the deck in two heavy loops, the loose end hanging off the deck edge (ready to feed a deeper drop)
+    // the spare Ledge Tether: out of the rear of the hub, down onto the deck in two heavy loops, the loose end hanging off the deck edge (ready to feed a deeper drop)
     { const D = LG.drill, deckY = 0.07 - D.y + rr + sr, edgeZ = LG.z0 + LG.D - LG.hubZ + 0.03, path = [V(0, 0, 0.1), V(0, -0.02, 0.17), V(0.01, deckY + 0.04, 0.24), V(0.03, deckY, 0.3)];
       const loop = (cx, cz, r0, a0, lift) => { for (let i = 1; i <= 14; i++) { const a = a0 + i / 14 * TAU, cr = r0 * (1 - 0.05 * i / 14); path.push(V(cx + Math.sin(a) * cr, deckY + lift * Math.max(0, Math.sin(a * 0.5 + 0.4)) * 2 * (rr + sr), cz - Math.cos(a) * cr)); } };
       loop(0.06, 0.37, 0.13, 0, 0.9); loop(0.15, 0.39, 0.12, 0.35, 0.9); path.push(V(0.2, deckY, edgeZ - 0.12), V(0.24, deckY, edgeZ - 0.02), V(0.25, deckY - 0.05, edgeZ + 0.03), V(0.25, deckY - 0.2, edgeZ + 0.045), V(0.24, deckY - 0.3, edgeZ + 0.04));
@@ -1469,8 +1469,8 @@ const CharView = (() => {
     // small details: a bucket of crystals by the tent (no hammer, no loose rope on the deck)
     bucket(g, V(0.95, 0.07, LG.z0 + LG.D - 0.2), 0.8); /* no loose rope on the deck by the drill and the mining spot */
     LG.rocks.push(part(cliff, rockGeo(0.8, 0.9, 0.34, 4242, 0.05), rock, [LG.drill.x, LG.drill.y + 0.1, -0.17])); // rock boss the bit bites into, face at z ~ 0
-    // Lifeline Drill (idle miner): a spiral cone bit lying on the deck, perpendicular to the cliff, its tip boring into the vein; brass hub at the back on one iron bearing block (its only support);
-    // the Lifeline drops from above into the hub. No engine, no gearbox, nothing touches the spinning bit. The bit and the Lifeline are rebuilt per tier (setDrillGrade / setLineGrade).
+    // Ledge Tether Drill (idle miner): a spiral cone bit lying on the deck, perpendicular to the cliff, its tip boring into the vein; brass hub at the back on one iron bearing block (its only support);
+    // the Ledge Tether drops from above into the hub. No engine, no gearbox, nothing touches the spinning bit. The bit and the Ledge Tether are rebuilt per tier (setDrillGrade / setLineGrade).
     { const D = LG.drill, ore = ORES[LG.ore] || ORES.mithril, dr = new THREE.Group(); dr.position.set(D.x, D.y, 0); g.add(dr); LG.drillG = dr;
       const brass = toon(0xb3893f), brassDk = toon(0x8a6428);
       LG.zap = cv(256, 64, (x, w, h) => { x.fillStyle = '#000'; x.fillRect(0, 0, w, h); x.strokeStyle = '#ffffff'; x.lineWidth = 1.4; const q = prng(5); for (let i = 0; i < 9; i++) { let px = q() * w, py = q() * h; x.beginPath(); x.moveTo(px, py); for (let j = 0; j < 6; j++) { px += (q() - 0.3) * 18; py += (q() - 0.5) * 14; x.lineTo(px, py); } x.stroke(); } });
@@ -1489,12 +1489,12 @@ const CharView = (() => {
       const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 6), 3)); const ls = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: ore.spark, transparent: true, opacity: 0.95, depthWrite: false })); ls.frustumCulled = false; g.add(ls); LG.sparks.lines = ls; LG.bite = V(D.x, D.y, D.tip + 0.01); }
     g.traverse((o) => { if (o.isMesh && o.material !== OUT) o.receiveShadow = true; }); g.scale.setScalar(LG.S); g.visible = false; LG.g = g; LG.cliff = cliff;
     buildVein(LG.ore); setDrillGrade(LG.dg); setLine(LG.tw); return g; }
-  // Lifeline Drill per-frame: bit spin, energy along the flute, tier effects, the transfer pulse, bite flicker, ore-coloured sparks thrown back off the cliff
+  // Ledge Tether Drill per-frame: bit spin, energy along the flute, tier effects, the transfer pulse, bite flicker, ore-coloured sparks thrown back off the cliff
   function ledgeTick(dt) { if (!LEDGE || !LG.bit) return; const on = LG.drillOn !== false; LG.spin = lerp(LG.spin || 0, on ? LG.drill.rps * TAU : 0, 1 - Math.exp(-dt * 3)); LG.bit.rotation.z -= LG.spin * dt; const t = clk;
     LG.enM.map.offset.x -= dt * 2.2 * (LG.spin / (LG.drill.rps * TAU) || 0); LG.zap.offset.set((t * 0.37) % 1, (t * 0.9) % 1);
     updatePickFx(LG.bit, t); const ln = LG.line; if (ln) { for (const fx of ln.userData.fx) { const u = fx.material.uniforms; u.uTime.value = t; u.uUp.value.set(0, 1, 0); u.uScale.value = R ? R.domElement.height / 2 : 400; } }
     if (LG.veinFx) { const u = LG.veinFx.material.uniforms; u.uTime.value = t; u.uUp.value.set(0, 1, 0); u.uScale.value = (R ? R.domElement.height / 2 : 400) * 2.2; }
-    // transfer pulse: fades in while ore is moving, three soft beads climbing the Lifeline; gone when nothing moves
+    // transfer pulse: fades in while ore is moving, three soft beads climbing the Ledge Tether; gone when nothing moves
     if (ln) { const U = ln.userData, w = [strandLoad(t, 0), strandLoad(t, 1)], m1 = twinTick(U.main, t, dt, w); twinTick(U.tailCord, t, dt, w); LG.xl = Math.max(...U.main.userData.strands.map((x) => x.xl)); LG.moving = !!m1; }
     const st2 = document.getElementById('ledgeXferS'); if (st2) { const s = LG.moving ? 'moving ore' : 'idle'; if (st2.textContent !== s) st2.textContent = s; }
     const k = on ? 1 : 0, fl = 0.6 + 0.4 * Math.sin(t * 37) * Math.sin(t * 23); LG.biteL.intensity = k * (0.25 + 0.2 * fl); if (LG.biteGlow) { LG.biteGlow.scale.setScalar(0.85 + 0.3 * fl * k); LG.biteGlow.material.opacity = (0.5 + 0.5 * k * fl) * (ORES[LG.ore].gl + 0.1); }
@@ -1519,7 +1519,7 @@ const CharView = (() => {
   // tap: the vein -> walk to it and mine; the cliff -> walk to its foot, draw the picks and climb to the spot; the deck -> walk there
   function ledgeTap(cx, cy) { if (!LP.on || !LEDGE) return null; cam.updateMatrixWorld(); LEDGE.updateMatrixWorld(true); const r = canvas.getBoundingClientRect(), nd = new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); _ray.setFromCamera(nd, cam);
     const hits = _ray.intersectObject(LEDGE, true).filter((h) => h.object.visible && !h.object.isPoints && !h.object.isLine && h.object.material !== OUT), up = (o, a) => { for (let q = o; q; q = q.parent) if (q === a) return true; return false; }, m = lpMineSpot();
-    let hit = null; // the first hit that decides: the vein, the cliff, the deck; thin things in the way (Lifeline, drill, rigging) are looked through; the tent falls back to the deck plane
+    let hit = null; // the first hit that decides: the vein, the cliff, the deck; thin things in the way (Ledge Tether, drill, rigging) are looked through; the tent falls back to the deck plane
     for (const h of hits) { if ((up(h.object, LG.veinG) && h.point.y < 1.4) || (up(h.object, LG.cliff) && h.point.distanceTo(m.w) < 0.5)) { hit = { x: m.x, z: m.z, mine: true, k: 'vein' }; break; }
       if (up(h.object, LG.cliff)) { const f = lpW2F(h.point); if (f.z < -0.25 || f.z > 0.6 || Math.abs(f.x) > LP.BX + 0.3) continue; /* rock beside, in front of or behind the climbing face (a camera swung into the rock sees its inside): look past it */ /* side rock jutting out beside or in front of the deck: look past it */ hit = f.y < 0.3 ? { x: clamp(f.x, LP.bnd.X0, LP.bnd.X1), z: -0.25, k: 'deck' } : { wall: true, x: clamp(f.x, -LP.BX, LP.BX), y: f.y, k: 'cliff' }; break; }
       if (up(h.object, LG.pf) || up(h.object, LG.tent)) break; }
@@ -1628,7 +1628,7 @@ const CharView = (() => {
   function show(mode) { if (st.explore && typeof Explore !== 'undefined') Explore.exit(); wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; if (st.tool === undefined) { st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; setTool(st.tool, true); } setChar(sex); if (st.gait === undefined) { st.gait = S.gait === 'walk' ? 'walk' : 'run'; document.querySelectorAll('#charClimb [data-gait]').forEach((b) => b.classList.toggle('on', b.dataset.gait === st.gait)); } if (mode !== 'tree' && st.tree) { treeMode(false); setAnim('idle'); } if (mode === 'home') homeMode(true); else if (st.home) { homeMode(false); setAnim('idle'); } if (mode === 'ledge') ledgeMode(true); else if (st.ledge) { ledgeMode(false); setAnim('idle'); } if (mode === 'tree') treeMode(true); resize(); start(); }
   function hide() { if (st.tree) { treeMode(false); setAnim('idle'); } if (st.home) { homeMode(false); setAnim('idle'); } const w = document.getElementById('charWrap'); if (w) w.classList.add('hidden'); st.visible = false; stop(); }
   window.addEventListener('resize', () => { if (running) resize(); });
-  /* ---------- Home: the delver's door in the cliff (Lifeline ports) and the room behind it ---------- */
+  /* ---------- Home: the delver's door in the cliff (Ledge Tether ports) and the room behind it ---------- */
   // frame: door in the front wall plane z = HM.FZ, interior x in [-HM.W/2, HM.W/2], z in [HM.BZ, HM.FZ]; exterior ledge shelf in front (z > HM.FZ)
   const HM = { W: 7.2, BZ: -2.8, FZ: 2.8, H: 2.6, dw: 0.92, dh: 1.55, dx: -1.5, pc: 0.86, ring: 0.3, mode: null, open: 0, ports: null, sel: 'c', g: null, ext: null, room: null, obs: [] };
   const PORTS = ['c', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
@@ -1650,7 +1650,7 @@ const CharView = (() => {
       for (const y of [0.32, h - 0.42]) part(leaf, rbox(0.34, 0.07, 0.01, 0.004), iron, [w - 0.13, y, sz * (th / 2 + 0.008)], null, null, { ink: false }); }
     // iron handle: a back plate + a lever on both faces (latch side, x = 0.12)
     const handle = new THREE.Group(); handle.position.set(0.12, 0.78, 0); leaf.add(handle); for (const sz of [1, -1]) { part(handle, rbox(0.06, 0.2, 0.012, 0.005), iron, [0, 0, sz * (th / 2 + 0.008)], null, null, { ink: false }); part(handle, cyl(0.012, 0.012, 0.11, 8), iron, [0.045, 0.02, sz * (th / 2 + 0.05)], [0, 0, Math.PI / 2]); part(handle, cyl(0.009, 0.009, 0.05, 6), iron, [0, 0.02, sz * (th / 2 + 0.028)], [Math.PI / 2, 0, 0]); } handle.userData.handle = true; g.userData.handle = handle;
-    // ports: centre (brass, glowing blue Lifeline socket) + 8 small rings; exterior padlocks on the locked ones
+    // ports: centre (brass, glowing blue Ledge Tether socket) + 8 small rings; exterior padlocks on the locked ones
     const glowM = new THREE.MeshBasicMaterial({ map: radial('rgba(150,210,255,1)', 'rgba(40,110,255,.55)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }), holeM = toon(0x0d1424), starT = cv(64, 64, (x, w2, h2) => { const gr = x.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, '#5aa2ff'); gr.addColorStop(0.6, '#1a3a9a'); gr.addColorStop(1, '#0a1230'); x.fillStyle = gr; x.fillRect(0, 0, w2, h2); const r = prng(9); for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(200,230,255,${0.4 + r() * 0.6})`; x.fillRect(r() * w2, r() * h2, 1.2, 1.2); } });
     const ports = {}; for (const id of PORTS) { const c = id === 'c', p = portPos(id), R0 = c ? 0.085 : 0.042, pg = new THREE.Group(); pg.position.set(w / 2 + p.x, p.y, 0); leaf.add(pg); pg.userData.port = id;
       for (const sz of [1, -1]) { const f = new THREE.Group(); f.position.z = sz * th / 2; if (sz < 0) f.rotation.y = Math.PI; pg.add(f);
@@ -1661,7 +1661,7 @@ const CharView = (() => {
       if (!c) { const lk = new THREE.Group(); lk.position.z = th / 2 + 0.02; pg.add(lk); part(lk, rbox(0.1, 0.035, 0.012, 0.004), iron, [0, 0.01, 0], null, null, { ink: false }); part(lk, rbox(0.04, 0.036, 0.016, 0.006), toon(0xc09040), [0, -0.035, 0.012]); part(lk, new THREE.TorusGeometry(0.013, 0.004, 6, 14, Math.PI), iron, [0, -0.016, 0.012], null, null, { ink: false }); part(lk, cyl(0.004, 0.004, 0.003, 6).rotateX(Math.PI / 2), toon(0x2a1a0a), [0, -0.038, 0.021], null, null, { ink: false, shadow: false }); pg.userData.lock = lk; }
       ports[id] = pg; }
     g.userData.ports = ports; g.userData.leaf = piv; return g; }
-  // a thick twisted Lifeline cord along a path (strands + glowing core + pulse beads) in the grade's look
+  // a thick twisted Ledge Tether cord along a path (strands + glowing core + pulse beads) in the grade's look
   // the cliff face outside: rock wall with the arched doorway, timber lintel/awning on brackets, a plank shelf to stand on, a lantern
   function makeHomeExt() { const g = new THREE.Group(), r = prng(41), W = 9, Hc = 7, th = 0.24;
     const rock = cv(256, 256, (x, w, h) => { x.fillStyle = '#6e655c'; x.fillRect(0, 0, w, h); for (let i = 0; i < 90; i++) { const cx = r() * w, cy = r() * h, rw = 14 + r() * 34, rh = 10 + r() * 26; x.fillStyle = `rgba(${150 + r() * 40},${140 + r() * 34},${125 + r() * 30},${0.35 + r() * 0.3})`; x.beginPath(); x.ellipse(cx, cy, rw, rh, r() * 0.5, 0, TAU); x.fill(); x.strokeStyle = 'rgba(30,24,20,.55)'; x.lineWidth = 2; x.stroke(); } for (let i = 0; i < 24; i++) { x.fillStyle = 'rgba(110,130,60,.55)'; x.fillRect(r() * w, r() * h, 5, 3); } });
@@ -1749,7 +1749,7 @@ const CharView = (() => {
   function furnishRoom(g) { HM.obs = []; const W = HM.W, r = prng(64), wood = toon(0x6e4426), woodD = toon(0x4e301b), woodL = toon(0x8a5a32), iron = toon(0x45474b), ironD = toon(0x34363a), brass = toon(0xb8873a);
     // vault (2a / 2b / 3): a massive round iron door set in a stone-and-iron collar in the cliff rock. Stepped concentric faces (rim, riveted band,
     // inner plate, hub), a ring of big domed rivets, locking-bolt lugs round the rim, two heavy hinge blocks with pins on the left, a lever handle on
-    // the right, and a thick brass porthole hub in the middle where the Lifeline plugs in. A lantern each side and a warm fill keep it readable.
+    // the right, and a thick brass porthole hub in the middle where the Ledge Tether plugs in. A lantern each side and a warm fill keep it readable.
     { const v = new THREE.Group(); v.position.copy(HMP.vault); v.rotation.y = Math.PI / 2; g.add(v); HM.vault = v; const vI = toon(0x6e7075), vD = toon(0x45474c), vL = toon(0x8a8c90), stn = toon(0x6a645c), rv = toon(0x8a8a86);
       // stone collar: wedge blocks in a ring, an iron frame ring inside it
       for (let i = 0; i < 16; i++) { const a = i / 16 * TAU; part(v, rbox(0.34, 0.2, 0.16, 0.04, 3), toon([0x6a645c, 0x5d5852, 0x726b62, 0x625c55][i % 4]), [Math.cos(a) * 0.98, Math.sin(a) * 0.98, 0.0], [0, 0, a + Math.PI / 2]); }
@@ -1834,8 +1834,8 @@ const CharView = (() => {
     plant(g, V(-W / 2 + 0.45, 0, 0.35), 1.1); plant(g, V(-W / 2 + 0.4, 0, 1.9), 0.95, 1); plant(g, V(W / 2 - 0.4, 0, HM.FZ - 0.35), 0.8);
     for (let i = 0; i < 4; i++) part(g, new THREE.DodecahedronGeometry(0.1 + r() * 0.08, 1), toon(0x6a655e), [-W / 2 + 0.35 + r() * 0.3, 0.06, HM.FZ - 0.5 + r() * 0.3], [r() * 3, r() * 3, 0], [1, 0.7, 1]);
     HM.obs.push({ x: -2.45, z: HM.BZ + 0.2, r: 0.2 }); }
-  // inside, the main Lifeline runs on from the door's centre port across the floor, round the globe table and unbroken into the vault's port
-  // the main Lifeline inside: door -> across the floor -> up the front-left table leg onto the globe's cradle (lineIn), then out of the cradle -> down the back-left leg -> along the floor into the vault port (lineOut)
+  // inside, the main Ledge Tether runs on from the door's centre port across the floor, round the globe table and unbroken into the vault's port
+  // the main Ledge Tether inside: door -> across the floor -> up the front-left table leg onto the globe's cradle (lineIn), then out of the cradle -> down the back-left leg -> along the floor into the vault port (lineOut)
   function globeRoute() { const v = HMP.vault, t = HMP.table, x0 = HM.dx, d = 0.15;
     const a = [V(x0, HM.pc, HM.FZ - 0.08), V(x0, HM.pc - 0.18, HM.FZ - 0.2), V(x0 + 0.05, 0.12, HM.FZ - 0.5), V(x0 + 0.3, 0.06, HM.FZ - 1.1), V(t.x - 0.75, 0.06, t.z + 0.6), V(t.x - 0.3, 0.06, t.z + 0.3), V(t.x - 0.25, 0.3, t.z + 0.25), V(t.x - 0.36, 0.6, t.z + 0.36), V(t.x - 0.37, 0.7, t.z + 0.37), V(t.x - 0.22, 0.68, t.z + 0.22), V(t.x - d, 0.76, t.z + d), V(t.x - 0.12, 0.84, t.z + 0.12)];
     const b = [V(t.x - 0.12, 0.84, t.z - 0.12), V(t.x - d, 0.76, t.z - d), V(t.x - 0.22, 0.68, t.z - 0.22), V(t.x - 0.37, 0.7, t.z - 0.37), V(t.x - 0.36, 0.6, t.z - 0.36), V(t.x - 0.25, 0.3, t.z - 0.25), V(t.x - 0.3, 0.06, t.z - 0.3), V(t.x - 0.8, 0.06, t.z - 0.6), V(-1.4, 0.06, -0.35), V(-2.6, 0.06, -0.7), V(v.x + 0.35, 0.1, v.z + 0.05), V(v.x + 0.22, v.y - 0.3, v.z), V(v.x + 0.18, v.y, v.z)];
@@ -1843,7 +1843,7 @@ const CharView = (() => {
   function mainLinePts() { const R = globeRoute(); return R.a.concat(R.b); }
   // smithing (back wall, centre, as in the concepts): a beehive stone forge on a stepped plinth, an arched brick mouth with an iron door cracked open
   // on glowing embers, a banded stone chimney up through the vault; an anvil on a ringed stump with a hammer, ingots, and a wall rack with a pickaxe,
-  // crossed tools and a coiled Lifeline rope. One skill shown visually: ore -> ingot -> Lifeline, pickaxe or tether (no recipes, no economy)
+  // crossed tools and a coiled Ledge Tether rope. One skill shown visually: ore -> ingot -> Ledge Tether, pickaxe or tether (no recipes, no economy)
   const RACK_PEG_Y = 0.1;
   const SMITH = { furnace: V(-0.7, 0, -2.2), anvil: V(0.72, 0, -1.45), rack: V(0.75, 1.55, -2.8 + 0.03) };
   function furnishSmithing(g) { const r = prng(91), iron = toon(0x3c3e42), ironL = toon(0x5a5d62), wood = toon(0x6e4426), woodD = toon(0x4e301b), bark = toon(0x5a3d24), ring = toon(0xb8936a);
@@ -1925,7 +1925,7 @@ const CharView = (() => {
     { const sh2 = new THREE.Group(); sh2.position.set(SMITH.furnace.x - 1.0, 0.95, HM.BZ + 0.16); g.add(sh2); part(sh2, rbox(0.46, 0.05, 0.26, 0.01), wood, [0, 0, 0]); part(sh2, rbox(0.05, 0.14, 0.2, 0.02), woodD, [-0.15, -0.09, -0.02]); part(sh2, rbox(0.05, 0.14, 0.2, 0.02), woodD, [0.15, -0.09, -0.02]); for (let i = 0; i < 3; i++) part(sh2, new THREE.CylinderGeometry(0.05, 0.07, 0.045, 4, 1).rotateY(Math.PI / 4).scale(1.6, 1, 0.8), toon(ic[i]), [-0.1 + i * 0.1, 0.05, 0.02]); part(sh2, new THREE.CylinderGeometry(0.05, 0.07, 0.045, 4, 1).rotateY(Math.PI / 4).scale(1.6, 1, 0.8), toon(ic[0]), [-0.05, 0.095, 0.02]); }
     for (let i = 0; i < 5; i++) part(g, new THREE.DodecahedronGeometry(0.05 + r() * 0.03, 0), toon([0x6b5a4a, 0xa0703a, 0x7d8a96][i % 3]), [SMITH.furnace.x + 0.75 + r() * 0.25, 0.04, SMITH.furnace.z + 0.55 + r() * 0.2], [r() * 3, r() * 3, 0]);
     { const bk = new THREE.Group(); bk.position.set(SMITH.furnace.x - 1.4, 0, SMITH.furnace.z + 0.75); g.add(bk); part(bk, cyl(0.17, 0.2, 0.3, 14), wood, [0, 0.15, 0]); for (const y of [0.06, 0.24]) part(bk, cyl(0.205, 0.18, 0.025, 14), iron, [0, y, 0]); for (let i = 0; i < 7; i++) part(bk, cyl(0.025, 0.025, 0.36, 6), toon(0x7a5232), [(r() - 0.5) * 0.18, 0.36, (r() - 0.5) * 0.18], [(r() - 0.5) * 0.4, 0, (r() - 0.5) * 0.4]); HM.obs.push({ x: bk.position.x, z: bk.position.z, r: 0.22 }); }
-    // wall rack: pickaxe, crossed tools and a coiled Lifeline rope (the things the smithing makes), a lantern hook
+    // wall rack: pickaxe, crossed tools and a coiled Ledge Tether rope (the things the smithing makes), a lantern hook
     const K = new THREE.Group(); K.position.copy(SMITH.rack); g.add(K); HM.rack = K; part(K, rbox(1.1, 0.12, 0.05, 0.015), woodD, [0, 0.12, 0.03]); HM.rackHang = []; const peg = (x, nm, y = RACK_PEG_Y) => { const m = part(K, cyl(0.014, 0.012, 0.11, 8).rotateX(Math.PI / 2), iron, [x, y, 0.1]); m.userData.peg = nm; part(K, cyl(0.02, 0.02, 0.012, 8).rotateX(Math.PI / 2), iron, [x, y, 0.155], null, null, { ink: false }); return m; };
     const pk = makePickaxe('iron'); const ph = new THREE.Group(); ph.position.set(-0.36, -0.86, 0.085); ph.rotation.set(0, 0, 0.06); K.add(ph); ph.add(pk); pk.rotation.set(0, 0, 0); pk.scale.setScalar(1.0); HM.rackPick = pk;
     // flat to the wall, the head's two arms resting square on two pegs either side of the shaft (seated from the head's own underside, so there's no gap)
@@ -1947,7 +1947,7 @@ const CharView = (() => {
     if (HM.bellowsTop) HM.bellowsTop.rotation.z = 0.06 + 0.05 * Math.max(0, Math.sin(t * 1.3));
     for (const s of HM.sparks || []) { const u = s.userData; u.t += dt; if (u.t > u.life) { const r = Math.random; u.t = 0; u.life = 0.8 + r() * 0.9; s.position.set((r() - 0.5) * 0.3, 0.72 + r() * 0.2, 0.68 + r() * 0.05); u.v.set((r() - 0.5) * 0.25, 0.45 + r() * 0.5, 0.12 + r() * 0.18); } s.position.addScaledVector(u.v, dt); u.v.x += (Math.random() - 0.5) * dt * 0.8; u.v.y -= dt * 0.15; s.material.opacity = Math.max(0, 1 - u.t / u.life); } }
   // the globe table: a crystal sphere on a brass stand (centre rug), a tiny portaledge hanging inside with crackling light; a frayed branch of the
-  // the orb's core: every strand feeding it (both strands of every plugged Lifeline, by tier) blends into twisting, swirling bands of combined colour.
+  // the orb's core: every strand feeding it (both strands of every plugged Ledge Tether, by tier) blends into twisting, swirling bands of combined colour.
   // A shader shell samples a palette of up to 8 strand colours along a twisted, time-advected band coordinate (soft blends between neighbours, bright seams).
   const ORB_VS = 'varying vec3 vP; varying vec3 vN; varying vec3 vV; void main(){ vP = position; vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position, 1.0); vV = -mv.xyz; gl_Position = projectionMatrix * mv; }';
   const ORB_FS = 'uniform vec3 uC[8]; uniform float uN; uniform float uT; uniform float uPh; varying vec3 vP; varying vec3 vN; varying vec3 vV;\n' +
@@ -1958,7 +1958,7 @@ const CharView = (() => {
     ' float lit = 0.55 + 0.6 * (1.0 - fr); vec3 o = c * lit * (0.75 + 0.25 * seam) + vec3(0.18) * pow(1.0 - seam, 3.0) * (1.0 - fr); gl_FragColor = vec4(o, 0.92 - 0.5 * fr); }';
   function orbShell(rad, ph) { const u = { uC: { value: Array.from({ length: 8 }, () => new THREE.Color(0x5c9dff)) }, uN: { value: 1 }, uT: { value: 0 }, uPh: { value: ph } };
     const m = new THREE.Mesh(new THREE.SphereGeometry(rad, 40, 28), new THREE.ShaderMaterial({ uniforms: u, vertexShader: ORB_VS, fragmentShader: ORB_FS, transparent: true, depthWrite: false, blending: ph ? THREE.AdditiveBlending : THREE.NormalBlending })); m.renderOrder = ph ? 3 : 2; m.userData.orb = true; return m; }
-  // the strands feeding the orb: both strands of every plugged Lifeline (main first, then the extra ports in order), by tier colour
+  // the strands feeding the orb: both strands of every plugged Ledge Tether (main first, then the extra ports in order), by tier colour
   function orbStrands() { const hs = homeState(), o = []; for (const id of PORTS) { const P2 = hs.ports && hs.ports[id]; if (!P2) continue; const tw = twinOf(P2); for (const w of ['a', 'b']) o.push(LGRADES[tw[w].grade] ? tw[w].grade : 'bronze'); } return o; }
   function orbColGeo(geo) { geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count * 3), 3)); return geo; }
   // paint a tube's vertex colours: position along the tube (u) + time scroll -> a smooth cycle through the strand colours (rep = how many full cycles along the tube)
@@ -1969,7 +1969,7 @@ const CharView = (() => {
     cols.forEach((c) => mean.add(c)); mean.multiplyScalar(1 / cols.length); HM.orbCols = cols.map((c) => c.getHex()); HM.orbMean = mean.getHex();
     HM.orbColsC = cols.map((c) => c.clone().lerp(new THREE.Color(0xffffff), 0.12)); HM.globeHalo.material.color.copy(mean); HM.globeLight.color.copy(mean).lerp(new THREE.Color(0xffffff), 0.2);
     for (const b of HM.bolts || []) b.material.color.copy(cols[Math.floor(Math.random() * cols.length)]).lerp(new THREE.Color(0xffffff), 0.45); }
-  // main Lifeline climbs a table leg and threads in and out of the globe while the main line carries on into the vault. Tap it: travel to the Hanging Camp
+  // main Ledge Tether climbs a table leg and threads in and out of the globe while the main line carries on into the vault. Tap it: travel to the Hanging Camp
   function furnishGlobe(g) { const t = HMP.table, wood = toon(0x6e4426), woodD = toon(0x52301a), brass = toon(0xc9963e), brassD = toon(0x9a6c2a), r = prng(23);
     const T = new THREE.Group(); T.position.set(t.x, 0, t.z); g.add(T); HM.table = T;
     { const tp = plankTex(51, [124, 80, 46]); tp.repeat.set(0.5, 0.5); part(T, cyl(0.5, 0.5, 0.09, 32), toon(0xffffff, tp), [0, 0.6, 0]); } part(T, cyl(0.51, 0.51, 0.025, 32), woodD, [0, 0.548, 0], null, null, { ink: false }); part(T, cyl(0.36, 0.36, 0.08, 24, true), woodD, [0, 0.5, 0]);
@@ -2008,7 +2008,7 @@ const CharView = (() => {
     for (const [side, e] of [['in', ea], ['out', eb]]) for (let i = 0; i < NF; i++) { const L2 = LS[i % LS.length], ph = Math.atan2(e.z - C0.z, e.x - C0.x) + (i / (NF - 1) - 0.5) * 2.6, rr = 0.19 + rp() * 0.08, yy = (rp() - 0.5) * 0.24,
         w = V(C0.x + Math.cos(ph) * rr, C0.y + yy, C0.z + Math.sin(ph) * rr), up = e.clone().add(V((rp() - 0.5) * 0.04, 0.05, (rp() - 0.5) * 0.04)), pts = [e.clone(), up, w, C0.clone().add(V((rp() - 0.5) * 0.04, (rp() - 0.5) * 0.04, (rp() - 0.5) * 0.04)), C0.clone()];
       const cu = new THREE.CatmullRomCurve3(side === 'in' ? pts : pts.reverse()), N = 40, geo = new THREE.TubeGeometry(cu, N, 0.0045 + rp() * 0.003, 5, false), P = geo.attributes.position, col = new Float32Array(P.count * 4), c = new THREE.Color(L2.col).lerp(new THREE.Color(L2.core), 0.3);
-      for (let k = 0; k < P.count; k++) { const u = Math.floor(k / 6) / N, uc = side === 'in' ? u : 1 - u, al = Math.min(1, (1 - uc) / 0.4) * 0.6 * Math.min(1, 12 / NF) * Math.min(1, (1 - uc) / 0.55 + 0.25); /* fainter as they crowd in, so many Lifelines don't white out the core */ col.set([c.r, c.g, c.b, al], k * 4); } geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
+      for (let k = 0; k < P.count; k++) { const u = Math.floor(k / 6) / N, uc = side === 'in' ? u : 1 - u, al = Math.min(1, (1 - uc) / 0.4) * 0.6 * Math.min(1, 12 / NF) * Math.min(1, (1 - uc) / 0.55 + 0.25); /* fainter as they crowd in, so many Ledge Tethers don't white out the core */ col.set([c.r, c.g, c.b, al], k * 4); } geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
       const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); W.add(m); const bd = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), new THREE.MeshBasicMaterial({ color: new THREE.Color(L2.en).lerp(new THREE.Color(0xffffff), 0.4), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); W.add(bd);
       HM.fibres.push({ m, cu, bd, side, u: rp() }); }
     for (const e of [ea, eb]) part(W, cyl(0.04, 0.035, 0.04, 14), toon(0xc9963e), [e.x, e.y - 0.01, e.z], [0, 0, 0]); if (HM.table) W.traverse((o) => { o.userData.tap = HM.table.userData.tap; }); }
@@ -2039,7 +2039,7 @@ const CharView = (() => {
     { id: 'ores', title: '⛏️ Ores', items: () => Object.keys(ORES).map((k) => ({ k, name: ORES[k].name, sub: 'feeds ' + ORES[k].feeds, icon: vIcon('ore', k, ORES[k].vein, ORES[k].crys), n: k === 'iron' ? (S.res && S.res.iron) || 0 : k === 'coal' ? (S.res && S.res.coal) || 0 : vaultState().ores[k] || 0 })) },
     { id: 'ingots', title: '🧱 Ingots', items: () => ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'].map((k) => ({ k, name: (k === 'onyx' ? 'Ember Onyx' : cap(k)) + ' ingot', icon: vIcon('ingot', k, (LGRADES[k] || {}).col || 0x9aa3ab), n: k === 'steel' ? (S.res && S.res.steel) || 0 : vaultState().ingots[k] || 0 })) },
     { id: 'gear', title: '🎒 Gear', items: () => { const o = [['pick', '⛏️', 'Pickaxe', GRADES[S.pickGrade || 'stick']], ['climb', '🧗', 'Climbing picks', CGRADES[S.climbGrade || 'stone']], ['tether', '🪢', 'Tether', TGRADES[S.tetherGrade || 'regular']]].map(([k, e, nm, G]) => ({ k, emoji: e, name: G && /axe$/i.test(G.name) ? G.name : (G ? G.name + ' ' : '') + nm, sub: 'equipped', n: 1 })); for (const k in vaultState().gear) if (vaultState().gear[k] > 0) { const it = typeof Craft !== 'undefined' && Craft.ITEMS['tool:' + k]; o.push({ k, emoji: it ? it.emoji : '📦', name: it ? it.name : cap(k), n: vaultState().gear[k] }); } return o; } },
-    { id: 'lines', title: '🔗 Tethers & Lifelines', items: () => { const hs = homeState(), o = []; for (const id of PORTS) { const P2 = hs.ports && hs.ports[id]; if (!P2) continue; const tw = twinOf(P2); o.push({ k: id, name: (id === 'c' ? 'Main' : 'Port ' + id.slice(1)) + ' Lifeline', sub: cap(tw.a.grade) + ' + ' + cap(tw.b.grade) + ' · plugged in', icon: vIcon('line', tw.a.grade + tw.b.grade, (LGRADES[tw.a.grade] || {}).col || 0x888888, (LGRADES[tw.b.grade] || {}).col || 0x888888), n: 1 }); } for (const k in vaultState().lines) if (vaultState().lines[k] > 0) o.push({ k, emoji: '🪢', name: cap(k) + ' Lifeline (spare)', n: vaultState().lines[k] }); return o; } },
+    { id: 'lines', title: '🔗 Tethers & Ledge Tethers', items: () => { const hs = homeState(), o = []; for (const id of PORTS) { const P2 = hs.ports && hs.ports[id]; if (!P2) continue; const tw = twinOf(P2); o.push({ k: id, name: (id === 'c' ? 'Main' : 'Port ' + id.slice(1)) + ' Ledge Tether', sub: cap(tw.a.grade) + ' + ' + cap(tw.b.grade) + ' · plugged in', icon: vIcon('line', tw.a.grade + tw.b.grade, (LGRADES[tw.a.grade] || {}).col || 0x888888, (LGRADES[tw.b.grade] || {}).col || 0x888888), n: 1 }); } for (const k in vaultState().lines) if (vaultState().lines[k] > 0) o.push({ k, emoji: '🪢', name: cap(k) + ' Ledge Tether (spare)', n: vaultState().lines[k] }); return o; } },
   ];
   function vaultHTML() { const esc2 = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])), fmt = (n) => (n >= 1000 ? (n / 1000).toFixed(n >= 1e4 ? 0 : 1) + 'k' : String(Math.floor(n)));
     let h = '<div class="vaultp"><div class="row between"><h2>🔒 Vault</h2><span class="tag">Ledge safe</span></div><div class="dim">Everything stored in your Ledge. Ores you have not mined yet read 0.</div>';
@@ -2049,8 +2049,8 @@ const CharView = (() => {
     return h + (typeof Craft !== 'undefined' ? '<button class="btn alt" data-cx="xfer">🎒 Backpack ⇄ Vault</button>' : '') + '<button class="btn" data-vclose>Close</button></div>'; }
   function openVault() { if (typeof openModal !== 'function') return false; vaultState(); openModal(vaultHTML(), 'vault'); const b = document.querySelector('#modalBody [data-vclose]'); if (b) b.addEventListener('click', () => (typeof closeModal === 'function' ? closeModal() : null)); HM.vaultOpen = (HM.vaultOpen || 0) + 1; st.lastInput = clk; return true; }
   function makeHome() { const g = new THREE.Group(); g.name = 'home'; HM.room = makeRoom(); furnishRoom(HM.room); furnishSmithing(HM.room); furnishGlobe(HM.room);  g.add(HM.room); HM.ext = makeHomeExt(); g.add(HM.ext); HM.cords = new THREE.Group(); g.add(HM.cords); HM.tw = twinOf(S && (S.homeStrands || (LGRADES[S.homeLine] ? { grade: S.homeLine, dir: 'in' } : null)), { a: { grade: 'lumen', dir: 'to' }, b: { grade: 'lumen', dir: 'from' } }); refreshPorts(); return g; }
-  // ports: locks on the 8 small ones until unlocked; plugged Lifelines get a brass plug and a cord (outside: down off the shelf; inside, the centre port's line runs to the vault)
-  // rounded corners for a polyline route (exterior Lifeline cords)
+  // ports: locks on the 8 small ones until unlocked; plugged Ledge Tethers get a brass plug and a cord (outside: down off the shelf; inside, the centre port's line runs to the vault)
+  // rounded corners for a polyline route (exterior Ledge Tether cords)
   function rounded(pts, r = 0.05) { const o = [pts[0]]; for (let i = 1; i < pts.length - 1; i++) { const a = pts[i - 1], b = pts[i], c = pts[i + 1], d1 = b.clone().sub(a), d2 = c.clone().sub(b), r1 = Math.min(r, d1.length() * 0.45), r2 = Math.min(r, d2.length() * 0.45); d1.normalize(); d2.normalize(); o.push(b.clone().addScaledVector(d1, -r1), b.clone().addScaledVector(d1, -r1 * 0.3).addScaledVector(d2, r2 * 0.3), b.clone().addScaledVector(d2, r2)); } o.push(pts[pts.length - 1]); return o; }
   // every cord leaves its port straight out (perpendicular to the door) to its own stand-off plane, drops plumb down the door face like the main
   // one, and near the threshold eases into its own floor lane, then runs along the shelf in parallel and over the edge. Stand-offs are layered so a
@@ -2067,12 +2067,12 @@ const CharView = (() => {
     }
     insideLines(hs);
     hs.ports && (HM.n = Object.keys(hs.ports).length); homeInfo(); }
-  // inside the Ledge. Main line alone: door -> table -> globe -> vault as before. With extra ports plugged, every extra Lifeline comes in through the
-  // door too: each drops from its port down to the floor and joins the main line where it lands, and from there all the strands (2 per Lifeline,
-  // each in its tier colour) run on twined into one big braided Lifeline - up the table, unravelling into the globe, re-forming and on to the vault.
-  // Its thickness grows with the number of Lifelines in it.
+  // inside the Ledge. Main line alone: door -> table -> globe -> vault as before. With extra ports plugged, every extra Ledge Tether comes in through the
+  // door too: each drops from its port down to the floor and joins the main line where it lands, and from there all the strands (2 per Ledge Tether,
+  // each in its tier colour) run on twined into one big braided Ledge Tether - up the table, unravelling into the globe, re-forming and on to the vault.
+  // Its thickness grows with the number of Ledge Tethers in it.
   function braidR(list, k = 2.4) { const NS = list.length, sh = NS > 2 ? Math.max(0.6, 1 - 0.03 * (NS - 2)) : 1, sm = Math.max(...list.map((x) => (LGRADES[x.grade] || LGRADES.bronze).r * k * sh)); return NS > 2 ? sm / Math.sin(Math.PI / NS) * BRAID_GAP + sm : sm * 1.95; }
-  // the Lifeline bundle's axis from the door hub to the floor: out of the hub, a turn down, straight down the door, then one generous bend (radius RB) onto the floor
+  // the Ledge Tether bundle's axis from the door hub to the floor: out of the hub, a turn down, straight down the door, then one generous bend (radius RB) onto the floor
   // heading for Mf (arriving along t0) - points only, the caller lays strands round it
   function doorAxis(D0, Tg, yF, RB = 0.3, Rt = 0.18) { const zo = D0.z - 0.32, cz = zo - Rt, col = V(D0.x, 0, cz), h = V(Tg.x - col.x, 0, Tg.z - col.z); if (h.lengthSq() < 1e-6) h.set(0, 0, -1); h.normalize();
     const out = [D0.clone(), V(D0.x, D0.y, D0.z - 0.1), V(D0.x, D0.y, D0.z - 0.21), V(D0.x, D0.y, zo)]; for (let k = 1; k <= 6; k++) { const a = k / 6 * Math.PI / 2; out.push(V(D0.x, D0.y - Rt * (1 - Math.cos(a)), zo - Rt * Math.sin(a))); }
@@ -2082,7 +2082,7 @@ const CharView = (() => {
     const GR = globeRoute(), pinAt = (id, big) => { const pp = portPos(id), pin = new THREE.Group(); pin.position.set(HM.dx + pp.x, pp.y, HM.FZ - 0.06); HM.cords.add(pin); part(pin, cyl(big ? 0.07 : 0.035, big ? 0.06 : 0.03, 0.08, 16).rotateX(-Math.PI / 2), toon(0xb07a3a), [0, 0, -0.03]); return pin; };
     if (main) HM.plugIn = pinAt('c', true);
     if (!extras.length) { const P2 = main, F3 = GR.a[3], t3 = GR.a[4].clone().sub(F3).setY(0).normalize(), yT = Math.max(0.06, (LGRADES[P2.a.grade] || LGRADES.bronze).r * 2.4 * 2 + 0.005), ic = twinCord(HM.cords, doorAxis(GR.a[0], GR.a[4], yT, 0.3).concat(GR.a.slice(4).map((q) => (q.y < yT ? V(q.x, yT, q.z) : q))), P2, 2.4, 1); ic.userData.port = 'c'; ic.userData.seed = 0; ic.userData.inside = true; ic.userData.pts = mainLinePts(); HM.cordList.push(ic); HM.mainCord = ic; const oc = twinCord(HM.cords, GR.b, P2, 2.4, 1); oc.userData.port = 'c'; oc.userData.seed = 0.5; oc.userData.inside = true; HM.cordList.push(oc); HM.mainOut = oc; globeWeave(P2); return; }
-    // ONE continuous lay: every Lifeline's twin leaves its port and gathers into a single bundle round one axis; the bundle comes out of the door hub, turns down, falls
+    // ONE continuous lay: every Ledge Tether's twin leaves its port and gathers into a single bundle round one axis; the bundle comes out of the door hub, turns down, falls
     // straight down the door and bends onto the floor through a generous radius; there, over a transition length LT, each twin's pitch, radius and phase blend (C2-smooth
     // weights) into its two strands' helix slots round the big rope, which carries on to the globe - no seam, kink, gap, overlap or gauge step anywhere
     const MI = 3, M = GR.a[MI].clone(), t0 = GR.a[MI + 1].clone().sub(M).setY(0).normalize(), D0 = V(HM.dx, HM.pc, HM.FZ - 0.08), all = (main ? ['c'] : []).concat(extras);
@@ -2114,17 +2114,17 @@ const CharView = (() => {
     const iC = Math.min(iE, AX.S.findIndex((v) => v >= sA + 0.75 * LT)), bi = braidCord(HM.cords, AX.P.slice(iC), list.map((x, j) => Object.assign({}, x, { path: AX.P.slice(iE).map((_, q) => braidAt(j, iE + q)), coreFrom: 0.001, noTube: true })), 2.4, 1);
     bi.userData.joinLT = LT; bi.userData.port = 'c'; bi.userData.inside = true; bi.userData.braid = true; bi.userData.pts = mainLinePts(); HM.cordList.push(bi); HM.mainCord = HM.bigBraid = bi; HM.joinAxis = AX; HM.joinIdx = { iA, iE, iC };
     const bo = braidCord(HM.cords, GR.b.map((q, i) => (i < GR.b.length - 2 ? lift(q) : q.clone())), list, 2.4, 1); bo.userData.port = 'c'; bo.userData.inside = true; bo.userData.braid = true; HM.cordList.push(bo); HM.mainOut = bo; globeWeave(list); }
-  function homeInfo() { const hs = homeState(), e = document.getElementById('homeLines'); if (!e) return; const v = Object.values(hs.ports).map((p) => twinOf(p)), sv = v.flatMap((p) => [p.a, p.b]), i = sv.filter((x) => x.dir === 'to').length, o = sv.length - i; e.textContent = v.length ? `${v.length} × 2 strands · ${i} to Ledge · ${o} from` : 'no Lifelines plugged'; const m = document.getElementById('homeMode'); if (m) m.textContent = HM.mode === 'in' ? 'inside' : 'at the door'; const sm = document.querySelector('#homeInfo small'); if (sm) { const t2 = HM.mode === 'in' ? 'Your Ledge, inside the cliff. Drag to orbit · tap to walk' : HM.menu ? 'Ledge door: enter, or manage the Lifeline ports' : 'Your Ledge in the cliff. Tap the door to enter or manage Lifelines · drag to orbit'; if (sm.textContent !== t2) sm.textContent = t2; } }
-  function plugPort(id, a, b) { const hs = homeState(); id = id || HM.sel; const i = PORTS.indexOf(id); if (i < 0) return false; if (id !== 'c' && i - 1 >= hs.open) return false; if (hs.ports[id]) return false; // one Lifeline per port
+  function homeInfo() { const hs = homeState(), e = document.getElementById('homeLines'); if (!e) return; const v = Object.values(hs.ports).map((p) => twinOf(p)), sv = v.flatMap((p) => [p.a, p.b]), i = sv.filter((x) => x.dir === 'to').length, o = sv.length - i; e.textContent = v.length ? `${v.length} × 2 strands · ${i} to Ledge · ${o} from` : 'no Ledge Tethers plugged'; const m = document.getElementById('homeMode'); if (m) m.textContent = HM.mode === 'in' ? 'inside' : 'at the door'; const sm = document.querySelector('#homeInfo small'); if (sm) { const t2 = HM.mode === 'in' ? 'Your Ledge, inside the cliff. Drag to orbit · tap to walk' : HM.menu ? 'Ledge door: enter, or manage the Ledge Tether ports' : 'Your Ledge in the cliff. Tap the door to enter or manage Ledge Tethers · drag to orbit'; if (sm.textContent !== t2) sm.textContent = t2; } }
+  function plugPort(id, a, b) { const hs = homeState(); id = id || HM.sel; const i = PORTS.indexOf(id); if (i < 0) return false; if (id !== 'c' && i - 1 >= hs.open) return false; if (hs.ports[id]) return false; // one Ledge Tether per port
     hs.ports[id] = typeof a === 'string' ? twinOf({ grade: a, dir: b }) : a && a.a ? twinOf(a) : a && b ? twinOf({ a, b }) : twinOf(HM.tw); if (typeof save === 'function') save(); refreshPorts(); homeMark(); return true; }
   function unplugPort(id) { const hs = homeState(); id = id || HM.sel; if (!hs.ports[id]) return false; delete hs.ports[id]; if (typeof save === 'function') save(); refreshPorts(); homeMark(); return true; }
-  // Strand A / B selectors: re-string the selected port's Lifeline live if one is plugged in, otherwise set the pair to plug in next
+  // Strand A / B selectors: re-string the selected port's Ledge Tether live if one is plugged in, otherwise set the pair to plug in next
   function setHomeStrand(w, ch) { const hs = homeState(), P2 = hs.ports[HM.sel]; w = w === 'b' ? 'b' : 'a'; if (P2) { const t = twinOf(P2); Object.assign(t[w], ch); hs.ports[HM.sel] = t; refreshPorts(); } else { Object.assign(HM.tw[w], ch); HM.tw = twinOf(HM.tw); if (typeof S !== 'undefined' && S) { S.homeStrands = HM.tw; delete S.homeLine; } } if (typeof save === 'function') save(); homeMark(); }
   function unlockPort() { const hs = homeState(); if (hs.open >= 8) return false; hs.open++; if (typeof save === 'function') save(); refreshPorts(); homeUI(true); return true; }
   // walking: the shared ground walker with the room's bounds and furniture as round obstacles
   function homeWalker(x, z, face) { st.gnd = { home: true, x, z, face, mv: 0, back: 0, bnd: HM.mode === 'in' ? { X0: -HM.W / 2 + 0.35, X1: HM.W / 2 - 0.35, Z0: HM.BZ + 0.4, Z1: HM.FZ - 0.4 } : { X0: HM.dx - 1.05, X1: HM.dx + 1.05, Z0: HM.FZ + 0.32, Z1: HM.FZ + 0.82 }, obs: HM.mode === 'in' ? HM.obs : [] }; }
   function setHomeMode(m) { HM.mode = m === 'in' ? 'in' : 'door'; HM.ext.visible = HM.mode === 'door'; if (HM.mode === 'in') { homeWalker(HM.dx, HM.FZ - 0.75, Math.PI); Object.assign(st.orb, { az: 0.18, el: 0.75, d: 12 }); } else { homeWalker(HM.dx + 0.85, HM.FZ + 0.75, Math.PI); Object.assign(st.orb, { az: 0.3, el: 0.16, d: 3.9 }); } HM.open = 0; HM.anim = null; HM.menu = false; homeUI(true); doorMenu(false); }
-  // the door menu: hidden until the door (or one of its ports) is tapped; Enter Ledge, Lifeline ports (plug/unplug, unlock upgrade, type, flow)
+  // the door menu: hidden until the door (or one of its ports) is tapped; Enter Ledge, Ledge Tether ports (plug/unplug, unlock upgrade, type, flow)
   function doorMenu(on) { HM.menu = !!on && HM.mode === 'door'; const box = document.getElementById('homeCtl'); if (box) box.classList.toggle('shut', HM.mode === 'door' && !HM.menu); homeMark(); homeInfo(); }
   // Enter Ledge: she walks up to the shut door, the view fades out and back in inside (the door never swings open)
   function enterLedge() { if (HM.mode !== 'door' || HM.anim) return false; const G = st.gnd; doorMenu(false); HM.anim = { k: 'go', t: 0 }; G.bnd = { X0: -9, X1: 9, Z0: HM.FZ - 1, Z1: HM.FZ + 1 }; G.goal = { x: HM.dx, z: HM.FZ + 0.4, done: () => { HM.anim = { k: 'fade', t: 0, to: 'in' }; } }; return true; }
@@ -2142,12 +2142,12 @@ const CharView = (() => {
   function homeMark() { const box = document.getElementById('homeCtl'); if (!box) return; const hs = homeState(); for (const b of box.querySelectorAll('button[data-v]')) { const k = b.parentNode.dataset.k, v = b.dataset.v; let on = false, dis = false;
       if (k === 'port') { const i = PORTS.indexOf(v); on = v === HM.sel; dis = v !== 'c' && i - 1 >= hs.open; b.classList.toggle('full', !!hs.ports[v]); } else if (/^[ld][ab]$/.test(k)) { const tw = hs.ports[HM.sel] ? twinOf(hs.ports[HM.sel]) : HM.tw; on = v === tw[k[1]][k[0] === 'l' ? 'grade' : 'dir']; } else if (k === 'dir') on = v === HM.dir; else if (k === 'xfer') on = v === LG.xfer;
       b.classList.toggle('on', on); b.classList.toggle('dis', dis); }
-    const pb = box.querySelector('[data-v=plug]'); if (pb) pb.textContent = hs.ports[HM.sel] ? 'Unplug Lifeline' : 'Plug in Lifeline'; }
+    const pb = box.querySelector('[data-v=plug]'); if (pb) pb.textContent = hs.ports[HM.sel] ? 'Unplug Ledge Tether' : 'Plug in Ledge Tether'; }
   function homeUI(force) { const box = document.getElementById('homeCtl'); if (!box) return; if (box.dataset.m === HM.mode && !force) return homeMark(); box.dataset.m = HM.mode; const hx = (c) => '#' + c.toString(16).padStart(6, '0'), hs = homeState();
     const row = (k, label, items) => `<div class="lrow"><b>${label}</b><div class="chips" data-k="${k}">${items.map(([v, n, c]) => `<button data-v="${v}"${c !== undefined ? ` style="--sw:${hx(c)}"` : ''}>${c !== undefined ? '<i></i>' : ''}${n}</button>`).join('')}</div></div>`;
     const strandRow = (w, label) => `<div class="lrow"><b>${label}</b><div class="chips dirs" data-k="d${w}"><button data-v="to">To Ledge</button><button data-v="from">From Ledge</button></div><div class="chips" data-k="l${w}">${DTIERS.map((k) => `<button data-v="${k}" style="--sw:${hx(LGRADES[k].col)}"><i></i>${GRADES[k].name}</button>`).join('')}</div></div>`;
     box.innerHTML = HM.mode === 'in' ? row('act', 'Ledge', [['out', 'Go outside']].concat(HM.extraActs || [])) + row('xfer', 'Transfer', [['auto', 'Auto'], ['on', 'On'], ['off', 'Off']])
-      : '<div class="dhead"><b>Ledge door</b><button data-v="close" title="Close">✕</button></div>' + row('act', 'Door', [['enter', 'Enter Ledge'], ['plug', 'Plug in Lifeline'], ['unlock', 'Upgrade: unlock a port']]) + row('port', 'Port', PORTS.map((id, i) => [id, id === 'c' ? 'Main' : (i - 1 >= hs.open ? '🔒' : '') + i])) + strandRow('a', 'Strand A') + strandRow('b', 'Strand B');
+      : '<div class="dhead"><b>Ledge door</b><button data-v="close" title="Close">✕</button></div>' + row('act', 'Door', [['enter', 'Enter Ledge'], ['plug', 'Plug in Ledge Tether'], ['unlock', 'Upgrade: unlock a port']]) + row('port', 'Port', PORTS.map((id, i) => [id, id === 'c' ? 'Main' : (i - 1 >= hs.open ? '🔒' : '') + i])) + strandRow('a', 'Strand A') + strandRow('b', 'Strand B');
     homeMark(); }
   function homeMode(on) { if (!R) return; if (!!on === !!st.home) return; if (!on) homeLights(false); /* the UI re-renders call show('home') every tick: never reset the camera, walker or panel while already home */ if (on && !HM.g) { HM.g = makeHome(); scene.add(HM.g); HM.bg = cv(8, 256, (g2, w, h) => { const gr = g2.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f3dcb4'); gr.addColorStop(0.55, '#e2b987'); gr.addColorStop(1, '#a9825e'); g2.fillStyle = gr; g2.fillRect(0, 0, w, h); }); HM.bg0 = scene.background;
       const box = document.getElementById('homeCtl'); if (box && !box.dataset.ok) { box.dataset.ok = 1; box.addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (!b || b.classList.contains('dis')) return; const k = b.parentNode.dataset.k || '', v = b.dataset.v;
@@ -2188,7 +2188,7 @@ const CharView = (() => {
   // the travel orb's destination picker: only after Wren walks up to it
   const ORB_DEST = [['home', '🏠', 'The Ledge', 'your home in the cliff'], ['camp', '⛺', 'Silverseam portaledge', 'Hanging Camp at the mithril vein'], ['tree', '🌳', 'Inside the Lumen Tree', 'the Lumen Crystal and the Hollow hall'], ['city', '🗺️', 'Rim City', 'the map of the Hollow']];
   function orbPicker() { if (typeof openModal !== 'function') return false; HM.orbPick = (HM.orbPick || 0) + 1; const here = 'home';
-    openModal(`<div class="cxp orbp"><div class="row between"><h2>🌐 Travel orb</h2><span class="tag">choose a destination</span></div><div class="dim">The orb carries you anywhere a Lifeline has been tied.</div><div class="card cxl">${ORB_DEST.map(([k, e, n, s]) => `<div class="cxr"><span class="cxi" style="--c:#5fd6e8">${e}</span><span class="cxn">${n}<small>${s}</small></span><button class="btn sm ${k === here ? 'ghost' : 'alt'}" data-orb="${k}" ${k === here ? 'disabled' : ''}>${k === here ? 'You are here' : 'Travel'}</button></div>`).join('')}</div><button class="btn ghost" data-orb="close">Close</button></div>`, 'orb');
+    openModal(`<div class="cxp orbp"><div class="row between"><h2>🌐 Travel orb</h2><span class="tag">choose a destination</span></div><div class="dim">The orb carries you anywhere a Ledge Tether has been tied.</div><div class="card cxl">${ORB_DEST.map(([k, e, n, s]) => `<div class="cxr"><span class="cxi" style="--c:#5fd6e8">${e}</span><span class="cxn">${n}<small>${s}</small></span><button class="btn sm ${k === here ? 'ghost' : 'alt'}" data-orb="${k}" ${k === here ? 'disabled' : ''}>${k === here ? 'You are here' : 'Travel'}</button></div>`).join('')}</div><button class="btn ghost" data-orb="close">Close</button></div>`, 'orb');
     document.querySelectorAll('#modalBody [data-orb]').forEach((b) => b.addEventListener('click', () => { const k = b.dataset.orb; if (typeof closeModalQuiet === 'function') closeModalQuiet(); if (k === 'close') return; HM.travel = k; if (typeof setTab === 'function') setTab(k === 'camp' ? 'ledge' : k); })); return true; }
   function homeTap(cx, cy) { cam.updateMatrixWorld(); HM.g.updateMatrixWorld(true); const r = canvas.getBoundingClientRect(), nd = new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); _ray.setFromCamera(nd, cam); const hits = _ray.intersectObject(HM.g, true);
     for (const h of hits) { let vis = true; for (let q = h.object; q && q !== HM.g; q = q.parent) if (!q.visible) vis = false; if (!vis) continue; let o = h.object; while (o && o !== HM.g) { if (o.userData.tap) return o.userData.tap(), true; if (HM.mode === 'door' && (o.userData.port || o.userData.handle || o === HM.door)) { if (o.userData.port) HM.sel = o.userData.port; doorMenu(true); return true; } o = o.parent; } let inC = false; for (let q = h.object; q; q = q.parent) if (q === HM.cords) inC = true; if (h.object.visible && !inC) break; }
