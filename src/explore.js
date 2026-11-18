@@ -5,10 +5,8 @@ const Explore = (() => {
   const SLOPE_WALK = 0.62, SLOPE_CLIMB = 3.0, FACE_MAX = 420; // walkable under ~32 deg; steeper rock up to ~72 deg is climbable if the face is under ~105 m tall
   // sturdy timber-truss bridges on stone abutments across the clefts that break the summit into three (ends on solid ground, both lips)
   const BRIDGES = [
-    { id: 'north', name: 'North Cleft Bridge', a: [800, -3596], b: [1008, -3540] },
-    { id: 'east', name: 'East Cleft Bridge', a: [3740, -132], b: [3620, -348] },
     { id: 'south', name: 'South Cleft Bridge', a: [496, 5726], b: [704, 5650] },
-    { id: 'rim', name: 'Rim Crevice Bridge', a: [600, -2852], b: [884, -2852] }, // carries the rim path over the head of the climbing crevice
+    // (the north and east clefts and the head of the rim crevice are already spanned by the Lumen Tree's great roots, which she climbs over - no bridge there)
   ];
   const DW = 18; // deck width (4.5 m)
   const NV = { built: false };
