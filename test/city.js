@@ -107,6 +107,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await p.evaluate(() => closeModalQuiet());
   // the outdoor Exchange is gone from the map (the Lumen Tree is the commune now)
   ok(await p.evaluate(() => !W.exchange && !W.civic.some((c) => c.type === 'exchange')), 'no outdoor Exchange on the map');
+  // main map: the Grand Tree's bark (trunk, roots and the lips round the great door) is the hand-made plate bark - deep dark furrows, lit raised plates, many plate tones
+  { const bk = await p.evaluate(() => { const X = M3.hwx, m = X && X.barkMat && X.barkMat.map; if (!m || !m.image) return null; const im = m.image, d = im.getContext('2d').getImageData(0, 0, im.width, im.height).data; let dark = 0, lit = 0, n = 0; const tones = new Set();
+      for (let k = 0; k < d.length; k += 4 * 53) { const l = d[k] + d[k + 1] + d[k + 2]; n++; if (l < 110) dark++; if (l > 300) lit++; tones.add(Math.round(d[k] / Math.max(1, d[k + 2]) * 5)); } return { w: im.width, h: im.height, dark: +(dark / n).toFixed(3), lit: +(lit / n).toFixed(3), tones: tones.size }; });
+    ok(bk && bk.dark > 0.06 && bk.lit > 0.05 && bk.tones >= 4, 'main map: the Grand Tree bark round the great door is hand-made plate bark - deep furrows, lit raised plates, varied plate tones (' + JSON.stringify(bk) + ')'); }
   // the Lumen Tree's great door: tapping it walks you straight inside (the tree interior view), the Outside button brings you back
   { const D = await p.evaluate(() => { const D = GRAND.door; if (!D) return null; const T = W.heartwood, o = T.in + Math.PI; CityMap.flyTo(D.x + Math.cos(o) * 900, D.y + Math.sin(o) * 900, 0.25, true); CityMap.cam.rot = Math.atan2(Math.cos(o), Math.sin(o)); CityMap.cam.tilt = 35; return { x: D.x, y: D.y, up: D.up, h: D.hgt }; });
     ok(!!D, 'the Lumen Tree has its great door'); if (D) { await p.waitForTimeout(1500); await p.evaluate((D) => { closeModalQuiet(); CityMap.handleTap(...CityMap.w2sUp(D.x, D.y, D.up + D.h * 0.4)); }, D); await p.waitForTimeout(400);
@@ -145,7 +149,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   { const a0 = await p.evaluate(() => CharView.st.orb.az); const bx = await p.locator('#charCanvas').boundingBox(); await p.mouse.move(bx.x + bx.width / 2, bx.y + bx.height / 2); await p.mouse.down(); await p.mouse.move(bx.x + bx.width / 2 + 80, bx.y + bx.height / 2, { steps: 4 }); await p.mouse.up(); ok(Math.abs((await p.evaluate(() => CharView.st.orb.az)) - a0) > 0.3, 'drag orbits the portaledge camera'); }
   // portaledge anchor: a giant forged iron spike driven into the cliff (big head, an eye and one heavy ring) holds the four suspension ropes; no chain or rod juts out,
   // the ring sits close to the rock and the back ropes run close down the face
-  { await p.evaluate(() => { closeModalQuiet(); setTab('ledge'); }); await p.waitForTimeout(1200);
+  { /* (already on the Ledge tab here; switching tabs would reset the Hanging Camp play that follows) */
     const an = await p.evaluate(() => { const L = CharView.LG, g = L.pf.parent, S = L.spike; if (!S || !L.anchorRing) return { spike: !!S }; g.updateMatrixWorld(true); const inv = g.matrixWorld.clone().invert(), loc = (o) => o.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv);
       const rp = loc(L.anchorRing), sp = loc(S), bb = new THREE.Box3().setFromObject(S), head = (bb.max.x - bb.min.x) / g.scale.x; let links = 0; g.children.forEach((o) => { if (o.isMesh && o.geometry.type === 'TorusGeometry' && o.geometry.parameters.radius > 0.025 && o.geometry.parameters.radius <= 0.036 && o.position.y > 2.5 && o.position.z > 0.05 && o.position.z < 0.6) links++; });
       let loose = 0; g.children.forEach((o) => { if (o.isMesh && o.geometry.type === 'TorusGeometry' && o.position.y < 0.2 && o.position.x < 0.4 && o.position.x > -1.4 && o.position.z > 0.3 && o.material.color && o.material.color.getHex() === 0xa07a4a) loose++; });
