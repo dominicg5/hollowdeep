@@ -196,7 +196,7 @@ const HOUSE_KIT = (() => {
     if (o.flowers) { B.box(x - w / 2 - 0.025, y - 0.1, z, x + w / 2 + 0.025, y - 0.036, z + 0.07, 'plank', 'plank', TIMB); B.box(x - w / 2 - 0.015, y - 0.036, z + 0.006, x + w / 2 + 0.015, y + 0.03, z + 0.064, 'flower', 'flower', W1);
       for (let j = 0; j < 4; j++) { const xx = x - w / 2 + (j + 0.5) * w / 4; B.box(xx - 0.016, y + 0.02, z + 0.02, xx + 0.016, y + 0.05 + (j % 2) * 0.012, z + 0.05, 'flower', 'flower', W1); } } }
   // door on the +z face at z centred at x: plank door, chunky frame + lintel, stone steps, optional porch canopy
-  function doorOn(B, z, x, w, h, o) { o = o || {}; const y0 = o.y0 == null ? 0 : o.y0; B.quad([x - w / 2, y0, z + 0.006], [x + w / 2, y0, z + 0.006], [x + w / 2, y0 + h, z + 0.006], [x - w / 2, y0 + h, z + 0.006], o.open ? 'doorO' : 'door', W1);
+  function doorOn(B, z, x, w, h, o) { o = o || {}; const y0 = o.y0 == null ? 0 : o.y0; (B.doors || (B.doors = [])).push({ p: B.pt(x, y0, z + 0.006), q: B.pt(x, y0, z + 0.106), w, h }); // where the door is (house frame), for the Explore door interactable B.quad([x - w / 2, y0, z + 0.006], [x + w / 2, y0, z + 0.006], [x + w / 2, y0 + h, z + 0.006], [x - w / 2, y0 + h, z + 0.006], o.open ? 'doorO' : 'door', W1);
     if (!B.det) return; const f = 0.026, fk = o.stone ? 'quoin' : 'timber'; B.box(x - w / 2 - f, y0, z, x - w / 2, y0 + h, z + 0.03, fk, fk, TIMB); B.box(x + w / 2, y0, z, x + w / 2 + f, y0 + h, z + 0.03, fk, fk, TIMB); B.box(x - w / 2 - f * 1.8, y0 + h, z, x + w / 2 + f * 1.8, y0 + h + 0.04, z + 0.038, fk, fk, TIMB);
     const steps = o.steps == null ? (y0 > 0.04 ? Math.ceil(y0 / 0.06) : 1) : o.steps; for (let s = 0; s < steps; s++) { const top = y0 - s * (y0 / Math.max(1, steps)), d = 0.07 + s * 0.06; B.box(x - w / 2 - 0.03 - s * 0.01, -0.05, z, x + w / 2 + 0.03 + s * 0.01, Math.max(0.03, top), z + d, 'stone', 'quoin', STONE_C, 0.35); }
     if (o.porch) { const pw = w / 2 + 0.08, pd = o.porchD || 0.2, ye = y0 + h + 0.07, yr = ye + 0.13, so = { cw: 0.06, seg: 0.4, col: o.col };
@@ -349,7 +349,7 @@ const HOUSE_KIT = (() => {
   const VARIANTS = 3, KEYS = []; for (let t = 0; t < 8; t++) for (let v = 0; v < VARIANTS; v++) KEYS.push('h' + t + 'abc'[v]);
   function material() { if (!atlas) atlas = paintAtlas(); return new THREE.MeshLambertMaterial({ map: atlas.T, vertexColors: true, emissive: 0xffb060, emissiveMap: atlas.TE, emissiveIntensity: 0 }); }
   function build(fn, v, lod) { const B = Builder(lod === 0, 1000 + v * 77); if (v === 1) B.with(0, 0, 0, 0, 1, () => fn(B, v), true); else fn(B, v); return B; }
-  function houses() { const out = {}, mat = material(); const add = (key, fn, v) => { const b0 = build(fn, v, 0), b1 = build(fn, v, 1); out[key] = { geos: [b0.geo(), b1.geo()], mat, tree: false, chim: b0.chim, lamps: b0.lamps }; };
+  function houses() { const out = {}, mat = material(); const add = (key, fn, v) => { const b0 = build(fn, v, 0), b1 = build(fn, v, 1); out[key] = { geos: [b0.geo(), b1.geo()], mat, tree: false, chim: b0.chim, lamps: b0.lamps, doors: b1.doors || b0.doors || [] }; };
     for (let t = 0; t < 8; t++) for (let v = 0; v < VARIANTS; v++) add('h' + t + 'abc'[v], TIERS[t], v);
     for (let v = 0; v < 2; v++) add('seat' + 'ab'[v], seat, v); return out; }
   function keyFor(tier, seed) { return 'h' + Math.max(0, Math.min(7, tier)) + 'abc'[Math.floor(Math.abs(seed) * VARIANTS) % VARIANTS]; }
