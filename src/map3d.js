@@ -122,8 +122,9 @@ const M3 = (() => {
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal); vMt = aMt;').replace('#include <project_vertex>', '#include <project_vertex>\nvVD = length(mvPosition.xyz);');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 varying vec3 vWP; varying vec3 vWN; varying float vMt; varying float vVD;
-uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn; uniform float uExOn;
+uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn; uniform float uExOn; float exBump = 0.0;
 uniform float uPH; uniform float uHR; uniform vec3 uLumen; uniform float uDeep; uniform float uSnowR; uniform float uHaze;
+vec4 texAn(sampler2D t, vec2 uv, float k) { vec2 dx = dFdx(uv), dy = dFdy(uv); float lx = length(dx), ly = length(dy), cap = min(lx, ly) * k; if (lx > cap) dx *= cap / lx; if (ly > cap) dy *= cap / ly; return textureGrad(t, uv, dx, dy); } // grazing angles: limit the footprint's long axis (a cheap anisotropic filter) so close ground stays crisp
 float edgeF(vec2 u, float w) { return smoothstep(0.0, w, min(min(u.x, 1.0 - u.x), min(u.y, 1.0 - u.y))); }
 float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vn2(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
@@ -134,7 +135,9 @@ float fbm3(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += 
         .replace('#include <map_fragment>', `
 vec2 wp = vWP.xz; vec4 tc = texture2D(tA, (wp - uA.xy) / uA.zw);
 vec2 ub = (wp - uB.xy) / uB.zw; if (ub.x > 0.0 && ub.x < 1.0 && ub.y > 0.0 && ub.y < 1.0) tc = mix(tc, texture2D(tB, ub), edgeF(ub, 0.02));
-if (uCOn > 0.5) { vec2 uc = (wp - uC.xy) / uC.zw; if (uc.x > 0.0 && uc.x < 1.0 && uc.y > 0.0 && uc.y < 1.0) tc = mix(tc, texture2D(tC, uc), edgeF(uc, 0.08)); }
+if (uCOn > 0.5) { vec2 uc = (wp - uC.xy) / uC.zw; if (uc.x > 0.0 && uc.x < 1.0 && uc.y > 0.0 && uc.y < 1.0) { vec4 cN = texture2D(tC, uc);
+  if (uExOn > 0.5) { vec4 cL = texture2D(tC, uc, 3.0); cN.rgb = min(cN.rgb, cL.rgb * 1.08); cN.rgb = mix(cN.rgb, cL.rgb, 0.8 * (1.0 - smoothstep(200.0, 600.0, vVD))); } // Explore: magnified splat texels smear (pale flower specks became pale streaks) - cap the specks and keep only the splat's broad colour up close; the shader's own grass detail supplies the fine texture
+  tc = mix(tc, cN, edgeF(uc, 0.08)); } }
 vec3 nn = normalize(vWN); float slope = 1.0 - clamp(nn.y, 0.0, 1.0);
 vec3 bw = pow(abs(nn), vec3(4.0)); bw /= (bw.x + bw.y + bw.z);
 vec3 rockV = texture2D(tRock, vec2(vWP.z, -vWP.y) / 260.0).rgb * bw.x + texture2D(tRock, vec2(vWP.x, -vWP.y) / 260.0).rgb * bw.z + texture2D(tRock, wp / 260.0).rgb * bw.y;
@@ -156,20 +159,25 @@ float gl = dot(gd * 0.6 + gd2 * 0.4, vec3(0.3, 0.59, 0.11));
 tc.rgb *= mix(1.0, clamp(gl / 0.36, 0.6, 1.45), 0.6 * grassM * nearF);
 float tl = dot(tc.rgb, vec3(0.3, 0.59, 0.11)); tc.rgb = mix(vec3(tl), tc.rgb, 1.0 + 0.1 * grassM);
 tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.86, 1.0, 0.78), 0.35 * grassM);
-// Explore close-up: hand-made ground at true scale (4 units = 1 m) around the player - grass clumps and speckle with dry patches, bare soil with pebbles,
+// Explore close-up: hand-made ground at true scale (4 units = 1 m) around the player - grass clumps at blade scale (a cheap anisotropic filter keeps it crisp at grazing angles), faint worn patches,
 // and rock as a solid noise with warped strata layers 0.6-1.2 m thick, darker bedding joints, lit lips and vertical cracks; fades out by ~150 m
-float exF = uExOn * (1.0 - smoothstep(160.0, 640.0, vVD)); /* view-space distance */
+float exF = uExOn * (1.0 - smoothstep(160.0, 640.0, vVD)); /* view-space distance */ exBump = 0.0;
 if (exF > 0.002) {
   float gC = fbm2(wp / 3.0), gF = vn2(wp * 2.5) * 0.6 + vn2(wp * 6.3 + 3.1) * 0.4, dry = smoothstep(0.52, 0.78, fbm2(wp / 9.0 + 3.0));
-  vec3 gpart = tc.rgb * (0.7 + 0.55 * gC) * (0.78 + 0.44 * gF); gpart = mix(gpart, gpart * vec3(1.18, 1.07, 0.68), dry * 0.55);
-  float soil = smoothstep(0.64, 0.72, fbm2(wp / 24.0 + 7.0) + 0.14 * (gC - 0.5)) * grassM;
-  vec3 soilC = vec3(0.25, 0.18, 0.11) * (0.72 + 0.5 * vn2(wp * 1.3)) * (0.85 + 0.3 * gF); float pb = smoothstep(0.82, 0.88, vn2(wp * 1.9 + 11.0)); soilC = mix(soilC, vec3(0.42, 0.4, 0.36) * (0.8 + 0.4 * gF), pb); soilC *= 1.0 - 0.35 * smoothstep(0.75, 0.8, vn2(wp * 1.9 + 11.0)) * (1.0 - pb);
-  gpart = mix(gpart, mix(gpart * vec3(0.8, 0.72, 0.5), soilC, smoothstep(0.0, 0.6, soil)), soil * 0.9); // worn ground fringes into bare soil
+  vec3 gpart = tc.rgb * (0.78 + 0.4 * gC) * (0.88 + 0.24 * gF); gpart = mix(gpart, gpart * vec3(1.06, 1.0, 0.72), dry * 0.3);
+  { float fw = min(length(dFdx(wp)), length(dFdy(wp))) * 1.6; vec2 q = mat2(0.8, -0.6, 0.6, 0.8) * wp; vec3 lw = vec3(0.3, 0.59, 0.11);
+    float g1 = dot(texAn(tGrass, wp / 11.0 + 0.21, 2.5).rgb, lw) / max(0.05, dot(texture2D(tGrass, wp / 11.0 + 0.21, 7.0).rgb, lw)), g2 = dot(texAn(tGrass, q / 4.3 + 0.63, 2.5).rgb, lw) / max(0.05, dot(texture2D(tGrass, q / 4.3 + 0.63, 7.0).rgb, lw));
+    float bl = vn2(vec2(wp.x * 9.0 + 3.0 * vn2(wp * 1.3), wp.y * 9.0)) * 0.5 + vn2(q * 17.0) * 0.5, bA = 1.0 - smoothstep(0.03, 0.09, fw), tA2 = 1.0 - smoothstep(0.25, 0.7, fw);
+    gpart *= mix(1.0, clamp(g1 * 0.55 + g2 * 0.45, 0.5, 1.6), 0.95 * tA2) * mix(1.0, 0.82 + 0.36 * bl, bA); } // near grass: the painted grass texture at blade scale (2-4 m tiles, two rotations) plus fine blade streaks, each faded by the pixel footprint so low angles stay crisp, not noisy
+  float worn = smoothstep(0.6, 0.8, fbm2(wp / 24.0 + 7.0) + 0.1 * (gC - 0.5)) * grassM; gpart *= mix(vec3(1.0), vec3(0.8, 0.78, 0.66), worn * 0.45); // a little worn, darker ground here and there - no pale bare-soil blotches (they lit up grey-white in daylight)
   vec3 rp = vWP / 4.0; float sy = rp.y + 1.6 * fbm3(rp * vec3(0.12, 0.05, 0.12)), lid = floor(sy / 0.9), lay = fract(sy / 0.9), lt = h21(vec2(lid, 3.7));
   float rN = fbm3(rp * 0.8), rF = vn3(rp * 5.5) * 0.6 + vn3(rp * 13.0) * 0.4, cj = abs(vn3(vec3(rp.x * 0.9 + rp.y * 0.3, lid * 3.1, rp.z * 0.9)) - 0.5) + step(lt, 0.45);
   vec3 rpart = tc.rgb * (0.74 + 0.4 * lt) * mix(vec3(1.04, 0.98, 0.9), vec3(0.92, 0.96, 1.04), h21(vec2(lid, 9.1))) * (0.66 + 0.68 * rN) * (0.8 + 0.4 * rF);
   rpart *= 0.72 + 0.28 * smoothstep(0.0, 0.05 + 0.08 * rN, lay); rpart += tc.rgb * 0.14 * smoothstep(0.88, 1.0, lay) * rN; rpart *= 0.7 + 0.3 * smoothstep(0.0, 0.022, cj);
   float rockW = clamp(steep + smoothstep(0.2, 0.75, vMt) * (1.0 - steep), 0.0, 1.0) * (1.0 - snow);
+  float rH = 0.16 * rN + 0.05 * rF + 0.12 * smoothstep(0.0, 0.12, lay) * (1.0 - 0.6 * smoothstep(0.7, 1.0, lay)) - 0.08 * (1.0 - smoothstep(0.0, 0.03, cj)); // metres: rounded bed lips, recessed joints and cracks
+  rpart *= 0.84 + 0.32 * clamp(rH / 0.3, 0.0, 1.0);
+  exBump = 4.0 * rH * rockW * exF * (1.0 - smoothstep(0.15, 0.5, length(fwidth(rp)))); 
   tc.rgb = mix(tc.rgb, mix(gpart, rpart, rockW), exF); }
 float inPit = 1.0 - smoothstep(uHR * 0.98, uHR * 1.04, length(wp));
 float dep = clamp((uPH - vWP.y) / 3000.0, 0.0, 1.0);
@@ -185,6 +193,8 @@ tc.rgb *= mix(1.0, mix(1.0, 0.3, dep), inPit);
 float crack = smoothstep(uPH - 60.0, uPH - 380.0, vWP.y) * (1.0 - inPit) * step(vWP.y, 300.0 + uPH) * 0.0;
 float low = smoothstep(-40.0, -420.0, vWP.y - 0.0) * (1.0 - inPit); tc.rgb *= mix(1.0, 0.45, low);
 diffuseColor *= tc;`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+if (abs(exBump) > 0.0 || exF > 0.002) { vec3 bp = -vViewPosition, sX = dFdx(bp), sY = dFdy(bp), R1 = cross(sY, normal), R2 = cross(normal, sX); float fDet = dot(sX, R1) * faceDirection; vec2 dH = vec2(dFdx(exBump), dFdy(exBump)); vec3 vG = sign(fDet) * (dH.x * R1 + dH.y * R2); normal = normalize(abs(fDet) * normal - vG); } // Explore: rock slopes get real relief in the lighting (bump from the strata/crack height)`)
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 float ledge = 0.55 + 0.45 * smoothstep(0.3, 0.8, slope); // terrace walls catch more glow than their ledges, so the steps read
 totalEmissiveRadiance += uLumen * inPit * (pow(dep, 0.9) * 1.25 * ledge) * (tc.rgb * 1.8 + 0.04) + uLumen * 0.1 * inPit * smoothstep(0.7, 1.0, dep);`)
@@ -341,7 +351,7 @@ diffuseColor *= sdc;
   function gaTube(A, pts, seg, rad, col, uvk) { const n = pts.length, base = A.p.length / 3; let nr = null, vacc = 0;
     for (let i = 0; i < n; i++) { const t = v3().subVectors(pts[Math.min(n - 1, i + 1)], pts[Math.max(0, i - 1)]).normalize();
       if (!nr) { nr = Math.abs(t.y) < 0.9 ? v3().set(0, 1, 0).cross(t).normalize() : v3().set(1, 0, 0).cross(t).normalize(); } else nr.addScaledVector(t, -nr.dot(t)).normalize();
-      const b = v3().crossVectors(t, nr); if (i) vacc += pts[i].distanceTo(pts[i - 1]);
+      const b = v3().crossVectors(t, nr); if (i) vacc += pts[i].distanceTo(pts[i - 1]) * (uvk[2] ? uvk[1] * uvk[0] / (TAU * Math.max(1, rad(i, 0))) : 1); // uvk[2]: square bark plates along a tapering root (v follows the local girth)
       for (let k = 0; k <= seg; k++) { const a = (k / seg) * TAU, d = v3().copy(nr).multiplyScalar(Math.cos(a)).addScaledVector(b, Math.sin(a)), r = rad(i, a), p = v3().copy(pts[i]).addScaledVector(d, r);
         A.p.push(p.x, p.y, p.z); A.n.push(d.x, d.y, d.z); A.uv.push((k / seg) * uvk[0], vacc / uvk[1]); const c = col(i, a, p, d); A.c.push(c[0], c[1], c[2]); } }
     for (let i = 0; i < n - 1; i++) for (let k = 0; k < seg; k++) { const a = base + i * (seg + 1) + k, b2 = a + seg + 1; A.i.push(a, b2, a + 1, a + 1, b2, b2 + 1); } }
@@ -387,7 +397,7 @@ diffuseColor *= sdc;
         const c = from ? from.p : ax(0), s0 = Math.hypot(prev.x - c.x, prev.z - c.z), n = 26, y0 = prev.y;
         for (let i = 1; i <= n; i++) { const u = i / n, s2 = s0 + L * Math.pow(u, 0.9), aa = a + Math.sin(u * 4.5 + k) * 0.22 * u, x = c.x + Math.cos(aa) * s2, z = c.z + Math.sin(aa) * s2, rr = r0 * (1 - 0.9 * Math.pow(u, 0.8));
           const gy = meshH(x, z), arch = Math.sin(Math.min(1, u * 2.2) * Math.PI) * rr * 0.5; const y = Math.max(gy + rr * 0.32 + arch, y0 + (gy - y0) * clamp(u * 3, 0, 1) + rr * 0.3); const p = v3().set(x, y, z); pts.push(p); rs.push(rr); }
-        GRAND.dodge(pts, DC, rs); rootMesh((AR) => gaTube(AR, pts, 12, (i, aa) => rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))), (i, aa, p, d) => moss(p, d, k), [3, 520])); rootPts.push(pts.slice(from ? 0 : 6)); rootR.push(rs); return { pts, rs }; };
+        GRAND.dodge(pts, DC, rs); rootMesh((AR) => gaTube(AR, pts, 12, (i, aa) => rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))), (i, aa, p, d) => moss(p, d, k), [3, 520, 1])); rootPts.push(pts.slice(from ? 0 : 6)); rootR.push(rs); return { pts, rs }; };
       for (let k = 0; k < 11; k++) { if (k === 5) continue; /* the Lumen Tree's great door stands where this root ran */ const a = OUT + (k / 10 - 0.5) * 3.9 + (hash1(k * 3.1) - 0.5) * 0.2, side = Math.abs(Math.cos(a - OUT)), L = H * (0.13 + 0.15 * side) * (0.8 + 0.4 * hash1(k + 9)), r0 = HW_R0 * (0.3 + 0.12 * hash1(k + 2));
         const R1 = lipRoot(a, 0.1 + hash1(k + 5) * 0.16, L, r0, k);
         for (const s of [-1, 1]) if (hash1(k * 5 + s) < 0.75) { const i = 8 + ((hash1(k * 2 + s) * 8) | 0); if (R1.pts[i]) lipRoot(a + s * (0.5 + hash1(k + s) * 0.4), 0, L * 0.45, R1.rs[i] * 0.55, k + s * 20, { p: v3().copy(R1.pts[i]) }); } }
@@ -399,7 +409,7 @@ diffuseColor *= sdc;
         const p0 = pts[pts.length - 1], phi0 = Math.atan2(p0.z, p0.x), r0w = Math.hypot(p0.x, p0.z), y0 = p0.y, n = 30;
         for (let i = 1; i <= n; i++) { const u = i / n, y = y0 - drop * u, phi = phi0 + phiOff * (0.3 + 1.1 * u) * 0.9 + Math.sin(u * 5 + k) * 0.03, rr = r0 * (1 - 0.86 * Math.pow(u, 0.85));
           const rw = wallR(phi, y), r = Math.min(r0w + 120 * u, rw - rr * 0.25); const [x, z] = polar(r, phi); pts.push(v3().set(x, Math.max(y, meshH(x, z) + rr * 0.15), z)); rs.push(rr); }
-        rootMesh((AR) => gaTube(AR, pts, 12, (i, aa) => rs[i] * (1 + 0.12 * Math.sin(aa * 3 + i)), (i, aa, p, d) => moss(p, d, k + 70), [3, 520])); rootPts.push(pts.slice(nS)); rootR.push(rs.slice(nS)); };
+        rootMesh((AR) => gaTube(AR, pts, 12, (i, aa) => rs[i] * (1 + 0.12 * Math.sin(aa * 3 + i)), (i, aa, p, d) => moss(p, d, k + 70), [3, 520, 1])); rootPts.push(pts.slice(nS)); rootR.push(rs.slice(nS)); };
       for (let k = 0; k < 9; k++) { const off = (k / 8 - 0.5) * 0.9 + (hash1(k * 4.7) - 0.5) * 0.06; wallRoot(off, 0.03 + hash1(k * 1.9) * 0.08, 1800 + hash1(k * 2.3) * 2000 - Math.abs(off) * 900, HW_R0 * (0.26 + 0.12 * hash1(k + 7)), k); }
       // limbs: great crown limbs that fork, each fork ending in a cauliflower floret of foliage
       const limbs = [], ends = [];
@@ -702,7 +712,7 @@ diffuseColor *= sdc;
     if (!cState || Math.hypot(cam.x - cState.cx, cam.y - cState.cy) > (ex ? 220 : 700)) { if (cState && cState.q < 4) {} else { cState = { cx: Math.round(cam.x / 50) * 50, cy: Math.round(cam.y / 50) * 50, q: 0, size }; } }
     if (cState.q < 4) { const q = cState.q, ox = (q % 2) * 1024, oy = (q >> 1) * 1024, s0 = px / size; if (q === 0) cState.parts = [];
       const tmp = document.createElement('canvas'); tmp.width = tmp.height = 1024; paint(tmp, cState.cx - size / 2 + ox / s0, cState.cy - size / 2 + oy / s0, size / 2, 1024); cState.parts.push([tmp, ox, oy]); cState.q++;
-      if (cState.q === 4) { const g = cCanvas.getContext('2d'); g.clearRect(0, 0, px, px); for (const [c, x, y] of cState.parts) g.drawImage(c, x, y); cState.parts = null; texC.needsUpdate = true; U.uC.value.set(cState.cx - size / 2, cState.cy - size / 2, size, size); U.uCOn.value = 1; } }
+      if (cState.q === 4) { const g = cCanvas.getContext('2d'); g.clearRect(0, 0, px, px); for (const [c, x, y] of cState.parts) g.drawImage(c, x, y); cState.parts = null; texC.dispose(); texC = canvasTex(cCanvas); U.tC.value = texC; /* a fresh texture each repaint: re-using one left a stale mip chain (pale blotches at a distance) */ U.uC.value.set(cState.cx - size / 2, cState.cy - size / 2, size, size); U.uCOn.value = 1; } }
   }
 
   /* ---------- per frame ---------- */
