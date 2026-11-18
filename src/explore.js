@@ -19,10 +19,16 @@ const Explore = (() => {
   function brSpec(B) { if (B.L) return B; const [ax, ay] = B.a, [bx, by] = B.b, dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy); B.ux = dx / L; B.uy = dy / L; B.L = L; B.ha = mH(ax, ay); B.hb = mH(bx, by); return B; }
   function deckH(B, t) { return B.ha + (B.hb - B.ha) * t + 1.6 + 3 * Math.sin(Math.PI * clamp(t, 0, 1)); }
   function onBridge(x, y, pad) { for (const B0 of BRIDGES) { const B = brSpec(B0), px = x - B.a[0], py = y - B.a[1], t = (px * B.ux + py * B.uy) / B.L, s = Math.abs(-px * B.uy + py * B.ux); if (t > 0 && t < 1 && s < DW / 2 - 2 + (pad || 0)) return [B, t]; } return null; }
-  function hAt(x, y) { const ob = onBridge(x, y, 0); return ob ? deckH(ob[0], ob[1]) : mH(x, y); }
+  function hAt(x, y) { const ob = onBridge(x, y, 0); if (ob) return deckH(ob[0], ob[1]); if (NV.root) { const [i, j] = cellOf(x, y), k = j * NV.nx + i; if (NV.root[k]) return rootH(x, y); } return mH(x, y); }
+  function rootH(x, y) { const fx = clamp((x - REG.X0) / C, 0, NV.nx - 1.001), fy = clamp((y - REG.Y0) / C, 0, NV.ny - 1.001), i = fx | 0, j = fy | 0, u = fx - i, v = fy - j, H = NV.h, n = NV.nx, k = j * n + i; return (H[k] * (1 - u) + H[k + 1] * u) * (1 - v) + (H[k + n] * (1 - u) + H[k + n + 1] * u) * v; } // on a root's back: the nav surface
   // ---- the nav grid: walk / climb / blocked cells from the terrain heightfield, bridge decks walkable
-  function build() { if (NV.built) return NV; const t0 = performance.now(), nx = Math.round((REG.X1 - REG.X0) / C) + 1, ny = Math.round((REG.Y1 - REG.Y0) / C) + 1, N = nx * ny, h = new Float32Array(N), cls = new Uint8Array(N);
+  function build() { if (NV.built) return NV; const t0 = performance.now(), nx = Math.round((REG.X1 - REG.X0) / C) + 1, ny = Math.round((REG.Y1 - REG.Y0) / C) + 1, N = nx * ny, h = new Float32Array(N), cls = new Uint8Array(N); NV.nx = nx; NV.ny = ny;
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) h[j * nx + i] = mH(REG.X0 + i * C, REG.Y0 + j * C);
+    // the Lumen Tree's great roots lie across the rim: where a root rests on the ground its back is the walking surface (she runs up it from where it
+    // dives into the soil, and climbs its steep flanks); a root arching clear overhead is walked under
+    const root = new Uint8Array(N); { const X = M3.hwx; if (X && X.rootPts) X.rootPts.forEach((pts, ri) => { for (let q = 0; q + 1 < pts.length; q++) { const A = pts[q], B = pts[q + 1], rA = X.rootR[ri][q] || 60, rB = X.rootR[ri][q + 1] || rA, L = Math.hypot(B.x - A.x, B.z - A.z), n = Math.max(1, Math.ceil(L / (C * 0.5)));
+      for (let u = 0; u <= n; u++) { const t = u / n, x = A.x + (B.x - A.x) * t, y = A.z + (B.z - A.z) * t, py = A.y + (B.y - A.y) * t, r = (rA + (rB - rA) * t) * 0.97, i0 = Math.max(0, Math.floor((x - r - REG.X0) / C)), i1 = Math.min(nx - 1, Math.ceil((x + r - REG.X0) / C)), j0 = Math.max(0, Math.floor((y - r - REG.Y0) / C)), j1 = Math.min(ny - 1, Math.ceil((y + r - REG.Y0) / C));
+        for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const d = Math.hypot(REG.X0 + i * C - x, REG.Y0 + j * C - y); if (d >= r) continue; const k = j * nx + i, hh = Math.sqrt(r * r - d * d), top = py + hh, bot = py - hh; if (top > h[k] + 1 && bot < h[k] + 8) { h[k] = top; root[k] = 1; } } } } }); }
     const sl = new Float32Array(N); for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, a = h[k]; let m = 0; if (i > 0) m = Math.max(m, Math.abs(a - h[k - 1])); if (i < nx - 1) m = Math.max(m, Math.abs(a - h[k + 1])); if (j > 0) m = Math.max(m, Math.abs(a - h[k - nx])); if (j < ny - 1) m = Math.max(m, Math.abs(a - h[k + nx])); sl[k] = m / C; }
     const wet = typeof GRAND !== 'undefined' && GRAND.wet ? GRAND.wet : null;
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, x = REG.X0 + i * C, y = REG.Y0 + j * C, r = Math.hypot(x, y); let c = sl[k] < SLOPE_WALK ? 1 : sl[k] < SLOPE_CLIMB ? 2 : 0;
@@ -33,6 +39,12 @@ const Explore = (() => {
         while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; lo = Math.min(lo, h[k]); hi = Math.max(hi, h[k]); for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (!seen[m] && cls[m] === 2) { seen[m] = 1; q[qt++] = m; } } }
         if (hi - lo > FACE_MAX) for (let n = 0; n < qt; n++) { const k = q[n], x = REG.X0 + (k % nx) * C, y = REG.Y0 + ((k / nx) | 0) * C; if (!(sl[k] < 1.1 && Math.max(Math.abs(x), Math.abs(y)) > 7150)) cls[k] = 0; } } }
     // (the lowland foothills beyond the plateau are grassy hillsides, not rock: up to ~48 deg they stay a scramble however tall)
+    // the roots' flanks are bark: however steep or tall, she climbs them with her picks (over a root, into the door's hollow between the roots)
+    for (let k = 0; k < N; k++) if (root[k] && cls[k] === 0) { const x = REG.X0 + (k % nx) * C, y = REG.Y0 + ((k / nx) | 0) * C; if (!(Math.hypot(x, y) < 3800 && h[k] < 1350)) cls[k] = 2; }
+    // the Lumen Tree's trunk is solid - she runs round it (its great door is the way in)
+    { const X = M3.hwx, blk = (x0, y0, r) => { const i0 = Math.max(0, Math.floor((x0 - r - REG.X0) / C)), i1 = Math.min(nx - 1, Math.ceil((x0 + r - REG.X0) / C)), j0 = Math.max(0, Math.floor((y0 - r - REG.Y0) / C)), j1 = Math.min(ny - 1, Math.ceil((y0 + r - REG.Y0) / C)); for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) if (Math.hypot(REG.X0 + i * C - x0, REG.Y0 + j * C - y0) <= r) cls[j * nx + i] = 0; };
+      if (X && X.trunkRad && X.ax) { const c = X.ax(0.02); for (let a = 0; a < 720; a++) { const th = a / 720 * Math.PI * 2, R = X.trunkRad(0.02, th) + 10; for (let d = 0; d <= R; d += C * 0.7) { const x = c.x + Math.cos(th) * d, y = c.z + Math.sin(th) * d, [i, j] = cellOf(x, y); cls[j * nx + i] = 0; } } }
+    }
     // the Silverseam climb is a made route: its ledges walk and its rock pitches climb, however tall the cliff around it
     { const R = M3.SSR, [ax, ay] = R.a, dx = R.b[0] - ax, dy = R.b[1] - ay, L2 = dx * dx + dy * dy; for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const x = REG.X0 + i * C, y = REG.Y0 + j * C, t = ((x - ax) * dx + (y - ay) * dy) / L2; if (t < -0.05 || t > 1.05) continue; const tc = clamp(t, 0, 1), d = Math.hypot(x - (ax + dx * tc), y - (ay + dy * tc)); if (d > R.w - 8) continue; const k = j * nx + i; cls[k] = sl[k] < SLOPE_WALK ? 1 : sl[k] < SLOPE_CLIMB ? 2 : 0; } }
     // bridge decks (and their abutments) are walkable at deck height
@@ -40,7 +52,7 @@ const Explore = (() => {
     // connected components (8-way) for snapping taps to the nearest reachable spot
     const comp = new Int32Array(N).fill(-1); { const q = new Int32Array(N); let nc = 0; const size = []; for (let s0 = 0; s0 < N; s0++) { if (!cls[s0] || comp[s0] >= 0) continue; let qh = 0, qt = 0; q[qt++] = s0; comp[s0] = nc;
         while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (cls[m] && comp[m] < 0 && (!di || !dj || (cls[j * nx + a] && cls[b * nx + i]))) { comp[m] = nc; q[qt++] = m; } } } size.push(qt); nc++; } NV.size = size; }
-    Object.assign(NV, { built: true, nx, ny, N, h, cls, sl, comp, ms: Math.round(performance.now() - t0) }); return NV; }
+    Object.assign(NV, { built: true, nx, ny, N, h, cls, sl, comp, root, ms: Math.round(performance.now() - t0) }); return NV; }
   const cellOf = (x, y) => [clamp(Math.round((x - REG.X0) / C), 0, NV.nx - 1), clamp(Math.round((y - REG.Y0) / C), 0, NV.ny - 1)];
   const cxy = (k) => [REG.X0 + (k % NV.nx) * C, REG.Y0 + ((k / NV.nx) | 0) * C];
   function clsAt(x, y) { build(); if (onBridge(x, y, 0)) return 3; const [i, j] = cellOf(x, y); return NV.cls[j * NV.nx + i]; }
@@ -128,6 +140,7 @@ const Explore = (() => {
   // screen-space pick against standing things (base-to-top segment); unlike the map's sprite picker it keeps targets that fill the screen up close
   function pick(sx, sy, list) { let best = null, bd = 1e9; for (const o of list) { const a = M3.project(o.x, o.y, o.up || 0), b = M3.project(o.x, o.y, (o.up || 0) + o.hgt); if (a[0] < -999 || b[0] < -999) continue; const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, u = clamp(((sx - a[0]) * vx + (sy - a[1]) * vy) / l2, 0, 1), d = Math.hypot(a[0] + vx * u - sx, a[1] + vy * u - sy), rad = Math.max(18, Math.sqrt(l2) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } } return best; }
   function act(o) { EX.acted = o.type; if (o.type === 'ledge') { exit(); if (typeof setTab === 'function') setTab('home'); } else if (o.type === 'door') { exit(); if (typeof GRAND !== 'undefined') GRAND.enterTree(); } else if (o.type === 'climb' && CityMap.climbCard) CityMap.climbCard(o); }
+  function reach(x, y) { build(); const k = nearest(x, y, NV.size.indexOf(Math.max(...NV.size))); return cxy(k); } // the nearest spot she can stand on, in the connected world
   function aim(x, y, up) { let best = null; for (let k = 0; k < 16; k++) { EX.az = k * Math.PI / 8; tick(0); M3.render(0, CityMap.cam); const s = M3.project(x, y, up == null ? 20 : up); if (s[0] < 0 || s[1] < 0 || s[0] > innerWidth || s[1] > innerHeight) continue; const d = Math.hypot(s[0] - innerWidth / 2, s[1] - innerHeight / 2); if (!best || d < best[1]) best = [k, d, s]; } if (best) { EX.az = best[0] * Math.PI / 8; tick(0); M3.render(0, CityMap.cam); } return best && best[2]; } // swing the follow camera until a spot is in view
   function orbit(dx, dy) { EX.az -= dx * 0.008; EX.tilt = clamp(EX.tilt + dy * 0.004, -0.5, 0.9); }
   function zoom(f) { EX.d = clamp(EX.d / f, 2.6, 60); }
@@ -138,5 +151,5 @@ const Explore = (() => {
   function ui3(on) { let b = document.getElementById('exploreBar'); if (!b && on) { b = document.createElement('div'); b.id = 'exploreBar'; b.innerHTML = '<button data-ex="walk">🚶 Walk</button><button data-ex="run">🏃 Run</button><button data-ex="exit">✕ Exit</button><span id="exploreInfo"></span>'; (document.getElementById('cityWrap') || document.body).appendChild(b);
       b.addEventListener('click', (e) => { const t = e.target.closest('[data-ex]'); if (!t) return; const k = t.dataset.ex; if (k === 'exit') exit(); else { EX.gait = k; CharView.st.gait = k; } ui3(EX.on); }); }
     if (b) { b.classList.toggle('on', !!on); b.querySelectorAll('[data-ex]').forEach((q) => q.classList.toggle('sel', q.dataset.ex === (CharView.st.gait || 'run'))); } const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); }
-  return { WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, orbit, zoom, tick, get on() { return EX.on; } };
+  return { WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; } };
 })();

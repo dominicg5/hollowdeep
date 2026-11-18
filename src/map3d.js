@@ -350,7 +350,7 @@ void main() {
         for (let i = 0; i <= n; i++) { const f = 0.02 + (f1 - 0.02) * i / n, aa = a0 + f * 3.4; pts.push(tr(f, aa, trunkRad(f, aa) * 0.95)); rs.push(HW_R0 * (0.17 + 0.06 * hash1(k)) * (1 - 0.6 * i / n) * (i < 3 ? 0.5 + i / 6 : 1)); }
         GRAND.dodge(pts, DC, rs); gaTube(A, pts, 10, (i, aa) => rs[i] * (1 + 0.1 * Math.sin(aa * 2 + i * 0.4)), (i, aa, p, d) => moss(p, d, k + 40), [2, 600]); }
       // LIP ROOTS: wind down the trunk, then arch out over the lip and grip the plateau behind the tree
-      const rootPts = [], rootR = [];
+      const rootPts = [], rootR = []; HWX.rootPts = rootPts; HWX.rootR = rootR; // (the Explore nav keeps her off the great roots)
       const lipRoot = (a, fTop, L, r0, k, from) => { const pts = [], rs = []; let prev;
         if (!from) { const nS = Math.max(3, Math.round(fTop / 0.012)), tw = 1.6 * (k % 2 ? 1 : -0.8);
           for (let i = 0; i <= nS; i++) { const f = fTop * (1 - i / nS) + 0.01, aa = a - (f - 0.01) * tw; pts.push(tr(f, aa, trunkRad(f, aa) * 0.9)); rs.push(r0 * (0.3 + 0.7 * Math.pow(i / nS, 0.6))); } prev = pts[pts.length - 1]; }
