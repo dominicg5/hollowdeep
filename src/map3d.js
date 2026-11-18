@@ -581,7 +581,7 @@ diffuseColor *= sdc;
     { const pos = [], ph = []; for (const p of PR.smoke) for (let k = 0; k < 7; k++) { pos.push(p[0], p[1], p[2]); ph.push(p[3] + k / 7); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aPh', new THREE.Float32BufferAttribute(ph, 1));
       IM.smoke = new THREE.Points(g, new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uC: { value: new THREE.Color(0.85, 0.85, 0.85) }, uS: { value: 1 }, uK: { value: CITY.houseScale || 1 }, map: { value: glowTex('rgba(255,255,255,.75)', 'rgba(255,255,255,.3)') } }, transparent: true, depthWrite: false,
-        vertexShader: 'attribute float aPh; uniform float uT; uniform float uS; uniform float uK; varying float vA; void main(){ float f = fract(uT * 0.07 + aPh); vec3 p = position + uK * vec3(sin(aPh * 17.0 + f * 3.0) * 6.0 + f * 40.0, f * 120.0, cos(aPh * 11.0) * 6.0 + f * 18.0); vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = uS * uK * (14.0 + f * 50.0) * 600.0 / -mv.z; vA = (1.0 - f) * smoothstep(0.0, 0.12, f); }',
+        vertexShader: 'attribute float aPh; uniform float uT; uniform float uS; uniform float uK; varying float vA; void main(){ float f = fract(uT * 0.07 + aPh); vec3 p = position + uK * vec3(sin(aPh * 17.0 + f * 3.0) * 6.0 + f * 40.0, f * 120.0, cos(aPh * 11.0) * 6.0 + f * 18.0); vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = min(220.0, uS * uK * (14.0 + f * 50.0) * 600.0 / -mv.z); vA = (1.0 - f) * smoothstep(0.0, 0.12, f) * smoothstep(90.0, 260.0, -mv.z); }',
         fragmentShader: 'uniform sampler2D map; uniform vec3 uC; varying float vA; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(uC, c.a * vA * 0.55); }' })); IM.smoke.frustumCulled = false; scene.add(IM.smoke); }
     // homes and trees are 3D now: billboards keep only the Exchange
     buildBillboards(); lodAt = null; st.models = { homes: W.homes.length, trees: nt, props: PR.box.length + PR.cyl.length + PR.lamp.length, smoke: PR.smoke.length }; }
@@ -597,7 +597,7 @@ diffuseColor *= sdc;
     if (key !== lodAt || ++lodTick > 30) { lodAt = key; lodTick = 0; pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frus.setFromProjectionMatrix(pm);
       for (const s2 of IM.all) fillSet(s2, cam.z); fillProps(cam.z > 0.14); }
     IM.props.lamp.material.color.setRGB(0.35 + night * 0.75, 0.27 + night * 0.5, 0.16 + night * 0.25);
-    IM.glow.material.opacity = night * 0.28; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; if (HWX.signs) for (const b of HWX.signs) b.material.emissiveIntensity = night * 0.3; IM.glow.visible = night > 0.05;
+    IM.glow.material.opacity = night * 0.28; IM.glow.material.size = st.camOv ? 7 : 26; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; if (HWX.signs) for (const b of HWX.signs) b.material.emissiveIntensity = night * 0.3; IM.glow.visible = night > 0.05;
     IM.smoke.material.uniforms.uT.value = t; IM.smoke.visible = cam.z > 0.12; IM.smoke.material.uniforms.uS.value = renderer.getPixelRatio() * cssH / 900; IM.smoke.material.uniforms.uC.value.setRGB(0.86 - night * 0.6, 0.86 - night * 0.6, 0.88 - night * 0.55);
     animPulley(t, night); GRAND.anim(t, night, renderer.getPixelRatio() * cssH / 900);
     if (CLB.grp) { const k = 0.75 + 0.25 * Math.sin(t * 1.6); CLB.grp.children.forEach((o) => { if (o.isMesh) o.material.opacity = k; else if (o.isSprite) { o.material.opacity = 0.75 + 0.25 * Math.sin(t * 2.2); const sc = 120 * Math.max(0.8, Math.min(4, 0.5 / Math.max(0.05, cam.z))); o.scale.set(sc, sc, 1); } }); } }
@@ -745,7 +745,7 @@ diffuseColor *= sdc;
     // player highlight
     const h = W.player, w = homeW(h), gy = (h.elev != null ? h.elev : meshH(h.x, h.y)) + 3, p2 = 0.5 + 0.5 * Math.sin(t * 2.5);
     if (ringAt !== h.x + ',' + h.y) drapeRing(); ring.material.opacity = 0.5 + p2 * 0.4;
-    ringGlow.position.set(h.x, gy + w * 0.3, h.y); ringGlow.scale.setScalar(w * 2.4); ringGlow.material.opacity = 0.35 + 0.2 * p2;
+    ringGlow.position.set(h.x, gy + w * 0.3, h.y); ringGlow.scale.setScalar(w * 2.4); ringGlow.material.opacity = 0.35 + 0.2 * p2; ring.visible = ringGlow.visible = !st.camOv; /* Explore: no map-scale 'your home' ring and glow orb hovering round the house at character scale */
     // mole
     const mole = currentMole(); moleSpr.visible = !!mole; if (mole) moleSpr.position.set(mole.x, meshH(mole.x, mole.y) + Math.sin(t * 3) * 3, mole.y);
     // clouds drift high above
