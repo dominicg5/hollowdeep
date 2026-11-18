@@ -32,18 +32,27 @@ const Craft = (() => {
   function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines']) v[k] = v[k] || {}; return v; }
   function vSlot(id) { const [kind, key] = id.split(':'), v = vault(); return kind === 'ore' ? [v.ores, key] : kind === 'ingot' ? [v.ingots, key] : [v.gear, key]; }
   function get(where, id) { if (where === 'bag') return Math.floor(bag()[id] || 0); if (RES[id]) return Math.floor((S.res && S.res[RES[id]]) || 0); const [o, k] = vSlot(id); return Math.floor(o[k] || 0); }
-  function add(where, id, n) { if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; return; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); return; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; }
+  // ---- slot grids: the backpack has BAG_N slots, the vault VAULT_N; one item kind per slot, stacks are unlimited (no weight). S.bagOrder / S.vaultOrder keep which kind
+  // sits in which slot (counts stay in S.backpack / the vault store), so a kind needs a free slot only when it is new to that container
+  const BAG_N = 20, VAULT_N = 100;
+  const vaultIds = () => Object.keys(ITEMS).filter((id) => get('vault', id) > 0);
+  function order(where) { const key = where === 'bag' ? 'bagOrder' : 'vaultOrder', N = where === 'bag' ? BAG_N : VAULT_N; let O = S[key]; if (!Array.isArray(O)) O = S[key] = [];
+    while (O.length < N) O.push(null); for (let i = 0; i < O.length; i++) if (O[i] && get(where, O[i]) <= 0) O[i] = null;
+    const ids = where === 'bag' ? Object.keys(bag()).filter((k) => bag()[k] > 0) : vaultIds(); for (const id of ids) if (!O.includes(id)) { let i = O.indexOf(null); if (i < 0 || i >= N) { O.push(id); } else O[i] = id; } // (an old save over the limit keeps its extra stacks until they empty)
+    while (O.length > N && O[O.length - 1] == null) O.pop(); return O; }
+  function fits(where, id) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N; return O.includes(id) || O.slice(0, N).includes(null); }
+  function add(where, id, n) { if (n > 0 && !fits(where, id)) return 0; if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; order('bag'); return n; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); order('vault'); return n; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; order('vault'); return n; }
   const have = (id) => get('bag', id) + get('vault', id);
   function take(id, n) { if (have(id) < n) return false; const a = Math.min(get('bag', id), n); add('bag', id, -a); if (n - a) add('vault', id, -(n - a)); return true; }
-  function move(from, to, id, n) { n = Math.min(Math.floor(n), get(from, id)); if (n <= 0) return 0; add(from, id, -n); add(to, id, n); return n; }
+  function move(from, to, id, n) { n = Math.min(Math.floor(n), get(from, id)); if (n <= 0 || !fits(to, id)) return 0; add(from, id, -n); add(to, id, n); return n; }
   function canMake(r, x) { return Object.keys(r.in).every((k) => have(k) >= r.in[k] * x); }
   function maxMake(r) { let m = Infinity; for (const k in r.in) m = Math.min(m, Math.floor(have(k) / r.in[k])); return m; }
-  function make(r, x, dest) { if (x <= 0 || !canMake(r, x)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); return x; }
+  function make(r, x, dest) { if (x <= 0 || !canMake(r, x) || !fits(dest === 'vault' ? 'vault' : 'bag', r.out)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); return x; }
   const lum = () => Math.floor((S.res && S.res.lumen) || 0);
   function sell(id, n) { n = Math.min(n, have(id)); if (n <= 0) return 0; take(id, n); S.res.lumen = (S.res.lumen || 0) + sellP(id) * n; return n; }
-  function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); if (n <= 0) return 0; S.res.lumen -= buyP(id) * n; add('bag', id, n); return n; }
+  function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); if (n <= 0 || !fits('bag', id)) return 0; S.res.lumen -= buyP(id) * n; add('bag', id, n); return n; }
   // ---- UI
-  const st = { qty: 1, dest: 'bag', tab: 'sell', kind: null, acat: 'pick', atool: 'lifeline' };
+  const st = { qty: 1, dest: 'bag', tab: 'sell', kind: null, acat: 'pick', atool: 'lifeline', menu: null };
   const ANV_CAT = [['pick', 'Pickaxes', '⛏️'], ['climb', 'Climbing Picks', '🧗'], ['teth', 'Tethers', '🪢']], TETH_SUB = [['lifeline', '🪢 Ledge Tethers'], ['tlink', '🔗 Wren\'s Tether']];
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fmt = (n) => (n >= 1e4 ? Math.round(n / 1000) + 'k' : String(n));
@@ -52,14 +61,47 @@ const Craft = (() => {
   const qtyBar = () => `<div class="cxq">${[1, 10, 100, 'all'].map((q) => `<button class="btn sm ${st.qty === q ? 'alt' : 'ghost'}" data-cx="qty" data-v="${q}">${q === 'all' ? 'All' : '×' + q}</button>`).join('')}</div>`;
   const destBar = () => `<div class="cxq"><span class="dim">Output to</span>${[['bag', '🎒 Backpack'], ['vault', '🔒 Vault']].map(([k, l]) => `<button class="btn sm ${st.dest === k ? 'alt' : 'ghost'}" data-cx="dest" data-v="${k}">${l}</button>`).join('')}</div>`;
   const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0);
-  function bagHTML(inModal) { const b = bag(), ids = Object.keys(b).filter((k) => b[k] > 0), tot = ids.reduce((a, k) => a + b[k], 0);
-    let h = `<div class="cxp" data-cxv="bag"><div class="row between"><h2>🎒 Backpack</h2><span class="tag">${fmt(tot)} items</span></div><div class="dim">What Wren carries. Store things in the Ledge vault, or take them out to smelt, smith or sell.</div>`;
-    h += ids.length ? `<div class="card cxl">${ids.map((id) => `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}</span><b>${fmt(b[id])}</b></div>`).join('')}</div>` : '<div class="card dim">Your backpack is empty.</div>';
-    h += `<button class="btn" data-cx="xfer">🔒 Vault ⇄ Backpack</button>`; return h + (inModal ? '<button class="btn ghost" data-cx="close">Close</button>' : '') + '</div>'; }
-  function xferHTML() { const ids = Object.keys(ITEMS).filter((id) => get('bag', id) > 0 || get('vault', id) > 0);
-    let h = `<div class="cxp" data-cxv="xfer"><div class="row between"><h2>🔒 Vault ⇄ 🎒 Backpack</h2></div><div class="dim">Pick an amount, then deposit into the vault or withdraw into your backpack.</div>${qtyBar()}`;
-    h += ids.length ? `<div class="card cxl">${ids.map((id) => `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}<small>🎒 ${fmt(get('bag', id))} · 🔒 ${fmt(get('vault', id))}</small></span><button class="btn sm ghost" data-cx="dep" data-id="${id}" ${get('bag', id) ? '' : 'disabled'}>Deposit</button><button class="btn sm ghost" data-cx="wd" data-id="${id}" ${get('vault', id) ? '' : 'disabled'}>Withdraw</button></div>`).join('')}</div>` : '<div class="card dim">Nothing in the vault or backpack yet.</div>';
-    return h + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
+  // ---- hand-drawn item icons (inline SVG): a wobbly inked outline over the item's colour, a highlight, per-kind drawings; jitter seeded by the id so each looks inked once
+  const ICO = {};
+  function svgIco(id) { if (ICO[id]) return ICO[id]; const it = ITEMS[id] || { kind: '?', col: '#888' }; let sd = 7; for (const ch of id) sd = (sd * 31 + ch.charCodeAt(0)) % 2147483647; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, j = (v) => (v + (R() - 0.5) * 1.6).toFixed(1);
+    const c = it.col, ink = '#2a1d14', P = (pts) => 'M' + pts.map(([x, y]) => j(x) + ' ' + j(y)).join(' L') + ' Z', st = `stroke="${ink}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"`;
+    let b = '';
+    if (it.kind === 'ore') { const n = 9, pts = []; for (let k = 0; k < n; k++) { const a = k / n * 6.283 + 0.3, r = 11 + R() * 4; pts.push([24 + Math.cos(a) * r * 1.1, 26 + Math.sin(a) * r * 0.85]); } b = `<path d="${P(pts)}" fill="#8a8178" ${st}/><path d="M15 22 Q20 16 27 17" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2"/>`; for (let k = 0; k < 5; k++) b += `<path d="${P([[14 + R() * 18, 20 + R() * 12], [17 + R() * 18, 22 + R() * 12], [15 + R() * 18, 25 + R() * 10]])}" fill="${c}" stroke="${ink}" stroke-width="1"/>`; }
+    else if (it.kind === 'ingot') b = `<path d="${P([[9, 33], [39, 33], [34, 21], [14, 21]])}" fill="${c}" ${st}/><path d="${P([[14, 21], [34, 21], [31, 17], [17, 17]])}" fill="${c}" ${st} style="filter:brightness(1.25)"/><path d="M13 30 L35 30" stroke="rgba(255,255,255,.45)" stroke-width="2"/>`;
+    else if (it.tool === 'pick') b = `<path d="M${j(15)} ${j(39)} L${j(31)} ${j(13)}" stroke="#7a5230" stroke-width="5" stroke-linecap="round"/><path d="M${j(15)} ${j(39)} L${j(31)} ${j(13)}" stroke="${ink}" stroke-width="1" fill="none"/><path d="M${j(13)} ${j(14)} Q${j(28)} ${j(4)} ${j(42)} ${j(17)} Q${j(30)} ${j(11)} ${j(13)} ${j(14)} Z" fill="${c}" ${st}/>`;
+    else if (it.tool === 'climb') b = `<path d="M${j(18)} ${j(41)} L${j(26)} ${j(12)}" stroke="#7a5230" stroke-width="4.5" stroke-linecap="round"/><path d="M${j(25)} ${j(10)} Q${j(36)} ${j(9)} ${j(40)} ${j(19)} L${j(36)} ${j(17)} Q${j(32)} ${j(13)} ${j(26)} ${j(15)} Z" fill="${c}" ${st}/><path d="M${j(24)} ${j(12)} L${j(17)} ${j(8)}" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/><path d="M${j(13)} ${j(33)} Q${j(18)} ${j(37)} ${j(23)} ${j(33)}" stroke="#b89a62" stroke-width="3" fill="none"/>`;
+    else if (it.tool === 'tlink') b = [0, 1, 2].map((k) => `<ellipse cx="${j(14 + k * 10)}" cy="${j(30 - k * 6)}" rx="7" ry="4.6" transform="rotate(-32 ${14 + k * 10} ${30 - k * 6})" fill="none" stroke="${ink}" stroke-width="5"/><ellipse cx="${14 + k * 10}" cy="${30 - k * 6}" rx="7" ry="4.6" transform="rotate(-32 ${14 + k * 10} ${30 - k * 6})" fill="none" stroke="${c}" stroke-width="2.6"/>`).join('');
+    else if (it.tool === 'lifeline') { b = ''; for (let k = 0; k < 4; k++) b += `<ellipse cx="${j(24)}" cy="${j(25 + k * 1.2)}" rx="${15 - k * 3}" ry="${10 - k * 2}" fill="none" stroke="${ink}" stroke-width="5"/><ellipse cx="24" cy="${25 + k * 1.2}" rx="${15 - k * 3}" ry="${10 - k * 2}" fill="none" stroke="${c}" stroke-width="2.8"/>`; b += `<path d="M${j(36)} ${j(31)} Q${j(42)} ${j(38)} ${j(38)} ${j(43)}" stroke="${c}" stroke-width="3" fill="none"/>`; }
+    else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
+    return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
+  const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
+  const EQUIP = { pick: ['pickGrade', 'setPick', 'Pickaxe'], climb: ['climbGrade', 'setClimb', 'Climbing picks'], tlink: ['tetherGrade', 'setTether', 'Tether'] };
+  const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; return !!E && S[E[0]] === TIERS[it.tier][0]; };
+  function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
+  function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
+    for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? svgIco(id) + `<b class="cxct">${fmtN(c)}</b>` : ''}</div>`; }
+    return h + '</div>'; }
+  function gridsHTML(inModal) { const used = (w) => order(w).filter(Boolean).length;
+    let h = `<div class="cxp cxgrid" data-cxv="${inModal ? 'xfer' : 'bag'}"><div class="row between"><h2>🎒 Backpack</h2><span class="tag">${used('bag')} / ${BAG_N} slots</span></div>`;
+    h += `<div class="dim">Tap a stack to move all of it to the other side; press and hold for more (equip, move some). Stacks have no limit and no weight.</div>` + gridHTML('bag');
+    h += `<div class="row between" style="margin-top:12px"><h2>🔒 Ledge Vault</h2><span class="tag">${used('vault')} / ${VAULT_N} slots</span></div>` + gridHTML('vault');
+    h += st.menu ? menuHTML() : ''; return h + (inModal ? '<button class="btn ghost" data-cx="close">Close</button>' : '') + '</div>'; }
+  function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
+    return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
+      (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
+      `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q} → ${to}</button>`).join('')}</div>` +
+      `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` +
+      `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
+  function bagHTML(inModal) { return gridsHTML(inModal); }
+  function xferHTML() { return gridsHTML(true); }
+  // long-press opens the stack menu; a plain tap moves the whole stack
+  let lp = null; const LP_MS = 450;
+  document.addEventListener('pointerdown', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; lp = { t, x: e.clientX, y: e.clientY, fired: false, tm: setTimeout(() => { if (!lp) return; lp.fired = true; st.menu = { w: t.dataset.w, id: t.dataset.id }; refresh(); }, LP_MS) }; });
+  document.addEventListener('pointermove', (e) => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) { clearTimeout(lp.tm); lp = null; } });
+  document.addEventListener('pointerup', () => { if (lp && !lp.fired) clearTimeout(lp.tm); });
+  document.addEventListener('contextmenu', (e) => { if (e.target.closest('.cxs')) e.preventDefault(); });
+  document.addEventListener('click', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; if (lp && lp.fired) { lp = null; return; } lp = null; const w = t.dataset.w, id = t.dataset.id, to = w === 'bag' ? 'vault' : 'bag';
+    const n = move(w, to, id, get(w, id)); if (!n && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); refresh(); });
   const cost = (r, x) => Object.keys(r.in).map((k) => `<span class="cxc${have(k) >= r.in[k] * x ? '' : ' short'}">${ico(k)}${r.in[k] * x} ${esc(ITEMS[k].short)}<small>/${fmt(have(k))}</small></span>`).join('');
   function recipeHTML(kind) { const F = kind === 'furnace', list = F ? SMELT : SMITH;
     let h = `<div class="cxp" data-cxv="${kind}"><div class="row between"><h2>${F ? '🔥 Furnace' : '⚒️ Anvil'}</h2><span class="tag">placeholder recipes</span></div><div class="dim">${F ? 'Smelt ore into ingots. Ore is taken from your backpack first, then the vault.' : 'Hammer ingots into tools. Ingots are taken from your backpack first, then the vault.'}</div>${qtyBar()}${destBar()}`;
@@ -79,17 +121,20 @@ const Craft = (() => {
       return `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}<small>✦ ${p} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
     return h + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
   const VIEW = { bag: () => bagHTML(true), xfer: xferHTML, furnace: () => recipeHTML('furnace'), anvil: () => recipeHTML('anvil'), exchange: exHTML };
-  function open(kind) { if (typeof openModal !== 'function' || !VIEW[kind]) return false; st.kind = kind; openModal(VIEW[kind](), 'cx-' + kind); return true; }
+  function open(kind) { if (typeof openModal !== 'function' || !VIEW[kind]) return false; st.kind = kind; st.menu = null; openModal(VIEW[kind](), 'cx-' + kind); return true; }
   function refresh() { const b = document.getElementById('modalBody'); if (st.kind && b && typeof ui !== 'undefined' && ui.modal === 'cx-' + st.kind) b.innerHTML = VIEW[st.kind](); else if (typeof ui !== 'undefined' && ui.tab === 'bag' && typeof rerender === 'function') rerender(true); if (typeof save === 'function') try { save(); } catch (e) {} }
   const nOf = (avail) => (st.qty === 'all' ? avail : Math.min(st.qty, avail));
   document.addEventListener('click', (e) => { const t = e.target.closest('[data-cx]'); if (!t || t.disabled) return; const a = t.dataset.cx, id = t.dataset.id;
     if (a === 'close') return typeof closeModal === 'function' && closeModal();
     if (a === 'qty') st.qty = t.dataset.v === 'all' ? 'all' : +t.dataset.v; else if (a === 'dest') st.dest = t.dataset.v; else if (a === 'tab') st.tab = t.dataset.v; else if (a === 'acat') st.acat = t.dataset.v; else if (a === 'atool') st.atool = t.dataset.v;
     else if (a === 'xfer') return open('xfer');
+    else if (a === 'mclose') st.menu = null;
+    else if (a === 'equip') { if (equip(id) && typeof toast === 'function') toast(`✅ Equipped ${nm(id)}`); st.menu = null; }
+    else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); } st.menu = null; }
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
     else if (a === 'make') { const r = (t.dataset.k === 'furnace' ? SMELT : SMITH)[+t.dataset.i]; const x = st.qty === 'all' ? maxMake(r) : st.qty; if (make(r, x, st.dest) && typeof toast === 'function') toast(`${t.dataset.k === 'furnace' ? '🔥' : '⚒️'} ${x}× ${nm(r.out)} → ${st.dest === 'vault' ? 'Vault' : 'Backpack'}`); }
     else if (a === 'sell') { const n = sell(id, nOf(have(id))); if (n && typeof toast === 'function') toast(`💠 Sold ${n}× ${nm(id)}`); }
     else if (a === 'buy') { const n = buy(id, nOf(Math.floor(lum() / buyP(id)))); if (n && typeof toast === 'function') toast(`💠 Bought ${n}× ${nm(id)}`); }
     refresh(); });
-  return { ITEMS, SMELT, SMITH, TIERS, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st };
+  return { BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, TIERS, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st };
 })();
