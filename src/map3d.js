@@ -327,6 +327,13 @@ void main() {
       g.beginPath(); g.ellipse(x, y, r, r * 0.55, R() * TAU, 0, TAU); g.fill(); } }); }
   function plankTex() { return hwCanvasTex(128, 128, (g, w, h) => { let s = 5; const R = () => (s = (s * 16807) % 2147483647) / 2147483647; for (let i = 0; i < 8; i++) { const c = 0.75 + R() * 0.3; g.fillStyle = `rgb(${142 * c | 0},${104 * c | 0},${66 * c | 0})`; g.fillRect(0, i * 16, w, 16); g.fillStyle = 'rgba(40,26,14,.7)'; g.fillRect(0, i * 16 + 14, w, 2); g.fillRect((R() * w) | 0, i * 16, 2, 14); } }); }
   // geometry accumulator -> one merged mesh
+  // Explore close-up: the same hand-made plate bark again at true scale (6x and 29x the tile) over the trunk, roots and limbs near the camera, as a relief on the base plates
+  function barkDetail(m) { m.onBeforeCompile = (sh) => { sh.uniforms.uExOn = EXU; sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uExOn;').replace('#include <map_fragment>', `#ifdef USE_MAP
+vec4 sdc = texture2D(map, vUv); float vdB = 1.0 / gl_FragCoord.w, bfB = uExOn * (1.0 - smoothstep(140.0, 700.0, vdB));
+if (bfB > 0.002) { vec3 lw = vec3(0.3, 0.59, 0.11); float d1 = dot(texture2D(map, vUv * 6.0 + vec2(0.31, 0.17)).rgb, lw) / (dot(texture2D(map, vUv * 6.0 + vec2(0.31, 0.17), 6.0).rgb, lw) + 0.01), d2 = dot(texture2D(map, vUv * 29.0 + 0.6).rgb, lw) / (dot(texture2D(map, vUv * 29.0 + 0.6, 6.0).rgb, lw) + 0.01);
+  sdc.rgb *= mix(1.0, clamp(pow(d1, 1.25) * 0.8 + d2 * 0.2, 0.22, 1.8), bfB); }
+diffuseColor *= sdc;
+#endif`); }; m.customProgramCacheKey = () => 'barkDetail'; return m; }
   function GA() { return { p: [], n: [], uv: [], c: [], i: [] }; }
   function gaMesh(A, mat, normals) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(A.p, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(A.uv, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(A.c, 3)); g.setIndex(A.i);
     if (normals) g.setAttribute('normal', new THREE.Float32BufferAttribute(A.n, 3)); else g.computeVertexNormals(); g.computeBoundingSphere(); const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; return m; }
@@ -339,7 +346,7 @@ void main() {
         A.p.push(p.x, p.y, p.z); A.n.push(d.x, d.y, d.z); A.uv.push((k / seg) * uvk[0], vacc / uvk[1]); const c = col(i, a, p, d); A.c.push(c[0], c[1], c[2]); } }
     for (let i = 0; i < n - 1; i++) for (let k = 0; k < seg; k++) { const a = base + i * (seg + 1) + k, b2 = a + seg + 1; A.i.push(a, b2, a + 1, a + 1, b2, b2 + 1); } }
   function bez(p0, p1, p2, p3, n) { const c = new THREE.CubicBezierCurve3(p0, p1, p2, p3); return c.getPoints(n); }
-  const HWX = { built: false, objs: [], mush: null, mushGlow: null, badges: [], clumps: [], seats: [] };
+  const HWX = { built: false, objs: [], mush: null, mushGlow: null, badges: [], clumps: [], seats: [], rootMeshes: [] }, EXU = { value: 0 }; // EXU: Explore close-up detail on (shared by the terrain and bark shaders)
   // the pit wall: radius (from the Hollow's centre) where the wall reaches height y along angle phi
   function wallR(phi, y) { let lo = Math.max(50, hollowR(phi) - 3000), hi = hollowR(phi) + 300; for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2, [x, z] = polar(m, phi); if (meshH(x, z) > y) hi = m; else lo = m; } return (lo + hi) / 2; }
   function puffGeo(det, seed) { // one leafy floret: a lumpy ball (cauliflower bumps), lit from the top, dark underneath
@@ -358,7 +365,7 @@ void main() {
     const tr = (f, th, r) => ax(f).addScaledVector(dirAt(th), r != null ? r : hwTrunkR(f));
     const add = (o) => { scene.add(o); HWX.objs.push(o); return o; };
     const OUT = T.in + Math.PI; // the side facing away from the Hollow (onto the plateau)
-    if (!HWX.built) { HWX.built = true; const bark = new THREE.MeshLambertMaterial({ map: barkTex(), vertexColors: true, side: THREE.DoubleSide }), A = GA(); HWX.barkMat = new THREE.MeshLambertMaterial({ map: bark.map, color: 0xa08a74 });
+    if (!HWX.built) { HWX.built = true; const bark = new THREE.MeshLambertMaterial({ map: barkTex(), vertexColors: true, side: THREE.DoubleSide }), A = GA(); barkDetail(bark); HWX.barkMat = new THREE.MeshLambertMaterial({ map: bark.map, color: 0xa08a74 });
       const moss = (p, d, k) => { const m = Math.max(0, d.y) * 0.7 + (vnoise(p.x / 600 + k, p.z / 600 + p.y / 800) - 0.56) * 1.5; const u = clamp(m, 0, 1), dk = 0.86 + 0.14 * clamp((p.y - B) / (H * 0.4), 0, 1); return [(1 - 0.45 * u) * dk, (1 - 0.1 * u) * dk, (1 - 0.6 * u) * dk]; }; HWX.trunkMat = bark; HWX.moss = moss;
       // the trunk: a braid of great twisted strands, deeply ridged, buttressed at the foot
       const trunkRad = (f, a) => { const tw = f * 4.2, Bt = Math.exp(-Math.max(0, f + 0.04) * 7), lobe = Math.pow(0.5 + 0.5 * Math.cos(6 * (a - tw)), 2.2), lobe2 = Math.pow(0.5 + 0.5 * Math.cos(11 * (a - tw * 1.3) + 1), 4), r = hwTrunkR(f) * (1 + 0.55 * Bt * lobe - 0.08 * Bt);
@@ -371,6 +378,7 @@ void main() {
         for (let i = 0; i <= n; i++) { const f = 0.02 + (f1 - 0.02) * i / n, aa = a0 + f * 3.4; pts.push(tr(f, aa, trunkRad(f, aa) * 0.95)); rs.push(HW_R0 * (0.17 + 0.06 * hash1(k)) * (1 - 0.6 * i / n) * (i < 3 ? 0.5 + i / 6 : 1)); }
         GRAND.dodge(pts, DC, rs); gaTube(A, pts, 10, (i, aa) => rs[i] * (1 + 0.1 * Math.sin(aa * 2 + i * 0.4)), (i, aa, p, d) => moss(p, d, k + 40), [2, 600]); }
       // LIP ROOTS: wind down the trunk, then arch out over the lip and grip the plateau behind the tree
+      const rootMesh = (fill) => { const AR = GA(); fill(AR); const m = add(gaMesh(AR, bark, true)); m.userData.occU = true; m.name = 'greatRoot'; HWX.rootMeshes.push(m); }; // each great root its own mesh, so the Explore camera can fade just the one in the way
       const rootPts = [], rootR = []; HWX.rootPts = rootPts; HWX.rootR = rootR; // (the Explore nav keeps her off the great roots)
       const lipRoot = (a, fTop, L, r0, k, from) => { const pts = [], rs = []; let prev;
         if (!from) { const nS = Math.max(3, Math.round(fTop / 0.012)), tw = 1.6 * (k % 2 ? 1 : -0.8);
@@ -379,7 +387,7 @@ void main() {
         const c = from ? from.p : ax(0), s0 = Math.hypot(prev.x - c.x, prev.z - c.z), n = 26, y0 = prev.y;
         for (let i = 1; i <= n; i++) { const u = i / n, s2 = s0 + L * Math.pow(u, 0.9), aa = a + Math.sin(u * 4.5 + k) * 0.22 * u, x = c.x + Math.cos(aa) * s2, z = c.z + Math.sin(aa) * s2, rr = r0 * (1 - 0.9 * Math.pow(u, 0.8));
           const gy = meshH(x, z), arch = Math.sin(Math.min(1, u * 2.2) * Math.PI) * rr * 0.5; const y = Math.max(gy + rr * 0.32 + arch, y0 + (gy - y0) * clamp(u * 3, 0, 1) + rr * 0.3); const p = v3().set(x, y, z); pts.push(p); rs.push(rr); }
-        GRAND.dodge(pts, DC, rs); gaTube(A, pts, 12, (i, aa) => rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))), (i, aa, p, d) => moss(p, d, k), [3, 520]); rootPts.push(pts.slice(from ? 0 : 6)); rootR.push(rs); return { pts, rs }; };
+        GRAND.dodge(pts, DC, rs); rootMesh((AR) => gaTube(AR, pts, 12, (i, aa) => rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))), (i, aa, p, d) => moss(p, d, k), [3, 520])); rootPts.push(pts.slice(from ? 0 : 6)); rootR.push(rs); return { pts, rs }; };
       for (let k = 0; k < 11; k++) { if (k === 5) continue; /* the Lumen Tree's great door stands where this root ran */ const a = OUT + (k / 10 - 0.5) * 3.9 + (hash1(k * 3.1) - 0.5) * 0.2, side = Math.abs(Math.cos(a - OUT)), L = H * (0.13 + 0.15 * side) * (0.8 + 0.4 * hash1(k + 9)), r0 = HW_R0 * (0.3 + 0.12 * hash1(k + 2));
         const R1 = lipRoot(a, 0.1 + hash1(k + 5) * 0.16, L, r0, k);
         for (const s of [-1, 1]) if (hash1(k * 5 + s) < 0.75) { const i = 8 + ((hash1(k * 2 + s) * 8) | 0); if (R1.pts[i]) lipRoot(a + s * (0.5 + hash1(k + s) * 0.4), 0, L * 0.45, R1.rs[i] * 0.55, k + s * 20, { p: v3().copy(R1.pts[i]) }); } }
@@ -391,7 +399,7 @@ void main() {
         const p0 = pts[pts.length - 1], phi0 = Math.atan2(p0.z, p0.x), r0w = Math.hypot(p0.x, p0.z), y0 = p0.y, n = 30;
         for (let i = 1; i <= n; i++) { const u = i / n, y = y0 - drop * u, phi = phi0 + phiOff * (0.3 + 1.1 * u) * 0.9 + Math.sin(u * 5 + k) * 0.03, rr = r0 * (1 - 0.86 * Math.pow(u, 0.85));
           const rw = wallR(phi, y), r = Math.min(r0w + 120 * u, rw - rr * 0.25); const [x, z] = polar(r, phi); pts.push(v3().set(x, Math.max(y, meshH(x, z) + rr * 0.15), z)); rs.push(rr); }
-        gaTube(A, pts, 12, (i, aa) => rs[i] * (1 + 0.12 * Math.sin(aa * 3 + i)), (i, aa, p, d) => moss(p, d, k + 70), [3, 520]); rootPts.push(pts.slice(nS)); rootR.push(rs.slice(nS)); };
+        rootMesh((AR) => gaTube(AR, pts, 12, (i, aa) => rs[i] * (1 + 0.12 * Math.sin(aa * 3 + i)), (i, aa, p, d) => moss(p, d, k + 70), [3, 520])); rootPts.push(pts.slice(nS)); rootR.push(rs.slice(nS)); };
       for (let k = 0; k < 9; k++) { const off = (k / 8 - 0.5) * 0.9 + (hash1(k * 4.7) - 0.5) * 0.06; wallRoot(off, 0.03 + hash1(k * 1.9) * 0.08, 1800 + hash1(k * 2.3) * 2000 - Math.abs(off) * 900, HW_R0 * (0.26 + 0.12 * hash1(k + 7)), k); }
       // limbs: great crown limbs that fork, each fork ending in a cauliflower floret of foliage
       const limbs = [], ends = [];
@@ -605,7 +613,7 @@ void main() {
       () => { const a = document.createElement('canvas'); a.width = a.height = 2048; paint(a, -(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2048); texA = canvasTex(a); },
       () => { const b = document.createElement('canvas'); b.width = b.height = 2048; paint(b, -IN(), -IN(), 2 * IN(), 2048); texB = canvasTex(b); },
       () => { cCanvas = document.createElement('canvas'); cCanvas.width = cCanvas.height = 2048; texC = canvasTex(cCanvas);
-        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uExOn: { value: 0 }, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
+        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uExOn: EXU, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
         terrainMat = makeTerrainMat(U); terrainMat.userData.U = U; scene.add(makeTerrain(grids[0])); scene.add(makeTerrain(grids[1])); },
       () => { buildBillboards();
         lumenSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,214,140,.9)', 'rgba(255,170,80,.3)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); lumenSpr.position.set(0, P_H - PIT * 0.55, 0);
@@ -688,7 +696,7 @@ void main() {
   /* ---------- detail texture around the camera ---------- */
   function updateDetail(cam) {
     const U = terrainMat.userData.U;
-    const ex = !!st.camOv; U.uExOn.value = ex ? 1 : 0; // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
+    const ex = !!st.camOv; EXU.value = ex ? 1 : 0; // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
     if (cam.z < 0.28 && !ex) { U.uCOn.value = 0; cState = null; return; }
     const size = ex ? 1000 : 2600, px = 2048; if (cState && cState.size !== size) cState = null;
     if (!cState || Math.hypot(cam.x - cState.cx, cam.y - cState.cy) > (ex ? 220 : 700)) { if (cState && cState.q < 4) {} else { cState = { cx: Math.round(cam.x / 50) * 50, cy: Math.round(cam.y / 50) * 50, q: 0, size }; } }
