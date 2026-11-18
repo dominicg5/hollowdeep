@@ -137,7 +137,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.isVisible('#cityCanvas'), 'tab switching round-trip');
   await p.evaluate(() => setTab('capital')); ok(await p.isVisible('text=Lantern Hall'), 'capital tab renders'); ok(!(await p.isVisible('#cityCanvas')), 'city hidden on other tabs');
   // Character tab: own 3D stage, sex toggle persisted, fidgets advance, hidden on other tabs
-  ok(await p.evaluate(() => [...document.querySelectorAll('nav#tabs [data-tab]')].map((b) => b.dataset.tab).join(',')) === 'city,char,ledge,home,tree', 'tab bar is Rim City, Character, Portaledges, Ledge, Lumen Tree');
+  ok(await p.evaluate(() => [...document.querySelectorAll('nav#tabs [data-tab]')].map((b) => b.dataset.tab).join(',')) === 'city,char,ledge,home,tree,bag', 'tab bar is Rim City, Character, Portaledges, Ledge, Lumen Tree, Backpack');
   await p.click('nav#tabs [data-tab=ledge]', { force: true }); await p.waitForTimeout(1500);
   ok(await p.evaluate(() => CharView.st.ledge && !!CharView.ledge && CharView.ledge.visible && CharView.LP.on && CharView.st.gnd && CharView.st.gnd.mine && document.getElementById('charWrap').classList.contains('ledge') && !document.getElementById('cityCanvas').offsetParent), 'portaledges tab shows the hanging camp with the delver mining');
   ok(await p.isVisible('#ledgeInfo') && /Mithril/.test(await p.textContent('#ledgeInfo')), 'portaledge info panel names the ore');
