@@ -1339,21 +1339,25 @@ const CharView = (() => {
   function strandMat(L) { return L.glowS ? new THREE.MeshBasicMaterial({ color: L.col }) : L.cable ? new THREE.MeshPhongMaterial({ color: L.col, specular: 0xffffff, shininess: 60 }) : toon(L.col, null, { emissive: new THREE.Color(L.core).multiplyScalar(0.15).getHex() }); }
   // the braid along a centre path: two helices half a turn apart, each strand in its own tier's material (stripe/wrap details ride on that strand),
   // each with its own glow sheath and its own transfer beads. ledgeEnd: 1 if the Ledge is at the end of the path, 0 if at its start
-  function twinCord(par, pts, tw, k = 2.4, ledgeEnd = 0) { const C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), len = C.getLength(), NP = Math.max(60, Math.min(900, Math.round(len / 0.01))), P = C.getSpacedPoints(NP), g = new THREE.Group(); par.add(g);
-    const LA = LGRADES[tw.a.grade] || LGRADES.bronze, LB = LGRADES[tw.b.grade] || LGRADES.bronze, srs = [LA.r * k, LB.r * k], rr = Math.max(srs[0], srs[1]) * 0.95, twist = TAU / (7 * (srs[0] + srs[1]));
+  function twinCord(par, pts, tw, k = 2.4, ledgeEnd = 0) { const g = braidCord(par, pts, [Object.assign({ key: 'a' }, tw.a), Object.assign({ key: 'b' }, tw.b)], k, ledgeEnd); g.userData.twin = tw; return g; }
+  // the same lay for any number of strands: 2 -> the twin helix; more -> one big rope, every strand (its own tier material, sheath and beads) laid
+  // round a dark heart at a ring radius that grows with the count, so the braid thickens with each Lifeline twined in
+  function braidCord(par, pts, list, k = 2.4, ledgeEnd = 0) { const C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), len = C.getLength(), NS = list.length, NP = Math.max(60, Math.min(NS > 2 ? 520 : 900, Math.round(len / 0.01))), P = C.getSpacedPoints(NP), g = new THREE.Group(); par.add(g);
+    const shrink = NS > 2 ? Math.max(0.6, 1 - 0.03 * (NS - 2)) : 1, srs = list.map((x) => (LGRADES[x.grade] || LGRADES.bronze).r * k * shrink), smax = Math.max(...srs), rr = NS > 2 ? smax / Math.sin(Math.PI / NS) * 0.92 : smax * 0.95, twist = NS > 2 ? TAU / (rr * TAU * 2.2) : TAU / (7 * (srs[0] + srs[1]));
     const Nn = [], Bn = []; let n0 = Math.abs(P[1].clone().sub(P[0]).normalize().y) > 0.9 ? V(1, 0, 0) : V(0, 1, 0); for (let i = 0; i <= NP; i++) { const t2 = P[Math.min(NP, i + 1)].clone().sub(P[Math.max(0, i - 1)]).normalize(); n0.addScaledVector(t2, -n0.dot(t2)).normalize(); Nn.push(n0.clone()); Bn.push(t2.clone().cross(n0)); }
     const helix = (off, ph) => { let sA = 0; const H = []; for (let i = 0; i <= NP; i++) { if (i) sA += P[i].distanceTo(P[i - 1]); const a = ph + sA * twist; H.push(P[i].clone().addScaledVector(Nn[i], Math.cos(a) * off).addScaledVector(Bn[i], Math.sin(a) * off)); } return H; };
-    const strands = [];
-    ['a', 'b'].forEach((key, j) => { const x = tw[key], L = LGRADES[x.grade] || LGRADES.bronze, sr = srs[j], ph = j * Math.PI, hp = helix(rr, ph), hc = new THREE.CatmullRomCurve3(hp), seg = NP * 2;
-      part(g, new THREE.TubeGeometry(hc, seg, sr, 7, false), strandMat(L), null, null, null, { ink: true });
-      if (L.wrap) part(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix(rr + sr * 0.72, ph + 0.55)), seg, sr * 0.34, 4, false), toon(L.wrap), null, null, null, { ink: false, shadow: false });
-      else if (L.bands) part(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix(rr + sr * 0.72, ph + 0.55)), seg, sr * 0.26, 4, false), toon(L.bands), null, null, null, { ink: false, shadow: false });
-      const sc = L.vein || L.fil || L.runes; if (sc) part(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix(rr + sr * 0.78, ph - 0.5)), seg, sr * 0.24, 4, false), new THREE.MeshBasicMaterial({ color: sc }), null, null, null, { ink: false, shadow: false });
+    const strands = [], seg = NS > 2 ? NP : NP * 2, rs = NS > 2 ? 6 : 7;
+    if (NS > 2) part(g, new THREE.TubeGeometry(C, NP, Math.max(0.004, rr - smax * 0.55), 10, false), toon(0x2a2220), null, null, null, { ink: false });
+    list.forEach((x, j) => { const L = LGRADES[x.grade] || LGRADES.bronze, sr = srs[j], ph = NS > 2 ? j / NS * TAU : j * Math.PI, hp = helix(rr, ph), hc = new THREE.CatmullRomCurve3(hp);
+      part(g, new THREE.TubeGeometry(hc, seg, sr, rs, false), strandMat(L), null, null, null, { ink: true });
+      if (L.wrap) part(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix(rr + sr * 0.72, ph + 0.55 / Math.max(1, NS / 2))), seg, sr * 0.34, 4, false), toon(L.wrap), null, null, null, { ink: false, shadow: false });
+      else if (L.bands) part(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix(rr + sr * 0.72, ph + 0.55 / Math.max(1, NS / 2))), seg, sr * 0.26, 4, false), toon(L.bands), null, null, null, { ink: false, shadow: false });
+      const sc = L.vein || L.fil || L.runes; if (sc) part(g, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(helix(rr + sr * 0.78, ph - 0.5 / Math.max(1, NS / 2))), seg, sr * 0.24, 4, false), new THREE.MeshBasicMaterial({ color: sc }), null, null, null, { ink: false, shadow: false });
       const core = new THREE.MeshBasicMaterial({ color: L.core, transparent: true, opacity: L.co * 1.4, depthWrite: false, blending: THREE.AdditiveBlending }); part(g, new THREE.TubeGeometry(hc, seg, sr * 1.75, 8, false), core, null, null, null, { ink: false, shadow: false });
       const pm = new THREE.MeshBasicMaterial({ color: new THREE.Color(L.en).lerp(new THREE.Color(0xffffff), 0.35), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }), beads = [];
       for (let i = 0; i < 4; i++) { const b = part(g, new THREE.SphereGeometry(1, 10, 8), pm, null, null, null, { ink: false, shadow: false }); b.visible = false; beads.push(b); }
-      strands.push({ key, grade: x.grade, dir: x.dir, curve: hc, pts: hp, core, co: L.co * 1.4, pm, beads, sr, xl: 0, u: 0, len: hc.getLength() }); });
-    g.userData = { C, strands, rr, len, ledgeEnd, twin: tw, core: strands[0].core, co: strands[0].co }; return g; }
+      strands.push({ key: x.key, port: x.port, seed: x.seed || 0, lj: x.lj === undefined ? j : x.lj, grade: x.grade, dir: x.dir, curve: hc, pts: hp, core, co: L.co * 1.4, pm, beads, sr, xl: 0, u: 0, len: hc.getLength() }); });
+    g.userData = { C, strands, rr, R: rr + smax, len, ledgeEnd, core: strands[0].core, co: strands[0].co }; return g; }
   // per-strand load: auto = each strand carries a load 3 s out of every 8, the two strands out of step (so each dims on its own); seed varies it per Lifeline
   function strandLoad(t, j, seed = 0) { return LG.xfer === 'on' ? 1 : LG.xfer === 'off' ? 0 : ((t + j * 4 + seed) % 8 < 3 ? 1 : 0); }
   // idle: full steady glow, no pulse; under load the strand's glow dims and its pulses run in that strand's direction ('to' runs toward the Ledge end)
@@ -1867,9 +1871,9 @@ const CharView = (() => {
     HM.obs.push({ x: t.x, z: t.z, r: 0.55 }); }
   // the untethering: where lineIn reaches the cradle its two strands unravel into a fan of glowing fibres that sweep out and merge into the core;
   // out of the core a second fan gathers back together into lineOut, which re-forms and runs on to the vault. Beads of light run along every fibre.
-  function globeWeave(tw) { tw = twinOf(tw && tw.a ? tw : tw ? { grade: tw, dir: 'in' } : null); const R = globeRoute(), t = HMP.table, C0 = V(t.x, 1.08, t.z), ea = R.a[R.a.length - 1], eb = R.b[0], W = new THREE.Group(); HM.cords.add(W); HM.weave = W; HM.fibres = [];
-    const LA = LGRADES[tw.a.grade] || LGRADES.bronze, LB = LGRADES[tw.b.grade] || LGRADES.bronze, rp = prng(41);
-    for (const [side, e] of [['in', ea], ['out', eb]]) for (let i = 0; i < 12; i++) { const L2 = i % 2 ? LB : LA, ph = Math.atan2(e.z - C0.z, e.x - C0.x) + (i / 11 - 0.5) * 2.6, rr = 0.19 + rp() * 0.08, yy = (rp() - 0.5) * 0.24,
+  function globeWeave(tw) { const lst = Array.isArray(tw) ? tw : null; if (lst) tw = { a: lst[0], b: lst[1] }; tw = twinOf(tw && tw.a ? tw : tw ? { grade: tw, dir: 'in' } : null); const R = globeRoute(), t = HMP.table, C0 = V(t.x, 1.08, t.z), ea = R.a[R.a.length - 1], eb = R.b[0], W = new THREE.Group(); HM.cords.add(W); HM.weave = W; HM.fibres = [];
+    const LS = lst ? lst.map((x) => LGRADES[x.grade] || LGRADES.bronze) : [LGRADES[tw.a.grade] || LGRADES.bronze, LGRADES[tw.b.grade] || LGRADES.bronze], NF = Math.max(12, Math.min(24, LS.length * 2)), rp = prng(41);
+    for (const [side, e] of [['in', ea], ['out', eb]]) for (let i = 0; i < NF; i++) { const L2 = LS[i % LS.length], ph = Math.atan2(e.z - C0.z, e.x - C0.x) + (i / (NF - 1) - 0.5) * 2.6, rr = 0.19 + rp() * 0.08, yy = (rp() - 0.5) * 0.24,
         w = V(C0.x + Math.cos(ph) * rr, C0.y + yy, C0.z + Math.sin(ph) * rr), up = e.clone().add(V((rp() - 0.5) * 0.04, 0.05, (rp() - 0.5) * 0.04)), pts = [e.clone(), up, w, C0.clone().add(V((rp() - 0.5) * 0.04, (rp() - 0.5) * 0.04, (rp() - 0.5) * 0.04)), C0.clone()];
       const cu = new THREE.CatmullRomCurve3(side === 'in' ? pts : pts.reverse()), N = 40, geo = new THREE.TubeGeometry(cu, N, 0.0045 + rp() * 0.003, 5, false), P = geo.attributes.position, col = new Float32Array(P.count * 4), c = new THREE.Color(L2.col).lerp(new THREE.Color(L2.core), 0.3);
       for (let k = 0; k < P.count; k++) { const u = Math.floor(k / 6) / N, uc = side === 'in' ? u : 1 - u, al = Math.min(1, (1 - uc) / 0.4) * 0.6; col.set([c.r, c.g, c.b, al], k * 4); } geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
@@ -1926,9 +1930,26 @@ const CharView = (() => {
       const plug = new THREE.Group(); plug.position.set(ox, oy, z0); HM.cords.add(plug); part(plug, cyl(c ? 0.07 : 0.035, c ? 0.06 : 0.03, 0.08, 16).rotateX(Math.PI / 2), toon(0xb07a3a), [0, 0, 0.03]);
       const out = doorRoute(id, ox, oy, z0);
       const cd = twinCord(HM.cords, out, P2, k, 0); cd.userData.port = id; cd.userData.seed = PORTS.indexOf(id) * 1.7; cd.userData.ext = true; HM.cordList.push(cd);
-      if (c) { const zin = HM.FZ - 0.06, pin = new THREE.Group(); pin.position.set(ox, oy, zin); HM.cords.add(pin); part(pin, cyl(0.07, 0.06, 0.08, 16).rotateX(-Math.PI / 2), toon(0xb07a3a), [0, 0, -0.03]); HM.plugIn = pin; // inside, the main Lifeline runs unbroken across the floor into the vault port
-        const GR = globeRoute(), ic = twinCord(HM.cords, GR.a, P2, 2.4, 1); ic.userData.port = 'c'; ic.userData.seed = 0; ic.userData.inside = true; ic.userData.pts = mainLinePts(); HM.cordList.push(ic); HM.mainCord = ic; const oc = twinCord(HM.cords, GR.b, P2, 2.4, 1); oc.userData.port = 'c'; oc.userData.seed = 0.5; oc.userData.inside = true; HM.cordList.push(oc); HM.mainOut = oc; globeWeave(P2); } }
+    }
+    insideLines(hs);
     hs.ports && (HM.n = Object.keys(hs.ports).length); homeInfo(); }
+  // inside the Ledge. Main line alone: door -> table -> globe -> vault as before. With extra ports plugged, every extra Lifeline comes in through the
+  // door too: each drops from its port down to the floor and joins the main line where it lands, and from there all the strands (2 per Lifeline,
+  // each in its tier colour) run on twined into one big braided Lifeline - up the table, unravelling into the globe, re-forming and on to the vault.
+  // Its thickness grows with the number of Lifelines in it.
+  function braidR(list, k = 2.4) { const NS = list.length, sh = NS > 2 ? Math.max(0.6, 1 - 0.03 * (NS - 2)) : 1, sm = Math.max(...list.map((x) => (LGRADES[x.grade] || LGRADES.bronze).r * k * sh)); return NS > 2 ? sm / Math.sin(Math.PI / NS) * 0.92 + sm : sm * 1.95; }
+  function insideLines(hs) { HM.mainCord = HM.mainOut = HM.mainLead = HM.bigBraid = null; HM.feeders = []; const main = hs.ports.c, extras = PORTS.filter((id) => id !== 'c' && hs.ports[id]); if (!main && !extras.length) { HM.weave = null; HM.fibres = []; return; }
+    const GR = globeRoute(), pinAt = (id, big) => { const pp = portPos(id), pin = new THREE.Group(); pin.position.set(HM.dx + pp.x, pp.y, HM.FZ - 0.06); HM.cords.add(pin); part(pin, cyl(big ? 0.07 : 0.035, big ? 0.06 : 0.03, 0.08, 16).rotateX(-Math.PI / 2), toon(0xb07a3a), [0, 0, -0.03]); return pin; };
+    if (main) HM.plugIn = pinAt('c', true);
+    if (!extras.length) { const P2 = main, ic = twinCord(HM.cords, GR.a, P2, 2.4, 1); ic.userData.port = 'c'; ic.userData.seed = 0; ic.userData.inside = true; ic.userData.pts = mainLinePts(); HM.cordList.push(ic); HM.mainCord = ic; const oc = twinCord(HM.cords, GR.b, P2, 2.4, 1); oc.userData.port = 'c'; oc.userData.seed = 0.5; oc.userData.inside = true; HM.cordList.push(oc); HM.mainOut = oc; globeWeave(P2); return; }
+    const ids = (main ? ['c'] : []).concat(extras), list = []; for (const id of ids) { const tw = twinOf(hs.ports[id]), sd = id === 'c' ? 0 : PORTS.indexOf(id) * 1.7; list.push(Object.assign({ key: 'a', port: id, seed: sd, lj: 0 }, tw.a), Object.assign({ key: 'b', port: id, seed: sd, lj: 1 }, tw.b)); }
+    const MI = 3, M = GR.a[MI].clone(), R0 = braidR(list), lift = (q) => (q.y < R0 + 0.02 ? V(q.x, R0 + 0.02, q.z) : q.clone()); HM.braidN = ids.length; HM.braidR = R0; HM.braidList = list.map((x) => x.grade);
+    if (main) { const ld = twinCord(HM.cords, GR.a.slice(0, MI).concat([lift(M)]), main, 2.4, 1); ld.userData.port = 'c'; ld.userData.seed = 0; ld.userData.inside = true; HM.cordList.push(ld); HM.mainLead = ld; }
+    extras.forEach((id, n) => { pinAt(id, false); const pp = portPos(id), ox = HM.dx + pp.x, oy = pp.y, z0 = HM.FZ - 0.08, sd = PORTS.indexOf(id) * 1.7, sx = (pp.x >= 0 ? 1 : -1) * (0.12 + 0.04 * (n % 3)), lm = lift(M);
+      const pts = [V(ox, oy, z0), V(ox, oy - 0.06, z0 - 0.12), V(lerp(ox, M.x, 0.25) + sx, 0.12 + R0 * 0.5, lerp(z0, M.z, 0.35)), V(lerp(ox, M.x, 0.7) + sx * 0.6, lm.y, lerp(z0, M.z, 0.75)), V(M.x + sx * 0.25, lm.y, M.z + 0.12), lm];
+      const fd = twinCord(HM.cords, pts, hs.ports[id], 2.0, 1); fd.userData.port = id; fd.userData.seed = sd; fd.userData.inside = true; fd.userData.feeder = true; HM.cordList.push(fd); HM.feeders.push(fd); });
+    const bi = braidCord(HM.cords, [lift(M)].concat(GR.a.slice(MI + 1).map(lift)), list, 2.4, 1); bi.userData.port = 'c'; bi.userData.inside = true; bi.userData.braid = true; bi.userData.pts = mainLinePts(); HM.cordList.push(bi); HM.mainCord = HM.bigBraid = bi;
+    const bo = braidCord(HM.cords, GR.b.map((q, i) => (i < GR.b.length - 2 ? lift(q) : q.clone())), list, 2.4, 1); bo.userData.port = 'c'; bo.userData.inside = true; bo.userData.braid = true; HM.cordList.push(bo); HM.mainOut = bo; globeWeave(list); }
   function homeInfo() { const hs = homeState(), e = document.getElementById('homeLines'); if (!e) return; const v = Object.values(hs.ports).map((p) => twinOf(p)), sv = v.flatMap((p) => [p.a, p.b]), i = sv.filter((x) => x.dir === 'to').length, o = sv.length - i; e.textContent = v.length ? `${v.length} × 2 strands · ${i} to Ledge · ${o} from` : 'no Lifelines plugged'; const m = document.getElementById('homeMode'); if (m) m.textContent = HM.mode === 'in' ? 'inside' : 'at the door'; const sm = document.querySelector('#homeInfo small'); if (sm) { const t2 = HM.mode === 'in' ? 'Your Ledge, inside the cliff. Drag to orbit · tap to walk' : HM.menu ? 'Ledge door: enter, or manage the Lifeline ports' : 'Your Ledge in the cliff. Tap the door to enter or manage Lifelines · drag to orbit'; if (sm.textContent !== t2) sm.textContent = t2; } }
   function plugPort(id, a, b) { const hs = homeState(); id = id || HM.sel; const i = PORTS.indexOf(id); if (i < 0) return false; if (id !== 'c' && i - 1 >= hs.open) return false; if (hs.ports[id]) return false; // one Lifeline per port
     hs.ports[id] = typeof a === 'string' ? twinOf({ grade: a, dir: b }) : a && a.a ? twinOf(a) : a && b ? twinOf({ a, b }) : twinOf(HM.tw); if (typeof save === 'function') save(); refreshPorts(); homeMark(); return true; }
@@ -1950,7 +1971,7 @@ const CharView = (() => {
     if (A) { A.t += dt; if (A.k === 'fade') { const F = 0.32; if (A.t >= F && !A.sw) { A.sw = true; setHomeMode(A.to); HM.anim = A; } HM.fade = A.t < F ? ss(0, F, A.t) : 1 - ss(F, 2 * F, A.t); if (A.t >= 2 * F) { HM.anim = null; HM.fade = 0; } } }
     { const fe = document.getElementById('homeFade'); if (fe) { const o = (HM.fade || 0).toFixed(3); if (fe.style.opacity !== o) fe.style.opacity = o; } }
     if (HM.door) HM.door.userData.leaf.rotation.y = 0;
-    let mv = 0, xm = 0; for (const cd of HM.cordList || []) { const sd = cd.userData.seed || 0; mv |= twinTick(cd, HM.t, dt, [strandLoad(HM.t, 0, sd), strandLoad(HM.t, 1, sd)]); for (const x of cd.userData.strands) xm = Math.max(xm, x.xl); } HM.xl = xm; HM.moving = !!mv;
+    let mv = 0, xm = 0; for (const cd of HM.cordList || []) { const sd = cd.userData.seed || 0; mv |= twinTick(cd, HM.t, dt, cd.userData.strands.map((x, j) => x.port ? strandLoad(HM.t, x.lj, x.seed) : strandLoad(HM.t, j, sd))); for (const x of cd.userData.strands) xm = Math.max(xm, x.xl); } HM.xl = xm; HM.moving = !!mv;
     for (const pg of Object.values(HM.door ? HM.door.userData.ports : {})) if (pg.userData.glow && pg.userData.glow.visible) pg.userData.glow.material.opacity = 0.75 + 0.1 * Math.sin(HM.t * 2);
     if (HM.ext.userData.lamp) HM.ext.userData.lamp.intensity = 0.85 + 0.08 * Math.sin(HM.t * 7) * Math.sin(HM.t * 3.1);
     if (HM.tickX) HM.tickX(dt); const s2 = document.getElementById('homeXfer'); if (s2) { const s = HM.moving ? 'moving' : 'idle'; if (s2.textContent !== s) s2.textContent = s; } }
