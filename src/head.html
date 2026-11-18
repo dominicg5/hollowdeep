@@ -172,7 +172,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 @keyframes tick{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .cityBtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
 .cityBtns button{width:42px;height:42px;border-radius:12px;border:1px solid rgba(110,80,40,.3);background:rgba(246,236,212,.94);font-size:19px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.2)}
-.cityBtns button:active{transform:translateY(1px)}
+.cityBtns button:active{transform:translateY(1px)}.cityBtns button.on{background:#2f6f6a;color:#fff}#exploreBar{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);display:none;gap:6px;align-items:center;z-index:6;background:rgba(246,236,212,.94);border:1px solid rgba(110,80,40,.3);border-radius:14px;padding:5px;box-shadow:0 3px 10px rgba(0,0,0,.25)}#exploreBar.on{display:flex}#exploreBar button{border:0;border-radius:10px;padding:7px 11px;font-weight:700;background:transparent;color:#4a3520;cursor:pointer}#exploreBar button.sel{background:#2f6f6a;color:#fff}
 #miniMap{position:absolute;left:8px;bottom:8px;width:112px;height:112px;border-radius:50%;border:3px solid rgba(246,236,212,.95);box-shadow:0 4px 14px rgba(0,0,0,.35);background:#2a3a3a;cursor:pointer;touch-action:none}
 #legend{position:absolute;right:58px;top:8px;width:min(300px,calc(100% - 70px));max-height:calc(100% - 16px);overflow:auto;background:rgba(250,243,226,.97);border-radius:14px;padding:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:13px}
 #legend.hidden{display:none}
@@ -249,7 +249,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
     </div>
     <div class="cityBtns">
       <button data-city="zin" aria-label="Zoom in">＋</button><button data-city="zout" aria-label="Zoom out">－</button>
-      <button data-city="home" aria-label="My Ledge">🏠</button><button data-city="overview" aria-label="Whole map">🌐</button>
+      <button data-city="explore" aria-label="Explore on foot" title="Explore on foot">🚶</button><button data-city="home" aria-label="My Ledge">🏠</button><button data-city="overview" aria-label="Whole map">🌐</button>
       <button data-city="board" aria-label="Rim Leaderboard">🏆</button>
       <button data-city="rotl" aria-label="Rotate left">⟲</button><button data-city="rotr" aria-label="Rotate right">⟳</button><button data-city="tilt" aria-label="Tilt">⛰️</button>
     </div>

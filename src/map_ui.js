@@ -27,7 +27,7 @@ const CityMap = (() => {
     if (!S.cityCam) { cam.x = W.player.x; cam.y = W.player.y; cam.z = CITY.startZoom; } else Object.assign(cam, S.cityCam, { vx: 0, vy: 0, fly: null }); if (cam.rot == null) cam.rot = 0; if (!cam.tilt) cam.tilt = 55;
     cv.addEventListener('contextmenu', (e) => e.preventDefault());
     cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointermove', onMove); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onUp);
-    cv.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); if (typeof Explore !== 'undefined' && Explore.on) return Explore.zoom(Math.exp(-e.deltaY * 0.0015)); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
     mm.addEventListener('pointerdown', (e) => { e.stopPropagation(); const r = mm.getBoundingClientRect(); const s = (CITY.R * 2) / r.width; flyTo((e.clientX - r.left) * s - CITY.R, (e.clientY - r.top) * s - CITY.R, Math.max(cam.z, 0.35)); });
     wrap.addEventListener('click', (e) => { const b = e.target.closest('[data-city]'); if (b) cityButton(b.dataset.city); });
     window.addEventListener('resize', resize);
@@ -42,7 +42,7 @@ const CityMap = (() => {
   function show() {
     if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Rim City art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
     if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
-  function hide() { if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
+  function hide() { if (typeof Explore !== 'undefined') Explore.exit(); if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
 
   /* ---------- camera ---------- */
   const kpx = () => cam.z * dpr;
@@ -62,15 +62,21 @@ const CityMap = (() => {
   function panBy(dx, dy) { if (!is3d()) { cam.x -= dx / cam.z; cam.y -= dy / cam.z; return [-dx / cam.z, -dy / cam.z]; }
     const r = cam.rot, sp = Math.sin((cam.tilt * Math.PI) / 180), ux = -dx / cam.z, uy = -dy / cam.z / sp; const mx = Math.cos(r) * ux + Math.sin(r) * uy, my = -Math.sin(r) * ux + Math.cos(r) * uy; cam.x += mx; cam.y += my; return [mx, my]; }
   function rotTilt(dr, dt) { cam.rot = (cam.rot + dr) % TAU; cam.tilt = clamp(cam.tilt + dt, 35, 70); cam.fly = null; }
-  function onDown(e) { if (e.isPrimary) ptrs.clear(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); cam.vx = cam.vy = 0; cam.fly = null;
+  function onDown(e) { if (typeof Explore !== 'undefined' && Explore.on) return exDown(e); if (e.isPrimary) ptrs.clear(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); cam.vx = cam.vy = 0; cam.fly = null;
     gesture = ptrs.size === 1 ? { tap: true, orbit: e.button === 2 || e.ctrlKey } : { tap: false, pinch: pinchState() }; }
   function pinchState() { const p = [...ptrs.values()]; return { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2, a: Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x) }; }
-  function onMove(e) { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY;
+  function onMove(e) { if (typeof Explore !== 'undefined' && Explore.on) return exMove(e); const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY;
     if (ptrs.size === 1) { if (Math.hypot(p.x - p.x0, p.y - p.y0) > 8) gesture.tap = false; if (gesture && gesture.orbit && is3d()) { rotTilt(dx * 0.006, -dy * 0.25); return; } const [mx, my] = panBy(dx, dy); cam.vx = mx; cam.vy = my; clampCam(); }
     else if (ptrs.size === 2 && gesture && gesture.pinch) { const n = pinchState(), o = gesture.pinch; zoomAt(n.mx, n.my, n.d / Math.max(1, o.d));
       if (is3d()) { let da = n.a - o.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; rotTilt(-da, -(n.my - o.my) * 0.3); }
       else { cam.x -= (n.mx - o.mx) / cam.z; cam.y -= (n.my - o.my) / cam.z; } gesture.pinch = n; clampCam(); } }
-  function onUp(e) { const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId);
+  // Explore: one finger drags the orbit, two pinch the zoom, a tap sends her there
+  const exP = new Map(); let exG = null;
+  function exDown(e) { try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } exP.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); exG = exP.size === 1 ? { tap: true } : { tap: false, d: exPinch() }; }
+  function exPinch() { const p = [...exP.values()]; return p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0; }
+  function exMove(e) { const p = exP.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY; if (exP.size === 1) { if (Math.hypot(p.x - p.x0, p.y - p.y0) > 8 && exG) exG.tap = false; if (exG && !exG.tap) Explore.orbit(dx, dy); } else if (exG && exG.d) { const d = exPinch(); Explore.zoom(d / Math.max(1, exG.d)); exG.d = d; } }
+  function exUp(e) { const p = exP.get(e.pointerId); exP.delete(e.pointerId); if (p && exG && exG.tap && !exP.size && performance.now() - p.t0 < 600) Explore.tap(e.offsetX, e.offsetY); if (!exP.size) exG = null; }
+  function onUp(e) { if (typeof Explore !== 'undefined' && Explore.on) return exUp(e); const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId);
     if (p && gesture && gesture.tap && ptrs.size === 0 && performance.now() - p.t0 < 600) { cam.vx = cam.vy = 0; handleTap(e.offsetX, e.offsetY); }
     if (ptrs.size === 1) gesture = { tap: false }; if (ptrs.size === 0) gesture = null; }
 
@@ -119,7 +125,7 @@ const CityMap = (() => {
     if (false && cam.z > 0.42 && !cam.fly && Math.hypot(cam.x, cam.y) < CITY.R && hollowDist(cam.x, cam.y) > 0) { const ri = regionAt(cam.x, cam.y); if (ri === dwell.ri) { dwell.t += dt; if (dwell.t > 2.5 && discoverRegion(ri)) buildLegend(); } else { dwell.ri = ri; dwell.t = 0; } } else dwell.t = 0;
     const t = now / 1000, c = ctx, k = kpx();
     if (frameN % 90 === 0 && typeof relocatePlayer === 'function' && relocatePlayer()) { if (is3d()) M3.refresh(); buildMinimapBase(); }
-    if (is3d()) { M3.render(t, cam); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, Wc, Hc);
+    if (is3d()) { if (typeof Explore !== 'undefined' && Explore.on) Explore.tick(dt); M3.render(t, cam); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, Wc, Hc);
       const vb = M3.viewBox(), view = { x0: vb.x0 - 60, y0: vb.y0 - 60, x1: vb.x1 + 60, y1: vb.y1 + 60, pts: vb.pts };
       const inV = (x, y, m) => { const [sx, sy] = M3.project(x, y, 0); const mm2 = (m || 0) * cam.z + 40; return sx > -mm2 && sx < Wc / dpr + mm2 && sy > -mm2 && sy < Hc / dpr + mm2; };
       const S2 = (x, y, u2, u3, abs) => { const [sx, sy] = M3.project(x, y, u3 || 0, abs); return [sx * dpr, sy * dpr]; };
@@ -410,6 +416,7 @@ const CityMap = (() => {
   }
   function cityButton(b) {
     if (b === 'rotl' || b === 'rotr') { if (is3d()) cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x: cam.x, y: cam.y, z: cam.z, r0: cam.rot, r1: cam.rot + (b === 'rotl' ? -1 : 1) * Math.PI / 4, t0: performance.now(), d: 500 }; return; }
+    if (b === 'explore') { if (typeof Explore === 'undefined' || !is3d()) return; return Explore.on ? Explore.exit() : Explore.enter(); }
     if (b === 'tilt') { if (is3d()) cam.tilt = cam.tilt < 45 ? 55 : cam.tilt < 62 ? 70 : 38; return; }
     if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
@@ -594,5 +601,5 @@ const CityMap = (() => {
     }
     return false;
   }
-  return { boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
+  return { climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
 })();

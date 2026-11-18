@@ -172,7 +172,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 @keyframes tick{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .cityBtns{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px}
 .cityBtns button{width:42px;height:42px;border-radius:12px;border:1px solid rgba(110,80,40,.3);background:rgba(246,236,212,.94);font-size:19px;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.2)}
-.cityBtns button:active{transform:translateY(1px)}
+.cityBtns button:active{transform:translateY(1px)}.cityBtns button.on{background:#2f6f6a;color:#fff}#exploreBar{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);display:none;gap:6px;align-items:center;z-index:6;background:rgba(246,236,212,.94);border:1px solid rgba(110,80,40,.3);border-radius:14px;padding:5px;box-shadow:0 3px 10px rgba(0,0,0,.25)}#exploreBar.on{display:flex}#exploreBar button{border:0;border-radius:10px;padding:7px 11px;font-weight:700;background:transparent;color:#4a3520;cursor:pointer}#exploreBar button.sel{background:#2f6f6a;color:#fff}
 #miniMap{position:absolute;left:8px;bottom:8px;width:112px;height:112px;border-radius:50%;border:3px solid rgba(246,236,212,.95);box-shadow:0 4px 14px rgba(0,0,0,.35);background:#2a3a3a;cursor:pointer;touch-action:none}
 #legend{position:absolute;right:58px;top:8px;width:min(300px,calc(100% - 70px));max-height:calc(100% - 16px);overflow:auto;background:rgba(250,243,226,.97);border-radius:14px;padding:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);font-size:13px}
 #legend.hidden{display:none}
@@ -249,7 +249,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
     </div>
     <div class="cityBtns">
       <button data-city="zin" aria-label="Zoom in">＋</button><button data-city="zout" aria-label="Zoom out">－</button>
-      <button data-city="home" aria-label="My Ledge">🏠</button><button data-city="overview" aria-label="Whole map">🌐</button>
+      <button data-city="explore" aria-label="Explore on foot" title="Explore on foot">🚶</button><button data-city="home" aria-label="My Ledge">🏠</button><button data-city="overview" aria-label="Whole map">🌐</button>
       <button data-city="board" aria-label="Rim Leaderboard">🏆</button>
       <button data-city="rotl" aria-label="Rotate left">⟲</button><button data-city="rotr" aria-label="Rotate right">⟳</button><button data-city="tilt" aria-label="Tilt">⛰️</button>
     </div>
@@ -4581,7 +4581,7 @@ const CityMap = (() => {
     if (!S.cityCam) { cam.x = W.player.x; cam.y = W.player.y; cam.z = CITY.startZoom; } else Object.assign(cam, S.cityCam, { vx: 0, vy: 0, fly: null }); if (cam.rot == null) cam.rot = 0; if (!cam.tilt) cam.tilt = 55;
     cv.addEventListener('contextmenu', (e) => e.preventDefault());
     cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointermove', onMove); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onUp);
-    cv.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+    cv.addEventListener('wheel', (e) => { e.preventDefault(); if (typeof Explore !== 'undefined' && Explore.on) return Explore.zoom(Math.exp(-e.deltaY * 0.0015)); zoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
     mm.addEventListener('pointerdown', (e) => { e.stopPropagation(); const r = mm.getBoundingClientRect(); const s = (CITY.R * 2) / r.width; flyTo((e.clientX - r.left) * s - CITY.R, (e.clientY - r.top) * s - CITY.R, Math.max(cam.z, 0.35)); });
     wrap.addEventListener('click', (e) => { const b = e.target.closest('[data-city]'); if (b) cityButton(b.dataset.city); });
     window.addEventListener('resize', resize);
@@ -4596,7 +4596,7 @@ const CityMap = (() => {
   function show() {
     if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Rim City art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
     if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
-  function hide() { if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
+  function hide() { if (typeof Explore !== 'undefined') Explore.exit(); if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
 
   /* ---------- camera ---------- */
   const kpx = () => cam.z * dpr;
@@ -4616,15 +4616,21 @@ const CityMap = (() => {
   function panBy(dx, dy) { if (!is3d()) { cam.x -= dx / cam.z; cam.y -= dy / cam.z; return [-dx / cam.z, -dy / cam.z]; }
     const r = cam.rot, sp = Math.sin((cam.tilt * Math.PI) / 180), ux = -dx / cam.z, uy = -dy / cam.z / sp; const mx = Math.cos(r) * ux + Math.sin(r) * uy, my = -Math.sin(r) * ux + Math.cos(r) * uy; cam.x += mx; cam.y += my; return [mx, my]; }
   function rotTilt(dr, dt) { cam.rot = (cam.rot + dr) % TAU; cam.tilt = clamp(cam.tilt + dt, 35, 70); cam.fly = null; }
-  function onDown(e) { if (e.isPrimary) ptrs.clear(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); cam.vx = cam.vy = 0; cam.fly = null;
+  function onDown(e) { if (typeof Explore !== 'undefined' && Explore.on) return exDown(e); if (e.isPrimary) ptrs.clear(); try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } ptrs.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); cam.vx = cam.vy = 0; cam.fly = null;
     gesture = ptrs.size === 1 ? { tap: true, orbit: e.button === 2 || e.ctrlKey } : { tap: false, pinch: pinchState() }; }
   function pinchState() { const p = [...ptrs.values()]; return { d: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2, a: Math.atan2(p[1].y - p[0].y, p[1].x - p[0].x) }; }
-  function onMove(e) { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY;
+  function onMove(e) { if (typeof Explore !== 'undefined' && Explore.on) return exMove(e); const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY;
     if (ptrs.size === 1) { if (Math.hypot(p.x - p.x0, p.y - p.y0) > 8) gesture.tap = false; if (gesture && gesture.orbit && is3d()) { rotTilt(dx * 0.006, -dy * 0.25); return; } const [mx, my] = panBy(dx, dy); cam.vx = mx; cam.vy = my; clampCam(); }
     else if (ptrs.size === 2 && gesture && gesture.pinch) { const n = pinchState(), o = gesture.pinch; zoomAt(n.mx, n.my, n.d / Math.max(1, o.d));
       if (is3d()) { let da = n.a - o.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; rotTilt(-da, -(n.my - o.my) * 0.3); }
       else { cam.x -= (n.mx - o.mx) / cam.z; cam.y -= (n.my - o.my) / cam.z; } gesture.pinch = n; clampCam(); } }
-  function onUp(e) { const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId);
+  // Explore: one finger drags the orbit, two pinch the zoom, a tap sends her there
+  const exP = new Map(); let exG = null;
+  function exDown(e) { try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } exP.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); exG = exP.size === 1 ? { tap: true } : { tap: false, d: exPinch() }; }
+  function exPinch() { const p = [...exP.values()]; return p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0; }
+  function exMove(e) { const p = exP.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY; if (exP.size === 1) { if (Math.hypot(p.x - p.x0, p.y - p.y0) > 8 && exG) exG.tap = false; if (exG && !exG.tap) Explore.orbit(dx, dy); } else if (exG && exG.d) { const d = exPinch(); Explore.zoom(d / Math.max(1, exG.d)); exG.d = d; } }
+  function exUp(e) { const p = exP.get(e.pointerId); exP.delete(e.pointerId); if (p && exG && exG.tap && !exP.size && performance.now() - p.t0 < 600) Explore.tap(e.offsetX, e.offsetY); if (!exP.size) exG = null; }
+  function onUp(e) { if (typeof Explore !== 'undefined' && Explore.on) return exUp(e); const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId);
     if (p && gesture && gesture.tap && ptrs.size === 0 && performance.now() - p.t0 < 600) { cam.vx = cam.vy = 0; handleTap(e.offsetX, e.offsetY); }
     if (ptrs.size === 1) gesture = { tap: false }; if (ptrs.size === 0) gesture = null; }
 
@@ -4673,7 +4679,7 @@ const CityMap = (() => {
     if (false && cam.z > 0.42 && !cam.fly && Math.hypot(cam.x, cam.y) < CITY.R && hollowDist(cam.x, cam.y) > 0) { const ri = regionAt(cam.x, cam.y); if (ri === dwell.ri) { dwell.t += dt; if (dwell.t > 2.5 && discoverRegion(ri)) buildLegend(); } else { dwell.ri = ri; dwell.t = 0; } } else dwell.t = 0;
     const t = now / 1000, c = ctx, k = kpx();
     if (frameN % 90 === 0 && typeof relocatePlayer === 'function' && relocatePlayer()) { if (is3d()) M3.refresh(); buildMinimapBase(); }
-    if (is3d()) { M3.render(t, cam); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, Wc, Hc);
+    if (is3d()) { if (typeof Explore !== 'undefined' && Explore.on) Explore.tick(dt); M3.render(t, cam); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, Wc, Hc);
       const vb = M3.viewBox(), view = { x0: vb.x0 - 60, y0: vb.y0 - 60, x1: vb.x1 + 60, y1: vb.y1 + 60, pts: vb.pts };
       const inV = (x, y, m) => { const [sx, sy] = M3.project(x, y, 0); const mm2 = (m || 0) * cam.z + 40; return sx > -mm2 && sx < Wc / dpr + mm2 && sy > -mm2 && sy < Hc / dpr + mm2; };
       const S2 = (x, y, u2, u3, abs) => { const [sx, sy] = M3.project(x, y, u3 || 0, abs); return [sx * dpr, sy * dpr]; };
@@ -4964,6 +4970,7 @@ const CityMap = (() => {
   }
   function cityButton(b) {
     if (b === 'rotl' || b === 'rotr') { if (is3d()) cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x: cam.x, y: cam.y, z: cam.z, r0: cam.rot, r1: cam.rot + (b === 'rotl' ? -1 : 1) * Math.PI / 4, t0: performance.now(), d: 500 }; return; }
+    if (b === 'explore') { if (typeof Explore === 'undefined' || !is3d()) return; return Explore.on ? Explore.exit() : Explore.enter(); }
     if (b === 'tilt') { if (is3d()) cam.tilt = cam.tilt < 45 ? 55 : cam.tilt < 62 ? 70 : 38; return; }
     if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
@@ -5148,7 +5155,7 @@ const CityMap = (() => {
     }
     return false;
   }
-  return { boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
+  return { climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
 })();
 /* ============================================================
    CHARACTER TAB: the player's delver on a warm little stage.
@@ -6102,10 +6109,10 @@ const CharView = (() => {
     else { const d = DIRS[st.climbDir] || DIRS.stop; dx = d[0]; dz = d[1]; }
     const want = Math.hypot(dx, dz) > 0.01 ? 1 : 0; G.mv += (want - G.mv) * (1 - Math.exp(-dt * 8));
     if (want) { const fa = Math.atan2(dx, dz); let df = fa - G.face; df = Math.atan2(Math.sin(df), Math.cos(df)); G.face += df * (1 - Math.exp(-dt * GW.turn)); }
-    let sp = (st.gait === 'walk' ? GW.walk : GW.spd) * G.mv * (want ? Math.max(0.25, Math.cos(Math.min(1.4, Math.abs(Math.atan2(Math.sin(Math.atan2(dx, dz) - G.face), Math.cos(Math.atan2(dx, dz) - G.face)))))) : 1), nx = G.x + (want ? dx : Math.sin(G.face)) * sp * dt * (want || G.mv > 0.02 ? 1 : 0), nz = G.z + (want ? dz : Math.cos(G.face)) * sp * dt * (want || G.mv > 0.02 ? 1 : 0);
+    let sp = (st.gait === 'walk' ? GW.walk : GW.spd) * (G.spdK || 1) * G.mv * (want ? Math.max(0.25, Math.cos(Math.min(1.4, Math.abs(Math.atan2(Math.sin(Math.atan2(dx, dz) - G.face), Math.cos(Math.atan2(dx, dz) - G.face)))))) : 1), nx = G.x + (want ? dx : Math.sin(G.face)) * sp * dt * (want || G.mv > 0.02 ? 1 : 0), nz = G.z + (want ? dz : Math.cos(G.face)) * sp * dt * (want || G.mv > 0.02 ? 1 : 0);
     { const gL0 = G.goal && want ? Math.hypot(G.goal.x - G.x, G.goal.z - G.z) : 0; if (gL0 && !(G.path && G.path.length > 1 && gL0 > 0.25) && Math.hypot(nx - G.x, nz - G.z) >= gL0) { nx = G.goal.x; nz = G.goal.z; } } // never overshoot the goal on a long frame (that see-saws her back and forth)
     const Bd = G.bnd || { X0: GW.X0, X1: GW.X1, Z0: GW.Z0, Z1: 0 }, px0 = G.x, pz0 = G.z; G.x = clamp(nx, Bd.X0, Bd.X1); G.z = clamp(nz, Bd.Z0, Bd.Z1); for (const o of navObs(G)) { const ex = G.x - o.x, ez = G.z - o.z, L = Math.hypot(ex, ez), rr = o.r + BODY; if (L < rr && L > 1e-4) { G.x = o.x + ex / L * rr; G.z = o.z + ez / L * rr; } } if (G.circR) { const L2 = Math.hypot(G.x, G.z); if (L2 > G.circR) { G.x *= G.circR / L2; G.z *= G.circR / L2; } } G.vel = dt > 0 ? Math.hypot(G.x - px0, G.z - pz0) / dt : 0;
-    if (G.goal && want && dt > 0) { if (G.gObj !== G.goal) { G.gObj = G.goal; G.gBest = 1e9; G.stall = 0; } const gL = Math.hypot(G.goal.x - G.x, G.goal.z - G.z); if (gL < (G.gBest ?? 1e9) - 0.01) { G.gBest = gL; G.stall = 0; } else if ((G.stall = (G.stall || 0) + dt) > STALL_T) { const g2 = G.goal; G.goal = null; G.path = null; G.stalled = (G.stalled || 0) + 1; if (g2.done) g2.done(); } }
+    if (G.goal && want && dt > 0) { if (G.gObj !== G.goal) { G.gObj = G.goal; G.gBest = 1e9; G.stall = 0; } const gL = Math.hypot(G.goal.x - G.x, G.goal.z - G.z); if (gL < (G.gBest ?? 1e9) - 0.01) { G.gBest = gL; G.stall = 0; } else if (!G.noStall && (G.stall = (G.stall || 0) + dt) > STALL_T) { const g2 = G.goal; G.goal = null; G.path = null; G.stalled = (G.stalled || 0) + 1; if (g2.done) g2.done(); } }
     if (!G.home && want && dz > 0.3 && G.z >= -0.02 && G.x > WX0 && G.x < WX1 && (!G.ledge || Math.abs(G.x) <= LP.BX) && Math.abs(Math.atan2(Math.sin(G.face), Math.cos(G.face))) < 0.9) { if (!st.play || (!an.eq.seq && an.eq.held === 'climb')) mount(); else { st.wantClimb = true; G.z = Math.min(G.z, -0.02); } } else if (st.wantClimb && !(st.pg && st.pg.wall)) st.wantClimb = false; }
   /* ---------- Playground: tap the ground to run there, tap the wall to run to its foot, mount and climb to the spot ---------- */
   let PGM = null; const _ray = new THREE.Raycaster();
@@ -6766,7 +6773,14 @@ const CharView = (() => {
   function renderAt(dt) { clk += dt; step(dt); }
   function start() { if (running || !st.ok) return; running = true; tPrev = 0; resize(); raf = requestAnimationFrame(frame); }
   function stop() { running = false; cancelAnimationFrame(raf); }
-  function show(mode) { wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; if (st.tool === undefined) { st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; setTool(st.tool, true); } setChar(sex); if (st.gait === undefined) { st.gait = S.gait === 'walk' ? 'walk' : 'run'; document.querySelectorAll('#charClimb [data-gait]').forEach((b) => b.classList.toggle('on', b.dataset.gait === st.gait)); } if (mode !== 'tree' && st.tree) { treeMode(false); setAnim('idle'); } if (mode === 'home') homeMode(true); else if (st.home) { homeMode(false); setAnim('idle'); } if (mode === 'ledge') ledgeMode(true); else if (st.ledge) { ledgeMode(false); setAnim('idle'); } if (mode === 'tree') treeMode(true); resize(); start(); }
+  // Explore (main map): her rig joins the map scene inside a metre-scale group; the map renders, this runs her walker + animation
+  function exploreOn(par, x, z, face, hy) { if (!R && !initGL()) return null; setChar(S.charSex === 'f' ? 'f' : 'm'); if (st.tree) treeMode(false); if (st.home) homeMode(false); if (st.ledge) ledgeMode(false); stop(); st.explore = true; st.play = false; st.pg = null; pgMark(null); st.anim = 'idle'; st.yaw = 0; st.yawV = 0; st.tool = 'none'; an.eq = { held: 'none', seq: null, t: 0 }; an.cl = null; an.tv = null; an.act = null;
+    par.add(rig.root); rig.root.traverse((o) => { if (o.isMesh) { if (o.userData.rs0 === undefined) o.userData.rs0 = o.receiveShadow; o.receiveShadow = false; for (const m of [].concat(o.material)) if (m.toneMapped) { m.toneMapped = false; m.userData.tm0 = 1; m.needsUpdate = true; } } }); // the map's km-scale shadow map would stripe her (acne); the map's ACES grade would wash her out, so she keeps her own colours
+    st.gnd = { home: true, explore: true, x, z, y: hy(x, z), face, mv: 0, back: 0, bnd: { X0: -1e5, X1: 1e5, Z0: -1e5, Z1: 1e5 }, obs: [], hy }; st.exCf = V(x, st.gnd.y, z); return st.gnd; }
+  function exploreOff() { if (!st.explore) return; st.explore = false; st.gnd = null; if (rig) { scene.add(rig.root); rig.root.position.set(0, 0, 0); rig.root.rotation.y = 0; rig.root.traverse((o) => { if (o.isMesh && o.userData.rs0 !== undefined) o.receiveShadow = o.userData.rs0; if (o.isMesh) for (const m of [].concat(o.material)) if (m.userData.tm0) { m.toneMapped = true; m.userData.tm0 = 0; m.needsUpdate = true; } }); } st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; an.act = null; }
+  function exploreStep(dt) { const G = st.gnd; if (!st.explore || !G) return; clk += dt; st.frames++; st.yaw = 0; animate(rig, clk, dt); G.y += (G.hy(G.x, G.z) - G.y) * (1 - Math.exp(-dt * 14)); const k = 1 - Math.exp(-dt * 6), c = st.exCf; c.x += (G.x - c.x) * k; c.y += (G.y - c.y) * k; c.z += (G.z - c.z) * k; }
+  function exploreCam(d, tilt, az) { return camP(st.exCf, d, tilt, az, 1); }
+  function show(mode) { if (st.explore && typeof Explore !== 'undefined') Explore.exit(); wrap = document.getElementById('charWrap'); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; const sex = S.charSex === 'f' ? 'f' : 'm'; if (st.tool === undefined) { st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; setTool(st.tool, true); } setChar(sex); if (st.gait === undefined) { st.gait = S.gait === 'walk' ? 'walk' : 'run'; document.querySelectorAll('#charClimb [data-gait]').forEach((b) => b.classList.toggle('on', b.dataset.gait === st.gait)); } if (mode !== 'tree' && st.tree) { treeMode(false); setAnim('idle'); } if (mode === 'home') homeMode(true); else if (st.home) { homeMode(false); setAnim('idle'); } if (mode === 'ledge') ledgeMode(true); else if (st.ledge) { ledgeMode(false); setAnim('idle'); } if (mode === 'tree') treeMode(true); resize(); start(); }
   function hide() { if (st.tree) { treeMode(false); setAnim('idle'); } if (st.home) { homeMode(false); setAnim('idle'); } const w = document.getElementById('charWrap'); if (w) w.classList.add('hidden'); st.visible = false; stop(); }
   window.addEventListener('resize', () => { if (running) resize(); });
   /* ---------- Home: the delver's door in the cliff (Lifeline ports) and the room behind it ---------- */
@@ -7575,7 +7589,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
     const G = st.gnd; if (!G) return false; let x = q.x, z = q.z; const L = Math.hypot(x, z); if (L > TR.RW) { x *= TR.RW / L; z *= TR.RW / L; } navTo(G, x, z, () => { st.pg = null; }); pgMark({ x: G.goal.x, z: G.goal.z, y: trHeight(G.goal.x, G.goal.z) }); st.pg = { home: true, tree: true }; return true; }
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
-  return { IA, iaGo, orbPicker, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, vaultState, VAULT_SECTIONS, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
+  return { IA, iaGo, orbPicker, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, vaultState, VAULT_SECTIONS, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */
 const Explore = (() => {
