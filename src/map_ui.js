@@ -129,7 +129,7 @@ const CityMap = (() => {
       const vb = M3.viewBox(), view = { x0: vb.x0 - 60, y0: vb.y0 - 60, x1: vb.x1 + 60, y1: vb.y1 + 60, pts: vb.pts };
       const inV = (x, y, m) => { const [sx, sy] = M3.project(x, y, 0); const mm2 = (m || 0) * cam.z + 40; return sx > -mm2 && sx < Wc / dpr + mm2 && sy > -mm2 && sy < Hc / dpr + mm2; };
       const S2 = (x, y, u2, u3, abs) => { const [sx, sy] = M3.project(x, y, u3 || 0, abs); return [sx * dpr, sy * dpr]; };
-      drawLabels(c, t, view, inV, S2); st.view = view;
+      if (!st.noLabels && !(typeof Explore !== 'undefined' && Explore.on)) drawLabels(c, t, view, inV, S2); else st.labels = []; st.view = view; // (in Explore she is down among the houses: no floating name pills)
       if (frameN % 4 === 0) drawMinimap(view);
       if (t - tickerT > 7 || !tickerT) { tickerT = t; updateTicker(); }
       if (frameN % 15 === 0) updateInfo(t); st.frames++; st.lastDraw = now; return; }
