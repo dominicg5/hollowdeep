@@ -10,7 +10,8 @@ const Explore = (() => {
   ];
   const DW = 18; // deck width (4.5 m)
   const NV = { built: false };
-  const EX = { on: false, d: 7, az: 0.6, tilt: 0, O: null, par: null, trips: 0 };
+  const EX = { on: false, d: 7.6, az: 0.62, tilt: 0.2, // the Playground's own default orbit (zoom 7.6, tilt 0.2)
+     O: null, par: null, trips: 0 };
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const mH = (x, y) => M3.meshH(x, y);
   // ---- bridges: deck geometry shared by the nav and the meshes
@@ -126,9 +127,10 @@ const Explore = (() => {
   function hy(x, z) { const O = EX.O; return (hAt(O.x + x * WS, O.y + z * WS) - O.h) / WS; }
   const toMap = (p) => new THREE.Vector3(EX.O.x + p.x * WS, EX.O.h + p.y * WS, EX.O.y + p.z * WS);
   function enter(x, y) { if (EX.on || typeof CharView === 'undefined' || !M3.scene) return false; build(); const P = W.player; if (x == null) { const k = nearest(P.x + 60, P.y + 60, NV.comp[nearest(P.x, P.y)]); [x, y] = cxy(k); }
-    EX.O = { x: Math.round(x), y: Math.round(y), h: Math.round(mH(x, y)) }; if (!EX.par) { EX.par = new THREE.Group(); EX.par.name = 'exploreWren'; } EX.par.position.set(EX.O.x, EX.O.h, EX.O.y); EX.par.scale.setScalar(WS); M3.scene.add(EX.par);
-    const G = CharView.exploreOn(EX.par, 0, 0, Math.PI, hy); if (!G) return false; G.noStall = true; EX.on = true; EX.cf = null; CharView.st.gait = EX.gait || CharView.st.gait || 'run'; ui3(true); return true; }
-  function exit() { if (!EX.on) return; EX.on = false; CharView.exploreOff(); if (EX.par && EX.par.parent) EX.par.parent.remove(EX.par); M3.st.camOv = null; EX.mark && (EX.mark.visible = false); ui3(false); }
+    EX.O = { x: Math.round(x), y: Math.round(y), h: Math.round(mH(x, y)) }; if (!EX.par) { EX.par = new THREE.Group(); EX.par.name = 'exploreWren'; } EX.par.position.set(EX.O.x, EX.O.h, EX.O.y); EX.par.scale.setScalar(WS); if (!EX.sc) { EX.sc = new THREE.Scene(); EX.sc.add(new THREE.HemisphereLight(0xfff1dc, 0x7a5236, 0.4)); EX.lights = [[0xfff0dc, 0.55, [1.4, 3.2, 2.6]], [0xffd8b0, 0.14, [-2.2, 1.2, 1.4]], [0xffe6c0, 0.32, [-1.6, 2.2, -2.6]], [0xfff0d8, 0.22, [1.8, 1.6, -2.2]]].map(([c, i, d]) => { const L = new THREE.DirectionalLight(c, i); L.userData.dir = d; EX.sc.add(L, L.target); return L; }); } // the Character tab's own rig of lights
+    EX.sc.add(EX.par); M3.st.overlay = EX.sc; for (const L of EX.lights) { L.target.position.copy(EX.par.position); L.position.set(EX.par.position.x + L.userData.dir[0] * 40, EX.par.position.y + L.userData.dir[1] * 40, EX.par.position.z + L.userData.dir[2] * 40); }
+    const G = CharView.exploreOn(EX.par, 0, 0, Math.PI, hy); if (!G) return false; G.noStall = true; EX.on = true; EX.d = 7.6; EX.tilt = 0.2; EX.az = 0.62; EX.cf = null; CharView.st.gait = EX.gait || CharView.st.gait || 'run'; ui3(true); return true; }
+  function exit() { if (!EX.on) return; EX.on = false; CharView.exploreOff(); if (EX.par && EX.par.parent) EX.par.parent.remove(EX.par); M3.st.overlay = null; if (EX.blob) EX.blob.visible = false; M3.st.camOv = null; EX.mark && (EX.mark.visible = false); ui3(false); }
   function here() { const G = CharView.st.gnd; return G ? [EX.O.x + G.x * WS, EX.O.y + G.z * WS] : null; }
   function goTo(x, y, done) { const G = CharView.st.gnd; if (!EX.on || !G) return null; const [hx, hy2] = here(), P = plan(hx, hy2, x, y); if (!P) return null; EX.trips++;
     G.path = P.pts.slice(1).map(([px, py]) => ({ x: (px - EX.O.x) / WS, z: (py - EX.O.y) / WS })); G.pi = 0; G.goal = { x: G.path[G.path.length - 1].x, z: G.path[G.path.length - 1].z, fit: true, done: () => { EX.arrived = (EX.arrived || 0) + 1; if (done) done(); } }; G.gBest = 1e9; G.stall = 0; EX.route = P; markAt(P.goal[0], P.goal[1]); return P; }
@@ -147,7 +149,9 @@ const Explore = (() => {
   function zoom(f) { EX.d = clamp(EX.d / f, 2.6, 60); }
   function tick(dt) { if (!EX.on) return; const G = CharView.st.gnd; if (!G) return exit(); const [x, y] = here(), c = clsAt(x, y); EX.cls = c; G.spdK = c === 2 ? 0.35 : 1; CharView.st.tool = c === 2 ? 'climb' : 'none'; EX.climbing = c === 2;
     CharView.exploreStep(dt); const cm = CharView.exploreCam(EX.d, EX.tilt, EX.az), P = toMap(cm.P), L = toMap(cm.L); const gH = hAt(P.x, P.z) + 3; if (P.y < gH) P.y = gH;
-    M3.st.camOv = { P, L, D: Math.max(60, EX.d * WS * 3), near: 1.2, far: 30000 }; CityMap.cam.x = x; CityMap.cam.y = y; }
+    M3.st.camOv = { P, L, D: Math.max(60, EX.d * WS * 3), near: 1.2, far: 30000 };
+    if (!EX.blob) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d'), gr = g.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); EX.blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false })); EX.blob.renderOrder = 4; } // a soft contact shadow on the map ground (she is lit in her own pass)
+    if (!EX.blob.parent) M3.scene.add(EX.blob); const bs = 2.6 - Math.min(1.2, (G.y - G.hy(G.x, G.z)) * 0.5); EX.blob.scale.set(bs * WS * 0.5, 1, bs * WS * 0.5); EX.blob.position.set(x, hAt(x, y) + 0.4, y); EX.blob.visible = true; CityMap.cam.x = x; CityMap.cam.y = y; }
   // overlay: Walk / Run toggle + Exit
   function ui3(on) { let b = document.getElementById('exploreBar'); if (!b && on) { b = document.createElement('div'); b.id = 'exploreBar'; b.innerHTML = '<button data-ex="walk">🚶 Walk</button><button data-ex="run">🏃 Run</button><button data-ex="exit">✕ Exit</button><span id="exploreInfo"></span>'; (document.getElementById('cityWrap') || document.body).appendChild(b);
       b.addEventListener('click', (e) => { const t = e.target.closest('[data-ex]'); if (!t) return; const k = t.dataset.ex; if (k === 'exit') exit(); else { EX.gait = k; CharView.st.gait = k; } ui3(EX.on); }); }

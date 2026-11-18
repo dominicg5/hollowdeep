@@ -713,6 +713,7 @@ void main() {
     updateModels(t, cam, night, pulse, LC);
     updateDetail(cam);
     renderer.render(scene, camera); st.calls = renderer.info.render.calls; st.tris = renderer.info.render.triangles;
+    if (st.overlay) { const enc = renderer.outputEncoding, tm = renderer.toneMapping, ac = renderer.autoClear; renderer.autoClear = false; renderer.outputEncoding = THREE.LinearEncoding; renderer.toneMapping = THREE.NoToneMapping; renderer.render(st.overlay, camera); renderer.outputEncoding = enc; renderer.toneMapping = tm; renderer.autoClear = ac; } // Explore: Wren drawn with her own Character-tab lights and colour response, depth-tested against the map
   }
   function tapSprites(sx, sy, list) { // screen-space hit test against standing billboards: distance to the segment from base to top
     let best = null, bd = 1e9;
