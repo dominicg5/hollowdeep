@@ -481,6 +481,19 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const tt = await p.evaluate(() => { const C = CharView, st = C.st; C.treeGo(0, 10.5); for (let i = 0; i < 2000 && st.pg; i++) C.sim(1 / 30, 1); st.gnd.face = Math.PI; C.sim(1 / 30, 30); C.advance(1 / 30, 1); const s = C.treeScreen(new THREE.Vector3(1.2, 0, 8.4)); return { s, x0: st.gnd.x, z0: st.gnd.z }; }); await p.mouse.click(tt.s.x, tt.s.y); const tg = await p.evaluate(() => { const C = CharView, st = C.st, g = st.gnd.goal; for (let i = 0; i < 2000 && st.pg; i++) C.sim(1 / 30, 1); return { goal: g && { x: +g.x.toFixed(2), z: +g.z.toFixed(2) }, x: +st.gnd.x.toFixed(2), z: +st.gnd.z.toFixed(2) }; });
     ok(tg.goal && Math.abs(tg.goal.x - 1.2) < 0.25 && Math.abs(tg.goal.z - 8.4) < 0.25 && Math.abs(tg.x - 1.2) < 0.25 && Math.abs(tg.z - 8.4) < 0.25, 'a floor tap in the tree walks her to the spot (' + JSON.stringify(tg) + ')');
     await p.evaluate(() => { CharView.st.paused = false; setTab('city'); }); await p.waitForTimeout(500); ok(await p.evaluate(() => !CharView.st.tree && !CharView.st.visible && ui.tab === 'city'), 'leaving the tree closes its scene'); }
+  // one follow camera everywhere she walks (Playground, Home interior, Lumen Tree, portaledge play): look locked on her at every zoom and angle, same follow speed, never through walls or ceiling
+  for (const sc of ['char', 'home', 'tree', 'ledge']) { await p.evaluate((sc) => { closeModalQuiet(); setTab(sc); }, sc); await p.waitForTimeout(1200);
+    const cm = await p.evaluate((sc) => { const C = CharView, st = C.st, cam = C.cam; st.paused = true; if (sc === 'char') document.querySelector('#charAnim [data-anim=play]').click(); if (sc === 'home') C.setHomeMode('in'); C.sim(1 / 30, 20);
+      const out = { sc, free: sc === 'char' ? !!st.play : C.freeCam(), k: C.CAM_FOLLOW, n: 0, maxOff: 0, bad: 0 }, H = C.HM, T = C.TR;
+      const chk = () => { const h = C.rig.root.getWorldPosition(new THREE.Vector3()); h.y += 0.6; const q = h.clone().project(cam); out.maxOff = Math.max(out.maxOff, Math.hypot(q.x, q.y)); out.n++; const cp = cam.position;
+        if (sc === 'home' && !(cp.x > -H.W / 2 && cp.x < H.W / 2 && cp.z > H.BZ && cp.y < H.H)) out.bad++; if (sc === 'tree' && !(cp.y < T.H && Math.hypot(cp.x, cp.z) < C.trProfile(cp.y))) out.bad++; if (sc === 'ledge' && !(cp.y > C.LP.off.y + 0.2)) out.bad++; };
+      const zoom = (d) => { if (sc === 'char') st.dist = d; else st.orb.d = d; };
+      for (const d of [2, 5, 12, 40]) { zoom(d); for (const az of [0, 1.6, 3.2, 4.7]) { if (sc !== 'char') { st.orb.az = az; st.orb.azV = 0; } C.sim(1 / 30, 3); C.advance(1 / 30, 1); chk(); } }
+      const go = (x, z) => { if (sc === 'home') C.navTo(st.gnd, x, z, () => {}); else if (sc === 'tree') C.treeGo(x, z); else C.pgGo({ x, z }); };
+      const pts = sc === 'home' ? [[-2.5, -2], [2.5, 1.5]] : sc === 'tree' ? [[-9, -9], [10, 5]] : sc === 'ledge' ? [[-0.9, -0.4], [0.3, -1.4]] : [[4, -3], [-3, -1]];
+      zoom(6); if (sc !== 'char') st.orb.az = 2.5; for (const [x, z] of pts) { go(x, z); for (let i = 0; i < 400 && (st.pg || (st.gnd && (st.gnd.path || st.gnd.goal))); i++) { C.sim(1 / 30, 1); if (i % 10 === 0) { C.advance(1 / 30, 1); chk(); } } }
+      out.maxOff = +out.maxOff.toFixed(3); st.paused = false; return out; }, sc);
+    ok(cm.free && cm.k === 8 && cm.n >= 16 && cm.maxOff < 0.45 && cm.bad === 0, 'follow camera (' + sc + '): the shared Playground camera keeps her centred at every zoom (2-40) and angle and while she walks, one follow speed, and never pokes through a wall, ceiling or the deck (' + JSON.stringify(cm) + ')'); }
   ok(errs.length === 0, 'no JS errors ' + errs.slice(0, 3).join(' | '));
   await b.close(); console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
 })();
