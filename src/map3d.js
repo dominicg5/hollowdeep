@@ -63,17 +63,25 @@ const M3 = (() => {
       const step = clamp((fi + smooth01(sh, 1, fr)) / TT, 0, 1), brk = smooth01(0.3, 0.62, vnoise(x / 760 + fi * 1.7, y / 760 - fi)), base = (Math.pow(step, 0.8) * brk + Math.pow(g, 0.8) * (1 - brk)) * 0.86 + Math.pow(g, 0.8) * 0.14; const base2 = Math.max(base, (1 - smooth01(0.06, 0.16, g)) * Math.pow(g, 0.85) * 1.15); // no flat terrace at the lip: grass and rock break straight over the edge
       h = P_H - PIT * base2 - 30 * g - 110 * ridged(x / 380, y / 380, 3) * smooth01(0, 0.05, g) * (1 - smooth01(0.85, 1, g)); }
     // fissures: carved trenches; where they meet the Hollow they keep cutting down the pit wall as channels
-    const cd = chasmDist(x, y); if (cd < 8) h -= 460 * smooth01(8, -20, cd);
+    const cd = chasmDist(x, y); if (cd < 14) { const q = smooth01(14, -22, cd), n = 5, qn = q * n, qi = Math.floor(qn); h -= 720 * ((qi + smooth01(0.35, 1, qn - qi)) / n); } // deep, ledged clefts: climbable rock walls stepping down
     if (r < hr + 60 && r > hr - 2200) for (const nt of notches) { let da = a - nt.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; const dist = Math.abs(da) * r, into = hr - r, wd = nt.w * (0.55 + Math.max(0, into) / 900);
       if (dist > wd) continue; const fl = P_H - 460 * nt.deep - Math.max(0, into) * 1.25, s0 = Math.pow(smooth01(0, 1, dist / wd), 1.3) * (1 - smooth01(-60, 0, -into) * 0);
       h = Math.min(h, fl + (h - fl) * s0); rock = Math.max(rock, 120); }
     let mh = mtnH(x, y) + rock * 0.55;
     // the world's edge rises into a wall of rocky peaks fading into haze (no sea, no coastline)
     const eg = smooth01(CITY.R - 700, CITY.R + 900, r); if (eg > 0) { const rn = (u, v) => 1 - Math.abs(2 * vnoise(u, v) - 1); { const q = 0.6 * rn(x / 420, y / 420) + 0.4 * rn(x / 150 + 3, y / 150); mh = Math.max(mh, eg * (260 + 760 * q * q)); } }
-    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh); return c; } // the Lumen Tree's streams, falls and lake
-    return [h + mh - rock * 0.55, mh];
+    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh); return routeCarve(x, y, c); } // the Lumen Tree's streams, falls and lake
+    return routeCarve(x, y, [h + mh - rock * 0.55, mh]);
   }
   // terrain probe used when placing homes (height + slope), before or after the meshes exist
+  // the Silverseam climb: a ledge route carved up the summit cliff above the Silverseam portaledge - broad ledges joined by short
+  // climbable rock pitches (~35 m each), cut into the face so the lowlands (your Ledge) and the summit (Rim City, the Grand Tree) connect
+  const SSR = { a: [-2656, 6952], b: [-2832, 4376], h0: 173, h1: 2022, N: 13, w: 44, bank: 80, ledge: 0.68 };
+  function routeCarve(x, y, hm) { const [ax, ay] = SSR.a, dx = SSR.b[0] - ax, dy = SSR.b[1] - ay, L2 = dx * dx + dy * dy, t = ((x - ax) * dx + (y - ay) * dy) / L2; if (t < -0.08 || t > 1.08) return hm;
+    const tc = clamp(t, 0, 1), d = Math.hypot(x - (ax + dx * tc), y - (ay + dy * tc)), W = SSR.w + SSR.bank; if (d > W) return hm;
+    const u = tc * SSR.N, k = Math.floor(u), f = u - k, face = k < SSR.N ? smooth01(SSR.ledge, 1, f) : 0, ht = SSR.h0 + (SSR.h1 - SSR.h0) * Math.min(1, (k + face) / SSR.N);
+    const wt = smooth01(W, SSR.w, d) * smooth01(-0.08, 0, t) * smooth01(1.08, 1, t), h = hm[0] + (ht - hm[0]) * wt, rk = f > SSR.ledge && f < 0.995 && k < SSR.N ? 300 : 30;
+    return [h, hm[1] + (rk - hm[1]) * wt]; }
   function ground(x, y) { if (!mtGrid) buildMtGrid(); const e = 30, h = heightAt(x, y)[0], hx = heightAt(x + e, y)[0], hy = heightAt(x, y + e)[0]; return { h, slope: Math.hypot(hx - h, hy - h) / e }; }
   function buildGrid(half, N, hide) {
     const g = { half, N, step: (2 * half) / N, h: new Float32Array((N + 1) * (N + 1)), m: new Float32Array((N + 1) * (N + 1)) };
@@ -589,6 +597,7 @@ void main() {
         lightPts = new THREE.Points(pg, new THREE.PointsMaterial({ size: 9, map: glowTex('rgba(255,236,180,1)', 'rgba(255,190,100,.5)'), color: 0xffc878, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })); scene.add(lightPts);
         moleSpr = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, alphaTest: 0.5 })); { const e = ART_MANIFEST.s.creatures_3; if (e) { const img = ART.atlas[e[0]], t = imgTex(img); t.offset.set(e[1] / img.width, (e[2] + e[4]) / img.height); t.repeat.set(e[3] / img.width, -e[4] / img.height); moleSpr.material.map = t; moleSpr.scale.set(130, 130 * e[4] / e[3], 1); moleSpr.center.set(0.5, 0.3); } } moleSpr.visible = false; scene.add(moleSpr);
         const ct = glowTex('rgba(255,255,255,.9)', 'rgba(255,255,255,.35)'); for (let i = 0; i < 14; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, depthWrite: false, opacity: 0.5 })); s.userData = { a: hash1(i * 7) * TAU, r: 3000 + hash1(i * 3) * 8000, sp: 0.004 + hash1(i) * 0.006, sz: 1800 + hash1(i + 9) * 2200 }; s.scale.set(s.userData.sz * 1.6, s.userData.sz, 1); clouds.push(s); scene.add(s); }
+        if (typeof Explore !== 'undefined') Explore.buildWorld(scene); // sturdy bridges across the summit clefts
         st.ok = true; st.building = false; loadModels(); },
     ];
     let i = 0; const run = () => { const t0 = performance.now(); while (i < steps.length && performance.now() - t0 < 30) { steps[i](); i++; prog(i / steps.length); } if (i < steps.length) setTimeout(run, 0); else prog(null); };
@@ -604,6 +613,7 @@ void main() {
     if (W.heartwood) { let bw = 0, be = 0; for (const h of W.homes) if (h.heartwood) { const w = 1 - smooth01(260, 700, Math.hypot(x - h.x, y - h.y)); if (w > bw) { bw = w; be = h.elev; } } if (bw > 0) th = th + (be - th) * bw; } // look at the Heartwood seat, not the pit floor below
     return th; }
   function place(cam, snap) {
+    const OV = st.camOv; if (OV) { camera.position.copy(OV.P); camera.lookAt(OV.L); T.x = OV.L.x; T.h = OV.L.y; T.y = OV.L.z; camera.near = OV.near || 1.5; camera.far = OV.far || 32000; camera.updateProjectionMatrix(); camera.updateMatrixWorld(); return; } // Explore: the shared follow camera drives the view (and every screen projection)
     const th = targetH(cam.x, cam.y);
     if (snap === 'keep') snap = Math.hypot(T.x - cam.x, T.y - cam.y) > 300 ? true : null;
     T.x = cam.x; T.y = cam.y; T.h = snap === null ? T.h : snap ? th : T.h + (th - T.h) * 0.12;
@@ -670,8 +680,8 @@ void main() {
   function render(t, cam) {
     if (!st.ok) return;
     if (playerTier() !== st.playerTier) buildBillboards();
-    place(cam);
-    const night = nightFactor(), pulse = 0.78 + 0.22 * Math.sin(t * 0.9) + 0.06 * Math.sin(t * 2.3), D = dist(cam);
+    place(cam); // (in Explore the shared follow camera drives the view - see place)
+    const night = nightFactor(), pulse = 0.78 + 0.22 * Math.sin(t * 0.9) + 0.06 * Math.sin(t * 2.3), D = st.camOv ? st.camOv.D : dist(cam);
     // sun & sky
     const sunDir = v3().set(-0.55, 0.75, -0.45).normalize();
     sun.position.set(T.x + sunDir.x * 9000, T.h + sunDir.y * 9000, T.y + sunDir.z * 9000); sun.target.position.set(T.x, T.h, T.y); sun.target.updateMatrixWorld();
@@ -711,5 +721,5 @@ void main() {
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }
-  return { get climb() { return CLB; }, get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { SSR, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();
