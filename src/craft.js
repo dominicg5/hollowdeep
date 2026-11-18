@@ -20,6 +20,9 @@ const Craft = (() => {
     { out: 'ingot:lumen', in: { 'ore:lumenite': 26, 'ore:coal': coal(6) } },
     { out: 'ingot:onyx', in: { 'ore:onyx': 42, 'ore:coal': coal(7) } },
   ];
+  const TOOL_COST = { pick: 3, climb: 2, tlink: 1, lifeline: 4 }, TOOL_EXTRA = { lifeline: 'tool:tlink_' };
+  const SMITH = [];
+  for (const [t] of TOOLS) TIERS.forEach(([k], i) => { const n = Math.round(TOOL_COST[t] * 1.55 ** i), inp = { ['ingot:' + k]: n }; if (TOOL_EXTRA[t]) inp[TOOL_EXTRA[t] + k] = 2; SMITH.push({ out: 'tool:' + t + '_' + k, in: inp, tool: t }); });
   // ---- storage: backpack = S.backpack {id:n}; vault = S.ledgeVault (ores/ingots/gear) with iron, coal, steel living in S.res
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
   function bag() { if (!S.backpack) S.backpack = {}; return S.backpack; }
@@ -57,7 +60,7 @@ const Craft = (() => {
       if (!F && grp !== r.tool) { grp = r.tool; h += `<h3 class="cxh">${TOOLS.find((t) => t[0] === grp)[2]} ${TOOLS.find((t) => t[0] === grp)[1]}</h3>`; }
       h += `<div class="cxr rec" data-out="${r.out}">${ico(r.out)}<span class="cxn">${esc(it.name)}<small class="cxcs">${cost(r, x)}</small></span><button class="btn sm ${canMake(r, x) ? 'alt' : 'ghost'}" data-cx="make" data-k="${kind}" data-i="${i}" ${canMake(r, x) ? '' : 'disabled'}>${F ? 'Smelt' : 'Smith'} ×${x}</button></div>`; }
     return h + '</div><button class="btn ghost" data-cx="close">Close</button></div>'; }
-  const VIEW = { bag: () => bagHTML(true), xfer: xferHTML, furnace: () => recipeHTML('furnace') };
+  const VIEW = { bag: () => bagHTML(true), xfer: xferHTML, furnace: () => recipeHTML('furnace'), anvil: () => recipeHTML('anvil') };
   function open(kind) { if (typeof openModal !== 'function' || !VIEW[kind]) return false; st.kind = kind; openModal(VIEW[kind](), 'cx-' + kind); return true; }
   function refresh() { const b = document.getElementById('modalBody'); if (st.kind && b && typeof ui !== 'undefined' && ui.modal === 'cx-' + st.kind) b.innerHTML = VIEW[st.kind](); else if (typeof ui !== 'undefined' && ui.tab === 'bag' && typeof rerender === 'function') rerender(true); if (typeof save === 'function') try { save(); } catch (e) {} }
   const nOf = (avail) => (st.qty === 'all' ? avail : Math.min(st.qty, avail));
@@ -68,5 +71,5 @@ const Craft = (() => {
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
     else if (a === 'make') { const r = (t.dataset.k === 'furnace' ? SMELT : SMITH)[+t.dataset.i]; const x = st.qty === 'all' ? maxMake(r) : st.qty; if (make(r, x, st.dest) && typeof toast === 'function') toast(`${t.dataset.k === 'furnace' ? '🔥' : '⚒️'} ${x}× ${nm(r.out)} → ${st.dest === 'vault' ? 'Vault' : 'Backpack'}`); }
     refresh(); });
-  return { ITEMS, SMELT, TIERS, bag, get, add, have, take, move, make, maxMake, canMake, open, bagHTML, st };
+  return { ITEMS, SMELT, SMITH, TIERS, bag, get, add, have, take, move, make, maxMake, canMake, open, bagHTML, st };
 })();
