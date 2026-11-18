@@ -1,4 +1,4 @@
-// Art review shots for the 3D Rim City: framed house close-ups per tier (day + night), trees, Heartwood seats, overview.
+// Art review shots for the 3D Ledgeville: framed house close-ups per tier (day + night), trees, Heartwood seats, overview.
 // URL=http://localhost:8766/index.html ONLY=house,tree,seat,over NIGHT=0|1|both node test/art.js   (writes a-*.png into cwd; NEAR=1 picks the homes nearest the Heartwood)
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8766/index.html', ONLY = (process.env.ONLY || 'house,tree,seat,over').split(','), TIERS = (process.env.TIERS || '0,1,2,3,4,5,6,7').split(',').map(Number);

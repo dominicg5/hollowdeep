@@ -1,7 +1,7 @@
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */
 const Explore = (() => {
   const WS = 6.35; // map units per metre, set by the doors: every house door is 11.1 units tall (HOUSE_KIT.DOOR_H) and Wren (1.62 m) stands ~13 cm under its frame -> 11.1 / 1.75; her strides cover the map ~1.6x faster than at the old 4/m
-  const C = 16, REG = { X0: -11920, X1: 11920, Y0: -11920, Y1: 11920 }; // all the land: the summit (Grand Tree, Hollow rim, Rim City, the Silverseam cliff) and every lowland home out to the world's edge peaks
+  const C = 16, REG = { X0: -11920, X1: 11920, Y0: -11920, Y1: 11920 }; // all the land: the summit (Grand Tree, Hollow rim, Ledgeville, the Silverseam cliff) and every lowland home out to the world's edge peaks
   const SLOPE_WALK = 0.62, SLOPE_CLIMB = 3.0, FACE_MAX = 420; // walkable under ~32 deg; steeper rock up to ~72 deg is climbable if the face is under ~105 m tall
   // sturdy timber-truss bridges on stone abutments across the clefts that break the summit into three (ends on solid ground, both lips)
   const BASE = [
@@ -143,7 +143,7 @@ const Explore = (() => {
     if (!PATHS.length) return null; const D = W.playerDoor, s = D ? nearest(D.x + (D.nx || 0) * 20, D.y + (D.nz || 0) * 20, main) : nearest(W.player.x, W.player.y, main); if (s < 0) return null; const r = pathJoin(net, s, 6e5); if (!r) return null; return pathPieces(r).map((P) => [0, ...P.flat().map(Math.round)]); }
   function allPaths() { const sp = NV.built ? (NV.spur || (NV.spur = ledgeSpur() || [])) : []; return PATHS.concat(sp); }
   function places() { const P = W.player, D = typeof GRAND !== 'undefined' && GRAND.door, cc = (W.cracks || []).find((c) => c.pts[0] && c.pts.length >= 5 && hollowDist(c.pts[0][0], c.pts[0][1]) <= 90), cs = cc && { x: cc.pts[2][0], y: cc.pts[2][1] }, ex = W.exSite;
-    const L = [['ledge', 'Your Ledge', P.x, P.y], ['tree', 'Lumen Tree door', D ? D.x : 3083, D ? D.y : -2444], ['city', 'Rim City', ex ? ex.x : -2575, ex ? ex.y : 1866], ['rim', 'Hollow rim crevice', cs ? cs.x : 672, cs ? cs.y : -2395], ['silverseam', 'Cliff above the Silverseam portaledge', M3.SSR.b[0], M3.SSR.b[1]], ['silverfoot', 'Foot of the Silverseam climb', M3.SSR.a[0], M3.SSR.a[1]]];
+    const L = [['ledge', 'Your Ledge', P.x, P.y], ['tree', 'Lumen Tree door', D ? D.x : 3083, D ? D.y : -2444], ['city', 'Ledgeville', ex ? ex.x : -2575, ex ? ex.y : 1866], ['rim', 'Hollow rim crevice', cs ? cs.x : 672, cs ? cs.y : -2395], ['silverseam', 'Cliff above the Silverseam portaledge', M3.SSR.b[0], M3.SSR.b[1]], ['silverfoot', 'Foot of the Silverseam climb', M3.SSR.a[0], M3.SSR.a[1]]];
     build(); const main = NV.size.indexOf(Math.max(...NV.size)); return L.map(([id, name, x, y]) => { const k = nearest(x, y, main), [sx, sy] = cxy(k); return { id, name, x: sx, y: sy, ox: x, oy: y, off: Math.hypot(sx - x, sy - y) }; }); }
   // headless trip sims: plan, then drive a point along the path the way her walker does (carrot pursuit) and check every step stays on passable ground
   function follow(P, sp) { const pts = P.pts; let x = pts[0][0], y = pts[0][1], pi = 1, t = 0, bad = 0, steps = 0, clT = 0; const badAt = []; const dt = 1 / 15;

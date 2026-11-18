@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   RIM CITY — static painting (cached in tiles)
+   LEDGEVILLE — static painting (cached in tiles)
    ===================================================================== */
 const FOG = [62, 88, 84];
 function groundRGB(x, y) {

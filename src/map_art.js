@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   RIM CITY — painted art: sprite atlases, ground textures, the Hollow
+   LEDGEVILLE — painted art: sprite atlases, ground textures, the Hollow
    Assets live in assets/ (WebP). If they fail to load, the map falls
    back to the procedural painter.
    ===================================================================== */

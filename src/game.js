@@ -49,7 +49,7 @@ const CONFIG = {
     kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
                  desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
     vault:     { name: 'Rim Vault',       icon: '🏦', max: 8, start: 0, base: { crowns: 260, stone: 220 }, growth: 1.6, minutes: 30,
-                 desc: 'Deep stone vaults under your Ledge. +30% storage cap and +3% raid protection per level. (Public Vaults dot Rim City.)' },
+                 desc: 'Deep stone vaults under your Ledge. +30% storage cap and +3% raid protection per level. (Public Vaults dot Ledgeville.)' },
     forge:     { name: 'Rim Forge',       icon: '⚒️', max: 8, start: 0, base: { crowns: 200, stone: 150, timber: 60 }, growth: 1.6, minutes: 25,
                  desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel at the Rim. Works, but hauling raw ore up costs a lot of Lumen.' },
   },
@@ -60,7 +60,7 @@ const CONFIG = {
   wall: { baseGolems: 2, golemEvery: 3, maxGolems: 5, golemPower: 10, golemPowerPerLevel: 7 },
   forgePerLevel: 1.5,
   vault: { capPerLevel: 0.30, protectPerLevel: 0.03 },
-  // Rim City market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
+  // Ledgeville market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
   market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8, obsidian: 16 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
   mapRaid: { lumen: 10, marchMinutes: 30, shieldHours: 6 },                                                 // steel per game hour per level
 
@@ -489,7 +489,7 @@ function resolveAttack(i) {
   S.rivals[i] = makeRival(i); S.rivals[i].shieldUntil = S.gameTime + CONFIG.raids.rivalShieldHours * HOUR;
   if (!ui.collecting) showAttackReport(report);
 }
-/* ---- raids on Rim City Ledges (AI players on the map) ---- */
+/* ---- raids on Ledgeville Ledges (AI players on the map) ---- */
 function mapRaidLoot(level, region) { const L = { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level };
   if (typeof REGIONS !== 'undefined' && REGIONS[region] && REGIONS[region].key === 'lava') L.obsidian = 2 + Math.round(level * 0.35); return L; }
 function startMapRaid(h) {
@@ -554,7 +554,7 @@ function writeJournal(sum) {
   S.journal = S.journal || []; S.journal.unshift(entry); if (S.journal.length > 40) S.journal.length = 40;
   return entry;
 }
-/* ---- Rim City markets ---- */
+/* ---- Ledgeville markets ---- */
 function marketBuy(k, lot, mult) {
   const price = Math.ceil(CONFIG.market.prices[k] * lot * mult);
   if (S.res[k] + lot > storageCap()) return toast('Not enough storage room');

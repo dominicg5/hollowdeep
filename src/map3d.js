@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   RIM CITY 3D — Three.js renderer: heightmap terrain (raised plateau, the Hollow pit, carved fissures, snowy
+   LEDGEVILLE 3D — Three.js renderer: heightmap terrain (raised plateau, the Hollow pit, carved fissures, snowy
    mountains), painted ground textures, sun + soft shadows, haze, instanced billboard homes/trees, night Lumen glow.
    The 2D canvas on top only carries labels/HUD. Falls back to the 2D painter when WebGL is missing.
    ===================================================================== */
@@ -77,7 +77,7 @@ const M3 = (() => {
   }
   // terrain probe used when placing homes (height + slope), before or after the meshes exist
   // the Silverseam climb: a ledge route carved up the summit cliff above the Silverseam portaledge - broad ledges joined by short
-  // climbable rock pitches (~35 m each), cut into the face so the lowlands (your Ledge) and the summit (Rim City, the Grand Tree) connect
+  // climbable rock pitches (~35 m each), cut into the face so the lowlands (your Ledge) and the summit (Ledgeville, the Grand Tree) connect
   const SSR = { a: [-2656, 6952], b: [-2832, 4376], h0: 173, h1: 2022, N: 13, w: 44, bank: 80, ledge: 0.68 };
   function routeCarve(x, y, hm) { const [ax, ay] = SSR.a, dx = SSR.b[0] - ax, dy = SSR.b[1] - ay, L2 = dx * dx + dy * dy, t = ((x - ax) * dx + (y - ay) * dy) / L2; if (t < -0.08 || t > 1.08) return hm;
     const tc = clamp(t, 0, 1), d = Math.hypot(x - (ax + dx * tc), y - (ay + dy * tc)), W = SSR.w + SSR.bank; if (d > W) return hm;

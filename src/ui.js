@@ -342,7 +342,7 @@ function settingsModal() {
     <div class="switch"><div><b>Skip ahead</b><div class="dim">Simulate game time instantly (idle stock goes to the Vault).</div></div>
       <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
     <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
-    <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Rim City map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
+    <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Ledgeville map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
     <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
 }
@@ -448,7 +448,7 @@ function init() {
     openModal(`<h2>Welcome to the Rim</h2>
       <p>You hold a small capital on the edge of <b>the Hollow</b>, a chasm that goes down forever. Lumen, a living light, grows deep below.</p>
       <ul class="small">
-        <li>🗺️ <b>Rim City</b>: the huge city around the Hollow. Drag, pinch and tap anything. Every house is a player's ${CITY.homeTerm}.</li>
+        <li>🗺️ <b>Ledgeville</b>: the huge city around the Hollow. Drag, pinch and tap anything. Every house is a player's ${CITY.homeTerm}.</li>
         <li>🏰 <b>Capital</b>: upgrade buildings. Your wall is not just a wall.</li>
         <li>🕳️ <b>Hollow</b>: send ${CONFIG.hero.name} on timed expeditions. Deeper = richer, riskier.</li>
         <li>🐢 <b>Outposts</b>: your Strider mines a vein and lifts goods up the Tether. Hauling costs Lumen (the Pull).</li>

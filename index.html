@@ -136,7 +136,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
 .pulse{animation:pulse 2.4s ease-in-out infinite}
 .switch{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(110,80,40,.25)}
-/* Rim City */
+/* Ledgeville */
 #cityLoader{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%,#2c3a5a 0,#141a2e 70%)}
 #cityLoader.hidden{display:none}
 #cityLoader .ldCard{width:min(300px,80%);text-align:center;color:#fff3d0}
@@ -241,10 +241,10 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   </header>
   <main id="view"></main>
   <div id="city" class="hidden">
-    <canvas id="cityCanvas" aria-label="Rim City map"></canvas>
-    <div id="cityLoader" class="hidden"><div class="ldCard"><div class="ldTitle">🎨 Painting Rim City…</div><div class="ldSub">Unpacking homes, trees and the Hollow</div><div class="ldBar"><i></i></div><div class="ldPct">0%</div></div></div>
+    <canvas id="cityCanvas" aria-label="Ledgeville map"></canvas>
+    <div id="cityLoader" class="hidden"><div class="ldCard"><div class="ldTitle">🎨 Painting Ledgeville…</div><div class="ldSub">Unpacking homes, trees and the Hollow</div><div class="ldBar"><i></i></div><div class="ldPct">0%</div></div></div>
     <div class="cityTop">
-      <div class="cityTitle">🗺️ Rim City <span id="cityCount" class="dim"></span></div>
+      <div class="cityTitle">🗺️ Ledgeville <span id="cityCount" class="dim"></span></div>
       <div id="cityInfo"></div>
       <div id="ticker" style="display:none"><span></span></div>
     </div>
@@ -273,7 +273,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
     <div id="treeInfo"><b>Inside the Lumen Tree</b><small>The heart of the tree, where the Hollow gathers. Tap the floor to walk · drag to orbit · pinch or scroll to zoom</small></div>
     <div id="ledgeInfo"><b>Silverseam Ledge</b><span>Ore: <i id="ledgeOre">Mithril</i> · Ledge Tether Drill: <i id="ledgeDrill">running</i> · Ledge Tether: <i id="ledgeXferS">idle</i></span><small>A hanging camp on the cliff at a mithril vein. Drag to orbit · pinch or scroll to zoom</small></div></div>
   <nav id="tabs"><div class="wrap">
-    <button data-tab="city"><span><img class="tabi" src="assets/ui/tab_city.webp" alt=""></span>Rim City</button>
+    <button data-tab="city"><span><img class="tabi" src="assets/ui/tab_city.webp" alt=""></span>Ledgeville</button>
     <button data-tab="char"><span class="tabe">⛑️</span>Character</button>
     <button data-tab="ledge"><span><img class="tabi" src="assets/ui/tab_portaledges.webp" alt=""></span>Portaledges</button>
     <button data-tab="home"><span class="tabe">🏠</span>Ledge</button>
@@ -283,9 +283,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='3e1c7386';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 3e1c7386</div>
-<script src="assets/vendor/three.min.js?v=3e1c7386"></script>
+<script>window.HD_BUILD='7c99c9f7';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7c99c9f7</div>
+<script src="assets/vendor/three.min.js?v=7c99c9f7"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -338,7 +338,7 @@ const CONFIG = {
     kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
                  desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
     vault:     { name: 'Rim Vault',       icon: '🏦', max: 8, start: 0, base: { crowns: 260, stone: 220 }, growth: 1.6, minutes: 30,
-                 desc: 'Deep stone vaults under your Ledge. +30% storage cap and +3% raid protection per level. (Public Vaults dot Rim City.)' },
+                 desc: 'Deep stone vaults under your Ledge. +30% storage cap and +3% raid protection per level. (Public Vaults dot Ledgeville.)' },
     forge:     { name: 'Rim Forge',       icon: '⚒️', max: 8, start: 0, base: { crowns: 200, stone: 150, timber: 60 }, growth: 1.6, minutes: 25,
                  desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel at the Rim. Works, but hauling raw ore up costs a lot of Lumen.' },
   },
@@ -349,7 +349,7 @@ const CONFIG = {
   wall: { baseGolems: 2, golemEvery: 3, maxGolems: 5, golemPower: 10, golemPowerPerLevel: 7 },
   forgePerLevel: 1.5,
   vault: { capPerLevel: 0.30, protectPerLevel: 0.03 },
-  // Rim City market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
+  // Ledgeville market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
   market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8, obsidian: 16 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
   mapRaid: { lumen: 10, marchMinutes: 30, shieldHours: 6 },                                                 // steel per game hour per level
 
@@ -778,7 +778,7 @@ function resolveAttack(i) {
   S.rivals[i] = makeRival(i); S.rivals[i].shieldUntil = S.gameTime + CONFIG.raids.rivalShieldHours * HOUR;
   if (!ui.collecting) showAttackReport(report);
 }
-/* ---- raids on Rim City Ledges (AI players on the map) ---- */
+/* ---- raids on Ledgeville Ledges (AI players on the map) ---- */
 function mapRaidLoot(level, region) { const L = { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level };
   if (typeof REGIONS !== 'undefined' && REGIONS[region] && REGIONS[region].key === 'lava') L.obsidian = 2 + Math.round(level * 0.35); return L; }
 function startMapRaid(h) {
@@ -843,7 +843,7 @@ function writeJournal(sum) {
   S.journal = S.journal || []; S.journal.unshift(entry); if (S.journal.length > 40) S.journal.length = 40;
   return entry;
 }
-/* ---- Rim City markets ---- */
+/* ---- Ledgeville markets ---- */
 function marketBuy(k, lot, mult) {
   const price = Math.ceil(CONFIG.market.prices[k] * lot * mult);
   if (S.res[k] + lot > storageCap()) return toast('Not enough storage room');
@@ -1285,7 +1285,7 @@ function settingsModal() {
     <div class="switch"><div><b>Skip ahead</b><div class="dim">Simulate game time instantly (idle stock goes to the Vault).</div></div>
       <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
     <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
-    <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Rim City map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
+    <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Ledgeville map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
     <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
 }
@@ -1391,7 +1391,7 @@ function init() {
     openModal(`<h2>Welcome to the Rim</h2>
       <p>You hold a small capital on the edge of <b>the Hollow</b>, a chasm that goes down forever. Lumen, a living light, grows deep below.</p>
       <ul class="small">
-        <li>🗺️ <b>Rim City</b>: the huge city around the Hollow. Drag, pinch and tap anything. Every house is a player's ${CITY.homeTerm}.</li>
+        <li>🗺️ <b>Ledgeville</b>: the huge city around the Hollow. Drag, pinch and tap anything. Every house is a player's ${CITY.homeTerm}.</li>
         <li>🏰 <b>Capital</b>: upgrade buildings. Your wall is not just a wall.</li>
         <li>🕳️ <b>Hollow</b>: send ${CONFIG.hero.name} on timed expeditions. Deeper = richer, riskier.</li>
         <li>🐢 <b>Outposts</b>: your Strider mines a vein and lifts goods up the Tether. Hauling costs Lumen (the Pull).</li>
@@ -1550,7 +1550,7 @@ const Craft = (() => {
 const ART_MANIFEST = {"v":1794699487,"atlases":3,"s":{"sp_pass_0":[0,0,0,857,836,952,929],"sp_falls_0":[0,859,0,801,660,942,777],"civ_lift":[0,1662,0,210,642,210,642],"home2_7":[0,0,838,400,499,400,499],"home3_7":[0,402,838,400,499,400,499],"home_7":[0,804,838,400,499,400,499],"home2_5":[0,1206,838,330,428,330,428],"home3_5":[0,1538,838,330,428,330,428],"home_5":[0,0,1339,330,428,330,428],"home2_6":[0,332,1339,360,416,360,416],"home3_6":[0,694,1339,360,416,360,416],"home_6":[0,1056,1339,360,416,360,416],"landmarks_2":[0,1418,1339,361,414,451,517],"home2_4":[1,0,0,270,405,270,405],"home3_4":[1,272,0,270,405,270,405],"home_4":[1,544,0,270,405,270,405],"civic_vault_2":[1,816,0,323,377,404,471],"landmarks_0":[1,1141,0,297,374,371,467],"sp_outpost_0":[1,1440,0,423,344,769,625],"home2_3":[1,0,407,300,337,300,337],"home3_3":[1,302,407,300,337,300,337],"home_3":[1,604,407,300,337,300,337],"creatures_3":[1,906,407,356,335,593,558],"mtn_7":[1,1264,407,284,299,284,299],"mtn_0":[1,1550,407,283,290,283,290],"mtn_3":[1,0,746,289,284,289,284],"home2_2":[1,291,746,300,270,300,270],"home3_2":[1,593,746,300,270,300,270],"home_2":[1,895,746,300,270,300,270],"mtn_1":[1,1197,746,291,267,291,267],"landmarks_1":[1,1490,746,300,260,375,325],"mtn_8":[1,0,1032,298,257,298,257],"mtn_2":[1,300,1032,301,254,301,254],"home2_1":[1,603,1032,250,253,250,253],"home3_1":[1,855,1032,250,253,250,253],"home_1":[1,1107,1032,250,253,250,253],"mtn_6":[1,1359,1032,297,251,297,251],"mtn_5":[1,1658,1032,294,229,294,229],"civ_market":[1,0,1291,200,228,400,456],"mtn_4":[1,202,1291,286,222,286,222],"home2_0":[1,490,1291,230,216,230,216],"home3_0":[1,722,1291,230,216,230,216],"home_0":[1,954,1291,230,216,230,216],"hollow_bits_2":[1,1186,1291,120,196,200,326],"hollow_bits_7":[1,1308,1291,117,193,195,321],"hollow_bits_8":[1,1427,1291,175,188,291,313],"props_0":[1,1604,1291,145,184,264,335],"p_forest_5":[1,1751,1291,148,181,269,329],"hollow_bits_0":[1,0,1521,176,179,293,298],"props2_6":[1,178,1521,161,177,292,321],"hollow_bits_6":[1,341,1521,170,176,283,294],"hollow_bits_1":[1,513,1521,172,173,286,289],"props_2":[1,687,1521,128,172,233,312],"props2_8":[1,817,1521,80,169,145,308],"props_7":[1,899,1521,41,169,75,308],"props_8":[1,942,1521,125,169,227,307],"p_forest_1":[1,1069,1521,109,168,198,305],"p_forest_4":[1,1180,1521,155,164,281,299],"hollow_bits_3":[1,1337,1521,186,163,310,272],"p_forest_0":[1,1525,1521,176,162,320,295],"p_forest_3":[1,1703,1521,152,162,277,295],"props2_7":[1,1857,1521,111,162,201,294],"p_forest_2":[1,0,1702,111,161,201,292],"props2_2":[1,113,1702,157,155,285,282],"props2_3":[1,272,1702,130,154,237,280],"hollow_bits_4":[1,404,1702,74,151,123,252],"props2_0":[1,480,1702,172,151,312,274],"props2_4":[1,654,1702,150,144,272,261],"p_forest_6":[1,806,1702,157,142,286,259],"props2_5":[1,965,1702,108,140,197,254],"yard_4":[1,1075,1702,112,138,225,277],"yard_5":[1,1189,1702,102,138,205,277],"props2_1":[1,1293,1702,183,136,332,247],"props_6":[1,1478,1702,150,136,273,247],"hollow_bits_5":[1,1630,1702,217,134,361,224],"props_3":[1,1849,1702,146,133,266,242],"props_4":[1,0,1865,144,130,261,237],"p_forest_7":[1,146,1865,138,129,250,235],"yard_8":[1,286,1865,114,126,227,252],"yard_0":[1,402,1865,152,124,304,249],"yard_6":[1,556,1865,129,124,258,248],"yard_2":[1,687,1865,161,121,322,242],"yard_7":[1,850,1865,160,118,319,237],"p_forest_8":[1,1012,1865,85,116,154,210],"props_5":[1,1099,1865,144,116,262,210],"props_1":[1,1245,1865,125,114,227,208],"yard_3":[1,1372,1865,134,114,269,229],"people_15":[1,1508,1865,57,99,127,221],"people_11":[1,1567,1865,46,97,103,215],"people_8":[1,1615,1865,47,96,104,214],"people_9":[1,1664,1865,45,96,101,214],"people_14":[1,1711,1865,40,95,88,212],"people_10":[1,1753,1865,56,94,124,209],"people_12":[1,1811,1865,59,94,131,210],"people_13":[1,1872,1865,40,94,88,208],"people_2":[1,1914,1865,71,94,158,210],"yard_1":[2,0,0,126,94,252,188],"people_4":[2,128,0,55,92,122,205],"people_5":[2,185,0,38,92,84,205],"people_3":[2,225,0,51,91,113,202],"people_7":[2,278,0,56,91,125,202],"people_6":[2,336,0,52,87,115,194],"people_0":[2,390,0,55,84,123,187],"people_1":[2,447,0,52,83,116,184],"creatures_1":[2,501,0,46,79,122,207],"creatures_0":[2,549,0,62,72,164,189],"creatures_2":[2,613,0,93,71,246,188],"creatures_6":[2,708,0,54,70,142,185],"creatures_5":[2,764,0,71,60,186,157],"creatures_4":[2,837,0,84,56,222,147]}};
 
 /* =====================================================================
-   RIM CITY — procedural, seeded world around the Hollow
+   LEDGEVILLE — procedural, seeded world around the Hollow
    ===================================================================== */
 const CITY = {
   homeTerm: 'Ledge', functional: false, water: false,
@@ -2055,7 +2055,7 @@ function queryObjs(x0, y0, x1, y1, pad, ext) {
 }
 
 /* =====================================================================
-   RIM CITY — static painting (cached in tiles)
+   LEDGEVILLE — static painting (cached in tiles)
    ===================================================================== */
 const FOG = [62, 88, 84];
 function groundRGB(x, y) {
@@ -2288,7 +2288,7 @@ function drawHome(c, h, s) {
 }
 
 /* =====================================================================
-   RIM CITY — painted art: sprite atlases, ground textures, the Hollow
+   LEDGEVILLE — painted art: sprite atlases, ground textures, the Hollow
    Assets live in assets/ (WebP). If they fail to load, the map falls
    back to the procedural painter.
    ===================================================================== */
@@ -2860,7 +2860,7 @@ function drawHollowDepth(c, t, inV, camx, camy, z, night, glow) {
 }
 
 /* =====================================================================
-   RIM CITY — living world: people, pets, NPCs, sky-fish, weather,
+   LEDGEVILLE — living world: people, pets, NPCs, sky-fish, weather,
    day/night, seasons & festivals, mole surfacings, market spikes
    ===================================================================== */
 const CLOAKS = ['#4f8c8a', '#b0573a', '#7a5fa0', '#c9822f', '#5f7f99', '#6b8f4a', '#9a4a5a', '#3a4a6a', '#d8b46a'];
@@ -3044,7 +3044,7 @@ function drawSkyFish(c, kind, x, y, ang, size, t, ph, glow, alpha, shadow) {
 }
 
 /* =====================================================================
-   PROCEDURAL HOUSES + TREES for the 3D Rim City, modelled on the concept sheet
+   PROCEDURAL HOUSES + TREES for the 3D Ledgeville, modelled on the concept sheet
    (concept/house-concepts.pdf, the painted city/hillside targets and the Heartwood image).
    Eight house tiers x three variants. Every house is one merged geometry (LOD0 detailed, LOD1 simple)
    sharing a painted texture atlas + an emissive atlas (windows and lanterns glow softly at night).
@@ -3886,7 +3886,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
 })();
 
 /* =====================================================================
-   RIM CITY 3D — Three.js renderer: heightmap terrain (raised plateau, the Hollow pit, carved fissures, snowy
+   LEDGEVILLE 3D — Three.js renderer: heightmap terrain (raised plateau, the Hollow pit, carved fissures, snowy
    mountains), painted ground textures, sun + soft shadows, haze, instanced billboard homes/trees, night Lumen glow.
    The 2D canvas on top only carries labels/HUD. Falls back to the 2D painter when WebGL is missing.
    ===================================================================== */
@@ -3963,7 +3963,7 @@ const M3 = (() => {
   }
   // terrain probe used when placing homes (height + slope), before or after the meshes exist
   // the Silverseam climb: a ledge route carved up the summit cliff above the Silverseam portaledge - broad ledges joined by short
-  // climbable rock pitches (~35 m each), cut into the face so the lowlands (your Ledge) and the summit (Rim City, the Grand Tree) connect
+  // climbable rock pitches (~35 m each), cut into the face so the lowlands (your Ledge) and the summit (Ledgeville, the Grand Tree) connect
   const SSR = { a: [-2656, 6952], b: [-2832, 4376], h0: 173, h1: 2022, N: 13, w: 44, bank: 80, ledge: 0.68 };
   function routeCarve(x, y, hm) { const [ax, ay] = SSR.a, dx = SSR.b[0] - ax, dy = SSR.b[1] - ay, L2 = dx * dx + dy * dy, t = ((x - ax) * dx + (y - ay) * dy) / L2; if (t < -0.08 || t > 1.08) return hm;
     const tc = clamp(t, 0, 1), d = Math.hypot(x - (ax + dx * tc), y - (ay + dy * tc)), W = SSR.w + SSR.bank; if (d > W) return hm;
@@ -4756,7 +4756,7 @@ diffuseColor *= sdc;
 })();
 
 /* =====================================================================
-   RIM CITY — camera, tiles, frame loop, input, cards, ticker, minimap
+   LEDGEVILLE — camera, tiles, frame loop, input, cards, ticker, minimap
    ===================================================================== */
 const CityMap = (() => {
   let cv, ctx, mm, mctx, wrap, dpr = 1, Wc = 0, Hc = 0, running = false, raf = 0;
@@ -4796,7 +4796,7 @@ const CityMap = (() => {
   function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
   function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); if (p != null) { L.querySelector('i').style.width = Math.round(p * 100) + '%'; L.querySelector('.ldPct').textContent = Math.round(p * 100) + '%'; } }
   function show() {
-    if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Rim City art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
+    if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Ledgeville art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
     if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
   function hide() { if (typeof Explore !== 'undefined') Explore.exit(); if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
 
@@ -5147,7 +5147,7 @@ const CityMap = (() => {
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
   function buildLegend() {
-    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Rim City</b><button class="btn ghost sm" data-city="legend">✕</button></div>
+    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Ledgeville</b><button class="btn ghost sm" data-city="legend">✕</button></div>
       <div class="legrow" data-city="home"><span class="sw" style="background:#ffd46b"></span><div><b>★ Your ${CITY.homeTerm}</b><br><span class="dim">Tap to fly home.</span></div></div>
       <div class="legrow"><span class="sw" style="background:#18203a"></span><div><b>🕳️ The Hollow</b><br><span class="dim">Tether lifts drop into it from the lip.</span></div></div>
       <div class="legrow"><span class="sw" style="background:#3a3430"></span><div><b>Crevices</b><br><span class="dim">Deep cracks spreading out across the lowlands below the plateau; ${W.rifts.length} rift mouths may lead back down.</span></div></div>
@@ -7547,7 +7547,7 @@ const CharView = (() => {
     const cz = TR.CR + 0.75; iaAdd(g, 'crystal', Object.assign(tr({ text: 'Lumen Crystal', obj: TR.crystal, at: V(0, TR.PH + TR.CR * 3.1, 0), spot: { x: 0, z: cz }, face: Math.PI, ring: { x: 0, y: TR.PH + 0.03, z: 0, r: TR.CR + 0.55 }, /* she walks up the front flight onto the dais and right up to the crystal; it only offers itself when she stands at it */ open: () => (typeof Craft !== 'undefined' ? Craft.open('exchange') : null) }), { near: 1.9 }));
     iaAdd(g, 'tdoor', tr({ text: 'Go outside', obj: TR.exit, at: V(0, 7.4, TR_DZ - 0.6), spot: { x: 0, z: Math.min(TR.RW - 0.4, TR_DZ - 2.4) }, face: 0, ring: { x: 0, y: trHeight(0, Math.min(TR.RW - 0.4, TR_DZ - 2.4)) + 0.03, z: Math.min(TR.RW - 0.4, TR_DZ - 2.4), r: 1.3 }, open: () => (typeof setTab === 'function' ? setTab('city') : null) })); }
   // the travel orb's destination picker: only after Wren walks up to it
-  const ORB_DEST = [['home', '🏠', 'The Ledge', 'your home in the cliff'], ['camp', '⛺', 'Silverseam portaledge', 'Hanging Camp at the mithril vein'], ['tree', '🌳', 'Inside the Lumen Tree', 'the Lumen Crystal and the Hollow hall'], ['city', '🗺️', 'Rim City', 'the map of the Hollow']];
+  const ORB_DEST = [['home', '🏠', 'The Ledge', 'your home in the cliff'], ['camp', '⛺', 'Silverseam portaledge', 'Hanging Camp at the mithril vein'], ['tree', '🌳', 'Inside the Lumen Tree', 'the Lumen Crystal and the Hollow hall'], ['city', '🗺️', 'Ledgeville', 'the map of the Hollow']];
   function orbPicker() { if (typeof openModal !== 'function') return false; HM.orbPick = (HM.orbPick || 0) + 1; const here = 'home';
     openModal(`<div class="cxp orbp"><div class="row between"><h2>🌐 Travel orb</h2><span class="tag">choose a destination</span></div><div class="dim">The orb carries you anywhere a Ledge Tether has been tied.</div><div class="card cxl">${ORB_DEST.map(([k, e, n, s]) => `<div class="cxr"><span class="cxi" style="--c:#5fd6e8">${e}</span><span class="cxn">${n}<small>${s}</small></span><button class="btn sm ${k === here ? 'ghost' : 'alt'}" data-orb="${k}" ${k === here ? 'disabled' : ''}>${k === here ? 'You are here' : 'Travel'}</button></div>`).join('')}</div><button class="btn ghost" data-orb="close">Close</button></div>`, 'orb');
     document.querySelectorAll('#modalBody [data-orb]').forEach((b) => b.addEventListener('click', () => { const k = b.dataset.orb; if (typeof closeModalQuiet === 'function') closeModalQuiet(); if (k === 'close') return; HM.travel = k; if (typeof setTab === 'function') setTab(k === 'camp' ? 'ledge' : k); })); return true; }
@@ -7800,7 +7800,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */
 const Explore = (() => {
   const WS = 6.35; // map units per metre, set by the doors: every house door is 11.1 units tall (HOUSE_KIT.DOOR_H) and Wren (1.62 m) stands ~13 cm under its frame -> 11.1 / 1.75; her strides cover the map ~1.6x faster than at the old 4/m
-  const C = 16, REG = { X0: -11920, X1: 11920, Y0: -11920, Y1: 11920 }; // all the land: the summit (Grand Tree, Hollow rim, Rim City, the Silverseam cliff) and every lowland home out to the world's edge peaks
+  const C = 16, REG = { X0: -11920, X1: 11920, Y0: -11920, Y1: 11920 }; // all the land: the summit (Grand Tree, Hollow rim, Ledgeville, the Silverseam cliff) and every lowland home out to the world's edge peaks
   const SLOPE_WALK = 0.62, SLOPE_CLIMB = 3.0, FACE_MAX = 420; // walkable under ~32 deg; steeper rock up to ~72 deg is climbable if the face is under ~105 m tall
   // sturdy timber-truss bridges on stone abutments across the clefts that break the summit into three (ends on solid ground, both lips)
   const BASE = [
@@ -7942,7 +7942,7 @@ const Explore = (() => {
     if (!PATHS.length) return null; const D = W.playerDoor, s = D ? nearest(D.x + (D.nx || 0) * 20, D.y + (D.nz || 0) * 20, main) : nearest(W.player.x, W.player.y, main); if (s < 0) return null; const r = pathJoin(net, s, 6e5); if (!r) return null; return pathPieces(r).map((P) => [0, ...P.flat().map(Math.round)]); }
   function allPaths() { const sp = NV.built ? (NV.spur || (NV.spur = ledgeSpur() || [])) : []; return PATHS.concat(sp); }
   function places() { const P = W.player, D = typeof GRAND !== 'undefined' && GRAND.door, cc = (W.cracks || []).find((c) => c.pts[0] && c.pts.length >= 5 && hollowDist(c.pts[0][0], c.pts[0][1]) <= 90), cs = cc && { x: cc.pts[2][0], y: cc.pts[2][1] }, ex = W.exSite;
-    const L = [['ledge', 'Your Ledge', P.x, P.y], ['tree', 'Lumen Tree door', D ? D.x : 3083, D ? D.y : -2444], ['city', 'Rim City', ex ? ex.x : -2575, ex ? ex.y : 1866], ['rim', 'Hollow rim crevice', cs ? cs.x : 672, cs ? cs.y : -2395], ['silverseam', 'Cliff above the Silverseam portaledge', M3.SSR.b[0], M3.SSR.b[1]], ['silverfoot', 'Foot of the Silverseam climb', M3.SSR.a[0], M3.SSR.a[1]]];
+    const L = [['ledge', 'Your Ledge', P.x, P.y], ['tree', 'Lumen Tree door', D ? D.x : 3083, D ? D.y : -2444], ['city', 'Ledgeville', ex ? ex.x : -2575, ex ? ex.y : 1866], ['rim', 'Hollow rim crevice', cs ? cs.x : 672, cs ? cs.y : -2395], ['silverseam', 'Cliff above the Silverseam portaledge', M3.SSR.b[0], M3.SSR.b[1]], ['silverfoot', 'Foot of the Silverseam climb', M3.SSR.a[0], M3.SSR.a[1]]];
     build(); const main = NV.size.indexOf(Math.max(...NV.size)); return L.map(([id, name, x, y]) => { const k = nearest(x, y, main), [sx, sy] = cxy(k); return { id, name, x: sx, y: sy, ox: x, oy: y, off: Math.hypot(sx - x, sy - y) }; }); }
   // headless trip sims: plan, then drive a point along the path the way her walker does (carrot pursuit) and check every step stays on passable ground
   function follow(P, sp) { const pts = P.pts; let x = pts[0][0], y = pts[0][1], pi = 1, t = 0, bad = 0, steps = 0, clT = 0; const badAt = []; const dt = 1 / 15;
@@ -8200,7 +8200,7 @@ const ExMap = (() => {
   const W2S = (x, y) => { const v = st.view; return [(x - v.cx) * v.s + v.W / 2, (y - v.cy) * v.s + v.H / 2]; }, S2W = (sx, sy) => { const v = st.view; return [(sx - v.W / 2) / v.s + v.cx, (sy - v.H / 2) / v.s + v.cy]; };
   function labels() { const L = [], P = Explore.places(), by = (id) => P.find((q) => q.id === id);
     const ledge = by('ledge'); if (ledge) L.push({ x: ledge.ox, y: ledge.oy, t: '🏠 Your Ledge', k: 'home' }); const tr = by('tree'); if (tr) L.push({ x: tr.ox, y: tr.oy, t: '🌳 Lumen Tree', k: 'tree' });
-    const ci = by('city'); if (ci) L.push({ x: ci.ox, y: ci.oy, t: '🏘️ Rim City', k: 'city' }); const ss = by('silverseam'); if (ss) L.push({ x: ss.ox, y: ss.oy, t: '⛺ Silverseam portaledge', k: 'ss' });
+    const ci = by('city'); if (ci) L.push({ x: ci.ox, y: ci.oy, t: '🏘️ Ledgeville', k: 'city' }); const ss = by('silverseam'); if (ss) L.push({ x: ss.ox, y: ss.oy, t: '⛺ Silverseam portaledge', k: 'ss' });
     return L; } // labels only for the key places; bridges are drawn as part of the path network
   function draw() { const cv = st.cv; if (!cv) return; const g = cv.getContext('2d'), v = st.view, B = baseImage(), dpr = v.dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#18202e'; g.fillRect(0, 0, v.W, v.H);
     const R = Explore.REG, C = Explore.C, [ox, oy] = W2S(R.X0, R.Y0), sc = v.s * C * B.K; g.imageSmoothingEnabled = true; g.drawImage(B.cv, ox, oy, B.bw * sc, B.bh * sc);

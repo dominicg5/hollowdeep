@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   RIM CITY — procedural, seeded world around the Hollow
+   LEDGEVILLE — procedural, seeded world around the Hollow
    ===================================================================== */
 const CITY = {
   homeTerm: 'Ledge', functional: false, water: false,

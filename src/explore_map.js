@@ -23,7 +23,7 @@ const ExMap = (() => {
   const W2S = (x, y) => { const v = st.view; return [(x - v.cx) * v.s + v.W / 2, (y - v.cy) * v.s + v.H / 2]; }, S2W = (sx, sy) => { const v = st.view; return [(sx - v.W / 2) / v.s + v.cx, (sy - v.H / 2) / v.s + v.cy]; };
   function labels() { const L = [], P = Explore.places(), by = (id) => P.find((q) => q.id === id);
     const ledge = by('ledge'); if (ledge) L.push({ x: ledge.ox, y: ledge.oy, t: '🏠 Your Ledge', k: 'home' }); const tr = by('tree'); if (tr) L.push({ x: tr.ox, y: tr.oy, t: '🌳 Lumen Tree', k: 'tree' });
-    const ci = by('city'); if (ci) L.push({ x: ci.ox, y: ci.oy, t: '🏘️ Rim City', k: 'city' }); const ss = by('silverseam'); if (ss) L.push({ x: ss.ox, y: ss.oy, t: '⛺ Silverseam portaledge', k: 'ss' });
+    const ci = by('city'); if (ci) L.push({ x: ci.ox, y: ci.oy, t: '🏘️ Ledgeville', k: 'city' }); const ss = by('silverseam'); if (ss) L.push({ x: ss.ox, y: ss.oy, t: '⛺ Silverseam portaledge', k: 'ss' });
     return L; } // labels only for the key places; bridges are drawn as part of the path network
   function draw() { const cv = st.cv; if (!cv) return; const g = cv.getContext('2d'), v = st.view, B = baseImage(), dpr = v.dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#18202e'; g.fillRect(0, 0, v.W, v.H);
     const R = Explore.REG, C = Explore.C, [ox, oy] = W2S(R.X0, R.Y0), sc = v.s * C * B.K; g.imageSmoothingEnabled = true; g.drawImage(B.cv, ox, oy, B.bw * sc, B.bh * sc);

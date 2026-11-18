@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   RIM CITY — camera, tiles, frame loop, input, cards, ticker, minimap
+   LEDGEVILLE — camera, tiles, frame loop, input, cards, ticker, minimap
    ===================================================================== */
 const CityMap = (() => {
   let cv, ctx, mm, mctx, wrap, dpr = 1, Wc = 0, Hc = 0, running = false, raf = 0;
@@ -40,7 +40,7 @@ const CityMap = (() => {
   function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
   function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); if (p != null) { L.querySelector('i').style.width = Math.round(p * 100) + '%'; L.querySelector('.ldPct').textContent = Math.round(p * 100) + '%'; } }
   function show() {
-    if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Rim City art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
+    if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Ledgeville art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
     if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
   function hide() { if (typeof Explore !== 'undefined') Explore.exit(); if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
 
@@ -391,7 +391,7 @@ const CityMap = (() => {
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
   function buildLegend() {
-    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Rim City</b><button class="btn ghost sm" data-city="legend">✕</button></div>
+    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Ledgeville</b><button class="btn ghost sm" data-city="legend">✕</button></div>
       <div class="legrow" data-city="home"><span class="sw" style="background:#ffd46b"></span><div><b>★ Your ${CITY.homeTerm}</b><br><span class="dim">Tap to fly home.</span></div></div>
       <div class="legrow"><span class="sw" style="background:#18203a"></span><div><b>🕳️ The Hollow</b><br><span class="dim">Tether lifts drop into it from the lip.</span></div></div>
       <div class="legrow"><span class="sw" style="background:#3a3430"></span><div><b>Crevices</b><br><span class="dim">Deep cracks spreading out across the lowlands below the plateau; ${W.rifts.length} rift mouths may lead back down.</span></div></div>
