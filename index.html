@@ -2722,7 +2722,7 @@ function artStatic(c, x0, y0, x1, y1, s) {
   for (const f of W.lavaFlows) if (boxHit(f.bbox, x0, y0, x1, y1)) artLavaFlow(c, f, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
-  for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s);
+  if (!ART.ground3d) for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s); // (never painted into the 3D ground: the bridges there are real)
   for (const f of W.falls) if (boxHit([f.x - 80, f.y - 60, f.x + 80, f.y + 140], x0, y0, x1, y1)) { softShadow(c, f.x + 6, f.y + 40, 30, 14, 0.7); drawSprite(c, 'props2_2', f.x, f.y, 62, 0.42, 0.1); }
   if (ART.ground3d) { // ground texture for the 3D map: only footprints/shadows here, buildings and trees stand up as billboards
     for (const o of objs) { if (o.layer !== 1 || o.isPlayer || o.heartwood) continue; if (o.type === 'home') { const w = homeW(o); softShadow(c, o.x + w * 0.12, o.y + w * 0.06, w * 0.5, w * 0.3, 0.75); } else if (o.type === 'tree') softShadow(c, o.x + o.r * 0.5, o.y + o.r * 0.2, o.r * 1.3, o.r * 0.7, 0.7); }
@@ -3838,7 +3838,9 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
    The 2D canvas on top only carries labels/HUD. Falls back to the 2D painter when WebGL is missing.
    ===================================================================== */
 const M3 = (() => {
-  const P_H = CITY.summitH, PIT = 3800, FOV = 40; const IN = () => CITY.plateauR + 1700; // half-size of the fine inner terrain grid
+  const P_H = CITY.summitH, PIT = 3800, FOV = 40; const IN = () => CITY.plateauR + 1700; // half-size of the painted inner ground texture (tB)
+  // the fine terrain grid now covers all the land (every home, the lowlands round the Ledge): same vertex spacing as before (~9 m) so the summit is unchanged, out to ~12000
+  const FIN = (mob) => { const st0 = (2 * IN()) / (mob ? 320 : 400), k = Math.floor((12000 - IN()) / st0), half = IN() + k * st0; return { half, N: Math.round((2 * half) / st0) }; };
   const st = { ok: false, building: false, tris: 0, calls: 0 };
   let renderer, scene, camera, sun, hemi, lumen, lumen2, hazeSpr = [], lumenSpr, ring, ringGlow, terrainMat, bbMat = [], bbMesh = [], lightPts, moleSpr, clouds = [], cv3;
   const grids = []; // [{half, N, step, h:Float32Array}]
@@ -3896,7 +3898,7 @@ const M3 = (() => {
       const step = clamp((fi + smooth01(sh, 1, fr)) / TT, 0, 1), brk = smooth01(0.3, 0.62, vnoise(x / 760 + fi * 1.7, y / 760 - fi)), base = (Math.pow(step, 0.8) * brk + Math.pow(g, 0.8) * (1 - brk)) * 0.86 + Math.pow(g, 0.8) * 0.14; const base2 = Math.max(base, (1 - smooth01(0.06, 0.16, g)) * Math.pow(g, 0.85) * 1.15); // no flat terrace at the lip: grass and rock break straight over the edge
       h = P_H - PIT * base2 - 30 * g - 110 * ridged(x / 380, y / 380, 3) * smooth01(0, 0.05, g) * (1 - smooth01(0.85, 1, g)); }
     // fissures: carved trenches; where they meet the Hollow they keep cutting down the pit wall as channels
-    const cd = chasmDist(x, y); if (cd < 14) { const q = smooth01(14, -22, cd), n = 5, qn = q * n, qi = Math.floor(qn); h -= 720 * ((qi + smooth01(0.35, 1, qn - qi)) / n); } // deep, ledged clefts: climbable rock walls stepping down
+    // (fissures are no longer a coarse heightfield trench: every crack is a real crevice mesh - rock walls with strata dropping into darkness - and the ground is cut away over it; see buildCrevices)
     if (r < hr + 60 && r > hr - 2200) for (const nt of notches) { let da = a - nt.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; const dist = Math.abs(da) * r, into = hr - r, wd = nt.w * (0.55 + Math.max(0, into) / 900);
       if (dist > wd) continue; const fl = P_H - 460 * nt.deep - Math.max(0, into) * 1.25, s0 = Math.pow(smooth01(0, 1, dist / wd), 1.3) * (1 - smooth01(-60, 0, -into) * 0);
       h = Math.min(h, fl + (h - fl) * s0); rock = Math.max(rock, 120); }
@@ -3928,6 +3930,51 @@ const M3 = (() => {
     // PlaneGeometry splits each quad along the (ix,iy+1)-(ix+1,iy) diagonal
     if (u + v <= 1) return a + (b - a) * u + (c - a) * v; return d + (c - d) * (1 - u) + (b - d) * (1 - v); }
   function meshH(x, y) { const gi = grids[1]; if (gi && Math.abs(x) < gi.half && Math.abs(y) < gi.half) return gridH(gi, x, y); return grids[0] ? gridH(grids[0], x, y) : 0; }
+  // the fine grid's outer band eases onto the coarse grid's surface so the two meet without a step (nav saw the old seam as a cliff)
+  function edgeBlend(g, o) { const N1 = g.N + 1, band = 8 * g.step; for (let iy = 0; iy <= g.N; iy++) for (let ix = 0; ix <= g.N; ix++) { const x = -g.half + ix * g.step, y = -g.half + iy * g.step, e = g.half - Math.max(Math.abs(x), Math.abs(y)); if (e >= band) continue; const w = smooth01(0, band, e), q = iy * N1 + ix; g.h[q] = gridH(o, x, y) + (g.h[q] - gridH(o, x, y)) * w; } }
+  // the fine grid as T x T tiles (normals from the whole grid, so no lighting seams) - tiles out of view are culled
+  function makeTerrainTiles(g, T) { const full = new THREE.PlaneGeometry(2 * g.half, 2 * g.half, g.N, g.N); full.rotateX(-Math.PI / 2); const fp = full.attributes.position; for (let i = 0; i < fp.count; i++) fp.setY(i, g.h[i]); full.computeVertexNormals();
+    const fn = full.attributes.normal, fu = full.attributes.uv, N1 = g.N + 1, out = [], per = Math.ceil(g.N / T);
+    for (let ty = 0; ty < T; ty++) for (let tx = 0; tx < T; tx++) { const x0 = tx * per, y0 = ty * per, x1 = Math.min(g.N, x0 + per), y1 = Math.min(g.N, y0 + per); if (x0 >= x1 || y0 >= y1) continue; const nx = x1 - x0 + 1, ny = y1 - y0 + 1, n = nx * ny;
+      const P = new Float32Array(n * 3), Nn = new Float32Array(n * 3), UV = new Float32Array(n * 2), M = new Float32Array(n), idx = [];
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const s0 = (y0 + j) * N1 + (x0 + i), d = j * nx + i; P[d * 3] = fp.getX(s0); P[d * 3 + 1] = fp.getY(s0); P[d * 3 + 2] = fp.getZ(s0); Nn[d * 3] = fn.getX(s0); Nn[d * 3 + 1] = fn.getY(s0); Nn[d * 3 + 2] = fn.getZ(s0); UV[d * 2] = fu.getX(s0); UV[d * 2 + 1] = fu.getY(s0); M[d] = g.m[s0]; }
+      for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, c, d, b); } // PlaneGeometry's own split (a-c-b, c-d-b), so meshH matches
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(Nn, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); geo.setAttribute('aMt', new THREE.BufferAttribute(M, 1)); geo.setIndex(idx); geo.computeBoundingSphere(); geo.computeBoundingBox();
+      const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
+    full.dispose(); return out; }
+  /* ---------- crevices: every crack on the map is a real cut - the ground is masked away over it (tK) and rock walls with strata drop into darkness ---------- */
+  const CRV = { mesh: null, maskCv: null, tex: null, win: null, depth: [] };
+  function crevDepth(c, i) { const w = c.ws[i], tip = Math.min(1, i / 3, (c.pts.length - 1 - i) / 4); return (c.wide ? 720 : clamp(w * 7, 60, 420)) * (0.35 + 0.65 * clamp(tip, 0, 1)); }
+  function strataTex() { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 512; const g = cv.getContext('2d'); let sd = 31; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    let y = 0; while (y < 512) { const h = 10 + rn() * 34, v = 92 + rn() * 70 | 0, wm = rn() < 0.3; g.fillStyle = wm ? `rgb(${v + 18},${v - 4},${v - 26})` : `rgb(${v},${v - 6},${v - 16})`; g.fillRect(0, y, 256, h); // bedded layers, a few warm iron-stained ones
+      for (let k = 0; k < 90; k++) { const q = v - 30 + rn() * 60 | 0; g.fillStyle = `rgba(${q},${q - 6},${q - 14},.5)`; g.fillRect(rn() * 256, y + rn() * h, 2 + rn() * 14, 1 + rn() * 3); }
+      g.fillStyle = 'rgba(20,16,12,.7)'; g.fillRect(0, y + h - 2, 256, 2); g.fillStyle = 'rgba(255,240,215,.16)'; g.fillRect(0, y, 256, 1.5); y += h; } // dark bedding joint under each layer, lit lip on top
+    g.strokeStyle = 'rgba(18,14,10,.55)'; for (let k = 0; k < 26; k++) { let x = rn() * 256, yy = rn() * 512; g.lineWidth = 1 + rn() * 2; g.beginPath(); g.moveTo(x, yy); for (let q = 0; q < 6; q++) { x += (rn() - 0.5) * 10; yy += 8 + rn() * 14; g.lineTo(x, yy); } g.stroke(); } // vertical joints
+    const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; }
+  function buildCrevices() { if (CRV.mesh) { scene.remove(CRV.mesh); CRV.mesh.geometry.dispose(); }
+    const pos = [], col = [], uv = [], idx = []; let sd = 3; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    // wall profile across the crack, from the left lip down to the floor and up to the right lip: [offset as a fraction of the half-width (+ extra units), depth fraction]
+    const PROF = [[1, 0, 0], [0.97, 0, 0.04], [0.92, 0, 0.14], [0.82, 0, 0.32], [0.64, 0, 0.6], [0.36, 0, 1]];
+    for (const c of W.cracks || []) { const n = c.pts.length; if (n < 2) continue; let arc = 0, prev = -1;
+      for (let i = 0; i < n; i++) { const p = c.pts[i], a = c.pts[Math.max(0, i - 1)], b = c.pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l; if (i) arc += Math.hypot(p[0] - c.pts[i - 1][0], p[1] - c.pts[i - 1][1]);
+        if (hollowDist(p[0], p[1]) < 30) { prev = -1; continue; } // inside the Hollow mouth: its notch carries on down the pit wall
+        const hw = Math.max(3, c.ws[i] / 2), D = crevDepth(c, i), base = pos.length / 3;
+        for (const sgn of [-1, 1]) { const pr = sgn < 0 ? PROF : PROF.slice().reverse(), top = meshH(p[0] + nx * sgn * (hw + 1), p[1] + ny * sgn * (hw + 1)); for (const [f, ex, dz] of pr) { const j = (rn() - 0.5) * hw * 0.24 * (dz > 0.02 && dz < 0.99 ? 1 : 0), o = sgn * (hw * f + ex + j);
+            const yy = dz < 0 ? top - 0.6 : top - 1.6 - D * dz, k = Math.pow(clamp(dz, 0, 1), 0.4), br = (1 - 0.96 * k) * (dz < 0.02 ? 0.8 : 1); pos.push(p[0] + nx * o, yy, p[1] + ny * o); col.push(br, br * 0.97, br * 0.93); uv.push(arc / 70, (top - yy) / 90); } }
+        const m = PROF.length * 2; if (prev >= 0) for (let q = 0; q + 1 < m; q++) { const a0 = prev + q, b0 = prev + q + 1, c0 = base + q, d0 = base + q + 1; idx.push(a0, c0, b0, b0, c0, d0); } prev = base; } }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
+    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); CRV.mesh = new THREE.Mesh(geo, mat); CRV.mesh.name = 'crevices'; CRV.mesh.receiveShadow = true; scene.add(CRV.mesh);
+    CRV.maskCv = document.createElement('canvas'); CRV.maskCv.width = CRV.maskCv.height = 2048; CRV.tex = new THREE.CanvasTexture(CRV.maskCv); CRV.tex.flipY = false; CRV.tex.generateMipmaps = false; CRV.tex.minFilter = THREE.LinearFilter; CRV.win = null; }
+  // ground including the crevices: inside a crack the floor lies its depth below the (cut-away) ground surface
+  function groundH(x, y) { const h = meshH(x, y), cell = 160, gx = Math.floor(x / cell), gy = Math.floor(y / cell); let best = 1e9, bw = 0; if (!W.crackGrid) return h;
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const arr = W.crackGrid.get((gx + i) + ',' + (gy + j)); if (!arr) continue; for (const s of arr) { const [d, t] = distSeg(x, y, s.x1, s.y1, s.x2, s.y2), w = s.w1 + (s.w2 - s.w1) * t, e = d - Math.max(6, w) / 2; if (e < best) { best = e; bw = w; } } }
+    if (best >= 0) return h; const D = bw > 60 ? 720 : clamp(bw * 7, 60, 420); return h - 1.6 - D * clamp(-best / Math.max(3, bw / 2) * 1.6, 0, 1); }
+  // the ground-cut mask: the cracks painted (true width) into a 2048 px window (~4 units a pixel) round the view, repainted as the view moves
+  function crevMask(cx, cy) { const U = terrainMat.userData.U, S = 8000; if (!CRV.maskCv) return; if (CRV.win && Math.hypot(cx - CRV.win[0], cy - CRV.win[1]) < 1500) return; const x0 = Math.round(cx - S / 2), y0 = Math.round(cy - S / 2), k = 2048 / S, g = CRV.maskCv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#000'; g.fillRect(0, 0, 2048, 2048); g.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); g.strokeStyle = '#fff'; g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const c of W.cracks || []) { const P = c.pts; let inb = false; for (const p of P) if (p[0] > x0 - 200 && p[0] < x0 + S + 200 && p[1] > y0 - 200 && p[1] < y0 + S + 200) { inb = true; break; } if (!inb) continue;
+      for (let i = 0; i + 1 < P.length; i++) { if (hollowDist(P[i][0], P[i][1]) < 30) continue; g.lineWidth = Math.max(5, (c.ws[i] + c.ws[i + 1]) / 2 - 1.5); g.beginPath(); g.moveTo(P[i][0], P[i][1]); g.lineTo(P[i + 1][0], P[i + 1][1]); g.stroke(); } }
+    CRV.tex.needsUpdate = true; U.tK.value = CRV.tex; U.uK.value.set(x0, y0, S, S); CRV.win = [cx, cy]; }
   function makeTerrain(g) {
     const geo = new THREE.PlaneGeometry(2 * g.half, 2 * g.half, g.N, g.N); geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position; // after rotation: x right, z = map y (row iy -> z = -half + iy*step)
@@ -3955,7 +4002,7 @@ const M3 = (() => {
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal); vMt = aMt;').replace('#include <project_vertex>', '#include <project_vertex>\nvVD = length(mvPosition.xyz);');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 varying vec3 vWP; varying vec3 vWN; varying float vMt; varying float vVD;
-uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn; uniform float uExOn; float exBump = 0.0;
+uniform sampler2D tK; uniform vec4 uK; uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn; uniform float uExOn; float exBump = 0.0;
 uniform float uPH; uniform float uHR; uniform vec3 uLumen; uniform float uDeep; uniform float uSnowR; uniform float uHaze;
 vec4 texAn(sampler2D t, vec2 uv, float k) { vec2 dx = dFdx(uv), dy = dFdy(uv); float lx = length(dx), ly = length(dy), cap = min(lx, ly) * k; if (lx > cap) dx *= cap / lx; if (ly > cap) dy *= cap / ly; return textureGrad(t, uv, dx, dy); } // grazing angles: limit the footprint's long axis (a cheap anisotropic filter) so close ground stays crisp
 float edgeF(vec2 u, float w) { return smoothstep(0.0, w, min(min(u.x, 1.0 - u.x), min(u.y, 1.0 - u.y))); }
@@ -3966,7 +4013,8 @@ float h31(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x 
 float vn3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(mix(h31(i), h31(i + vec3(1.0, 0.0, 0.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 0.0)), h31(i + vec3(1.0, 1.0, 0.0)), f.x), f.y), mix(mix(h31(i + vec3(0.0, 0.0, 1.0)), h31(i + vec3(1.0, 0.0, 1.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 1.0)), h31(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z); }
 float fbm3(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn3(p); p = p * 2.01 + vec3(5.3, 1.7, 9.1); a *= 0.5; } return s; }`)
         .replace('#include <map_fragment>', `
-vec2 wp = vWP.xz; vec4 tc = texture2D(tA, (wp - uA.xy) / uA.zw);
+vec2 wp = vWP.xz; { vec2 uk = (wp - uK.xy) / uK.zw; if (uk.x > 0.0 && uk.x < 1.0 && uk.y > 0.0 && uk.y < 1.0 && texture2D(tK, uk).r > 0.5) discard; } // the ground is cut away over every crevice (its rock walls are a mesh below)
+vec4 tc = texture2D(tA, (wp - uA.xy) / uA.zw);
 vec2 ub = (wp - uB.xy) / uB.zw; if (ub.x > 0.0 && ub.x < 1.0 && ub.y > 0.0 && ub.y < 1.0) tc = mix(tc, texture2D(tB, ub), edgeF(ub, 0.02));
 if (uCOn > 0.5) { vec2 uc = (wp - uC.xy) / uC.zw; if (uc.x > 0.0 && uc.x < 1.0 && uc.y > 0.0 && uc.y < 1.0) { vec4 cN = texture2D(tC, uc);
   if (uExOn > 0.5) { vec4 cL = texture2D(tC, uc, 3.0); cN.rgb = min(cN.rgb, cL.rgb * 1.08); cN.rgb = mix(cN.rgb, cL.rgb, 0.8 * (1.0 - smoothstep(200.0, 600.0, vVD))); } // Explore: magnified splat texels smear (pale flower specks became pale streaks) - cap the specks and keep only the splat's broad colour up close; the shader's own grass detail supplies the fine texture
@@ -4394,12 +4442,15 @@ diffuseColor *= sdc;
       const m = c.pts[2], hgt = rimH(m, 1, 0, c.ws[2]) + 55, ico = new THREE.Sprite(new THREE.SpriteMaterial({ map: icoT, transparent: true, depthWrite: false, depthTest: false, toneMapped: false })); ico.scale.set(120, 120, 1); ico.position.set(m[0], hgt, m[1]); ico.renderOrder = 6; grp.add(ico);
       CLB.spots.push({ type: 'climb', i: n++, x: m[0], y: m[1], up: hgt - 40, wide: !!c.wide, ico, rib, name: c.wide ? 'Great chasm' : 'Narrow crevice' }); }
     W.climbSpots = CLB.spots; }
+  // solid footprints for Explore's nav: every house's model plan (its bounding box in the model frame, a touch inset) placed like the instance
+  function solids() { const out = []; if (!MD) return out; for (const h of W.homes) { if (h.heartwood || !h._key || !MD[h._key]) continue; const m = MD[h._key]; if (!m.bb) { const bb = new THREE.Box3(); for (const g of m.geos || []) { if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox); } m.bb = bb; }
+      out.push({ x: h.x, y: h.y, w: h._w, cs: Math.cos(h._rot), sn: Math.sin(h._rot), b: [m.bb.min.x * 0.94, m.bb.max.x * 0.94, m.bb.min.z * 0.94, m.bb.max.z * 0.94], player: !!h.isPlayer, key: h._key, doorH: m.doors && m.doors[0] ? m.doors[0].h * h._w : 0, doorW: m.doors && m.doors[0] ? m.doors[0].w * h._w : 0 }); } return out; }
   function buildModelScene() { if (!MD || !scene) return;
     for (const s2 of IM.all) for (const m of s2.meshes) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = [];
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
     const byKey = {}; const push = (k, o) => (byKey[k] || (byKey[k] = [])).push(o);
     W.homes.forEach((h, i) => { const tier = tierOf(h), key = h.heartwood ? (h.slot % 2 ? 'seatb' : 'seata') : HOUSE_KIT.keyFor(tier, hash1(i * 3.71 + 0.3)), w = h.heartwood ? HW_HOUSE : homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = h.heartwood ? Math.PI / 2 - h.hwTh : (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
-      h._rot = rot; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i, key, w); });
+      h._rot = rot; h._key = key; h._w = w; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i, key, w); });
     for (const k of HOUSE_KIT.KEYS.concat(['seata', 'seatb'])) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
     let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - 2; nt++;
       push('t_' + k, { x: o.x, y, z: o.y, rot: (o.seed || 0.5) * TAU * 7, s, c: tintFor(o.seed * 100 + 3, 0.6), lum: lumAt(o.x, o.y) * 0.8 }); }
@@ -4452,13 +4503,13 @@ diffuseColor *= sdc;
     lumen = new THREE.PointLight(0xffc878, 1, CITY.hollowR * 3.4, 1.1); lumen.position.set(0, P_H - 1500, 0); scene.add(lumen);
     lumen2 = new THREE.PointLight(0xffc878, 0, CITY.hollowR * 2.2, 1.0); lumen2.position.set(0, P_H + 300, 0); scene.add(lumen2); // lifts the glow onto the lip and the nearest rooftops
     const steps = [
-      () => { buildMtGrid(); grids[0] = buildGrid(CITY.R + 1500, mob ? 170 : 220, IN()); },
-      () => { grids[1] = buildGrid(IN(), mob ? 320 : 400, 0); },
+      () => { buildMtGrid(); grids[0] = buildGrid(CITY.R + 1500, mob ? 170 : 220, FIN(mob).half); },
+      () => { const F = FIN(mob); grids[1] = buildGrid(F.half, F.N, 0); edgeBlend(grids[1], grids[0]); },
       () => { const a = document.createElement('canvas'); a.width = a.height = 2048; paint(a, -(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2048); texA = canvasTex(a); },
       () => { const b = document.createElement('canvas'); b.width = b.height = 2048; paint(b, -IN(), -IN(), 2 * IN(), 2048); texB = canvasTex(b); },
       () => { cCanvas = document.createElement('canvas'); cCanvas.width = cCanvas.height = 2048; texC = canvasTex(cCanvas);
-        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uExOn: EXU, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
-        terrainMat = makeTerrainMat(U); terrainMat.userData.U = U; scene.add(makeTerrain(grids[0])); scene.add(makeTerrain(grids[1])); },
+        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uExOn: EXU, tK: { value: null }, uK: { value: new THREE.Vector4(0, 0, 1, 1) }, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
+        terrainMat = makeTerrainMat(U); terrainMat.userData.U = U; scene.add(makeTerrain(grids[0])); for (const m of makeTerrainTiles(grids[1], 8)) scene.add(m); buildCrevices(); },
       () => { buildBillboards();
         lumenSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,214,140,.9)', 'rgba(255,170,80,.3)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); lumenSpr.position.set(0, P_H - PIT * 0.55, 0);
         { const ht = glowTex('rgba(255,196,96,.9)', 'rgba(255,150,50,.3)'); for (let i = 0; i < 9; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: ht, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); const a = hash1(i * 5.3) * TAU, r = hash1(i * 2.1) * CITY.hollowR * 0.45; sp.userData = { x: Math.cos(a) * r, y: Math.sin(a) * r, ph: i / 9, s: CITY.hollowR * (1.1 + hash1(i + 4) * 0.6) }; hazeSpr.push(sp); scene.add(sp); } } lumenSpr.scale.set(CITY.hollowR * 2.2, CITY.hollowR * 2.2, 1); scene.add(lumenSpr);
@@ -4540,7 +4591,7 @@ diffuseColor *= sdc;
   /* ---------- detail texture around the camera ---------- */
   function updateDetail(cam) {
     const U = terrainMat.userData.U;
-    const ex = !!st.camOv; EXU.value = ex ? 1 : 0; // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
+    const ex = !!st.camOv; EXU.value = ex ? 1 : 0; crevMask(cam.x, cam.y); if (typeof Explore !== 'undefined' && Explore.lod) Explore.lod(cam.x, cam.y); // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
     if (cam.z < 0.28 && !ex) { U.uCOn.value = 0; cState = null; return; }
     const size = ex ? 1000 : 2600, px = 2048; if (cState && cState.size !== size) cState = null;
     if (!cState || Math.hypot(cam.x - cState.cx, cam.y - cState.cy) > (ex ? 220 : 700)) { if (cState && cState.q < 4) {} else { cState = { cx: Math.round(cam.x / 50) * 50, cy: Math.round(cam.y / 50) * 50, q: 0, size }; } }
@@ -4596,7 +4647,7 @@ diffuseColor *= sdc;
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }
-  return { SSR, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { solids, groundH, get crevices() { return CRV; }, SSR, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();
 
 /* =====================================================================
@@ -7644,13 +7695,32 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */
 const Explore = (() => {
   const WS = 4; // map units per metre (a Rim City house is ~40 units, ~10 m); Wren is ~1.7 m = ~7 units
-  const C = 16, REG = { X0: -7200, X1: 4800, Y0: -3800, Y1: 10600 }; // the populated core: Grand Tree, Hollow rim, Rim City, the Silverseam cliff and the lowland Ledge
+  const C = 16, REG = { X0: -11920, X1: 11920, Y0: -11920, Y1: 11920 }; // all the land: the summit (Grand Tree, Hollow rim, Rim City, the Silverseam cliff) and every lowland home out to the world's edge peaks
   const SLOPE_WALK = 0.62, SLOPE_CLIMB = 3.0, FACE_MAX = 420; // walkable under ~32 deg; steeper rock up to ~72 deg is climbable if the face is under ~105 m tall
   // sturdy timber-truss bridges on stone abutments across the clefts that break the summit into three (ends on solid ground, both lips)
-  const BRIDGES = [
+  const BASE = [
     { id: 'south', name: 'South Cleft Bridge', a: [496, 5726], b: [704, 5650] },
     // (the north and east clefts and the head of the rim crevice are already spanned by the Lumen Tree's great roots, which she climbs over - no bridge there)
   ];
+  // the rest are generated once from the nav grid by genBridges() (tools: Explore.genBridges() in the page) and kept here so the map loads fast:
+  // 'link' bridges join every walkable region into one; 'cross' bridges put a crossing on every long crevice so none is a wall
+  const GEN = /*GEN*/[
+    [4295, -8281, 4265, -8311, "link"], [-8736, -5526, -8736, -5578, "link"], [-8567, -5049, -8537, -5079, "link"], [-8087, -4521, -8057, -4551, "link"], [-7591, -4313, -7561, -4343, "link"], [7351, 599, 7321, 569, "link"],
+    [-6985, 5319, -7015, 5289, "link"], [-7961, 5463, -7991, 5433, "link"], [-3145, 8087, -3175, 8057, "link"], [-7703, 7783, -7673, 7753, "link"], [745, 10871, 775, 10841, "link"], [743, 10903, 713, 10873, "link"],
+    [7248, -134, 7248, -186, "link"], [6586, 240, 6534, 240, "link"], [1162, 9120, 1110, 9120, "link"], [4055, -7881, 4009, -7927, "link"], [-8396, -5545, -8420, -5495, "link"], [6553, -212, 6503, -188, "link"],
+    [-6890, 4848, -6822, 4848, "link"], [6390, -448, 6458, -448, "link"], [-6473, -7533, -6407, -7555, "link"], [595, 6665, 573, 6599, "link"], [-7288, -4454, -7352, -4410, "link"], [-6144, 4086, -6144, 4170, "link"],
+    [-5196, 5129, -5236, 5047, "link"], [6944, -410, 6944, -310, "link"], [5518, 1930, 5538, 1830, "link"], [5588, 3511, 5548, 3609, "link"], [-1240, 6378, -1160, 6438, "link"], [5348, 1767, 5308, 1865, "link"],
+    [-4057, 3703, -4087, 3673, "stair"], [4602, -432, 4550, -432, "stair"], [5578, 6144, 5526, 6144, "stair"], [854, -5440, 922, -5440, "stair"], [-2151, -6541, -2217, -6563, "stair"], [2570, -5576, 2630, -5496, "stair"],
+    [4136, 5162, 4216, 5222, "stair"], [-4982, 5185, -5146, 5167, "stair"], [11606, 192, 11834, 192, "stair"], [2203, -8226, 2258, -8215, "cross"], [5587, -245, 5572, -99, "cross"], [8422, -541, 8421, -445, "cross"],
+    [532, 4284, 354, 4300, "cross"], [796, 7807, 702, 7844, "cross"], [-7919, -459, -7882, -551, "cross"], [-9126, -716, -9098, -796, "cross"], [-7159, -1896, -7159, -2011, "cross"], [-8715, -1511, -8702, -1591, "cross"],
+    [-5329, -6092, -5245, -6172, "cross"], [-8278, -8358, -8261, -8410, "cross"], [3069, -6828, 3169, -6824, "cross"], [7805, 2953, 7787, 3044, "cross"], [8814, 3382, 8771, 3449, "cross"], [9209, 4067, 9169, 4110, "cross"],
+    [6724, 4327, 6673, 4418, "cross"], [7698, 4766, 7651, 4841, "cross"], [8664, 4808, 8643, 4864, "cross"], [5923, 6723, 5877, 6794, "cross"], [998, 9794, 905, 9821, "cross"], [400, 9419, 344, 9375, "cross"],
+    [-1228, 8244, -1318, 8228, "cross"], [-2632, 6729, -2702, 6641, "cross"], [-3553, 8675, -3632, 8629, "cross"], [-3919, 9711, -3996, 9688, "cross"], [-7377, 5935, -7430, 5881, "cross"], [-8657, 6274, -8674, 6221, "cross"],
+    [-6553, 1904, -6569, 1790, "cross"], [-8354, 2295, -8423, 2244, "cross"], [-10683, -3296, -10773, -3312, "cross"], [7254, 7224, 7341, 7219, "cross"], [-683, -8751, -760, -8764, "cross"], [-7114, 1116, -7119, 1043, "cross"],
+    [-317, 6333, -308, 6397, "cross"], [1255, -6540, 1185, -6519, "cross"], [-3111, -8525, -3050, -8482, "cross"],
+  ]/*END*/;
+  const BRIDGES = BASE.concat(GEN.map((q, i) => ({ id: q[4] + i, name: q[4] === 'link' ? 'Rim Bridge' : q[4] === 'stair' ? 'Cliff Stair' : 'Crevice Bridge', a: [q[0], q[1]], b: [q[2], q[3]], gen: q[4] })));
+  const MIN_REGION = 300; // walkable patches smaller than this many cells (~70 x 70 m) cut off by cliffs and crevices are scenery, not walked
   const DW = 18; // deck width (4.5 m)
   const NV = { built: false };
   const EX = { on: false, d: 7.6, az: 0.62, tilt: 0.2, // the Playground's own default orbit (zoom 7.6, tilt 0.2)
@@ -7659,8 +7729,8 @@ const Explore = (() => {
   const mH = (x, y) => M3.meshH(x, y);
   // ---- bridges: deck geometry shared by the nav and the meshes
   function brSpec(B) { if (B.L) return B; const [ax, ay] = B.a, [bx, by] = B.b, dx = bx - ax, dy = by - ay, L = Math.hypot(dx, dy); B.ux = dx / L; B.uy = dy / L; B.L = L; B.ha = mH(ax, ay); B.hb = mH(bx, by); return B; }
-  function deckH(B, t) { return B.ha + (B.hb - B.ha) * t + 1.6 + 3 * Math.sin(Math.PI * clamp(t, 0, 1)); }
-  function onBridge(x, y, pad) { for (const B0 of BRIDGES) { const B = brSpec(B0), px = x - B.a[0], py = y - B.a[1], t = (px * B.ux + py * B.uy) / B.L, s = Math.abs(-px * B.uy + py * B.ux); if (t > 0 && t < 1 && s < DW / 2 - 2 + (pad || 0)) return [B, t]; } return null; }
+  function deckH(B, t) { const ar = B.gen === 'stair' ? 0 : Math.min(14, Math.max(3, B.L * 0.06)); return B.ha + (B.hb - B.ha) * t + 1.6 + ar * Math.sin(Math.PI * clamp(t, 0, 1)); } // gently arched where the span allows
+  function onBridge(x, y, pad) { for (const B0 of BRIDGES) { const B = brSpec(B0), px = x - B.a[0], py = y - B.a[1]; if (Math.abs(px) > B.L + DW || Math.abs(py) > B.L + DW) continue; const t = (px * B.ux + py * B.uy) / B.L, s = Math.abs(-px * B.uy + py * B.ux); if (t > 0 && t < 1 && s < DW / 2 - 2 + (pad || 0)) return [B, t]; } return null; }
   function hAt(x, y) { const ob = onBridge(x, y, 0); if (ob) return deckH(ob[0], ob[1]); if (NV.root) { const [i, j] = cellOf(x, y), k = j * NV.nx + i; if (NV.root[k]) return rootH(x, y); } return mH(x, y); }
   function rootH(x, y) { const fx = clamp((x - REG.X0) / C, 0, NV.nx - 1.001), fy = clamp((y - REG.Y0) / C, 0, NV.ny - 1.001), i = fx | 0, j = fy | 0, u = fx - i, v = fy - j, H = NV.h, n = NV.nx, k = j * n + i; return (H[k] * (1 - u) + H[k + 1] * u) * (1 - v) + (H[k + n] * (1 - u) + H[k + n + 1] * u) * v; } // on a root's back: the nav surface
   // ---- the nav grid: walk / climb / blocked cells from the terrain heightfield, bridge decks walkable
@@ -7675,7 +7745,13 @@ const Explore = (() => {
     const wet = typeof GRAND !== 'undefined' && GRAND.wet ? GRAND.wet : null;
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, x = REG.X0 + i * C, y = REG.Y0 + j * C, r = Math.hypot(x, y); let c = sl[k] < SLOPE_WALK ? 1 : sl[k] < SLOPE_CLIMB ? 2 : 0;
       if (r < 3800 && h[k] < 1350) c = 0; // the Hollow itself is not walked (its crevices are climbed down later)
-      if (c && wet && wet(x, y, 6)) c = 0; cls[k] = c; }
+      if (c && wet && wet(x, y, 6)) c = 0; if (r > CITY.R - 800) c = 0; cls[k] = c; } // (the world's edge rises into a wall of peaks: not walked)
+    // every crack is a real crevice (rock walls into darkness, the ground cut away): its cells and a lip margin are not walked - bridges cross them
+    for (const cr of W.cracks || []) for (let q = 0; q + 1 < cr.pts.length; q++) { const [ax, ay] = cr.pts[q], [bx, by] = cr.pts[q + 1], m = Math.max(9, Math.max(cr.ws[q], cr.ws[q + 1]) / 2 + 4), i0 = Math.max(0, Math.floor((Math.min(ax, bx) - m - REG.X0) / C)), i1 = Math.min(nx - 1, Math.ceil((Math.max(ax, bx) + m - REG.X0) / C)), j0 = Math.max(0, Math.floor((Math.min(ay, by) - m - REG.Y0) / C)), j1 = Math.min(ny - 1, Math.ceil((Math.max(ay, by) + m - REG.Y0) / C)), dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const x = REG.X0 + i * C, y = REG.Y0 + j * C, t = clamp(((x - ax) * dx + (y - ay) * dy) / L2, 0, 1), w = cr.ws[q] + (cr.ws[q + 1] - cr.ws[q]) * t; if (Math.hypot(x - ax - dx * t, y - ay - dy * t) < Math.max(9, w / 2 + 4)) cls[j * nx + i] = 0; } }
+    // houses are solid: every home's footprint is blocked (she walks round them, up to the door)
+    NV.solids = 0; if (M3.solids) for (const S of M3.solids()) { const R = Math.max(Math.abs(S.b[0]), Math.abs(S.b[1]), Math.abs(S.b[2]), Math.abs(S.b[3])) * S.w * 1.42, i0 = Math.max(0, Math.floor((S.x - R - REG.X0) / C)), i1 = Math.min(nx - 1, Math.ceil((S.x + R - REG.X0) / C)), j0 = Math.max(0, Math.floor((S.y - R - REG.Y0) / C)), j1 = Math.min(ny - 1, Math.ceil((S.y + R - REG.Y0) / C));
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const dx = REG.X0 + i * C - S.x, dy = REG.Y0 + j * C - S.y, cx = (dx * S.cs - dy * S.sn) / S.w, cz = (dx * S.sn + dy * S.cs) / S.w; if (cx > S.b[0] && cx < S.b[1] && cz > S.b[2] && cz < S.b[3]) { cls[j * nx + i] = 0; NV.solids++; } } }
     // steep faces taller than FACE_MAX are cliffs, not climbs: flood each steep patch and measure its height
     { const seen = new Uint8Array(N), q = new Int32Array(N); for (let s0 = 0; s0 < N; s0++) { if (cls[s0] !== 2 || seen[s0]) continue; let qh = 0, qt = 0, lo = 1e9, hi = -1e9; q[qt++] = s0; seen[s0] = 1;
         while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; lo = Math.min(lo, h[k]); hi = Math.max(hi, h[k]); for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (!seen[m] && cls[m] === 2) { seen[m] = 1; q[qt++] = m; } } }
@@ -7693,7 +7769,8 @@ const Explore = (() => {
     for (const B0 of BRIDGES) { const B = brSpec(B0); for (let t = -12; t <= B.L + 12; t += C / 3) for (let s = -(DW / 2 - 2); s <= DW / 2 - 2; s += C / 3) { const x = B.a[0] + B.ux * t - B.uy * s, y = B.a[1] + B.uy * t + B.ux * s, i = Math.round((x - REG.X0) / C), j = Math.round((y - REG.Y0) / C); if (i < 0 || j < 0 || i >= nx || j >= ny) continue; const k = j * nx + i; if (t > 0 && t < B.L) { cls[k] = 3; h[k] = deckH(B, t / B.L); } else if (!cls[k]) cls[k] = 1; } }
     // connected components (8-way) for snapping taps to the nearest reachable spot
     const comp = new Int32Array(N).fill(-1); { const q = new Int32Array(N); let nc = 0; const size = []; for (let s0 = 0; s0 < N; s0++) { if (!cls[s0] || comp[s0] >= 0) continue; let qh = 0, qt = 0; q[qt++] = s0; comp[s0] = nc;
-        while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (cls[m] && comp[m] < 0 && (!di || !dj || (cls[j * nx + a] && cls[b * nx + i]))) { comp[m] = nc; q[qt++] = m; } } } size.push(qt); nc++; } NV.size = size; }
+        while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (cls[m] && comp[m] < 0 && (!di || !dj || (cls[j * nx + a] && cls[b * nx + i]))) { comp[m] = nc; q[qt++] = m; } } } size.push(qt); nc++; } NV.size = size;
+      NV.pruned = 0; NV.scenery = []; const mainC = size.indexOf(Math.max(...size)); if (!NV.keepSmall) { for (let c = 0; c < size.length; c++) if (c !== mainC && size[c] >= MIN_REGION) NV.scenery.push(size[c]); for (let k = 0; k < N; k++) if (comp[k] >= 0 && comp[k] !== mainC) { cls[k] = 0; comp[k] = -1; NV.pruned++; } } NV.main = mainC; } // one walkable world: with the bridges and cliff stairs every region meant for walking joins the main one; what is still cut off (ledges in the summit's sheer cliff bands, slivers between cracks, scraps on the edge peaks) is scenery
     Object.assign(NV, { built: true, nx, ny, N, h, cls, sl, comp, root, ms: Math.round(performance.now() - t0) }); return NV; }
   const cellOf = (x, y) => [clamp(Math.round((x - REG.X0) / C), 0, NV.nx - 1), clamp(Math.round((y - REG.Y0) / C), 0, NV.ny - 1)];
   const cxy = (k) => [REG.X0 + (k % NV.nx) * C, REG.Y0 + ((k / NV.nx) | 0) * C];
@@ -7740,67 +7817,98 @@ const Explore = (() => {
   // ---- bridges as meshes: stone abutments keyed into both lips, two deep stringers, a planked deck, Howe side trusses with iron tie rods,
   // raking struts down to stone corbels on each cleft wall, iron straps and bolt plates at every joint
   let BR = null;
-  function buildWorld(scene) { if (BR) { scene.remove(BR); } BR = new THREE.Group(); BR.name = 'exploreBridges'; const masonry = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d'); let sd = 11; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647; // one dressed ashlar face per box: a dark mortar joint round a bevelled, pitted, tooled stone
-      g.fillStyle = '#26221d'; g.fillRect(0, 0, 128, 128); g.fillStyle = '#8f897d'; g.fillRect(5, 5, 118, 118); g.fillStyle = '#b3ad9f'; g.fillRect(5, 5, 118, 6); g.fillRect(5, 5, 6, 118); g.fillStyle = '#5d584f'; g.fillRect(5, 117, 118, 6); g.fillRect(117, 5, 6, 118);
-      for (let k = 0; k < 900; k++) { const v = 105 + rn() * 90 | 0; g.fillStyle = `rgba(${v},${v - 5},${v - 14},.5)`; g.fillRect(12 + rn() * 102, 12 + rn() * 102, 1 + rn() * 3, 1 + rn() * 3); }
-      g.strokeStyle = 'rgba(60,55,48,.35)'; for (let k = 0; k < 14; k++) { const y = 14 + rn() * 100; g.beginPath(); g.moveTo(12, y); g.lineTo(116, y + (rn() - 0.5) * 8); g.stroke(); } // tooling marks
-      const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; })();
-    const grain = (() => { const cv = document.createElement('canvas'); cv.width = 128; cv.height = 128; const g = cv.getContext('2d'); let sd = 5; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647; g.fillStyle = '#b09070'; g.fillRect(0, 0, 128, 128); // adzed timber: grain streaks both ways (box faces map either axis), checks and darkened arrises
-      for (let k = 0; k < 160; k++) { const v = 120 + rn() * 70 | 0, a = rn() < 0.5; g.fillStyle = `rgba(${v},${v * 0.78 | 0},${v * 0.55 | 0},.45)`; if (a) g.fillRect(rn() * 128, 0, 1 + rn() * 2, 128); else g.fillRect(0, rn() * 128, 128, 1 + rn() * 2); }
-      g.fillStyle = 'rgba(40,25,12,.55)'; for (let k = 0; k < 10; k++) g.fillRect(rn() * 128, rn() * 128, 1, 6 + rn() * 18); g.strokeStyle = 'rgba(30,18,8,.7)'; g.lineWidth = 6; g.strokeRect(0, 0, 128, 128);
-      const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; })();
-    const LM = (c, k, map) => { const m = new THREE.MeshLambertMaterial({ color: c, map: map || null }); m.userData.kind = k; return m; }, mats = { wood: LM(0x4a3018, 'wood', grain), woodD: LM(0x33200f, 'wood', grain), plank: LM(0x5a3c20, 'wood', grain), iron: LM(0x111214, 'iron'), stone: LM(0x9a9488, 'stone', masonry), stoneD: LM(0x77726a, 'stone', masonry) }; // matte like the rest of the map (lit standard materials read washed-out under its grade)
-    const L = {}; for (const k in mats) L[k] = []; const Z = new THREE.Vector3(0, 0, 1), up = new THREE.Vector3(0, 1, 0), m4 = new THREE.Matrix4(), bx = new THREE.Vector3(), by = new THREE.Vector3(), bz = new THREE.Vector3();
-    const beam = (k, p0, p1, w, hh) => { bz.subVectors(p1, p0); const len = bz.length(); bz.normalize(); bx.crossVectors(Math.abs(bz.y) > 0.95 ? Z : up, bz).normalize(); by.crossVectors(bz, bx); m4.makeBasis(bx, by, bz).scale(new THREE.Vector3(w, hh, len)).setPosition((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2); L[k].push(m4.clone()); };
-    const box = (k, c, sx, sy, sz, ang) => { m4.makeRotationY(ang || 0).scale(new THREE.Vector3(sx, sy, sz)).setPosition(c.x, c.y, c.z); L[k].push(m4.clone()); };
-    let sd = 7; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
-    for (const B0 of BRIDGES) { const B = brSpec(B0), ang = Math.atan2(B.ux, B.uy), Lr = B.L, P = (t, s, dy) => { const x = B.a[0] + B.ux * t * Lr - B.uy * s, y = B.a[1] + B.uy * t * Lr + B.ux * s; return new THREE.Vector3(x, deckH(B, t) + (dy || 0), y); },
-        PA = (t, s, y) => { const v = P(t, s, 0); v.y = y; return v; }, at = (u) => u / Lr; // at(): a distance in units along the span as a t
-      const W2 = DW / 2, TH = 15, ST = 6; // deck half-width, truss depth (3.75 m), stringer depth (1.5 m)
-      // ---- abutments: stepped, battered ashlar piers built down the cleft walls from each lip, wider than the deck, their backs buried in the rock
-      const tH = (t) => mH(B.a[0] + B.ux * t * Lr, B.a[1] + B.uy * t * Lr), wallT = (end, y) => { const dir = end ? -1 : 1; let t = end; for (let k = 0; k < 400 && tH(t) >= y && t > -0.2 && t < 1.2; k++) t += dir * 0.0025; return t; }; // where the cleft wall stands at height y, walking in from each end
-      const WALL = {}, foot = (t, sm, bot, w, ln) => { const P0 = PA(t, sm, 0), gb = Math.min(mH(P0.x, P0.z), mH(P0.x + 3, P0.z + 3), mH(P0.x - 3, P0.z - 3), mH(P0.x + 3, P0.z - 3), mH(P0.x - 3, P0.z + 3)) - 3; for (let y = bot, k = 0; y > gb && k < 30; y -= 6.2, k++) { const h = Math.min(6.2, y - gb); box(k % 2 ? 'stone' : 'stoneD', PA(t, sm, y - h / 2), w + k * 0.25, h - 0.4, ln + k * 0.25, ang); } }; // coursed footing down to rock
-      for (const end of [0, 1]) { const dir = end ? -1 : 1, t0 = end, seat = deckH(B, t0) - 1.0 - ST, NC = 10; WALL[end] = [];
-        for (let c = 0; c < NC; c++) { const top = seat - c * 6.2, hgt = 6.2 - 0.45, tw = wallT(end, top - hgt), front = (tw - t0) * dir * Lr + 3 + c * 1.5, back = c ? (tw - t0) * dir * Lr - 30 : -10, half = W2 + 7 + c * 1.4, len = front - back; WALL[end].push({ top, front }); // stepped and battered: each course stands a little further out into the cleft than the one above
-          let s0 = -half, row = 0; const off = c % 2 ? 3.5 : 0, cuts = []; for (let x = -half + 6 + off; x < half - 4; x += 6.5 + rn() * 3) cuts.push(x); cuts.push(half);
-          for (const s1 of cuts) { const w = s1 - s0 - 0.5, mid = (s0 + s1) / 2; let u = back, q = row; while (u < front - 0.5) { const ul = Math.min(front, u + 7.5 + ((q * 7 + c * 3) % 5) * 0.9), cu = (u + ul) / 2, P = PA(t0 + dir * at(cu), mid, top - hgt / 2); box(q++ % 3 ? 'stone' : 'stoneD', P, w, hgt, ul - u - 0.5, ang); // ashlar cut both ways, joints staggered course to course
-              if ((c === NC - 1 && ul > front - 12) || (c === 0 && u < 0)) foot(t0 + dir * at(cu), mid, top - hgt, w + 0.6, ul - u + 0.4); // footing carried down to the rock wherever the ground falls away under a block
-              u = ul; } row++; s0 = s1; }
-          box('stoneD', PA(t0 + dir * at(front + 0.5), 0, top - 0.5), half * 2 + 1.2, 1.0, 1.2, ang); } // projecting string course
-        box('stoneD', PA(t0 + dir * at(WALL[end][0].front - 14), 0, seat - 1.2), DW + 12, 2.4, 28, ang); // bed stones under the stringers
-        // stone parapet walls flanking the approach, capped and cramped with iron, running out to the lip
-        const lipU = WALL[end][0].front; for (const sd2 of [-1, 1]) { for (let u0 = -14; u0 < lipU - 2; u0 += 10.5) { const ln = Math.min(10, lipU - u0); box(Math.round(u0) % 2 ? 'stone' : 'stoneD', PA(t0 + dir * at(u0 + ln / 2), sd2 * (W2 + 3.2), deckH(B, t0) + 3.0), 5.2, 7.6, ln - 0.4, ang); if (u0 < 0) foot(t0 + dir * at(u0 + ln / 2), sd2 * (W2 + 3.2), deckH(B, t0) - 0.8, 5.2, ln - 0.4); }
-          box('stoneD', PA(t0 + dir * at((lipU - 14) / 2), sd2 * (W2 + 3.2), deckH(B, t0) + 7.4), 6.4, 1.4, lipU + 15, ang); box('iron', PA(t0 + dir * at(lipU - 3), sd2 * (W2 + 3.2), deckH(B, t0) + 8.2), 6.6, 0.5, 1.2, ang); }
-        // rock corbels jutting from the cleft wall under each truss line, for the raking struts to bear on
-        const cb = WALL[end][NC - 1]; for (const sd2 of [-1, 1]) box('stoneD', PA(t0 + dir * at(cb.front + 4), sd2 * (W2 - 1), cb.top - 6.2), 10, 7, 10, ang); }
-      // ---- deck: three deep stringers, heavy cross beams, a thick plank deck with open seams, kerb timbers
-      const ex = at(14); for (const so of [-(W2 - 2.5), 0, W2 - 2.5]) beam('woodD', P(-ex, so, -1.6 - ST / 2), P(1 + ex, so, -1.6 - ST / 2), 4.2, ST);
-      for (let t = 0; t <= 1.0001; t += 1 / Math.round(Lr / 9)) beam('wood', P(t, -(W2 + 3), -1.6 - ST - 1.2), P(t, W2 + 3, -1.6 - ST - 1.2), 2.6, 2.4);
-      const np = Math.round((Lr + 28) / 2.75); for (let q = 0; q < np; q++) { const t = -ex + (q + 0.5) / np * (1 + 2 * ex), c = P(t, (rn() - 0.5) * 0.8, -0.8 + (rn() - 0.5) * 0.18); box(q % 4 ? 'plank' : 'wood', c, DW + 1 + (rn() - 0.5) * 1.4, 1.6, 2.4, ang + (rn() - 0.5) * 0.012); } // 0.6 m planks, 7 cm seams
-      for (const sd2 of [-1, 1]) beam('woodD', P(-ex, sd2 * (W2 - 0.4), 0.6), P(1 + ex, sd2 * (W2 - 0.4), 0.6), 1.8, 1.6);
-      // ---- deep Howe trusses either side: chunky chords, posts and diagonals, double iron tie rods, iron gusset plates with bolt heads at every joint
-      const panels = Math.max(8, Math.round(Lr / 18)), so = W2 + 1.8;
-      const plate = (t, sd2, y) => { const c = P(t, sd2 * (so + sd2 * 1.75), y); box('iron', c, 0.35, 4.6, 4.6, ang); for (const a of [-1.4, 1.4]) for (const b of [-1.4, 1.4]) box('iron', P(t + at(a), sd2 * (so + sd2 * 2.05), y + b), 0.5, 0.75, 0.75, ang); };
-      for (const sd2 of [-1, 1]) { const s1 = sd2 * so; beam('wood', P(-at(4), s1, -1.0), P(1 + at(4), s1, -1.0), 3.2, 3.4); beam('wood', P(at(9), s1, TH), P(1 - at(9), s1, TH), 3.2, 3.2);
-        for (let q = 0; q <= panels; q++) { const t = q / panels, top = q === 0 || q === panels ? TH - 4 : TH; beam('wood', P(t, s1, -2.2), P(t, s1, top + 1.4), 2.8, 2.8); plate(t, sd2, 0.4); if (q > 0 && q < panels) plate(t, sd2, TH - 0.6);
-          if (q < panels) { const t2 = (q + 1) / panels, mid = q < panels / 2; beam('woodD', P(mid ? t2 : t, s1, 1.2), P(mid ? t : t2, s1, TH - 1.2), 2.2, 2.4); for (const o of [-0.7, 0.7]) beam('iron', P((t + t2) / 2 + at(o), s1, -2.6), P((t + t2) / 2 + at(o), s1, TH + 1.8), 0.55, 0.55); } }
-        // inclined end posts (portal) and end blocks keyed into the abutment
-        beam('woodD', P(0, s1, TH - 4), P(at(9), s1, TH), 3.2, 3.2); beam('woodD', P(1, s1, TH - 4), P(1 - at(9), s1, TH), 3.2, 3.2); }
-      // overhead: cross struts between the top chords each panel with knee braces, diagonal wind bracing
-      for (let q = 1; q < panels; q++) { const t = q / panels; beam('wood', P(t, -so, TH + 0.6), P(t, so, TH + 0.6), 2.2, 2.4); for (const sd2 of [-1, 1]) beam('woodD', P(t, sd2 * so, TH - 5), P(t, sd2 * (so - 5), TH + 0.2), 1.4, 1.4);
-        if (q < panels - 1) { const t2 = (q + 1) / panels; beam('iron', P(t, -so, TH + 1.6), P(t2, so, TH + 1.6), 0.5, 0.5); beam('iron', P(t, so, TH + 1.6), P(t2, -so, TH + 1.6), 0.5, 0.5); } }
-      // ---- raking struts: from under the bottom chords at quarter span down to the rock corbels, strapped with iron
-      for (const end of [0, 1]) { const dir = end ? -1 : 1, t0 = end, cb = WALL[end][WALL[end].length - 1], tl = (WALL[end][0].front) / Lr; for (const sd2 of [-1, 1]) { const foot = PA(t0 + dir * at(cb.front + 3), sd2 * (W2 - 1), cb.top - 2.6), top = P(t0 + dir * (tl + (0.5 - tl) * 0.55), sd2 * (W2 - 1), -1.6 - ST - 2.4); beam('woodD', foot, top, 3.4, 3.4);
-        const mid = foot.clone().lerp(top, 0.5); beam('woodD', mid, P(t0 + dir * 0.3 + dir * at(-14), sd2 * (W2 - 1), -1.6 - ST - 2.4), 2.4, 2.4); for (const u of [0.08, 0.5, 0.94]) { const pp = foot.clone().lerp(top, u); box('iron', pp, 4.0, 0.7, 4.0, ang); } } } }
-    const geo = new THREE.BoxGeometry(1, 1, 1); for (const k in L) { if (!L[k].length) continue; const im = new THREE.InstancedMesh(geo, mats[k], L[k].length); L[k].forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = true; im.receiveShadow = true; im.userData.bridge = true; BR.add(im); }
-    BR.userData.count = Object.values(L).reduce((a, b) => a + b.length, 0); scene.add(BR); return BR; }
+  // ---- bridge generator (run in the page, paste the result into GEN): Kruskal over the gaps between walkable regions, then a crossing on every long crevice
+  const gH = (x, y) => (M3.groundH ? M3.groundH(x, y) : mH(x, y));
+  function spanOK(ax, ay, bx, by, stair) { const L = Math.hypot(bx - ax, by - ay); if (L < 30 || L > 640) { SPANWHY.len++; return null; } const ha = mH(ax, ay), hb = mH(bx, by); if (Math.abs(ha - hb) > (stair ? 0.85 * L : 0.16 * L + 10)) { SPANWHY.dh++; return null; }
+    let gap = 0, n = 0; for (let u = 6; u < L - 6; u += 6) { const t = u / L, x = ax + (bx - ax) * t, y = ay + (by - ay) * t, dk = ha + (hb - ha) * t + 1.6 + 3 * Math.sin(Math.PI * t); n++; let lo = 1e9; for (const s0 of [-DW / 2, 0, DW / 2]) { const ox = x - (by - ay) / L * s0, oy = y + (bx - ax) / L * s0, g = gH(ox, oy); if (g > dk + 0.5) { SPANWHY.ground++; return null; } lo = Math.min(lo, g); } if (dk - lo > 30) gap++; } // the deck never cuts the ground
+    if (!stair && gap < n * 0.25) { SPANWHY.nogap++; return null; } return { L, dh: Math.abs(ha - hb) }; }
+  const SPANWHY = { ground: 0, nogap: 0, dh: 0, len: 0, end: 0 };
+  function genBridges(o) { o = o || {}; const t0 = performance.now(); BRIDGES.length = BASE.length; NV.built = false; NV.keepSmall = true; build(); const { nx, ny, cls, comp, size, N } = NV, big = (c) => c >= 0 && size[c] >= MIN_REGION;
+    const before = size.filter((z) => z >= MIN_REGION).length, Dm = o.Dmax || 60, own = new Int32Array(N).fill(-1), org = new Int32Array(N).fill(-1), dist = new Uint16Array(N), q = new Int32Array(N); let qh = 0, qt = 0;
+    const noB = (k) => { const x = REG.X0 + (k % nx) * C, y = REG.Y0 + ((k / nx) | 0) * C; return Math.hypot(x, y) < 4100; }; // never across the Hollow
+    for (let k = 0; k < N; k++) if (big(comp[k])) { own[k] = comp[k]; org[k] = k; q[qt++] = k; }
+    const edges = new Map(); const xy = (k) => [REG.X0 + (k % nx) * C, REG.Y0 + ((k / nx) | 0) * C];
+    while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a;
+        if (own[m] >= 0) { if (own[m] !== own[k]) { const A = Math.min(own[m], own[k]), B = Math.max(own[m], own[k]), key = A + ',' + B, [x1, y1] = xy(org[k]), [x2, y2] = xy(org[m]), L = Math.hypot(x2 - x1, y2 - y1), e = edges.get(key); if (!e || e.L > L) edges.set(key, { A, B, L, p: [x1, y1], q: [x2, y2], all: (e ? e.all : []).concat([[L, x1, y1, x2, y2]]).sort((u, v) => u[0] - v[0]).slice(0, 12) }); else { e.all.push([L, x1, y1, x2, y2]); e.all.sort((u, v) => u[0] - v[0]); e.all.length = Math.min(12, e.all.length); } } continue; }
+        if (cls[m] || dist[k] >= Dm || noB(m)) continue; own[m] = own[k]; org[m] = org[k]; dist[m] = dist[k] + 1; q[qt++] = m; } }
+    // straight spans from lip to lip, ends pushed back 10 units onto solid ground; the shortest that clears the drop wins
+    const par = new Map(), find = (c) => { while (par.has(c) && par.get(c) !== c) c = par.get(c); return c; }, out = [], ok = (x, y) => { const k = nearest(x, y); return k >= 0 && Math.hypot(cxy(k)[0] - x, cxy(k)[1] - y) < C * 1.5; };
+    const cand = [...edges.values()].sort((a, b) => a.L - b.L);
+    for (const stair of [false, true]) for (const e of cand) { const ra = find(e.A), rb = find(e.B); if (ra === rb) continue; let pick = null; // bridges first; then plank stairways up the short cliffs that still cut a region off
+      for (const [, x1, y1, x2, y2] of e.all) { const L = Math.hypot(x2 - x1, y2 - y1) || 1, ux = (x2 - x1) / L, uy = (y2 - y1) / L, ax = x1 - ux * 10, ay = y1 - uy * 10, bx = x2 + ux * 10, by = y2 + uy * 10; if (!ok(ax, ay) || !ok(bx, by)) { SPANWHY.end++; continue; } const r = spanOK(ax, ay, bx, by, stair); if (r) { pick = [Math.round(ax), Math.round(ay), Math.round(bx), Math.round(by), stair ? 'stair' : 'link']; break; } }
+      if (pick) { par.set(ra, rb); out.push(pick); } }
+    // a crossing on every long crevice: every ~1100 units of crack, where both lips are walkable and no bridge is near
+    const near = (x, y, r) => BRIDGES.concat(out.map((b) => ({ a: [b[0], b[1]], b: [b[2], b[3]] }))).some((B) => Math.hypot((B.a[0] + B.b[0]) / 2 - x, (B.a[1] + B.b[1]) / 2 - y) < r);
+    for (const c of W.cracks) { let run = 500; for (let i = 3; i < c.pts.length - 3; i++) { const p = c.pts[i]; run += 36; if (run < (o.every || 1100) || Math.hypot(p[0], p[1]) < 4300 || Math.max(Math.abs(p[0]), Math.abs(p[1])) > 11600) continue;
+        const a = c.pts[i - 2], b = c.pts[i + 2], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx2 = -(b[1] - a[1]) / l, ny2 = (b[0] - a[0]) / l, hw = Math.max(c.ws[i - 2], c.ws[i], c.ws[i + 2]) / 2 + 26;
+        const ax = p[0] - nx2 * hw, ay = p[1] - ny2 * hw, bx = p[0] + nx2 * hw, by = p[1] + ny2 * hw; if (!ok(ax, ay) || !ok(bx, by) || near(p[0], p[1], 700)) continue; const r = spanOK(ax, ay, bx, by); if (!r) continue;
+        out.push([Math.round(ax), Math.round(ay), Math.round(bx), Math.round(by), 'cross']); run = 0; } }
+    BRIDGES.length = BASE.length; for (const [ax, ay, bx, by, g] of out) BRIDGES.push({ id: g + (BRIDGES.length - BASE.length), name: g === 'link' ? 'Rim Bridge' : g === 'stair' ? 'Cliff Stair' : 'Crevice Bridge', a: [ax, ay], b: [bx, by], gen: g });
+    NV.built = false; NV.keepSmall = false; build(); const after = NV.size.filter((z) => z >= MIN_REGION).length;
+    return { gen: out, before, after, links: out.filter((b) => b[4] === 'link').length, stairs: out.filter((b) => b[4] === 'stair').length, cross: out.filter((b) => b[4] === 'cross').length, edges: cand.length, ms: Math.round(performance.now() - t0), why: SPANWHY }; }
+  // the bridges on the 2D map are the real ones (the old painted-only bridges are gone)
+  function syncMapBridges() { W.bridges = BRIDGES.map((B) => { const b = { p: B.a.slice(), q: B.b.slice(), w: DW, real: true, name: B.name }; b.bbox = typeof bboxOf === 'function' ? bboxOf([b.p, b.q], 30) : null; return b; }); }
+  // ---- bridges, all in one rustic, vine-wrapped style (the approved Lumen Tree concept): a gently arched plank deck on log stringers, rustic log posts with
+  // cut tops, branch railings wound with leafy vines and tiny white flowers, short plank steps at each end; anchored on rough stone footings set into the
+  // crevice lips with raking log struts under longer spans. Cliff stairs are the same kit as a plank stairway. Built per 3000-unit chunk as instanced
+  // primitives; a chunk is only drawn near the view (BR.lod)
+  function buildWorld(scene) { if (BR) { scene.remove(BR); } BR = new THREE.Group(); BR.name = 'exploreBridges'; syncMapBridges();
+    const rnT = (seed) => { let sd = seed; return () => (sd = (sd * 16807) % 2147483647) / 2147483647; };
+    const cvT = (w, h, fn) => { const cv = document.createElement('canvas'); cv.width = w; cv.height = h; fn(cv.getContext('2d'), rnT(w * 7 + h)); const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; };
+    const grain = cvT(128, 128, (g, rn) => { g.fillStyle = '#b08a62'; g.fillRect(0, 0, 128, 128); for (let k = 0; k < 140; k++) { const v = 110 + rn() * 80 | 0; g.fillStyle = `rgba(${v},${v * 0.76 | 0},${v * 0.52 | 0},.45)`; g.fillRect(0, rn() * 128, 128, 1 + rn() * 2); } g.fillStyle = 'rgba(40,24,10,.5)'; for (let k = 0; k < 8; k++) { g.beginPath(); g.ellipse(rn() * 128, rn() * 128, 3, 1.6, 0, 0, 7); g.fill(); } g.strokeStyle = 'rgba(30,18,8,.55)'; g.lineWidth = 3; g.strokeRect(0, 0, 128, 128); });
+    const bark = cvT(128, 128, (g, rn) => { g.fillStyle = '#5a3f28'; g.fillRect(0, 0, 128, 128); for (let k = 0; k < 60; k++) { const v = 50 + rn() * 60 | 0, x = rn() * 128; g.fillStyle = `rgba(${v},${v * 0.72 | 0},${v * 0.5 | 0},.7)`; g.fillRect(x, 0, 1 + rn() * 4, 128); } g.fillStyle = 'rgba(20,12,6,.6)'; for (let k = 0; k < 30; k++) g.fillRect(rn() * 128, rn() * 128, 1, 4 + rn() * 14); g.fillStyle = 'rgba(90,120,50,.35)'; for (let k = 0; k < 14; k++) g.fillRect(rn() * 128, rn() * 128, 3 + rn() * 8, 2 + rn() * 5); }); // furrowed bark with a little moss
+    const stoneT = cvT(128, 128, (g, rn) => { g.fillStyle = '#8c8578'; g.fillRect(0, 0, 128, 128); for (let k = 0; k < 700; k++) { const v = 100 + rn() * 90 | 0; g.fillStyle = `rgba(${v},${v - 4},${v - 12},.5)`; g.fillRect(rn() * 128, rn() * 128, 1 + rn() * 4, 1 + rn() * 3); } g.fillStyle = 'rgba(80,110,50,.45)'; for (let k = 0; k < 16; k++) { g.beginPath(); g.arc(rn() * 128, rn() * 40, 3 + rn() * 7, 0, 7); g.fill(); } });
+    const leafT = cvT(64, 64, (g) => { g.clearRect(0, 0, 64, 64); g.fillStyle = '#6fa24a'; g.beginPath(); g.moveTo(32, 2); g.quadraticCurveTo(60, 26, 32, 62); g.quadraticCurveTo(4, 26, 32, 2); g.fill(); g.strokeStyle = '#3f6d28'; g.lineWidth = 2; g.beginPath(); g.moveTo(32, 6); g.lineTo(32, 58); g.stroke(); });
+    const flowerT = cvT(32, 32, (g) => { g.clearRect(0, 0, 32, 32); g.fillStyle = '#fbf8f0'; for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; g.beginPath(); g.ellipse(16 + Math.cos(a) * 7, 16 + Math.sin(a) * 7, 6, 4, a, 0, 7); g.fill(); } g.fillStyle = '#f2c84a'; g.beginPath(); g.arc(16, 16, 3.4, 0, 7); g.fill(); });
+    const LM = (c, k, o) => { const m = new THREE.MeshLambertMaterial(Object.assign({ color: c }, o || {})); m.userData.kind = k; return m; };
+    const mats = { plank: LM(0x9a7448, 'wood', { map: grain }), wood: LM(0x7a5636, 'wood', { map: grain }), log: LM(0x8a6a4c, 'wood', { map: bark }), stone: LM(0xa49c8e, 'stone', { map: stoneT }), vine: LM(0x41672a, 'vine'), leaf: LM(0xffffff, 'leaf', { map: leafT, alphaTest: 0.5, side: THREE.DoubleSide }), flower: LM(0xffffff, 'flower', { map: flowerT, alphaTest: 0.5, side: THREE.DoubleSide, emissive: 0x222018 }), iron: LM(0x1a1a1c, 'iron') };
+    const geos = { box: new THREE.BoxGeometry(1, 1, 1), cyl: new THREE.CylinderGeometry(1, 1, 1, 8).rotateX(Math.PI / 2), quad: new THREE.PlaneGeometry(1, 1) };
+    const KIND = { plank: 'box', wood: 'box', stone: 'box', iron: 'box', log: 'cyl', vine: 'cyl', leaf: 'quad', flower: 'quad' };
+    const chunks = new Map(); let L = null; const Z = new THREE.Vector3(0, 0, 1), up = new THREE.Vector3(0, 1, 0), m4 = new THREE.Matrix4(), bx = new THREE.Vector3(), by = new THREE.Vector3(), bz = new THREE.Vector3(), qq = new THREE.Quaternion(), ee = new THREE.Euler();
+    const beam = (k, p0, p1, w, hh) => { bz.subVectors(p1, p0); const len = bz.length(); if (len < 0.01) return; bz.normalize(); bx.crossVectors(Math.abs(bz.y) > 0.95 ? Z : up, bz).normalize(); by.crossVectors(bz, bx); m4.makeBasis(bx, by, bz).scale(new THREE.Vector3(w, hh == null ? w : hh, len)).setPosition((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2); L[k].push(m4.clone()); };
+    const box = (k, c, sx, sy, sz, ang, rx, rz) => { ee.set(rx || 0, ang || 0, rz || 0, 'YXZ'); qq.setFromEuler(ee); m4.compose(c, qq, new THREE.Vector3(sx, sy, sz)); L[k].push(m4.clone()); };
+    const rn = rnT(7);
+    for (const B0 of BRIDGES) { const B = brSpec(B0), ang = Math.atan2(B.ux, B.uy), Lr = B.L, stair = B.gen === 'stair', mx = (B.a[0] + B.b[0]) / 2, my = (B.a[1] + B.b[1]) / 2, ck = Math.floor(mx / 3000) + ',' + Math.floor(my / 3000);
+      if (!chunks.has(ck)) { const o = {}; for (const k in mats) o[k] = []; chunks.set(ck, { L: o, x: 0, y: 0, n: 0 }); } const CH = chunks.get(ck); CH.x += mx; CH.y += my; CH.n++; L = CH.L;
+      const P = (t, s, dy) => { const x = B.a[0] + B.ux * t * Lr - B.uy * s, y = B.a[1] + B.uy * t * Lr + B.ux * s; return new THREE.Vector3(x, deckH(B, t) + (dy || 0), y); }, PA = (t, s, y) => { const v = P(t, s, 0); v.y = y; return v; }, at = (u) => u / Lr;
+      const W2 = DW / 2, gAt = (t, s) => { const v = P(t, s, 0); return gH(v.x, v.z); };
+      // ---- footings: rough stone blocks stepped down each lip into the crevice, and a sill log across under the deck end
+      for (const end of [0, 1]) { const dir = end ? -1 : 1, t0 = end, top = deckH(B, t0) - 1.2;
+        for (const s0 of [-W2 + 2, 0, W2 - 2]) { let y = top - 2, u = 2; for (let c = 0; c < 9; c++) { const t = t0 + dir * at(u), g = gAt(t, s0); const h = 5 + rn() * 2.5; if (y - h < g - 12 && c > 1) break; box('stone', PA(t, s0 + (rn() - 0.5) * 1.2, y - h / 2), 7 + rn() * 2.5, h, 7 + rn() * 3, ang + (rn() - 0.5) * 0.3); y -= h * 0.92; u += (g < y - 4 ? 2.2 : 0.6); } }
+        beam('log', P(t0 + dir * at(1), -W2 - 3, -2.2), P(t0 + dir * at(1), W2 + 3, -2.2), 2.4); }
+      // ---- deck: three log stringers, a gently arched plank deck with small gaps, edge boards
+      for (const so of [-(W2 - 3), 0, W2 - 3]) { const n = 6; for (let q = 0; q < n; q++) beam('log', P(-at(4) + q / n * (1 + at(8)), so, -2.6), P(-at(4) + (q + 1) / n * (1 + at(8)), so, -2.6), 2.0); }
+      const np = Math.max(6, Math.round(Lr / (stair ? 3.4 : 2.6))); for (let q = 0; q < np; q++) { const t = (q + 0.5) / np, c = P(t, (rn() - 0.5) * 0.6, -0.7 + (rn() - 0.5) * 0.15); box(q % 5 === 2 ? 'wood' : 'plank', c, DW + (rn() - 0.5) * 1.6, stair ? 1.4 : 1.2, (stair ? 3.0 : 2.3), ang + (rn() - 0.5) * 0.03); if (stair) box('wood', P(t, 0, -1.8), DW - 1, 1.2, 1.0, ang); }
+      for (const sd2 of [-1, 1]) beam('wood', P(-at(2), sd2 * (W2 - 0.3), -0.3), P(1 + at(2), sd2 * (W2 - 0.3), -0.3), 1.2, 1.8);
+      // ---- short plank steps down off each end onto the path
+      for (const end of [0, 1]) { const dir = end ? -1 : 1, t0 = end, g = deckH(B, t0) - 1.6; for (let k = 1; k <= 2; k++) box('plank', P(t0 - dir * at(1.6 + k * 2.6), 0, -0.7 - k * 0.55 * 0 - (deckH(B, t0) - g) * (k / 3)), DW * 0.86, 1.1, 2.4, ang); }
+      // ---- rustic log posts with cut tops, branch rails (top + mid) bending with the arch, wound with vines, leaves and tiny white flowers
+      const npost = Math.max(2, Math.round(Lr / 16)); const Hp = 5.4;
+      for (const sd2 of [-1, 1]) { const s1 = sd2 * (W2 + 0.4);
+        for (let q = 0; q <= npost; q++) { const t = q / npost, b0 = P(t, s1, -3.2), tp = P(t, s1, Hp + 0.6 + (q === 0 || q === npost ? 0.8 : 0)); beam('log', b0, tp, q === 0 || q === npost ? 1.35 : 1.05); box('wood', P(t, s1, Hp + 1.5 + (q === 0 || q === npost ? 0.8 : 0)), 1.9, 0.5, 1.9, ang); } // cut log end
+        for (const [hy, rr] of [[Hp, 0.62], [Hp * 0.48, 0.48]]) { const seg = npost * 3; let prev = null; for (let q = 0; q <= seg; q++) { const t = q / seg, wob = Math.sin(q * 1.7 + sd2) * 0.35, p = P(t, s1 + wob * 0.4, hy + wob); if (prev) beam('log', prev, p, rr); prev = p; } }
+        // vines: a spiral strand round the top rail with leaf pairs and flowers; a few hanging tendrils
+        const vs = Math.round(Lr / 1.5); let pv = null; for (let q = 0; q <= vs; q++) { const t = q / vs, a = q * 1.1, p = P(t, s1 + Math.cos(a) * 0.85, Hp + Math.sin(a) * 0.85); if (pv) beam('vine', pv, p, 0.17); pv = p;
+          if (q % 2 === 0) { const lp = P(t, s1 + Math.cos(a) * 1.3, Hp + Math.sin(a) * 1.3), sz = 1.0 + rn() * 0.7; box('leaf', lp, sz, sz * 1.25, 1, ang + (rn() - 0.5) * 2.2, (rn() - 0.5) * 2.4, (rn() - 0.5) * 2.4); }
+          if (rn() < 0.16) box('flower', P(t, s1 + Math.cos(a) * 1.35, Hp + Math.sin(a) * 1.35 + 0.3), 0.85, 0.85, 1, ang + rn() * 3, -0.9 + rn() * 0.6, 0); }
+        for (let q = 0; q < Math.round(Lr / 22); q++) { const t = rn(); let p = P(t, s1, Hp - 0.4); for (let k = 0; k < 4; k++) { const p2 = p.clone().add(new THREE.Vector3((rn() - 0.5) * 0.6, -1.1, (rn() - 0.5) * 0.6)); beam('vine', p, p2, 0.13); if (k % 2) box('leaf', p2, 0.9, 1.1, 1, ang + rn() * 3, 0.3, 0); p = p2; } if (rn() < 0.5) box('flower', p, 0.8, 0.8, 1, ang + rn() * 3, 0, 0); }
+        // vines climbing the posts
+        for (let q = 0; q <= npost; q += 2) { const t = q / npost; let pp = null; for (let k = 0; k <= 8; k++) { const a = k * 1.4 + sd2, p = P(t + at(Math.cos(a) * 1.25), s1 + Math.sin(a) * 1.25, -1 + k * 0.75); if (pp) beam('vine', pp, p, 0.15); pp = p; if (k % 2) box('leaf', P(t + at(Math.cos(a) * 1.8), s1 + Math.sin(a) * 1.8, -1 + k * 0.75), 1, 1.2, 1, ang + a, 0.4, 0); } } }
+      // ---- longer spans: raking log struts from the crevice walls up to the stringers at quarter span, iron-strapped
+      if (!stair && Lr > 70) for (const end of [0, 1]) { const dir = end ? -1 : 1, t0 = end; let u = 4, g = 0; for (; u < Lr * 0.3; u += 2) { g = gAt(t0 + dir * at(u), 0); if (g < deckH(B, t0) - 30) break; } const fy = deckH(B, t0) - Math.min(40, Lr * 0.3);
+        for (const s0 of [-(W2 - 3), W2 - 3]) { const foot = PA(t0 + dir * at(Math.max(2, u - 6)), s0, fy), top = P(t0 + dir * 0.28, s0, -3.4); beam('log', foot, top, 1.5); box('stone', foot.clone().add(new THREE.Vector3(0, -1.5, 0)), 5, 4, 5, ang); box('iron', foot.clone().lerp(top, 0.9), 2.2, 0.5, 2.2, ang); } } }
+    BR.userData.count = 0; BR.userData.chunks = [];
+    for (const [, CH] of chunks) { const G = new THREE.Group(); G.userData.c = [CH.x / CH.n, CH.y / CH.n]; for (const k in CH.L) { const arr = CH.L[k]; if (!arr.length) continue; const im = new THREE.InstancedMesh(geos[KIND[k]], mats[k], arr.length); arr.forEach((m, i) => im.setMatrixAt(i, m)); im.castShadow = k !== 'flower'; im.receiveShadow = true; im.userData.bridge = true; im.computeBoundingSphere && im.computeBoundingSphere(); G.add(im); BR.userData.count += arr.length; } BR.add(G); BR.userData.chunks.push(G); }
+    scene.add(BR); return BR; }
+  // bridge chunks are drawn only within ~5 km of the view (they are tiny further out; the 2D map shows them all)
+  function lod(cx, cy) { if (!BR) return; for (const G of BR.userData.chunks) G.visible = Math.hypot(G.userData.c[0] - cx, G.userData.c[1] - cy) < 5200; }
   // ---- the explore session: Wren joins the map scene inside a metre-scale group; CharView runs her walker + animation, the map renders
   function hy(x, z) { const O = EX.O; return (hAt(O.x + x * WS, O.y + z * WS) - O.h) / WS; }
   const toMap = (p) => new THREE.Vector3(EX.O.x + p.x * WS, EX.O.h + p.y * WS, EX.O.y + p.z * WS);
   function enter(x, y) { if (EX.on || typeof CharView === 'undefined' || !M3.scene) return false; build(); const P = W.player; if (x == null) { const k = nearest(P.x + 60, P.y + 60, NV.comp[nearest(P.x, P.y)]); [x, y] = cxy(k); }
     EX.O = { x: Math.round(x), y: Math.round(y), h: Math.round(mH(x, y)) }; if (!EX.par) { EX.par = new THREE.Group(); EX.par.name = 'exploreWren'; } EX.par.position.set(EX.O.x, EX.O.h, EX.O.y); EX.par.scale.setScalar(WS); if (!EX.sc) { EX.sc = new THREE.Scene(); EX.sc.add(new THREE.HemisphereLight(0xfff1dc, 0x7a5236, 0.4)); EX.lights = [[0xfff0dc, 0.55, [1.4, 3.2, 2.6]], [0xffd8b0, 0.14, [-2.2, 1.2, 1.4]], [0xffe6c0, 0.32, [-1.6, 2.2, -2.6]], [0xfff0d8, 0.22, [1.8, 1.6, -2.2]]].map(([c, i, d]) => { const L = new THREE.DirectionalLight(c, i); L.userData.dir = d; EX.sc.add(L, L.target); return L; }); } // the Character tab's own rig of lights
     EX.sc.add(EX.par); M3.st.overlay = EX.sc; for (const L of EX.lights) { L.target.position.copy(EX.par.position); L.position.set(EX.par.position.x + L.userData.dir[0] * 40, EX.par.position.y + L.userData.dir[1] * 40, EX.par.position.z + L.userData.dir[2] * 40); }
-    const G = CharView.exploreOn(EX.par, 0, 0, Math.PI, hy); if (!G) return false; G.noStall = true; EX.on = true; EX.d = 7.6; EX.tilt = 0.2; EX.az = 0.62; EX.cf = null; CharView.st.gait = EX.gait || CharView.st.gait || 'run'; ui3(true); return true; }
+    const G = CharView.exploreOn(EX.par, 0, 0, Math.PI, hy); if (!G) return false; G.noStall = true; EX.on = true; EX.d = 7.6; EX.tilt = 0.2; EX.az = 0.62; EX.cf = null; CharView.st.gait = EX.gait || CharView.st.gait || 'run'; ui3(true); try { tick(0); } catch (e) {} return true; } // (one tick now: the follow camera is live at once)
   function exit() { if (!EX.on) return; EX.on = false; if (DR.grp) DR.grp.visible = false; occ(null, 0); CharView.exploreOff(); if (EX.par && EX.par.parent) EX.par.parent.remove(EX.par); M3.st.overlay = null; if (EX.blob) EX.blob.visible = false; M3.st.camOv = null; EX.mark && (EX.mark.visible = false); ui3(false); }
   function here() { const G = CharView.st.gnd; return G ? [EX.O.x + G.x * WS, EX.O.y + G.z * WS] : null; }
   function goTo(x, y, done) { const G = CharView.st.gnd; if (!EX.on || !G) return null; const [hx, hy2] = here(), P = plan(hx, hy2, x, y); if (!P) return null; EX.trips++;
@@ -7887,7 +7995,7 @@ const Explore = (() => {
   function ui3(on) { let b = document.getElementById('exploreBar'); if (!b && on) { b = document.createElement('div'); b.id = 'exploreBar'; b.innerHTML = '<button data-ex="walk">🚶 Walk</button><button data-ex="run">🏃 Run</button><button data-ex="exit">✕ Exit</button><span id="exploreInfo"></span>'; (document.getElementById('cityWrap') || document.body).appendChild(b);
       b.addEventListener('click', (e) => { const t = e.target.closest('[data-ex]'); if (!t) return; const k = t.dataset.ex; if (k === 'exit') exit(); else { EX.gait = k; CharView.st.gait = k; } ui3(EX.on); }); }
     if (b) { b.classList.toggle('on', !!on); b.querySelectorAll('[data-ex]').forEach((q) => q.classList.toggle('sel', q.dataset.ex === (CharView.st.gait || 'run'))); } const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); }
-  return { doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; } };
+  return { lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; } };
 })();
 </script>
 </body></html>

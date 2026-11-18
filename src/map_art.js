@@ -482,7 +482,7 @@ function artStatic(c, x0, y0, x1, y1, s) {
   for (const f of W.lavaFlows) if (boxHit(f.bbox, x0, y0, x1, y1)) artLavaFlow(c, f, s);
   c.lineCap = 'round';
   for (const L of W.lifts) if (boxHit(bboxOf([[L.x, L.y], [L.bx, L.by]], 10), x0, y0, x1, y1)) { c.strokeStyle = 'rgba(40,30,20,.75)'; c.lineWidth = 2.4; c.beginPath(); c.moveTo(L.x, L.y - 30); c.lineTo(L.bx, L.by); c.stroke(); c.strokeStyle = 'rgba(255,220,140,.35)'; c.lineWidth = 0.8; c.stroke(); }
-  for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s);
+  if (!ART.ground3d) for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s); // (never painted into the 3D ground: the bridges there are real)
   for (const f of W.falls) if (boxHit([f.x - 80, f.y - 60, f.x + 80, f.y + 140], x0, y0, x1, y1)) { softShadow(c, f.x + 6, f.y + 40, 30, 14, 0.7); drawSprite(c, 'props2_2', f.x, f.y, 62, 0.42, 0.1); }
   if (ART.ground3d) { // ground texture for the 3D map: only footprints/shadows here, buildings and trees stand up as billboards
     for (const o of objs) { if (o.layer !== 1 || o.isPlayer || o.heartwood) continue; if (o.type === 'home') { const w = homeW(o); softShadow(c, o.x + w * 0.12, o.y + w * 0.06, w * 0.5, w * 0.3, 0.75); } else if (o.type === 'tree') softShadow(c, o.x + o.r * 0.5, o.y + o.r * 0.2, o.r * 1.3, o.r * 0.7, 0.7); }

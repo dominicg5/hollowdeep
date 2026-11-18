@@ -5,7 +5,9 @@
    The 2D canvas on top only carries labels/HUD. Falls back to the 2D painter when WebGL is missing.
    ===================================================================== */
 const M3 = (() => {
-  const P_H = CITY.summitH, PIT = 3800, FOV = 40; const IN = () => CITY.plateauR + 1700; // half-size of the fine inner terrain grid
+  const P_H = CITY.summitH, PIT = 3800, FOV = 40; const IN = () => CITY.plateauR + 1700; // half-size of the painted inner ground texture (tB)
+  // the fine terrain grid now covers all the land (every home, the lowlands round the Ledge): same vertex spacing as before (~9 m) so the summit is unchanged, out to ~12000
+  const FIN = (mob) => { const st0 = (2 * IN()) / (mob ? 320 : 400), k = Math.floor((12000 - IN()) / st0), half = IN() + k * st0; return { half, N: Math.round((2 * half) / st0) }; };
   const st = { ok: false, building: false, tris: 0, calls: 0 };
   let renderer, scene, camera, sun, hemi, lumen, lumen2, hazeSpr = [], lumenSpr, ring, ringGlow, terrainMat, bbMat = [], bbMesh = [], lightPts, moleSpr, clouds = [], cv3;
   const grids = []; // [{half, N, step, h:Float32Array}]
@@ -63,7 +65,7 @@ const M3 = (() => {
       const step = clamp((fi + smooth01(sh, 1, fr)) / TT, 0, 1), brk = smooth01(0.3, 0.62, vnoise(x / 760 + fi * 1.7, y / 760 - fi)), base = (Math.pow(step, 0.8) * brk + Math.pow(g, 0.8) * (1 - brk)) * 0.86 + Math.pow(g, 0.8) * 0.14; const base2 = Math.max(base, (1 - smooth01(0.06, 0.16, g)) * Math.pow(g, 0.85) * 1.15); // no flat terrace at the lip: grass and rock break straight over the edge
       h = P_H - PIT * base2 - 30 * g - 110 * ridged(x / 380, y / 380, 3) * smooth01(0, 0.05, g) * (1 - smooth01(0.85, 1, g)); }
     // fissures: carved trenches; where they meet the Hollow they keep cutting down the pit wall as channels
-    const cd = chasmDist(x, y); if (cd < 14) { const q = smooth01(14, -22, cd), n = 5, qn = q * n, qi = Math.floor(qn); h -= 720 * ((qi + smooth01(0.35, 1, qn - qi)) / n); } // deep, ledged clefts: climbable rock walls stepping down
+    // (fissures are no longer a coarse heightfield trench: every crack is a real crevice mesh - rock walls with strata dropping into darkness - and the ground is cut away over it; see buildCrevices)
     if (r < hr + 60 && r > hr - 2200) for (const nt of notches) { let da = a - nt.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; const dist = Math.abs(da) * r, into = hr - r, wd = nt.w * (0.55 + Math.max(0, into) / 900);
       if (dist > wd) continue; const fl = P_H - 460 * nt.deep - Math.max(0, into) * 1.25, s0 = Math.pow(smooth01(0, 1, dist / wd), 1.3) * (1 - smooth01(-60, 0, -into) * 0);
       h = Math.min(h, fl + (h - fl) * s0); rock = Math.max(rock, 120); }
@@ -95,6 +97,51 @@ const M3 = (() => {
     // PlaneGeometry splits each quad along the (ix,iy+1)-(ix+1,iy) diagonal
     if (u + v <= 1) return a + (b - a) * u + (c - a) * v; return d + (c - d) * (1 - u) + (b - d) * (1 - v); }
   function meshH(x, y) { const gi = grids[1]; if (gi && Math.abs(x) < gi.half && Math.abs(y) < gi.half) return gridH(gi, x, y); return grids[0] ? gridH(grids[0], x, y) : 0; }
+  // the fine grid's outer band eases onto the coarse grid's surface so the two meet without a step (nav saw the old seam as a cliff)
+  function edgeBlend(g, o) { const N1 = g.N + 1, band = 8 * g.step; for (let iy = 0; iy <= g.N; iy++) for (let ix = 0; ix <= g.N; ix++) { const x = -g.half + ix * g.step, y = -g.half + iy * g.step, e = g.half - Math.max(Math.abs(x), Math.abs(y)); if (e >= band) continue; const w = smooth01(0, band, e), q = iy * N1 + ix; g.h[q] = gridH(o, x, y) + (g.h[q] - gridH(o, x, y)) * w; } }
+  // the fine grid as T x T tiles (normals from the whole grid, so no lighting seams) - tiles out of view are culled
+  function makeTerrainTiles(g, T) { const full = new THREE.PlaneGeometry(2 * g.half, 2 * g.half, g.N, g.N); full.rotateX(-Math.PI / 2); const fp = full.attributes.position; for (let i = 0; i < fp.count; i++) fp.setY(i, g.h[i]); full.computeVertexNormals();
+    const fn = full.attributes.normal, fu = full.attributes.uv, N1 = g.N + 1, out = [], per = Math.ceil(g.N / T);
+    for (let ty = 0; ty < T; ty++) for (let tx = 0; tx < T; tx++) { const x0 = tx * per, y0 = ty * per, x1 = Math.min(g.N, x0 + per), y1 = Math.min(g.N, y0 + per); if (x0 >= x1 || y0 >= y1) continue; const nx = x1 - x0 + 1, ny = y1 - y0 + 1, n = nx * ny;
+      const P = new Float32Array(n * 3), Nn = new Float32Array(n * 3), UV = new Float32Array(n * 2), M = new Float32Array(n), idx = [];
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const s0 = (y0 + j) * N1 + (x0 + i), d = j * nx + i; P[d * 3] = fp.getX(s0); P[d * 3 + 1] = fp.getY(s0); P[d * 3 + 2] = fp.getZ(s0); Nn[d * 3] = fn.getX(s0); Nn[d * 3 + 1] = fn.getY(s0); Nn[d * 3 + 2] = fn.getZ(s0); UV[d * 2] = fu.getX(s0); UV[d * 2 + 1] = fu.getY(s0); M[d] = g.m[s0]; }
+      for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, c, d, b); } // PlaneGeometry's own split (a-c-b, c-d-b), so meshH matches
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(Nn, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); geo.setAttribute('aMt', new THREE.BufferAttribute(M, 1)); geo.setIndex(idx); geo.computeBoundingSphere(); geo.computeBoundingBox();
+      const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
+    full.dispose(); return out; }
+  /* ---------- crevices: every crack on the map is a real cut - the ground is masked away over it (tK) and rock walls with strata drop into darkness ---------- */
+  const CRV = { mesh: null, maskCv: null, tex: null, win: null, depth: [] };
+  function crevDepth(c, i) { const w = c.ws[i], tip = Math.min(1, i / 3, (c.pts.length - 1 - i) / 4); return (c.wide ? 720 : clamp(w * 7, 60, 420)) * (0.35 + 0.65 * clamp(tip, 0, 1)); }
+  function strataTex() { const cv = document.createElement('canvas'); cv.width = 256; cv.height = 512; const g = cv.getContext('2d'); let sd = 31; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    let y = 0; while (y < 512) { const h = 10 + rn() * 34, v = 92 + rn() * 70 | 0, wm = rn() < 0.3; g.fillStyle = wm ? `rgb(${v + 18},${v - 4},${v - 26})` : `rgb(${v},${v - 6},${v - 16})`; g.fillRect(0, y, 256, h); // bedded layers, a few warm iron-stained ones
+      for (let k = 0; k < 90; k++) { const q = v - 30 + rn() * 60 | 0; g.fillStyle = `rgba(${q},${q - 6},${q - 14},.5)`; g.fillRect(rn() * 256, y + rn() * h, 2 + rn() * 14, 1 + rn() * 3); }
+      g.fillStyle = 'rgba(20,16,12,.7)'; g.fillRect(0, y + h - 2, 256, 2); g.fillStyle = 'rgba(255,240,215,.16)'; g.fillRect(0, y, 256, 1.5); y += h; } // dark bedding joint under each layer, lit lip on top
+    g.strokeStyle = 'rgba(18,14,10,.55)'; for (let k = 0; k < 26; k++) { let x = rn() * 256, yy = rn() * 512; g.lineWidth = 1 + rn() * 2; g.beginPath(); g.moveTo(x, yy); for (let q = 0; q < 6; q++) { x += (rn() - 0.5) * 10; yy += 8 + rn() * 14; g.lineTo(x, yy); } g.stroke(); } // vertical joints
+    const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; }
+  function buildCrevices() { if (CRV.mesh) { scene.remove(CRV.mesh); CRV.mesh.geometry.dispose(); }
+    const pos = [], col = [], uv = [], idx = []; let sd = 3; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    // wall profile across the crack, from the left lip down to the floor and up to the right lip: [offset as a fraction of the half-width (+ extra units), depth fraction]
+    const PROF = [[1, 0, 0], [0.97, 0, 0.04], [0.92, 0, 0.14], [0.82, 0, 0.32], [0.64, 0, 0.6], [0.36, 0, 1]];
+    for (const c of W.cracks || []) { const n = c.pts.length; if (n < 2) continue; let arc = 0, prev = -1;
+      for (let i = 0; i < n; i++) { const p = c.pts[i], a = c.pts[Math.max(0, i - 1)], b = c.pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l; if (i) arc += Math.hypot(p[0] - c.pts[i - 1][0], p[1] - c.pts[i - 1][1]);
+        if (hollowDist(p[0], p[1]) < 30) { prev = -1; continue; } // inside the Hollow mouth: its notch carries on down the pit wall
+        const hw = Math.max(3, c.ws[i] / 2), D = crevDepth(c, i), base = pos.length / 3;
+        for (const sgn of [-1, 1]) { const pr = sgn < 0 ? PROF : PROF.slice().reverse(), top = meshH(p[0] + nx * sgn * (hw + 1), p[1] + ny * sgn * (hw + 1)); for (const [f, ex, dz] of pr) { const j = (rn() - 0.5) * hw * 0.24 * (dz > 0.02 && dz < 0.99 ? 1 : 0), o = sgn * (hw * f + ex + j);
+            const yy = dz < 0 ? top - 0.6 : top - 1.6 - D * dz, k = Math.pow(clamp(dz, 0, 1), 0.4), br = (1 - 0.96 * k) * (dz < 0.02 ? 0.8 : 1); pos.push(p[0] + nx * o, yy, p[1] + ny * o); col.push(br, br * 0.97, br * 0.93); uv.push(arc / 70, (top - yy) / 90); } }
+        const m = PROF.length * 2; if (prev >= 0) for (let q = 0; q + 1 < m; q++) { const a0 = prev + q, b0 = prev + q + 1, c0 = base + q, d0 = base + q + 1; idx.push(a0, c0, b0, b0, c0, d0); } prev = base; } }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
+    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); CRV.mesh = new THREE.Mesh(geo, mat); CRV.mesh.name = 'crevices'; CRV.mesh.receiveShadow = true; scene.add(CRV.mesh);
+    CRV.maskCv = document.createElement('canvas'); CRV.maskCv.width = CRV.maskCv.height = 2048; CRV.tex = new THREE.CanvasTexture(CRV.maskCv); CRV.tex.flipY = false; CRV.tex.generateMipmaps = false; CRV.tex.minFilter = THREE.LinearFilter; CRV.win = null; }
+  // ground including the crevices: inside a crack the floor lies its depth below the (cut-away) ground surface
+  function groundH(x, y) { const h = meshH(x, y), cell = 160, gx = Math.floor(x / cell), gy = Math.floor(y / cell); let best = 1e9, bw = 0; if (!W.crackGrid) return h;
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const arr = W.crackGrid.get((gx + i) + ',' + (gy + j)); if (!arr) continue; for (const s of arr) { const [d, t] = distSeg(x, y, s.x1, s.y1, s.x2, s.y2), w = s.w1 + (s.w2 - s.w1) * t, e = d - Math.max(6, w) / 2; if (e < best) { best = e; bw = w; } } }
+    if (best >= 0) return h; const D = bw > 60 ? 720 : clamp(bw * 7, 60, 420); return h - 1.6 - D * clamp(-best / Math.max(3, bw / 2) * 1.6, 0, 1); }
+  // the ground-cut mask: the cracks painted (true width) into a 2048 px window (~4 units a pixel) round the view, repainted as the view moves
+  function crevMask(cx, cy) { const U = terrainMat.userData.U, S = 8000; if (!CRV.maskCv) return; if (CRV.win && Math.hypot(cx - CRV.win[0], cy - CRV.win[1]) < 1500) return; const x0 = Math.round(cx - S / 2), y0 = Math.round(cy - S / 2), k = 2048 / S, g = CRV.maskCv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#000'; g.fillRect(0, 0, 2048, 2048); g.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); g.strokeStyle = '#fff'; g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const c of W.cracks || []) { const P = c.pts; let inb = false; for (const p of P) if (p[0] > x0 - 200 && p[0] < x0 + S + 200 && p[1] > y0 - 200 && p[1] < y0 + S + 200) { inb = true; break; } if (!inb) continue;
+      for (let i = 0; i + 1 < P.length; i++) { if (hollowDist(P[i][0], P[i][1]) < 30) continue; g.lineWidth = Math.max(5, (c.ws[i] + c.ws[i + 1]) / 2 - 1.5); g.beginPath(); g.moveTo(P[i][0], P[i][1]); g.lineTo(P[i + 1][0], P[i + 1][1]); g.stroke(); } }
+    CRV.tex.needsUpdate = true; U.tK.value = CRV.tex; U.uK.value.set(x0, y0, S, S); CRV.win = [cx, cy]; }
   function makeTerrain(g) {
     const geo = new THREE.PlaneGeometry(2 * g.half, 2 * g.half, g.N, g.N); geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position; // after rotation: x right, z = map y (row iy -> z = -half + iy*step)
@@ -122,7 +169,7 @@ const M3 = (() => {
         .replace('#include <begin_vertex>', '#include <begin_vertex>\nvWP = (modelMatrix * vec4(transformed, 1.0)).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal); vMt = aMt;').replace('#include <project_vertex>', '#include <project_vertex>\nvVD = length(mvPosition.xyz);');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
 varying vec3 vWP; varying vec3 vWN; varying float vMt; varying float vVD;
-uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn; uniform float uExOn; float exBump = 0.0;
+uniform sampler2D tK; uniform vec4 uK; uniform sampler2D tA; uniform sampler2D tB; uniform sampler2D tC; uniform sampler2D tRock; uniform sampler2D tGrass; uniform vec4 uA; uniform vec4 uB; uniform vec4 uC; uniform float uCOn; uniform float uExOn; float exBump = 0.0;
 uniform float uPH; uniform float uHR; uniform vec3 uLumen; uniform float uDeep; uniform float uSnowR; uniform float uHaze;
 vec4 texAn(sampler2D t, vec2 uv, float k) { vec2 dx = dFdx(uv), dy = dFdy(uv); float lx = length(dx), ly = length(dy), cap = min(lx, ly) * k; if (lx > cap) dx *= cap / lx; if (ly > cap) dy *= cap / ly; return textureGrad(t, uv, dx, dy); } // grazing angles: limit the footprint's long axis (a cheap anisotropic filter) so close ground stays crisp
 float edgeF(vec2 u, float w) { return smoothstep(0.0, w, min(min(u.x, 1.0 - u.x), min(u.y, 1.0 - u.y))); }
@@ -133,7 +180,8 @@ float h31(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x 
 float vn3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(mix(h31(i), h31(i + vec3(1.0, 0.0, 0.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 0.0)), h31(i + vec3(1.0, 1.0, 0.0)), f.x), f.y), mix(mix(h31(i + vec3(0.0, 0.0, 1.0)), h31(i + vec3(1.0, 0.0, 1.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 1.0)), h31(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z); }
 float fbm3(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn3(p); p = p * 2.01 + vec3(5.3, 1.7, 9.1); a *= 0.5; } return s; }`)
         .replace('#include <map_fragment>', `
-vec2 wp = vWP.xz; vec4 tc = texture2D(tA, (wp - uA.xy) / uA.zw);
+vec2 wp = vWP.xz; { vec2 uk = (wp - uK.xy) / uK.zw; if (uk.x > 0.0 && uk.x < 1.0 && uk.y > 0.0 && uk.y < 1.0 && texture2D(tK, uk).r > 0.5) discard; } // the ground is cut away over every crevice (its rock walls are a mesh below)
+vec4 tc = texture2D(tA, (wp - uA.xy) / uA.zw);
 vec2 ub = (wp - uB.xy) / uB.zw; if (ub.x > 0.0 && ub.x < 1.0 && ub.y > 0.0 && ub.y < 1.0) tc = mix(tc, texture2D(tB, ub), edgeF(ub, 0.02));
 if (uCOn > 0.5) { vec2 uc = (wp - uC.xy) / uC.zw; if (uc.x > 0.0 && uc.x < 1.0 && uc.y > 0.0 && uc.y < 1.0) { vec4 cN = texture2D(tC, uc);
   if (uExOn > 0.5) { vec4 cL = texture2D(tC, uc, 3.0); cN.rgb = min(cN.rgb, cL.rgb * 1.08); cN.rgb = mix(cN.rgb, cL.rgb, 0.8 * (1.0 - smoothstep(200.0, 600.0, vVD))); } // Explore: magnified splat texels smear (pale flower specks became pale streaks) - cap the specks and keep only the splat's broad colour up close; the shader's own grass detail supplies the fine texture
@@ -561,12 +609,15 @@ diffuseColor *= sdc;
       const m = c.pts[2], hgt = rimH(m, 1, 0, c.ws[2]) + 55, ico = new THREE.Sprite(new THREE.SpriteMaterial({ map: icoT, transparent: true, depthWrite: false, depthTest: false, toneMapped: false })); ico.scale.set(120, 120, 1); ico.position.set(m[0], hgt, m[1]); ico.renderOrder = 6; grp.add(ico);
       CLB.spots.push({ type: 'climb', i: n++, x: m[0], y: m[1], up: hgt - 40, wide: !!c.wide, ico, rib, name: c.wide ? 'Great chasm' : 'Narrow crevice' }); }
     W.climbSpots = CLB.spots; }
+  // solid footprints for Explore's nav: every house's model plan (its bounding box in the model frame, a touch inset) placed like the instance
+  function solids() { const out = []; if (!MD) return out; for (const h of W.homes) { if (h.heartwood || !h._key || !MD[h._key]) continue; const m = MD[h._key]; if (!m.bb) { const bb = new THREE.Box3(); for (const g of m.geos || []) { if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox); } m.bb = bb; }
+      out.push({ x: h.x, y: h.y, w: h._w, cs: Math.cos(h._rot), sn: Math.sin(h._rot), b: [m.bb.min.x * 0.94, m.bb.max.x * 0.94, m.bb.min.z * 0.94, m.bb.max.z * 0.94], player: !!h.isPlayer, key: h._key, doorH: m.doors && m.doors[0] ? m.doors[0].h * h._w : 0, doorW: m.doors && m.doors[0] ? m.doors[0].w * h._w : 0 }); } return out; }
   function buildModelScene() { if (!MD || !scene) return;
     for (const s2 of IM.all) for (const m of s2.meshes) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = [];
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
     const byKey = {}; const push = (k, o) => (byKey[k] || (byKey[k] = [])).push(o);
     W.homes.forEach((h, i) => { const tier = tierOf(h), key = h.heartwood ? (h.slot % 2 ? 'seatb' : 'seata') : HOUSE_KIT.keyFor(tier, hash1(i * 3.71 + 0.3)), w = h.heartwood ? HW_HOUSE : homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = h.heartwood ? Math.PI / 2 - h.hwTh : (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
-      h._rot = rot; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i, key, w); });
+      h._rot = rot; h._key = key; h._w = w; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i, key, w); });
     for (const k of HOUSE_KIT.KEYS.concat(['seata', 'seatb'])) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
     let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - 2; nt++;
       push('t_' + k, { x: o.x, y, z: o.y, rot: (o.seed || 0.5) * TAU * 7, s, c: tintFor(o.seed * 100 + 3, 0.6), lum: lumAt(o.x, o.y) * 0.8 }); }
@@ -619,13 +670,13 @@ diffuseColor *= sdc;
     lumen = new THREE.PointLight(0xffc878, 1, CITY.hollowR * 3.4, 1.1); lumen.position.set(0, P_H - 1500, 0); scene.add(lumen);
     lumen2 = new THREE.PointLight(0xffc878, 0, CITY.hollowR * 2.2, 1.0); lumen2.position.set(0, P_H + 300, 0); scene.add(lumen2); // lifts the glow onto the lip and the nearest rooftops
     const steps = [
-      () => { buildMtGrid(); grids[0] = buildGrid(CITY.R + 1500, mob ? 170 : 220, IN()); },
-      () => { grids[1] = buildGrid(IN(), mob ? 320 : 400, 0); },
+      () => { buildMtGrid(); grids[0] = buildGrid(CITY.R + 1500, mob ? 170 : 220, FIN(mob).half); },
+      () => { const F = FIN(mob); grids[1] = buildGrid(F.half, F.N, 0); edgeBlend(grids[1], grids[0]); },
       () => { const a = document.createElement('canvas'); a.width = a.height = 2048; paint(a, -(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2048); texA = canvasTex(a); },
       () => { const b = document.createElement('canvas'); b.width = b.height = 2048; paint(b, -IN(), -IN(), 2 * IN(), 2048); texB = canvasTex(b); },
       () => { cCanvas = document.createElement('canvas'); cCanvas.width = cCanvas.height = 2048; texC = canvasTex(cCanvas);
-        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uExOn: EXU, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
-        terrainMat = makeTerrainMat(U); terrainMat.userData.U = U; scene.add(makeTerrain(grids[0])); scene.add(makeTerrain(grids[1])); },
+        const U = { tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uExOn: EXU, tK: { value: null }, uK: { value: new THREE.Vector4(0, 0, 1, 1) }, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
+        terrainMat = makeTerrainMat(U); terrainMat.userData.U = U; scene.add(makeTerrain(grids[0])); for (const m of makeTerrainTiles(grids[1], 8)) scene.add(m); buildCrevices(); },
       () => { buildBillboards();
         lumenSpr = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,214,140,.9)', 'rgba(255,170,80,.3)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); lumenSpr.position.set(0, P_H - PIT * 0.55, 0);
         { const ht = glowTex('rgba(255,196,96,.9)', 'rgba(255,150,50,.3)'); for (let i = 0; i < 9; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: ht, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false })); const a = hash1(i * 5.3) * TAU, r = hash1(i * 2.1) * CITY.hollowR * 0.45; sp.userData = { x: Math.cos(a) * r, y: Math.sin(a) * r, ph: i / 9, s: CITY.hollowR * (1.1 + hash1(i + 4) * 0.6) }; hazeSpr.push(sp); scene.add(sp); } } lumenSpr.scale.set(CITY.hollowR * 2.2, CITY.hollowR * 2.2, 1); scene.add(lumenSpr);
@@ -707,7 +758,7 @@ diffuseColor *= sdc;
   /* ---------- detail texture around the camera ---------- */
   function updateDetail(cam) {
     const U = terrainMat.userData.U;
-    const ex = !!st.camOv; EXU.value = ex ? 1 : 0; // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
+    const ex = !!st.camOv; EXU.value = ex ? 1 : 0; crevMask(cam.x, cam.y); if (typeof Explore !== 'undefined' && Explore.lod) Explore.lod(cam.x, cam.y); // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
     if (cam.z < 0.28 && !ex) { U.uCOn.value = 0; cState = null; return; }
     const size = ex ? 1000 : 2600, px = 2048; if (cState && cState.size !== size) cState = null;
     if (!cState || Math.hypot(cam.x - cState.cx, cam.y - cState.cy) > (ex ? 220 : 700)) { if (cState && cState.q < 4) {} else { cState = { cx: Math.round(cam.x / 50) * 50, cy: Math.round(cam.y / 50) * 50, q: 0, size }; } }
@@ -763,5 +814,5 @@ diffuseColor *= sdc;
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }
-  return { SSR, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { solids, groundH, get crevices() { return CRV; }, SSR, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();
