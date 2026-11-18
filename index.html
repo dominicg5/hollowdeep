@@ -1413,6 +1413,18 @@ const Craft = (() => {
   for (const [k, n, c] of ORE_T) ITEMS['ore:' + k] = { name: n + ' ore', short: n, emoji: '🪨', col: c, kind: 'ore', base: 2 };
   TIERS.forEach(([k, n, c], i) => { ITEMS['ingot:' + k] = { name: n + ' ingot', short: n, emoji: '🧱', col: c, kind: 'ingot', tier: i };
     for (const [t, tn, e] of TOOLS) ITEMS['tool:' + t + '_' + k] = { name: n + ' ' + tn.toLowerCase(), short: n, emoji: e, col: c, kind: 'tool', tool: t, tier: i }; });
+  // ---- recipes (placeholders; cost climbs steeply per tier)
+  const coal = (i) => Math.round(1.6 ** i);
+  const SMELT = [
+    { out: 'ingot:bronze', in: { 'ore:copper': 2, 'ore:tin': 1 } },
+    { out: 'ingot:iron', in: { 'ore:iron': 3 } },
+    { out: 'ingot:steel', in: { 'ore:iron': 4, 'ore:coal': 2 } },
+    { out: 'ingot:gold', in: { 'ore:gold': 6, 'ore:coal': coal(3) } },
+    { out: 'ingot:mithril', in: { 'ore:mithril': 10, 'ore:coal': coal(4) } },
+    { out: 'ingot:rune', in: { 'ore:runite': 16, 'ore:coal': coal(5) } },
+    { out: 'ingot:lumen', in: { 'ore:lumenite': 26, 'ore:coal': coal(6) } },
+    { out: 'ingot:onyx', in: { 'ore:onyx': 42, 'ore:coal': coal(7) } },
+  ];
   // ---- storage: backpack = S.backpack {id:n}; vault = S.ledgeVault (ores/ingots/gear) with iron, coal, steel living in S.res
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
   function bag() { if (!S.backpack) S.backpack = {}; return S.backpack; }
@@ -1423,6 +1435,9 @@ const Craft = (() => {
   const have = (id) => get('bag', id) + get('vault', id);
   function take(id, n) { if (have(id) < n) return false; const a = Math.min(get('bag', id), n); add('bag', id, -a); if (n - a) add('vault', id, -(n - a)); return true; }
   function move(from, to, id, n) { n = Math.min(Math.floor(n), get(from, id)); if (n <= 0) return 0; add(from, id, -n); add(to, id, n); return n; }
+  function canMake(r, x) { return Object.keys(r.in).every((k) => have(k) >= r.in[k] * x); }
+  function maxMake(r) { let m = Infinity; for (const k in r.in) m = Math.min(m, Math.floor(have(k) / r.in[k])); return m; }
+  function make(r, x, dest) { if (x <= 0 || !canMake(r, x)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); return x; }
   // ---- UI
   const st = { qty: 1, dest: 'bag', tab: 'sell', kind: null };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -1430,6 +1445,7 @@ const Craft = (() => {
   const ico = (id) => { const it = ITEMS[id] || { emoji: '📦', col: '#888' }; return `<span class="cxi" style="--c:${it.col}">${it.emoji}</span>`; };
   const nm = (id) => (ITEMS[id] ? ITEMS[id].name : id);
   const qtyBar = () => `<div class="cxq">${[1, 10, 100, 'all'].map((q) => `<button class="btn sm ${st.qty === q ? 'alt' : 'ghost'}" data-cx="qty" data-v="${q}">${q === 'all' ? 'All' : '×' + q}</button>`).join('')}</div>`;
+  const destBar = () => `<div class="cxq"><span class="dim">Output to</span>${[['bag', '🎒 Backpack'], ['vault', '🔒 Vault']].map(([k, l]) => `<button class="btn sm ${st.dest === k ? 'alt' : 'ghost'}" data-cx="dest" data-v="${k}">${l}</button>`).join('')}</div>`;
   function bagHTML(inModal) { const b = bag(), ids = Object.keys(b).filter((k) => b[k] > 0), tot = ids.reduce((a, k) => a + b[k], 0);
     let h = `<div class="cxp" data-cxv="bag"><div class="row between"><h2>🎒 Backpack</h2><span class="tag">${fmt(tot)} items</span></div><div class="dim">What Wren carries. Store things in the Ledge vault, or take them out to smelt, smith or sell.</div>`;
     h += ids.length ? `<div class="card cxl">${ids.map((id) => `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}</span><b>${fmt(b[id])}</b></div>`).join('')}</div>` : '<div class="card dim">Your backpack is empty.</div>';
@@ -1438,17 +1454,26 @@ const Craft = (() => {
     let h = `<div class="cxp" data-cxv="xfer"><div class="row between"><h2>🔒 Vault ⇄ 🎒 Backpack</h2></div><div class="dim">Pick an amount, then deposit into the vault or withdraw into your backpack.</div>${qtyBar()}`;
     h += ids.length ? `<div class="card cxl">${ids.map((id) => `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}<small>🎒 ${fmt(get('bag', id))} · 🔒 ${fmt(get('vault', id))}</small></span><button class="btn sm ghost" data-cx="dep" data-id="${id}" ${get('bag', id) ? '' : 'disabled'}>Deposit</button><button class="btn sm ghost" data-cx="wd" data-id="${id}" ${get('vault', id) ? '' : 'disabled'}>Withdraw</button></div>`).join('')}</div>` : '<div class="card dim">Nothing in the vault or backpack yet.</div>';
     return h + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
-  const VIEW = { bag: () => bagHTML(true), xfer: xferHTML };
+  const cost = (r, x) => Object.keys(r.in).map((k) => `<span class="cxc${have(k) >= r.in[k] * x ? '' : ' short'}">${ico(k)}${r.in[k] * x} ${esc(ITEMS[k].short)}<small>/${fmt(have(k))}</small></span>`).join('');
+  function recipeHTML(kind) { const F = kind === 'furnace', list = F ? SMELT : SMITH;
+    let h = `<div class="cxp" data-cxv="${kind}"><div class="row between"><h2>${F ? '🔥 Furnace' : '⚒️ Anvil'}</h2><span class="tag">placeholder recipes</span></div><div class="dim">${F ? 'Smelt ore into ingots. Ore is taken from your backpack first, then the vault.' : 'Hammer ingots into tools. Ingots are taken from your backpack first, then the vault.'}</div>${qtyBar()}${destBar()}`;
+    let grp = null; h += '<div class="card cxl">';
+    for (let i = 0; i < list.length; i++) { const r = list[i], x = st.qty === 'all' ? Math.max(1, maxMake(r)) : st.qty, it = ITEMS[r.out];
+      if (!F && grp !== r.tool) { grp = r.tool; h += `<h3 class="cxh">${TOOLS.find((t) => t[0] === grp)[2]} ${TOOLS.find((t) => t[0] === grp)[1]}</h3>`; }
+      h += `<div class="cxr rec" data-out="${r.out}">${ico(r.out)}<span class="cxn">${esc(it.name)}<small class="cxcs">${cost(r, x)}</small></span><button class="btn sm ${canMake(r, x) ? 'alt' : 'ghost'}" data-cx="make" data-k="${kind}" data-i="${i}" ${canMake(r, x) ? '' : 'disabled'}>${F ? 'Smelt' : 'Smith'} ×${x}</button></div>`; }
+    return h + '</div><button class="btn ghost" data-cx="close">Close</button></div>'; }
+  const VIEW = { bag: () => bagHTML(true), xfer: xferHTML, furnace: () => recipeHTML('furnace') };
   function open(kind) { if (typeof openModal !== 'function' || !VIEW[kind]) return false; st.kind = kind; openModal(VIEW[kind](), 'cx-' + kind); return true; }
   function refresh() { const b = document.getElementById('modalBody'); if (st.kind && b && typeof ui !== 'undefined' && ui.modal === 'cx-' + st.kind) b.innerHTML = VIEW[st.kind](); else if (typeof ui !== 'undefined' && ui.tab === 'bag' && typeof rerender === 'function') rerender(true); if (typeof save === 'function') try { save(); } catch (e) {} }
   const nOf = (avail) => (st.qty === 'all' ? avail : Math.min(st.qty, avail));
   document.addEventListener('click', (e) => { const t = e.target.closest('[data-cx]'); if (!t || t.disabled) return; const a = t.dataset.cx, id = t.dataset.id;
     if (a === 'close') return typeof closeModal === 'function' && closeModal();
-    if (a === 'qty') st.qty = t.dataset.v === 'all' ? 'all' : +t.dataset.v;
+    if (a === 'qty') st.qty = t.dataset.v === 'all' ? 'all' : +t.dataset.v; else if (a === 'dest') st.dest = t.dataset.v;
     else if (a === 'xfer') return open('xfer');
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
+    else if (a === 'make') { const r = (t.dataset.k === 'furnace' ? SMELT : SMITH)[+t.dataset.i]; const x = st.qty === 'all' ? maxMake(r) : st.qty; if (make(r, x, st.dest) && typeof toast === 'function') toast(`${t.dataset.k === 'furnace' ? '🔥' : '⚒️'} ${x}× ${nm(r.out)} → ${st.dest === 'vault' ? 'Vault' : 'Backpack'}`); }
     refresh(); });
-  return { ITEMS, TIERS, bag, get, add, have, take, move, open, bagHTML, st };
+  return { ITEMS, SMELT, TIERS, bag, get, add, have, take, move, make, maxMake, canMake, open, bagHTML, st };
 })();
 /* generated by art/pack.py */
 const ART_MANIFEST = {"v":1794699487,"atlases":3,"s":{"sp_pass_0":[0,0,0,857,836,952,929],"sp_falls_0":[0,859,0,801,660,942,777],"civ_lift":[0,1662,0,210,642,210,642],"home2_7":[0,0,838,400,499,400,499],"home3_7":[0,402,838,400,499,400,499],"home_7":[0,804,838,400,499,400,499],"home2_5":[0,1206,838,330,428,330,428],"home3_5":[0,1538,838,330,428,330,428],"home_5":[0,0,1339,330,428,330,428],"home2_6":[0,332,1339,360,416,360,416],"home3_6":[0,694,1339,360,416,360,416],"home_6":[0,1056,1339,360,416,360,416],"landmarks_2":[0,1418,1339,361,414,451,517],"home2_4":[1,0,0,270,405,270,405],"home3_4":[1,272,0,270,405,270,405],"home_4":[1,544,0,270,405,270,405],"civic_vault_2":[1,816,0,323,377,404,471],"landmarks_0":[1,1141,0,297,374,371,467],"sp_outpost_0":[1,1440,0,423,344,769,625],"home2_3":[1,0,407,300,337,300,337],"home3_3":[1,302,407,300,337,300,337],"home_3":[1,604,407,300,337,300,337],"creatures_3":[1,906,407,356,335,593,558],"mtn_7":[1,1264,407,284,299,284,299],"mtn_0":[1,1550,407,283,290,283,290],"mtn_3":[1,0,746,289,284,289,284],"home2_2":[1,291,746,300,270,300,270],"home3_2":[1,593,746,300,270,300,270],"home_2":[1,895,746,300,270,300,270],"mtn_1":[1,1197,746,291,267,291,267],"landmarks_1":[1,1490,746,300,260,375,325],"mtn_8":[1,0,1032,298,257,298,257],"mtn_2":[1,300,1032,301,254,301,254],"home2_1":[1,603,1032,250,253,250,253],"home3_1":[1,855,1032,250,253,250,253],"home_1":[1,1107,1032,250,253,250,253],"mtn_6":[1,1359,1032,297,251,297,251],"mtn_5":[1,1658,1032,294,229,294,229],"civ_market":[1,0,1291,200,228,400,456],"mtn_4":[1,202,1291,286,222,286,222],"home2_0":[1,490,1291,230,216,230,216],"home3_0":[1,722,1291,230,216,230,216],"home_0":[1,954,1291,230,216,230,216],"hollow_bits_2":[1,1186,1291,120,196,200,326],"hollow_bits_7":[1,1308,1291,117,193,195,321],"hollow_bits_8":[1,1427,1291,175,188,291,313],"props_0":[1,1604,1291,145,184,264,335],"p_forest_5":[1,1751,1291,148,181,269,329],"hollow_bits_0":[1,0,1521,176,179,293,298],"props2_6":[1,178,1521,161,177,292,321],"hollow_bits_6":[1,341,1521,170,176,283,294],"hollow_bits_1":[1,513,1521,172,173,286,289],"props_2":[1,687,1521,128,172,233,312],"props2_8":[1,817,1521,80,169,145,308],"props_7":[1,899,1521,41,169,75,308],"props_8":[1,942,1521,125,169,227,307],"p_forest_1":[1,1069,1521,109,168,198,305],"p_forest_4":[1,1180,1521,155,164,281,299],"hollow_bits_3":[1,1337,1521,186,163,310,272],"p_forest_0":[1,1525,1521,176,162,320,295],"p_forest_3":[1,1703,1521,152,162,277,295],"props2_7":[1,1857,1521,111,162,201,294],"p_forest_2":[1,0,1702,111,161,201,292],"props2_2":[1,113,1702,157,155,285,282],"props2_3":[1,272,1702,130,154,237,280],"hollow_bits_4":[1,404,1702,74,151,123,252],"props2_0":[1,480,1702,172,151,312,274],"props2_4":[1,654,1702,150,144,272,261],"p_forest_6":[1,806,1702,157,142,286,259],"props2_5":[1,965,1702,108,140,197,254],"yard_4":[1,1075,1702,112,138,225,277],"yard_5":[1,1189,1702,102,138,205,277],"props2_1":[1,1293,1702,183,136,332,247],"props_6":[1,1478,1702,150,136,273,247],"hollow_bits_5":[1,1630,1702,217,134,361,224],"props_3":[1,1849,1702,146,133,266,242],"props_4":[1,0,1865,144,130,261,237],"p_forest_7":[1,146,1865,138,129,250,235],"yard_8":[1,286,1865,114,126,227,252],"yard_0":[1,402,1865,152,124,304,249],"yard_6":[1,556,1865,129,124,258,248],"yard_2":[1,687,1865,161,121,322,242],"yard_7":[1,850,1865,160,118,319,237],"p_forest_8":[1,1012,1865,85,116,154,210],"props_5":[1,1099,1865,144,116,262,210],"props_1":[1,1245,1865,125,114,227,208],"yard_3":[1,1372,1865,134,114,269,229],"people_15":[1,1508,1865,57,99,127,221],"people_11":[1,1567,1865,46,97,103,215],"people_8":[1,1615,1865,47,96,104,214],"people_9":[1,1664,1865,45,96,101,214],"people_14":[1,1711,1865,40,95,88,212],"people_10":[1,1753,1865,56,94,124,209],"people_12":[1,1811,1865,59,94,131,210],"people_13":[1,1872,1865,40,94,88,208],"people_2":[1,1914,1865,71,94,158,210],"yard_1":[2,0,0,126,94,252,188],"people_4":[2,128,0,55,92,122,205],"people_5":[2,185,0,38,92,84,205],"people_3":[2,225,0,51,91,113,202],"people_7":[2,278,0,56,91,125,202],"people_6":[2,336,0,52,87,115,194],"people_0":[2,390,0,55,84,123,187],"people_1":[2,447,0,52,83,116,184],"creatures_1":[2,501,0,46,79,122,207],"creatures_0":[2,549,0,62,72,164,189],"creatures_2":[2,613,0,93,71,246,188],"creatures_6":[2,708,0,54,70,142,185],"creatures_5":[2,764,0,71,60,186,157],"creatures_4":[2,837,0,84,56,222,147]}};
