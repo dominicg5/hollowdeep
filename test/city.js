@@ -494,6 +494,19 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       zoom(6); if (sc !== 'char') st.orb.az = 2.5; for (const [x, z] of pts) { go(x, z); for (let i = 0; i < 400 && (st.pg || (st.gnd && (st.gnd.path || st.gnd.goal))); i++) { C.sim(1 / 30, 1); if (i % 10 === 0) { C.advance(1 / 30, 1); chk(); } } }
       out.maxOff = +out.maxOff.toFixed(3); st.paused = false; return out; }, sc);
     ok(cm.free && cm.k === 8 && cm.n >= 16 && cm.maxOff < 0.45 && cm.bad === 0, 'follow camera (' + sc + '): the shared Playground camera keeps her centred at every zoom (2-40) and angle and while she walks, one follow speed, and never pokes through a wall, ceiling or the deck (' + JSON.stringify(cm) + ')'); }
+  // taps she cannot reach (far out of bounds, into walls, into solid furniture/rock): she walks to the nearest reachable spot and stops cleanly - no jitter, sliding, spinning or oscillating
+  for (const sc of ['char', 'home', 'tree', 'ledge']) { await p.evaluate((sc) => { closeModalQuiet(); setTab(sc); }, sc); await p.waitForTimeout(1200);
+    const oob = await p.evaluate((sc) => { const C = CharView, st = C.st; st.paused = true; if (sc === 'char' && !st.play) document.querySelector('#charAnim [data-anim=play]').click(); if (sc === 'home') C.setHomeMode('in'); C.sim(1 / 30, 20);
+      const go = (x, z) => { if (sc === 'home') { C.navTo(st.gnd, x, z, () => { st.pg = null; }); st.pg = { home: true }; } else if (sc === 'tree') C.treeGo(x, z); else C.pgGo({ x, z }); };
+      const obs = sc === 'home' ? [C.SMITH.furnace.x, C.SMITH.furnace.z] : sc === 'tree' ? [0, 0] : sc === 'ledge' ? [C.LP.off.x, -0.6] : [C.FIELD_OBS[0].x, C.FIELD_OBS[0].z], res = [];
+      for (const [x, z] of [[100, 100], [-100, -100], [100, -40], obs, [-100, 3]]) { go(x, z); let i = 0; for (; i < 1500 && (st.pg || (st.gnd && st.gnd.goal)); i++) C.sim(1 / 30, 1); C.sim(1 / 30, 10); const G = st.gnd;
+        const a = { x: G.x, z: G.z, f: G.face }; let mx = 0, mf = 0; for (let k = 0; k < 45; k++) { C.sim(1 / 30, 1); mx = Math.max(mx, Math.hypot(G.x - a.x, G.z - a.z)); mf = Math.max(mf, Math.abs(G.face - a.f)); }
+        res.push({ t: [+x.toFixed(1), +z.toFixed(1)], f: i, at: [+G.x.toFixed(2), +G.z.toFixed(2)], mv: +mx.toFixed(4), sp: +mf.toFixed(4), busy: !!(st.pg || G.goal || G.path) }); }
+      st.paused = false; return res; }, sc);
+    ok(oob.every((r) => r.f < 1500 && !r.busy && r.mv < 0.002 && r.sp < 0.002) && oob.some((r) => Math.hypot(r.at[0], r.at[1]) > 0.3), 'unreachable taps (' + sc + '): far out of bounds, into walls and into solid props she walks to the nearest reachable spot, then stops and stays still - no jitter, sliding or spinning (' + JSON.stringify(oob) + ')');
+    for (const [tx, ty] of [[20, 200], [370, 640]]) await p.mouse.click(tx, ty);
+    const tp = await p.evaluate(() => { const C = CharView, st = C.st; st.paused = true; for (let i = 0; i < 1500 && (st.pg || (st.gnd && st.gnd.goal)); i++) C.sim(1 / 30, 1); C.sim(1 / 30, 10); const G = st.gnd, a = [G.x, G.z, G.face]; C.sim(1 / 30, 45); const r = { mv: +Math.hypot(G.x - a[0], G.z - a[1]).toFixed(4), sp: +Math.abs(G.face - a[2]).toFixed(4), busy: !!(st.pg || G.goal || G.path) }; st.paused = false; return r; });
+    ok(!tp.busy && tp.mv < 0.002 && tp.sp < 0.002, 'screen taps in the far corners (' + sc + ') settle her cleanly (' + JSON.stringify(tp) + ')'); }
   ok(errs.length === 0, 'no JS errors ' + errs.slice(0, 3).join(' | '));
   await b.close(); console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
 })();
