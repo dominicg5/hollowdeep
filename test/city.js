@@ -127,7 +127,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.isVisible('#cityCanvas'), 'tab switching round-trip');
   await p.evaluate(() => setTab('capital')); ok(await p.isVisible('text=Lantern Hall'), 'capital tab renders'); ok(!(await p.isVisible('#cityCanvas')), 'city hidden on other tabs');
   // Character tab: own 3D stage, sex toggle persisted, fidgets advance, hidden on other tabs
-  ok(await p.evaluate(() => [...document.querySelectorAll('nav#tabs [data-tab]')].map((b) => b.dataset.tab).join(',')) === 'city,char,ledge,home', 'tab bar is Rim City, Character, Portaledges, Home');
+  ok(await p.evaluate(() => [...document.querySelectorAll('nav#tabs [data-tab]')].map((b) => b.dataset.tab).join(',')) === 'city,char,ledge,home,tree', 'tab bar is Rim City, Character, Portaledges, Ledge, Lumen Tree');
   await p.click('nav#tabs [data-tab=ledge]', { force: true }); await p.waitForTimeout(1500);
   ok(await p.evaluate(() => CharView.st.ledge && !!CharView.ledge && CharView.ledge.visible && CharView.st.anim === 'mine' && document.getElementById('charWrap').classList.contains('ledge') && !document.getElementById('cityCanvas').offsetParent), 'portaledges tab shows the hanging camp with the delver mining');
   ok(await p.isVisible('#ledgeInfo') && /Mithril/.test(await p.textContent('#ledgeInfo')), 'portaledge info panel names the ore');
@@ -396,7 +396,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await p.evaluate(() => { CharView.st.paused = false; document.querySelector('nav#tabs [data-tab=city]').click(); }); await p.waitForTimeout(500);
     ok(await p.evaluate(() => !CharView.st.home && !CharView.st.visible), 'leaving the Home tab closes the home scene'); }
   // inside the Lumen Tree: a huge round hall at the tree's own scale, a raised root dais with steps on all four sides, the lumenite crystal, veins, knotholes with light shafts; tap to walk
-  { await p.evaluate(() => { closeModalQuiet(); setTab('tree'); }); await p.waitForTimeout(1500);
+  { await p.evaluate(() => closeModalQuiet()); await p.click('nav#tabs [data-tab=tree]'); await p.waitForTimeout(1500);
+    const tb = await p.evaluate(() => ({ tab: ui.tab, tree: !!CharView.st.tree, on: document.querySelector('nav#tabs [data-tab=tree]').classList.contains('on'), n: document.querySelectorAll('nav#tabs button').length, fits: [...document.querySelectorAll('nav#tabs button')].every((b) => b.getBoundingClientRect().right <= innerWidth + 0.5) }));
+    ok(tb.tab === 'tree' && tb.tree && tb.on && tb.n === 5 && tb.fits, 'the Lumen Tree has its own tab beside the others; it opens the walkable interior directly (' + JSON.stringify(tb) + ')');
     const lt = await p.evaluate(() => { const C = CharView, T = C.TR, st = C.st; st.paused = true; C.sim(1 / 30, 5); const G = st.gnd, bb = new THREE.Box3().setFromObject(T.spire), r = { tree: !!st.tree, walkR: T.RW, area: Math.round(Math.PI * T.RW * T.RW), dome: T.H, flights: T.FL.length, steps: T.walk.length - 2, knots: T.knots.length, shafts: T.shafts.length, veins: T.veins, spireH: +(bb.max.y - bb.min.y).toFixed(1), start: [+G.x.toFixed(1), +G.z.toFixed(1)] };
       const trk = { maxY: 0, rimBad: 0, outside: 0, inCrystal: 0, n: 0 }, watch = () => { const rr = Math.hypot(G.x, G.z), fa = Math.min(...T.FL.map((f) => Math.abs(Math.atan2(Math.sin(Math.atan2(G.x, G.z) - f), Math.cos(Math.atan2(G.x, G.z) - f))))); trk.maxY = Math.max(trk.maxY, C.rig.root.position.y); if (rr > T.PR - 0.05 && rr < T.PR + 0.3 && fa > T.HA) trk.rimBad++; if (rr > T.RW + 0.01) trk.outside++; if (rr < T.CR) trk.inCrystal++; trk.n++; };
       C.treeGo(0.5, -4.4); for (let i = 0; i < 2000 && st.pg; i++) { C.sim(1 / 30, 1); watch(); } r.onDais = { x: +G.x.toFixed(2), z: +G.z.toFixed(2), y: +C.rig.root.position.y.toFixed(2), arrived: !st.pg };
