@@ -436,7 +436,7 @@ const CityMap = (() => {
     const mole = currentMole(); if (mole && M3.tapSprites(sx, sy, [{ x: mole.x, y: mole.y, hgt: 90, wf: 0.6, o: mole }])) return moleCard(mole);
     const P = W.player; const cands = [{ x: P.x, y: P.y, up: hUp(P), hgt: P.heartwood ? HW_HOUSE * 0.6 : homeW(P) * 0.9, wf: P.heartwood ? 0.5 : 0.4, o: P }]; for (const o of W.homes) if (o.heartwood && !o.isPlayer) cands.push({ x: o.x, y: o.y, up: hUp(o), hgt: HW_HOUSE * 0.6, wf: 0.5, o }); { const D = GRAND.door; if (D) cands.push({ x: D.x, y: D.y, up: D.up, hgt: D.hgt, wf: 0.4, o: { type: 'lumenDoor' } }); } for (const c of W.climbSpots || []) cands.push({ x: c.x, y: c.y, up: 10, hgt: 110, wf: 0.8, o: c }); for (const o of queryObjs(x - R, y - R, x + R, y + R, 80)) { if (!['home', 'lift', 'statue', 'memorial', 'gate', 'rift', 'outpost'].includes(o.type) || o.isPlayer || o.heartwood) continue; cands.push({ x: o.x, y: o.y, hgt: o.type === 'home' ? homeW(o) * 0.85 : o.type === 'outpost' ? 140 : 50, wf: 0.4, o }); }
     // nearest-to-camera first so front buildings win
-    const cp = M3.project(x, y, 0); const best = M3.tapSprites(sx, sy, cands); if (best === P) return playerCard(); if (best && best.type === 'lumenDoor') return GRAND.enterTree(); if (best && best.type === 'climb') return climbCard(best); if (best) return openFor(best);
+    const cp = M3.project(x, y, 0); const best = M3.tapSprites(sx, sy, cands); if (best === P) return playerCard(); if (best && best.type === 'lumenDoor') return GRAND.enterTree(); if (best) return openFor(best);
     for (const m of [W.lakeFalls, W.pass]) if (m && M3.tapSprites(sx, sy, [{ x: m.x, y: m.y, hgt: m.r * 2.2, wf: 0.5, o: m }])) return loreCard(m);
     void cp; if (hollowDist(x, y) < 0) return hollowCard();
   }
