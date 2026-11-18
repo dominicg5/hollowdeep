@@ -109,18 +109,17 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   await page2.goto(URL); await page2.waitForTimeout(600);
   const after = await page2.evaluate(() => ({ gt: HD.S.gameTime, crowns: HD.S.res.crowns, lvl: HD.S.hero.level }));
   assert(after.gt >= before.gt + 9.9 * 3600e3, `offline time simulated: +${((after.gt - before.gt) / 3600e3).toFixed(2)} game h`);
-  assert(await page2.isVisible('#modal:not(.hidden) >> text=While you were away'), 'while-you-were-away summary shown');
+  assert(!(await page2.isVisible('#modal:not(.hidden)')) && !(await page2.isVisible('text=While you were away')) && !(await page2.$('#resbar')), 'no while-you-were-away popup and no resource bar on return (idle time still ran)');
   assert(await page2.evaluate(() => !HD.S.pendingReveal && !HD.S.lastRaid && !(HD.S.hero.task && HD.S.hero.task.type === 'raid') && HD.S.nextRaidAt > 1e14), 'old save with pending raid cleared on load');
-  await page2.click('#modal [data-act=close]'); await page2.waitForTimeout(500); assert(!(await page2.isVisible('#rscene')), 'no raid reveal after the away summary');
+  await page2.waitForTimeout(500); assert(!(await page2.isVisible('#rscene')), 'no raid reveal after the away summary');
   await page2.screenshot({ path: 'shot-away.png' });
 
   console.log('Skip + reset');
   await page2.waitForTimeout(500);
   if (await page2.isVisible('#rscene')) await page2.click('#modal [data-act=close]');
   await page2.click('[data-act=settings]');
-  await page2.click('[data-act=skip][data-id="8"]');
-  assert(await page2.isVisible('text=While you were away'), 'skip +8h summary');
-  await page2.click('#modal [data-act=close]');
+  const gt8 = await page2.evaluate(() => HD.S.gameTime); await page2.click('[data-act=skip][data-id="8"]'); await page2.waitForTimeout(200);
+  assert(await page2.evaluate((g) => HD.S.gameTime >= g + 7.9 * 3600e3, gt8) && !(await page2.isVisible('text=While you were away')) && !(await page2.isVisible('#modal:not(.hidden)')), 'skip +8h runs the idle time with no popup');
   await page2.waitForTimeout(300);
   if (await page2.isVisible('#rscene')) await page2.click('#modal [data-act=close]');
   page2.on('dialog', (d) => d.accept());

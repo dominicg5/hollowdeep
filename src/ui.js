@@ -17,9 +17,8 @@ function costHtml(cost) { return Object.keys(cost).map((k) => `<span class="cost
 function pbar(start, end, cls) { const p = clamp((S.gameTime - start) / Math.max(1, end - start), 0, 1) * 100; return `<div class="bar ${cls || ''}"><i data-pstart="${start}" data-pend="${end}" style="width:${p}%"></i></div>`; }
 function countdown(end) { return `<span data-end="${end}">${realLeft(end)}</span>`; }
 
+// top bar: just the speed pill (the resource counters are gone - the Vault is where stock is seen)
 function renderResbar() {
-  const cap = storageCap();
-  $('#resbar').innerHTML = RES.map((k) => `<div class="res ${S.res[k] >= cap - 0.5 ? 'full' : ''}" title="${CONFIG.resources[k].name}">${rIco(k)}<b>${fmt(S.res[k] || 0)}</b></div>`).join('');
   const p = $('#speedPill'); p.className = 'pill' + (S.testMode ? ' test' : ''); p.textContent = S.testMode ? `⏩ TEST ×${speed()}` : 'Real time';
 }
 
@@ -340,26 +339,15 @@ function settingsModal() {
   openModal(`<h2>⚙️ Settings</h2>
     <div class="switch"><div><b>Test mode</b><div class="dim">Speeds every timer: 1 game hour = ${fmtDur(HOUR / CONFIG.testMode.speed)} real. Training thresholds scale ×${CONFIG.tap.testScale}.</div></div>
       <button class="btn sm ${S.testMode ? 'alt' : 'ghost'}" data-act="toggletest">${S.testMode ? 'ON' : 'OFF'}</button></div>
-    <div class="switch"><div><b>Skip ahead</b><div class="dim">Simulate game time instantly (shows a while-you-were-away summary).</div></div>
+    <div class="switch"><div><b>Skip ahead</b><div class="dim">Simulate game time instantly (idle stock goes to the Vault).</div></div>
       <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
     <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
     <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Rim City map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
     <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
 }
-function awayModal(sum, realMs) {
-  const d = sum.delta;
-  const rows = Object.keys(d).map((k) => `<span class="cost ${d[k] < 0 ? 'short' : ''}">${rIco(k)}${d[k] > 0 ? '+' : '−'}${fmt(Math.abs(d[k]))}</span>`).join('');
-  const ev = sum.events.slice().reverse().slice(-14);
-  const je = writeJournal(sum);
-  openModal(`<h2>🏮 While you were away</h2>
-    <div class="card" style="margin:8px 0;background:#fffaf0"><div class="dim">📔 From ${CONFIG.hero.name}'s journal · Day ${je.day}</div><div style="font-family:Georgia,serif;font-size:15px;margin-top:4px">“${je.text}”</div></div>
-    <div class="dim">${realMs != null ? `Gone ${fmtDur(realMs)} real · ` : ''}${fmtDur(sum.gameMs)} of game time passed${sum.cappedFrom > sum.gameMs ? ` (capped at ${CONFIG.offlineCapHours}h)` : ''}.</div>
-    <div class="wrapgap" style="margin:10px 0">${rows || '<span class="dim">No change in stock.</span>'}</div>
-    ${sum.levels ? `<p>⭐ ${CONFIG.hero.name} gained ${sum.levels} level${sum.levels > 1 ? 's' : ''}!</p>` : ''}
-    <div class="log">${ev.map((e) => `<div>${e.icon} ${e.msg}</div>`).join('') || '<div class="dim">Quiet times on the Rim.</div>'}</div>
-    <button class="btn" style="width:100%;margin-top:12px" data-act="close">${S.pendingReveal ? '▶︎ Watch the raid' : 'Back to the Rim'}</button>`, 'away');
-}
+// coming back after time away: the idle accrual has already run (simulateAway); stock lands in the Vault and Wren still writes her journal entry - no popup
+function awayReturn(sum) { writeJournal(sum); ui.lastAway = sum; }
 
 /* ---------- render loop ---------- */
 const VIEWS = { city: () => '', char: () => '', ledge: () => '', home: () => '', tree: () => '', capital: viewCapital, hollow: viewHollow, outposts: viewOutposts, raids: viewRaids, training: viewTraining };
@@ -394,7 +382,7 @@ function tick() {
   if (realDt <= 0) return;
   if (realDt > CONFIG.awayThresholdRealSec * 1000) {
     const sum = simulateAway(realDt * speed());
-    awayModal(sum, realDt); rerender(true); save(); return;
+    awayReturn(sum); rerender(true); save(); return;
   }
   simulate(realDt * speed());
   updateLive();
@@ -422,7 +410,7 @@ function onAct(act, ds) {
     case 'settings': return settingsModal();
     case 'close': return closeModal();
     case 'toggletest': S.testMode = !S.testMode; save(); settingsModal(); return rerender(true);
-    case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayModal(sum, null); save(); return rerender(true); }
+    case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayReturn(sum); save(); return rerender(true); }
     case 'reset': if (confirm('Reset all Hollowdeep progress?')) resetSave(); return;
     case 'journal': closeModalQuiet(); setTab('city'); setTimeout(() => { const b = document.querySelector('[data-city=journal]'); if (b) b.click(); }, 60); return;
     default: return CityMap.onAct(act, ds);
@@ -454,7 +442,7 @@ function init() {
   if (loaded) {
     const realDt = Date.now() - loaded.lastReal;
     S.lastReal = Date.now();
-    if (realDt > CONFIG.awayThresholdRealSec * 1000) { const sum = simulateAway(realDt * speed()); awayModal(sum, realDt); rerender(true); }
+    if (realDt > CONFIG.awayThresholdRealSec * 1000) { const sum = simulateAway(realDt * speed()); awayReturn(sum); rerender(true); }
     else simulate(Math.max(0, realDt) * speed());
   } else {
     openModal(`<h2>Welcome to the Rim</h2>
