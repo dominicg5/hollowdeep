@@ -199,8 +199,9 @@ const HOUSE_KIT = (() => {
   // every door on the map is one size in the world (~1.75 m: the Ledge door, Wren just clears it): the house kits are drawn in a frame that scales with the
   // home's tier, so each tier's doors are rescaled (limited where a small shack's or a mansion's facade can't take the full change)
   const DOORK = [1.35, 1.21, 0.9, 0.925, 0.965, 0.71, 0.6, 0.55]; let DOOR_K = 1;
+  let NOFRAME = false;
   function doorOn(B, z, x, w, h, o) { o = o || {}; w *= DOOR_K; h *= DOOR_K; const y0 = o.y0 == null ? 0 : o.y0; (B.doors || (B.doors = [])).push({ p: B.pt(x, y0, z + 0.006), q: B.pt(x, y0, z + 0.106), w, h }); // where the door is (house frame), for the Explore door interactable B.quad([x - w / 2, y0, z + 0.006], [x + w / 2, y0, z + 0.006], [x + w / 2, y0 + h, z + 0.006], [x - w / 2, y0 + h, z + 0.006], o.open ? 'doorO' : 'door', W1);
-    if (!B.det) return; const f = 0.026, fk = o.stone ? 'quoin' : 'timber'; B.box(x - w / 2 - f, y0, z, x - w / 2, y0 + h, z + 0.03, fk, fk, TIMB); B.box(x + w / 2, y0, z, x + w / 2 + f, y0 + h, z + 0.03, fk, fk, TIMB); B.box(x - w / 2 - f * 1.8, y0 + h, z, x + w / 2 + f * 1.8, y0 + h + 0.04, z + 0.038, fk, fk, TIMB);
+    if (!B.det) return; const f = 0.026, fk = o.stone ? 'quoin' : 'timber'; if (!NOFRAME || B.doors.length > 1) { B.box(x - w / 2 - f, y0, z, x - w / 2, y0 + h, z + 0.03, fk, fk, TIMB); B.box(x + w / 2, y0, z, x + w / 2 + f, y0 + h, z + 0.03, fk, fk, TIMB); B.box(x - w / 2 - f * 1.8, y0 + h, z, x + w / 2 + f * 1.8, y0 + h + 0.04, z + 0.038, fk, fk, TIMB); } /* (the player's front door: no kit frame - Explore hangs the Ledge tab's own door + timber surround there) */
     const steps = o.steps == null ? (y0 > 0.04 ? Math.ceil(y0 / 0.06) : 1) : o.steps; for (let s = 0; s < steps; s++) { const top = y0 - s * (y0 / Math.max(1, steps)), d = 0.07 + s * 0.06; B.box(x - w / 2 - 0.03 - s * 0.01, -0.05, z, x + w / 2 + 0.03 + s * 0.01, Math.max(0.03, top), z + d, 'stone', 'quoin', STONE_C, 0.35); }
     if (o.porch) { const pw = w / 2 + 0.08, pd = o.porchD || 0.2, ye = y0 + h + 0.07, yr = ye + 0.13, so = { cw: 0.06, seg: 0.4, col: o.col };
       B.slope([x + pw, ye, z + pd], [x + pw, ye, z], [x, yr, z + pd], [x, yr, z], so); B.slope([x - pw, ye, z], [x - pw, ye, z + pd], [x, yr, z], [x, yr, z + pd], so); B.ridge([x, yr + 0.01, z], [x, yr + 0.01, z + pd + 0.01], 0.026);
@@ -353,7 +354,7 @@ const HOUSE_KIT = (() => {
   function build(fn, v, lod) { const B = Builder(lod === 0, 1000 + v * 77); if (v === 1) B.with(0, 0, 0, 0, 1, () => fn(B, v), true); else fn(B, v); return B; }
   const HREG = {}; let HMAT = null;
   // one house kit at a given door scale (the player's own home is drawn larger than its tier's: its doors get their own scale so they match every other door)
-  function variant(key, dk) { const [fn, v] = HREG[key]; DOOR_K = dk; const b0 = build(fn, v, 0), b1 = build(fn, v, 1); DOOR_K = 1; return { geos: [b0.geo(), b1.geo()], mat: HMAT, tree: false, chim: b0.chim, lamps: b0.lamps, doors: b1.doors || b0.doors || [] }; }
+  function variant(key, dk, bare) { const [fn, v] = HREG[key]; DOOR_K = dk; NOFRAME = !!bare; const b0 = build(fn, v, 0), b1 = build(fn, v, 1); DOOR_K = 1; NOFRAME = false; return { geos: [b0.geo(), b1.geo()], mat: HMAT, tree: false, chim: b0.chim, lamps: b0.lamps, doors: b1.doors || b0.doors || [] }; }
   function houses() { const out = {}, mat = HMAT = material(); const add = (key, fn, v) => { HREG[key] = [fn, v]; DOOR_K = /^h\d/.test(key) ? DOORK[+key[1]] : 1; const b0 = build(fn, v, 0), b1 = build(fn, v, 1); DOOR_K = 1; out[key] = { geos: [b0.geo(), b1.geo()], mat, tree: false, chim: b0.chim, lamps: b0.lamps, doors: b1.doors || b0.doors || [] }; };
     for (let t = 0; t < 8; t++) for (let v = 0; v < VARIANTS; v++) add('h' + t + 'abc'[v], TIERS[t], v);
     for (let v = 0; v < 2; v++) add('seat' + 'ab'[v], seat, v); return out; }
