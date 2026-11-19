@@ -288,7 +288,7 @@ const Explore = (() => {
     // flowers: a clump of three on thin stems with two leaves at the foot; each head five rounded, slightly cupped petals round a gold eye.
     // colour alpha marks what takes the instance (petal) colour: 1 = petal, 0 = stem/leaf/eye keep their own
     const fP = [], fC = [], fv = (x, y, z, c, a) => { fP.push(x, y, z); fC.push(c[0], c[1], c[2], a); };
-    const HEAD = [[0, 0.5, 0, 0.15], [0.16, 0.36, 0.09, 0.12], [-0.11, 0.3, -0.14, 0.11]], STEM = [0.3, 0.5, 0.14], LF = [0.28, 0.48, 0.1], EYE = [1.0, 0.76, 0.18];
+    const HEAD = [[0, 0.42, 0, 0.2], [0.17, 0.3, 0.1, 0.16], [-0.13, 0.25, -0.15, 0.15]], STEM = [0.3, 0.5, 0.14], LF = [0.28, 0.48, 0.1], EYE = [1.0, 0.76, 0.18];
     for (const [hx, hy, hz, pr] of HEAD) { const sw = 0.012; for (const [dx, dz] of [[sw, 0], [0, sw]]) { fv(hx * 0.3 - dx, 0, hz * 0.3 - dz, STEM, 0); fv(hx * 0.3 + dx, 0, hz * 0.3 + dz, STEM, 0); fv(hx + dx, hy, hz + dz, STEM, 0); fv(hx * 0.3 - dx, 0, hz * 0.3 - dz, STEM, 0); fv(hx + dx, hy, hz + dz, STEM, 0); fv(hx - dx, hy, hz - dz, STEM, 0); }
       const rot = hx * 7 + hz * 5; for (let p = 0; p < 5; p++) { const a = rot + p / 5 * 6.283, ca = Math.cos(a), sa = Math.sin(a), pt = (rr, da, dy) => [hx + Math.cos(a + da) * rr, hy + dy, hz + Math.sin(a + da) * rr], b0 = pt(pr * 0.12, 0, 0), l = pt(pr * 0.62, -0.48, 0.012), rgt = pt(pr * 0.62, 0.48, 0.012), t = pt(pr, 0, 0.035), tl = pt(pr * 0.9, -0.25, 0.03), tr = pt(pr * 0.9, 0.25, 0.03), W0 = [0.86, 0.84, 0.86], W1 = [1, 1, 1];
         fv(...b0, W0, 1); fv(...l, W1, 1); fv(...tl, W1, 1); fv(...b0, W0, 1); fv(...tl, W1, 1); fv(...t, W1, 1); fv(...b0, W0, 1); fv(...t, W1, 1); fv(...tr, W1, 1); fv(...b0, W0, 1); fv(...tr, W1, 1); fv(...rgt, W1, 1); }
