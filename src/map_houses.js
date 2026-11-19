@@ -393,7 +393,7 @@ const HOUSE_KIT = (() => {
     if (droop && !lod) for (let k = 0; k < 34; k++) { const t = tips[k % (tips.length - 1)], a = r() * 6.283, rr = 0.08 + r() * 0.12, x = t[0] + Math.cos(a) * rr, z = t[2] + Math.sin(a) * rr, y = t[1] - 0.05 - r() * 0.05, L = 0.14 + r() * 0.32, sw = 0.007 + r() * 0.008, nx = Math.cos(a), nz = Math.sin(a), lt = 0.8 + r() * 0.5, c0 = [0.46 * lt, 0.58 * lt, 0.32 * lt], c1 = [0.8 * lt, 0.9 * lt, 0.52 * lt];
       const b0 = B.p.length / 3; for (const [dx, dy, dz, c] of [[-sw * nz, 0, sw * nx, c0], [sw * nz, 0, -sw * nx, c0], [sw * 0.15 * nz + nx * 0.04, -L, -sw * 0.15 * nx + nz * 0.04, c1], [-sw * 0.15 * nz + nx * 0.04, -L, sw * 0.15 * nx + nz * 0.04, c1]]) B.v(x + dx, y + dy, z + dz, nx, 0.3, nz, ...LEAF(0.2 + r() * 0.6, dy ? 0.1 : 0.5), c); B.i.push(b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3); }
     return B.geo(); }
-  function conifer(lod) { const B = TBuilder(), r = rng(11), tiers = lod ? 5 : 11; limb(B, [[0, -0.06, 0], [0.005, 0.5, 0], [0.01, 0.95, 0]], 0.055, 0.012, lod ? 5 : 7, 0.6);
+  function conifer(lod, seed) { const B = TBuilder(), r = rng(seed || 11), tiers = lod ? 5 : 11; limb(B, [[0, -0.06, 0], [0.005, 0.5, 0], [0.01, 0.95, 0]], 0.055, 0.012, lod ? 5 : 7, 0.6);
     for (let t = 0; t < tiers; t++) { const f = t / (tiers - 1), y0 = 0.12 + f * 0.78, y1 = y0 + (lod ? 0.26 : 0.19) - f * 0.06, rad = 0.36 * Math.pow(1 - f, 0.9) + 0.025, n = lod ? 7 : 16, sh = 0.5 + f * 0.55, rot = r() * 6.28;
       const ring = []; for (let k = 0; k <= n; k++) { const kk = k % n, a = kk / n * Math.PI * 2 + rot, long = kk % 2 === 0, rr = rad * (long ? 1.05 : 0.7) * (0.85 + r() * 0.3), dy = long ? -0.04 - r() * 0.035 : 0.012; ring.push([Math.cos(a) * rr, y0 + dy, Math.sin(a) * rr]); } ring[n] = ring[0];
       const tipI = B.v(0, y1, 0, 0, 1, 0, ...LEAF(0.5, 1), [sh * 0.8, sh, sh * 0.68]);
@@ -401,6 +401,7 @@ const HOUSE_KIT = (() => {
       for (let k = 0; k < n; k++) B.i.push(rI[k], tipI, rI[k + 1]); const ci = B.v(0, y0 + 0.03, 0, 0, -1, 0, ...LEAF(0.5, 0.5), [0.18, 0.24, 0.16]); for (let k = 0; k < n; k++) B.i.push(rI[k + 1], ci, rI[k]); }
     return B.geo(); }
   function trees() { if (!treeAtlas) treeAtlas = paintTreeAtlas(); const mat = new THREE.MeshLambertMaterial({ map: treeAtlas, vertexColors: true, side: THREE.DoubleSide });
-    return { oak: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true } }; }
+    return { oak: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true },
+      /* shape variants so no two neighbouring trees are the same cut-out */ oak2: { geos: [broadleaf(0, false, 31), broadleaf(1, false, 31)], mat, tree: true }, oak3: { geos: [broadleaf(0, false, 47), broadleaf(1, false, 47)], mat, tree: true }, willow2: { geos: [broadleaf(0, true, 59), broadleaf(1, true, 59)], mat, tree: true }, sequoia2: { geos: [conifer(0, 71), conifer(1, 71)], mat, tree: true } }; }
   return { DOOR_H: 11.1, variant, DOORK: () => DOORK, houses, trees, keyFor, KEYS, atlas: () => atlas, kit: { Builder, material, gableRoof, windowOn, doorOn, lantern, chimney, crate, barrel, sack, woodpile, pickaxe, rope, pot, plinth, halfTimber, wallFace, sideX, SHUT } };
 })();

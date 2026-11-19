@@ -373,7 +373,16 @@ function updateLive() {
   document.querySelectorAll('[data-end]').forEach((e) => { const v = realLeft(+e.dataset.end); if (e.textContent !== v) e.textContent = v; });
   document.querySelectorAll('[data-pstart]').forEach((e) => { e.style.width = clamp((S.gameTime - +e.dataset.pstart) / Math.max(1, +e.dataset.pend - +e.dataset.pstart), 0, 1) * 100 + '%'; });
 }
-function setTab(t) { ui.tab = t; ui.lastHtml = ''; rerender(true); window.scrollTo(0, 0); }
+// area transitions: a styled loading screen over every scene change (map <-> Ledge, the Lumen Tree, the Hanging Camp), so a scene build never looks like a freeze.
+// It cuts in at once, holds at least 300 ms and until the new scene has drawn two frames (capped), then fades out.
+const AreaLoader = (() => { const SC = { city: 'Ledgeville', home: 'your Ledge', ledge: 'the Hanging Camp', tree: 'the Lumen Tree' }, L = { on: false, shows: 0, hides: 0, t0: 0, el: null, tm: null, last: null };
+  function el() { if (L.el) return L.el; const d = document.createElement('div'); d.id = 'areaLoader'; d.setAttribute('aria-live', 'polite'); d.innerHTML = '<div class="al-card"><div class="al-spin"><i></i></div><div class="al-txt"></div><div class="al-bar"><i></i></div></div>'; document.body.appendChild(d); return (L.el = d); }
+  function show(t, label) { const d = el(), bar = d.querySelector('.al-bar i'); d.querySelector('.al-txt').textContent = label || ('Heading to ' + (SC[t] || 'the next area') + '\u2026'); bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
+    d.classList.remove('out'); d.classList.add('on'); if (!L.on) { L.shows++; L.t0 = performance.now(); } L.on = true; L.last = t; clearTimeout(L.tm); let fr = 0; const t1 = performance.now();
+    const ready = () => { const now = performance.now(); if (now - L.t0 >= 300 && (fr >= 2 || now - t1 > 2500)) return hide(); L.tm = setTimeout(ready, 40); }; const raf = () => { if (++fr < 2 && L.on) requestAnimationFrame(raf); }; requestAnimationFrame(raf); L.tm = setTimeout(ready, 40); }
+  function hide() { if (!L.on) return; L.on = false; L.hides++; clearTimeout(L.tm); const d = el(); d.classList.add('out'); setTimeout(() => { if (!L.on) d.classList.remove('on', 'out'); }, 300); }
+  return { show, hide, st: L, SC }; })();
+function setTab(t) { if (t !== ui.tab && AreaLoader.SC[t] && AreaLoader.SC[ui.tab]) AreaLoader.show(t); ui.tab = t; ui.lastHtml = ''; rerender(true); window.scrollTo(0, 0); }
 
 let lastRender = 0, lastSave = 0;
 function tick() {
