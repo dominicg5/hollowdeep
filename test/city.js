@@ -21,11 +21,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const hc = await p.evaluate(() => CITY.homeCount); ok(g.homes === hc && hc <= 1200, `light home count from one config value (CITY.homeCount=${hc}): ${g.homes}`); ok(g.cracks > 10, 'crevices: ' + g.cracks); ok(g.mk === 0 && g.vt === 0, 'no bazaars or vaults on the map');
   ok(g.R >= 10000, 'big map radius ' + g.R); ok(g.mtn > 100, 'mountains: ' + g.mtn);
   const v2 = await p.evaluate(() => ({ op: W.outposts.length, falls: !!W.lakeFalls, pass: !!W.pass, rivers: W.rivers.length - 1, water: CITY.water, stairs: W.stairs.length, fields: W.sets.length, onCliff: W.homes.filter((h) => onCliff(h.x, h.y, 0)).length, plateau: W.homes.filter((h) => plateauDist(h.x, h.y) < 0).length, radial: W.radial.length }));
-  const rg = await p.evaluate(() => { const N = W.homes.length, cnt = {}; for (const h of W.homes) cnt[h.ring] = (cnt[h.ring] || 0) + 1; const gs = W.homes.filter((h) => !h.heartwood).map((h) => ({ k: h.ring, ...M3.ground(h.x, h.y) }));
+  const rg = await p.evaluate(() => { const N = W.homes.length, cnt = {}; for (const h of W.homes) cnt[h.ring] = (cnt[h.ring] || 0) + 1; const gs = W.homes.map((h) => ({ k: h.ring, ...M3.ground(h.x, h.y) }));
     const B = rimBoard(); let mono = true; for (let i = 1; i < B.length; i++) if (!B[i].isPlayer && !B[i - 1].isPlayer && B[i].ring < B[i - 1].ring && B[i].deepest < B[i - 1].deepest) mono = false;
     return { N, cnt, hw: cnt[0] || 0, steep: gs.filter((g) => g.slope > 0.4).length, sum1: gs.filter((g) => g.k === 1 && g.h > CITY.summitH - 120).length, n1: gs.filter((g) => g.k === 1).length, low: gs.filter((g) => g.k >= 2 && g.h < CITY.summitH * 0.75).length, nOut: gs.filter((g) => g.k >= 2).length, mono,
       r2: Math.round(W.homes.filter((h) => h.ring === 2).reduce((s, h) => s + Math.hypot(h.x, h.y), 0) / (cnt[2] || 1)), r10: Math.round(W.homes.filter((h) => h.ring === 10).reduce((s, h) => s + Math.hypot(h.x, h.y), 0) / (cnt[10] || 1)) }; });
-  ok(rg.hw === 10 && Object.keys(rg.cnt).length === 11 && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((k) => Math.abs(rg.cnt[k] - rg.N / 10) < rg.N * 0.02 + 8), `ranks split into the Heartwood (top 10 players) + 10 decile rings: ${JSON.stringify(rg.cnt)}`);
+  ok(rg.hw === 0 && Object.keys(rg.cnt).length === 10 && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((k) => Math.abs(rg.cnt[k] - rg.N / 10) < rg.N * 0.02 + 8), `ranks split into 10 decile rings (no Lumen Tree seats): ${JSON.stringify(rg.cnt)}`);
   ok(rg.sum1 >= rg.n1 * 0.95 && rg.low >= rg.nOut * 0.95 && rg.steep <= 8 && rg.r10 > rg.r2 + 4000, `ring 1 on the summit (${rg.sum1}/${rg.n1}), rings 2-10 below on lowlands/slopes (${rg.low}/${rg.nOut}), ${rg.steep} on steep ground, ring 2 r=${rg.r2} .. ring 10 r=${rg.r10}`);
   ok(rg.mono, 'rings follow rank (deeper delvers never sit in an outer ring)');
   ok(v2.radial >= 12, 'cracks spread out from the plateau: ' + v2.radial);   ok(!v2.falls && v2.rivers <= 0 && !v2.water, 'no water features (no lake, rivers or falls) for now');
@@ -40,10 +40,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(dp.top < dp.bot && dp.all && dp.max < 90 && dp.med < 15, `deeper delvers live nearer the rim (top quarter ${dp.top} vs bottom ${dp.bot} from the rim; median Lv ${dp.med}, max Lv ${dp.max})`);
   const mv = await p.evaluate(() => { const d0 = hollowDist(W.player.x, W.player.y), r0 = rimRank(W.player); S.stats.deepest = (S.stats.deepest || 0) + 6; const moved = relocatePlayer(); const d1 = hollowDist(W.player.x, W.player.y), r1 = rimRank(W.player); S.stats.deepest -= 6; relocatePlayer(); M3.refresh(); return { moved, d0: Math.round(d0), d1: Math.round(d1), r0, r1 }; });
   ok(mv.moved && mv.d1 < mv.d0 && mv.r1 < mv.r0, `player's Ledge moves inward when their record improves (${mv.d0} -> ${mv.d1} from the rim, rank #${mv.r0} -> #${mv.r1})`);
-  const seats = await p.evaluate(() => { const B = rimBoard(), R = W.homes.filter((h) => h.heartwood).sort((a, b) => a.slot - b.slot); return { n: R.length, slots: R.map((h) => h.slot).join(','), rankOk: R.every((h) => B.indexOf(h) === h.slot), higher: R.every((h, i) => !i || h.elev < R[i - 1].elev), lbl: ringLabel(R[0]) }; });
-  ok(seats.n === 10 && seats.slots === '0,1,2,3,4,5,6,7,8,9' && seats.rankOk && seats.higher && seats.lbl === 'Lumen Tree #1', `the Heartwood seats the top 10 in numbered seats, #1 highest (${JSON.stringify(seats)})`);
-  const hwv = await p.evaluate(() => { const d0 = S.stats.deepest; S.stats.deepest = 20; relocatePlayer(); const snap = () => W.homes.filter((h) => h.heartwood && !h.isPlayer).map((h) => h.id + ':' + Math.round(h.x)).sort().join(); const before = W.__hw0 || snap(); const r = { ring: W.player.ring, hw: !!W.player.heartwood, elev: Math.round(W.player.elev || 0), lbl: ringLabel(W.player), n: W.homes.filter((h) => h.heartwood).length, bumped: W.homes.some((h) => !h.heartwood && h.gx != null && h.ring === 1) }; S.stats.deepest = d0; relocatePlayer(); M3.refresh(); r.back = W.player.ring; r.n2 = W.homes.filter((h) => h.heartwood).length; r.restored = snap().split(',').length === 10; return r; });
-  ok(hwv.ring === 0 && hwv.hw && hwv.elev > 1900 && hwv.lbl === 'Lumen Tree #1' && hwv.n === 10 && hwv.bumped && hwv.back > 0 && hwv.n2 === 10 && hwv.restored, `player moves into Heartwood seat #1 when in the top 10 (bumping #10 to ring 1) and back out (${JSON.stringify(hwv)})`);
+  const seats = await p.evaluate(() => ({ hw: W.homes.filter((h) => h.heartwood || h.slot != null || h.ring === 0).length, lbl: ringLabel(rimBoard()[0]), fns: ['seatHeartwood', 'heartwoodSlot', 'HW_SEATS'].filter((k) => typeof window[k] !== 'undefined' || (() => { try { return typeof eval(k) !== 'undefined'; } catch (e) { return false; } })()) }));
+  ok(seats.hw === 0 && /^Ring \d+$/.test(seats.lbl) && !seats.fns.length, `no top-10 seats: every Ledge sits on a ring, no seat code paths (${JSON.stringify(seats)})`);
+  const hwv = await p.evaluate(() => { const d0 = S.stats.deepest; S.stats.deepest = 20; relocatePlayer(); const r = { ring: W.player.ring, hw: !!W.player.heartwood, elev: W.player.elev, lbl: ringLabel(W.player) }; S.stats.deepest = d0; relocatePlayer(); M3.refresh(); r.back = W.player.ring; return r; });
+  ok(hwv.ring === 1 && !hwv.hw && hwv.elev == null && hwv.lbl === 'Ring 1' && hwv.back > 0, `a top player's Ledge moves to ring 1 on the ground, not into the tree (${JSON.stringify(hwv)})`);
   ok(await p.evaluate(() => CONFIG.raidsEnabled === false && S.nextRaidAt > 1e14 && !S.pendingReveal), 'raids are off game-wide (no raid timer, no pending raid)');
   ok(g.fish === 0, 'no flying fish'); ok(g.wx === 0, 'no storms or rain in weather table'); ok(g.obs, 'obsidian resource still in economy');
   // canvas non-blank
@@ -57,7 +57,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const c1 = await p.evaluate(() => ({ ...CityMap.cam }));
   ok(c1.x > c0.x + 20 && c1.y > c0.y + 20, `drag pans camera (${(c1.x - c0.x).toFixed(0)},${(c1.y - c0.y).toFixed(0)})`);
   // labels anchored in world space while dragging and rotating (screen position == projection of the world anchor)
-  await p.evaluate(() => { const C = W.homes.filter((o) => !o.isPlayer && !o.heartwood), nb = (o) => C.filter((q) => Math.hypot(q.x - o.x, q.y - o.y) < 1400).length; void nb; const h = W.homes.find((o) => o.heartwood && o.slot === 4); CityMap.flyTo(h.x, h.y, 0.3, true); }); await p.waitForTimeout(2500); await p.waitForFunction(() => CityMap.st.labels.filter((l) => W.homes.some((o) => o.heartwood && o.owner === l.name)).length >= 2, null, { timeout: 20000 }).catch(() => {}); // the Heartwood seats: their labels are always on, so several are in view
+  await p.evaluate(() => { const T = W.heartwood; CityMap.flyTo(T.x, T.y, 0.3, true); }); await p.waitForTimeout(2500); await p.waitForFunction(() => CityMap.st.labels.length >= 1, null, { timeout: 20000 }).catch(() => {});
   const L0 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l })));
   await p.mouse.move(200, 520); await p.mouse.down(); await p.mouse.move(140, 470, { steps: 6 }); await p.waitForTimeout(150);
   const L1 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l, pr: CityMap.w2sUp(l.wx, l.wy, l.up) })));
@@ -94,7 +94,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForTimeout(300); const za = await p.evaluate(() => CityMap.cam.z); ok(za > zb * 1.3, `pinch zooms in ${zb.toFixed(2)} -> ${za.toFixed(2)}`);
   await p.evaluate(() => clearInterval(window.__ac));
   // tap an AI home → card with Raid
-  await p.evaluate(() => { const h = W.homes.find((h) => !h.isPlayer && !h.heartwood && Math.hypot(h.x - W.player.x, h.y - W.player.y) > 300); CityMap.flyTo(h.x, h.y, 1.4, true); window.__h = h; });
+  await p.evaluate(() => { const h = W.homes.find((h) => !h.isPlayer && Math.hypot(h.x - W.player.x, h.y - W.player.y) > 300); CityMap.flyTo(h.x, h.y, 1.4, true); window.__h = h; });
   await p.waitForTimeout(400);
   const pt = await p.evaluate(() => { const [x, y] = CityMap.w2sUp(__h.x, __h.y, homeW(__h) * 0.4); return [x, y]; });
   const box = await p.locator('#cityCanvas').boundingBox(); await p.evaluate(() => closeModalQuiet());
@@ -125,8 +125,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.click('[data-city=board]'); await p.waitForTimeout(300);
   { const bt = await p.textContent('#modalBody'); const pin = await p.textContent('#boardPin'); ok(/Rim Leaderboard/.test(bt) && /You/.test(pin) && /Lv \d+/.test(pin), 'leaderboard ranks homes by rim proximity with your row pinned: ' + pin.trim().replace(/\s+/g, ' '));
     ok(await p.evaluate(() => { const r = rimBoard(); return r.every((h, i) => i === 0 || r[i - 1].deepest >= h.deepest); }), 'leaderboard sorted by deepest level'); await p.screenshot({ path: 'city-board.png' }); }
-  ok(/🌳 Lumen Tree #\d/.test(await p.textContent('#modalBody')), 'leaderboard marks Lumen Tree residents');
-  { const hc2 = await p.evaluate(() => { closeModalQuiet(); const h = W.homes.find((o) => o.heartwood && !o.isPlayer); CityMap.homeCard(h); return document.getElementById('modalBody').textContent; }); ok(/Lumen Tree #\d+/.test(hc2) && /Rim rank #\d+/.test(hc2) && /'s Ledge/.test(hc2), 'a Grand Tree Ledge card shows the Lumen Tree as its ring'); await p.evaluate(() => closeModalQuiet()); }
+  ok(!/Lumen Tree #|Heartwood|seat #/.test(await p.textContent('#modalBody')), 'leaderboard has no Lumen Tree / Heartwood seat text');
+  { const hc2 = await p.evaluate(() => { closeModalQuiet(); const h = rimBoard().find((o) => !o.isPlayer); CityMap.homeCard(h); return document.getElementById('modalBody').textContent; }); ok(/Ring \d+/.test(hc2) && /Rim rank #\d+/.test(hc2) && !/Lumen Tree seat|Lumen Tree #/.test(hc2), 'the #1 Ledge card shows a ground ring, no tree seat'); await p.evaluate(() => closeModalQuiet()); }
   await p.evaluate(() => closeModalQuiet());
   // Ticker
   // other tabs still work
@@ -357,7 +357,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { window.nightFactor = window.__nf; });
   const fps = await p.evaluate(() => CityMap.fps); console.log('fps (SwiftShader software GL, not a phone GPU): ' + fps.toFixed(1));
   { const f = await p.evaluate(() => { if (!CityMap.is3d() || !M3.focusView) return null; const T = W.heartwood; let blocked = 0, under = 0;
-      for (const h of W.homes) { if (!h.heartwood && Math.hypot(h.x - T.x, h.y - T.y) < HW_CLEAR) under++; const z = h.heartwood ? 0.42 : 230 / (homeW(h) * 1.25), r0 = h.heartwood ? Math.atan2(Math.cos(h.hwTh), Math.sin(h.hwTh)) : (h._rot || 0) + 0.75, v = M3.focusView(h.x, h.y, z, r0, 34);
+      for (const h of W.homes) { if (Math.hypot(h.x - T.x, h.y - T.y) < HW_CLEAR) under++; const z = 230 / (homeW(h) * 1.25), r0 = (h._rot || 0) + 0.75, v = M3.focusView(h.x, h.y, z, r0, 34);
         const D = M3.dist({ z: v.z }), ph = v.tilt * Math.PI / 180, th = M3.targetH(h.x, h.y), b = M3.sightBlocked(h.x, th, h.y, h.x + Math.sin(v.rot) * Math.cos(ph) * D, th + Math.sin(ph) * D, h.y + Math.cos(v.rot) * Math.cos(ph) * D); if (b && b !== 'leaves') blocked++; }
       return { blocked, under }; });
     if (f) { ok(f.blocked === 0, 'focusing any Ledge finds a clear view (no ground, cliff, bark, deck or house in the way): ' + f.blocked + ' blocked'); ok(f.under === 0, 'no ground Ledge under the Heartwood crown or on its roots: ' + f.under); } }

@@ -336,17 +336,6 @@ const HOUSE_KIT = (() => {
     if (big) { const bw = 0.7, bd = 0.36; B.with(0.12, 0, -d / 2 - bd / 2 + 0.02, 0, 1, () => { plinth(B, -bw / 2, bw / 2, -bd / 2, bd / 2, 0.1); B.walls(-bw / 2 + 0.01, bw / 2 - 0.01, -bd / 2 + 0.01, bd / 2, 0.1, 0.48, 'plaster', 0.9, 0.82); hipRoof(B, { x0: -bw / 2, x1: bw / 2, z0: -bd / 2, z1: bd / 2 + 0.04, ye: 0.48, yr: 0.72, ov: 0.08 });
         B.with(0, 0, 0, Math.PI, 1, () => { halfTimber(B, bw, bd / 2, 0.1, 0.48, { n: 4 }); for (const x of [-0.2, 0.0, 0.2]) windowOn(B, bd / 2, x, 0.2, 0.09, 0.15, { arch: true, shut: SHUT[(v + 1) % 4] }); }); });
       for (const a of [0.6, 2.2]) B.with(tx, 0, tz, a, 1, () => { B.beam([0, 1.02, tr], [0, 1.02, tr + 0.08], 0.012, 'iron', W1); B.quad([-0.04, 0.72, tr + 0.08], [0.04, 0.72, tr + 0.08], [0.04, 1.01, tr + 0.08], [-0.04, 1.01, tr + 0.08], 'cloth', W1, [0.5, 0, 0.66, 1]); B.quad([0.04, 0.72, tr + 0.08], [-0.04, 0.72, tr + 0.08], [-0.04, 1.01, tr + 0.08], [0.04, 1.01, tr + 0.08], 'cloth', W1, [0.5, 0, 0.66, 1]); }); } }
-  /* ---------- Heartwood seat houses: tall narrow timber houses with steep red roofs, finials and a dormer, built for the tree's platforms ---------- */
-  function seat(B, v) { const w = 0.62, d = 0.56, h0 = 0.08, h1 = 0.5, h2 = 0.86, yr = h2 + 0.5, sh = SHUT[v % 4];
-    B.walls(-w / 2, w / 2, -d / 2, d / 2, h0, h1, 'plaster', 0.9, 0.85); B.box(-w / 2 - 0.03, h1, -d / 2 - 0.03, w / 2 + 0.03, h1 + 0.04, d / 2 + 0.03, 'timber', 'timber', TIMB, 0, true); B.walls(-w / 2 - 0.03, w / 2 + 0.03, -d / 2 - 0.03, d / 2 + 0.03, h1 + 0.04, h2, 'plaster', 0.9, 0.85);
-    gableRoof(B, { x0: -w / 2 - 0.03, x1: w / 2 + 0.03, z0: -d / 2 - 0.03, z1: d / 2 + 0.03, ye: h2, yr, ox: 0.07, oz: 0.09, frame: true }); chimney(B, v ? -0.16 : 0.18, -0.12, h2, yr + 0.06, 0.11);
-    if (!B.det) { doorOn(B, d / 2, 0, 0.18, 0.34, { y0: h0 }); windowOn(B, d / 2 + 0.03, 0, h1 + 0.1, 0.11, 0.15, {}); return; }
-    wallFace(B, w, d, (L, z, f) => { halfTimber(B, L, z, h0, h1, { n: 3, skip: f === 'f' ? (x) => Math.abs(x) < 0.12 : null }); halfTimber(B, L + 0.06, z + 0.03, h1 + 0.04, h2 - (f === 'f' || f === 'b' ? 0.07 : 0), { n: 3 }); if (f !== 'f') windowOn(B, z, 0, h0 + 0.17, 0.11, 0.16, { shut: f === 'r' ? sh : null }); windowOn(B, z + 0.03, f === 'f' ? 0 : -0.1, h1 + 0.1, 0.11, 0.15, { flowers: f === 'f', shut: f === 'f' ? sh : null }); });
-    doorOn(B, d / 2, 0, 0.17, 0.32, { y0: h0, porch: true, porchD: 0.14, steps: 0 }); lantern(B, -0.17, h0 + 0.3, d / 2, 1); lantern(B, 0.17, h0 + 0.3, d / 2, 1);
-    finial(B, -w / 2 - 0.09, yr, 0, 0.26); finial(B, w / 2 + 0.09, yr, 0, 0.22);
-    const k = (yr - h2) / (d / 2 + 0.03), x = 0.0, zf = d / 2 - 0.0, y0 = h2 + k * (d / 2 + 0.03 - zf), zb = zf - 0.22, dw = 0.07, yr2 = y0 + 0.24;
-    if (v !== 1) { B.box(x - dw, y0 - 0.05, zb, x + dw, y0 + 0.13, zf, 'plaster', null, [0.9, 0.9, 0.9]); windowOn(B, zf, x, y0, 0.08, 0.1, {}); B.slope([x + dw + 0.025, y0 + 0.12, zf + 0.025], [x + dw + 0.025, y0 + 0.12, zb], [x, yr2, zf + 0.025], [x, yr2, zb], { cw: 0.05, seg: 0.3 }); B.slope([x - dw - 0.025, y0 + 0.12, zb], [x - dw - 0.025, y0 + 0.12, zf + 0.025], [x, yr2, zb], [x, yr2, zf + 0.025], { cw: 0.05, seg: 0.3 }); B.tri([x - dw, y0 + 0.13, zf], [x + dw, y0 + 0.13, zf], [x, yr2 - 0.02, zf], 'plaster', [0.9, 0.9, 0.9]); B.ridge([x, yr2 + 0.01, zf + 0.03], [x, yr2 + 0.01, zb], 0.022); }
-    barrel(B, w / 2 - 0.02, h0, d / 2 + 0.1, 0.045, 0.11); if (v) crate(B, -w / 2 + 0.06, h0, d / 2 + 0.1, 0.09, 0.3); }
   // tier -> builder: 0/1 hut, 2/3 cottage, 4/5 townhouse, 6/7 workshop (odd tiers are the grown-up version of the even one)
   const TIERS = [(B, v) => hut(B, v, false), (B, v) => hut(B, v, true), (B, v) => cottage(B, v, false), (B, v) => cottage(B, v, true), (B, v) => townhouse(B, v, false), (B, v) => townhouse(B, v, true), (B, v) => workshop(B, v, false), (B, v) => workshop(B, v, true)];
   const VARIANTS = 3, KEYS = []; for (let t = 0; t < 8; t++) for (let v = 0; v < VARIANTS; v++) KEYS.push('h' + t + 'abc'[v]);
@@ -356,8 +345,7 @@ const HOUSE_KIT = (() => {
   // one house kit at a given door scale (the player's own home is drawn larger than its tier's: its doors get their own scale so they match every other door)
   function variant(key, dk, bare) { const [fn, v] = HREG[key]; DOOR_K = dk; NOFRAME = !!bare; const b0 = build(fn, v, 0), b1 = build(fn, v, 1); DOOR_K = 1; NOFRAME = false; return { geos: [b0.geo(), b1.geo()], mat: HMAT, tree: false, chim: b0.chim, lamps: b0.lamps, doors: b1.doors || b0.doors || [] }; }
   function houses() { const out = {}, mat = HMAT = material(); const add = (key, fn, v) => { HREG[key] = [fn, v]; DOOR_K = /^h\d/.test(key) ? DOORK[+key[1]] : 1; const b0 = build(fn, v, 0), b1 = build(fn, v, 1); DOOR_K = 1; out[key] = { geos: [b0.geo(), b1.geo()], mat, tree: false, chim: b0.chim, lamps: b0.lamps, doors: b1.doors || b0.doors || [] }; };
-    for (let t = 0; t < 8; t++) for (let v = 0; v < VARIANTS; v++) add('h' + t + 'abc'[v], TIERS[t], v);
-    for (let v = 0; v < 2; v++) add('seat' + 'ab'[v], seat, v); return out; }
+    for (let t = 0; t < 8; t++) for (let v = 0; v < VARIANTS; v++) add('h' + t + 'abc'[v], TIERS[t], v); return out; }
   function keyFor(tier, seed) { return 'h' + Math.max(0, Math.min(7, tier)) + 'abc'[Math.floor(Math.abs(seed) * VARIANTS) % VARIANTS]; }
   /* ---------- trees: painterly broadleaf (forked limbs ending in clumped cauliflower florets, like the Heartwood),
      rim willows with hanging strands, and layered conifers for the high ground ---------- */

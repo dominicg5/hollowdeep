@@ -53,7 +53,7 @@ const GRAND = (() => {
     G = g0; planStreams(pre);
     W.objs = W.objs.filter((ob) => ob.type !== 'tree' || !wet(ob.x, ob.y, (ob.r || 20) * 3 + 60));
     const rr = prng(4242), moved = [];
-    for (const h of W.homes) { if (h.heartwood || h.isPlayer || !wet(h.x, h.y, h.size * 0.62 + 90)) continue; let spot = null;
+    for (const h of W.homes) { if (h.isPlayer || !wet(h.x, h.y, h.size * 0.62 + 90)) continue; let spot = null;
       for (let t = 0; t < 900 && !spot; t++) { const a = rr() * TAU - Math.PI, [x, y] = polar(ringR(h.ring || 1, a, 0.05 + rr() * 0.9), a);
         if (wet(x, y, h.size + 120) || underHeartwood(x, y) || hollowDist(x, y) < 150 || chasmDist(x, y) < h.size + 8 || onCliff(x, y, h.size) || (t < 700 && !ringGround(x, y, h.ring || 1))) continue;
         if (W.homes.some((q) => q !== h && Math.hypot(q.x - x, q.y - y) < (q.size + h.size) * 0.62 * (CITY.homeGap || 1))) continue;

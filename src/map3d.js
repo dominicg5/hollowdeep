@@ -321,7 +321,7 @@ void main() {
   function spriteList() {
     const L = [];
     const add = (spr, x, y, w, ay, flip, lum, elev) => { const e = ART_MANIFEST.s[spr]; if (!e) return; L.push({ e, x, y, w, ay, flip, elev, lum: lum == null ? lumAt(x, y) : lum }); };
-    if (!MD) for (const h of W.homes) { const tier = tierOf(h); add(homeSprite(h), h.x, h.y, homeW(h, tier) * (h.heartwood ? 0.9 : 1.4), TIER_AY[tier], homeFlip(h), null, h.elev); }
+    if (!MD) for (const h of W.homes) { const tier = tierOf(h); add(homeSprite(h), h.x, h.y, homeW(h, tier) * 1.4, TIER_AY[tier], homeFlip(h), null, h.elev); }
     if (!MD) for (const o of W.objs) if (o.type === 'tree') add(pickOf(TREES.def.concat(['p_forest_5', 'p_forest_4']), o.seed || 0.5), o.x, o.y, o.r * 2.9, 0.9, (o.seed || 0) > 0.5);
     for (const o of W.civic) { if (o.type === 'exchange') { add('civ_market', o.x, o.y, 230, 0.78, false); continue; } if (o.type === 'lift') add('civ_lift', o.x, o.y, 54, 0.95, false); else if (o.type === 'statue') add('landmarks_0', o.x, o.y, o.r * 2.8, 0.78); else if (o.type === 'memorial') add('landmarks_1', o.x, o.y, 96, 0.78); else if (o.type === 'gate') add('landmarks_2', o.x, o.y, o.r * 3.2, 0.82); else if (o.type === 'rift') add('landmarks_2', o.x, o.y, o.r * 3, 0.82); else if (o.type === 'outpost') add('sp_outpost_0', o.x, o.y, 300, 0.62); }
     for (const m of W.mountains) if (m.type === 'pass') add('sp_pass_0', m.x, m.y, m.r * 2.7, 0.9);
@@ -355,7 +355,7 @@ void main() {
     for (const h of W.homes) { const w = homeW(h); pos.push(h.x, (h.elev != null ? h.elev : meshH(h.x, h.y)) + w * 0.35, h.y); c.set(h.roof || '#b5533c'); c.convertSRGBToLinear(); col.push(c.r, c.g, c.b); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     roofPts = new THREE.Points(g, new THREE.PointsMaterial({ size: 210, sizeAttenuation: true, vertexColors: true, map: roofTex(), transparent: true, alphaTest: 0.4, depthWrite: true, fog: true })); roofPts.frustumCulled = false; scene.add(roofPts); }
-  function winPts() { const pts = []; for (const h of W.homes) if (((h.lanternPhase * 10) | 0) % 3 === 0) { const w = homeW(h) * (h.heartwood ? 0.62 : 0.95); pts.push(h.x + (homeSeed(h) - 0.5) * w * 0.5, (h.elev != null ? h.elev : meshH(h.x, h.y)) + w * 0.3, h.y + w * 0.45); } return pts; }
+  function winPts() { const pts = []; for (const h of W.homes) if (((h.lanternPhase * 10) | 0) % 3 === 0) { const w = homeW(h) * 0.95; pts.push(h.x + (homeSeed(h) - 0.5) * w * 0.5, (h.elev != null ? h.elev : meshH(h.x, h.y)) + w * 0.3, h.y + w * 0.45); } return pts; }
   function lightsPts() { if (lightPts) lightPts.geometry.setAttribute('position', new THREE.Float32BufferAttribute(winPts(), 3)); }
   function glowTex(inner, outer) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, inner); gr.addColorStop(0.4, outer); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); return t; }
 
@@ -395,7 +395,7 @@ void main() {
   // the models carry their own lanterns, barrels, crates and ladders; here only the chimney smoke is added
   // chimney smoke and night lantern glows come from the points each house model records (chimney tops, lantern bodies)
   function yardProps(h, i, key, w) { const m = MD[key]; if (!m) return; const rot = h._rot, cs = Math.cos(rot), sn = Math.sin(rot), y0 = homeElev(h), at = (c) => [h.x + (c[0] * cs + c[2] * sn) * w, y0 + c[1] * w, h.y + (-c[0] * sn + c[2] * cs) * w];
-    if (m.chim && m.chim[0] && (h.heartwood || hash1(i * 3.3 + 1) < 0.45)) { const p = at(m.chim[0]); PR.smoke.push([p[0], p[1], p[2], hash1(i * 7.7) * 10, h]); }
+    if (m.chim && m.chim[0] && hash1(i * 3.3 + 1) < 0.45) { const p = at(m.chim[0]); PR.smoke.push([p[0], p[1], p[2], hash1(i * 7.7) * 10, h]); }
     if (m.lamps) for (const c of m.lamps) { const p = at(c); PR.glow.push([p[0], p[1], p[2], h]); }
     if (h.isPlayer && m.doors && m.doors.length) { const D = m.doors[0], p = at(D.p), q = at(D.q), nx = q[0] - p[0], nz = q[2] - p[2], nl = Math.hypot(nx, nz) || 1; W.playerDoor = { x: p[0], y: p[2], up: p[1], nx: nx / nl, nz: nz / nl, w: D.w * w, h: D.h * w }; } } // the player's house front door (map units), where Explore hangs the Ledge door
   /* ---------- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall (merged geometry, instanced foliage) ---------- */
@@ -454,7 +454,7 @@ diffuseColor *= sdc;
         A.p.push(p.x, p.y, p.z); A.n.push(d.x, d.y, d.z); A.uv.push((k / seg) * uvk[0], vacc / uvk[1]); const c = col(i, a, p, d); A.c.push(c[0], c[1], c[2]); } }
     for (let i = 0; i < n - 1; i++) for (let k = 0; k < seg; k++) { const a = base + i * (seg + 1) + k, b2 = a + seg + 1; A.i.push(a, b2, a + 1, a + 1, b2, b2 + 1); } }
   function bez(p0, p1, p2, p3, n) { const c = new THREE.CubicBezierCurve3(p0, p1, p2, p3); return c.getPoints(n); }
-  const HWX = { built: false, objs: [], mush: null, mushGlow: null, badges: [], clumps: [], seats: [], rootMeshes: [] }, EXU = { value: 0 }; // EXU: Explore close-up detail on (shared by the terrain and bark shaders)
+  const HWX = { built: false, objs: [], mush: null, mushGlow: null, clumps: [], rootMeshes: [] }, EXU = { value: 0 }; // EXU: Explore close-up detail on (shared by the terrain and bark shaders)
   // the pit wall: radius (from the Hollow's centre) where the wall reaches height y along angle phi
   function wallR(phi, y) { let lo = Math.max(50, hollowR(phi) - 3000), hi = hollowR(phi) + 300; for (let i = 0; i < 20; i++) { const m = (lo + hi) / 2, [x, z] = polar(m, phi); if (meshH(x, z) > y) hi = m; else lo = m; } return (lo + hi) / 2; }
   function puffGeo(det, seed) { // one leafy floret: a lumpy ball (cauliflower bumps), lit from the top, dark underneath
@@ -525,10 +525,7 @@ diffuseColor *= sdc;
       for (const [th, f0] of [[T.in + 1.3, 0.7], [OUT + 0.6, 0.71], [T.in - 1.9, 0.72]]) branch(tr(f0, th, hwTrunkR(f0) * 0.3), th, H * 0.07, H * 0.13, hwTrunkR(f0) * 0.42, 1, th * 7); // leaders
       const pulleyLimb = { pts: null }; { const f0 = 0.5, th = T.in + 0.45, p0 = tr(f0, th, hwTrunkR(f0) * 0.4), d = dirAt(th), p3 = v3().copy(p0).addScaledVector(d, H * 0.29).add(v3().set(0, H * 0.035, 0));
         const pts = bez(p0, v3().copy(p0).addScaledVector(d, H * 0.1).add(v3().set(0, H * 0.04, 0)), v3().copy(p0).addScaledVector(d, H * 0.2).add(v3().set(0, H * 0.045, 0)), p3, 18); tube(pts, hwTrunkR(f0) * 0.36, hwTrunkR(f0) * 0.12, 77); pulleyLimb.pts = pts; limbs.push({ pts, th, end: p3, r0: hwTrunkR(f0) * 0.36 }); ends.push({ p: v3().copy(p3).add(v3().set(H * 0.01 * d.x, 120, H * 0.01 * d.z)), R: 700, th }); }
-      for (let j = 0; j < HW_SEATS.length; j++) { const S = HW_SEATS[j]; if (!S[2]) continue; const th = T.in + S[1], f = S[0];
-        const p0 = tr(f - 0.07, th, hwTrunkR(f - 0.07) * 0.4), d = dirAt(th), under = v3().copy(ax(f)).addScaledVector(d, S[2]).add(v3().set(0, -60, 0)), p3 = v3().copy(under).addScaledVector(d, 650).add(v3().set(0, H * 0.05, 0));
-        const pts = bez(p0, v3().copy(p0).addScaledVector(d, S[2] * 0.4).add(v3().set(0, H * 0.035, 0)), v3().copy(under).addScaledVector(d, -200).add(v3().set(0, -30, 0)), p3, 20);
-        const r0 = hwTrunkR(f) * 0.34; tube(pts, r0, r0 * 0.3, j * 3 + 5); limbs.push({ pts, th, end: p3, r0, seat: j }); ends.push({ p: v3().copy(p3).add(v3().set(0, 260, 0)), R: 620, th, seat: j }); }
+
       // hanging vines: drooping catenaries between neighbouring limbs
       for (let k = 0; k < limbs.length - 1; k += 2) { const a = limbs[k].pts[12], b = limbs[k + 1].pts[10]; if (!a || !b || a.distanceTo(b) > 4200 || a.distanceTo(b) < 600) continue; const pts = []; for (let i = 0; i <= 14; i++) { const u = i / 14; pts.push(v3().lerpVectors(a, b, u).add(v3().set(0, -Math.sin(u * Math.PI) * a.distanceTo(b) * 0.28, 0))); }
         gaTube(A, pts, 5, () => 22, () => [0.42, 0.55, 0.3], [1, 300]); }
@@ -555,11 +552,9 @@ diffuseColor *= sdc;
         const n = 6 + ((hash1(sd) * 4) | 0); for (let k = 0; k < n; k++) { const aa = (k / n) * TAU + hash1(sd + k) * 0.7, rr = R * (0.5 + hash1(sd * 2 + k) * 0.22); clump(c.x + Math.cos(aa) * rr, c.y + (hash1(sd * 3 + k) - 0.62) * R * 0.32, c.z + Math.sin(aa) * rr, R * (0.36 + hash1(sd * 5 + k) * 0.16), 0.68 + hash1(sd * 7 + k) * 0.2, hue + (hash1(k + sd) - 0.5) * 0.3); }
         const m = 3 + ((hash1(sd * 9) * 3) | 0); for (let k = 0; k < m; k++) { const aa = hash1(sd * 11 + k) * TAU, rr = R * 0.28 * hash1(sd * 13 + k); clump(c.x + Math.cos(aa) * rr, c.y + R * (0.26 + hash1(sd * 17 + k) * 0.16), c.z + Math.sin(aa) * rr, R * (0.3 + hash1(sd * 19 + k) * 0.12), 0.9 + hash1(sd * 23 + k) * 0.16, hue + (hash1(k * 3 + sd) - 0.5) * 0.3); } };
       ends.forEach((e2, i) => floret(e2.p, e2.R, i * 5.7 + 1));
-      for (const L of limbs) if (!L.seat && L.depth === 2 && hash1(L.th * 9.1) < 0.5) { const p = L.pts[12]; floret(v3().copy(p).add(v3().set(0, 420, 0)), 760, p.x * 0.01); }
+      for (const L of limbs) if (L.depth === 2 && hash1(L.th * 9.1) < 0.5) { const p = L.pts[12]; floret(v3().copy(p).add(v3().set(0, 420, 0)), 760, p.x * 0.01); }
       { const top = ax(0.8); floret(v3().copy(top).add(v3().set(0, 700, 0)), 1500, 99); floret(v3().copy(top).add(v3().set(0, 250, 0)).addScaledVector(dirAt(OUT), 900), 1200, 98); }
-      // keep the seats clear: no foliage on top of a deck or a house
-      const seatPts = HW_SEATS.map((S, j) => heartwoodSlot(j)), clearOf = (x, y, z, r) => seatPts.every((q) => Math.hypot(q.x - x, q.y - z) > r + 420 || y + r < q.elev - 60 || y - r > q.elev + HW_HOUSE * 1.6);
-      const keep = clumps.filter((c) => clearOf(c[0], c[1], c[2], c[3] * 0.85)); HWX.clumps = keep;
+      const keep = clumps; HWX.clumps = keep;
       const big = keep.filter((c) => c[3] >= 520), small = keep.filter((c) => c[3] < 520);
       const lm = new THREE.MeshLambertMaterial({ map: canopyLeafTex(), vertexColors: true }), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
       const PAL = [[0.92, 0.94, 0.6], [0.78, 0.88, 0.6], [1.0, 0.96, 0.62], [0.7, 0.82, 0.58]];
@@ -569,9 +564,8 @@ diffuseColor *= sdc;
           im.instanceColor.setXYZ(i, s * (a[0] + (b[0] - a[0]) * u), s * (a[1] + (b[1] - a[1]) * u), s * (a[2] + (b[2] - a[2]) * u)); });
         im.castShadow = true; im.receiveShadow = true; add(im); }
       // hanging moss: strands under the limbs and the florets
-      const strandClear = (x, y, z, len) => seatPts.every((q) => Math.hypot(q.x - x, q.y - z) > 1500 || y - len > q.elev + 2600 || y < q.elev - 100); // keep the view onto every seat free of strands
-      const hang = []; for (const L of limbs) for (let k = 3; k < L.pts.length - 1; k += 2) { const p = L.pts[k], n2 = 1 + ((hash1(k * 3 + L.th) * 3) | 0); for (let j = 0; j < n2; j++) { const hx = p.x + (hash1(k + j * 7 + L.th) - 0.5) * L.r0 * 1.4, hz = p.z + (hash1(k * 5 + j + L.th) - 0.5) * L.r0 * 1.4; { const len = 160 + hash1(k * 11 + j + L.th * 3) * 520; if (L.seat == null && strandClear(hx, p.y, hz, len)) hang.push([hx, p.y - L.r0 * 0.5, hz, len]); } } }
-      for (const c of keep) if (c[3] > 300 && hash1(c[0] * 0.01 + c[2] * 0.003) < 0.7) for (let j = 0; j < 6; j++) { const hx = c[0] + (hash1(j + c[1]) - 0.5) * c[3] * 1.3, hz = c[2] + (hash1(j * 3 + c[1]) - 0.5) * c[3] * 1.3; const len = 200 + hash1(j * 7 + c[0]) * 650; if (strandClear(hx, c[1], hz, len)) hang.push([hx, c[1] - c[3] * 0.4, hz, len]); }
+      const hang = []; for (const L of limbs) for (let k = 3; k < L.pts.length - 1; k += 2) { const p = L.pts[k], n2 = 1 + ((hash1(k * 3 + L.th) * 3) | 0); for (let j = 0; j < n2; j++) { const hx = p.x + (hash1(k + j * 7 + L.th) - 0.5) * L.r0 * 1.4, hz = p.z + (hash1(k * 5 + j + L.th) - 0.5) * L.r0 * 1.4; { const len = 160 + hash1(k * 11 + j + L.th * 3) * 520; hang.push([hx, p.y - L.r0 * 0.5, hz, len]); } } }
+      for (const c of keep) if (c[3] > 300 && hash1(c[0] * 0.01 + c[2] * 0.003) < 0.7) for (let j = 0; j < 6; j++) { const hx = c[0] + (hash1(j + c[1]) - 0.5) * c[3] * 1.3, hz = c[2] + (hash1(j * 3 + c[1]) - 0.5) * c[3] * 1.3; const len = 200 + hash1(j * 7 + c[0]) * 650; hang.push([hx, c[1] - c[3] * 0.4, hz, len]); }
       { const hg = new THREE.CylinderGeometry(0.15, 1, 1, 5, 3); hg.translate(0, -0.5, 0); { const P = hg.attributes.position; for (let i = 0; i < P.count; i++) { const y = P.getY(i); P.setX(i, P.getX(i) + Math.sin(y * 7) * 0.8); } } hg.computeVertexNormals();
         const hm = new THREE.InstancedMesh(hg, new THREE.MeshLambertMaterial({ color: 0xffffff }), hang.length); hm.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(hang.length * 3), 3);
         hang.forEach((h2, i) => { e.set(0, hash1(i * 1.1) * TAU, 0); q.setFromEuler(e); mt.compose(v3().set(h2[0], h2[1], h2[2]), q, v3().set(6 + hash1(i) * 7, h2[3], 6 + hash1(i) * 7)); hm.setMatrixAt(i, mt); const v = hash1(i * 2.2); hm.instanceColor.setXYZ(i, 0.22 + v * 0.14, 0.3 + v * 0.14, 0.13 + v * 0.07); }); hm.castShadow = true; add(hm); }
@@ -595,65 +589,13 @@ diffuseColor *= sdc;
           const o = new THREE.Mesh(new THREE.CircleGeometry(1, 18), hollowM); o.position.copy(p).addScaledVector(n2, 30); o.lookAt(v3().copy(o.position).add(n2)); o.scale.set(115 * s, 175 * s, 1); add(o);
           const gl = new THREE.Mesh(new THREE.CircleGeometry(1, 18), glowM); gl.position.copy(p).addScaledVector(n2, 34); gl.lookAt(v3().copy(gl.position).add(n2)); gl.scale.set(70 * s, 115 * s, 1); add(gl); gp.push(gl.position.x + n2.x * 40, gl.position.y, gl.position.z + n2.z * 40); }
         const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); HWX.mushGlow = add(new THREE.Points(gg, new THREE.PointsMaterial({ size: 300, map: glowTex('rgba(120,220,255,.9)', 'rgba(60,160,255,.25)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.3 }))); HWX.mushGlow.frustumCulled = false; HWX.mushGlow.visible = false; /* the big blue glow-orb billboards read as floating orbs round the houses: retired */ }
-      // seat decks: wrapped round the trunk, or laid on a big limb (merged planks)
-      { const D = GA(), slab = (O, I, y, th2) => { // a deck slab between an outer and an inner polyline (x,z): top, underside and rim
-          const n = O.length, vt = (x, yy, z, nx, ny, nz, u, v, c) => { D.p.push(x, yy, z); D.n.push(nx, ny, nz); D.uv.push(u, v); D.c.push(c, c, c); return D.p.length / 3 - 1; };
-          for (const [yy, ny, c] of [[y, 1, 1], [y - th2, -1, 0.6]]) { const o = O.map(([x, z]) => vt(x, yy, z, 0, ny, 0, x / 120, z / 120, c)), ii = I.map(([x, z]) => vt(x, yy, z, 0, ny, 0, x / 120, z / 120, c));
-            for (let k = 0; k < n - 1; k++) { if (ny > 0) D.i.push(o[k], ii[k], o[k + 1], o[k + 1], ii[k], ii[k + 1]); else D.i.push(o[k], o[k + 1], ii[k], o[k + 1], ii[k + 1], ii[k]); } }
-          const loop = O.concat(I.slice().reverse()); for (let k = 0; k < loop.length; k++) { const [x0, z0] = loop[k], [x1, z1] = loop[(k + 1) % loop.length], l = Math.hypot(x1 - x0, z1 - z0) || 1, nx = (z1 - z0) / l, nz = -(x1 - x0) / l;
-            const a = vt(x0, y, z0, nx, 0, nz, 0, 0, 0.75), b = vt(x1, y, z1, nx, 0, nz, l / 120, 0, 0.75), c2 = vt(x1, y - th2, z1, nx, 0, nz, l / 120, th2 / 120, 0.75), d2 = vt(x0, y - th2, z0, nx, 0, nz, 0, th2 / 120, 0.75); D.i.push(a, b, c2, a, c2, d2); } };
-        HWX.seats = [];
-        for (let j = 0; j < HW_SEATS.length; j++) { const S = HW_SEATS[j], f = S[0], th = T.in + S[1], c = ax(f), y = B + f * H + 20, cs = [];
-          if (!S[2]) { const ri = hwTrunkR(f) * 0.86, ro = hwTrunkR(f) + 640, span = 0.62, O = [], I = []; for (let k = 0; k <= 12; k++) { const a = th - span + (k / 12) * span * 2; O.push([c.x + Math.cos(a) * ro, c.z + Math.sin(a) * ro]); I.push([c.x + Math.cos(a) * ri, c.z + Math.sin(a) * ri]); }
-            slab(O, I, y, 34); HWX.seats.push({ j, th, f, y, c, ri, ro, span }); }
-          else { const d = dirAt(th), sd = new THREE.Vector3(-d.z, 0, d.x), m = v3().copy(c).addScaledVector(d, S[2]), hw2 = 330, P2 = (u, v) => [m.x + d.x * u * hw2 + sd.x * v * hw2, m.z + d.z * u * hw2 + sd.z * v * hw2]; slab([P2(-1, 1), P2(1, 1)], [P2(-1, -1), P2(1, -1)], y, 34);
-            // a walkway along the limb back to the trunk
-            const w0 = v3().copy(c).addScaledVector(d, hwTrunkR(f) * 0.9), w1 = v3().copy(m).addScaledVector(d, -hw2), W2 = (p, s3) => [p.x + sd.x * s3 * 70, p.z + sd.z * s3 * 70]; slab([W2(w0, 1), W2(w1, 1)], [W2(w0, -1), W2(w1, -1)], y - 6, 24);
-            HWX.seats.push({ j, th, f, y, c, limb: S[2], m, d, sd, hw2 }); } }
-        const pm2 = new THREE.MeshLambertMaterial({ map: plankTex(), vertexColors: true, side: THREE.DoubleSide }), dm = gaMesh(D, pm2, true); add(dm); }
       // the pulley's limb end
       HWX.pulleyAt = v3().copy(pulleyLimb.pts[15]); HWX.pulleyBase = v3().copy(pulleyLimb.pts[3]);
-      // seat number badges (always face the camera)
-      for (const s2 of HWX.seats) { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); g.fillStyle = '#5a3b22'; g.beginPath(); g.arc(64, 64, 58, 0, TAU); g.fill(); g.lineWidth = 8; g.strokeStyle = '#e8c27a'; g.stroke();
-        g.fillStyle = '#ffe7a8'; g.font = 'bold 60px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('#' + (s2.j + 1), 64, 68); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
-        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, depthWrite: false })); const p = s2.limb ? v3().copy(s2.m).addScaledVector(s2.d, s2.hw2 * 0.8) : v3().copy(s2.c).addScaledVector(dirAt(s2.th + s2.span * 0.75), s2.ro - 40); sp.position.set(p.x, s2.y + 150, p.z); sp.scale.set(150, 150, 1); add(sp); HWX.badges.push(sp); }
-      // carved, hanging number boards on each deck's rail (#1 gilded), readable from the street below
-      HWX.signs = []; for (const s2 of HWX.seats) { const c = document.createElement('canvas'); c.width = 256; c.height = 160; const g = c.getContext('2d'); const top = s2.j === 0;
-        g.fillStyle = '#6b4526'; g.fillRect(0, 0, 256, 160); for (let k = 0; k < 5; k++) { g.fillStyle = k % 2 ? 'rgba(0,0,0,.12)' : 'rgba(255,220,170,.06)'; g.fillRect(0, k * 32, 256, 30); g.fillStyle = 'rgba(30,18,8,.6)'; g.fillRect(0, k * 32 + 30, 256, 2); }
-        g.lineWidth = 12; g.strokeStyle = top ? '#d9a93c' : '#3b2614'; g.strokeRect(6, 6, 244, 148); g.fillStyle = '#2a190c'; for (const [x, y] of [[20, 20], [236, 20], [20, 140], [236, 140]]) { g.beginPath(); g.arc(x, y, 6, 0, TAU); g.fill(); }
-        g.font = 'bold 108px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineWidth = 10; g.strokeStyle = '#24160a'; g.strokeText('#' + (s2.j + 1), 128, 86); g.fillStyle = top ? '#ffd65a' : '#f3dca0'; g.fillText('#' + (s2.j + 1), 128, 86);
-        const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; const board = new THREE.Mesh(new THREE.PlaneGeometry(190, 119), new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide, emissive: 0xffc070, emissiveIntensity: 0, emissiveMap: t }));
-        let at, nrm; if (s2.limb) { at = v3().copy(s2.m).addScaledVector(s2.d, s2.hw2 + 6).setY(s2.y - 20); nrm = s2.d; } else { const a = s2.th + s2.span * 0.42; nrm = dirAt(a); at = v3().copy(s2.c).addScaledVector(nrm, s2.ro + 4).setY(s2.y - 20); }
-        board.position.copy(at); board.lookAt(v3().copy(at).add(nrm)); add(board); HWX.signs.push(board); } }
-    // railings, posts, struts, ladders, walkways and hanging lanterns (instanced props, rebuilt with the scene)
-    const ST = WOOD[2], RL = WOOD[0], lamp = (p) => { stick(PR.box, p, v3().copy(p).add(v3().set(0, -40, 0)), 3, ROPE, null); block(PR.lamp, p.x, p.y - 70, p.z, 22, 30, 22, 0, [1, 0.75, 0.4], null); PR.glow.push([p.x, p.y - 55, p.z, null]); };
-    const rail = (pts, ht) => { let prev = null; pts.forEach((p, i) => { const top = v3().copy(p).add(v3().set(0, ht, 0)); stick(PR.box, p, top, 12, ST, null); if (prev) { stick(PR.box, prev, top, 6, RL, null); stick(PR.box, v3().copy(prev).add(v3().set(0, -ht * 0.5, 0)), v3().copy(top).add(v3().set(0, -ht * 0.5, 0)), 4, RL, null); } prev = top; }); };
-    const anchor = [];
-    for (const s2 of HWX.seats) { const { th, y } = s2;
-      if (!s2.limb) { const pts = []; for (let k = 0; k <= 12; k++) { const a = th - s2.span + (k / 12) * s2.span * 2; pts.push(v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 14).setY(y)); } rail(pts, 70);
-        for (const k of [0, 3, 6, 9, 12]) { const a = th - s2.span + (k / 12) * s2.span * 2, o = v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 30).setY(y - 34), tk = v3().copy(ax(s2.f - 0.045)).addScaledVector(dirAt(a), hwTrunkR(s2.f - 0.045) * 0.9); stick(PR.box, o, tk, 26, WOOD[0], null);
-          const ti = v3().copy(s2.c).addScaledVector(dirAt(a), s2.ri + 40).setY(y - 40); stick(PR.box, v3().copy(o).setY(y - 40), ti, 22, WOOD[2], null); const mid = v3().lerpVectors(o, tk, 0.45); stick(PR.box, mid, v3().lerpVectors(o, ti, 0.55).setY(y - 40), 14, WOOD[3], null); }
-        for (const k of [0, 12]) { const a = th - s2.span + (k / 12) * s2.span * 2, b = v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro - 14).setY(y), tp = v3().copy(b).add(v3().set(0, 190, 0)), arm = v3().copy(tp).addScaledVector(dirAt(a), 70); stick(PR.box, b, tp, 14, ST, null); stick(PR.box, tp, arm, 8, IRON, null); lamp(arm); }
-        for (const k of [3, 9]) { const a = th - s2.span + (k / 12) * s2.span * 2; lamp(v3().copy(s2.c).addScaledVector(dirAt(a), s2.ro + 10).setY(y + 70)); }
-        anchor.push({ a: th, y, r: hwTrunkR(s2.f) + 200, span: s2.span }); }
-      else { const { m, d, sd, hw2 } = s2, cn = (u, v) => v3().copy(m).addScaledVector(d, u * hw2).addScaledVector(sd, v * hw2).setY(y); rail([cn(-1, -1), cn(1, -1), cn(1, 1), cn(-1, 1)], 70);
-        for (const v of [-1, 1]) lamp(v3().copy(cn(1, v)).add(v3().set(0, 70, 0)));
-        const knee = v3().copy(m).setY(y - 300); for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) stick(PR.box, v3().copy(cn(u * 0.9, v * 0.9)).setY(y - 34), knee, 22, WOOD[0], null); stick(PR.box, v3().copy(m).setY(y - 34), knee, 30, WOOD[2], null);
-        for (const u of [-0.6, 0, 0.6]) stick(PR.box, v3().copy(cn(u, -1)).setY(y - 40), v3().copy(cn(u, 1)).setY(y - 40), 22, WOOD[2], null);
-        for (const v of [-1, 1]) { const b = cn(-1, v), tp = v3().copy(b).add(v3().set(0, 190, 0)), arm = v3().copy(tp).addScaledVector(sd, v * 70); stick(PR.box, b, tp, 14, ST, null); stick(PR.box, tp, arm, 8, IRON, null); lamp(arm); } for (const v of [-1, 1]) for (let k = 1; k < 6; k++) { const p = v3().copy(s2.c).addScaledVector(d, hwTrunkR(s2.f) + (s2.limb - hw2 - hwTrunkR(s2.f)) * k / 6).addScaledVector(sd, v * 70).setY(y - 6); stick(PR.box, p, v3().copy(p).add(v3().set(0, 55, 0)), 7, ST, null); }
-        anchor.push({ a: th, y, r: hwTrunkR(s2.f) + 200, span: 0.12 }); } }
-    // seat k+1 (lower) climbs to seat k: a ladder up the trunk at the lower deck's edge, a landing, then a plank walk round the trunk
-    for (let j = anchor.length - 1; j > 0; j--) { const lo = anchor[j], hi = anchor[j - 1]; let dA = Math.atan2(Math.sin(hi.a - lo.a), Math.cos(hi.a - lo.a)); const sg = dA >= 0 ? 1 : -1, a0 = lo.a + sg * Math.min(lo.span * 0.8, Math.abs(dA)), fH = (hi.y - B) / H;
-      const rTop = hwTrunkR(fH) + 200, rB = Math.min(lo.r, hwTrunkR((lo.y - B) / H) + 200), p0 = v3().copy(ax((lo.y - B) / H)).addScaledVector(dirAt(a0), rB).setY(lo.y), p1 = v3().copy(ax(fH)).addScaledVector(dirAt(a0), rTop).setY(hi.y), sd = new THREE.Vector3(-Math.sin(a0), 0, Math.cos(a0));
-      for (const o of [-26, 26]) stick(PR.box, v3().copy(p0).addScaledVector(sd, o), v3().copy(p1).addScaledVector(sd, o).add(v3().set(0, 60, 0)), 9, WOOD[1], null);
-      const L = p0.distanceTo(p1); for (let k = 1; k < L / 45; k++) { const q = v3().lerpVectors(p0, p1, (k * 45) / L); stick(PR.box, v3().copy(q).addScaledVector(sd, -26), v3().copy(q).addScaledVector(sd, 26), 5, WOOD[1], null); }
-      block(PR.box, p1.x, p1.y - 24, p1.z, 160, 24, 160, -a0, WOOD[2], null); lamp(v3().copy(p1).add(v3().set(0, 160, 0)));
-      // plank walk round the trunk from the landing to the upper deck's edge
-      const a1 = hi.a - sg * hi.span * 0.85, rem = Math.atan2(Math.sin(a1 - a0), Math.cos(a1 - a0)); if (Math.abs(rem) < 0.05 || Math.sign(rem) !== sg) continue;
-      const n = Math.max(2, Math.ceil(Math.abs(rem) * rTop / 70)); let prev = p1, prevR = null;
-      for (let k = 1; k <= n; k++) { const a = a0 + rem * k / n, q = v3().copy(ax(fH)).addScaledVector(dirAt(a), rTop).setY(hi.y - 4); stick(PR.box, prev, q, 30, WOOD[2], null); const qr = v3().copy(ax(fH)).addScaledVector(dirAt(a), rTop + 40).setY(hi.y + 60); stick(PR.box, v3().copy(qr).setY(hi.y), qr, 6, ST, null); if (prevR) stick(PR.box, prevR, qr, 4, ROPE, null); prevR = qr; prev = q; } }
+  }
+
+
     // (the old pulley rig - wheel, rope and the crate dangling into the Hollow - is retired; the great limb stays)
-    const res = W.homes.filter((h) => h.heartwood); if (res.length) { T.cx = T.x; T.cy = T.y; T.ce = res.reduce((s2, h) => s2 + h.elev, 0) / res.length; } }
+    }
   function poseRope(r, a, b, th) { r.position.lerpVectors(a, b, 0.5); r.scale.set(th, a.distanceTo(b), th); r.quaternion.setFromUnitVectors(v3().set(0, 1, 0), v3().subVectors(b, a).normalize()); }
   function animPulley(t, night) {
     if (HWX.mush) { const k = 0.45 + night * 0.75; HWX.mush.color.setRGB(0.32 * k, 0.78 * k, 1.0 * k); HWX.hollowGlow.color.setRGB(0.3 * k, 0.75 * k, 0.95 * k); HWX.mushGlow.material.opacity = 0.12 + night * 0.5; HWX.mushGlow.visible = false; } }
@@ -675,16 +617,16 @@ diffuseColor *= sdc;
       CLB.spots.push({ type: 'climb', i: n++, x: m[0], y: m[1], up: hgt - 40, wide: !!c.wide, ico, rib, name: c.wide ? 'Great chasm' : 'Narrow crevice' }); }
     W.climbSpots = CLB.spots; }
   // solid footprints for Explore's nav: every house's model plan (its bounding box in the model frame, a touch inset) placed like the instance
-  function solids() { const out = []; if (!MD) return out; for (const h of W.homes) { if (h.heartwood || !h._key || !MD[h._key]) continue; const m = MD[h._key]; if (!m.bb) { const bb = new THREE.Box3(); for (const g of m.geos || []) { if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox); } m.bb = bb; }
+  function solids() { const out = []; if (!MD) return out; for (const h of W.homes) { if (!h._key || !MD[h._key]) continue; const m = MD[h._key]; if (!m.bb) { const bb = new THREE.Box3(); for (const g of m.geos || []) { if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox); } m.bb = bb; }
       out.push({ x: h.x, y: h.y, w: h._w, cs: Math.cos(h._rot), sn: Math.sin(h._rot), b: [m.bb.min.x * 0.94, m.bb.max.x * 0.94, m.bb.min.z * 0.94, m.bb.max.z * 0.94], player: !!h.isPlayer, key: h._key, doorH: m.doors && m.doors[0] ? m.doors[0].h * h._w : 0, doorW: m.doors && m.doors[0] ? m.doors[0].w * h._w : 0 }); } return out; }
   function buildModelScene() { if (!MD || !scene) return;
     for (const s2 of IM.all) for (const m of s2.meshes) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = [];
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
     const byKey = {}; const push = (k, o) => (byKey[k] || (byKey[k] = [])).push(o);
-    W.homes.forEach((h, i) => { const tier = tierOf(h); let key = h.heartwood ? (h.slot % 2 ? 'seatb' : 'seata') : HOUSE_KIT.keyFor(tier, hash1(i * 3.71 + 0.3)), w = h.heartwood ? HW_HOUSE : homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = h.heartwood ? Math.PI / 2 - h.hwTh : (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
+    W.homes.forEach((h, i) => { const tier = tierOf(h); let key = HOUSE_KIT.keyFor(tier, hash1(i * 3.71 + 0.3)), w = homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
       if (h.isPlayer && /^h\d/.test(key) && HOUSE_KIT.variant) { const pk = key + 'P' + Math.round(w * 10); if (!MD[pk]) { const raw = HOUSE_KIT.variant(key, 1), d0 = raw.doors[0]; MD[pk] = d0 ? HOUSE_KIT.variant(key, HOUSE_KIT.DOOR_H / (d0.h * w), true) : raw; } key = pk; } // the player's larger home: its door still the one world size
-      h._rot = rot; h._key = key; h._w = w; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9 + (h.heartwood ? 0.4 : 0), h }); yardProps(h, i, key, w); });
-    for (const k of HOUSE_KIT.KEYS.concat(['seata', 'seatb'], Object.keys(byKey).filter((q) => /P\d+$/.test(q)))) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
+      h._rot = rot; h._key = key; h._w = w; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9, h }); yardProps(h, i, key, w); });
+    for (const k of HOUSE_KIT.KEYS.concat(Object.keys(byKey).filter((q) => /P\d+$/.test(q)))) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
     let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - 2; nt++;
       push('t_' + k, { x: o.x, y, z: o.y, rot: (o.seed || 0.5) * TAU * 7, s, c: tintFor(o.seed * 100 + 3, 0.6), lum: lumAt(o.x, o.y) * 0.8 }); }
     for (const k of ['oak', 'sequoia', 'willow']) if (byKey['t_' + k]) { MD['t_' + k] = MD[k]; IM.trees.push(makeSet('t_' + k, byKey['t_' + k], { near: 1800, far: 26000, minZ: 0.0, shadow: true })); }
@@ -705,8 +647,8 @@ diffuseColor *= sdc;
     buildBillboards(); lodAt = null; st.models = { homes: W.homes.length, trees: nt, props: PR.box.length + PR.cyl.length + PR.lamp.length, smoke: PR.smoke.length }; }
   function fillProps(near) { const tv = v3(); for (const k of ['box', 'cyl', 'lamp']) { const im = IM.props[k], A = PR[k]; let n = 0;
       for (const p of A) { const o = p.o; let ok;
-        if (!o) ok = true; else if (!near) ok = !!o.heartwood;
-        else { const y = o.elev != null ? o.elev : (o._gy != null ? o._gy : (o._gy = meshH(o.x, o.y))), dx = o.x - T.x, dz = o.y - T.y; ok = (o.heartwood || dx * dx + dz * dz < 1.2e7) && frus.intersectsSphere(sph.set(tv.set(o.x, y, o.y), 160)); }
+        if (!o) ok = true; else if (!near) ok = false;
+        else { const y = o.elev != null ? o.elev : (o._gy != null ? o._gy : (o._gy = meshH(o.x, o.y))), dx = o.x - T.x, dz = o.y - T.y; ok = (dx * dx + dz * dz < 1.2e7) && frus.intersectsSphere(sph.set(tv.set(o.x, y, o.y), 160)); }
         if (!ok) continue; p.m.toArray(im.instanceMatrix.array, n * 16); im.instanceColor.array.set(p.c, n * 3); n++; }
       im.count = n; im.visible = n > 0; im.instanceMatrix.needsUpdate = true; im.instanceColor.needsUpdate = true; } }
   function updateModels(t, cam, night, pulse, LC) { if (!MD || !IM.all.length) return;
@@ -715,7 +657,7 @@ diffuseColor *= sdc;
     if (key !== lodAt || ++lodTick > 30) { lodAt = key; lodTick = 0; pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frus.setFromProjectionMatrix(pm);
       for (const s2 of IM.all) fillSet(s2, cam.z); fillProps(cam.z > 0.14); }
     IM.props.lamp.material.color.setRGB(0.35 + night * 0.75, 0.27 + night * 0.5, 0.16 + night * 0.25);
-    IM.glow.material.opacity = night * 0.28; IM.glow.material.size = st.camOv ? 7 : 26; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; if (HWX.signs) for (const b of HWX.signs) b.material.emissiveIntensity = night * 0.3; IM.glow.visible = false; /* no glowing orbs around the houses, in any mode or zoom (windows glow through their own emissive) */
+    IM.glow.material.opacity = night * 0.28; IM.glow.material.size = st.camOv ? 7 : 26; if (MD.h0a) MD.h0a.mat.emissiveIntensity = night * 0.8; IM.glow.visible = false; /* no glowing orbs around the houses, in any mode or zoom (windows glow through their own emissive) */
     IM.smoke.material.uniforms.uT.value = t; IM.smoke.visible = cam.z > 0.12; IM.smoke.material.uniforms.uS.value = renderer.getPixelRatio() * cssH / 900; IM.smoke.material.uniforms.uC.value.setRGB(0.86 - night * 0.6, 0.86 - night * 0.6, 0.88 - night * 0.55);
     animPulley(t, night); GRAND.anim(t, night, renderer.getPixelRatio() * cssH / 900);
     if (CLB.grp) { const k = 0.75 + 0.25 * Math.sin(t * 1.6); CLB.grp.children.forEach((o) => { if (o.isMesh) o.material.opacity = k; else if (o.isSprite) { o.material.opacity = 0.75 + 0.25 * Math.sin(t * 2.2); const sc = 120 * Math.max(0.8, Math.min(4, 0.5 / Math.max(0.05, cam.z))); o.scale.set(sc, sc, 1); } }); } }
@@ -749,7 +691,7 @@ diffuseColor *= sdc;
         ring = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0xffd46b, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4, toneMapped: false })); ring.frustumCulled = false; scene.add(ring); buildRoofLOD();
         ringGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,220,120,1)', 'rgba(255,200,90,.35)'), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true })); scene.add(ringGlow);
         // dim, sparse window lights for night
-        const pts = []; for (const h of W.homes) if (((h.lanternPhase * 10) | 0) % 3 === 0) { const w = homeW(h) * (h.heartwood ? 0.62 : 0.95); pts.push(h.x + (homeSeed(h) - 0.5) * w * 0.5, (h.elev != null ? h.elev : meshH(h.x, h.y)) + w * 0.3, h.y + w * 0.45); }
+        const pts = []; for (const h of W.homes) if (((h.lanternPhase * 10) | 0) % 3 === 0) { const w = homeW(h) * 0.95; pts.push(h.x + (homeSeed(h) - 0.5) * w * 0.5, (h.elev != null ? h.elev : meshH(h.x, h.y)) + w * 0.3, h.y + w * 0.45); }
         const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
         lightPts = new THREE.Points(pg, new THREE.PointsMaterial({ size: 9, map: glowTex('rgba(255,236,180,1)', 'rgba(255,190,100,.5)'), color: 0xffc878, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true })); scene.add(lightPts);
         moleSpr = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, alphaTest: 0.5 })); { const e = ART_MANIFEST.s.creatures_3; if (e) { const img = ART.atlas[e[0]], t = imgTex(img); t.offset.set(e[1] / img.width, (e[2] + e[4]) / img.height); t.repeat.set(e[3] / img.width, -e[4] / img.height); moleSpr.material.map = t; moleSpr.scale.set(130, 130 * e[4] / e[3], 1); moleSpr.center.set(0.5, 0.3); } } moleSpr.visible = false; scene.add(moleSpr);
@@ -768,7 +710,6 @@ diffuseColor *= sdc;
   function resize(w, h, dpr) { if (!renderer) return; cssW = w; cssH = h; renderer.setPixelRatio(Math.min(2, dpr)); renderer.setSize(w, h, false); cv3.style.width = w + 'px'; cv3.style.height = h + 'px'; camera.aspect = w / h; camera.updateProjectionMatrix(); }
   function dist(cam) { return cssH / (cam.z * 2 * Math.tan((FOV * Math.PI) / 360)); }
   function targetH(x, y) { let th = Math.max(meshH(x, y), P_H * (1 - clamp((Math.hypot(x, y) - CITY.hollowR) / 600, 0, 1)) - 200);
-    if (W.heartwood) { let bw = 0, be = 0; for (const h of W.homes) if (h.heartwood) { const w = 1 - smooth01(260, 700, Math.hypot(x - h.x, y - h.y)); if (w > bw) { bw = w; be = h.elev; } } if (bw > 0) th = th + (be - th) * bw; } // look at the Heartwood seat, not the pit floor below
     return th; }
   function place(cam, snap) {
     const OV = st.camOv; if (OV) { camera.position.copy(OV.P); camera.lookAt(OV.L); T.x = OV.L.x; T.h = OV.L.y; T.y = OV.L.z; camera.near = OV.near || 1.5; camera.far = OV.far || 32000; camera.updateProjectionMatrix(); camera.updateMatrixWorld(); return; } // Explore: the shared follow camera drives the view (and every screen projection)
@@ -790,18 +731,16 @@ diffuseColor *= sdc;
     if (!blockedAt(C, T.x, T.h, T.y, cp.x, cp.y, cp.z)) return;
     for (let p2 = ph - 0.06; p2 > -0.12; p2 -= 0.06) { const x = T.x + Math.sin(rot) * Math.cos(p2) * D, y = T.h + Math.sin(p2) * D, z = T.y + Math.cos(rot) * Math.cos(p2) * D; if (y < meshH(x, z) + 60) break; if (!blockedAt(C, T.x, T.h, T.y, x, y, z)) { cp.set(x, y, z); return; } }
     const hit = blockedAt(C, T.x, T.h, T.y, cp.x, cp.y, cp.z), L = Math.hypot(cp.x - T.x, cp.y - T.h, cp.z - T.y), k = Math.max(hit - 60, Math.min(L, 260)) / L; cp.set(T.x + (cp.x - T.x) * k, T.h + (cp.y - T.h) * k, T.y + (cp.z - T.y) * k); }
-  // is the straight line from a target point to a camera position clear of terrain, the Heartwood's trunk, its seat decks and houses, and its foliage?
+  // is the straight line from a target point to a camera position clear of terrain, the Heartwood's trunk and its foliage?
   function sightBlocked(tx, ty, tz, px, py, pz) { const Tw = W.heartwood, nearHW = Tw && (Math.hypot(tx - Tw.x, tz - Tw.y) < 9000 || Math.hypot(px - Tw.x, pz - Tw.y) < 9000);
     const L = Math.hypot(px - tx, py - ty, pz - tz) || 1, mx = (tx + px) / 2, mz = (tz + pz) / 2, R2 = Math.hypot(px - tx, pz - tz) / 2 + 300;
-    const nb = []; for (const h of W.homes) { if (h.heartwood || Math.hypot(h.x - mx, h.y - mz) > R2 || Math.hypot(h.x - tx, h.y - tz) < 30) continue; const w = homeW(h); nb.push([h.x, h.y, w * 0.62, meshH(h.x, h.y) + w * 1.45]); } // neighbouring houses in the way
+    const nb = []; for (const h of W.homes) { if (Math.hypot(h.x - mx, h.y - mz) > R2 || Math.hypot(h.x - tx, h.y - tz) < 30) continue; const w = homeW(h); nb.push([h.x, h.y, w * 0.62, meshH(h.x, h.y) + w * 1.45]); } // neighbouring houses in the way
     for (let i = 1; i <= 40; i++) { const u = i / 40, x = tx + (px - tx) * u, y = ty + (py - ty) * u, z = tz + (pz - tz) * u; for (const q of nb) if (y < q[3] && Math.hypot(x - q[0], z - q[1]) < q[2]) return 'house'; }
     for (let i = 1; i <= 40; i++) { const u = i / 40, x = tx + (px - tx) * u, y = ty + (py - ty) * u, z = tz + (pz - tz) * u; if (u * L < 70) continue; // the house's own yard
       if (y < meshH(x, z) + 12) return 'ground';
       if (!nearHW) continue; const f = (y - Tw.base) / Tw.H;
       if (f > -0.12 && f < 0.82) { const [ax0, az0] = hwAxis(f), r = hwTrunkR(f) * (f < 0.12 ? 1.7 : 1.3) + 60; if (Math.hypot(x - ax0, z - az0) < r) return 'trunk'; }
-      for (const s2 of HWX.seats) { if (y < s2.y - 380 || y > s2.y + HW_HOUSE * 1.5) continue; if (Math.hypot(tx - (s2.limb ? s2.m.x : s2.c.x + Math.cos(s2.th) * (s2.ro + s2.ri) / 2), tz - (s2.limb ? s2.m.z : s2.c.z + Math.sin(s2.th) * (s2.ro + s2.ri) / 2)) < 1000) continue; // the target's own deck
-        if (s2.limb) { if (Math.hypot(x - s2.m.x, z - s2.m.z) < s2.hw2 * 1.5) return 'deck'; }
-        else { const dx = x - s2.c.x, dz = z - s2.c.z, r = Math.hypot(dx, dz), da = Math.atan2(Math.sin(Math.atan2(dz, dx) - s2.th), Math.cos(Math.atan2(dz, dx) - s2.th)); if (r > s2.ri * 0.9 && r < s2.ro + 80 && Math.abs(da) < s2.span + 0.08) return 'deck'; } } }
+ }
     if (nearHW && HWX.clumps.length && blockedAt(HWX.clumps, tx, ty, tz, px, py, pz)) return 'leaves';
     return null; }
   // pick a camera direction, tilt and zoom that see a spot clearly: start from the preferred view, then turn round it, tilt up, and move in

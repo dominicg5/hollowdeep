@@ -485,7 +485,7 @@ function artStatic(c, x0, y0, x1, y1, s) {
   if (!ART.ground3d) for (const b of W.bridges) if (boxHit(b.bbox, x0, y0, x1, y1)) artBridge(c, b.p, b.q, b.w, s); // (never painted into the 3D ground: the bridges there are real)
   for (const f of W.falls) if (boxHit([f.x - 80, f.y - 60, f.x + 80, f.y + 140], x0, y0, x1, y1)) { softShadow(c, f.x + 6, f.y + 40, 30, 14, 0.7); drawSprite(c, 'props2_2', f.x, f.y, 62, 0.42, 0.1); }
   if (ART.ground3d) { // ground texture for the 3D map: only footprints/shadows here, buildings and trees stand up as billboards
-    for (const o of objs) { if (o.layer !== 1 || o.isPlayer || o.heartwood) continue; if (o.type === 'home') { const w = homeW(o); softShadow(c, o.x + w * 0.12, o.y + w * 0.06, w * 0.5, w * 0.3, 0.75); } else if (o.type === 'tree') softShadow(c, o.x + o.r * 0.5, o.y + o.r * 0.2, o.r * 1.3, o.r * 0.7, 0.7); }
+    for (const o of objs) { if (o.layer !== 1 || o.isPlayer) continue; if (o.type === 'home') { const w = homeW(o); softShadow(c, o.x + w * 0.12, o.y + w * 0.06, w * 0.5, w * 0.3, 0.75); } else if (o.type === 'tree') softShadow(c, o.x + o.r * 0.5, o.y + o.r * 0.2, o.r * 1.3, o.r * 0.7, 0.7); }
     return; }
   if (s < 0.05) { for (const m of W.mountains) if (mtnHit(m, x0, y0, x1, y1)) artObj(c, m, s); // far LOD: settlements read as warm roof specks, big features only
     for (const o of objs) { if (o.isPlayer) continue; if (o.type === 'home') { const w = Math.max(1.2 / s, o.size * 0.9), rc = ROOF_SPECK[roofVar(o)]; c.fillStyle = rc[0]; c.fillRect(o.x - w / 2, o.y - w / 2, w, w * 0.8); c.fillStyle = rc[1]; c.fillRect(o.x - w / 2, o.y - w / 2, w * 0.6, w * 0.45); }
