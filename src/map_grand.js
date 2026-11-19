@@ -13,7 +13,9 @@ const GRAND = (() => {
   /* ---------- the Lumen Tree's front: plain rim ground all round the tree (no lip cliff, lake, falls, streams or hero bridge) ---------- */
   const toW = (d, s) => [G.T.x + G.ox * d + G.lx * s, G.T.y + G.oy * d + G.ly * s];
   const toL = (x, y) => { const dx = x - G.T.x, dy = y - G.T.y; return [dx * G.ox + dy * G.oy, dx * G.lx + dy * G.ly]; };
-  function carve(x, y, h, mh) { return [h, mh]; }
+  // the ground in front of the door is evened out into the same gentle grassy rim ground as all round the tree (no ridges, cliffs or ledges)
+  function carve(x, y, h, mh) { if (!G) return [h, mh]; const [d, s2] = toL(x, y); if (d < -300 || d > 5000 || Math.abs(s2) > 4400) return [h, mh]; const w = sm(5000, 3000, d) * sm(4400, 3000, Math.abs(s2)) * sm(-300, 400, d); if (w <= 0) return [h, mh];
+    const tgt = CITY.summitH + 25 * Math.sin(d / 900 + s2 / 1300) * Math.cos(s2 / 1100); return [h + (tgt - h) * w, mh * (1 - w)]; }
   function wet() { return false; }
   // the tree's local frame (d out from the trunk through the door, s across)
   function fit() { const T = W.heartwood; if (!T) { G = null; return; } const o = T.in + Math.PI, ox = Math.cos(o), oy = Math.sin(o); G = { T, ox, oy, lx: -oy, ly: ox, rT: Math.hypot(T.x, T.y), moved: [] }; }
@@ -89,7 +91,7 @@ const GRAND = (() => {
       const RING = [[38, () => -40], [62, () => -32], [110, () => -46], [190, (x) => Math.min(-70, zt(x) - 60)], [260, (x) => Math.min(-110, zt(x) - 120)]], P = [], UV = [], I = []; let acc = 0;
       OL.forEach(([x, y], i) => { if (i) acc += Math.hypot(x - OL[i - 1][0], y - OL[i - 1][1]); const u = i / (NO - 1), w = 1 + 0.14 * Math.sin(u * 29) + 0.08 * Math.sin(u * 71), foot = 1 + 0.6 * (sm(0.12, 0, u) + sm(0.88, 1, u));
         RING.forEach(([o, z], k) => { const oo = k > 1 ? o * w * foot : o, px = x + nrm[i][0] * oo, py = y + nrm[i][1] * oo; P.push(px, py, z(px) - (k === 1 ? 4 + 4 * Math.sin(u * 37) : 0)); UV.push(acc / 260, k / 3); }); });
-      const NR = RING.length; for (let i = 0; i < NO - 1; i++) for (let k = 0; k < NR - 1; k++) { const a = i * NR + k, b = a + NR; I.push(a, b, a + 1, a + 1, b, b + 1); }
+      const NR = RING.length; for (let i = 0; i < NO - 1; i++) for (let k = 0; k < NR - 1; k++) { const a = i * NR + k, b = a + NR; I.push(a, a + 1, b, a + 1, b + 1, b); } /* wound to face out (it was back-facing, so the double-sided shader flipped its normals into the trunk and lit it dark) */
       const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); bg.setIndex(I); bg.computeVertexNormals();
       { const D0 = doorSpot(C); grp.updateMatrixWorld(true); const Pp = bg.attributes.position, Nn = bg.attributes.normal, Uu = bg.attributes.uv, cols = [], wv = v3(), wn = v3(), nm = new THREE.Matrix3().getNormalMatrix(grp.matrixWorld); let prev = null, acc2 = 0;
         // hard clip: no rim vertex may come inside the trim's outer edge (trim = casing tube along the outline scaled 1.03, radius 13)
@@ -99,8 +101,10 @@ const GRAND = (() => {
         Pp.needsUpdate = true; bg.computeVertexNormals();
         for (let i = 0; i < Pp.count; i++) { wv.set(Pp.getX(i), Pp.getY(i), Pp.getZ(i)).applyMatrix4(grp.matrixWorld); wn.set(Nn.getX(i), Nn.getY(i), Nn.getZ(i)).applyMatrix3(nm).normalize(); const c = C.moss ? C.moss(wv, wn, 0) : [1, 1, 1]; cols.push(c[0], c[1], c[2]);
           const ring = i % NR, row = (i / NR) | 0; const ang = Math.atan2(wv.z - D0.cz, wv.x - D0.cx) - D0.OUT; Uu.setXY(i, Math.atan2(Math.sin(ang), Math.cos(ang)) / (Math.PI * 2) * 7, (wv.y - (C.T.base - 0.07 * C.T.H)) / 900); void ring; void row; }
-        bg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); Uu.needsUpdate = true; }
-      const rim = new THREE.Mesh(bg, C.trunkMat || barkMat); rim.receiveShadow = true; grp.add(rim); }
+        bg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3)); Uu.needsUpdate = true;
+        /* light it exactly like the trunk: radial trunk normals (from the trunk axis), blended a little with its own shape, so day and night it reads as one continuous bark */
+        { const inv = new THREE.Matrix3().getNormalMatrix(new THREE.Matrix4().copy(grp.matrixWorld).invert()), q = v3(); for (let i = 0; i < Pp.count; i++) { wv.set(Pp.getX(i), Pp.getY(i), Pp.getZ(i)).applyMatrix4(grp.matrixWorld); q.set(wv.x - D0.cx, 0, wv.z - D0.cz).normalize(); wn.set(Nn.getX(i), Nn.getY(i), Nn.getZ(i)).applyMatrix3(nm).normalize(); if (wn.dot(q) < 0) wn.negate(); q.lerp(wn, 0.3).normalize().applyMatrix3(inv).normalize(); Nn.setXYZ(i, q.x, q.y, q.z); } Nn.needsUpdate = true; } }
+      const rim = new THREE.Mesh(bg, C.trunkMat || barkMat); rim.receiveShadow = false; /* (it sits just inside the trunk's own shadow volume: receiving shadows darkened it into a separate-looking patch) */ grp.add(rim); }
     // lanterns on iron brackets either side of the frame
     GX.lampM = new THREE.MeshBasicMaterial({ color: 0xffc070, toneMapped: false }); const lampPts = [];
     const lampIron = new THREE.MeshLambertMaterial({ color: 0x3a2618 }); for (const s of [-1, 1]) { const bx = s * (hw + 165), cord = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 90, 4), lampIron); cord.position.set(bx, 655, 30); grp.add(cord);
