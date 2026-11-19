@@ -283,9 +283,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='c126ea17';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build c126ea17</div>
-<script src="assets/vendor/three.min.js?v=c126ea17"></script>
+<script>window.HD_BUILD='822580f1';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 822580f1</div>
+<script src="assets/vendor/three.min.js?v=822580f1"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -5126,23 +5126,25 @@ const CharView = (() => {
         vec3 col = mix(vec3(0.8, 0.06, 0.02), vec3(1.0, 0.62, 0.18), core);
         float a = clamp(body * pow(1.0 - vLife, 0.8) * 1.3, 0.0, 1.0); if (a < 0.01) discard; gl_FragColor = vec4(col * a * 1.1, a); }` });
   // big flowing flame licks: camera-facing ribbons rooted on the head that rise toward world-up, taper, sway and lick upward (one draw call; same uniforms as the ember points)
-  function flameRibbons(licks) { const NS = 10, pos = [], uv = [], base = [], dir = [], dim = [], idx = []; const r = prng(91);
-    licks.forEach(([b, o, H, Wd], li) => { const v0 = pos.length / 3, sd = r(); for (let j = 0; j <= NS; j++) for (const x of [-1, 1]) { pos.push(0, 0, 0); uv.push(x, j / NS); base.push(b.x, b.y, b.z); dir.push(o.x, o.y, o.z); dim.push(H, Wd, sd); }
+  // flame licks: camera-facing tapered tongues rooted on the head - a full base, a waist and a curling tip that sways and rises toward world-up; additive, one draw call
+  function flameRibbons(licks) { const NS = 14, pos = [], uv = [], base = [], dir = [], dim = [], idx = []; const r = prng(91);
+    licks.forEach(([b, o, H, Wd]) => { const v0 = pos.length / 3, sd = r(); for (let j = 0; j <= NS; j++) for (const x of [-1, 1]) { pos.push(0, 0, 0); uv.push(x, j / NS); base.push(b.x, b.y, b.z); dir.push(o.x, o.y, o.z); dim.push(H, Wd, sd); }
       for (let j = 0; j < NS; j++) { const a = v0 + j * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } });
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute('aBase', new THREE.Float32BufferAttribute(base, 3)); g.setAttribute('aDir', new THREE.Float32BufferAttribute(dir, 3)); g.setAttribute('aDim', new THREE.Float32BufferAttribute(dim, 3)); g.setIndex(idx);
-    const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor, uniforms: { uTime: { value: 0 }, uUp: { value: V(0, 1, 0) }, uScale: { value: 400 } },
+    const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, uniforms: { uTime: { value: 0 }, uUp: { value: V(0, 1, 0) }, uScale: { value: 400 } },
       vertexShader: `attribute vec3 aBase; attribute vec3 aDir; attribute vec3 aDim; uniform float uTime; uniform vec3 uUp; varying vec2 vUv; varying float vSeed;
-        void main() { float y = uv.y, sd = aDim.z, H = aDim.x * (0.8 + 0.25 * sin(uTime * (3.0 + sd * 2.0) + sd * 40.0)); vec3 d = normalize(mix(aDir, uUp, 0.55 + 0.35 * y));
-          vec3 sw = normalize(cross(uUp, aDir + vec3(0.001, 0.0, 0.0001)));
-          vec3 P = aBase + d * H * y + sw * H * 0.22 * y * y * sin(uTime * 6.0 + sd * 30.0 - y * 4.0);
-          vec4 mv = modelViewMatrix * vec4(P, 1.0); vec3 T = normalize((modelViewMatrix * vec4(d, 0.0)).xyz); vec3 S = normalize(cross(T, vec3(0.0, 0.0, 1.0)));
-          float w = aDim.y * pow(1.0 - y, 0.65) * (0.75 + 0.25 * sin(y * 9.0 - uTime * 9.0 + sd * 17.0)) * smoothstep(0.0, 0.12, y + 0.04);
+        void main() { float y = uv.y, sd = aDim.z, ph = uTime * (2.6 + sd * 1.8) + sd * 40.0; float H = aDim.x * (0.85 + 0.2 * sin(ph));
+          vec3 d = normalize(mix(aDir, uUp, 0.35 + 0.6 * y)); vec3 sw = normalize(cross(uUp, aDir + vec3(0.001, 0.0, 0.0001)));
+          float curl = sin(y * 3.4 - uTime * 4.5 + sd * 30.0) * pow(y, 1.5);
+          vec3 P = aBase + d * H * y + sw * H * 0.32 * curl;
+          vec4 mv = modelViewMatrix * vec4(P, 1.0); vec3 T = normalize((modelViewMatrix * vec4(d + sw * 0.9 * cos(y * 3.4 - uTime * 4.5 + sd * 30.0) * y, 0.0)).xyz); vec3 S = normalize(cross(T, vec3(0.0, 0.0, 1.0)));
+          float w = aDim.y * smoothstep(-0.02, 0.16, y) * pow(1.0 - y, 1.25) * (1.0 + 0.7 * exp(-pow((y - 0.22) / 0.17, 2.0)));
           mv.xyz += S * uv.x * w; vUv = uv; vSeed = sd; gl_Position = projectionMatrix * mv; }`,
       fragmentShader: `varying vec2 vUv; varying float vSeed; uniform float uTime;
-        void main() { float y = vUv.y, x = abs(vUv.x + 0.25 * y * sin(y * 7.0 - uTime * 10.0 + vSeed * 20.0)); float edge = smoothstep(1.0, 0.45, x);
-          float tip = smoothstep(1.0, 0.55, y + 0.15 * sin(uTime * 13.0 + vSeed * 50.0) * y); float core = smoothstep(0.55, 0.0, x) * (1.0 - y);
-          vec3 col = mix(vec3(0.85, 0.08, 0.02), mix(vec3(1.0, 0.45, 0.08), vec3(1.0, 0.85, 0.45), core), smoothstep(0.0, 0.8, 1.0 - y));
-          float a = clamp(edge * tip * (0.7 + 0.3 * (1.0 - y)) * 1.35, 0.0, 1.0); if (a < 0.01) discard; gl_FragColor = vec4(col * a, a); }` });
+        void main() { float y = vUv.y, x = abs(vUv.x); float m = 1.0 - smoothstep(0.6, 1.0, x); float tip = 1.0 - smoothstep(0.78, 1.0, y + 0.08 * sin(uTime * 11.0 + vSeed * 50.0));
+          float core = (1.0 - smoothstep(0.0, 0.45, x)) * (1.0 - smoothstep(0.2, 0.75, y)); float mid = (1.0 - smoothstep(0.2, 0.8, x)) * (1.0 - smoothstep(0.4, 0.95, y));
+          vec3 col = vec3(0.75, 0.1, 0.02) * m + vec3(0.55, 0.3, 0.03) * mid + vec3(0.5, 0.45, 0.25) * core;
+          float a = m * tip * smoothstep(0.0, 0.06, y); if (a < 0.01) discard; gl_FragColor = vec4(col * a, 1.0); }` });
     const ms = new THREE.Mesh(g, m); ms.frustumCulled = false; ms.renderOrder = 6; return ms; }
   // emit flame sites along a set of polylines: base points + outward directions
   function flamePoints(sites) { const pos = [], out = [], seed = []; const r = prng(77);
@@ -5302,23 +5304,26 @@ const CharView = (() => {
     // the head: one heavy crescent - a long sweep back and down to a molten point, a shorter hooked point up front
     const head = new THREE.Group(); head.position.y = 0.68; px.add(head);
     part(head, new THREE.DodecahedronGeometry(0.066, 0), onyx, [0, -0.012, 0], [0.2, 0.4, 0], [1, 1.45, 0.95]);
-    const BW = 0.11, HW = 0.08, BT = 0.05, HT = 0.04, licks = [];
-    const back = onyxBlade([[0.02, 0.03], [-0.11, 0.07], [-0.23, 0.03], [-0.33, -0.1], [-0.39, -0.34]], (u) => BW * (1 - Math.pow(u, 1.2)) + 0.004, (u) => BT * (1 - u * 0.85) + 0.003, 10, 0.16, r);
-    const hook = onyxBlade([[0, 0.04], [0.11, 0.1], [0.21, 0.13], [0.29, 0.125], [0.36, 0.09]], (u) => HW * (1 - Math.pow(u, 1.1)) + 0.003, (u) => HT * (1 - u * 0.85) + 0.002, 9, 0.16, r);
+    const BW = 0.1, HW = 0.072, BT = 0.044, HT = 0.036, licks = [];
+    // the crescent: one smooth, sharp faceted blade sweeping back and down to a needle point, a smooth hooked point up front
+    const back = onyxBlade([[0.02, 0.03], [-0.11, 0.075], [-0.24, 0.035], [-0.335, -0.1], [-0.395, -0.35]], (u) => BW * Math.pow(1 - u, 1.05) + 0.0012, (u) => BT * (1 - u * 0.9) + 0.0012, 16, 0.03, r);
+    const hook = onyxBlade([[0, 0.04], [0.11, 0.1], [0.21, 0.13], [0.3, 0.12], [0.37, 0.075]], (u) => HW * Math.pow(1 - u, 1.0) + 0.001, (u) => HT * (1 - u * 0.9) + 0.001, 14, 0.03, r);
     part(head, back.g, onyx); part(head, hook.g, onyx);
-    // the wing: thick faceted slab rocks stacked along the sweep - an outer row of big slabs that make the silhouette, and a row on each face that overlaps it like broken shale
-    const slab = () => { const g = new THREE.CylinderGeometry(0.6, 1, 1, 5, 1).rotateZ(Math.PI / 2), P = g.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, P.getY(i) * (1 + (r() - 0.5) * 0.35)); g.computeVertexNormals(); return g.toNonIndexed(); };
-    for (const [B, wm, tm, n, u0, u1, sU, sz] of [[back, BW, BT, 7, 0.0, 0.78, -1, 1], [hook, HW, HT, 4, 0.04, 0.6, 1, 0.82]]) for (let i = 0; i < n; i++) { const u = u0 + (u1 - u0) * i / (n - 1), p = B.C.getPointAt(u), t = B.C.getTangentAt(u), Nn = V(-t.y, t.x, 0).multiplyScalar(sU), w = wm * (1 - Math.pow(u, 1.2)), k = sz * (1 - u * 0.5), ang = Math.atan2(t.y, t.x);
-      const c = p.clone().addScaledVector(Nn, w * 0.55 + 0.014 * k); part(head, slab(), i % 2 ? onyx2 : onyx, [c.x, c.y, (r() - 0.5) * 0.01], [(r() - 0.5) * 0.3, 0, ang + sU * 0.32 + (r() - 0.5) * 0.25], [0.135 * k, 0.07 * k, (tm * 1.9 + 0.02) * k]);
-      for (const s of [-1, 1]) if (i % 2 === (s > 0 ? 0 : 1) || i < 3) { const f = p.clone().addScaledVector(Nn, w * (0.05 + r() * 0.2)); part(head, slab(), r() < 0.5 ? onyx : onyx2, [f.x, f.y, s * (tm * (1 - u * 0.85) + 0.004)], [s * 0.35, (r() - 0.5) * 0.3, ang + sU * 0.5 + (r() - 0.5) * 0.4], [0.1 * k, 0.055 * k, 0.026 * k]); }
-      if (B === back || i < 3) licks.push([V(c.x, c.y + head.position.y, 0).addScaledVector(Nn, 0.03 * k), V(Nn.x * 0.6, Math.max(0.5, Nn.y), 0).normalize(), (0.26 + r() * 0.16) * k, 0.075 * k]);
-      sites.push([V(c.x, c.y + head.position.y, 0).addScaledVector(Nn, 0.04 * k), V(Nn.x, Math.max(0.4, Nn.y), 0).normalize()]); }
-    // flame ribbons up from the core, and along the underside toward the point
-    for (const s of [-1, 1]) licks.push([V(-0.02, head.position.y + 0.02, s * 0.075), V(-0.25, 1, s * 0.3).normalize(), 0.42, 0.1]);
-    for (let i = 0; i < 4; i++) { const u = 0.45 + i * 0.13, p = back.C.getPointAt(u), t = back.C.getTangentAt(u), w = BW * (1 - Math.pow(u, 1.2)); const q = p.clone().add(V(-t.y, t.x, 0).multiplyScalar(w)); licks.push([q.add(V(0, head.position.y, 0)), V(-0.6, 0.4, 0).normalize(), 0.2, 0.055]); }
+    // long tapered shards layered like feathers along the back of the sweep: each one roots inside the blade and lies along the curve toward the point, overlapping the next
+    const shard = (B, u0, du, out, wd, th, z, m) => { const P = (u, o) => { const p = B.C.getPointAt(Math.min(0.995, u)), t = B.C.getTangentAt(Math.min(0.995, u)); return p.add(V(-t.y, t.x, 0).multiplyScalar(o)); };
+      const w0 = B === back ? BW : HW, wa = (u) => w0 * Math.pow(1 - Math.min(0.995, u), 1.05), p0 = P(u0, out.s * wa(u0) * 0.5), p1 = P(u0 + du * 0.5, out.s * (wa(u0 + du * 0.5) * 0.95 + out.k * 0.55)), p2 = P(u0 + du, out.s * (wa(u0 + du) + out.k));
+      const sb = onyxBlade([[p0.x, p0.y], [p1.x, p1.y], [p2.x, p2.y]], (u) => wd * Math.pow(1 - u, 0.9) + 0.0008, (u) => th * (1 - u * 0.85) + 0.0008, 6, 0.04, r); const ms = part(head, sb.g, m); ms.position.z = z; return { p2, n: V(p2.x - p0.x, p2.y - p0.y, 0).normalize() }; };
+    for (let i = 0; i < 5; i++) { const u0 = 0.0 + i * 0.15, k = 1 - i * 0.1, e = shard(back, u0, 0.32, { s: -1, k: 0.07 * k }, 0.085 * k, 0.03 * k, (i % 2 ? 1 : -1) * 0.006, i % 2 ? onyx2 : onyx);
+      licks.push([V(e.p2.x * 0.55 + back.C.getPointAt(Math.min(0.99, u0 + 0.12)).x * 0.45, e.p2.y * 0.55 + back.C.getPointAt(Math.min(0.99, u0 + 0.12)).y * 0.45 + head.position.y, 0), V(e.n.x * 0.2, 1, 0).normalize(), (0.2 + r() * 0.1) * k, 0.06 * k]); }
+    for (let i = 0; i < 3; i++) { const k = 1 - i * 0.15; shard(hook, 0.02 + i * 0.17, 0.3, { s: 1, k: 0.045 * k }, 0.06 * k, 0.025 * k, (i % 2 ? -1 : 1) * 0.005, i % 2 ? onyx : onyx2); }
+    // large angular plates lying on both faces along the curve (the faceted face of the wing)
+    for (const s of [-1, 1]) for (const [B, u0, du, wd, th] of [[back, 0.0, 0.45, 0.05, 0.012], [back, 0.3, 0.45, 0.035, 0.01], [hook, 0.0, 0.5, 0.036, 0.01]]) { const tm = B === back ? BT : HT; shard(B, u0, du, { s: B === back ? -1 : 1, k: -0.01 }, wd, th, s * (tm * (1 - (u0 + du * 0.4) * 0.9) + 0.002), r() < 0.5 ? onyx : onyx2); }
+    // flame licks up from the core and off the underside toward the point
+    for (const s of [-1, 1]) licks.push([V(-0.02, head.position.y + 0.03, s * 0.06), V(-0.15, 1, s * 0.25).normalize(), 0.3, 0.075]);
+    for (let i = 0; i < 3; i++) { const u = 0.55 + i * 0.13, p = back.C.getPointAt(u), t = back.C.getTangentAt(u), w = BW * Math.pow(1 - u, 1.05); const q = p.clone().add(V(-t.y, t.x, 0).multiplyScalar(w)); licks.push([q.add(V(0, head.position.y, 0)), V(-0.5, 0.6, 0).normalize(), 0.09, 0.026]); }
     // the blade's glowing edge (molten toward the point) and veins across both faces
     // the molten underside edge: a hot core line and a wide additive glow along the blade's concave edge, brightest toward the point
-    { const e = []; for (let i = 0; i <= 18; i++) { const u = 0.18 + 0.82 * i / 18, p = back.C.getPointAt(u), t = back.C.getTangentAt(u), w = BW * (1 - Math.pow(u, 1.2)) + 0.004; e.push(p.clone().add(V(-t.y, t.x, 0).multiplyScalar(w * 0.97))); } const ec = new THREE.CatmullRomCurve3(e);
+    { const e = []; for (let i = 0; i <= 18; i++) { const u = 0.18 + 0.82 * i / 18, p = back.C.getPointAt(u), t = back.C.getTangentAt(u), w = BW * Math.pow(1 - u, 1.05) + 0.0012; e.push(p.clone().add(V(-t.y, t.x, 0).multiplyScalar(w * 0.97))); } const ec = new THREE.CatmullRomCurve3(e);
       part(head, new THREE.TubeGeometry(ec, 40, 0.0055, 5, false), hotM, null, null, null, { ink: false, shadow: false }); part(head, new THREE.TubeGeometry(ec, 40, 0.0028, 4, false), new THREE.MeshBasicMaterial({ color: 0xffd27a }), null, null, null, { ink: false, shadow: false });
       part(head, new THREE.TubeGeometry(ec, 40, 0.016, 6, false), new THREE.MeshBasicMaterial({ color: 0xff5a1c, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }), null, null, null, { ink: false, shadow: false }); }
     for (const [B, wm, tm] of [[back, BW, BT], [hook, HW, HT]]) for (const s of [-1, 1]) for (let k = 0; k < 2; k++) { const pts = []; for (let i = 0; i <= 10; i++) { const u = 0.04 + 0.82 * i / 10, p = B.C.getPointAt(u), t = B.C.getTangentAt(u), w = wm * (1 - Math.pow(u, 1.25)), f = (k ? -0.4 : 0.25) + 0.25 * Math.sin(i * 1.7 + k * 2 + s); pts.push(p.clone().add(V(-t.y, t.x, 0).multiplyScalar(w * f)).add(V(0, 0, s * (tm * (1 - u * 0.9) * 0.9 + 0.002)))); }
