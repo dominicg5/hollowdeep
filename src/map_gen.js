@@ -149,6 +149,41 @@ const chasmDist = (x, y) => segGridDist(W.crackGrid, 160, x, y);
 const riverDist = (x, y) => segGridDist(W.riverGrid, 160, x, y);
 function isWet(x, y, m) { return inLake(x, y, m) || riverDist(x, y) < (m || 0) || (typeof GRAND !== 'undefined' && GRAND.wet(x, y, m)); } // (+ the lakes and streams)
 
+/* ---------- biomes (trees/biome_transitions, Dominic: "each part of the map its own identity"): a smooth weight field. Near water: willow/alder
+   lakeside; around each mine its own approach (coal: dark conifers, copper: scrub and thorn, tin: pale birch and pine); the open land is a patchwork
+   of oak meadow, birch grove, beech-maple wood and ash/thorn hedgerow from low-frequency noise. Species are picked with probability = weight, so
+   every border is a gradual blend over tens of metres, never a line. ---------- */
+const MINE_SPOTS = [[748, 1026, 'coal'], [610, 126, 'tin'], [1386, 656, 'tin'], [111, 693, 'coal'], [1237, 1137, 'tin'], [278, 1150, 'tin'], [802, 567, 'coal'], [256, 316, 'coal'], [471, 711, 'copper'], [579, 1338, 'coal'], [939, 1308, 'coal'], [1048, 854, 'copper'], [946, 154, 'copper'], [536, 409, 'copper'], [272, 894, 'coal'], [1357, 911, 'coal'], [515, 1096, 'copper'], [274, 539, 'tin'], [1000, 642, 'coal'], [603, 874, 'coal'], [720, 325, 'coal'], [427, 210, 'coal'], [944, 1021, 'copper'], [748, 1241, 'tin'], [1254, 770, 'coal'], [1103, 1250, 'coal'], [1118, 1012, 'coal'], [879, 865, 'coal'], [306, 721, 'coal'], [569, 569, 'coal']];
+const MINES_W = MINE_SPOTS.map(([px, py, type]) => ({ x: (px - 744.5) * 16.05, y: (py - 715.4) * 16.05, type }));
+function mineNear(x, y) { const o = { coal: 1e9, copper: 1e9, tin: 1e9 }; for (const m of MINES_W) { const d = Math.hypot(x - m.x, y - m.y); if (d < o[m.type]) o[m.type] = d; } return o; }
+function wetNear(x, y) { return isWet(x, y, 40) ? 1 : isWet(x, y, 110) ? 0.75 : isWet(x, y, 220) ? 0.4 : isWet(x, y, 360) ? 0.15 : 0; } /* every lake, river and the Lumen Tree's streams */
+function biomeAt(x, y) { const w = {}, mn = mineNear(x, y), ws = wetNear(x, y);
+  const near = (d, r0, r1) => 1 - smooth01g(r0, r1, d); // 1 inside r0, fading to 0 at r1 (units; 6.35 = 1 m)
+  w.coal = near(mn.coal, 280, 1150); w.copper = near(mn.copper, 260, 1050); w.tin = near(mn.tin, 260, 1050); w.water = ws;
+  const n1 = vnoise(x / 2600 + 3.1, y / 2600 - 1.7), n2 = vnoise(x / 1700 - 5.3, y / 1700 + 2.9), rest = Math.max(0, 1 - Math.max(w.coal, w.copper, w.tin, w.water) * 1.1);
+  const z = { oak: 0.35 + smooth01g(0.4, 0.6, n1) * (1 - smooth01g(0.5, 0.7, n2)), birch: (1 - smooth01g(0.24, 0.38, n1)) * 1.4, wood: smooth01g(0.48, 0.66, n2) * smooth01g(0.3, 0.5, n1) * 1.4, hedge: 0.18 };
+  const zs = z.oak + z.birch + z.wood + z.hedge; for (const k in z) w[k] = z[k] / zs * rest; return w; }
+const BIOME_TREES = { // [key, weight] per zone
+  water: [['willowW', 4], ['willowW2', 3], ['alder', 2], ['alder2', 2], ['birch3', 1]],
+  coal: [['pineDead', 3], ['pineDead2', 3], ['pine', 2], ['pine2', 2], ['spruce2', 1]], /* charred dead pines among a few living ones */
+  copper: [['hawthorn', 3], ['hawthorn2', 2], ['oakY', 2], ['ash2', 2], ['crabapple2', 1]],
+  tin: [['birch', 3], ['birch2', 3], ['birch3', 2], ['pine2', 2], ['ash', 1]],
+  oak: [['oakM', 3], ['oak', 2], ['oak2', 2], ['oak3', 2], ['oakY', 2], ['oakLean', 1], ['maple', 1], ['hawthorn', 1]],
+  birch: [['birch', 4], ['birch2', 4], ['birch3', 3], ['ash', 1], ['oakY', 1]],
+  wood: [['beech', 3], ['beech2', 2], ['maple', 3], ['maple2', 2], ['sycamore', 2], ['sycamore2', 1], ['oakM', 1]],
+  hedge: [['ash', 2], ['ash2', 2], ['hawthorn', 2], ['crabapple', 2], ['crabapple2', 1], ['sycamore', 1], ['maple2', 1]] };
+/* biome weights cached on a 160-unit grid (blends run over hundreds of units): one exact biomeAt per cell, then bilinear - the tree grid, props and ground texture
+   all sample this instead of the exact field (~10 us a call, too slow x100k on a phone). Rebuilt whenever the world object changes. */
+const BZK = ['coal', 'copper', 'tin', 'water', 'oak', 'birch', 'wood', 'hedge'], BZC = { W: null, N: 0, S: 160, x0: 0, d: null };
+function biomeFast(x, y) { if (BZC.W !== W) { const S = BZC.S, Rr = (typeof CITY !== 'undefined' ? CITY.R : 13000) + 1800, N = Math.ceil(2 * Rr / S) + 1; BZC.N = N; BZC.x0 = -Rr; BZC.d = new Float32Array(N * N * 8); for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const w = biomeAt(-Rr + i * S, -Rr + j * S), o = (j * N + i) * 8; for (let k = 0; k < 8; k++) BZC.d[o + k] = w[BZK[k]]; } BZC.W = W; }
+  const N = BZC.N, fx = Math.min(N - 1.001, Math.max(0, (x - BZC.x0) / BZC.S)), fy = Math.min(N - 1.001, Math.max(0, (y - BZC.x0) / BZC.S)), i = fx | 0, j = fy | 0, u = fx - i, v = fy - j, d = BZC.d, o00 = (j * N + i) * 8, o10 = o00 + 8, o01 = o00 + N * 8, o11 = o01 + 8, w = {};
+  for (let k = 0; k < 8; k++) w[BZK[k]] = (d[o00 + k] * (1 - u) + d[o10 + k] * u) * (1 - v) + (d[o01 + k] * (1 - u) + d[o11 + k] * u) * v; return w; }
+function pickW(list, h) { let t = 0; for (const [, v] of list) t += v; let a = h * t; for (const [k, v] of list) { a -= v; if (a <= 0) return k; } return list[list.length - 1][0]; }
+/* the tree a spot grows: a zone drawn by its weight, then a species/cut from that zone's list (two independent hashes of the tree's seed) */
+function biomeTree(x, y, seed) { const w = biomeFast(x, y); let t = 0; for (const k in w) t += w[k]; let a = hash1(seed * 977.3 + 0.37) * t, zone = 'oak'; for (const k in w) { a -= w[k]; if (a <= 0) { zone = k; break; } } return { zone, key: pickW(BIOME_TREES[zone], hash1(seed * 431.9 + 0.71)), w }; }
+/* tree density per 90-unit cell: open meadow sparse, groves and woods dense, a ring of willows/alders along the water, conifers thick on the coal approach */
+function biomeDensity(x, y) { const w = biomeFast(x, y), patch = smooth01g(0.42, 0.62, vnoise(x / 900 + 4.4, y / 900 - 9.1)); return 0.006 + 0.32 * w.birch * patch + 0.26 * w.wood * (0.4 + 0.6 * patch) + 0.03 * w.oak + 0.05 * w.hedge * patch + 0.22 * w.water * (w.water < 0.95 ? 1 : 0) + 0.2 * w.coal + 0.1 * w.tin + 0.1 * w.copper; } /* groves and woods come in patches (a second noise), the meadow stays open */
+
 /* occupancy grids */
 const OCC = { cell: 16, n: 0, off: 0 };
 function occInit() { OCC.n = Math.ceil((CITY.R + 800) * 2 / OCC.cell); OCC.off = CITY.R + 800; OCC.road = new Uint8Array(OCC.n * OCC.n); OCC.obj = new Uint8Array(OCC.n * OCC.n); }
@@ -405,9 +440,13 @@ function generateCity() {
     else if (k === 'lava') { if (q < 0.022) { deco({ type: 'lavapool', r: 26 + rnd() * 14 }); W.lavaPools.push(W.objs[W.objs.length - 1]); } else if (q < 0.07) obj({ type: 'basalt', r: 16 + rnd() * 10 }); else if (q < 0.085) { if (obj({ type: 'vent', r: 18 + rnd() * 8 })) W.vents.push(W.objs[W.objs.length - 1]); } else if (q < 0.12) obj({ type: 'obsidian', r: 14 + rnd() * 8 }); else if (q < 0.15) obj({ type: 'deadtree', r: 10 }); else if (q < 0.2) deco({ type: 'cracked', r: 36, a: rnd() * TAU }); }
     else if (k === 'amber') { if (q < 0.3) obj({ type: 'orchard', r: 12 }); else if (q < 0.42) obj({ type: 'tree', r: 15, autumn: 1 }); else if (q < 0.45) obj({ type: 'rock', r: 8 }); else if (q < 0.5) deco({ type: 'leaves', r: 26 }); }
   };
+  if (typeof GRAND !== 'undefined') GRAND.fit(); /* the Lumen Tree's water known before the trees go down: willows and alders line it, nothing grows in it */
   void decorAt; // regional scenery retired: flat grass and only a handful of trees
-  for (let gx = -R; gx < R; gx += 90) for (let gy = -R; gy < R; gy += 90) { const x = gx + rnd() * 80, y = gy + rnd() * 80, q = rnd(); if (q > 0.012 || Math.hypot(x, y) > R - 200 || hollowDist(x, y) < 150 || nearHeartwood(x, y) || chasmDist(x, y) < 14 || isWet(x, y, 8)) continue;
-    const r0 = 16 + rnd() * 8; if (!occFree(OCC.obj, x, y, r0)) continue; W.objs.push({ type: 'tree', x, y, r: r0, layer: 1, region: 0, seed: rnd() }); occMark(OCC.obj, x, y, r0); }
+  for (let gx = -R; gx < R; gx += 90) for (let gy = -R; gy < R; gy += 90) { const x = gx + rnd() * 80, y = gy + rnd() * 80, q = rnd(); if (q > biomeDensity(x, y) || MINES_W.some((m) => Math.hypot(m.x - x, m.y - y) < 190) || Math.hypot(x, y) > R - 200 || hollowDist(x, y) < 150 || nearHeartwood(x, y) || chasmDist(x, y) < 14 || isWet(x, y, 8)) continue;
+    const r0 = 16 + rnd() * 8; if (!occFree(OCC.obj, x, y, r0)) continue; W.objs.push({ type: 'tree', x, y, r: r0, layer: 1, region: 0, seed: rnd() }); occMark(OCC.obj, x, y, r0);
+    /* groves: a tree in a wooded patch brings neighbours (own hash, so the main stream is untouched): clumps with clearings between, not an even sprinkle */
+    const dn = biomeDensity(x, y), nc = dn > 0.1 ? Math.round(dn * 9) : 0; for (let k = 0; k < nc; k++) { const hh = (i) => { const v = Math.sin(x * 12.9898 + y * 78.233 + k * 37.719 + i * 11.13) * 43758.5453; return v - Math.floor(v); }, a = hh(1) * TAU, d = 34 + hh(2) * 46, cx = x + Math.cos(a) * d, cy = y + Math.sin(a) * d, cr = 13 + hh(3) * 9;
+      if (MINES_W.some((m) => Math.hypot(m.x - cx, m.y - cy) < 190) || Math.hypot(cx, cy) > R - 200 || hollowDist(cx, cy) < 150 || nearHeartwood(cx, cy) || chasmDist(cx, cy) < 14 || isWet(cx, cy, 8) || !occFree(OCC.obj, cx, cy, cr)) continue; W.objs.push({ type: 'tree', x: cx, y: cy, r: cr, layer: 1, region: 0, seed: hh(4) }); occMark(OCC.obj, cx, cy, cr); } }
   for (let i = 0; i < 2600; i++) { const a = rnd() * TAU - Math.PI, top = rnd() < 0.45, r = top ? plateauR(a) - 30 - rnd() * 60 : plateauR(a) + cliffW(a) + 25 + rnd() * 120, [x, y] = polar(r, a);
     if (chasmDist(x, y) < 20 || isWet(x, y, 8) || nearHeartwood(x, y) || vnoise(x / 300 + 11, y / 300) < 0.5) continue; const r0 = 13 + rnd() * 8; if (!occFree(OCC.obj, x, y, r0)) continue;
     W.objs.push({ type: 'tree', x, y, r: r0, layer: 1, region: 0, seed: rnd() }); occMark(OCC.obj, x, y, r0); }
