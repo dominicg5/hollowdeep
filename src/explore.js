@@ -487,12 +487,6 @@ const Explore = (() => {
   function drillNode(d) { return d.camp ? null : ORE.nodes[d.node]; }
   /* a laid tether never turns a hard corner: every bend of the walked route is eased into a curve of up to ~7 m radius (a quadratic fillet), shrunk at a bend
      until the whole curve stays on walkable or climbable ground or bridge decks (so it never cuts over a crevice, water or a house), then used as is */
-  // a cable laid by hand never runs dead straight: a gentle lateral wander (fading to nothing at both ends), kept on walkable ground
-  function meander(pts, ph) { const L = pathLen(pts); if (L < WS * 8) return pts; const step = WS * 1.5, out = []; let seg = 0, acc = 0; const A = Math.min(WS * 1.6, L * 0.05), lam = WS * (11 + 4 * Math.sin(ph));
-    for (let s = 0; s <= L + 1e-6; s += step) { while (seg < pts.length - 2 && acc + Math.hypot(pts[seg + 1][0] - pts[seg][0], pts[seg + 1][1] - pts[seg][1]) < s) { acc += Math.hypot(pts[seg + 1][0] - pts[seg][0], pts[seg + 1][1] - pts[seg][1]); seg++; }
-      const a = pts[seg], b = pts[seg + 1], sl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, t = Math.min(1, Math.max(0, (s - acc) / sl)), x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t, nx = -(b[1] - a[1]) / sl, ny = (b[0] - a[0]) / sl;
-      const env = Math.min(1, s / (WS * 5), (L - s) / (WS * 5)), off = A * env * (Math.sin(s / lam * 6.283 + ph) + 0.35 * Math.sin(s / lam * 15.1 + ph * 2)); let k = 1; while (k > 0.05 && clsAt(x + nx * off * k, y + ny * off * k) !== 1) k *= 0.5; out.push(k > 0.05 ? [x + nx * off * k, y + ny * off * k] : [x, y]); }
-    out[0] = pts[0]; out[out.length - 1] = pts[pts.length - 1]; return out; }
   function smoothRoute(pts, R0) { if (pts.length < 3) return pts.slice(); const ok = (x, y) => clsAt(x, y) !== 0, out = [pts[0]];
     for (let i = 1; i < pts.length - 1; i++) { const A = out[out.length - 1], B = pts[i], Cc = pts[i + 1], ax = B[0] - A[0], ay = B[1] - A[1], bx = Cc[0] - B[0], by = Cc[1] - B[1], la = Math.hypot(ax, ay), lb = Math.hypot(bx, by); if (la < 1e-3 || lb < 1e-3) continue;
       const cosT = clamp((ax * bx + ay * by) / (la * lb), -1, 1), th = Math.acos(cosT); if (th < 0.05) { out.push(B); continue; } let done = false;
@@ -501,12 +495,21 @@ const Explore = (() => {
         if (good) { out.push(...arc); done = true; break; } }
       if (!done) out.push(B); }
     out.push(pts[pts.length - 1]); return out; }
+  /* a tether is laid like a real rope: the shortest line it can lie along (straight where the ground is clear, else the walked route string-pulled
+     until every leg is a clear straight run over walkable ground or a bridge deck), then each corner eased into one wide gentle bend. No wander. */
+  function ropeRoute(pts) { if (pts.length < 2) return pts.slice(); const okC = (x, y) => { const c = clsAt(x, y); return c === 1 || c === 3; };
+    const clear = (A, B) => { const L = Math.hypot(B[0] - A[0], B[1] - A[1]), n = Math.max(2, Math.ceil(L / (WS * 0.35))), ox = -(B[1] - A[1]) / (L || 1) * WS * 0.45, oy = (B[0] - A[0]) / (L || 1) * WS * 0.45;
+      for (let q = 0; q <= n; q++) { const t = q / n, x = A[0] + (B[0] - A[0]) * t, y = A[1] + (B[1] - A[1]) * t; if (!okC(x, y) || !okC(x + ox, y + oy) || !okC(x - ox, y - oy)) return false; } return true; };
+    let P = pts; for (let pass = 0; pass < 2; pass++) { const out = [P[0]]; let i = 0; while (i < P.length - 1) { let j = P.length - 1; while (j > i + 1 && !clear(P[i], P[j])) j--; out.push(P[j]); i = j; } P = out; }
+    // drop near-collinear vertices, then one wide fillet per remaining corner (radius up to ~14 m, shrunk only where the curve would leave the ground)
+    const Q = [P[0]]; for (let i = 1; i < P.length - 1; i++) { const A = Q[Q.length - 1], B = P[i], C2 = P[i + 1], t1 = Math.atan2(B[1] - A[1], B[0] - A[0]), t2 = Math.atan2(C2[1] - B[1], C2[0] - B[0]); let dt = Math.abs(t2 - t1); if (dt > Math.PI) dt = 2 * Math.PI - dt; if (dt > 0.04 || !clear(A, C2)) Q.push(B); } Q.push(P[P.length - 1]);
+    return smoothRoute(Q, WS * 14); }
   const pathLen = (pts) => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; };
   // a drill's tether: from the Ledge door over the ground (smoothed walked route) to just behind the drill, then up into the socket on its hub
   function drillRoute(d) { const H = doorSpots().find((q) => q.type === 'ledge'), n = drillNode(d); if (!H || !n) return null; const m = drillMesh(d), sx = H.x + H.nx * 12, sy = H.y + H.nz * 12;
     let end3 = null, endDir = null, gx, gy; if (m && m.userData.sock) { const S3 = m.localToWorld(m.userData.sock.clone()), D3 = m.userData.sockDir.clone().transformDirection(m.matrixWorld); end3 = [S3.x, S3.y, S3.z]; endDir = [D3.x, D3.y, D3.z]; const hl = Math.hypot(D3.x, D3.z) || 1; gx = S3.x + D3.x / hl * WS * 2.2; gy = S3.z + D3.z / hl * WS * 2.2; }
     else { const st2 = oreStand(n) || [n.x, n.y]; gx = st2[0]; gy = st2[1]; }
-    const r = plan(sx, sy, gx, gy); let pts = r ? r.pts.map((p) => [p[0], p[1]]) : [[sx, sy], [gx, gy]]; if (r) pts[pts.length - 1] = [gx, gy]; pts = smoothRoute(pts, WS * 7); pts = meander(pts, (d.name || 'x').length * 1.7 + (d.port ? d.port.length : 0));
+    const r = plan(sx, sy, gx, gy); let pts = r ? r.pts.map((p) => [p[0], p[1]]) : [[sx, sy], [gx, gy]]; if (r) pts[pts.length - 1] = [gx, gy]; pts = ropeRoute(pts);
     return { pts, len: Math.round((pathLen(pts) + WS * 3) / WS), name: d.name, end3, endDir, endLen: WS * 0.9 }; }
   function drillStep(dt) { const D = drillState(); if (!D) return; const h = dt / 3600e3, hs = CharView.homeState ? CharView.homeState() : null;
     for (const d of D.list) { if (d.camp) d.tier = (CharView.LG && CharView.LG.dg) || d.tier; if (d.port && hs && !hs.ports[d.port]) d.port = null; /* unplugged at the door */ const b = bitOf(d.tier), wired = !!d.port;
