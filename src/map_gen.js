@@ -147,7 +147,7 @@ function segGridDist(grid, cell, x, y) { // distance to nearest edge (negative =
 }
 const chasmDist = (x, y) => segGridDist(W.crackGrid, 160, x, y);
 const riverDist = (x, y) => segGridDist(W.riverGrid, 160, x, y);
-function isWet(x, y, m) { return inLake(x, y, m) || riverDist(x, y) < (m || 0); }
+function isWet(x, y, m) { return inLake(x, y, m) || riverDist(x, y) < (m || 0) || (typeof GRAND !== 'undefined' && GRAND.wet(x, y, m)); } // (+ the lakes and streams)
 
 /* occupancy grids */
 const OCC = { cell: 16, n: 0, off: 0 };
