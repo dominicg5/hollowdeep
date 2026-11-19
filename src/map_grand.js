@@ -62,7 +62,7 @@ const GRAND = (() => {
     const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
     const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.map(([x, y]) => [-x, y]), A.slice().reverse().slice(1), [[hw, 0]]); // left foot -> left springing -> apex -> right springing -> right foot (the old order zig-zagged through the opening)
     // the glow inside: a bright plane set back in the doorway (you can't see in, only the light)
-    { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0xfff7ec, toneMapped: false, side: THREE.DoubleSide, fog: false });
+    { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0x120a05, side: THREE.DoubleSide }); /* a dark matte recess behind the leaves: the cracked gap reads dark, nothing pale shows through */
       const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), gm); m.position.z = -125; grp.add(m); GX.doorGlow = gm;
       // the reveal: the doorway's inner walls are light too, so at any angle you only ever see white
       const P = [], I = []; outline.forEach(([x, y]) => { P.push(x * 1.01, y, -18, x * 1.01, y, -127); }); for (let i = 0; i < outline.length - 1; i++) { const a = i * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
@@ -86,10 +86,10 @@ const GRAND = (() => {
       // the trunk grew round the door: bark lips bulge and fold over the casing, flaring into roots at the foot so nothing floats
       // bark lips are laid OUTSIDE the casing's outer edge (offset along the arch's outward normal), so nothing covers the leaves or the frame
       // one clean bark rim lofted from the casing's outer edge back into the trunk (replaces the three intersecting lips)
-      const OL = [[-hw, -160]].concat(outline, [[hw, -160]]), NO = OL.length, nrm = OL.map(([x, y], i) => { if (y < ys) return [Math.sign(x) || 1, 0]; const a = OL[Math.max(0, i - 1)], b = OL[Math.min(NO - 1, i + 1)]; let nx = b[1] - a[1], ny = -(b[0] - a[0]); const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l; if (nx * x + ny * (y - ys * 0.5) < 0) { nx = -nx; ny = -ny; } return [nx, ny]; });
+      const OL = [[-hw, -30]].concat(outline, [[hw, -30]]), NO = OL.length, nrm = OL.map(([x, y], i) => { if (y < ys) return [Math.sign(x) || 1, 0]; const a = OL[Math.max(0, i - 1)], b = OL[Math.min(NO - 1, i + 1)]; let nx = b[1] - a[1], ny = -(b[0] - a[0]); const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l; if (nx * x + ny * (y - ys * 0.5) < 0) { nx = -nx; ny = -ny; } return [nx, ny]; });
       const zt = (x) => { const X = Math.min(rD * 0.97, Math.abs(x) * 1.35); return (Math.sqrt(rD * rD - X * X) - (rD + 40)) / 1.35; };
       const RING = [[38, () => -40], [62, () => -32], [110, () => -46], [190, (x) => Math.min(-70, zt(x) - 60)], [260, (x) => Math.min(-110, zt(x) - 120)]], P = [], UV = [], I = []; let acc = 0;
-      OL.forEach(([x, y], i) => { if (i) acc += Math.hypot(x - OL[i - 1][0], y - OL[i - 1][1]); const u = i / (NO - 1), w = 1 + 0.14 * Math.sin(u * 29) + 0.08 * Math.sin(u * 71), foot = 1 + 0.6 * (sm(0.12, 0, u) + sm(0.88, 1, u));
+      OL.forEach(([x, y], i) => { if (i) acc += Math.hypot(x - OL[i - 1][0], y - OL[i - 1][1]); const u = i / (NO - 1), w = 1 + 0.14 * Math.sin(u * 29) + 0.08 * Math.sin(u * 71), foot = 1; /* (no flared filler lumps at the door's foot: the bark meets the ground cleanly) */
         RING.forEach(([o, z], k) => { const oo = k > 1 ? o * w * foot : o, px = x + nrm[i][0] * oo, py = y + nrm[i][1] * oo; P.push(px, py, z(px) - (k === 1 ? 4 + 4 * Math.sin(u * 37) : 0)); UV.push(acc / 260, k / 3); }); });
       const NR = RING.length; for (let i = 0; i < NO - 1; i++) for (let k = 0; k < NR - 1; k++) { const a = i * NR + k, b = a + NR; I.push(a, a + 1, b, a + 1, b + 1, b); } /* wound to face out (it was back-facing, so the double-sided shader flipped its normals into the trunk and lit it dark) */
       const bg = new THREE.BufferGeometry(); bg.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); bg.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); bg.setIndex(I); bg.computeVertexNormals();
@@ -135,7 +135,7 @@ const GRAND = (() => {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex('rgba(255,252,245,1)', 'rgba(255,245,230,.35)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.6, toneMapped: false })); sp.position.set(0, 450, 40); sp.scale.set(700, 1300, 1); grp.add(sp); GX.doorSprite = sp; }
     GX.lamps = lampPts; return GX.door; }
   function animDoor(t, night) { if (!GX.door) return; const fl = 0.9 + 0.1 * Math.sin(t * 2.1) + 0.04 * Math.sin(t * 7.3);
-    const k = (0.85 + 0.9 * night) * fl; GX.doorGlow.color.setRGB(1, 0.97, 0.92); GX.poolM.opacity = (0.08 + 0.6 * night) * fl; GX.shaftM.opacity = (0.04 + 0.22 * night) * fl; GX.doorLight.intensity = (0.25 + 1.2 * night) * fl; GX.doorSprite.material.opacity = (0.25 + 0.5 * night) * fl;
+    const k = (0.85 + 0.9 * night) * fl; GX.doorGlow.color.setRGB(0.07, 0.04, 0.02); GX.poolM.opacity = (0.08 + 0.6 * night) * fl; GX.shaftM.opacity = 0; GX.doorLight.intensity = (0.25 + 1.2 * night) * fl; GX.doorSprite.material.opacity = (0.25 + 0.5 * night) * fl;
     const lk = 0.55 + night * 0.7; GX.lampM.color.setRGB(lk, lk * 0.75, lk * 0.42); const mk = 0.5 + night * 0.7; GX.mushB.color.setRGB(0.36 * mk, 0.82 * mk, 1.0 * mk); GX.mushV.color.setRGB(0.72 * mk, 0.52 * mk, 1.0 * mk); GX.doorMushGlow.material.opacity = 0.1 + night * 0.5; }
 
   function doorCard() { const btn = (h) => `<div class="wrapgap" style="margin-top:10px">${h}</div>`;
