@@ -17,15 +17,8 @@ const GRAND = (() => {
   const toL = (x, y) => { const dx = x - G.T.x, dy = y - G.T.y; return [dx * G.ox + dy * G.oy, dx * G.lx + dy * G.ly]; };
   const halfW = (d, sd) => (2300 + 800 * sm(LIP, LIP + 2500, d)) * (1 + 0.06 * Math.sin(d / 700 + sd * 1.7) + 0.04 * Math.sin(d / 290 + sd * 3.1));
   const dFar = (s) => Math.sqrt(Math.max(0, (CITY.R + 800) ** 2 - s * s)) - G.rT;
-  const HB = { s: 1080, E: 48, R: 460, dw: 200, arch: 55 }; // the hero bridge: ends at s = +-HB.s on broad grassy hills HB.E high; deck HB.dw wide
-  // the pool below the falls: a wedge opening out from the falls span (|s| < 1000 at the lip), so beyond the falls the shelf steps down to the water
-  // in grassy terraces on every side instead of standing as one long bare cliff strip
-  function poolWedge(d, s) { const e1 = lipD(s) + 30 - d, e2 = (Math.abs(s) - 1900 - 0.9 * Math.max(0, d - lipD(s) - 30)) / 1.345; return e1 > 0 && e2 > 0 ? Math.hypot(e1, e2) : Math.max(e1, e2); }
-  // the falls pool: the three falls drop ~68 m (not the whole 260 m to the lake) into a turquoise pool cupped by grassy terraces; its outer rim
-  // then falls away (out of the hero view) to the lake below
-  const PL = LIPH - 430, PHW = 1500, PLEN = 1350;
-  function upperU(d, s) { const ld = lipD(s), e1 = ld + 30 - d, e2 = (Math.abs(s) - PHW - 0.5 * Math.max(0, d - ld - 30)) / 1.118, e3 = d - (ld + 30 + PLEN); const a = Math.max(e1, e2, e3), o = [e1, e2, e3].filter((q) => q > 0); return o.length > 1 ? Math.hypot(...o) : a; }
-  function lakeSdf(d, s) { return Math.max(Math.abs(s) - halfW(d, s < 0 ? -1 : 1), poolWedge(d, s), d - dFar(s)); }
+  const HB = { s: 1080, dw: 200, arch: 55 }; // the hero bridge over the three falls (ends on the shelf at s = +-HB.s; deck HB.dw wide)
+  function lakeSdf(d, s) { return Math.max(Math.abs(s) - halfW(d, s < 0 ? -1 : 1), lipD(s) + 30 - d, d - dFar(s)); }
   function poolSdf(d, s, f) { return 1e9; } // (no pools above the lip any more: each pair of streams runs straight over the lip as one fall, as in the approved concept)
   function poolBack(d, s, f) { const [s0, s1] = FALLS[f], ld = lipD(s), R = 110, qx = Math.abs(s - (s0 + s1) / 2) - (s1 - s0) / 2 - 30 + R, qy = ld - 210 - d + R; // a short pool behind each fall (the streams feed them between the roots)
     return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - R + 28 * Math.sin(s / 97 + f * 2) + 18 * Math.sin(d / 61 + s / 140); }
@@ -46,18 +39,14 @@ const GRAND = (() => {
   function carve(x, y, h, mh) { if (!G) return [h, mh]; const [d, s] = toL(x, y); if (d < 300 || d > 15000 || Math.abs(s) > 7500) return [h, mh];
     const ld = lipD(s);
     if (d < ld + 10 && d > ld - 1100 && Math.abs(s) < 2300) { const w = sm(2300, 1900, Math.abs(s)) * sm(ld - 1100, ld - 600, d); h += (LIPH - h) * w; }
-    for (const se of [-HB.s, HB.s]) { const r = Math.hypot((d - (ld - 45)) * 0.8, s - se); if (r < HB.R * 2.6) h += HB.E * Math.exp(-Math.pow(r / HB.R, 2)) * (1 + 0.08 * Math.sin(d / 90 + se)); } // broad grassy hills under each end of the hero bridge (the paths ramp up onto it)
     if (d < ld + 10 && d > 400 && Math.abs(s) < 3200) { const st = streamAt(d, s); if (st && st.dd < 160) { const bed = st.wl - 16 - 14 * sm(0, -st.w * 0.6, st.dd); h = Math.min(h, bed + Math.max(0, st.dd + st.w * 0.25) * 0.9); if (st.dd < 30) h = Math.max(h, bed - 6); }
       for (let f = 0; f < 3; f++) { const p = poolSdf(d, s, f); if (p < 120) { const bed = LIPH - 44 + 18 * sm(-160, 0, p); h = Math.min(h, bed + Math.max(0, p) * 1.2); } } }
     const L = lakeSdf(d, s); if (L < 900) { const near = lipD(s) + 30 - d, kN = sm(-260, 40, near - Math.max(Math.abs(s) - halfW(d, s < 0 ? -1 : 1), d - dFar(s)));
-      const fS = sm(1100, 1900, Math.abs(s)), terr = sm(1250, 1850, Math.abs(s)), k = fS > 0 ? Math.exp(Math.log(1.0 + 1.6 * sm(LIP + 3600, LIP + 1200, d) + 40 * kN) * (1 - fS) + Math.log(0.9) * fS) : 1.0 + 1.6 * sm(LIP + 3600, LIP + 1200, d) + 40 * kN; /* the falls face stays a sheer cliff only under the bridge; sideways it eases into grassy terraces (flat green treads, short mossy risers) down to the pool */
-      if (L < 0) h = WL - 18 - Math.min(150, -L * 0.3); else { const T = 230, x = L * (terr ? 0.9 : k), q = x / T, fq = q - Math.floor(q), tz = terr ? T * Math.floor(q) + T * sm(0.6, 1.0, fq) + 14 * Math.sin(d / 130 + s / 170) * sm(0.1, 0.5, fq) : x; h = Math.min(h, WL + 6 + (terr ? x + (tz - x) * terr : x)); const wt = sm(560, 220, L); h += (Math.max(h, WL + 8 + L * 0.12) - h) * wt; }
+      const k = 1.0 + 1.6 * sm(LIP + 3600, LIP + 1200, d) + 40 * kN;
+      if (L < 0) h = WL - 18 - Math.min(150, -L * 0.3); else { h = Math.min(h, WL + 6 + L * k); const wt = sm(560, 220, L); h += (Math.max(h, WL + 8 + L * 0.12) - h) * wt; }
       mh *= sm(0, 500, L); }
-    { const U = upperU(d, s); if (U < 1400) { if (U < 0) { h = PL - 18 - Math.min(90, -U * 0.3); mh = 0; } else {
-        const fS = sm(1100, 1900, Math.abs(s)) , kc = 40 * sm(-200, 60, lipD(s) + 30 - d - Math.max(0, Math.abs(s) - PHW)), k = Math.exp(Math.log(Math.max(1, kc)) * (1 - fS) + Math.log(0.85) * fS), x = U * Math.max(0.85, k), T = 120, q = x / T, fq = q - Math.floor(q), tz = T * Math.floor(q) + T * sm(0.6, 1.0, fq), te = sm(1250, 1800, Math.abs(s)) * sm(0, 200, U), bank = PL + 6 + x + (tz - x) * te;
-        if (h > PL) h = Math.min(h, bank); else h = Math.max(h, PL + 8 + U * 0.12 - Math.max(0, U - 320) * 1.05); mh *= sm(0, 400, U); } } }
     return [h, mh]; }
-  function wet(x, y, m) { if (!G) return false; const [d, s] = toL(x, y); m = m || 0; if (lakeSdf(d, s) < m || upperU(d, s) < m) return true; if (d < lipD(s) + 10 && d > 300 && Math.abs(s) < 3300) { const st = streamAt(d, s); if (st && st.dd < m) return true; for (let f = 0; f < 3; f++) if (poolSdf(d, s, f) < m) return true; } return false; }
+  function wet(x, y, m) { if (!G) return false; const [d, s] = toL(x, y); m = m || 0; if (lakeSdf(d, s) < m) return true; if (d < lipD(s) + 10 && d > 300 && Math.abs(s) < 3300) { const st = streamAt(d, s); if (st && st.dd < m) return true; for (let f = 0; f < 3; f++) if (poolSdf(d, s, f) < m) return true; } return false; }
   // after the seeded map is laid out: plan the water, then clear (and re-house) anything standing in it
   function fit() { const T = W.heartwood; if (!T) return; G = null; const o = T.in + Math.PI, ox = Math.cos(o), oy = Math.sin(o);
     const g0 = { T, ox, oy, lx: -oy, ly: ox, rT: Math.hypot(T.x, T.y) }, pre = (x, y) => { const k = G; G = null; const h = typeof M3 !== 'undefined' && M3.ground ? M3.ground(x, y).h : CITY.summitH; G = k; return h; };
@@ -200,7 +189,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
   function buildWater(C) { const { scene, meshH } = C, mats = GX.wmats || (GX.wmats = []);
     // the lake: painterly turquoise shallows to deep teal, sky sheen, drifting ripples, foam on the shore and under the falls
     { const d0 = LIP - 150, d1 = dFar(0) + 500, s0 = -3900, nd = 200, ns = 150, P = [], DP = [], UV = [], I = [];
-      for (let i = 0; i <= nd; i++) for (let j = 0; j <= ns; j++) { const d = d0 + (d1 - d0) * i / nd, s2 = s0 + (-2 * s0) * j / ns, [x, y] = toW(d, s2), g = meshH(x, y); const wl = upperU(d, s2) < 40 ? PL : WL; P.push(x, wl, y); DP.push(wl - g, d - lipD(s2)); UV.push(x, y); }
+      for (let i = 0; i <= nd; i++) for (let j = 0; j <= ns; j++) { const d = d0 + (d1 - d0) * i / nd, s2 = s0 + (-2 * s0) * j / ns, [x, y] = toW(d, s2), g = meshH(x, y); P.push(x, WL, y); DP.push(WL - g, d - lipD(s2)); UV.push(x, y); }
       for (let i = 0; i < nd; i++) for (let j = 0; j < ns; j++) { const a = i * (ns + 1) + j, b = a + 1, c = a + ns + 1, e = c + 1; if (Math.max(DP[a * 2], DP[b * 2], DP[c * 2], DP[e * 2]) < -20) continue; I.push(a, c, b, b, c, e); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('aD', new THREE.Float32BufferAttribute(DP, 2)); g.setAttribute('aW', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I);
       const m = wmat('attribute vec2 aD; attribute vec2 aW; varying vec2 vD; varying vec2 vW; varying vec3 vP; void main(){ vD = aD; vW = aW; vP = (modelMatrix * vec4(position, 1.0)).xyz; ' + VS_END,
@@ -210,7 +199,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
   vec3 V = normalize(cameraPosition - vP); float fr = pow(1.0 - clamp(V.y, 0.0, 1.0), 3.0); col = mix(col, vec3(0.7, 0.82, 0.9), fr * 0.45 + r * 0.1);
   float gl = smoothstep(0.72, 0.9, fb(w * 3.0 + vec2(uT * 0.12, uT * 0.07))); col += gl * 0.25 * (1.0 - uN);
   float shore = (1.0 - smoothstep(4.0, 22.0 + 10.0 * vn(w * 6.0 + uT * 0.3), dep)) * (0.6 + 0.4 * sin(uT * 1.5 + w.x * 9.0));
-  float fall = 0.6 * (1.0 - smoothstep(40.0, 330.0, fd)) * (0.55 + 0.45 * fb(w * 5.0 - vec2(0.0, uT * 0.6)));
+  float fall = (1.0 - smoothstep(80.0, 900.0, fd)) * (0.55 + 0.45 * fb(w * 5.0 - vec2(0.0, uT * 0.6)));
   col = mix(col, vec3(0.95, 0.98, 1.0), clamp(shore * 0.8 + fall * 0.9, 0.0, 1.0));
   col *= mix(1.0, 0.13, uN); col += uN * vec3(0.01, 0.05, 0.07) * (fall + 0.3);
   float a = mix(0.55, 0.93, sh) + shore * 0.3; ` + FS_END);
@@ -237,21 +226,21 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
   col *= mix(1.0, 0.2, uN); col += uN * vec3(0.02, 0.07, 0.09); ` + FS_END);
     GX.fallM = [fmat(0), fmat(1)]; mats.push(...GX.fallM);
     for (const [k, out] of [[0, 0], [1, 34]]) { const P = [], UV = [], I = []; for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f], nu = 30, nv = 26, base = P.length / 3;
-        for (let i = 0; i <= nv; i++) for (let j = 0; j <= nu; j++) { const v = i / nv, s2 = s0 + (s1 - s0) * j / nu, bulge = Math.sin(j / nu * Math.PI * 3 + f) * 25, dd = lipD(s2) - 6 + out + (40 + 300 * Math.pow(v, 0.6)) * (v > 0 ? 1 : 0) + bulge * v, y = LIPH - 4 - (LIPH - PL + 8) * Math.pow(v, 1.15) + (v === 0 ? 0 : 0);
+        for (let i = 0; i <= nv; i++) for (let j = 0; j <= nu; j++) { const v = i / nv, s2 = s0 + (s1 - s0) * j / nu, bulge = Math.sin(j / nu * Math.PI * 3 + f) * 25, dd = lipD(s2) - 6 + out + (40 + 300 * Math.pow(v, 0.6)) * (v > 0 ? 1 : 0) + bulge * v, y = LIPH - 4 - (LIPH - WL + 8) * Math.pow(v, 1.15) + (v === 0 ? 0 : 0);
           const [x, z] = toW(dd, s2 + (s2 - (s0 + s1) / 2) * 0.06 * v); P.push(x, y, z); UV.push(j / nu, v); }
         for (let i = 0; i < nv; i++) for (let j = 0; j < nu; j++) { const a = base + i * (nu + 1) + j; I.push(a, a + nu + 1, a + 1, a + 1, a + nu + 1, a + nu + 2); } }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('aU', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I); const m = new THREE.Mesh(g, GX.fallM[k]); m.frustumCulled = false; m.renderOrder = 4 + k; GX.fallM[k].side = THREE.DoubleSide; scene.add(m); }
     // spray and mist billowing up from the plunge pools
-    { const pos = [], ph = [], r = prng(99); for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f]; for (let k = 0; k < 70; k++) { const s2 = s0 + (s1 - s0) * r(), [x, y] = toW(lipD(s2) + 70 + r() * 170, s2); pos.push(x, PL + 10, y); ph.push(r()); } }
+    { const pos = [], ph = [], r = prng(99); for (let f = 0; f < 3; f++) { const [s0, s1] = FALLS[f]; for (let k = 0; k < 150; k++) { const s2 = s0 + (s1 - s0) * r(), [x, y] = toW(lipD(s2) + 200 + r() * 420, s2); pos.push(x, WL + 10, y); ph.push(r()); } }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('aPh', new THREE.Float32BufferAttribute(ph, 1));
       GX.mist = new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uN: { value: 0 }, uS: { value: 1 }, map: { value: radialTex('rgba(255,255,255,.9)', 'rgba(255,255,255,.35)') } }, transparent: true, depthWrite: false,
-        vertexShader: 'attribute float aPh; uniform float uT; uniform float uS; varying float vA; void main(){ float f = fract(uT * 0.09 + aPh); vec3 p = position + vec3(sin(aPh * 21.0) * 60.0 * f, f * 170.0, cos(aPh * 13.0) * 70.0 * f + f * 60.0); vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = uS * (80.0 + f * 260.0) * 600.0 / -mv.z; vA = (1.0 - f) * smoothstep(0.0, 0.15, f); }',
-        fragmentShader: 'uniform sampler2D map; uniform float uN; varying float vA; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(mix(vec3(1.0), vec3(0.14, 0.2, 0.24), uN), c.a * vA * 0.4); }' });
+        vertexShader: 'attribute float aPh; uniform float uT; uniform float uS; varying float vA; void main(){ float f = fract(uT * 0.09 + aPh); vec3 p = position + vec3(sin(aPh * 21.0) * 120.0 * f, f * 700.0, cos(aPh * 13.0) * 160.0 * f + f * 200.0); vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = uS * (260.0 + f * 900.0) * 600.0 / -mv.z; vA = (1.0 - f) * smoothstep(0.0, 0.15, f); }',
+        fragmentShader: 'uniform sampler2D map; uniform float uN; varying float vA; void main(){ vec4 c = texture2D(map, gl_PointCoord); gl_FragColor = vec4(mix(vec3(1.0), vec3(0.14, 0.2, 0.24), uN), c.a * vA * 0.62); }' });
       const pts = new THREE.Points(g, GX.mist); pts.frustumCulled = false; pts.renderOrder = 6; scene.add(pts); }
     // a faint rainbow in the spray by day
     { const g = new THREE.RingGeometry(1500, 1750, 64, 1, 0, Math.PI), P = g.attributes.position, cc = []; for (let i = 0; i < P.count; i++) { const t = (Math.hypot(P.getX(i), P.getY(i)) - 1500) / 250, c = new THREE.Color().setHSL(0.8 * (1 - t), 0.9, 0.6); cc.push(c.r, c.g, c.b); } g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3));
       GX.bow = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
-      const m = new THREE.Mesh(g, GX.bow), [x, z] = toW(lipD(0) + 900, 200); m.position.set(x, PL + 80, z); m.rotation.y = Math.atan2(G.ox, G.oy) + Math.PI / 2 * 0; m.lookAt(x + G.ox, PL + 80, z + G.oy); scene.add(m); GX.bowMesh = m; } }
+      const m = new THREE.Mesh(g, GX.bow), [x, z] = toW(lipD(0) + 900, 200); m.position.set(x, WL + 80, z); m.rotation.y = Math.atan2(G.ox, G.oy) + Math.PI / 2 * 0; m.lookAt(x + G.ox, WL + 80, z + G.oy); scene.add(m); GX.bowMesh = m; } }
   function animWater(t, night, C) { if (!GX.wmats) return; for (const m of GX.wmats) { m.uniforms.uT.value = t; m.uniforms.uN.value = night; } GX.mist.uniforms.uT.value = t; GX.mist.uniforms.uN.value = night; GX.mist.uniforms.uS.value = C && C.ps ? C.ps : 1; GX.bow.opacity = 0.13 * (1 - night); GX.bowMesh.visible = night < 0.6; }
 
   /* ---------- the miner's island (concept/miner-island.jpg) ---------- */
@@ -375,7 +364,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
       const surf = (d, s2) => { const [x, z] = toW(d, s2); let g = meshH(x, z); if (d < lipD(s2) && d > 300) { const st = streamAt(d, s2); if (st && st.dd < 20) g = Math.max(g, st.wl + 2); for (let f = 0; f < 3; f++) if (poolSdf(d, s2, f) < 0) g = Math.max(g, LIPH - 4); } return g; };
       const split = (i0, ctl, k, drape) => { const p = pts[i0], r0 = rs[i0] * 0.58, cu = new THREE.CatmullRomCurve3([V3(LL[i0][0], 0, LL[i0][1])].concat(ctl.map(([d, s2]) => V3(d, 0, s2))), false, 'centripetal').getPoints(16), P2 = [], R2 = [];
         cu.forEach((c, j) => { const u = j / 16, rr = r0 * (1 - 0.72 * u), [x, z] = toW(c.x, c.z), h = surf(c.x, c.z) + rr * 0.3 + Math.sin(u * Math.PI) * 40, y = j === 0 ? p.y : p.y + (h - p.y) * sm(0, 0.45, u); P2.push(V3(x, y, z)); R2.push(rr); });
-        if (drape) { const [eD, eS] = ctl[ctl.length - 1], ld = lipD(eS); for (const v of [0.05, 0.13, 0.24, 0.36]) { const [x, z] = toW(ld - 6 + 40 + 300 * Math.pow(v, 0.6) + 14, eS), y = LIPH - 4 - (LIPH - PL + 8) * Math.pow(v, 1.15); P2.push(V3(x, y, z)); R2.push(r0 * Math.max(0.1, 0.28 - v * 0.4)); } foam.push([P2[17], 14 + r0 * 0.3], [P2[18], 12 + r0 * 0.3]); }
+        if (drape) { const [eD, eS] = ctl[ctl.length - 1], ld = lipD(eS); for (const v of [0.05, 0.13, 0.24, 0.36]) { const [x, z] = toW(ld - 6 + 40 + 300 * Math.pow(v, 0.6) + 14, eS), y = LIPH - 4 - (LIPH - WL + 8) * Math.pow(v, 1.15); P2.push(V3(x, y, z)); R2.push(r0 * Math.max(0.1, 0.28 - v * 0.4)); } foam.push([P2[17], 14 + r0 * 0.3], [P2[18], 12 + r0 * 0.3]); }
         else { const q = P2[P2.length - 1]; P2.push(V3(q.x, q.y - R2[R2.length - 1] * 1.4, q.z)); R2.push(R2[R2.length - 1] * 0.6); }
         out.push({ pts: P2, rs: R2, k: 40 + k, big: true }); };
       split(near(-850, 3220), [[2950, -800], [2650, -700], [2420, -630], [2290, -700]], 0, false);
@@ -393,7 +382,7 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
         for (let j = 1; j <= 6; j++) { const u = j / 6, d = pd + (eD - pd) * u + Math.sin(u * Math.PI * 2 + k) * 50 * (1 - u), s2 = ps + (eS - ps) * u + Math.sin(u * Math.PI + k * 1.7) * 90 * side;
           add(d, s2, LIPH - 2 + r0 * (0.25 + 0.15 * Math.sin(u * 7 + k)) * (1 - 0.4 * u), r0 * (0.85 - 0.45 * u)); }
         if (toLip && drape) { const len = 0.16 + rf() * 0.34, wob = (rf() - 0.5) * 50; add(eLd + 4, eS + wob * 0.2, LIPH + r0 * 0.3, r0 * 0.4);
-          for (const v of [0.04, 0.1, 0.18, 0.28, 0.4, 0.55].filter((v) => v <= len + 0.02)) { const dd = eLd - 6 + 40 + 300 * Math.pow(v, 0.6) + 12, y = LIPH - 4 - (LIPH - PL + 8) * Math.pow(v, 1.15); add(dd, eS + wob * (0.4 + v), y, r0 * Math.max(0.1, 0.38 - v * 0.6)); }
+          for (const v of [0.04, 0.1, 0.18, 0.28, 0.4, 0.55].filter((v) => v <= len + 0.02)) { const dd = eLd - 6 + 40 + 300 * Math.pow(v, 0.6) + 12, y = LIPH - 4 - (LIPH - WL + 8) * Math.pow(v, 1.15); add(dd, eS + wob * (0.4 + v), y, r0 * Math.max(0.1, 0.38 - v * 0.6)); }
           for (let j = P2.length - 5; j < P2.length - 2; j++) if (j > 0) foam.push([P2[j], 8 + r0 * 0.7]); }
         else { foam.push([P2[P2.length - 2], 6 + r0 * 0.5]); }
         out.push({ pts: P2, rs: R2, k: 10 + f * 8 + k }); } }
@@ -433,5 +422,5 @@ float fb(vec2 p){ return 0.55 * vn(p) + 0.3 * vn(p * 2.1 + 7.0) + 0.15 * vn(p * 
   function enterTree() { if (typeof closeModalQuiet === 'function') closeModalQuiet(); if (typeof setTab === 'function') setTab('tree'); }
   function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); if (G) { buildWater(C); buildIsland(C); /* (the great-root natural bridge is retired: the Lumen Falls Bridge is a real plank bridge in Explore's bridge kit) */ } } else if (GX.smokeAt) { for (const p of GX.smokeAt) C.PR.smoke.push([p.x, p.y, p.z, 0.3]); for (const p of GX.lampAt) C.PR.glow.push([p.x, p.y, p.z, null]); } }
   function anim(t, night, ps) { animDoor(t, night); animWater(t, night, { ps }); animIsland(t, night, ps); }
-  return { HB, PL, upperU, poolWedge, build, anim, wet, dodge, doorSpot, bridgeRoot, carve, fit, doorCard, enterTree, toW, toL, lipD, LIP, LIPH, WL, FALLS, lakeSdf, dFar, halfW, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
+  return { HB, build, anim, wet, dodge, doorSpot, bridgeRoot, carve, fit, doorCard, enterTree, toW, toL, lipD, LIP, LIPH, WL, FALLS, lakeSdf, dFar, halfW, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
 })();
