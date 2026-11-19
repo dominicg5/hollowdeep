@@ -420,10 +420,10 @@ const HOUSE_KIT = (() => {
         const mw = bare ? 0 : Math.min(1, Math.max(0, (y - 0.5 - 0.24 * Math.sin(x * 5 + ph) * Math.cos(z * 4.4 - ph) + 0.12 * Math.sin(x * 11 + z * 9)) / 0.22)), c = [(0.68 + (0.6 - 0.68) * mw) * ao, (0.67 + (0.84 - 0.67) * mw) * ao, (0.65 + (0.24 - 0.65) * mw) * ao]; /* moss caps blend softly into the stone (per vertex) */ B.v(cx + x * l * rx, cy + yb * l * ry, cz + z * l * rz, x / rx * rx, y + 0.1, z, u, v, c); }
       const b = B.p.length / 3 - 3; B.i.push(b, b + 1, b + 2); } }
   // tree kinds: an oak shape (crown centre/radii, trunk split height, lean, boulder at its foot or not)
-  const OAKS = { 17: { C: [0.0, 0.7, 0.0], R: [0.42, 0.28, 0.42], split: 0.4, lean: [0.02, 0.0], bould: 1, hue: 0 },
-    31: { C: [0.05, 0.74, 0.02], R: [0.34, 0.27, 0.33], split: 0.46, lean: [0.06, 0.02], bould: 0.85, hue: 2 },
-    47: { C: [-0.04, 0.62, 0.03], R: [0.5, 0.23, 0.46], split: 0.36, lean: [-0.05, 0.03], bould: 1.25, hue: 3 },
-    23: { C: [0.04, 0.66, 0.0], R: [0.4, 0.26, 0.4], split: 0.36, lean: [0.05, 0.0], bould: 0.9, hue: 1 }, 59: { C: [-0.03, 0.66, 0.02], R: [0.44, 0.27, 0.4], split: 0.38, lean: [-0.03, 0.02], bould: 0, hue: 4 } };
+  const OAKS = { 17: { C: [0.0, 0.7, 0.0], R: [0.42, 0.28, 0.42], split: 0.4, lean: [0.02, 0.0], bould: 1, hue: 0 }, 18: { C: [0.0, 0.7, 0.0], R: [0.42, 0.28, 0.42], split: 0.4, lean: [0.02, 0.0], bould: 0, hue: 0 },
+    31: { C: [0.05, 0.74, 0.02], R: [0.34, 0.27, 0.33], split: 0.46, lean: [0.06, 0.02], bould: 0, hue: 2 },
+    47: { C: [-0.04, 0.62, 0.03], R: [0.5, 0.23, 0.46], split: 0.36, lean: [-0.05, 0.03], bould: 1.25, hue: 3 }, 48: { C: [-0.04, 0.62, 0.03], R: [0.5, 0.23, 0.46], split: 0.36, lean: [-0.05, 0.03], bould: 0, hue: 3 },
+    23: { C: [0.04, 0.66, 0.0], R: [0.4, 0.26, 0.4], split: 0.36, lean: [0.05, 0.0], bould: 0.9, hue: 1 }, 24: { C: [0.04, 0.66, 0.0], R: [0.4, 0.26, 0.4], split: 0.36, lean: [0.05, 0.0], bould: 0, hue: 1 }, 59: { C: [-0.03, 0.66, 0.02], R: [0.44, 0.27, 0.4], split: 0.38, lean: [-0.03, 0.02], bould: 0, hue: 4 } };
   function broadleaf(lod, droop, seed) { const B = TBuilder(), sd = seed || (droop ? 23 : 17), r = rng(sd), K = OAKS[sd] || OAKS[17], S = [K.lean[0], K.split, K.lean[1]];
     const ba = r() * 6.283, bR = 0.2 * (K.bould || 1), bc = [Math.cos(ba) * (0.1 + bR * 0.55), 0.03, Math.sin(ba) * (0.1 + bR * 0.55)], bs = [bR * 1.1, bR * 0.95, bR];
     // thick fluted trunk (twisting ridges) on a flared foot
@@ -449,7 +449,8 @@ const HOUSE_KIT = (() => {
       for (let k = 0; k < n; k++) B.i.push(rI[k], tipI, rI[k + 1]); const ci = B.v(0, y0 + 0.03, 0, 0, -1, 0, ...LEAF(0.5, 0.5), [0.18, 0.24, 0.16]); for (let k = 0; k < n; k++) B.i.push(rI[k + 1], ci, rI[k]); }
     return B.geo(); }
   function trees() { if (!treeAtlas) treeAtlas = paintTreeAtlas(); const mat = new THREE.MeshLambertMaterial({ map: treeAtlas, vertexColors: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-    return { oak: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true },
-      /* shape variants so no two neighbouring trees are the same cut-out */ oak2: { geos: [broadleaf(0, false, 31), broadleaf(1, false, 31)], mat, tree: true }, oak3: { geos: [broadleaf(0, false, 47), broadleaf(1, false, 47)], mat, tree: true }, willow2: { geos: [broadleaf(0, true, 59), broadleaf(1, true, 59)], mat, tree: true }, sequoia2: { geos: [conifer(0, 71), conifer(1, 71)], mat, tree: true } }; }
+    return { oak: { geos: [broadleaf(0, false, 18), broadleaf(1, false, 18)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 24), broadleaf(1, true, 24)], mat, tree: true },
+      /* landmark trees: the ones gripping a mossy boulder - rare, placed far apart (map3d) */ oakL: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, oak3L: { geos: [broadleaf(0, false, 47), broadleaf(1, false, 47)], mat, tree: true }, willowL: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true },
+      /* shape variants so no two neighbouring trees are the same cut-out */ oak2: { geos: [broadleaf(0, false, 31), broadleaf(1, false, 31)], mat, tree: true }, oak3: { geos: [broadleaf(0, false, 48), broadleaf(1, false, 48)], mat, tree: true }, willow2: { geos: [broadleaf(0, true, 59), broadleaf(1, true, 59)], mat, tree: true }, sequoia2: { geos: [conifer(0, 71), conifer(1, 71)], mat, tree: true } }; }
   return { DOOR_H: 11.1, variant, DOORK: () => DOORK, houses, trees, keyFor, KEYS, atlas: () => atlas, kit: { Builder, material, gableRoof, windowOn, doorOn, lantern, chimney, crate, barrel, sack, woodpile, pickaxe, rope, pot, plinth, halfTimber, wallFace, sideX, SHUT } };
 })();

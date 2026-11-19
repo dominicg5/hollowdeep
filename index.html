@@ -292,9 +292,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='aeaca989';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build aeaca989</div>
-<script src="assets/vendor/three.min.js?v=aeaca989"></script>
+<script>window.HD_BUILD='27c76127';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 27c76127</div>
+<script src="assets/vendor/three.min.js?v=27c76127"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -3474,10 +3474,10 @@ const HOUSE_KIT = (() => {
         const mw = bare ? 0 : Math.min(1, Math.max(0, (y - 0.5 - 0.24 * Math.sin(x * 5 + ph) * Math.cos(z * 4.4 - ph) + 0.12 * Math.sin(x * 11 + z * 9)) / 0.22)), c = [(0.68 + (0.6 - 0.68) * mw) * ao, (0.67 + (0.84 - 0.67) * mw) * ao, (0.65 + (0.24 - 0.65) * mw) * ao]; /* moss caps blend softly into the stone (per vertex) */ B.v(cx + x * l * rx, cy + yb * l * ry, cz + z * l * rz, x / rx * rx, y + 0.1, z, u, v, c); }
       const b = B.p.length / 3 - 3; B.i.push(b, b + 1, b + 2); } }
   // tree kinds: an oak shape (crown centre/radii, trunk split height, lean, boulder at its foot or not)
-  const OAKS = { 17: { C: [0.0, 0.7, 0.0], R: [0.42, 0.28, 0.42], split: 0.4, lean: [0.02, 0.0], bould: 1, hue: 0 },
-    31: { C: [0.05, 0.74, 0.02], R: [0.34, 0.27, 0.33], split: 0.46, lean: [0.06, 0.02], bould: 0.85, hue: 2 },
-    47: { C: [-0.04, 0.62, 0.03], R: [0.5, 0.23, 0.46], split: 0.36, lean: [-0.05, 0.03], bould: 1.25, hue: 3 },
-    23: { C: [0.04, 0.66, 0.0], R: [0.4, 0.26, 0.4], split: 0.36, lean: [0.05, 0.0], bould: 0.9, hue: 1 }, 59: { C: [-0.03, 0.66, 0.02], R: [0.44, 0.27, 0.4], split: 0.38, lean: [-0.03, 0.02], bould: 0, hue: 4 } };
+  const OAKS = { 17: { C: [0.0, 0.7, 0.0], R: [0.42, 0.28, 0.42], split: 0.4, lean: [0.02, 0.0], bould: 1, hue: 0 }, 18: { C: [0.0, 0.7, 0.0], R: [0.42, 0.28, 0.42], split: 0.4, lean: [0.02, 0.0], bould: 0, hue: 0 },
+    31: { C: [0.05, 0.74, 0.02], R: [0.34, 0.27, 0.33], split: 0.46, lean: [0.06, 0.02], bould: 0, hue: 2 },
+    47: { C: [-0.04, 0.62, 0.03], R: [0.5, 0.23, 0.46], split: 0.36, lean: [-0.05, 0.03], bould: 1.25, hue: 3 }, 48: { C: [-0.04, 0.62, 0.03], R: [0.5, 0.23, 0.46], split: 0.36, lean: [-0.05, 0.03], bould: 0, hue: 3 },
+    23: { C: [0.04, 0.66, 0.0], R: [0.4, 0.26, 0.4], split: 0.36, lean: [0.05, 0.0], bould: 0.9, hue: 1 }, 24: { C: [0.04, 0.66, 0.0], R: [0.4, 0.26, 0.4], split: 0.36, lean: [0.05, 0.0], bould: 0, hue: 1 }, 59: { C: [-0.03, 0.66, 0.02], R: [0.44, 0.27, 0.4], split: 0.38, lean: [-0.03, 0.02], bould: 0, hue: 4 } };
   function broadleaf(lod, droop, seed) { const B = TBuilder(), sd = seed || (droop ? 23 : 17), r = rng(sd), K = OAKS[sd] || OAKS[17], S = [K.lean[0], K.split, K.lean[1]];
     const ba = r() * 6.283, bR = 0.2 * (K.bould || 1), bc = [Math.cos(ba) * (0.1 + bR * 0.55), 0.03, Math.sin(ba) * (0.1 + bR * 0.55)], bs = [bR * 1.1, bR * 0.95, bR];
     // thick fluted trunk (twisting ridges) on a flared foot
@@ -3503,8 +3503,9 @@ const HOUSE_KIT = (() => {
       for (let k = 0; k < n; k++) B.i.push(rI[k], tipI, rI[k + 1]); const ci = B.v(0, y0 + 0.03, 0, 0, -1, 0, ...LEAF(0.5, 0.5), [0.18, 0.24, 0.16]); for (let k = 0; k < n; k++) B.i.push(rI[k + 1], ci, rI[k]); }
     return B.geo(); }
   function trees() { if (!treeAtlas) treeAtlas = paintTreeAtlas(); const mat = new THREE.MeshLambertMaterial({ map: treeAtlas, vertexColors: true, side: THREE.DoubleSide, alphaTest: 0.5 });
-    return { oak: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true },
-      /* shape variants so no two neighbouring trees are the same cut-out */ oak2: { geos: [broadleaf(0, false, 31), broadleaf(1, false, 31)], mat, tree: true }, oak3: { geos: [broadleaf(0, false, 47), broadleaf(1, false, 47)], mat, tree: true }, willow2: { geos: [broadleaf(0, true, 59), broadleaf(1, true, 59)], mat, tree: true }, sequoia2: { geos: [conifer(0, 71), conifer(1, 71)], mat, tree: true } }; }
+    return { oak: { geos: [broadleaf(0, false, 18), broadleaf(1, false, 18)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 24), broadleaf(1, true, 24)], mat, tree: true },
+      /* landmark trees: the ones gripping a mossy boulder - rare, placed far apart (map3d) */ oakL: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, oak3L: { geos: [broadleaf(0, false, 47), broadleaf(1, false, 47)], mat, tree: true }, willowL: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true },
+      /* shape variants so no two neighbouring trees are the same cut-out */ oak2: { geos: [broadleaf(0, false, 31), broadleaf(1, false, 31)], mat, tree: true }, oak3: { geos: [broadleaf(0, false, 48), broadleaf(1, false, 48)], mat, tree: true }, willow2: { geos: [broadleaf(0, true, 59), broadleaf(1, true, 59)], mat, tree: true }, sequoia2: { geos: [conifer(0, 71), conifer(1, 71)], mat, tree: true } }; }
   return { DOOR_H: 11.1, variant, DOORK: () => DOORK, houses, trees, keyFor, KEYS, atlas: () => atlas, kit: { Builder, material, gableRoof, windowOn, doorOn, lantern, chimney, crate, barrel, sack, woodpile, pickaxe, rope, pot, plinth, halfTimber, wallFace, sideX, SHUT } };
 })();
 
@@ -4136,6 +4137,7 @@ void main() {
       tgt.instanceMatrix.array.set(set.M.subarray(i * 16, i * 16 + 16), j * 16); tgt.instanceColor.array.set(set.C.subarray(i * 3, i * 3 + 3), j * 3); tgt.geometry.attributes.iLum.array[j] = set.L[i]; }
     for (const [m, n] of [[m0, n0], [m1, n1]]) if (m) { m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; m.geometry.attributes.iLum.needsUpdate = true; } }
   function homeElev(h) { return h.elev != null ? h.elev : meshH(h.x, h.y); }
+  const M3LM = { list: [], minD: 0 }; // landmark (boulder-gripping) trees: where they are and the enforced spacing
   function treeKind(o) { const hd = hollowDist(o.x, o.y), pd = Math.abs(plateauDist(o.x, o.y)), [, mh] = heightAt(o.x, o.y);
     if (hd < 600 || pd < 900) return 'willow'; if (mh > 120 || Math.hypot(o.x, o.y) > CITY.R - 2600) return 'sequoia'; return 'oak'; }
   function tintFor(seed, warm) { const v = 0.86 + 0.2 * hash1(seed * 13.1), w = (hash1(seed * 7.7) - 0.5) * 0.12 * (warm || 1); return [v * (1 + w), v, v * (1 - w)]; }
@@ -4389,11 +4391,16 @@ diffuseColor *= sdc;
       if (h.isPlayer && /^h\d/.test(key) && HOUSE_KIT.variant) { const pk = key + 'P' + Math.round(w * 10); if (!MD[pk]) { const raw = HOUSE_KIT.variant(key, 1), d0 = raw.doors[0]; MD[pk] = d0 ? HOUSE_KIT.variant(key, HOUSE_KIT.DOOR_H / (d0.h * w), true) : raw; } key = pk; } // the player's larger home: its door still the one world size
       h._rot = rot; h._key = key; h._w = w; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9, h }); yardProps(h, i, key, w); });
     for (const k of HOUSE_KIT.KEYS.concat(Object.keys(byKey).filter((q) => /P\d+$/.test(q)))) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true }));
+    /* landmark trees (a tree gripping a mossy boulder): rare - a greedy, seeded pick keeps any two at least a 5-minute run apart (run speed x her map body scale) */
+    const LMD = 300 * 3.7 * ((typeof CharView !== 'undefined' && CharView.EXK) || 1.18) * ((typeof Explore !== 'undefined' && Explore.WS) || 6.35), LM = new Set(), lmk = [];
+    { const cand = W.objs.filter((o) => o.type === 'tree' && treeKind(o) !== 'sequoia').map((o) => ({ o, h: hash1((o.seed || 0.5) * 13.7 + 0.21) })).sort((a, b) => a.h - b.h);
+      for (const { o } of cand) { if (lmk.some((q) => Math.hypot(q.x - o.x, q.y - o.y) < LMD)) continue; LM.add(o); lmk.push({ x: o.x, y: o.y }); } }
     let nt = 0; for (const o of W.objs) if (o.type === 'tree') { const k = treeKind(o), s = o.r * (k === 'sequoia' ? 7.5 : k === 'willow' ? 5.2 : 5.4), y = meshH(o.x, o.y) - 2; nt++;
       // variety: one of 2-3 shapes per kind, its own height/width (0.75-1.35x), a slight lean, and a wide spread of leaf tints (yellow-green to deep blue-green)
-      const sd = o.seed || 0.5, vk = k === 'oak' ? ['oak', 'oak2', 'oak3'][Math.floor(hash1(sd * 91.7) * 3)] : k === 'willow' ? (hash1(sd * 53.1) < 0.5 ? 'willow' : 'willow2') : (hash1(sd * 37.3) < 0.5 ? 'sequoia' : 'sequoia2'), sz = 0.75 + 0.6 * hash1(sd * 17.9), wd = 0.85 + 0.3 * hash1(sd * 23.3), hu = hash1(sd * 61.1) - 0.5, vv = 0.84 + 0.26 * hash1(sd * 29.9);
+      const sd = o.seed || 0.5; let vk = k === 'oak' ? ['oak', 'oak2', 'oak3'][Math.floor(hash1(sd * 91.7) * 3)] : k === 'willow' ? (hash1(sd * 53.1) < 0.5 ? 'willow' : 'willow2') : (hash1(sd * 37.3) < 0.5 ? 'sequoia' : 'sequoia2'); const sz = 0.75 + 0.6 * hash1(sd * 17.9), wd = 0.85 + 0.3 * hash1(sd * 23.3), hu = hash1(sd * 61.1) - 0.5, vv = 0.84 + 0.26 * hash1(sd * 29.9);
+      if (LM.has(o)) { vk = vk === 'oak3' ? 'oak3L' : vk.startsWith('willow') ? 'willowL' : 'oakL'; lmk.find((q) => q.x === o.x && q.y === o.y).vk = vk; } M3LM.list = lmk; M3LM.minD = LMD;
       push('t_' + vk, { x: o.x, y, z: o.y, rot: sd * TAU * 7, s: s * sz, sx: wd, sz: wd * (0.92 + 0.16 * hash1(sd * 41.3)), sy: 0.9 + 0.25 * hash1(sd * 47.7), tilt: (hash1(sd * 71.3) - 0.5) * 0.08, c: [vv * (1 + 0.22 * hu), vv * (1 + 0.04 * Math.abs(hu)), vv * (1 - 0.3 * hu)], lum: lumAt(o.x, o.y) * 0.8 }); }
-    for (const k of ['oak', 'oak2', 'oak3', 'sequoia', 'sequoia2', 'willow', 'willow2']) if (byKey['t_' + k] && MD[k]) { MD['t_' + k] = MD[k]; IM.trees.push(makeSet('t_' + k, byKey['t_' + k], { near: 1800, far: 26000, minZ: 0.0, shadow: true })); }
+    for (const k of ['oak', 'oak2', 'oak3', 'sequoia', 'sequoia2', 'willow', 'willow2', 'oakL', 'oak3L', 'willowL']) if (byKey['t_' + k] && MD[k]) { MD['t_' + k] = MD[k]; IM.trees.push(makeSet('t_' + k, byKey['t_' + k], { near: 1800, far: 26000, minZ: 0.0, shadow: true })); }
     buildHeartwood(); buildClimbSpots(); if (HWX.trunkRad) GRAND.build({ scene, T: W.heartwood, trunkRad: HWX.trunkRad, ax: HWX.ax, meshH, OUT: W.heartwood.in + Math.PI, barkMat: HWX.barkMat, trunkMat: HWX.trunkMat, moss: HWX.moss, PR });
     const cap = (a) => Math.max(1, a.length);
     if (!IM.props) { const lam = new THREE.MeshLambertMaterial({ color: 0xffffff }); IM.props = { box: propMesh(new THREE.BoxGeometry(1, 1, 1), lam, cap(PR.box)), cyl: propMesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 9), lam, cap(PR.cyl)), lamp: propMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false }), cap(PR.lamp)) }; }
@@ -4585,7 +4592,7 @@ diffuseColor *= sdc;
       const rad = Math.max(14, Math.hypot(vx, vy) * (o.wf || 0.35)); if (d < rad && d - rad < bd) { bd = d - rad; best = o.o; } }
     return best;
   }
-  return { setPaths, pathDip, get paths() { return PTH; }, solids, groundH, get crevices() { return CRV; }, SSR, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, get im() { return IM; }, lodReset: () => { lodAt = null; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { landmarks: M3LM, setPaths, pathDip, get paths() { return PTH; }, solids, groundH, get crevices() { return CRV; }, SSR, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, get im() { return IM; }, lodReset: () => { lodAt = null; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();
 
 /* =====================================================================
