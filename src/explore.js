@@ -221,7 +221,7 @@ const Explore = (() => {
 
       // ---- footings: rough stone blocks stepped down each lip into the crevice, and a sill log across under the deck end
       for (const end of [0, 1]) { const dir = end ? -1 : 1, t0 = end, top = deckH(B, t0) - 1.2;
-        for (const s0 of [-W2 + 2, 0, W2 - 2]) { let y = top - 2, u = 2; for (let c = 0; c < 9; c++) { const t = t0 + dir * at(u), g = gAt(t, s0); const h = 5 + rn() * 2.5; if (y - h < g - 12 && c > 1) break; box('stone', PA(t, s0 + (rn() - 0.5) * 1.2, y - h / 2), 7 + rn() * 2.5, h, 7 + rn() * 3, ang + (rn() - 0.5) * 0.3); y -= h * 0.92; u += (g < y - 4 ? 2.2 : 0.6); } }
+        for (const s0 of [-W2 + 2, 0, W2 - 2]) { let y = top - 2, u = 2; for (let c = 0; c < 9; c++) { const t = t0 + dir * at(u), g = gAt(t, s0); const h = 5 + rn() * 2.5; y = Math.min(y, deckH(B, clamp(t, 0, 1)) - 3.2); /* never poke up through a sloping (stair) deck */ if (y - h < g - 12 && c > 1) break; box('stone', PA(t, s0 + (rn() - 0.5) * 1.2, y - h / 2), 7 + rn() * 2.5, h, 7 + rn() * 3, ang + (rn() - 0.5) * 0.3); y -= h * 0.92; u += (g < y - 4 ? 2.2 : 0.6); } }
         beam('log', P(t0 + dir * at(1), -W2 - 3, -2.2), P(t0 + dir * at(1), W2 + 3, -2.2), 2.4); }
       // ---- deck: three log stringers, a gently arched plank deck with small gaps, edge boards
       for (const so of [-(W2 - 3), 0, W2 - 3]) { const n = 6; for (let q = 0; q < n; q++) beam('log', P(-at(4) + q / n * (1 + at(8)), so, -2.6), P(-at(4) + (q + 1) / n * (1 + at(8)), so, -2.6), 2.0); }
