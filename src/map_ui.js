@@ -386,7 +386,7 @@ const CityMap = (() => {
   function updateInfo(t) {
     const si = seasonInfo(), s = SEASONS[si.idx], h = hourOfDay(), f = festival(), wx = weatherNow(t);
     const hh = Math.floor(h), mm = Math.floor((h % 1) * 60);
-    if (CITY.base) { const t2 = `${h >= 6 && h < 18 ? '☀️' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · Rim rank #${rimRank(W.player)} of ${W.homes.length}`; const e2 = $('#cityInfo'); if (e2 && e2.textContent !== t2) e2.textContent = t2; return; }
+    if (CITY.base) { const t2 = `${h >= 6 && h < 18 ? '☀️' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · Ledgeville rank #${rimRank(W.player)} of ${W.homes.length}`; const e2 = $('#cityInfo'); if (e2 && e2.textContent !== t2) e2.textContent = t2; return; }
     const txt = `${s.icon} ${s.name}${f ? (f === 'lumen' ? ' · 🏮 Lumen Festival' : ' · 🌾 Harvest Fair') : ''} · ${h >= 6 && h < 18 ? '☀️' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${weatherLabel(wx)}`;
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
@@ -464,7 +464,7 @@ const CityMap = (() => {
     return L.length ? `<div class="small" style="margin-top:6px">${L.join('<br>')}</div>` : '<div class="dim" style="margin-top:6px">No trophies yet. A fresh start.</div>';
   }
   function rimLines(h) { const rk = rimRank(h), N = W.homes.length;
-    return `<div class="wrapgap" style="margin-top:6px"><span class="tag">⤓ Deepest: Lv ${h.deepest} / ${CITY.maxDepth}</span><span class="tag">🏆 Rim rank #${rk} of ${N}</span><span class="tag">◎ ${ringLabel(h)}</span></div>
+    return `<div class="wrapgap" style="margin-top:6px"><span class="tag">⤓ Deepest: Lv ${h.deepest} / ${CITY.maxDepth}</span><span class="tag">🏆 Ledgeville rank #${rk} of ${N}</span><span class="tag">◎ ${ringLabel(h)}</span></div>
       <div class="small" style="margin-top:4px">Perks: <span class="dim">(coming soon)</span></div>`; }
   function homeCard(h) {
     openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · ${typeof tierName === 'function' ? tierName(h) : ''}</div>
@@ -474,7 +474,7 @@ const CityMap = (() => {
   }
   function boardModal() { const B = rimBoard(), me = B.indexOf(W.player);
     const row = (h, i, pin) => `<tr class="${h.isPlayer ? 'me' : ''}"${h.isPlayer ? ` style="background:#ffe7a3;font-weight:700${pin ? ';position:sticky;top:0;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.15)' : ''}"` : ''}><td>#${i + 1}</td><td>${esc(h.isPlayer ? 'You' : h.owner)}${pin ? ' 📌' : ''}</td><td>Lv ${h.deepest}</td><td>${rimRing(h)}</td></tr>`;
-    openModal(`<h2>🏆 Rim Leaderboard</h2><div class="small">Ranked by deepest Hollow level reached. Ten rings, each a tenth of the Rim, from the summit lip (ring 1) out to the far mountains (ring 10). Perks for rim proximity: <span class="dim">(coming soon)</span></div>
+    openModal(`<h2>🏆 Ledgeville Leaderboard</h2><div class="small">Ranked by deepest Hollow level reached. Ten rings, each a tenth of the Rim, from the summit lip (ring 1) out to the far mountains (ring 10). Perks for rim proximity: <span class="dim">(coming soon)</span></div>
       <table class="board" style="width:100%;margin-top:6px;border-collapse:collapse;font-size:13px"><thead><tr><th align="left">Rank</th><th align="left">Player</th><th align="left">Deepest</th><th align="left">Ring</th></tr></thead>
       <tbody id="boardPin">${row(W.player, me, true)}</tbody><tbody><tr><td colspan="4"><hr style="margin:4px 0"></td></tr>${B.slice(0, 100).map((h, i) => row(h, i)).join('')}</tbody></table>
       ${me >= 100 ? `<div class="dim small">… you are #${me + 1} of ${B.length}</div>` : ''}${btnRow('<button class="btn" data-act="mapgohome">🏠 Fly to my home</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
@@ -507,7 +507,7 @@ const CityMap = (() => {
     openModal(`<h2>★ Your ${CITY.homeTerm}</h2><div class="small">Lantern Hall Lv ${S.buildings.hall} · ${typeof tierName === 'function' ? tierName(W.player) : ''}</div>
       ${rimLines(W.player)}
       <div class="dim" style="margin-top:6px">Reach deeper Hollow levels and your home moves to an inner ring, closer to the rim.</div>
-      ${btnRow('<button class="btn" data-act="mapboard">🏆 Rim Leaderboard</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+      ${btnRow('<button class="btn" data-act="mapboard">🏆 Ledgeville Leaderboard</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function marketCard(m) {
     const R = REGIONS[m.region], spike = marketSpike(m.idx), mult = spike ? CITY.spikeMult : 1, P = CONFIG.market, lot = P.lot;

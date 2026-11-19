@@ -798,7 +798,7 @@ diffuseColor *= sdc;
     for (const hs of hazeSpr) { const u = hs.userData, f = (u.ph + t * 0.012) % 1; hs.position.set(u.x, P_H - 1700 + f * 3600, u.y); const s2 = u.s * (0.7 + 0.6 * f); hs.scale.set(s2, s2 * 0.75, 1); hs.material.opacity = (0.22 - night * 0.1) * pulse * Math.sin(Math.PI * f); hs.material.color.copy(LC); } U.uHaze.value = 0.4 * (1 - night * 0.5);
     const light = 1.0 - night * 0.62, bl = new THREE.Color(light, light * (1 - night * 0.05), light * (1 + night * 0.12));
     for (const m of bbMat) if (m) { m.uniforms.uLight.value.copy(bl); m.uniforms.uFogC.value.copy(sky); m.uniforms.uFogN.value = scene.fog.near; m.uniforms.uFogF.value = scene.fog.far; m.uniforms.uLumen.value.copy(LC).multiplyScalar(night * 0.7 * pulse); }
-    if (roofPts) { const f = clamp((0.16 - cam.z) / 0.08, 0, 1); roofPts.visible = f > 0.01; roofPts.material.opacity = f; roofPts.material.color.copy(bl); }
+    if (roofPts) { const f = st.camOv ? 0 : clamp((0.16 - cam.z) / 0.08, 0, 1); roofPts.visible = f > 0.01; /* far-map roof dots only: never at character scale (they read as giant coloured domes over the houses) */ roofPts.material.opacity = f; roofPts.material.color.copy(bl); }
     lightPts.material.opacity = night * 0.45; lightPts.visible = false; /* (window-light orbs retired) */
     // player highlight
     const h = W.player, w = homeW(h), gy = (h.elev != null ? h.elev : meshH(h.x, h.y)) + 3, p2 = 0.5 + 0.5 * Math.sin(t * 2.5);
