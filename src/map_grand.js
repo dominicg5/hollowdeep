@@ -62,7 +62,7 @@ const GRAND = (() => {
     const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
     const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.map(([x, y]) => [-x, y]), A.slice().reverse().slice(1), [[hw, 0]]); // left foot -> left springing -> apex -> right springing -> right foot (the old order zig-zagged through the opening)
     // the glow inside: a bright plane set back in the doorway (you can't see in, only the light)
-    { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0x120a05, side: THREE.DoubleSide }); /* a dark matte recess behind the leaves: the cracked gap reads dark, nothing pale shows through */
+    { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0xfff7ec, toneMapped: false, side: THREE.DoubleSide, fog: false });
       const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), gm); m.position.z = -125; grp.add(m); GX.doorGlow = gm;
       // the reveal: the doorway's inner walls are light too, so at any angle you only ever see white
       const P = [], I = []; outline.forEach(([x, y]) => { P.push(x * 1.01, y, -18, x * 1.01, y, -127); }); for (let i = 0; i < outline.length - 1; i++) { const a = i * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
@@ -135,7 +135,7 @@ const GRAND = (() => {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex('rgba(255,252,245,1)', 'rgba(255,245,230,.35)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.6, toneMapped: false })); sp.position.set(0, 450, 40); sp.scale.set(700, 1300, 1); grp.add(sp); GX.doorSprite = sp; }
     GX.lamps = lampPts; return GX.door; }
   function animDoor(t, night) { if (!GX.door) return; const fl = 0.9 + 0.1 * Math.sin(t * 2.1) + 0.04 * Math.sin(t * 7.3);
-    const k = (0.85 + 0.9 * night) * fl; GX.doorGlow.color.setRGB(0.07, 0.04, 0.02); GX.poolM.opacity = (0.08 + 0.6 * night) * fl; GX.shaftM.opacity = 0; GX.doorLight.intensity = (0.25 + 1.2 * night) * fl; GX.doorSprite.material.opacity = (0.25 + 0.5 * night) * fl;
+    const k = (0.85 + 0.9 * night) * fl; GX.doorGlow.color.setRGB(1, 0.97, 0.92); GX.poolM.opacity = (0.08 + 0.6 * night) * fl; GX.shaftM.opacity = (0.04 + 0.22 * night) * fl; GX.doorLight.intensity = (0.25 + 1.2 * night) * fl; GX.doorSprite.material.opacity = (0.25 + 0.5 * night) * fl;
     const lk = 0.55 + night * 0.7; GX.lampM.color.setRGB(lk, lk * 0.75, lk * 0.42); const mk = 0.5 + night * 0.7; GX.mushB.color.setRGB(0.36 * mk, 0.82 * mk, 1.0 * mk); GX.mushV.color.setRGB(0.72 * mk, 0.52 * mk, 1.0 * mk); GX.doorMushGlow.material.opacity = 0.1 + night * 0.5; }
 
   function doorCard() { const btn = (h) => `<div class="wrapgap" style="margin-top:10px">${h}</div>`;

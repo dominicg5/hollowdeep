@@ -480,7 +480,9 @@ diffuseColor *= sdc;
           return r * (1 + 0.075 * lobe2 + 0.06 * Math.sin(3 * a + f * 17) + 0.05 * (vnoise(a * 2.2 + 3, f * 14) - 0.5) - (f > 0.66 ? (f - 0.66) * 5 : 0)); };
       HWX.trunkRad = trunkRad; HWX.ax = ax; const DC = { T, trunkRad, ax, meshH, OUT: T.in + Math.PI };
       { const pts = [], fs = []; for (let i = 0; i <= 72; i++) { const f = -0.07 + (i / 72) * 0.8, fr = f; fs.push(fr); pts.push(ax(fr)); }
-        gaTube(A, pts, 64, (i, a) => trunkRad(fs[i], a) * (fs[i] < 0 ? 1 + fs[i] * 3 : 1), (i, a, p, d) => moss(p, d, 0), [7, 900]); }
+        /* the doorway: the trunk is recessed behind the door's light plane inside the arch, so no bark sits in the doorway (seen through the leaves' gap) */
+        const DS = GRAND.doorSpot(DC), dHW = 330 * 1.35 + 30, dH = 1020 * 1.35, dYS = 620 * 1.35, rIn = DS.rD - 160, inDoor = (i, ph, r) => { const d = Math.atan2(Math.sin(ph - DC.OUT), Math.cos(ph - DC.OUT)); if (Math.cos(d) <= 0.3) return r; const x = Math.sin(d) * r, y = pts[i].y - DS.gy; if (Math.abs(x) > dHW || y < -250 || y > dYS + (dH - dYS) * Math.sqrt(Math.max(0, 1 - (x / dHW) ** 2)) + 40) return r; return Math.min(r, rIn / Math.cos(d)); };
+        gaTube(A, pts, 64, (i, a) => inDoor(i, Math.PI / 2 - a, trunkRad(fs[i], Math.PI / 2 - a) * (fs[i] < 0 ? 1 + fs[i] * 3 : 1)) /* gaTube's ring angle a is measured from its own frame (vertex at world azimuth pi/2 - a on the upright trunk): trunkRad wants the world azimuth, else the buttress lobes land where the door's smooth cleft should be and bulge over the door */, (i, a, p, d) => moss(p, d, 0), [7, 900]); }
       // strands wound round the trunk up into the crown
       for (let k = 0; k < 12; k++) { const a0 = (k / 12) * TAU + 0.3, pts = [], rs = [], f1 = 0.52 + hash1(k * 7.3) * 0.16, n = 48;
         for (let i = 0; i <= n; i++) { const f = 0.02 + (f1 - 0.02) * i / n, aa = a0 + f * 3.4; pts.push(tr(f, aa, trunkRad(f, aa) * 0.95)); rs.push(HW_R0 * (0.17 + 0.06 * hash1(k)) * (1 - 0.6 * i / n) * (i < 3 ? 0.5 + i / 6 : 1)); }
@@ -577,7 +579,7 @@ diffuseColor *= sdc;
         rm.castShadow = true; rm.receiveShadow = true; add(rm); }
       // glowing blue mushrooms on the roots and round the foot of the trunk; glowing hollows in the trunk
       { const ms = []; rootPts.forEach((pts) => { for (let i = 2; i < pts.length - 2; i++) if (hash1(i * 1.3 + pts[i].x) < 0.4) { const n = 1 + ((hash1(i * 7 + pts[i].z) * 3) | 0); for (let j = 0; j < n; j++) ms.push([pts[i].x + (hash1(i + j * 3 + pts[i].z) - 0.5) * 220, pts[i].y + 20, pts[i].z + (hash1(i * 2 + j + pts[i].x) - 0.5) * 220, 22 + hash1(i * 5 + j + pts[i].z) * 46]); } });
-        for (let k = 0; k < 90; k++) { const f = -0.02 + hash1(k * 3.7) * 0.2, a = hash1(k * 9.1) * TAU, p = tr(f, a, trunkRad(f, a) * 0.99); ms.push([p.x, p.y, p.z, 20 + hash1(k) * 44]); }
+        for (let k = 0; k < 90; k++) { const f = -0.02 + hash1(k * 3.7) * 0.2, a = hash1(k * 9.1) * TAU, p = tr(f, a, trunkRad(f, a) * 0.99); { const dA = Math.abs(Math.atan2(Math.sin(a - T.in - Math.PI), Math.cos(a - T.in - Math.PI))); if (dA < 0.5) continue; /* none in or round the great door's opening */ } ms.push([p.x, p.y, p.z, 20 + hash1(k) * 44]); }
         const capG = new THREE.SphereGeometry(1, 12, 5, 0, TAU, 0, Math.PI / 2); capG.scale(1, 0.55, 1); const stG = new THREE.CylinderGeometry(0.18, 0.26, 0.9, 6); stG.translate(0, -0.45, 0);
         const mm = new THREE.MeshBasicMaterial({ color: 0x66d8ff, toneMapped: false }), cap = new THREE.InstancedMesh(capG, mm, ms.length), stem = new THREE.InstancedMesh(stG, new THREE.MeshLambertMaterial({ color: 0xeedcbc }), ms.length);
         ms.forEach((m2, i) => { e.set((hash1(i) - 0.5) * 0.5, 0, (hash1(i + 3) - 0.5) * 0.5); q.setFromEuler(e); mt.compose(v3().set(m2[0], m2[1], m2[2]), q, v3().set(m2[3], m2[3], m2[3])); cap.setMatrixAt(i, mt); stem.setMatrixAt(i, mt); });

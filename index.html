@@ -283,9 +283,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='c4c39861';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build c4c39861</div>
-<script src="assets/vendor/three.min.js?v=c4c39861"></script>
+<script>window.HD_BUILD='5f4327eb';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 5f4327eb</div>
+<script src="assets/vendor/three.min.js?v=5f4327eb"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -3499,7 +3499,7 @@ const GRAND = (() => {
     const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
     const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.map(([x, y]) => [-x, y]), A.slice().reverse().slice(1), [[hw, 0]]); // left foot -> left springing -> apex -> right springing -> right foot (the old order zig-zagged through the opening)
     // the glow inside: a bright plane set back in the doorway (you can't see in, only the light)
-    { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0x120a05, side: THREE.DoubleSide }); /* a dark matte recess behind the leaves: the cracked gap reads dark, nothing pale shows through */
+    { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0xfff7ec, toneMapped: false, side: THREE.DoubleSide, fog: false });
       const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), gm); m.position.z = -125; grp.add(m); GX.doorGlow = gm;
       // the reveal: the doorway's inner walls are light too, so at any angle you only ever see white
       const P = [], I = []; outline.forEach(([x, y]) => { P.push(x * 1.01, y, -18, x * 1.01, y, -127); }); for (let i = 0; i < outline.length - 1; i++) { const a = i * 2; I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
@@ -3572,7 +3572,7 @@ const GRAND = (() => {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex('rgba(255,252,245,1)', 'rgba(255,245,230,.35)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.6, toneMapped: false })); sp.position.set(0, 450, 40); sp.scale.set(700, 1300, 1); grp.add(sp); GX.doorSprite = sp; }
     GX.lamps = lampPts; return GX.door; }
   function animDoor(t, night) { if (!GX.door) return; const fl = 0.9 + 0.1 * Math.sin(t * 2.1) + 0.04 * Math.sin(t * 7.3);
-    const k = (0.85 + 0.9 * night) * fl; GX.doorGlow.color.setRGB(0.07, 0.04, 0.02); GX.poolM.opacity = (0.08 + 0.6 * night) * fl; GX.shaftM.opacity = 0; GX.doorLight.intensity = (0.25 + 1.2 * night) * fl; GX.doorSprite.material.opacity = (0.25 + 0.5 * night) * fl;
+    const k = (0.85 + 0.9 * night) * fl; GX.doorGlow.color.setRGB(1, 0.97, 0.92); GX.poolM.opacity = (0.08 + 0.6 * night) * fl; GX.shaftM.opacity = (0.04 + 0.22 * night) * fl; GX.doorLight.intensity = (0.25 + 1.2 * night) * fl; GX.doorSprite.material.opacity = (0.25 + 0.5 * night) * fl;
     const lk = 0.55 + night * 0.7; GX.lampM.color.setRGB(lk, lk * 0.75, lk * 0.42); const mk = 0.5 + night * 0.7; GX.mushB.color.setRGB(0.36 * mk, 0.82 * mk, 1.0 * mk); GX.mushV.color.setRGB(0.72 * mk, 0.52 * mk, 1.0 * mk); GX.doorMushGlow.material.opacity = 0.1 + night * 0.5; }
 
   function doorCard() { const btn = (h) => `<div class="wrapgap" style="margin-top:10px">${h}</div>`;
@@ -4065,7 +4065,9 @@ diffuseColor *= sdc;
           return r * (1 + 0.075 * lobe2 + 0.06 * Math.sin(3 * a + f * 17) + 0.05 * (vnoise(a * 2.2 + 3, f * 14) - 0.5) - (f > 0.66 ? (f - 0.66) * 5 : 0)); };
       HWX.trunkRad = trunkRad; HWX.ax = ax; const DC = { T, trunkRad, ax, meshH, OUT: T.in + Math.PI };
       { const pts = [], fs = []; for (let i = 0; i <= 72; i++) { const f = -0.07 + (i / 72) * 0.8, fr = f; fs.push(fr); pts.push(ax(fr)); }
-        gaTube(A, pts, 64, (i, a) => trunkRad(fs[i], a) * (fs[i] < 0 ? 1 + fs[i] * 3 : 1), (i, a, p, d) => moss(p, d, 0), [7, 900]); }
+        /* the doorway: the trunk is recessed behind the door's light plane inside the arch, so no bark sits in the doorway (seen through the leaves' gap) */
+        const DS = GRAND.doorSpot(DC), dHW = 330 * 1.35 + 30, dH = 1020 * 1.35, dYS = 620 * 1.35, rIn = DS.rD - 160, inDoor = (i, ph, r) => { const d = Math.atan2(Math.sin(ph - DC.OUT), Math.cos(ph - DC.OUT)); if (Math.cos(d) <= 0.3) return r; const x = Math.sin(d) * r, y = pts[i].y - DS.gy; if (Math.abs(x) > dHW || y < -250 || y > dYS + (dH - dYS) * Math.sqrt(Math.max(0, 1 - (x / dHW) ** 2)) + 40) return r; return Math.min(r, rIn / Math.cos(d)); };
+        gaTube(A, pts, 64, (i, a) => inDoor(i, Math.PI / 2 - a, trunkRad(fs[i], Math.PI / 2 - a) * (fs[i] < 0 ? 1 + fs[i] * 3 : 1)) /* gaTube's ring angle a is measured from its own frame (vertex at world azimuth pi/2 - a on the upright trunk): trunkRad wants the world azimuth, else the buttress lobes land where the door's smooth cleft should be and bulge over the door */, (i, a, p, d) => moss(p, d, 0), [7, 900]); }
       // strands wound round the trunk up into the crown
       for (let k = 0; k < 12; k++) { const a0 = (k / 12) * TAU + 0.3, pts = [], rs = [], f1 = 0.52 + hash1(k * 7.3) * 0.16, n = 48;
         for (let i = 0; i <= n; i++) { const f = 0.02 + (f1 - 0.02) * i / n, aa = a0 + f * 3.4; pts.push(tr(f, aa, trunkRad(f, aa) * 0.95)); rs.push(HW_R0 * (0.17 + 0.06 * hash1(k)) * (1 - 0.6 * i / n) * (i < 3 ? 0.5 + i / 6 : 1)); }
@@ -4162,7 +4164,7 @@ diffuseColor *= sdc;
         rm.castShadow = true; rm.receiveShadow = true; add(rm); }
       // glowing blue mushrooms on the roots and round the foot of the trunk; glowing hollows in the trunk
       { const ms = []; rootPts.forEach((pts) => { for (let i = 2; i < pts.length - 2; i++) if (hash1(i * 1.3 + pts[i].x) < 0.4) { const n = 1 + ((hash1(i * 7 + pts[i].z) * 3) | 0); for (let j = 0; j < n; j++) ms.push([pts[i].x + (hash1(i + j * 3 + pts[i].z) - 0.5) * 220, pts[i].y + 20, pts[i].z + (hash1(i * 2 + j + pts[i].x) - 0.5) * 220, 22 + hash1(i * 5 + j + pts[i].z) * 46]); } });
-        for (let k = 0; k < 90; k++) { const f = -0.02 + hash1(k * 3.7) * 0.2, a = hash1(k * 9.1) * TAU, p = tr(f, a, trunkRad(f, a) * 0.99); ms.push([p.x, p.y, p.z, 20 + hash1(k) * 44]); }
+        for (let k = 0; k < 90; k++) { const f = -0.02 + hash1(k * 3.7) * 0.2, a = hash1(k * 9.1) * TAU, p = tr(f, a, trunkRad(f, a) * 0.99); { const dA = Math.abs(Math.atan2(Math.sin(a - T.in - Math.PI), Math.cos(a - T.in - Math.PI))); if (dA < 0.5) continue; /* none in or round the great door's opening */ } ms.push([p.x, p.y, p.z, 20 + hash1(k) * 44]); }
         const capG = new THREE.SphereGeometry(1, 12, 5, 0, TAU, 0, Math.PI / 2); capG.scale(1, 0.55, 1); const stG = new THREE.CylinderGeometry(0.18, 0.26, 0.9, 6); stG.translate(0, -0.45, 0);
         const mm = new THREE.MeshBasicMaterial({ color: 0x66d8ff, toneMapped: false }), cap = new THREE.InstancedMesh(capG, mm, ms.length), stem = new THREE.InstancedMesh(stG, new THREE.MeshLambertMaterial({ color: 0xeedcbc }), ms.length);
         ms.forEach((m2, i) => { e.set((hash1(i) - 0.5) * 0.5, 0, (hash1(i + 3) - 0.5) * 0.5); q.setFromEuler(e); mt.compose(v3().set(m2[0], m2[1], m2[2]), q, v3().set(m2[3], m2[3], m2[3])); cap.setMatrixAt(i, mt); stem.setMatrixAt(i, mt); });
@@ -6361,6 +6363,9 @@ const CharView = (() => {
   function strandMat(L) { return L.glowS ? new THREE.MeshBasicMaterial({ color: L.col }) : L.cable ? new THREE.MeshPhongMaterial({ color: L.col, specular: 0xffffff, shininess: 60 }) : toon(L.col, null, { emissive: new THREE.Color(L.core).multiplyScalar(0.15).getHex() }); }
   // the braid along a centre path: two helices half a turn apart, each strand in its own tier's material (stripe/wrap details ride on that strand),
   // each with its own glow sheath and its own transfer beads. ledgeEnd: 1 if the Ledge is at the end of the path, 0 if at its start
+  let BOPT = null; // one-shot options for the next braidCord: { np: samples, s0: arc length the lay starts at, n0: starting frame normal }
+  /* the same parallel-transport frames braidCord builds, without any geometry: the frame a chunk of a long cord starts with */
+  function braidFrames(pts, NP, n0) { const C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), P = C.getSpacedPoints(NP), n = n0.clone(); for (let i = 0; i <= NP; i++) { const t2 = P[Math.min(NP, i + 1)].clone().sub(P[Math.max(0, i - 1)]).normalize(); n.addScaledVector(t2, -n.dot(t2)).normalize(); } return { n1: n, len: C.getLength() }; }
   function twinCord(par, pts, tw, k = 2.4, ledgeEnd = 0) { const g = braidCord(par, pts, [Object.assign({ key: 'a' }, tw.a), Object.assign({ key: 'b' }, tw.b)], k, ledgeEnd); g.userData.twin = tw; return g; }
   // the same lay for any number of strands: 2 -> the twin helix; more -> one big rope, every strand (its own tier material, sheath and beads) laid
   // round a dark heart at a ring radius that grows with the count, so the braid thickens with each Ledge Tether twined in
@@ -6368,12 +6373,13 @@ const CharView = (() => {
   // a laid rope's axis: spaced points with parallel-transported frames (the same construction braidCord lays its strands on), arc length S
   function layAxis(pts, NP) { const C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), P = C.getSpacedPoints(NP), Nn = [], Bn = [], T = [], S = [0]; let n0 = Math.abs(P[1].clone().sub(P[0]).normalize().y) > 0.9 ? V(1, 0, 0) : V(0, 1, 0);
     for (let i = 0; i <= NP; i++) { const t2 = P[Math.min(NP, i + 1)].clone().sub(P[Math.max(0, i - 1)]).normalize(); n0.addScaledVector(t2, -n0.dot(t2)).normalize(); Nn.push(n0.clone()); Bn.push(t2.clone().cross(n0)); T.push(t2); if (i) S.push(S[i - 1] + P[i].distanceTo(P[i - 1])); } return { C, P, Nn, Bn, T, S }; }
-  function braidCord(par, pts, list, k = 2.4, ledgeEnd = 0) { const C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), len = C.getLength(), NS = list.length, NP = Math.max(60, Math.min(NS > 2 ? 520 : 900, Math.round(len / 0.01))), P = C.getSpacedPoints(NP), g = new THREE.Group(); par.add(g);
+  function braidCord(par, pts, list, k = 2.4, ledgeEnd = 0) { const BO = BOPT || {}; BOPT = null; const C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), len = C.getLength(), NS = list.length, NP = BO.np || Math.max(60, Math.min(NS > 2 ? 520 : 900, Math.round(len / 0.01))), P = C.getSpacedPoints(NP), g = new THREE.Group(); par.add(g);
     const BIG = NS > 2, shrink = BIG ? Math.max(0.6, 1 - 0.03 * (NS - 2)) : 1, sr0 = list.map((x) => (LGRADES[x.grade] || LGRADES.bronze).r * k * shrink), smax = Math.max(...sr0), srs = BIG ? sr0.map(() => smax) : sr0,
       // big rope: every strand the same gauge, laid side by side round the core with a small even gap (BRAID_GAP), one lay length for all - no strand crosses another
       rr = BIG ? smax / Math.sin(Math.PI / NS) * BRAID_GAP : smax * 0.95, twist = BIG ? TAU / (rr * TAU * BRAID_LAY) : TAU / (7 * (srs[0] + srs[1]));
-    const Nn = [], Bn = []; let n0 = Math.abs(P[1].clone().sub(P[0]).normalize().y) > 0.9 ? V(1, 0, 0) : V(0, 1, 0); for (let i = 0; i <= NP; i++) { const t2 = P[Math.min(NP, i + 1)].clone().sub(P[Math.max(0, i - 1)]).normalize(); n0.addScaledVector(t2, -n0.dot(t2)).normalize(); Nn.push(n0.clone()); Bn.push(t2.clone().cross(n0)); }
-    const helix = (off, ph) => { let sA = 0; const H = []; for (let i = 0; i <= NP; i++) { if (i) sA += P[i].distanceTo(P[i - 1]); const a = ph + sA * twist; H.push(P[i].clone().addScaledVector(Nn[i], Math.cos(a) * off).addScaledVector(Bn[i], Math.sin(a) * off)); } return H; };
+    const Nn = [], Bn = []; let n0 = BO.n0 ? BO.n0.clone() : Math.abs(P[1].clone().sub(P[0]).normalize().y) > 0.9 ? V(1, 0, 0) : V(0, 1, 0); for (let i = 0; i <= NP; i++) { const t2 = P[Math.min(NP, i + 1)].clone().sub(P[Math.max(0, i - 1)]).normalize(); n0.addScaledVector(t2, -n0.dot(t2)).normalize(); Nn.push(n0.clone()); Bn.push(t2.clone().cross(n0)); }
+    const n1 = Nn[NP].clone();
+    const helix = (off, ph) => { let sA = BO.s0 || 0; const H = []; for (let i = 0; i <= NP; i++) { if (i) sA += P[i].distanceTo(P[i - 1]); const a = ph + sA * twist; H.push(P[i].clone().addScaledVector(Nn[i], Math.cos(a) * off).addScaledVector(Bn[i], Math.sin(a) * off)); } return H; };
     const strands = [], seg = NS > 2 ? NP : NP * 2, rs = NS > 2 ? 6 : 7;
     // the common core: dark, filling the lay right up to the strands so the gaps between them read as dark shading lines
     if (BIG) { const cf = list[0].coreFrom || 0, crr = Math.max(0.004, rr - smax * 0.25), CC = cf > 0 ? new THREE.CatmullRomCurve3(Array.from({ length: 81 }, (_, i) => C.getPointAt(Math.min(1, cf / len + (1 - cf / len) * i / 80)))) : C; part(g, new THREE.TubeGeometry(CC, NP, crr, 16, false), toon(0x231c1a), null, null, null, { ink: false });
@@ -6389,7 +6395,7 @@ const CharView = (() => {
       const pm = new THREE.MeshBasicMaterial({ color: new THREE.Color(L.en).lerp(new THREE.Color(0xffffff), 0.35), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }), beads = [];
       for (let i = 0; i < 4; i++) { const b = part(g, new THREE.SphereGeometry(1, 10, 8), pm, null, null, null, { ink: false, shadow: false }); b.visible = false; beads.push(b); }
       strands.push({ key: x.key, port: x.port, seed: x.seed || 0, lj: x.lj === undefined ? j : x.lj, grade: x.grade, dir: x.dir, curve: hc, pts: hp, full: x.tube || hp, drawn: !x.noTube, core, co: L.co * (BIG ? 0.8 : 1.4), pm, beads, sr, bs: BIG ? 1.3 : 2.3, xl: 0, u: 0, len: hc.getLength() }); });
-    g.userData = { C, strands, rr, R: rr + smax, len, ledgeEnd, core: strands[0].core, co: strands[0].co }; return g; }
+    g.userData = { C, strands, rr, R: rr + smax, len, ledgeEnd, core: strands[0].core, co: strands[0].co, n1, twist, srs }; return g; }
   // per-strand load: auto = each strand carries a load 3 s out of every 8, the two strands out of step (so each dims on its own); seed varies it per Ledge Tether
   function strandLoad(t, j, seed = 0) { return LG.xfer === 'on' ? 1 : LG.xfer === 'off' ? 0 : ((t + j * 4 + seed) % 8 < 3 ? 1 : 0); }
   // idle: full steady glow, no pulse; under load the strand's glow dims and its pulses run in that strand's direction ('to' runs toward the Ledge end)
@@ -7161,7 +7167,7 @@ function exploreOn(par, x, z, face, hy) { if (!R && !initGL()) return null; setC
     if (HM.ext.userData.lamp) HM.ext.userData.lamp.intensity = 0.85 + 0.08 * Math.sin(HM.t * 7) * Math.sin(HM.t * 3.1);
     if (HM.tickX) HM.tickX(dt); const s2 = document.getElementById('homeXfer'); if (s2) { const s = HM.moving ? 'moving' : 'idle'; if (s2.textContent !== s) s2.textContent = s; } }
   function homeMark() { markBox(document.getElementById('homeCtl')); if (XD.box && XD.on) markBox(XD.box); }
-  function markBox(box) { if (!box) return; const hs = homeState(); for (const b of box.querySelectorAll('button[data-v]')) { const k = b.parentNode.dataset.k, v = b.dataset.v; let on = false, dis = false;
+  function markBox(box) { if (!box) return; ensureTw(); /* the strand picks exist even before the Ledge view was ever opened */ const hs = homeState(); for (const b of box.querySelectorAll('button[data-v]')) { const k = b.parentNode.dataset.k, v = b.dataset.v; let on = false, dis = false;
       if (k === 'port') { const i = PORTS.indexOf(v); on = v === HM.sel; dis = v !== 'c' && i - 1 >= hs.open; b.classList.toggle('full', !!hs.ports[v]); } else if (/^[ld][ab]$/.test(k)) { const tw = hs.ports[HM.sel] ? twinOf(hs.ports[HM.sel]) : HM.tw; on = v === tw[k[1]][k[0] === 'l' ? 'grade' : 'dir']; } else if (k === 'dir') on = v === HM.dir; else if (k === 'xfer') on = v === LG.xfer;
       b.classList.toggle('on', on); b.classList.toggle('dis', dis); }
     const pb = box.querySelector('[data-v=plug]'); if (pb) pb.textContent = hs.ports[HM.sel] ? 'Unplug Ledge Tether' : 'Plug in Ledge Tether'; }
@@ -7192,19 +7198,38 @@ function exploreOn(par, x, z, face, hy) { if (!R && !initGL()) return null; setC
       /* the same braided twin Ledge Tether as the door interface: out of the port, down the door face, out across the ground and into it */
       const [so, ln] = DOOR_LANE[id] || [0.12, 0], zs = z0 + so, yk = Math.min(pp.y - 0.08, 0.34), fy = 0.035, E = 1.6 + so;
       const out = rounded([V(pp.x, pp.y, z0 + 0.03), V(pp.x, pp.y, zs), V(pp.x, yk, zs), V(ln, fy, zs + 0.16)].concat(XD.surf && dest ? drapeRoute(dr, ln, zs + 0.16, so, dest.pts) : [V(ln, fy, E), V(ln * 1.4, fy, E + 1.4), V(ln * 1.6, -0.25, E + 1.9)]), c ? 0.07 : 0.05);
-      if (dest) dr.userData.ends[id] = dest.name; const cd = twinCord(G2, out, t, k, 0); ledgeLook(cd); cd.userData.port = id; cd.userData.seed = PORTS.indexOf(id) * 1.7; dr.userData.cords.push(cd); } }
+      if (dest) dr.userData.ends[id] = dest.name; void 0; let head = out, tail = null; if (dest && out.length > 12) { let acc = 0, cut = out.length - 1; for (let q = 1; q < out.length; q++) { acc += out[q].distanceTo(out[q - 1]); if (acc > 6) { cut = q; break; } } if (cut < out.length - 2) { head = out.slice(0, cut + 1); tail = out.slice(cut); } }
+      const cd = twinCord(G2, head, t, k, 0); cd.userData.k = k; ledgeLook(cd); if (tail) cd.userData.chunks = cordChunks(G2, cd, tail, t, k); cd.userData.port = id; cd.userData.seed = PORTS.indexOf(id) * 1.7; dr.userData.cords.push(cd); } }
   /* the map tether drapes over the real ground: out from the door, curving toward the Hollow, sampled every 0.5 m along the terrain (bridge decks where it crosses), pulled taut over narrow dips like crevices, ending in the ground */
   /* the map renderer is sRGB + ACES (exposure 1.25) while the Ledge view is linear with no tone mapping: the same tether materials would come out
      washed and shifted outdoors. Each map cord material (built by the same braidCord/LGRADES code as inside) skips tone mapping and the output
-     encoding, so its grade colours, glow and strand bands read exactly as they do in the Ledge; toon parts take a fixed key-lit shade (1.05x shadow .. 1.65x lit, measured off the Ledge door render) instead of the
+     encoding, so its grade colours, glow and strand bands read exactly as they do in the Ledge; toon parts take a fixed key-lit shade (0.9x shadow .. 1.38x lit, measured off the Ledge door render) instead of the
      outdoor sun (1.15) + sky (0.55), which is about twice the Ledge's light and was bleaching the bronze/iron bands. */
-  function ledgeLook(g) { g.traverse((o) => { const m = o.material; if (!m || m.userData.ledgeLook) return; m.userData.ledgeLook = 1; m.toneMapped = false; m.fog = false; const ob = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (ob) ob(sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <encodings_fragment>', ''); if (m.isMeshToonMaterial) sh.fragmentShader = sh.fragmentShader.replace('#include <output_fragment>', 'outgoingLight = diffuseColor.rgb * mix(1.05, 1.65, smoothstep(-0.2, 0.5, dot(normal, normalize(vec3(0.3, 0.6, 0.75))))) + totalEmissiveRadiance;\n#include <output_fragment>'); }; m.customProgramCacheKey = () => 'ledgeLook'; m.needsUpdate = true; }); }
+  function ledgeLook(g) { g.traverse((o) => { const m = o.material; if (!m || m.userData.ledgeLook) return; m.userData.ledgeLook = 1; m.toneMapped = false; m.fog = false; const ob = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (ob) ob(sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <encodings_fragment>', ''); if (m.isMeshToonMaterial) sh.fragmentShader = sh.fragmentShader.replace('#include <output_fragment>', 'outgoingLight = diffuseColor.rgb * mix(0.9, 1.38, smoothstep(-0.2, 0.5, dot(normal, normalize(vec3(0.3, 0.6, 0.75))))) + totalEmissiveRadiance;\n#include <output_fragment>'); }; m.customProgramCacheKey = () => 'ledgeLook'; m.needsUpdate = true; }); }
+  /* a long map cord keeps the door's exact lay: the same twist per metre at the same sampling (2 cm), never spread over the length. The run past the
+     first few metres is cut into 5 m chunks that carry on the lay phase (arc length) and the strand frame from the chunk before; a chunk near the
+     camera is the real braided geometry, farther ones are a light textured tube with the same two strands painted at the same lay. */
+  function cordChunks(G2, cd, tail, tw, k) { const out = [], ud = cd.userData; let n0 = ud.n1.clone(), s0 = ud.len, i = 0;
+    while (i < tail.length - 1) { let acc = 0, j = i + 1; for (; j < tail.length; j++) { acc += tail[j].distanceTo(tail[j - 1]); if (acc >= 5 || j === tail.length - 1) break; } if (tail.length - 1 - j < 2) j = tail.length - 1;
+      const pts = tail.slice(i, j + 1); if (pts.length === 2) pts.splice(1, 0, pts[0].clone().lerp(pts[1], 0.5)); const np = Math.max(20, Math.round(acc / 0.02)), fr = braidFrames(pts, np, n0), c = pts[pts.length >> 1].clone();
+      const far = cordFar(G2, pts, tw, k, ud, s0, fr.len); out.push({ pts, np, n0: n0.clone(), s0, c, far, near: null }); n0 = fr.n1; s0 += fr.len; i = j; }
+    return out; }
+  const FARTEX = {}; function farTex(ca, cb) { const key = ca + '/' + cb; if (FARTEX[key]) return FARTEX[key]; const W = 64, H = 64, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d'), im = x.createImageData(W, H), A = new THREE.Color(ca), B = new THREE.Color(cb);
+    for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) { const f = px / W, v = py / H, w = ((v - f) % 1 + 1) % 1, inA = w < 0.5, u = (w % 0.5) / 0.5, sh = 0.55 + 0.45 * Math.sin(Math.PI * u), C = inA ? A : B, o = (py * W + px) * 4, seam = u < 0.06 || u > 0.94 ? 0.35 : 1;
+      im.data[o] = 255 * Math.min(1, C.r * sh * seam); im.data[o + 1] = 255 * Math.min(1, C.g * sh * seam); im.data[o + 2] = 255 * Math.min(1, C.b * sh * seam); im.data[o + 3] = 255; }
+    x.putImageData(im, 0, 0); const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; return (FARTEX[key] = t); }
+  function cordFar(G2, pts, tw, k, ud, s0, len) { const La = LGRADES[tw.a.grade] || LGRADES.bronze, Lb = LGRADES[tw.b.grade] || LGRADES.bronze, C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), seg = Math.max(8, Math.round(len / 0.12)), R = ud.rr + Math.max(...ud.srs);
+    const g = new THREE.TubeGeometry(C, seg, R, 8, false), uv = g.attributes.uv, per = TAU / ud.twist; for (let q = 0; q < uv.count; q++) uv.setX(q, (s0 + uv.getX(q) * len) / per);
+    const m = new THREE.Mesh(g, toon(0xffffff, farTex(La.col, Lb.col))); m.castShadow = false; G2.add(m); ledgeLook(m); return m; }
+  function chunkLOD(dr, cd) { const ch = cd.userData.chunks; if (!ch || typeof M3 === 'undefined' || !M3.camera) return; const cam = dr.worldToLocal(M3.camera.position.clone()); let built = 0;
+    for (const c of ch) { const d = c.c.distanceTo(cam); if (!c.near && d < 16 && built < 1) { BOPT = { np: c.np, s0: c.s0, n0: c.n0 }; c.near = braidCord(c.far.parent, c.pts, [Object.assign({ key: 'a' }, cd.userData.twin.a), Object.assign({ key: 'b' }, cd.userData.twin.b)], cd.userData.k || 2.4, 0); ledgeLook(c.near); c.far.visible = false; built++; }
+      else if (c.near && d > 26) { c.near.parent.remove(c.near); c.near.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.dispose) o.material.dispose(); }); c.near = null; c.far.visible = true; } } }
   function drapeRoute(dr, ln, z1, so, W2) { dr.updateMatrixWorld(true); const pts = [], lift = 0.06, st = 1.0, L2 = (wx, wz) => dr.worldToLocal(V(wx, 0, wz)), first = V(ln, 0, z1 + 1.2), path = [first].concat(W2.map(([wx, wz]) => L2(wx, wz)));
     /* follow the route (door -> its real end) over the ground, resampled every metre; a small side offset per strand lane keeps the cords apart */
     for (let q = 1; q < path.length; q++) { const A = path[q - 1], B = path[q], dx = B.x - A.x, dz = B.z - A.z, L = Math.hypot(dx, dz); if (L < 1e-3) continue; const nx = -dz / L, nz = dx / L, n = Math.max(1, Math.ceil(L / st)); for (let k = q === 1 ? 0 : 1; k <= n; k++) { const t = k / n, x = A.x + dx * t + nx * ln * 0.6, z = A.z + dz * t + nz * ln * 0.6, w = dr.localToWorld(V(x, 0, z)), gy = XD.surf(w.x, w.z); pts.push(V(x, dr.worldToLocal(V(w.x, gy, w.z)).y + lift, z)); } }
     for (let it = 0; it < 6; it++) for (let i = 1; i < pts.length - 1; i++) pts[i].y = Math.max(pts[i].y, (pts[i - 1].y + pts[i + 1].y) / 2 - 0.03); /* a rope settles: a little sag, but it spans narrow dips like crevices */
     return pts; }
-  function mapDoorTick(dt) { XD.t = (XD.t || 0) + dt; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (!dr || !dr.userData.cords) continue; for (const cd of dr.userData.cords) { const sd = cd.userData.seed || 0; twinTick(cd, XD.t, dt, cd.userData.strands.map((x, j) => x.port ? strandLoad(XD.t, x.lj, x.seed) : strandLoad(XD.t, j, sd))); } } }
+  function mapDoorTick(dt) { XD.t = (XD.t || 0) + dt; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (!dr || !dr.userData.cords) continue; for (const cd of dr.userData.cords) { chunkLOD(dr, cd); const sd = cd.userData.seed || 0; twinTick(cd, XD.t, dt, cd.userData.strands.map((x, j) => x.port ? strandLoad(XD.t, x.lj, x.seed) : strandLoad(XD.t, j, sd))); } } }
   function syncDoors() { XD.doors = XD.doors.filter((d) => d.parent); for (const d of XD.doors) syncDoorSet(d); }
 
   function homeMode(on) { if (!R) return; if (!!on === !!st.home) return; if (!on) homeLights(false); /* the UI re-renders call show('home') every tick: never reset the camera, walker or panel while already home */ if (on && !HM.g) { HM.g = makeHome(); scene.add(HM.g); HM.bg = cv(8, 256, (g2, w, h) => { const gr = g2.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f3dcb4'); gr.addColorStop(0.55, '#e2b987'); gr.addColorStop(1, '#a9825e'); g2.fillStyle = gr; g2.fillRect(0, 0, w, h); }); HM.bg0 = scene.background;
