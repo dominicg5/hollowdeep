@@ -1383,7 +1383,7 @@ const CharView = (() => {
   /* ---------- map drill: the same Lifeline Drill bit (makeDrillBit per tier) on a brass hub, held on an iron A-frame and angled down into an ore node; a deploy-anywhere idle miner ---------- */
   function mapDrill(grade, ore) { drillMats(); const g = new THREE.Group(); g.name = 'mapDrill'; const D = LG.drill, iron = toon(0x55585e), brass = toon(0xb3893f), brassDk = toon(0x8a6428), O = ORES[ore] || { spark: ore === 'tin' ? 0xdfe8ff : ore === 'coal' ? 0xffb060 : 0xff8a4a };
     const dr = new THREE.Group(); dr.position.set(0, 0.36, 0); g.add(dr); // bit axis (+z) points forward and down into the node; tip ~ (0, 0.1, 0.75)
-    const zb = D.tip + D.L, hz = zb + 0.09 + D.hub / 2; dr.rotation.set(0.6, Math.PI, 0); // flip so the tip leads toward +z of g
+    const zb = D.tip + D.L, hz = zb + 0.09 + D.hub / 2; dr.rotation.set(0.7, Math.PI, 0); /* ~40 deg down into the node */ // flip so the tip leads toward +z of g
     const bit = makeDrillBit(grade); dr.add(bit); bit.traverse((o) => { if (o.isMesh) o.castShadow = true; });
     part(dr, cyl(0.085, 0.085, D.hub, 22).rotateX(Math.PI / 2), brass, [0, 0, hz]); part(dr, cyl(0.1, 0.1, 0.03, 22).rotateX(Math.PI / 2), brassDk, [0, 0, hz - D.hub / 2]); part(dr, cyl(0.055, 0.055, 0.04, 18).rotateX(Math.PI / 2), brassDk, [0, 0, hz + D.hub / 2 + 0.02]);
     part(dr, cyl(0.03, 0.026, 0.1, 14), brass, [0, 0.11, hz]); part(dr, new THREE.TorusGeometry(0.022, 0.007, 6, 12), iron, [0, 0.18, hz], [0, Math.PI / 2, 0]);
