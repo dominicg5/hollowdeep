@@ -283,9 +283,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='5f4327eb';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 5f4327eb</div>
-<script src="assets/vendor/three.min.js?v=5f4327eb"></script>
+<script>window.HD_BUILD='493e9e17';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 493e9e17</div>
+<script src="assets/vendor/three.min.js?v=493e9e17"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -5254,7 +5254,48 @@ const CharView = (() => {
       LP.forEach((l, k) => { const cur = strand(l, tr * 0.84, 11, l.ph + Math.PI / 5); tubeOn(cur, tr * 0.2, vm, 320); if (k > 2 && k !== 5) return; for (let i = 0; i < 14; i++) { const u = (i + 0.5) / 14, a = u * TAU, p = cur.getPointAt(u); if (Math.abs(a - a0) < aw) continue; sites.push([p, Nm(a).multiplyScalar(0.5).addScaledVector(Z, 0.5).normalize()]); } });
       const fl = flamePoints(sites); grp.add(fl); grp.userData.fx.push(fl); grp.userData.flames = fl; }
     return grp; }
-  function makePickaxe(grade) { const key = GRADES[grade] ? grade : 'stick', G = GRADES[key], T = G.tier, px = new THREE.Group(); px.name = 'pickaxe'; px.userData.grade = key; px.userData.fx = []; if (G.stick) return makeStickaxe(px);
+  /* Ember Onyx (concept ember_onyx_shard_v2): a wing-swept faceted black onyx head - a long swept blade behind, a hooked pick point in front, a crown of
+     shards on top - glowing red veins with flame licks, a molten ember core where the head meets the handle; a faceted onyx handle with red seams, a wrapped
+     grip and small brass bands. Flat-shaded facets with a metallic sheen (Phong), toon-clean colours, no gritty texture. */
+  function onyxBlade(pts2, wF, tF, n, jit, r) { const C = new THREE.CatmullRomCurve3(pts2.map(([x, y]) => V(x, y, 0))), rings = [], Z = V(0, 0, 1);
+    for (let i = 0; i <= n; i++) { const u = i / n, p = C.getPointAt(u), t = C.getTangentAt(u), N = V(-t.y, t.x, 0), w = wF(u), th = tF(u), j = () => 1 + (r() - 0.5) * jit;
+      rings.push([p.clone().addScaledVector(N, w * j()), p.clone().addScaledVector(N, w * 0.35).addScaledVector(Z, th * j()), p.clone().addScaledVector(N, -w * 0.45).addScaledVector(Z, th * 0.8 * j()), p.clone().addScaledVector(N, -w * j()), p.clone().addScaledVector(N, -w * 0.45).addScaledVector(Z, -th * 0.8 * j()), p.clone().addScaledVector(N, w * 0.35).addScaledVector(Z, -th * j())]); }
+    const P = []; const tri = (a, b, c) => P.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z);
+    for (let i = 0; i < n; i++) for (let k = 0; k < 6; k++) { const a = rings[i][k], b = rings[i][(k + 1) % 6], c = rings[i + 1][k], d = rings[i + 1][(k + 1) % 6]; tri(a, c, b); tri(b, c, d); }
+    const r0 = rings[0]; for (let k = 1; k < 5; k++) tri(r0[0], r0[k + 1], r0[k]);
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.computeVertexNormals(); return { g, C }; }
+  function onyxShard(px, G) { const r = prng(57), onyx = new THREE.MeshPhongMaterial({ color: 0x2a2630, specular: 0x6a5e74, shininess: 45, flatShading: true }), onyx2 = new THREE.MeshPhongMaterial({ color: 0x35303a, specular: 0x786c82, shininess: 40, flatShading: true }),
+      veinM = new THREE.MeshBasicMaterial({ color: 0xff3418 }), hotM = new THREE.MeshBasicMaterial({ color: 0xff8a2a }), brass = new THREE.MeshPhongMaterial({ color: 0xb08a3c, specular: 0xffe0a0, shininess: 70 }), sites = [], vein = (par, pts, rad, seg = 40) => part(par, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), seg, rad, 4, false), veinM, null, null, null, { ink: false, shadow: false });
+    // handle: a faceted, slightly twisted onyx shaft (6 facets), a chunky faceted butt
+    { const g = new THREE.CylinderGeometry(0.0175, 0.0195, 1.0, 6, 24), P = g.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), a = Math.atan2(z, x) + y * 1.6, rr = Math.hypot(x, z); P.setXYZ(i, Math.cos(a) * rr, y, Math.sin(a) * rr); } g.computeVertexNormals();
+      part(px, g.toNonIndexed(), onyx, [0, 0.17, 0]); }
+    part(px, new THREE.DodecahedronGeometry(0.026, 0), onyx2, [0, -0.35, 0], [0.3, 0.5, 0.2], [0.85, 1.35, 0.85]);
+    // red seams spiralling up the handle facets (not over the grip)
+    for (let k = 0; k < 3; k++) for (const [y0, y1] of [[-0.33, -0.1], [0.1, 0.6]]) { const pts = []; for (let i = 0; i <= 16; i++) { const y = y0 + (y1 - y0) * i / 16, a = k * TAU / 3 + (y - 0.17) * 1.6 + 0.52 + Math.sin(y * 40 + k) * 0.12; pts.push(V(Math.cos(a) * 0.0188, y, Math.sin(a) * 0.0188)); } vein(px, pts, 0.0014, 32);
+      if (k === 0) for (let i = 0; i < 6; i++) { const p = pts[2 + i * 2]; sites.push([p.clone(), V(p.x, 0, p.z).normalize()]); } }
+    // wrapped grip and brass bands
+    part(px, cyl(0.0185, 0.0185, 0.17, 10), toon(0x2a2026), [0, 0, 0]); helix(px, -0.082, 0.082, 7, 0.019, 0.0033, toon(0x3a2a30));
+    for (const y of [-0.098, 0.098, 0.5, 0.52, -0.24, -0.222]) part(px, new THREE.TorusGeometry(0.0188, 0.0036, 6, 16), brass, [0, y, 0], [Math.PI / 2, 0, 0]);
+    // the head
+    const head = new THREE.Group(); head.position.y = 0.68; px.add(head);
+    part(head, new THREE.DodecahedronGeometry(0.05, 0), onyx, [0, -0.01, 0], [0.2, 0.4, 0], [1, 1.5, 0.9]); for (const [x, y, rz] of [[0.035, -0.06, -0.4], [-0.04, -0.065, 0.5]]) part(head, new THREE.OctahedronGeometry(1, 0), onyx2, [x, y, 0], [0, 0, rz], [0.016, 0.05, 0.03]);
+    // the long swept blade behind (sweeps back and down to a glowing point) and the hooked pick in front
+    const BW = 0.068, HW = 0.05, back = onyxBlade([[0.02, 0.03], [-0.1, 0.05], [-0.21, 0.0], [-0.29, -0.12], [-0.335, -0.29]], (u) => BW * (1 - Math.pow(u, 1.3)) + 0.002, (u) => 0.026 * (1 - u) + 0.0015, 9, 0.2, r);
+    const hook = onyxBlade([[0, 0.035], [0.1, 0.075], [0.19, 0.085], [0.27, 0.06], [0.32, 0.02]], (u) => HW * (1 - Math.pow(u, 1.15)) + 0.0015, (u) => 0.022 * (1 - u) + 0.0012, 8, 0.18, r);
+    part(head, back.g, onyx); part(head, hook.g, onyx);
+    // the blade's glowing edge (molten near the tip) and veins across both faces
+    { const e = []; for (let i = 0; i <= 14; i++) { const u = 0.35 + 0.65 * i / 14, p = back.C.getPointAt(u), t = back.C.getTangentAt(u), w = BW * (1 - Math.pow(u, 1.3)) + 0.002; e.push(p.clone().add(V(t.y, -t.x, 0).multiplyScalar(w * 0.98))); } part(head, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(e), 30, 0.0022, 4, false), hotM, null, null, null, { ink: false, shadow: false }); }
+    for (const [B, wm] of [[back, BW], [hook, HW]]) for (const s of [-1, 1]) for (let k = 0; k < 2; k++) { const pts = []; for (let i = 0; i <= 10; i++) { const u = 0.04 + 0.8 * i / 10, p = B.C.getPointAt(u), t = B.C.getTangentAt(u), w = wm * (1 - Math.pow(u, 1.3)), f = (k ? -0.35 : 0.3) + 0.25 * Math.sin(i * 1.7 + k * 2 + s) ; pts.push(p.clone().add(V(-t.y, t.x, 0).multiplyScalar(w * f)).add(V(0, 0, s * (0.0235 * (1 - u) + 0.0016)))); }
+      vein(head, pts, 0.0016); if (B === back) for (let i = 1; i < 10; i += 2) sites.push([pts[i].clone().add(V(0, head.position.y, 0)), V(-0.4, 0.6, s * 0.7).normalize()]); }
+    // a crown of shards on top, raked back along the blade
+    for (const [x, y, len, w, rz] of [[-0.21, 0.02, 0.1, 0.034, -0.35], [-0.15, 0.06, 0.13, 0.04, -0.45], [-0.085, 0.085, 0.15, 0.042, -0.55], [-0.02, 0.095, 0.13, 0.038, -0.65], [0.04, 0.085, 0.09, 0.03, -0.8], [-0.11, 0.03, 0.1, 0.036, -0.5], [-0.04, 0.04, 0.09, 0.034, -0.6]]) {
+      const m = part(head, new THREE.OctahedronGeometry(1, 0), r() < 0.5 ? onyx : onyx2, [x, y, (r() - 0.5) * 0.01], [0, (r() - 0.5) * 0.5, rz], [w, len, w * 0.62]); sites.push([V(x - Math.sin(rz) * len * 0.6, y + head.position.y + Math.cos(rz) * len * 0.6, 0), V(-0.5, 1, 0).normalize()]); }
+    // the molten ember core where the head meets the handle, both faces, with a glow
+    for (const s of [-1, 1]) { part(head, new THREE.OctahedronGeometry(0.013, 0), hotM, [-0.004, 0.004, s * 0.036], null, [1.5, 1.8, 0.45], { ink: false }); part(head, new THREE.OctahedronGeometry(0.0075, 0), new THREE.MeshBasicMaterial({ color: 0xffd070 }), [-0.004, 0.004, s * 0.04], null, [1.2, 1.5, 0.4], { ink: false }); }
+    const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial('rgba(255,140,60,1)', 'rgba(255,60,20,.25)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); gl.scale.set(0.16, 0.16, 1); gl.position.set(-0.004, 0.004, 0); head.add(gl); px.userData.glow = gl;
+    const pl = new THREE.PointLight(0xff5a28, 0.3, 0.7, 2); head.add(pl); px.userData.light = pl;
+    const fl = flamePoints(sites); px.add(fl); px.userData.flames = fl; px.userData.veins = veinM; px.userData.fx.push(fl); return px; }
+  function makePickaxe(grade) { const key = GRADES[grade] ? grade : 'stick', G = GRADES[key], T = G.tier, px = new THREE.Group(); px.name = 'pickaxe'; px.userData.grade = key; px.userData.fx = []; if (G.stick) return makeStickaxe(px); if (G.onyx) return onyxShard(px, G);
     const metal = G.shine ? new THREE.MeshPhongMaterial({ color: G.head, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }) : toon(G.head, null, G.emissive ? { emissive: G.emissive } : {}), bindM = toon(G.bind), wood = toon(0, fabric(G.handle, { seed: 23, weave: T >= 4 ? 0.03 : 0.06 })), wrapM = toon(0, fabric(G.wrap || 0x4b3020, { seed: 25, weave: 0.22 }));
     // handle
     if (G.onyx) part(px, twistedHandle(1.04, 0.0165), toon(G.handle), [0, 0.22, 0]); else part(px, cyl(0.016, 0.0138, 1.04, T >= 4 ? 14 : 10), wood, [0, 0.22, 0]);
@@ -7205,25 +7246,29 @@ function exploreOn(par, x, z, face, hy) { if (!R && !initGL()) return null; setC
      washed and shifted outdoors. Each map cord material (built by the same braidCord/LGRADES code as inside) skips tone mapping and the output
      encoding, so its grade colours, glow and strand bands read exactly as they do in the Ledge; toon parts take a fixed key-lit shade (0.9x shadow .. 1.38x lit, measured off the Ledge door render) instead of the
      outdoor sun (1.15) + sky (0.55), which is about twice the Ledge's light and was bleaching the bronze/iron bands. */
-  function ledgeLook(g) { g.traverse((o) => { const m = o.material; if (!m || m.userData.ledgeLook) return; m.userData.ledgeLook = 1; m.toneMapped = false; m.fog = false; const ob = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (ob) ob(sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <encodings_fragment>', ''); if (m.isMeshToonMaterial) sh.fragmentShader = sh.fragmentShader.replace('#include <output_fragment>', 'outgoingLight = diffuseColor.rgb * mix(0.9, 1.38, smoothstep(-0.2, 0.5, dot(normal, normalize(vec3(0.3, 0.6, 0.75))))) + totalEmissiveRadiance;\n#include <output_fragment>'); }; m.customProgramCacheKey = () => 'ledgeLook'; m.needsUpdate = true; }); }
+  function ledgeLook(g) { g.traverse((o) => { for (const m of [].concat(o.material || [])) lookMat(m); }); }
+  function lookMat(m) { { if (!m || m.userData.ledgeLook) return; m.userData.ledgeLook = 1; m.toneMapped = false; m.fog = false; const ob = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (ob) ob(sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <encodings_fragment>', ''); if (m.isMeshToonMaterial) sh.fragmentShader = sh.fragmentShader.replace('#include <output_fragment>', 'outgoingLight = diffuseColor.rgb * mix(0.9, 1.38, smoothstep(-0.2, 0.5, dot(normal, normalize(vec3(0.3, 0.6, 0.75))))) + totalEmissiveRadiance;\n#include <output_fragment>'); }; m.customProgramCacheKey = () => 'ledgeLook'; m.needsUpdate = true; } }
   /* a long map cord keeps the door's exact lay: the same twist per metre at the same sampling (2 cm), never spread over the length. The run past the
      first few metres is cut into 5 m chunks that carry on the lay phase (arc length) and the strand frame from the chunk before; a chunk near the
      camera is the real braided geometry, farther ones are a light textured tube with the same two strands painted at the same lay. */
   function cordChunks(G2, cd, tail, tw, k) { const out = [], ud = cd.userData; let n0 = ud.n1.clone(), s0 = ud.len, i = 0;
     while (i < tail.length - 1) { let acc = 0, j = i + 1; for (; j < tail.length; j++) { acc += tail[j].distanceTo(tail[j - 1]); if (acc >= 5 || j === tail.length - 1) break; } if (tail.length - 1 - j < 2) j = tail.length - 1;
       const pts = tail.slice(i, j + 1); if (pts.length === 2) pts.splice(1, 0, pts[0].clone().lerp(pts[1], 0.5)); const np = Math.max(20, Math.round(acc / 0.02)), fr = braidFrames(pts, np, n0), c = pts[pts.length >> 1].clone();
-      const far = cordFar(G2, pts, tw, k, ud, s0, fr.len); out.push({ pts, np, n0: n0.clone(), s0, c, far, near: null }); n0 = fr.n1; s0 += fr.len; i = j; }
-    return out; }
+      const far = cordFar(pts, tw, ud, s0, fr.len); out.push({ pts, np, n0: n0.clone(), s0, c, far, near: null }); n0 = fr.n1; s0 += fr.len; i = j; }
+    /* every far piece merged into one mesh (one draw call); chunks shown as real braid are cut out of it with draw groups */
+    const P = [], N = [], UV = [], I = []; let base = 0; for (const c of out) { const g = c.far, ix = g.index.array; c.i0 = I.length; for (let q = 0; q < ix.length; q++) I.push(ix[q] + base); c.i1 = I.length; P.push(...g.attributes.position.array); N.push(...g.attributes.normal.array); UV.push(...g.attributes.uv.array); base += g.attributes.position.count; g.dispose(); c.far = null; }
+    const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); mg.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); mg.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); mg.setIndex(I); mg.addGroup(0, I.length, 0);
+    const La = LGRADES[tw.a.grade] || LGRADES.bronze, Lb = LGRADES[tw.b.grade] || LGRADES.bronze, fm = new THREE.Mesh(mg, [toon(0xffffff, farTex(La.col, Lb.col))]); fm.castShadow = false; G2.add(fm); ledgeLook(fm); out.mesh = fm; out.key = ''; return out; }
   const FARTEX = {}; function farTex(ca, cb) { const key = ca + '/' + cb; if (FARTEX[key]) return FARTEX[key]; const W = 64, H = 64, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const x = cv.getContext('2d'), im = x.createImageData(W, H), A = new THREE.Color(ca), B = new THREE.Color(cb);
     for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) { const f = px / W, v = py / H, w = ((v - f) % 1 + 1) % 1, inA = w < 0.5, u = (w % 0.5) / 0.5, sh = 0.55 + 0.45 * Math.sin(Math.PI * u), C = inA ? A : B, o = (py * W + px) * 4, seam = u < 0.06 || u > 0.94 ? 0.35 : 1;
       im.data[o] = 255 * Math.min(1, C.r * sh * seam); im.data[o + 1] = 255 * Math.min(1, C.g * sh * seam); im.data[o + 2] = 255 * Math.min(1, C.b * sh * seam); im.data[o + 3] = 255; }
     x.putImageData(im, 0, 0); const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; return (FARTEX[key] = t); }
-  function cordFar(G2, pts, tw, k, ud, s0, len) { const La = LGRADES[tw.a.grade] || LGRADES.bronze, Lb = LGRADES[tw.b.grade] || LGRADES.bronze, C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), seg = Math.max(8, Math.round(len / 0.12)), R = ud.rr + Math.max(...ud.srs);
-    const g = new THREE.TubeGeometry(C, seg, R, 8, false), uv = g.attributes.uv, per = TAU / ud.twist; for (let q = 0; q < uv.count; q++) uv.setX(q, (s0 + uv.getX(q) * len) / per);
-    const m = new THREE.Mesh(g, toon(0xffffff, farTex(La.col, Lb.col))); m.castShadow = false; G2.add(m); ledgeLook(m); return m; }
+  function cordFar(pts, tw, ud, s0, len) { const C = new THREE.CatmullRomCurve3(pts, false, 'centripetal'), seg = Math.max(8, Math.round(len / 0.12)), R = ud.rr + Math.max(...ud.srs);
+    const g = new THREE.TubeGeometry(C, seg, R, 8, false), uv = g.attributes.uv, per = TAU / ud.twist; for (let q = 0; q < uv.count; q++) uv.setX(q, (s0 + uv.getX(q) * len) / per); return g; }
   function chunkLOD(dr, cd) { const ch = cd.userData.chunks; if (!ch || typeof M3 === 'undefined' || !M3.camera) return; const cam = dr.worldToLocal(M3.camera.position.clone()); let built = 0;
-    for (const c of ch) { const d = c.c.distanceTo(cam); if (!c.near && d < 16 && built < 1) { BOPT = { np: c.np, s0: c.s0, n0: c.n0 }; c.near = braidCord(c.far.parent, c.pts, [Object.assign({ key: 'a' }, cd.userData.twin.a), Object.assign({ key: 'b' }, cd.userData.twin.b)], cd.userData.k || 2.4, 0); ledgeLook(c.near); c.far.visible = false; built++; }
-      else if (c.near && d > 26) { c.near.parent.remove(c.near); c.near.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.dispose) o.material.dispose(); }); c.near = null; c.far.visible = true; } } }
+    for (const c of ch) { const d = c.c.distanceTo(cam); if (!c.near && d < 16 && built < 1) { BOPT = { np: c.np, s0: c.s0, n0: c.n0 }; c.near = braidCord(ch.mesh.parent, c.pts, [Object.assign({ key: 'a' }, cd.userData.twin.a), Object.assign({ key: 'b' }, cd.userData.twin.b)], cd.userData.k || 2.4, 0); ledgeLook(c.near); built++; }
+      else if (c.near && d > 26) { c.near.parent.remove(c.near); c.near.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.dispose) o.material.dispose(); }); c.near = null; } }
+    const key = ch.map((c) => (c.near ? 1 : 0)).join(''); if (key !== ch.key) { ch.key = key; const g = ch.mesh.geometry; g.clearGroups(); let st = 0; for (const c of ch) { if (c.near) { if (c.i0 > st) g.addGroup(st, c.i0 - st, 0); st = c.i1; } } if (st < g.index.count) g.addGroup(st, g.index.count - st, 0); } }
   function drapeRoute(dr, ln, z1, so, W2) { dr.updateMatrixWorld(true); const pts = [], lift = 0.06, st = 1.0, L2 = (wx, wz) => dr.worldToLocal(V(wx, 0, wz)), first = V(ln, 0, z1 + 1.2), path = [first].concat(W2.map(([wx, wz]) => L2(wx, wz)));
     /* follow the route (door -> its real end) over the ground, resampled every metre; a small side offset per strand lane keeps the cords apart */
     for (let q = 1; q < path.length; q++) { const A = path[q - 1], B = path[q], dx = B.x - A.x, dz = B.z - A.z, L = Math.hypot(dx, dz); if (L < 1e-3) continue; const nx = -dz / L, nz = dx / L, n = Math.max(1, Math.ceil(L / st)); for (let k = q === 1 ? 0 : 1; k <= n; k++) { const t = k / n, x = A.x + dx * t + nx * ln * 0.6, z = A.z + dz * t + nz * ln * 0.6, w = dr.localToWorld(V(x, 0, z)), gy = XD.surf(w.x, w.z); pts.push(V(x, dr.worldToLocal(V(w.x, gy, w.z)).y + lift, z)); } }
