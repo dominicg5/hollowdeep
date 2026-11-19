@@ -130,7 +130,7 @@ const M3 = (() => {
         if (hollowDist(p[0], p[1]) < 30) { prev = -1; continue; } // inside the Hollow mouth: its notch carries on down the pit wall
         const hw = Math.max(3, c.ws[i] / 2), D = crevDepth(c, i), base = pos.length / 3;
         for (const sgn of [-1, 1]) { const pr = sgn < 0 ? PROF : PROF.slice().reverse(), top = meshH(p[0] + nx * sgn * (hw + 1), p[1] + ny * sgn * (hw + 1)); for (const [f, ex, dz] of pr) { const mid = dz > 0.02 && dz < 0.99, rel = mid ? (vnoise(arc / 22 + sgn * 7, dz * 5) - 0.5) * 0.5 + (vnoise(arc / 7, dz * 14 + 3) - 0.5) * 0.18 : 0, o = sgn * (hw * f * (1 + rel) + ex);
-            const yy = dz < 0 ? meshH(p[0] + nx * o, p[1] + ny * o) + 0.35 : top - 1.6 - D * dz + (mid ? (vnoise(arc / 15, dz * 9) - 0.5) * D * 0.05 : 0), k = Math.pow(clamp(dz, 0, 1), 0.45), br = (1 - 0.9 * k) * (0.85 + 0.3 * vnoise(arc / 9, dz * 11 + 1));
+            const yy = dz < 0 ? meshH(p[0] + nx * o, p[1] + ny * o) - 0.5 : /* the lip edge tucks just under the ground (at +0.35 it showed as a thin black line along both sides) */ top - 1.6 - D * dz + (mid ? (vnoise(arc / 15, dz * 9) - 0.5) * D * 0.05 : 0), k = Math.pow(clamp(dz, 0, 1), 0.45), br = (1 - 0.9 * k) * (0.85 + 0.3 * vnoise(arc / 9, dz * 11 + 1));
             let c3 = [br, br * 0.97, br * 0.93]; if (dz < 0) c3 = [0.44, 0.58, 0.26]; else if (dz < 0.02) c3 = [0.5, 0.56, 0.32]; else { const fg = clamp((dz - 0.3) / 0.7, 0, 1) * 0.85; c3 = c3.map((v, q) => v * (1 - fg) + [0.05, 0.06, 0.09][q] * fg); if (dz < 0.1) c3 = c3.map((v, q) => v * 0.7 + [0.4, 0.5, 0.26][q] * 0.3); } // grass on the lip, moss under it, fog-dark depths
             pos.push(p[0] + nx * o, yy, p[1] + ny * o); col.push(c3[0], c3[1], c3[2]); uv.push(arc / 70, (top - yy) / 90); } }
         const m = PROF.length * 2; if (prev >= 0) for (let q = 0; q + 1 < m; q++) { const a0 = prev + q, b0 = prev + q + 1, c0 = base + q, d0 = base + q + 1; idx.push(a0, c0, b0, b0, c0, d0); }
@@ -144,13 +144,13 @@ const M3 = (() => {
     for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { const arr = W.crackGrid.get((gx + i) + ',' + (gy + j)); if (!arr) continue; for (const s of arr) { const [d, t] = distSeg(x, y, s.x1, s.y1, s.x2, s.y2), w = s.w1 + (s.w2 - s.w1) * t, e = d - Math.max(6, w) / 2; if (e < best) { best = e; bw = w; } } }
     if (best >= 0) return h; const D = bw > 60 ? 720 : clamp(bw * 7, 60, 420); return h - 1.6 - D * clamp(-best / Math.max(3, bw / 2) * 1.6, 0, 1); }
   // the ground-cut mask: the cracks painted (true width) into a 2048 px window (~4 units a pixel) round the view, repainted as the view moves
-  function crevMask(cx, cy) { const U = terrainMat.userData.U, S = 8000; if (!CRV.maskCv) return; if (CRV.win && Math.hypot(cx - CRV.win[0], cy - CRV.win[1]) < 1500) return; const x0 = Math.round(cx - S / 2), y0 = Math.round(cy - S / 2), k = 2048 / S, g = CRV.maskCv.getContext('2d');
+  function crevMask(cx, cy, S) { const U = terrainMat.userData.U; S = S || 8000; if (!CRV.maskCv) return; if (CRV.win && CRV.win[2] === S && Math.hypot(cx - CRV.win[0], cy - CRV.win[1]) < S * 0.19) return; /* close up (Explore) a 3000-unit window: ~1.5 units a texel, so the cut hugs the rock walls instead of leaving dark slits along the lips */ const x0 = Math.round(cx - S / 2), y0 = Math.round(cy - S / 2), k = 2048 / S, g = CRV.maskCv.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#000'; g.fillRect(0, 0, 2048, 2048); g.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); g.lineCap = 'round'; g.lineJoin = 'round';
     pathsVis(x0, y0, S);
     g.strokeStyle = '#f00';
     for (const c of W.cracks || []) { const P = c.pts; let inb = false; for (const p of P) if (p[0] > x0 - 200 && p[0] < x0 + S + 200 && p[1] > y0 - 200 && p[1] < y0 + S + 200) { inb = true; break; } if (!inb) continue;
       for (let i = 0; i + 1 < P.length; i++) { if (hollowDist(P[i][0], P[i][1]) < 30) continue; const endA = i === 0 || hollowDist(P[i - 1][0], P[i - 1][1]) < 30, endB = i + 2 >= P.length || hollowDist(P[i + 2][0], P[i + 2][1]) < 30; g.lineCap = endA || endB ? 'butt' : 'round'; g.lineWidth = Math.max(5, (c.ws[i] + c.ws[i + 1]) / 2 - 1.5); g.beginPath(); g.moveTo(P[i][0], P[i][1]); g.lineTo(P[i + 1][0], P[i + 1][1]); g.stroke(); } }
-    CRV.tex.needsUpdate = true; U.tK.value = CRV.tex; U.uK.value.set(x0, y0, S, S); CRV.win = [cx, cy]; }
+    CRV.tex.needsUpdate = true; U.tK.value = CRV.tex; U.uK.value.set(x0, y0, S, S); CRV.win = [cx, cy, S]; }
   /* ---------- worn footpaths: real ground - a dished dirt ribbon (with scattered cobbles; the Lumen Tree's way fully cobbled) laid into the terrain, which is cut away
      under the path's core (tK green) so the dip shows; soft alpha edges into the grass. Data: Explore.allPaths() = [kind, x0, y0, x1, y1, ...] (kind 1 = cobbled) ---------- */
   const PTH = { HW: 12, DIP: 0.55, list: [], hash: new Map(), B: 160, chunks: [] };
@@ -790,7 +790,7 @@ diffuseColor *= sdc;
   /* ---------- detail texture around the camera ---------- */
   function updateDetail(cam) {
     const U = terrainMat.userData.U;
-    const ex = !!st.camOv; EXU.value = ex ? 1 : 0; crevMask(cam.x, cam.y); if (typeof Explore !== 'undefined' && Explore.lod) Explore.lod(cam.x, cam.y); // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
+    const ex = !!st.camOv; EXU.value = ex ? 1 : 0; if (ex) crevMask(st.camOv.L.x, st.camOv.L.z, 3000); else crevMask(cam.x, cam.y, 8000); if (typeof Explore !== 'undefined' && Explore.lod) Explore.lod(cam.x, cam.y); // Explore: a tight, sharp splat around the player (~11 cm a texel) plus the shader's close-up ground detail
     if (cam.z < 0.28 && !ex) { U.uCOn.value = 0; cState = null; return; }
     const size = ex ? 1000 : 2600, px = 2048; if (cState && cState.size !== size) cState = null;
     if (!cState || Math.hypot(cam.x - cState.cx, cam.y - cState.cy) > (ex ? 220 : 700)) { if (cState && cState.q < 4) {} else { cState = { cx: Math.round(cam.x / 50) * 50, cy: Math.round(cam.y / 50) * 50, q: 0, size }; } }
