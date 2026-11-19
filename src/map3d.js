@@ -122,18 +122,20 @@ const M3 = (() => {
   function buildCrevices() { if (CRV.mesh) { scene.remove(CRV.mesh); CRV.mesh.geometry.dispose(); }
     const pos = [], col = [], uv = [], idx = []; let sd = 3; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
     // wall profile across the crack, from the left lip down to the floor and up to the right lip: [offset as a fraction of the half-width (+ extra units), depth fraction]
-    const PROF = [[0.97, 0, -1], [1.0, 0, 0.012], [0.96, 0, 0.035], [0.9, 0, 0.08], [0.83, 0, 0.17], [0.74, 0, 0.3], [0.64, 0, 0.46], [0.52, 0, 0.68], [0.36, 0, 1]]; // a grassy rounded lip that overhangs a little, then rock bulging and receding down into the dark
+    const PROF = [[1.0, 3.5, -1], [1.0, 0, 0.012], [0.96, 0, 0.035], [0.9, 0, 0.08], [0.83, 0, 0.17], [0.74, 0, 0.3], [0.64, 0, 0.46], [0.52, 0, 0.68], [0.36, 0, 1]]; // a grassy rounded lip that overhangs a little, then rock bulging and receding down into the dark
     for (const c of W.cracks || []) { const n = c.pts.length; if (n < 2) continue; let arc = 0, prev = -1;
       for (let i = 0; i < n; i++) { const p = c.pts[i], a = c.pts[Math.max(0, i - 1)], b = c.pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l; if (i) arc += Math.hypot(p[0] - c.pts[i - 1][0], p[1] - c.pts[i - 1][1]);
         if (hollowDist(p[0], p[1]) < 30) { prev = -1; continue; } // inside the Hollow mouth: its notch carries on down the pit wall
         const hw = Math.max(3, c.ws[i] / 2), D = crevDepth(c, i), base = pos.length / 3;
         for (const sgn of [-1, 1]) { const pr = sgn < 0 ? PROF : PROF.slice().reverse(), top = meshH(p[0] + nx * sgn * (hw + 1), p[1] + ny * sgn * (hw + 1)); for (const [f, ex, dz] of pr) { const mid = dz > 0.02 && dz < 0.99, rel = mid ? (vnoise(arc / 22 + sgn * 7, dz * 5) - 0.5) * 0.5 + (vnoise(arc / 7, dz * 14 + 3) - 0.5) * 0.18 : 0, o = sgn * (hw * f * (1 + rel) + ex);
-            const yy = dz < 0 ? top + 0.5 : top - 1.6 - D * dz + (mid ? (vnoise(arc / 15, dz * 9) - 0.5) * D * 0.05 : 0), k = Math.pow(clamp(dz, 0, 1), 0.45), br = (1 - 0.9 * k) * (0.85 + 0.3 * vnoise(arc / 9, dz * 11 + 1));
+            const yy = dz < 0 ? meshH(p[0] + nx * o, p[1] + ny * o) + 0.35 : top - 1.6 - D * dz + (mid ? (vnoise(arc / 15, dz * 9) - 0.5) * D * 0.05 : 0), k = Math.pow(clamp(dz, 0, 1), 0.45), br = (1 - 0.9 * k) * (0.85 + 0.3 * vnoise(arc / 9, dz * 11 + 1));
             let c3 = [br, br * 0.97, br * 0.93]; if (dz < 0) c3 = [0.44, 0.58, 0.26]; else if (dz < 0.02) c3 = [0.5, 0.56, 0.32]; else { const fg = clamp((dz - 0.3) / 0.7, 0, 1) * 0.85; c3 = c3.map((v, q) => v * (1 - fg) + [0.05, 0.06, 0.09][q] * fg); if (dz < 0.1) c3 = c3.map((v, q) => v * 0.7 + [0.4, 0.5, 0.26][q] * 0.3); } // grass on the lip, moss under it, fog-dark depths
             pos.push(p[0] + nx * o, yy, p[1] + ny * o); col.push(c3[0], c3[1], c3[2]); uv.push(arc / 70, (top - yy) / 90); } }
-        const m = PROF.length * 2; if (prev >= 0) for (let q = 0; q + 1 < m; q++) { const a0 = prev + q, b0 = prev + q + 1, c0 = base + q, d0 = base + q + 1; idx.push(a0, c0, b0, b0, c0, d0); } prev = base; } }
+        const m = PROF.length * 2; if (prev >= 0) for (let q = 0; q + 1 < m; q++) { const a0 = prev + q, b0 = prev + q + 1, c0 = base + q, d0 = base + q + 1; idx.push(a0, c0, b0, b0, c0, d0); }
+        const endHere = i === n - 1 || hollowDist(c.pts[i + 1][0], c.pts[i + 1][1]) < 30; if (prev < 0 || endHere) for (let q = 1; q + 1 < m / 2; q++) { const a0 = base + q, b0 = base + q + 1, c0 = base + m - 1 - q, d0 = base + m - 2 - q; idx.push(a0, b0, c0, b0, d0, c0); } /* end caps: a rock wall closes each end of the cut (no open, see-through ends) */
+        prev = base; } }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
-    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); CRV.mesh = new THREE.Mesh(geo, mat); CRV.mesh.name = 'crevices'; CRV.mesh.receiveShadow = true; scene.add(CRV.mesh);
+    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Mesh(geo, mat); CRV.mesh.name = 'crevices'; CRV.mesh.receiveShadow = true; CRV.mesh.castShadow = true; /* the walls shade their own depths */ scene.add(CRV.mesh);
     CRV.maskCv = document.createElement('canvas'); CRV.maskCv.width = CRV.maskCv.height = 2048; CRV.tex = new THREE.CanvasTexture(CRV.maskCv); CRV.tex.flipY = false; CRV.tex.generateMipmaps = false; CRV.tex.minFilter = THREE.LinearFilter; CRV.win = null; }
   // ground including the crevices: inside a crack the floor lies its depth below the (cut-away) ground surface
   function groundH(x, y) { const h = meshH(x, y), cell = 160, gx = Math.floor(x / cell), gy = Math.floor(y / cell); let best = 1e9, bw = 0; if (!W.crackGrid) return h;
@@ -145,7 +147,7 @@ const M3 = (() => {
     pathsVis(x0, y0, S);
     g.strokeStyle = '#f00';
     for (const c of W.cracks || []) { const P = c.pts; let inb = false; for (const p of P) if (p[0] > x0 - 200 && p[0] < x0 + S + 200 && p[1] > y0 - 200 && p[1] < y0 + S + 200) { inb = true; break; } if (!inb) continue;
-      for (let i = 0; i + 1 < P.length; i++) { if (hollowDist(P[i][0], P[i][1]) < 30) continue; g.lineWidth = Math.max(5, (c.ws[i] + c.ws[i + 1]) / 2 - 1.5); g.beginPath(); g.moveTo(P[i][0], P[i][1]); g.lineTo(P[i + 1][0], P[i + 1][1]); g.stroke(); } }
+      for (let i = 0; i + 1 < P.length; i++) { if (hollowDist(P[i][0], P[i][1]) < 30) continue; const endA = i === 0 || hollowDist(P[i - 1][0], P[i - 1][1]) < 30, endB = i + 2 >= P.length || hollowDist(P[i + 2][0], P[i + 2][1]) < 30; g.lineCap = endA || endB ? 'butt' : 'round'; g.lineWidth = Math.max(5, (c.ws[i] + c.ws[i + 1]) / 2 - 1.5); g.beginPath(); g.moveTo(P[i][0], P[i][1]); g.lineTo(P[i + 1][0], P[i + 1][1]); g.stroke(); } }
     CRV.tex.needsUpdate = true; U.tK.value = CRV.tex; U.uK.value.set(x0, y0, S, S); CRV.win = [cx, cy]; }
   /* ---------- worn footpaths: real ground - a dished dirt ribbon (with scattered cobbles; the Lumen Tree's way fully cobbled) laid into the terrain, which is cut away
      under the path's core (tK green) so the dip shows; soft alpha edges into the grass. Data: Explore.allPaths() = [kind, x0, y0, x1, y1, ...] (kind 1 = cobbled) ---------- */
@@ -401,21 +403,33 @@ void main() {
   // the Grand Tree's bark, hand-made (same craft as the Lumen Tree's hall): long interlocking plates drawn out up the trunk, split by deep dark furrows, every
   // plate its own weathered tone (grey-brown, some warmer, some mossy), combed with fibres and baked as a lit relief so it reads deep at every zoom; fine
   // cross-cracks and a few knots on top. Tileable.
-  function barkTex() { return hwCanvasTex(256, 512, (g, w, h) => { let s = 7; const R = () => (s = (s * 16807) % 2147483647) / 2147483647, GX = 6, GY = 3, pts = [], tone = [], ph = R() * 100;
-      for (let j = 0; j < GY; j++) for (let i = 0; i < GX; i++) { pts.push([(i + 0.15 + R() * 0.7) / GX, (j + 0.15 + R() * 0.7) / GY]); const k = R(); tone.push(k < 0.16 ? [0.9, 1.02, 0.78] : k < 0.36 ? [1.1, 0.95, 0.82] : [0.92 + R() * 0.16, 0.92 + R() * 0.12, 0.9 + R() * 0.1]); }
-      const H = new Float32Array(w * h), T = new Int16Array(w * h);
-      for (let py = 0; py < h; py++) for (let px = 0; px < w; px++) { const v = py / h, u = (px / w + 0.012 * Math.sin(v * TAU * 2 + ph + Math.sin(px / w * TAU * 2) * 2) + 1) % 1, ci = Math.floor(u * GX), cj = Math.floor(v * GY); let d1 = 9, d2 = 9, id = 0;
-        for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const ii = (ci + di + GX) % GX, jj = (cj + dj + GY) % GY, P = pts[jj * GX + ii], ox = ((ci + di) - ii) / GX, oy = ((cj + dj) - jj) / GY, dx = P[0] + ox - u, dy = (P[1] + oy - v) * 0.3, d = dx * dx + dy * dy; if (d < d1) { d2 = d1; d1 = d; id = jj * GX + ii; } else if (d < d2) d2 = d; }
-        // elm: deep, corky vertical ridges that split and rejoin (two braided strand sets), cut by short horizontal cross-checks; the cells only tint the plates
-        const rdg = (x) => { const f = x - Math.floor(x); return 1 - Math.abs(2 * f - 1); }, NR = 8, wa = 0.3 * Math.sin(v * TAU * 2 + u * TAU * 2 + ph) + 0.08 * Math.sin(v * TAU * 5 + ph * 1.3 + u * TAU), wb = 0.3 * Math.sin(v * TAU * 2 + u * TAU * 2 + ph + 2.1) + 0.08 * Math.sin(v * TAU * 4 - ph + u * TAU * 3);
-        const ra = rdg(u * NR + wa), rb = rdg(u * NR + 0.5 + wb), braid = Math.max(ra, rb * 0.92) ** 1.6, chk = 1 - 0.75 * Math.pow(Math.max(0, 1 - Math.abs(Math.sin((v * 34 + Math.floor(u * NR * 2) * 0.37 + 0.3 * Math.sin(u * 40)) * Math.PI)) * 6), 2), cork = 0.85 + 0.15 * Math.sin(px * 2.3 + py * 1.1) * Math.sin(py * 0.7 - px * 0.4);
-        H[py * w + px] = Math.min(1, braid * 1.15) * chk * cork * (0.85 + 0.15 * Math.min(1, (Math.sqrt(d2) - Math.sqrt(d1)) * 9)); T[py * w + px] = id; }
-      const img = g.createImageData(w, h), D = img.data, at = (px, py) => H[((py + h) % h) * w + ((px + w) % w)];
-      for (let py = 0; py < h; py++) for (let px = 0; px < w; px++) { const k = py * w + px, hv = H[k], lit = Math.max(-1, Math.min(1, (-(at(px + 1, py) - at(px - 1, py)) * 0.7 - (at(px, py + 1) - at(px, py - 1)) * 0.7) * 5)), tn = tone[T[k]], crev = 1 - Math.min(1, hv * 3.2), sh = (0.42 + 0.58 * hv) * (1 + 0.4 * lit) * (1 - 0.82 * crev), n2 = 0.95 + 0.1 * Math.sin(px * 1.7 + py * 0.31 + Math.sin(py * 0.05) * 9);
-        D[k * 4] = Math.min(255, 104 * tn[0] * sh * n2 + 8); D[k * 4 + 1] = Math.min(255, 84 * tn[1] * sh * n2 + 6); D[k * 4 + 2] = Math.min(255, 64 * tn[2] * sh * n2 + 5); /* darker elm brown */ D[k * 4 + 3] = 255; }
+  // the Grand Tree's bark (approved concept): rich warm-brown elm, long rounded ridges that twist up the trunk (one full spiral step per tile), split and
+  // rejoin, separated by deep dark furrows; combed fibres along each ridge, warm sunlit edges, cool shadowed furrows, moss and lichen settling in the
+  // furrows. Painted as a height field and baked with soft light from the upper left so it reads as deep relief at every zoom. Tileable both ways.
+  function barkTex() { return hwCanvasTex(512, 512, (g, w, h) => { let s = 7; const R = () => (s = (s * 16807) % 2147483647) / 2147483647, NR = 9, rd = [];
+      for (let j = 0; j < NR; j++) rd.push({ ph: R() * TAU, ps: R() * TAU, pw: R() * TAU, pg: R() * TAU, a1: 0.022 + R() * 0.018, a2: 0.008 + R() * 0.01, wk: 0.78 + R() * 0.3, tone: 0.86 + R() * 0.28, warm: R() });
+      const H = new Float32Array(w * h), ID = new Uint8Array(w * h), MS = new Float32Array(w * h);
+      const vn = (x, y) => Math.sin(x * 1.7 + Math.sin(y * 1.3) * 1.5) * Math.sin(y * 1.1 + Math.sin(x * 0.9) * 1.8);
+      for (let py = 0; py < h; py++) { const v = py / h; for (let px = 0; px < w; px++) { const u = px / w; let best = 0, bid = 0;
+          for (let j = 0; j < NR; j++) { const r = rd[j], uc = (j + 0.5) / NR + v / NR + r.a1 * Math.sin(TAU * v + r.ph) + r.a2 * Math.sin(TAU * 3 * v + r.ps), ww = 0.5 / NR * r.wk * (0.82 + 0.22 * Math.sin(TAU * 2 * v + r.pw));
+            let d = u - uc; d -= Math.round(d); const q = Math.abs(d) / ww; if (q >= 1.05) continue; let hv = Math.pow(Math.max(0, 1 - q * q), 0.55);
+            const split = Math.pow(Math.max(0, Math.sin(TAU * v + r.pg)), 6); hv *= 1 - 0.65 * split * Math.exp(-Math.pow(d / (ww * 0.16), 2)); // a ridge splitting in two for a stretch
+            if (hv > best) { best = hv; bid = j; } }
+          const fib = 0.05 * Math.sin(u * NR * 22 + 2.2 * Math.sin(v * TAU * 3 + u * 9)) + 0.03 * Math.sin(u * NR * 47 + 3 * Math.sin(v * TAU * 5)); // combed fibres
+          const k = py * w + px; H[k] = Math.max(0, best * (0.92 + fib)); ID[k] = bid; MS[k] = vn(u * TAU * 2, v * TAU * 2) * 0.5 + vn(u * TAU * 5 + 3, v * TAU * 4 + 1) * 0.3; } }
+      const img = g.createImageData(w, h), D = img.data, at = (x, y) => H[((y + h) % h) * w + ((x + w) % w)];
+      for (let py = 0; py < h; py++) for (let px = 0; px < w; px++) { const k = py * w + px, hv = H[k], r = rd[ID[k]], lit = Math.max(-1, Math.min(1, ((at(px - 2, py) - at(px + 2, py)) * 0.8 + (at(px, py - 2) - at(px, py + 2)) * 0.35) * 3.2)), cr = Math.min(1, hv * 2.6);
+        // furrow (cool near-black brown) -> ridge body (warm brown, each ridge its own tone) -> sunlit edge (golden tan)
+        let cR = 44 + (118 - 44) * cr, cG = 28 + (80 - 28) * cr, cB = 18 + (48 - 18) * cr; const tn = r.tone * (1 + 0.1 * (r.warm - 0.5)); cR *= tn * (1 + 0.08 * r.warm); cG *= tn; cB *= tn * (1 - 0.06 * r.warm);
+        const L = 1 + 0.55 * lit * cr; cR = cR * L + Math.max(0, lit) * cr * 34; cG = cG * L + Math.max(0, lit) * cr * 22; cB = cB * L + Math.max(0, lit) * cr * 10;
+        const mz = Math.max(0, MS[k] - 0.06) * 1.5 * (1 - cr * 0.55); if (mz > 0) { const m = Math.min(0.85, mz); cR = cR * (1 - m) + 78 * m * (0.7 + 0.3 * cr); cG = cG * (1 - m) + 104 * m * (0.7 + 0.3 * cr); cB = cB * (1 - m) + 42 * m * (0.7 + 0.3 * cr); } // moss in the furrows
+        D[k * 4] = Math.min(255, cR); D[k * 4 + 1] = Math.min(255, cG); D[k * 4 + 2] = Math.min(255, cB); D[k * 4 + 3] = 255; }
       g.putImageData(img, 0, 0);
-      for (let i = 0; i < 50; i++) { let px = R() * w, py = R() * h; g.strokeStyle = `rgba(24,16,10,${0.25 + R() * 0.3})`; g.lineWidth = 0.8 + R(); g.beginPath(); g.moveTo(px, py); for (let q = 0; q < 4; q++) { px += (R() - 0.5) * 8; py += 4 + R() * 9; g.lineTo(px, py); } g.stroke(); }
-      for (let i = 0; i < 4; i++) { const cx = R() * w, cy = R() * h, rw = 4 + R() * 6, rh = 9 + R() * 12; for (let k = 0; k < 4; k++) { g.strokeStyle = k % 2 ? 'rgba(170,140,105,.35)' : 'rgba(28,18,10,.6)'; g.lineWidth = 1.3; g.beginPath(); g.ellipse(cx, cy, rw * (1 - k * 0.22), rh * (1 - k * 0.22), 0, 0, TAU); g.stroke(); } } }); }
+      // a few soft cross-checks and knots on the ridges (painted, low contrast)
+      for (let i = 0; i < 26; i++) { const x = R() * w, y = R() * h, l = 6 + R() * 12; for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) { g.strokeStyle = 'rgba(30,18,10,.35)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x + ox - l / 2, y + oy); g.quadraticCurveTo(x + ox, y + oy + 2, x + ox + l / 2, y + oy - 1); g.stroke(); } }
+      for (let i = 0; i < 3; i++) { const cx = R() * w, cy = R() * h, rw = 7 + R() * 6, rh = 12 + R() * 8; for (let q = 0; q < 4; q++) { g.strokeStyle = q % 2 ? 'rgba(176,128,78,.4)' : 'rgba(30,18,10,.55)'; g.lineWidth = 1.8; g.beginPath(); g.ellipse(cx, cy, rw * (1 - q * 0.2), rh * (1 - q * 0.2), 0, 0, TAU); g.stroke(); } }
+      // lichen flecks
+      for (let i = 0; i < 140; i++) { g.fillStyle = `rgba(${150 + R() * 40 | 0},${160 + R() * 30 | 0},${110 + R() * 30 | 0},${0.12 + R() * 0.18})`; g.beginPath(); g.ellipse(R() * w, R() * h, 1 + R() * 3, 1 + R() * 2, R() * 3, 0, TAU); g.fill(); } }); }
   function leafTex() { return hwCanvasTex(256, 256, (g, w, h) => { g.fillStyle = '#7c9a42'; g.fillRect(0, 0, w, h); let s = 11; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
     for (let i = 0; i < 2600; i++) { const x = R() * w, y = R() * h, r = 2 + R() * 4, k = R(); g.fillStyle = k < 0.3 ? `rgba(${70 + R() * 20 | 0},${96 + R() * 20 | 0},${40 + R() * 10 | 0},.75)` : k < 0.8 ? `rgba(${124 + R() * 30 | 0},${154 + R() * 26 | 0},${66 + R() * 20 | 0},.8)` : `rgba(${176 + R() * 30 | 0},${196 + R() * 20 | 0},${104 + R() * 30 | 0},.75)`;
       g.beginPath(); g.ellipse(x, y, r, r * 0.55, R() * TAU, 0, TAU); g.fill(); } }); }
@@ -425,7 +439,7 @@ void main() {
   function barkDetail(m) { m.onBeforeCompile = (sh) => { sh.uniforms.uExOn = EXU; sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uExOn;').replace('#include <map_fragment>', `#ifdef USE_MAP
 vec4 sdc = texture2D(map, vUv); float vdB = 1.0 / gl_FragCoord.w, bfB = uExOn * (1.0 - smoothstep(140.0, 700.0, vdB));
 if (bfB > 0.002) { vec3 lw = vec3(0.3, 0.59, 0.11); float d1 = dot(texture2D(map, vUv * 6.0 + vec2(0.31, 0.17)).rgb, lw) / (dot(texture2D(map, vUv * 6.0 + vec2(0.31, 0.17), 6.0).rgb, lw) + 0.01), d2 = dot(texture2D(map, vUv * 29.0 + 0.6).rgb, lw) / (dot(texture2D(map, vUv * 29.0 + 0.6, 6.0).rgb, lw) + 0.01);
-  sdc.rgb *= mix(1.0, clamp(pow(d1, 1.25) * 0.8 + d2 * 0.2, 0.22, 1.8), bfB); }
+  sdc.rgb *= mix(1.0, clamp(pow(d1, 1.25) * 0.8 + d2 * 0.2, 0.22, 1.8), bfB * 0.18); } /* (only a whisper of close-up grain: the big ridges carry the bark) */
 diffuseColor *= sdc;
 #endif`); }; m.customProgramCacheKey = () => 'barkDetail'; return m; }
   function GA() { return { p: [], n: [], uv: [], c: [], i: [] }; }
@@ -480,7 +494,8 @@ diffuseColor *= sdc;
         else { prev = from.p; pts.push(prev); rs.push(r0); }
         const c = from ? from.p : ax(0), s0 = Math.hypot(prev.x - c.x, prev.z - c.z), n = 26, y0 = prev.y;
         for (let i = 1; i <= n; i++) { const u = i / n, s2 = s0 + L * Math.pow(u, 0.9), aa = a + Math.sin(u * 4.5 + k) * 0.22 * u, x = c.x + Math.cos(aa) * s2, z = c.z + Math.sin(aa) * s2, rr = r0 * (1 - 0.9 * Math.pow(u, 0.8));
-          const gy = meshH(x, z), arch = Math.sin(Math.min(1, u * 2.2) * Math.PI) * rr * 0.5; const y = Math.max(gy + rr * 0.32 + arch, y0 + (gy - y0) * clamp(u * 3, 0, 1) + rr * 0.3); const p = v3().set(x, y, z); pts.push(p); rs.push(rr); }
+          const gy = meshH(x, z), arch = Math.sin(Math.min(1, u * 2.2) * Math.PI) * rr * 0.5; const y = Math.max(gy + rr * 0.32 + arch, y0 + (gy - y0) * clamp(u * 3, 0, 1) + rr * 0.3); const p = v3().set(x, y, z); if (GRAND.spec && i > 2) { const [dl, sl] = GRAND.toL(x, z); if (dl > GRAND.LIP - 330 && Math.abs(sl) < 2700) break; } pts.push(p); rs.push(rr); } /* the roots stop short of the lip and the hero bridge (they never drop over the falls) */
+        if (pts.length > 4) { const nn = pts.length; rs[nn - 1] *= 0.2; rs[nn - 2] *= 0.5; rs[nn - 3] *= 0.8; }
         GRAND.dodge(pts, DC, rs); rootMesh((AR) => gaTube(AR, pts, 12, (i, aa) => rs[i] * (1 + 0.13 * Math.sin(aa * 3 + i * 0.8)) * (1 - 0.15 * Math.max(0, Math.sin(aa))), (i, aa, p, d) => moss(p, d, k), [3, 520, 1])); rootPts.push(pts.slice(from ? 0 : 6)); rootR.push(rs); return { pts, rs }; };
       for (let k = 0; k < 11; k++) { if (k === 5) continue; /* the Lumen Tree's great door stands where this root ran */ const a = OUT + (k / 10 - 0.5) * 3.9 + (hash1(k * 3.1) - 0.5) * 0.2, side = Math.abs(Math.cos(a - OUT)), L = H * (0.13 + 0.15 * side) * (0.8 + 0.4 * hash1(k + 9)), r0 = HW_R0 * (0.3 + 0.12 * hash1(k + 2));
         const R1 = lipRoot(a, 0.1 + hash1(k + 5) * 0.16, L, r0, k);
@@ -521,11 +536,11 @@ diffuseColor *= sdc;
       // VINES (the approved concept): leafy strands with tiny white flowers creeping up the trunk's base and along the top of every great root
       { const VA = GA(), vp = [], vf = []; let sd = 4242; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, up = v3().set(0, 1, 0);
         const strand = (pts, r0) => { if (pts.length < 3) return; gaTube(VA, pts, 5, (i) => r0 * (1 - 0.45 * i / pts.length), (i) => { const g = 0.75 + 0.25 * Math.sin(i * 0.7); return [0.42 * g, 0.6 * g, 0.26 * g]; }, [1, 200]);
-          for (let i = 1; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], t = v3().subVectors(b, a), L = t.length(); if (L < 1e-3) continue; t.divideScalar(L); for (let q = 0; q < L; q += 7 + R() * 5) { const c = v3().copy(a).addScaledVector(t, q), s = R() < 0.5 ? -1 : 1; vp.push([c.x, c.y, c.z, t.x, t.y, t.z, s, 7 + R() * 6]); if (R() < 0.2) vf.push([c.x + (R() - 0.5) * 6, c.y + 2, c.z + (R() - 0.5) * 6, 3 + R() * 2.2]); } } };
-        for (let k = 0; k < 34; k++) { const a0 = (k / 34) * TAU + R() * 0.15, f1 = 0.08 + R() * 0.28, pts = [], n = 40; let aa = a0;
-          for (let i = 0; i <= n; i++) { const f = -0.02 + (f1 + 0.02) * i / n; aa += (R() - 0.5) * 0.05 + 0.012 * Math.sin(i * 0.4 + k); pts.push(tr(f, aa, trunkRad(f, aa) + 3)); }
-          const rs = pts.map(() => 4); GRAND.dodge(pts, DC, rs); strand(pts, 2.6 + R() * 1.4); }
-        HWX.rootPts.forEach((P, ri) => { const rr = HWX.rootR[ri] || []; for (const side of [-0.35, 0.3]) { const pts = []; for (let i = 0; i < P.length; i++) { const r = (rr[i] || 60) * 1.02, q = P[i]; pts.push(v3().copy(q).add(v3().set(Math.sin(i * 0.5 + ri + side * 5) * r * 0.25 + side * r * 0.4, r * 0.93, Math.cos(i * 0.45 + ri) * r * 0.25))); } strand(pts, 2.2 + R()); } });
+          for (let i = 1; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], t = v3().subVectors(b, a), L = t.length(); if (L < 1e-3) continue; t.divideScalar(L); for (let q = 0; q < L; q += 9 + R() * 7) { const c = v3().copy(a).addScaledVector(t, q), s = R() < 0.5 ? -1 : 1; vp.push([c.x, c.y, c.z, t.x, t.y, t.z, s, 18 + R() * 16]); if (R() < 0.3) vf.push([c.x + (R() - 0.5) * 22, c.y + 4, c.z + (R() - 0.5) * 22, 7 + R() * 5]); } } };
+        for (let k = 0; k < 44; k++) { const a0 = (k / 44) * TAU + R() * 0.15, f1 = 0.1 + R() * 0.32, pts = [], n = 40; let aa = a0;
+          for (let i = 0; i <= n; i++) { const f = -0.02 + (f1 + 0.02) * i / n; aa += (R() - 0.5) * 0.05 + 0.012 * Math.sin(i * 0.4 + k); pts.push(tr(f, aa, trunkRad(f, aa) + 9)); }
+          const rs = pts.map(() => 12); GRAND.dodge(pts, DC, rs); strand(pts, 7 + R() * 5); } /* ropey vines, thick enough to read at the hero view */
+        HWX.rootPts.forEach((P, ri) => { const rr = HWX.rootR[ri] || []; for (const side of [-0.35, 0.3]) { const pts = []; for (let i = 0; i < P.length; i++) { const r = (rr[i] || 60) * 1.02, q = P[i]; pts.push(v3().copy(q).add(v3().set(Math.sin(i * 0.5 + ri + side * 5) * r * 0.25 + side * r * 0.4, r * 0.93, Math.cos(i * 0.45 + ri) * r * 0.25))); } strand(pts, 5.5 + R() * 3); } });
         const vm = add(gaMesh(VA, new THREE.MeshLambertMaterial({ vertexColors: true }), false)); vm.name = 'treeVines';
         const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0.42, 0.22, 0.12, 1, 0, 0, 0.42, -0.22, 0.12, 0, 0, 0, 1, 0, 0], 3)); lg.setIndex([0, 1, 2, 0, 2, 3]); lg.computeVertexNormals();
         const lm = new THREE.InstancedMesh(lg, new THREE.MeshLambertMaterial({ color: 0x5f8a3a, side: THREE.DoubleSide }), vp.length), M = new THREE.Matrix4(), Q = new THREE.Quaternion(), E = new THREE.Euler(), S = v3(), Pp = v3(), C2 = new THREE.Color();
