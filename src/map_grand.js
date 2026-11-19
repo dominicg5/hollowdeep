@@ -59,7 +59,7 @@ const GRAND = (() => {
     const { gy, rD } = doorSpot(C);
     const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD + 40), gy, c.z + n.z * (rD + 40));
     const hw = 330, ys = 620, H = 1020, grp = new THREE.Group(); grp.position.copy(P0); grp.rotation.y = Math.atan2(n.x, n.z); grp.scale.setScalar(1.35); scene.add(grp); GX.door = { x: P0.x, y: P0.z, up: gy, hgt: H * 1.35, w: hw * 2 * 1.35, grp, nx: n.x, nz: n.z };
-    const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xc2ad94 });
+    const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0x8e8780 }); // the grey-brown trunk bark, matched (no warm tint)
     const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.map(([x, y]) => [-x, y]), A.slice().reverse().slice(1), [[hw, 0]]); // left foot -> left springing -> apex -> right springing -> right foot (the old order zig-zagged through the opening)
     // the glow inside: a bright plane set back in the doorway (you can't see in, only the light)
     { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0xfff7ec, toneMapped: false, side: THREE.DoubleSide, fog: false });

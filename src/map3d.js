@@ -26,6 +26,8 @@ const M3 = (() => {
       h *= 0.62 + 0.55 * r; }
     return h; }
   // ridged multifractal (0..~1): sharp crests, weighted octaves
+  // rounded-crest variant (a parabolic crest, not a knife edge): the Hollow's rim and walls read as weathered ridges, not saw-teeth on the mesh
+  function ridgedS(x, y, oct) { let sum = 0, amp = 0.6, fr = 1; for (let i = 0; i < oct; i++) { const v = 2 * vnoise(x * fr + i * 17.3, y * fr - i * 9.1) - 1; let n = 1 - v * v; n = n * n * (3 - 2 * n); sum += n * amp; fr *= 2.07; amp *= 0.42; } return sum; }
   function ridged(x, y, oct) { let sum = 0, amp = 0.55, fr = 1, w = 1; for (let i = 0; i < oct; i++) { let n = 1 - Math.abs(2 * vnoise(x * fr + i * 17.3, y * fr - i * 9.1) - 1); n *= n; n *= w; w = clamp(n * 1.7, 0, 1); sum += n * amp; fr *= 2.07; amp *= 0.5; } return sum; }
   function fbm(x, y, oct) { let sum = 0, amp = 0.5, fr = 1; for (let i = 0; i < oct; i++) { sum += (vnoise(x * fr + i * 5.7, y * fr + i * 3.1) - 0.5) * amp; fr *= 2.03; amp *= 0.5; } return sum; }
   // crevices that reach the Hollow keep cutting: notches/channels through the lip and down the pit wall
@@ -63,7 +65,7 @@ const M3 = (() => {
       const g = clamp(1 - r / hr, 0, 1), TT = 8, warp = 1.3 * fbm(x / 1100 + 3, y / 1100 - 2, 3) + 0.45 * Math.sin(a * 3 + g * 6 + 1.3) + 0.3 * Math.sin(a * 7 - g * 4);
       const gt = g * TT + warp * smooth01(0, 0.08, g), fi = Math.floor(gt), fr = gt - fi, sh = 0.35 + 0.45 * vnoise(fi * 3.7 + Math.cos(a) * 2, Math.sin(a) * 2 + fi);
       const step = clamp((fi + smooth01(sh, 1, fr)) / TT, 0, 1), brk = smooth01(0.3, 0.62, vnoise(x / 760 + fi * 1.7, y / 760 - fi)), base = (Math.pow(step, 0.8) * brk + Math.pow(g, 0.8) * (1 - brk)) * 0.86 + Math.pow(g, 0.8) * 0.14; const base2 = Math.max(base, (1 - smooth01(0.06, 0.16, g)) * Math.pow(g, 0.85) * 1.15); // no flat terrace at the lip: grass and rock break straight over the edge
-      h = P_H - PIT * base2 - 30 * g - 110 * ridged(x / 380, y / 380, 3) * smooth01(0, 0.05, g) * (1 - smooth01(0.85, 1, g)); }
+      h = P_H - PIT * base2 - 30 * g - 95 * ridgedS(x / 470, y / 470, 2) * smooth01(0, 0.09, g) * (1 - smooth01(0.85, 1, g)); }
     // fissures: carved trenches; where they meet the Hollow they keep cutting down the pit wall as channels
     // (fissures are no longer a coarse heightfield trench: every crack is a real crevice mesh - rock walls with strata dropping into darkness - and the ground is cut away over it; see buildCrevices)
     if (r < hr + 60 && r > hr - 2200) for (const nt of notches) { let da = a - nt.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; const dist = Math.abs(da) * r, into = hr - r, wd = nt.w * (0.55 + Math.max(0, into) / 900);
@@ -311,9 +313,9 @@ void main() {
 uniform sampler2D map; uniform vec3 uLight; uniform vec3 uFogC; uniform vec3 uLumen;
 varying vec2 vUv; varying float vFog; varying float vLum; varying float vY;
 void main() {
-  vec4 c = texture2D(map, vUv); if (c.a < 0.5) discard;
+  vec4 c = texture2D(map, vUv); float a = clamp((c.a - 0.5) / max(fwidth(c.a), 1e-3) + 0.5, 0.0, 1.0); if (a < 0.02) discard; // a crisp, anti-aliased cut-out edge (alpha to coverage), not a hard texel staircase
   vec3 col = c.rgb * uLight + c.rgb * uLumen * vLum;
-  gl_FragColor = vec4(mix(col, uFogC, vFog), 1.0);
+  gl_FragColor = vec4(mix(col, uFogC, vFog), a);
   #include <tonemapping_fragment>
   #include <encodings_fragment>
 }`;
@@ -337,7 +339,7 @@ void main() {
       list.forEach((o, i) => { const e = o.e, h = o.w * e[4] / e[3]; P.set([o.x, o.elev != null ? o.elev : meshH(o.x, o.y), o.y], i * 3); UV.set([e[1] / AW, e[2] / AH, e[3] / AW, e[4] / AH], i * 4); SZ.set([o.w, h, (o.flip ? -1 : 1) * 0.5, o.ay], i * 4); LU[i] = o.lum; });
       g.setAttribute('iPos', new THREE.InstancedBufferAttribute(P, 3)); g.setAttribute('iUV', new THREE.InstancedBufferAttribute(UV, 4)); g.setAttribute('iSz', new THREE.InstancedBufferAttribute(SZ, 4)); g.setAttribute('iLum', new THREE.InstancedBufferAttribute(LU, 1));
       if (!bbMat[ai]) { const tex = imgTex(img); tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter;
-        bbMat[ai] = new THREE.ShaderMaterial({ uniforms: { map: { value: tex }, uLight: { value: new THREE.Color(1, 1, 1) }, uFogC: { value: new THREE.Color() }, uFogN: { value: 1e5 }, uFogF: { value: 2e5 }, uLumen: { value: new THREE.Color(0, 0, 0) } }, vertexShader: BB_VS, fragmentShader: BB_FS }); }
+        bbMat[ai] = new THREE.ShaderMaterial({ uniforms: { map: { value: tex }, uLight: { value: new THREE.Color(1, 1, 1) }, uFogC: { value: new THREE.Color() }, uFogN: { value: 1e5 }, uFogF: { value: 2e5 }, uLumen: { value: new THREE.Color(0, 0, 0) } }, vertexShader: BB_VS, fragmentShader: BB_FS, alphaToCoverage: true }); }
       const mesh = new THREE.Mesh(g, bbMat[ai]); mesh.frustumCulled = false; scene.add(mesh); bbMesh.push(mesh); }
     st.sprites = L.length; st.playerTier = playerTier();
   }
@@ -399,7 +401,7 @@ void main() {
     if (m.lamps) for (const c of m.lamps) { const p = at(c); PR.glow.push([p[0], p[1], p[2], h]); }
     if (h.isPlayer && m.doors && m.doors.length) { const D = m.doors[0], p = at(D.p), q = at(D.q), nx = q[0] - p[0], nz = q[2] - p[2], nl = Math.hypot(nx, nz) || 1; W.playerDoor = { x: p[0], y: p[2], up: p[1], nx: nx / nl, nz: nz / nl, w: D.w * w, h: D.h * w }; } } // the player's house front door (map units), where Explore hangs the Ledge door
   /* ---------- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall (merged geometry, instanced foliage) ---------- */
-  function hwCanvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; if (rep) t.repeat.set(rep[0], rep[1]); return t; }
+  function hwCanvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); if (rep) t.repeat.set(rep[0], rep[1]); return t; }
   // the Grand Tree's bark, hand-made (same craft as the Lumen Tree's hall): long interlocking plates drawn out up the trunk, split by deep dark furrows, every
   // plate its own weathered tone (grey-brown, some warmer, some mossy), combed with fibres and baked as a lit relief so it reads deep at every zoom; fine
   // cross-cracks and a few knots on top. Tileable.
@@ -420,14 +422,14 @@ void main() {
       const img = g.createImageData(w, h), D = img.data, at = (x, y) => H[((y + h) % h) * w + ((x + w) % w)];
       for (let py = 0; py < h; py++) for (let px = 0; px < w; px++) { const k = py * w + px, hv = H[k], r = rd[ID[k]], lit = Math.max(-1, Math.min(1, ((at(px - 2, py) - at(px + 2, py)) * 0.8 + (at(px, py - 2) - at(px, py + 2)) * 0.35) * 3.2)), cr = Math.min(1, hv * 2.6);
         // furrow (cool near-black brown) -> ridge body (warm brown, each ridge its own tone) -> sunlit edge (golden tan)
-        let cR = 44 + (118 - 44) * cr, cG = 28 + (80 - 28) * cr, cB = 18 + (48 - 18) * cr; const tn = r.tone * (1 + 0.1 * (r.warm - 0.5)); cR *= tn * (1 + 0.08 * r.warm); cG *= tn; cB *= tn * (1 - 0.06 * r.warm);
-        const L = 1 + 0.55 * lit * cr; cR = cR * L + Math.max(0, lit) * cr * 34; cG = cG * L + Math.max(0, lit) * cr * 22; cB = cB * L + Math.max(0, lit) * cr * 10;
+        let cR = 34 + (112 - 34) * cr, cG = 30 + (100 - 30) * cr, cB = 27 + (88 - 27) * cr; const tn = r.tone * (1 + 0.08 * (r.warm - 0.5)); cR *= tn * (1 + 0.04 * r.warm); cG *= tn; cB *= tn * (1 - 0.03 * r.warm); // dark grey-brown elm: near-black furrows, ash-brown ridges
+        const L = 1 + 0.55 * lit * cr; cR = cR * L + Math.max(0, lit) * cr * 26; cG = cG * L + Math.max(0, lit) * cr * 23; cB = cB * L + Math.max(0, lit) * cr * 19;
         const mz = Math.max(0, MS[k] - 0.06) * 1.5 * (1 - cr * 0.55); if (mz > 0) { const m = Math.min(0.85, mz); cR = cR * (1 - m) + 78 * m * (0.7 + 0.3 * cr); cG = cG * (1 - m) + 104 * m * (0.7 + 0.3 * cr); cB = cB * (1 - m) + 42 * m * (0.7 + 0.3 * cr); } // moss in the furrows
         D[k * 4] = Math.min(255, cR); D[k * 4 + 1] = Math.min(255, cG); D[k * 4 + 2] = Math.min(255, cB); D[k * 4 + 3] = 255; }
       g.putImageData(img, 0, 0);
       // a few soft cross-checks and knots on the ridges (painted, low contrast)
-      for (let i = 0; i < 26; i++) { const x = R() * w, y = R() * h, l = 6 + R() * 12; for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) { g.strokeStyle = 'rgba(30,18,10,.35)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x + ox - l / 2, y + oy); g.quadraticCurveTo(x + ox, y + oy + 2, x + ox + l / 2, y + oy - 1); g.stroke(); } }
-      for (let i = 0; i < 3; i++) { const cx = R() * w, cy = R() * h, rw = 7 + R() * 6, rh = 12 + R() * 8; for (let q = 0; q < 4; q++) { g.strokeStyle = q % 2 ? 'rgba(176,128,78,.4)' : 'rgba(30,18,10,.55)'; g.lineWidth = 1.8; g.beginPath(); g.ellipse(cx, cy, rw * (1 - q * 0.2), rh * (1 - q * 0.2), 0, 0, TAU); g.stroke(); } }
+      for (let i = 0; i < 26; i++) { const x = R() * w, y = R() * h, l = 6 + R() * 12; for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) { g.strokeStyle = 'rgba(24,20,16,.35)'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x + ox - l / 2, y + oy); g.quadraticCurveTo(x + ox, y + oy + 2, x + ox + l / 2, y + oy - 1); g.stroke(); } }
+      for (let i = 0; i < 3; i++) { const cx = R() * w, cy = R() * h, rw = 7 + R() * 6, rh = 12 + R() * 8; for (let q = 0; q < 4; q++) { g.strokeStyle = q % 2 ? 'rgba(150,138,122,.4)' : 'rgba(26,22,18,.55)'; g.lineWidth = 1.8; g.beginPath(); g.ellipse(cx, cy, rw * (1 - q * 0.2), rh * (1 - q * 0.2), 0, 0, TAU); g.stroke(); } }
       // lichen flecks
       for (let i = 0; i < 140; i++) { g.fillStyle = `rgba(${150 + R() * 40 | 0},${160 + R() * 30 | 0},${110 + R() * 30 | 0},${0.12 + R() * 0.18})`; g.beginPath(); g.ellipse(R() * w, R() * h, 1 + R() * 3, 1 + R() * 2, R() * 3, 0, TAU); g.fill(); } }); }
   function leafTex() { return hwCanvasTex(256, 256, (g, w, h) => { g.fillStyle = '#7c9a42'; g.fillRect(0, 0, w, h); let s = 11; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
@@ -463,17 +465,24 @@ diffuseColor *= sdc;
       const n = 1 + 0.16 * (vnoise(x * 2.1 + seed, z * 2.1 + y * 1.9 + seed) - 0.5) * 2 + 0.07 * Math.sin(x * 9 + seed) * Math.sin(y * 8 + 1) * Math.sin(z * 9 + 2) + 0.04 * Math.sin(x * 17 + y * 13 + z * 15);
       P.setXYZ(i, x * n, (y > 0 ? y * 0.92 : y * 0.62) * n, z * n);
       const t = clamp((y + 0.75) / 1.6, 0, 1), sh = 0.38 + 0.78 * Math.pow(t, 1.15); cc.push(sh * (0.97 + 0.1 * t), sh, sh * (0.86 - 0.14 * t)); uv.push((Math.atan2(z, x) / Math.PI + 1) * 1.5, (y + 1) * 1.2); }
-    g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g; }
-  function canopyLeafTex() { return hwCanvasTex(512, 512, (g, w, h) => { g.fillStyle = '#5f7334'; g.fillRect(0, 0, w, h); let s = 23; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
-    for (let i = 0; i < 5200; i++) { const x = R() * w, y = R() * h, r = 3 + R() * 6, k = R(), a = R() * TAU;
-      g.fillStyle = k < 0.22 ? `rgba(${38 + R() * 20 | 0},${58 + R() * 20 | 0},${26 + R() * 10 | 0},.85)` : k < 0.72 ? `rgba(${118 + R() * 30 | 0},${138 + R() * 26 | 0},${56 + R() * 18 | 0},.85)` : k < 0.93 ? `rgba(${160 + R() * 28 | 0},${174 + R() * 22 | 0},${80 + R() * 24 | 0},.85)` : `rgba(${204 + R() * 28 | 0},${204 + R() * 20 | 0},${118 + R() * 30 | 0},.8)`;
-      g.beginPath(); g.ellipse(x, y, r, r * 0.5, a, 0, TAU); g.fill(); g.strokeStyle = 'rgba(30,44,20,.35)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r); g.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); g.stroke(); } }); }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
+    { const N = g.attributes.normal, acc = new Map(), key = (i) => Math.round(P.getX(i) * 1e4) + ',' + Math.round(P.getY(i) * 1e4) + ',' + Math.round(P.getZ(i) * 1e4); // the icosphere is unindexed: average the face normals per corner so the floret shades soft and leafy, not as flat facets
+      for (let i = 0; i < P.count; i++) { const k = key(i), v = acc.get(k) || acc.set(k, [0, 0, 0]).get(k); v[0] += N.getX(i); v[1] += N.getY(i); v[2] += N.getZ(i); }
+      for (let i = 0; i < P.count; i++) { const v = acc.get(key(i)), l = Math.hypot(v[0], v[1], v[2]) || 1; N.setXYZ(i, v[0] / l, v[1] / l, v[2] / l); } N.needsUpdate = true; }
+    return g; }
+  function canopyLeafTex() { return hwCanvasTex(1024, 1024, (g, w, h) => { const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#4f6a2c'); bg.addColorStop(1, '#3f5724'); g.fillStyle = bg; g.fillRect(0, 0, w, h); let s = 23; const R = () => (s = (s * 16807) % 2147483647) / 2147483647;
+    // layered elm leaves: pointed, slightly serrated ovals with a midrib, painted back to front (deep shade -> mid green -> sunlit -> a few bright tips), each wrapped across the tile edges so it tiles
+    const leaf = (x, y, L, a, fill, rib) => { for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) { const cx = x + ox, cy = y + oy; if (cx < -L || cx > w + L || cy < -L || cy > h + L) continue; g.save(); g.translate(cx, cy); g.rotate(a); g.fillStyle = fill; g.beginPath(); g.moveTo(-L, 0);
+        g.bezierCurveTo(-L * 0.55, -L * 0.62, L * 0.35, -L * 0.5, L, 0); g.bezierCurveTo(L * 0.35, L * 0.5, -L * 0.55, L * 0.62, -L, 0); g.fill(); g.strokeStyle = rib; g.lineWidth = Math.max(1, L * 0.07); g.beginPath(); g.moveTo(-L * 0.95, 0); g.quadraticCurveTo(0, -L * 0.06, L * 0.9, 0); g.stroke();
+        g.lineWidth = Math.max(0.6, L * 0.03); for (let k = -3; k <= 3; k++) if (k) { const t = k / 4; g.beginPath(); g.moveTo(t * L * 0.8, 0); g.lineTo(t * L * 0.8 + L * 0.22, Math.sign(k) * L * 0.3); g.stroke(); } g.restore(); } };
+    const P = [[2600, 9, 15, () => [30 + R() * 16, 48 + R() * 18, 20 + R() * 10], 0.95], [3400, 10, 17, () => [72 + R() * 26, 102 + R() * 26, 38 + R() * 14], 0.95], [2200, 10, 16, () => [116 + R() * 30, 146 + R() * 24, 54 + R() * 18], 0.95], [700, 8, 13, () => [168 + R() * 30, 186 + R() * 20, 86 + R() * 26], 0.9]];
+    for (const [n, l0, l1, C, al] of P) for (let i = 0; i < n; i++) { const [r, gg, b] = C(), L = l0 + R() * (l1 - l0); leaf(R() * w, R() * h, L, R() * TAU, `rgba(${r | 0},${gg | 0},${b | 0},${al})`, `rgba(${r * 0.6 | 0},${gg * 0.66 | 0},${b * 0.6 | 0},.55)`); } }); }
   function buildHeartwood() { const T = W.heartwood; if (!T) return; const H = T.H, B = T.base;
     const ax = (f) => { const [x, y] = hwAxis(f); return v3().set(x, B + f * H, y); }, dirAt = (th) => v3().set(Math.cos(th), 0, Math.sin(th));
     const tr = (f, th, r) => ax(f).addScaledVector(dirAt(th), r != null ? r : hwTrunkR(f));
     const add = (o) => { scene.add(o); HWX.objs.push(o); return o; };
     const OUT = T.in + Math.PI; // the side facing away from the Hollow (onto the plateau)
-    if (!HWX.built) { HWX.built = true; const bark = new THREE.MeshLambertMaterial({ map: barkTex(), color: 0x7a7a7c, vertexColors: true, side: THREE.DoubleSide }), A = GA(); /* darker, greyer elm bark (the light tan read as pine) */ barkDetail(bark); HWX.barkMat = new THREE.MeshLambertMaterial({ map: bark.map, color: 0xe2ddd0 }); // same tone as the trunk (its vertex colours sit near 0.9 grey), so filler bark round the door matches
+    if (!HWX.built) { HWX.built = true; const bark = new THREE.MeshLambertMaterial({ map: barkTex(), color: 0xaca298, vertexColors: true, side: THREE.DoubleSide }), A = GA(); /* darker, greyer elm bark (the light tan read as pine) */ barkDetail(bark); HWX.barkMat = new THREE.MeshLambertMaterial({ map: bark.map, color: 0x9a928a }); // same tone as the trunk (its vertex colours sit near 0.9 grey), so filler bark round the door matches
       const moss = (p, d, k) => { const m = Math.max(0, d.y) * 0.7 + (vnoise(p.x / 600 + k, p.z / 600 + p.y / 800) - 0.56) * 1.5; const u = clamp(m, 0, 1), dk = 0.86 + 0.14 * clamp((p.y - B) / (H * 0.4), 0, 1); return [(1 - 0.45 * u) * dk, (1 - 0.1 * u) * dk, (1 - 0.6 * u) * dk]; }; HWX.trunkMat = bark; HWX.moss = moss;
       // the trunk: a braid of great twisted strands, deeply ridged, buttressed at the foot
       const trunkRad = (f, a) => { const tw = f * 4.2, Bt = Math.exp(-Math.max(0, f + 0.04) * 7), lobe = Math.pow(0.5 + 0.5 * Math.cos(6 * (a - tw)), 2.2), lobe2 = Math.pow(0.5 + 0.5 * Math.cos(11 * (a - tw * 1.3) + 1), 4), dA = Math.abs(Math.atan2(Math.sin(a - T.in - Math.PI), Math.cos(a - T.in - Math.PI))), dm = 1 - smooth01(0.62, 0.2, dA) * smooth01(0.24, 0.1, f), r = hwTrunkR(f) * (1 + 0.55 * Bt * lobe * dm - 0.08 * Bt); /* no buttress cleft where the great door stands: the bark runs smooth and continuous round the portal */
@@ -671,7 +680,7 @@ diffuseColor *= sdc;
     if (st.ok || st.building || !supported() || window.NO3D || location.protocol === 'file:') return st.ok; // file:// pages taint WebGL textures: use the 2D painter there
     st.building = true; const prog = onProgress || (() => {});
     cv3 = document.createElement('canvas'); cv3.id = 'city3d'; wrap.insertBefore(cv3, wrap.firstChild);
-    renderer = new THREE.WebGLRenderer({ canvas: cv3, antialias: false, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ canvas: cv3, antialias: true, powerPreference: 'high-performance' }); // MSAA: tree cut-outs, roofs and ridgelines were stair-stepped (the 'pixelated' look)
     renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     scene = new THREE.Scene(); scene.background = new THREE.Color(0xbcd3e6); scene.fog = new THREE.Fog(0xbcd3e6, 1e4, 4e4);
     camera = new THREE.PerspectiveCamera(FOV, 1, 20, 2e5);
