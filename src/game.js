@@ -607,6 +607,7 @@ function aiRaid() {
 /* ---------------- simulation ---------------- */
 function step(dt) {
   const h = dt / HOUR; S.gameTime += dt;
+  if (typeof Explore !== 'undefined' && Explore.drillStep) Explore.drillStep(dt); // deployed drills burn coal and mine
   const lv = S.buildings.hall, H = CONFIG.hallPerLevel;
   addRes('crowns', H.crowns * lv * h); addRes('stone', H.stone * lv * h); addRes('lumen', H.lumen * lv * h);
   const press = Math.min(S.res.moss, H.mossPress * lv * h); if (press > 0) { S.res.moss -= press; addRes('lumen', press / 3); }

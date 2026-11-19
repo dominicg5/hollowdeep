@@ -420,6 +420,10 @@ function generateCity() {
   for (let i = 0; i < (CITY.water ? 9 : 0); i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
 
   if (typeof GRAND !== 'undefined') GRAND.fit(); // the Lumen Tree's streams, falls and lake: clear the water, re-house anyone standing in it
+  // last terrain pass done: anyone whose plot ended up on steep ground (the later set pieces reshape the land after the rings were placed) moves to the nearest flat plot
+  if (typeof M3 !== 'undefined' && M3.ground) for (const h of W.homes) { if (h.isPlayer || M3.ground(h.x, h.y).slope <= 0.33) continue;
+    for (let t = 0; t < 90; t++) { const a = t * 2.39996, d = 40 + t * 14, x = h.x + Math.cos(a) * d, y = h.y + Math.sin(a) * d; if (M3.ground(x, y).slope > 0.3 || hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < h.size + 8 || isWet(x, y, 8)) continue;
+      if (W.homes.some((o) => o !== h && Math.hypot(o.x - x, o.y - y) < (o.size + h.size) * 1.15)) continue; h.x = x; h.y = y; break; } }
   // Spatial index for drawing & hit tests
   W.bucket = 256; W.buckets = new Map();
   const put = (o) => { const k = Math.floor(o.x / W.bucket) + ',' + Math.floor(o.y / W.bucket); (W.buckets.get(k) || W.buckets.set(k, []).get(k)).push(o); };

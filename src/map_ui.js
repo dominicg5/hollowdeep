@@ -71,8 +71,8 @@ const CityMap = (() => {
       if (is3d()) { let da = n.a - o.a; da = ((da + 3 * Math.PI) % TAU) - Math.PI; rotTilt(-da, -(n.my - o.my) * 0.3); }
       else { cam.x -= (n.mx - o.mx) / cam.z; cam.y -= (n.my - o.my) / cam.z; } gesture.pinch = n; clampCam(); } }
   // Explore: one finger drags the orbit, two pinch the zoom, a tap sends her there
-  const exP = new Map(); let exG = null;
-  function exDown(e) { try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } exP.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); exG = exP.size === 1 ? { tap: true } : { tap: false, d: exPinch() }; }
+  const exP = new Map(); let exG = null, exLP = 0;
+  function exDown(e) { try { cv.setPointerCapture(e.pointerId); } catch (_) { /* synthetic */ } exP.set(e.pointerId, { x: e.offsetX, y: e.offsetY, x0: e.offsetX, y0: e.offsetY, t0: performance.now() }); exG = exP.size === 1 ? { tap: true } : { tap: false, d: exPinch() }; clearTimeout(exLP); if (exP.size === 1) { const g0 = exG, x0 = e.offsetX, y0 = e.offsetY; exLP = setTimeout(() => { if (exG === g0 && g0.tap && exP.size === 1 && Explore.longPress && Explore.longPress(x0, y0)) g0.tap = false; }, 550); } } /* long press: deploy / open a drill on an ore node */
   function exPinch() { const p = [...exP.values()]; return p.length > 1 ? Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y) : 0; }
   function exMove(e) { const p = exP.get(e.pointerId); if (!p) return; const dx = e.offsetX - p.x, dy = e.offsetY - p.y; p.x = e.offsetX; p.y = e.offsetY; if (exP.size === 1) { if (Math.hypot(p.x - p.x0, p.y - p.y0) > 8 && exG) exG.tap = false; if (exG && !exG.tap) Explore.orbit(dx, dy); } else if (exG && exG.d) { const d = exPinch(); Explore.zoom(d / Math.max(1, exG.d)); exG.d = d; } }
   function exUp(e) { const p = exP.get(e.pointerId); exP.delete(e.pointerId); if (p && exG && exG.tap && !exP.size && performance.now() - p.t0 < 600) Explore.tap(e.offsetX, e.offsetY); if (!exP.size) exG = null; }

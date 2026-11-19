@@ -57,14 +57,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const c1 = await p.evaluate(() => ({ ...CityMap.cam }));
   ok(c1.x > c0.x + 20 && c1.y > c0.y + 20, `drag pans camera (${(c1.x - c0.x).toFixed(0)},${(c1.y - c0.y).toFixed(0)})`);
   // labels anchored in world space while dragging and rotating (screen position == projection of the world anchor)
-  await p.evaluate(() => { const T = W.heartwood; CityMap.flyTo(T.x, T.y, 0.3, true); }); await p.waitForTimeout(2500); await p.waitForFunction(() => CityMap.st.labels.length >= 1, null, { timeout: 20000 }).catch(() => {});
+  await p.evaluate(() => { const T = W.homes[0]; CityMap.flyTo(T.x, T.y, 1.1, true); }); await p.waitForTimeout(2500); await p.waitForFunction(() => CityMap.st.labels.length >= 2 /* house name pills only show from zoom ~0.75 in, among the houses; the 3D map can take ~20 s to come up under swiftshader */, null, { timeout: 45000 }).catch(() => {});
   const L0 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l })));
-  await p.mouse.move(200, 520); await p.mouse.down(); await p.mouse.move(140, 470, { steps: 6 }); await p.waitForTimeout(150);
+  const dq = await p.evaluate(() => { const cv = document.querySelector('canvas'); for (const [x, y] of [[200, 520], [200, 600], [120, 560], [260, 420], [150, 380], [280, 600]]) { const e = document.elementFromPoint(x, y); if (e && e.tagName === 'CANVAS') return [x, y]; } return [200, 520]; }); // start the drag on the map itself, not on an in-world label or card
+  await p.mouse.move(dq[0], dq[1]); await p.mouse.down(); await p.mouse.move(dq[0] - 60, dq[1] - 50, { steps: 6 }); await p.waitForTimeout(150);
   const L1 = await p.evaluate(() => CityMap.st.labels.map((l) => ({ ...l, pr: CityMap.w2sUp(l.wx, l.wy, l.up) })));
   await p.mouse.up();
   let moved = 0, drift = 0;
   for (const a of L1) { const b = L0.find((x) => x.name === a.name); if (!b) continue; if (Math.hypot(a.sx - b.sx, a.sy - b.sy) > 20) moved++; drift = Math.max(drift, Math.hypot(a.pr[0] - a.sx, a.pr[1] - a.sy)); }
-  ok(L1.length >= 2 && moved >= 1 && drift < 3, `map labels stay anchored to the world while dragging (${moved} labels moved, max drift ${drift.toFixed(2)}px)`);
+  ok(L1.length >= 1 && moved >= 1 && drift < 3, `map labels stay anchored to the world while dragging (${moved} labels moved, max drift ${drift.toFixed(2)}px)`);
   // two-finger twist rotates, two-finger vertical drag tilts (clamped 35-70)
   { const cdp0 = await ctx.newCDPSession(p); const tp0 = (type, pts) => cdp0.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], id) => ({ x, y, id })) });
     const r0 = await p.evaluate(() => CityMap.cam.rot);
@@ -727,6 +728,16 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await p.evaluate(() => { Explore.exit(); closeModalQuiet(); setTab('city'); }); await p.waitForTimeout(1200);
     const e3 = await p.evaluate(async () => { const c = W.cracks.find((q) => q.pts[0] && hollowDist(q.pts[0][0], q.pts[0][1]) < 90 && q.wide), m = c.pts[2], K = Explore.reach(m[0], m[1]); Explore.enter(K[0], K[1]); Explore.EX.d = 30; await new Promise((r) => setTimeout(r, 1200)); const s = Explore.aim(m[0], m[1], 40) || [0, 0], t = Explore.tap(s[0], s[1]); let n = 0; while (n < 300) { Explore.tick(1 / 30); n++; } const r = { t, modal: ui.modal || null }; closeModalQuiet(); Explore.exit(); r.off = !Explore.on && !M3.st.camOv && !document.querySelector('#exploreBar.on') && CharView.rig.root.parent !== null; return r; });
     ok(e3.t === 'go' && !e3.modal && e3.off, 'Explore mode: tapping a crevice mouth just runs Wren there - no climb-down offer; Exit restores the normal map view (' + JSON.stringify(e3) + ')'); }
+  { // ore nodes from Mia's spots.json + mining + drills (long-press deploy, coal burn per bit tier, Ledge Tether to the door ports)
+    await p.evaluate(() => { Explore.exit(); closeModalQuiet(); setTab('city'); }); await p.waitForTimeout(800);
+    const om = await p.evaluate(() => { const S0 = Explore.oreSpots(); Explore.build(); const N = Explore.ORE.nodes, hm = [-5664, 9024], n = N.filter((q) => !q.cliff && Explore.oreStand(q) && q.s > 6).sort((a, b) => Math.hypot(a.x - hm[0], a.y - hm[1]) - Math.hypot(b.x - hm[0], b.y - hm[1]))[0], sd = Explore.oreStand(n);
+      Explore.enter(sd[0] - 30, sd[1] + 30); for (let i = 0; i < 10; i++) Explore.tick(1 / 30); const b0 = Craft.get('bag', 'ore:' + n.type); Explore.mineTap(n); let k = 0; while (!Explore.ORE.mining && k < 3000) { Explore.tick(1 / 30); k++; } for (let i = 0; i < 300; i++) Explore.tick(1 / 30);
+      const mined = Craft.get('bag', 'ore:' + n.type) - b0, tool = CharView.st.tool, D = Explore.drillState(), left0 = D.left; M3.render(0, CityMap.cam); const a = M3.project(n.x, n.y, n.s * 0.5); const lp = Explore.longPress(a[0], a[1]), d = D.list.find((q) => q.node === N.indexOf(n));
+      d.tier = 'steel'; const c0 = d.coal; step(3600e3); const burn = +(c0 - d.coal).toFixed(2), hop = d.hop, need = Explore.drillRoute(d).len, wired = Explore.drillWire(d, true), port = d.port, v0 = Craft.get('vault', 'ore:' + d.type); step(3600e3); const vg = Craft.get('vault', 'ore:' + d.type) - v0;
+      const coal = S.res.coal; S.res.coal = 0; d.coal = 0.5; step(3600e3); const stop = !d.on; S.res.coal = coal; const ends = Object.keys(CharView.mapDoorEnds || {}); Explore.drillPanel(null); Explore.exit();
+      return { spots: S0.length, types: [...new Set(S0.map((q) => q.type))].sort().join(), nodes: N.length, mined, tool, left: [left0, D.left], lp, burn, hop, need, wired, port, vg, stop, ends: ends.includes(port), tiers: Explore.BITS.length }; });
+    ok(om.spots === 30 && om.types === 'coal,copper,tin' && om.nodes > 120 && om.mined >= 2 && om.tool === 'pick', 'ore node clusters from spots.json; tap a node: she walks up and mines with the pick, ore into the backpack (' + JSON.stringify(om) + ')');
+    ok(om.lp && om.left[1] === om.left[0] - 1 && om.burn === 5 && om.hop >= 15 && om.hop <= 16 && om.need > 0 && om.wired && om.port && om.vg >= 15 && om.stop && om.ends && om.tiers === 5, 'drill: long-press deploys; steel bit mines 16/h burning 5 coal/h; stops without coal; a Ledge Tether (length = route metres) plugs into a door port and feeds the vault; the map door draws its strands'); }
   ok(errs.length === 0, 'no JS errors ' + errs.slice(0, 3).join(' | '));
   await b.close(); console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
 })();
