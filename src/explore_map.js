@@ -40,7 +40,7 @@ const ExMap = (() => {
     chip(); }
   // ---- ETA: walk / run pace on the ground, the Climbing Pick grade's pace on climb pitches (3D length), deck = ground
   const CLIMB_MPS = { stone: 1.1, bronze: 1.4, iron: 1.5, steel: 1.6, gold: 1.7, mithril: 1.85, rune: 2.0, lumen: 2.15, onyx: 2.3 };
-  function eta(P) { const WS = Explore.WS, gait = (CharView.st && CharView.st.gait) || 'run', vG = gait === 'walk' ? 1.2 : 3.7, vC = CLIMB_MPS[S.climbGrade] || 1.4; let t = 0, Lg = 0, Lc = 0;
+  function eta(P) { const WS = Explore.WS, gait = (CharView.st && CharView.st.gait) || 'run', K = (typeof CharView !== 'undefined' && CharView.EXK) || 1, vG = (gait === 'walk' ? 1.2 : 3.7) * K, vC = vG * 0.35; /* her real pace: the ground speed scaled by her map body scale (EXK), 0.35x on a climb - along the planned path, not the straight line */ let t = 0, Lg = 0, Lc = 0;
     for (let i = 0; i + 1 < P.pts.length; i++) { const [ax, ay] = P.pts[i], [bx, by] = P.pts[i + 1], L = Math.hypot(bx - ax, by - ay) / WS, c = Explore.clsAt((ax + bx) / 2, (ay + by) / 2); if (c === 2) { const dh = Math.abs(Explore.hAt(bx, by) - Explore.hAt(ax, ay)) / WS, l3 = Math.hypot(L, dh); Lc += l3; t += l3 / vC; } else { Lg += L; t += L / vG; } }
     return { s: t, ground: Lg, climb: Lc, gait, climbGrade: S.climbGrade }; }
   const TRAVEL = { dest: null, mode: 'walk' }; // dest: any world point {x, y, label}; mode 'walk' only for now ('teleport' reserved)
