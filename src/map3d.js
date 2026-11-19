@@ -260,7 +260,7 @@ float exF = uExOn * (1.0 - smoothstep(160.0, 640.0, vVD)); /* view-space distanc
 if (exF > 0.002) {
   float gC = fbm2(wp / 3.0), gF = vn2(wp * 2.5) * 0.6 + vn2(wp * 6.3 + 3.1) * 0.4, dry = smoothstep(0.52, 0.78, fbm2(wp / 9.0 + 3.0));
   vec3 gpart = tc.rgb * (0.78 + 0.4 * gC) * (0.88 + 0.24 * gF); gpart = mix(gpart, gpart * vec3(1.06, 1.0, 0.72), dry * 0.3);
-  { float hP = fbm2(wp / 46.0 + 1.7), hQ = fbm2(wp / 17.0 - 4.2); gpart *= mix(vec3(0.9, 1.02, 0.86), vec3(1.1, 1.05, 0.74), smoothstep(0.3, 0.7, hP)) * (0.92 + 0.16 * hQ); gpart *= vec3(1.02, 0.93, 0.56); { float gL = dot(gpart, vec3(0.3, 0.59, 0.11)); gpart = max(vec3(0.0), mix(vec3(gL), gpart, 1.45)) * vec3(0.98, 0.92, 0.55); } } /* ACES compresses bright ground toward grey: richer, warmer albedo so the meadow reads sunlit yellow-green, not pastel */ // meadow colour drift: lush deep-green swathes and warm sunlit yellow-green, broken up at a few metres
+  { float hP = fbm2(wp / 46.0 + 1.7), hQ = fbm2(wp / 17.0 - 4.2); gpart *= mix(vec3(0.9, 1.02, 0.86), vec3(1.1, 1.05, 0.74), smoothstep(0.3, 0.7, hP)) * (0.92 + 0.16 * hQ); gpart *= vec3(1.08, 0.95, 0.5); { float mL = fbm2(wp / 140.0 + 9.1), mS = fbm2(wp / 60.0 - 2.3); gpart *= mix(vec3(0.84, 0.97, 0.78), vec3(1.14, 1.02, 0.62), smoothstep(0.28, 0.72, mL)) * (0.9 + 0.2 * mS); } /* soft large-scale mottling: golden swathes and deeper green hollows */ { float gL = dot(gpart, vec3(0.3, 0.59, 0.11)); gpart = max(vec3(0.0), mix(vec3(gL), gpart, 1.45)) * vec3(0.98, 0.92, 0.55); } } /* ACES compresses bright ground toward grey: richer, warmer albedo so the meadow reads sunlit yellow-green, not pastel */ // meadow colour drift: lush deep-green swathes and warm sunlit yellow-green, broken up at a few metres
   { float fw = min(length(dFdx(wp)), length(dFdy(wp))) * 1.6; vec2 q = mat2(0.8, -0.6, 0.6, 0.8) * wp; vec3 lw = vec3(0.3, 0.59, 0.11);
     float g1 = dot(texAn(tGrass, wp / 11.0 + 0.21, 2.5).rgb, lw) / max(0.05, dot(texture2D(tGrass, wp / 11.0 + 0.21, 7.0).rgb, lw)), g2 = dot(texAn(tGrass, q / 4.3 + 0.63, 2.5).rgb, lw) / max(0.05, dot(texture2D(tGrass, q / 4.3 + 0.63, 7.0).rgb, lw));
     float bl = vn2(vec2(wp.x * 9.0 + 3.0 * vn2(wp * 1.3), wp.y * 9.0)) * 0.5 + vn2(q * 17.0) * 0.5, bA = 1.0 - smoothstep(0.03, 0.09, fw), tA2 = 1.0 - smoothstep(0.25, 0.7, fw);
@@ -275,6 +275,7 @@ if (exF > 0.002) {
   rpart *= 0.84 + 0.32 * clamp(rH / 0.3, 0.0, 1.0);
   exBump = 4.0 * rH * rockW * exF * (1.0 - smoothstep(0.15, 0.5, length(fwidth(rp)))); 
   tc.rgb = mix(tc.rgb, mix(gpart, rpart, rockW), exF); }
+if (uExOn > 0.5) { float wF = grassM * (1.0 - exF) * (1.0 - smoothstep(3000.0, 9000.0, camD)), mL = fbm2(wp / 140.0 + 9.1), mS = fbm2(wp / 60.0 - 2.3); vec3 wg = tc.rgb * mix(vec3(0.98, 1.0, 0.7), vec3(1.2, 1.04, 0.5), smoothstep(0.28, 0.72, mL)) * (0.9 + 0.2 * mS); float wl = dot(wg, vec3(0.3, 0.59, 0.11)); wg = max(vec3(0.0), mix(vec3(wl), wg, 1.3)); tc.rgb = mix(tc.rgb, wg, wF); float gB = grassM * (1.0 - smoothstep(3000.0, 9000.0, camD)); vec3 gw = tc.rgb * vec3(0.98, 0.86, 0.5) * 0.8; float gwl = dot(gw, vec3(0.3, 0.59, 0.11)); tc.rgb = mix(tc.rgb, max(vec3(0.0), mix(vec3(gwl), gw, 1.55)), gB * 0.85); } /* the ACES grade lifts bright albedo to pastel: a deeper, more saturated golden-green meadow reads warm and sunlit after it */ /* Explore: the meadow beyond the close-up band shares its warm golden-green grade and soft mottling (no flat pale green past ~100 m) */
 float inPit = 1.0 - smoothstep(uHR * 0.98, uHR * 1.04, length(wp));
 float dep = clamp((uPH - vWP.y) / 3000.0, 0.0, 1.0);
 // pit walls: moss on the ledges, dangling roots below the lip, darker undercuts beneath each ledge
@@ -296,7 +297,7 @@ float ledge = 0.55 + 0.45 * smoothstep(0.3, 0.8, slope); // terrace walls catch 
 totalEmissiveRadiance += uLumen * inPit * (pow(dep, 0.9) * 1.25 * ledge) * (tc.rgb * 1.8 + 0.04) + uLumen * 0.1 * inPit * smoothstep(0.7, 1.0, dep);`)
         .replace('#include <fog_fragment>', `#include <fog_fragment>
 #ifdef USE_FOG
-float hz = uHaze * (1.0 - smoothstep(0.0, uPH * 0.85, vWP.y)) * (1.0 - inPitH(vWP.xz)) * smoothstep(1500.0, 9000.0, length(vWP - cameraPosition));
+float hz = uHaze * (1.0 - smoothstep(0.0, uPH * 0.85, vWP.y)) * (1.0 - inPitH(vWP.xz)) * smoothstep(1500.0, 9000.0, vVD); /* true view distance (cameraPosition is not the follow camera's position in Explore: the haze washed the near meadow grey-pale) */
 gl_FragColor.rgb = mix(gl_FragColor.rgb, fogColor, hz);
 #endif`);
       sh.fragmentShader = sh.fragmentShader.replace('float edgeF(', 'float inPitH(vec2 p) { return 1.0 - smoothstep(uHR * 0.98, uHR * 1.04, length(p)); }\nfloat edgeF(');
@@ -807,11 +808,11 @@ diffuseColor *= sdc;
     place(cam); // (in Explore the shared follow camera drives the view - see place)
     const night = nightFactor(), pulse = 0.78 + 0.22 * Math.sin(t * 0.9) + 0.06 * Math.sin(t * 2.3), D = st.camOv ? st.camOv.D : dist(cam);
     // sun & sky
-    const sunDir = v3().set(-0.55, 0.75, -0.45).normalize();
+    const sunDir = st.camOv ? v3().set(-0.6, 0.46, -0.5).normalize() : v3().set(-0.55, 0.75, -0.45).normalize(); /* close up (Explore): a lower, warmer afternoon sun - long soft shadows */
     sun.position.set(T.x + sunDir.x * 9000, T.h + sunDir.y * 9000, T.y + sunDir.z * 9000); sun.target.position.set(T.x, T.h, T.y); sun.target.updateMatrixWorld();
     const S = clamp(D * 1.1, 500, 9000), sc = sun.shadow.camera; if (sc.right !== S) { sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 100; sc.far = 22000; sc.updateProjectionMatrix(); }
-    sun.intensity = 1.15 * (1 - night * 0.88); sun.color.setRGB(1, 0.95 - night * 0.1, 0.85 - night * 0.1);
-    hemi.intensity = 0.55 - night * 0.33; hemi.color.copy(tmpC.set(0xdfeeff).lerp(new THREE.Color(0x5068a8), night));
+    const wm = st.camOv ? 1 : 0; sun.intensity = (1.15 + 0.1 * wm) * (1 - night * 0.88); sun.color.setRGB(1, 0.95 - night * 0.1 - 0.06 * wm, 0.85 - night * 0.1 - 0.17 * wm);
+    hemi.intensity = 0.55 - night * 0.33; hemi.color.copy(tmpC.set(wm ? 0xfff0d6 : 0xdfeeff).lerp(new THREE.Color(0x5068a8), night)); hemi.groundColor.set(wm ? 0x6a5a2c : 0x5a6a40);
     const sky = tmpC.copy(cDay).lerp(cNight, night); scene.background.copy(sky); scene.fog.color.copy(sky);
     scene.fog.near = D * 1.4 + 1500; scene.fog.far = D * 5 + 12000;
     // the Hollow: the great light at night
