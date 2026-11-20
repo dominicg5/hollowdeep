@@ -90,7 +90,7 @@ const Craft = (() => {
     let h = `<div class="cxp cxgrid" data-cxv="${xfer ? 'xfer' : 'bag'}"><div class="row between"><h2>🎒 Backpack</h2><span class="tag">${used('bag')} / ${BAG_N} slots</span></div>`;
     h += `<div class="dim">${xfer ? 'Tap a stack to move all of it to the other side; press and hold for more (equip, move some).' : 'What Wren carries. Tap an item for its options.'} Stacks have no limit and no weight.</div>` + gridHTML('bag');
     if (xfer) h += `<div class="row between" style="margin-top:12px"><h2>🔒 Ledge Vault</h2><span class="tag">${used('vault')} / ${VAULT_N} slots</span></div>` + gridHTML('vault');
-    h += st.menu ? menuHTML() : ''; return h + (inModal ? '<button class="btn ghost" data-cx="close">Close</button>' : '') + '</div>'; }
+    h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal ? '<button class="btn ghost" data-cx="close">Close</button>' : '') + '</div>'; }
   function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
     if (it && it.kind === 'drill') return drillMenuHTML(id, c);
     if (it && it.kind === 'teth') return dropMenuHTML(id, c);
@@ -110,7 +110,7 @@ const Craft = (() => {
     const info = X.err ? `<div class="cxnear dim">Lay a drop tether out on the map: open the map in Character view, then pick the coil from 🎒 Bag.</div>` : `<div class="cxnear${X.ok ? '' : ' none'}">🪢<span><b>Create a drop Ledge tether here?</b><small>${esc(X.name)} · needs ${X.need} m from the Ledge door · ${X.have} m on the coil</small></span></div>${X.ok ? '' : '<div class="cxnear none">⛔ Not enough tether</div>'}`;
     return `<div class="cxmenu cxdrop" data-w="bag" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} m in Backpack · same braid as the door tethers</small></span></div>${info}` +
       `<button class="btn alt cxdset" data-cx="dropok" data-id="${id}" ${ok ? '' : 'disabled'}>🪢 Create drop tether</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
-  function bagHTML(inModal) { return gridsHTML(inModal, false); }
+  function bagHTML(inModal) { if (st.menu && st.menu.w !== 'bag') st.menu = null; return gridsHTML(inModal, false); } // the Backpack (tab, modal, map sheet): carried items only, never the vault
   function xferHTML() { return gridsHTML(true, true); }
   // the Backpack as a bottom sheet over the map's Character view (about a third of the screen) until closed
   function sheetHTML() { return `<div class="bsh"><h2>🎒 Backpack</h2><span class="tag">${used('bag')} / ${BAG_N} slots</span><button class="bsx" data-cx="sclose" aria-label="Close the backpack">✕</button></div><div class="bsb cxgrid" data-cxv="sheet">${gridHTML('bag')}${st.menu && st.menu.w === 'bag' ? menuHTML() : ''}</div>`; }
