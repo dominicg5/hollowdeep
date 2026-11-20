@@ -226,6 +226,9 @@ float edgeF(vec2 u, float w) { return smoothstep(0.0, w, min(min(u.x, 1.0 - u.x)
 float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 float vn2(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
 float fbm2(vec2 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn2(p); p = p * 2.03 + vec2(17.1, 9.2); a *= 0.5; } return s; }
+/* the shared edge mask (map_gen.js edgeN/edgeMask): domain-warped lobes and fingers, islands both sides, band width varying by place */
+float eN(vec2 p, float L, float k) { vec2 q = p + L * 1.7 * vec2(vn2(p / (L * 1.5) + vec2(k * 7.1, -k * 3.3)) - 0.5, vn2(p / (L * 1.5) + vec2(11.0 - k * 5.7, k * 2.9)) - 0.5); return 1.05 * (vn2(q / L + vec2(k * 13.1, -k * 9.7)) - 0.5) + 0.75 * (vn2(q / (L * 0.38) + vec2(k * 4.3, k * 8.9)) - 0.5); }
+float eM(float t, float e, vec2 p, float L, float k) { float bw = 0.03 + 0.32 * smoothstep(0.3, 0.7, vn2(p / (L * 9.0) + vec2(k * 3.7, -k * 1.9))); return smoothstep(0.5 - bw, 0.5 + bw, t + 0.6 * e); }
 float h31(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
 float vn3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(mix(h31(i), h31(i + vec3(1.0, 0.0, 0.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 0.0)), h31(i + vec3(1.0, 1.0, 0.0)), f.x), f.y), mix(mix(h31(i + vec3(0.0, 0.0, 1.0)), h31(i + vec3(1.0, 0.0, 1.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 1.0)), h31(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z); }
 float fbm3(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn3(p); p = p * 2.01 + vec3(5.3, 1.7, 9.1); a *= 0.5; } return s; }`)
@@ -281,19 +284,19 @@ if (exF > 0.002) {
 if (uExOn > 0.5) { float wF = grassM * (1.0 - exF) * (1.0 - smoothstep(3000.0, 9000.0, camD)), mL = fbm2(wp / 140.0 + 9.1), mS = fbm2(wp / 60.0 - 2.3); vec3 wg = tc.rgb * mix(vec3(0.98, 1.0, 0.7), vec3(1.2, 1.04, 0.5), smoothstep(0.28, 0.72, mL)) * (0.9 + 0.2 * mS); float wl = dot(wg, vec3(0.3, 0.59, 0.11)); wg = max(vec3(0.0), mix(vec3(wl), wg, 1.3)); tc.rgb = mix(tc.rgb, wg, wF); float gB = grassM * (1.0 - smoothstep(3000.0, 9000.0, camD)); vec3 gw = tc.rgb * vec3(1.2, 1.0, 0.34) * 1.04; float gwl = dot(gw, vec3(0.3, 0.59, 0.11)); tc.rgb = mix(tc.rgb, max(vec3(0.0), mix(vec3(gwl), gw, 1.12)), gB * 0.85); /* golden straw-green (Mia's meadow) */ } /* the ACES grade lifts bright albedo to pastel: a deeper, more saturated golden-green meadow reads warm and sunlit after it */ /* Explore: the meadow beyond the close-up band shares its warm golden-green grade and soft mottling (no flat pale green past ~100 m) */
 { vec4 bz = texture2D(tZ, (wp - uA.xy) / uA.zw); float zm = grassM * (1.0 - snow), zn = fbm2(wp / 70.0 + 2.2), zf = fbm2(wp / 13.0 - 6.1), tl2 = dot(tc.rgb, vec3(0.3, 0.59, 0.11));
   /* biome ground (Dominic: region transitions): soot-dark soil round the coal pits, red earth by the copper, pale lichen scree by the tin, lush wet green at the water; patchy edges from noise so each blends over tens of metres */
-  float zc = smoothstep(0.1, 0.42, bz.r + 0.3 * (zn - 0.5)), zu = smoothstep(0.1, 0.42, bz.g + 0.3 * (zn - 0.5)), zt = smoothstep(0.1, 0.42, bz.b + 0.3 * (zn - 0.5)), zw = bz.a; /* saturates well inside each approach: Art's approach sheets show the mine ground in full a short way in from a soft edge */
+  float eA = eN(wp, 70.0, 1.0), eB = eN(wp, 45.0, 2.0); float zc = eM(bz.r * 1.25, eA, wp, 70.0, 1.0), zu = eM(bz.g * 1.25, eA, wp, 70.0, 1.6), zt = eM(bz.b * 1.25, eA, wp, 70.0, 2.3), zw = mix(bz.a, eM(bz.a, eB, wp, 45.0, 3.1), 0.8); /* fine fingers (~11 m lobes, 4 m fingers) on top of biomeAt's coarse ones */ /* saturates well inside each approach: Art's approach sheets show the mine ground in full a short way in from a soft edge */
   /* colours sampled from Art's ground_swatches.jpg (linear), carried at the meadow's own light level so painted shading survives */ float gk = clamp(tl2 / 0.228, 0.6, 1.4) * (0.86 + 0.28 * zf);
   tc.rgb = mix(tc.rgb, vec3(0.084, 0.072, 0.056) * gk, zm * zc * 0.95);
   tc.rgb = mix(tc.rgb, vec3(0.314, 0.093, 0.032) * gk, zm * zu * 0.92);
   tc.rgb = mix(tc.rgb, vec3(0.266, 0.205, 0.136) * gk, zm * zt * 0.92);
   vec4 bz2 = texture2D(tZ2, (wp - uA.xy) / uA.zw); float zl = fbm2(wp / 5.0 + 1.3);
-  tc.rgb = mix(tc.rgb, vec3(0.216, 0.227, 0.08) * clamp(tl2 / 0.228, 0.6, 1.4), zm * bz2.r * 0.6); /* birch floor: cooler green, fallen-leaf flecks */ tc.rgb = mix(tc.rgb, vec3(0.6, 0.22, 0.05), zm * bz2.r * 0.6 * smoothstep(0.7, 0.76, zl));
-  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.92, 0.82, 0.6), zm * bz2.g * 0.45 * smoothstep(0.45, 0.7, zn)); /* beech-maple wood: leaf litter under the canopy */
-  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.78, 0.97, 0.72) * (0.9 + 0.2 * zn), zm * zw * 0.5); float zd = smoothstep(0.7, 0.95, zw) * smoothstep(0.35, 0.6, zn + 0.25 * zf); /* lakeside: lush, and damp brown soil with pebbles right at the edge */
+  tc.rgb = mix(tc.rgb, vec3(0.216, 0.227, 0.08) * clamp(tl2 / 0.228, 0.6, 1.4), zm * eM(bz2.r, eB, wp, 45.0, 4.2) * 0.6); /* birch floor: cooler green, fallen-leaf flecks */ tc.rgb = mix(tc.rgb, vec3(0.6, 0.22, 0.05), zm * eM(bz2.r, eB, wp, 45.0, 4.2) * 0.6 * smoothstep(0.7, 0.76, zl));
+  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.92, 0.82, 0.6), zm * eM(bz2.g, eA, wp, 70.0, 5.7) * 0.45 * smoothstep(0.45, 0.7, zn)); /* beech-maple wood: leaf litter under the canopy */
+  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.78, 0.97, 0.72) * (0.9 + 0.2 * zn), zm * zw * 0.5); float zd = smoothstep(0.62, 0.9, bz.a + 0.35 * eB) * smoothstep(0.35, 0.6, zn + 0.25 * zf); /* lakeside: lush, and damp brown soil with pebbles right at the edge */
   tc.rgb = mix(tc.rgb, vec3(0.159, 0.091, 0.042) * (0.8 + 0.4 * zf) + vec3(0.14) * smoothstep(0.74, 0.8, vn2(wp / 1.6)), zm * zd * 0.8);
   /* scree: pale gravel with mint and rust lichen flecks; copper earth flecked orange; soot earth with black coal grit */
   float fk = vn2(wp / 1.5 + 7.0); tc.rgb = mix(tc.rgb, vec3(0.25, 0.42, 0.28), zm * zt * 0.5 * smoothstep(0.82, 0.87, fk)); tc.rgb = mix(tc.rgb, vec3(0.75, 0.25, 0.06), zm * zt * 0.45 * smoothstep(0.84, 0.89, 1.0 - fk));
-  tc.rgb = mix(tc.rgb, vec3(0.12, 0.3, 0.26), zm * zu * 0.35 * smoothstep(0.86, 0.9, fk)); tc.rgb = mix(tc.rgb, vec3(0.012, 0.011, 0.012), zm * zc * 0.85 * smoothstep(0.72, 0.78, fk)); }
+  tc.rgb = mix(tc.rgb, vec3(0.12, 0.3, 0.26), zm * zu * 0.35 * smoothstep(0.86, 0.9, fk)); tc.rgb = mix(tc.rgb, vec3(0.012, 0.011, 0.012), zm * zc * 0.75 * smoothstep(0.8, 0.85, vn2(wp / 0.7 + 3.0))); }
 float inPit = 1.0 - smoothstep(uHR * 0.98, uHR * 1.04, length(wp));
 float dep = clamp((uPH - vWP.y) / 3000.0, 0.0, 1.0);
 // pit walls: moss on the ledges, dangling roots below the lip, darker undercuts beneath each ledge

@@ -155,12 +155,26 @@ function isWet(x, y, m) { return inLake(x, y, m) || riverDist(x, y) < (m || 0) |
    every border is a gradual blend over tens of metres, never a line. ---------- */
 const MINE_SPOTS = [[748, 1026, 'coal'], [610, 126, 'tin'], [1386, 656, 'tin'], [111, 693, 'coal'], [1237, 1137, 'tin'], [278, 1150, 'tin'], [802, 567, 'coal'], [256, 316, 'coal'], [471, 711, 'copper'], [579, 1338, 'coal'], [939, 1308, 'coal'], [1048, 854, 'copper'], [946, 154, 'copper'], [536, 409, 'copper'], [272, 894, 'coal'], [1357, 911, 'coal'], [515, 1096, 'copper'], [274, 539, 'tin'], [1000, 642, 'coal'], [603, 874, 'coal'], [720, 325, 'coal'], [427, 210, 'coal'], [944, 1021, 'copper'], [748, 1241, 'tin'], [1254, 770, 'coal'], [1103, 1250, 'coal'], [1118, 1012, 'coal'], [879, 865, 'coal'], [306, 721, 'coal'], [569, 569, 'coal']];
 const MINES_W = MINE_SPOTS.map(([px, py, type]) => ({ x: (px - 744.5) * 16.05, y: (py - 715.4) * 16.05, type }));
-function mineNear(x, y) { const o = { coal: 1e9, copper: 1e9, tin: 1e9 }; for (const m of MINES_W) { const d = Math.hypot(x - m.x, y - m.y); if (d < o[m.type]) o[m.type] = d; } return o; }
+/* the irregular edge of a mine field (Dominic via Art, mining_edge_irregular): never a circle. Returns how far the edge reaches here as a multiple of the
+   field radius - domain-warped noise in world space gives lobes and curling fingers of dirt and scree, a per-field angular bias makes it wider on some
+   sides and narrower on others; seeded by the field's own position so every field is unique. kc > 1 coarsens it (the biome approach round a mine). */
+function mineSeed(cx, cy) { const v = Math.sin(cx * 0.0129898 + cy * 0.078233) * 43758.5453; return v - Math.floor(v); }
+/* THE shared edge mask (Dominic via Art, biome_edge_irregular + mining_edge_irregular): every transition on the map - mine fields, mine approaches,
+   lakeside, meadow/birch/wood - goes through edgeN/edgeMask, never a ring or a radial fade. edgeN is domain-warped value noise (lobes at L, curling
+   fingers at 0.38 L) in world space, so each place gets its own shape; edgeMask pushes a membership t (0..1) across 0.5 with it, leaving islands of
+   the neighbouring ground on both sides, over a band whose width itself varies from place to place. The ground shader runs the same pair (eN/eM). */
+function edgeN(x, y, L, k) { const wx = x + L * 1.7 * (vnoise(x / (L * 1.5) + k * 7.1, y / (L * 1.5) - k * 3.3) - 0.5), wy = y + L * 1.7 * (vnoise(x / (L * 1.5) - k * 5.7 + 11, y / (L * 1.5) + k * 2.9) - 0.5);
+  return 1.05 * (vnoise(wx / L + k * 13.1, wy / L - k * 9.7) - 0.5) + 0.75 * (vnoise(wx / (L * 0.38) + k * 4.3, wy / (L * 0.38) + k * 8.9) - 0.5); }
+function edgeMask(t, x, y, L, k) { const bw = 0.03 + 0.32 * smooth01g(0.3, 0.7, vnoise(x / (L * 9) + k * 3.7, y / (L * 9) - k * 1.9)); /* the band is tight on some stretches, wide on others */ return smooth01g(0.5 - bw, 0.5 + bw, t + 0.6 * edgeN(x, y, L, k)); }
+function mineEdge(x, y, cx, cy, kc) { const sd = mineSeed(cx, cy), a = Math.atan2(y - cy, x - cx), f = edgeN(x, y, 200 * (kc || 1), sd * 10);
+  const side = 1 + 0.2 * Math.sin(a + sd * 6.283) + 0.09 * Math.sin(2 * a + sd * 17.3);
+  return Math.max(0.5, Math.min(1.3, side * (0.97 + f))); }
+function mineNear(x, y) { const o = { coal: 1e9, copper: 1e9, tin: 1e9 }; for (const m of MINES_W) { let d = Math.hypot(x - m.x, y - m.y); if (d < 2400) d /= mineEdge(x, y, m.x, m.y, 2.5); if (d < o[m.type]) o[m.type] = d; } return o; }
 function wetNear(x, y) { return isWet(x, y, 40) ? 1 : isWet(x, y, 110) ? 0.75 : isWet(x, y, 220) ? 0.4 : isWet(x, y, 360) ? 0.15 : 0; } /* every lake, river and the Lumen Tree's streams */
 function biomeAt(x, y) { const w = {}, mn = mineNear(x, y), ws = wetNear(x, y);
   const near = (d, r0, r1) => 1 - smooth01g(r0, r1, d); // 1 inside r0, fading to 0 at r1 (units; 6.35 = 1 m)
-  w.coal = near(mn.coal, 500, 1370); w.copper = near(mn.copper, 500, 1290); w.tin = near(mn.tin, 500, 1290); /* full biome over the whole 79 m field, then the old fade widths outward */ w.water = ws;
-  const n1 = vnoise(x / 2600 + 3.1, y / 2600 - 1.7), n2 = vnoise(x / 1700 - 5.3, y / 1700 + 2.9), rest = Math.max(0, 1 - Math.max(w.coal, w.copper, w.tin, w.water) * 1.1);
+  w.coal = edgeMask(near(mn.coal, 500, 1370), x, y, 420, 1); w.copper = edgeMask(near(mn.copper, 500, 1290), x, y, 420, 1.6); w.tin = edgeMask(near(mn.tin, 500, 1290), x, y, 420, 2.3); /* full biome over the whole 79 m field, then the old fade widths outward */ w.water = Math.max(ws >= 1 ? 1 : 0, edgeMask(ws, x, y, 300, 3.1));
+  const n1 = vnoise(x / 2600 + 3.1, y / 2600 - 1.7) + 0.2 * edgeN(x, y, 520, 4.2), n2 = vnoise(x / 1700 - 5.3, y / 1700 + 2.9) + 0.2 * edgeN(x, y, 460, 5.7), /* the zone noises carry the shared edge fingers, so groves and woods end in lobes and outliers */ rest = Math.max(0, 1 - Math.max(w.coal, w.copper, w.tin, w.water) * 1.1);
   const z = { oak: 0.35 + smooth01g(0.4, 0.6, n1) * (1 - smooth01g(0.5, 0.7, n2)), birch: (1 - smooth01g(0.24, 0.38, n1)) * 1.4, wood: smooth01g(0.48, 0.66, n2) * smooth01g(0.3, 0.5, n1) * 1.4, hedge: 0.18 };
   const zs = z.oak + z.birch + z.wood + z.hedge; for (const k in z) w[k] = z[k] / zs * rest; return w; }
 const BIOME_TREES = { // [key, weight] per zone
@@ -180,9 +194,14 @@ function biomeFast(x, y) { if (BZC.W !== W) { const S = BZC.S, Rr = (typeof CITY
   for (let k = 0; k < 8; k++) w[BZK[k]] = (d[o00 + k] * (1 - u) + d[o10 + k] * u) * (1 - v) + (d[o01 + k] * (1 - u) + d[o11 + k] * u) * v; return w; }
 function pickW(list, h) { let t = 0; for (const [, v] of list) t += v; let a = h * t; for (const [k, v] of list) { a -= v; if (a <= 0) return k; } return list[list.length - 1][0]; }
 /* the tree a spot grows: a zone drawn by its weight, then a species/cut from that zone's list (two independent hashes of the tree's seed) */
-function biomeTree(x, y, seed) { const w = biomeFast(x, y); let t = 0; for (const k in w) t += w[k]; let a = hash1(seed * 977.3 + 0.37) * t, zone = 'oak'; for (const k in w) { a -= w[k]; if (a <= 0) { zone = k; break; } } return { zone, key: pickW(BIOME_TREES[zone], hash1(seed * 431.9 + 0.71)), w }; }
+/* trees lead the ground (biome_edge_irregular): a meadow tree within ~40 m of a grove or the lakeside is now and then that zone's tree instead - lone
+   birches and willows standing out in the meadow before the grove floor or wet soil begins */
+function biomeLead(x, y, seed, w) { if (w.oak + w.hedge < 0.5) return w; const h = hash1(seed * 613.7 + 0.19); if (h > 0.3) return w; let best = null, bv = 0.55;
+  for (let k = 0; k < 6; k++) { const a = k * 1.047 + seed * 5, d = 130 + 130 * (k % 2), v = biomeFast(x + Math.cos(a) * d, y + Math.sin(a) * d); for (const z of ['birch', 'water']) if (v[z] > bv) { bv = v[z]; best = z; } }
+  if (!best) return w; const o = {}; for (const k in w) o[k] = 0; o[best] = 1; return o; }
+function biomeTree(x, y, seed) { const w = biomeLead(x, y, seed, biomeFast(x, y)); let t = 0; for (const k in w) t += w[k]; let a = hash1(seed * 977.3 + 0.37) * t, zone = 'oak'; for (const k in w) { a -= w[k]; if (a <= 0) { zone = k; break; } } return { zone, key: pickW(BIOME_TREES[zone], hash1(seed * 431.9 + 0.71)), w }; }
 /* tree density per 90-unit cell: open meadow sparse, groves and woods dense, a ring of willows/alders along the water, conifers thick on the coal approach */
-function biomeDensity(x, y) { const w = biomeFast(x, y), patch = smooth01g(0.42, 0.62, vnoise(x / 900 + 4.4, y / 900 - 9.1)); return 0.006 + 0.32 * w.birch * patch + 0.26 * w.wood * (0.4 + 0.6 * patch) + 0.03 * w.oak + 0.05 * w.hedge * patch + 0.22 * w.water * (w.water < 0.95 ? 1 : 0) + 0.2 * w.coal + 0.1 * w.tin + 0.1 * w.copper; } /* groves and woods come in patches (a second noise), the meadow stays open */
+function biomeDensity(x, y) { const w = biomeFast(x, y), patch = edgeMask(smooth01g(0.42, 0.62, vnoise(x / 900 + 4.4, y / 900 - 9.1)), x, y, 300, 6.6); return 0.006 + 0.32 * w.birch * patch + 0.26 * w.wood * (0.4 + 0.6 * patch) + 0.03 * w.oak + 0.05 * w.hedge * patch + 0.22 * w.water * (w.water < 0.95 ? 1 : 0) + 0.2 * w.coal + 0.1 * w.tin + 0.1 * w.copper; } /* groves and woods come in patches (a second noise), the meadow stays open */
 
 /* occupancy grids */
 const OCC = { cell: 16, n: 0, off: 0 };
