@@ -1,4 +1,13 @@
 'use strict';
+
+/* ---- render quality preset (perf pass, Dominic: the phone ran hot and drained the battery). 'high' for PC, 'mobile' for phones (auto-detected from the
+   user agent / a coarse pointer on a small screen); a manual override lives in Settings (localStorage 'hdQuality') or ?quality=high|mobile.
+   mobile: pixel ratio capped at 1.5, a 1024 PCF shadow map, ground/crevices receive but don't cast, 30 fps cap (steady frame time), 10 fps when idle. */
+const QUALITY = (() => { const P = { high: { name: 'high', dpr: 2, shadowMap: 2048, softShadows: true, fps: 0, idleFps: 30, groundShadow: true }, mobile: { name: 'mobile', dpr: 1.5, shadowMap: 1024, softShadows: false, fps: 30, idleFps: 10, groundShadow: false } };
+  const auto = () => { try { const ua = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent), coarse = matchMedia('(pointer: coarse)').matches, small = Math.min(screen.width, screen.height) < 820; return ua || (coarse && small) ? 'mobile' : 'high'; } catch (e) { return 'high'; } };
+  let pick = null; try { pick = new URLSearchParams(location.search).get('quality') || localStorage.getItem('hdQuality'); } catch (e) {}
+  const Q = Object.assign({}, P[pick] || P[auto()]); Q.auto = auto(); Q.override = P[pick] ? pick : null;
+  Q.set = (k) => { try { if (k === 'auto') localStorage.removeItem('hdQuality'); else localStorage.setItem('hdQuality', k); } catch (e) {} location.reload(); }; return Q; })();
 /* =====================================================================
    HOLLOWDEEP — playable prototype
    All tunable numbers live in CONFIG. Times are in GAME hours/minutes;

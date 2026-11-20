@@ -1270,7 +1270,7 @@ const CharView = (() => {
   /* ---------- stage, camera, input ---------- */
   function initGL() { wrap = document.getElementById('charWrap'); canvas = document.getElementById('charCanvas');
     try { R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false }); } catch (e) { st.ok = false; return false; }
-    R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.outputEncoding = THREE.LinearEncoding;
+    R.setPixelRatio(Math.min(QUALITY.dpr, window.devicePixelRatio || 1)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.outputEncoding = THREE.LinearEncoding;
     scene = new THREE.Scene(); scene.background = cv(8, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f6e7cc'); gr.addColorStop(0.55, '#e9c99a'); gr.addColorStop(1, '#b9814f'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
     cam = new THREE.PerspectiveCamera(26, 1, 0.1, 160);
     scene.add(new THREE.HemisphereLight(0xfff1dc, 0x7a5236, 0.4));

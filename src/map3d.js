@@ -109,7 +109,7 @@ const M3 = (() => {
       for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const s0 = (y0 + j) * N1 + (x0 + i), d = j * nx + i; P[d * 3] = fp.getX(s0); P[d * 3 + 1] = fp.getY(s0); P[d * 3 + 2] = fp.getZ(s0); Nn[d * 3] = fn.getX(s0); Nn[d * 3 + 1] = fn.getY(s0); Nn[d * 3 + 2] = fn.getZ(s0); UV[d * 2] = fu.getX(s0); UV[d * 2 + 1] = fu.getY(s0); M[d] = g.m[s0]; }
       for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, c, d, b); } // PlaneGeometry's own split (a-c-b, c-d-b), so meshH matches
       const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(Nn, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); geo.setAttribute('aMt', new THREE.BufferAttribute(M, 1)); geo.setIndex(idx); geo.computeBoundingSphere(); geo.computeBoundingBox();
-      const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
+      const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
     full.dispose(); return out; }
   /* ---------- crevices: every crack on the map is a real cut - the ground is masked away over it (tK) and rock walls with strata drop into darkness ---------- */
   const CRV = { mesh: null, maskCv: null, tex: null, win: null, depth: [] };
@@ -121,7 +121,13 @@ const M3 = (() => {
     for (let k = 0; k < 900; k++) { const q = 70 + rn() * 90 | 0; g.fillStyle = `rgba(${q},${q - 5},${q - 12},${0.12 + rn() * 0.2})`; g.beginPath(); g.ellipse(rn() * 256, rn() * 512, 2 + rn() * 12, 1 + rn() * 5, rn() * 3, 0, 6.3); g.fill(); } // weathered blotches and pits
     for (let k = 0; k < 60; k++) { g.fillStyle = `rgba(${70 + rn() * 30 | 0},${96 + rn() * 30 | 0},${44 + rn() * 20 | 0},${0.25 + rn() * 0.3})`; g.beginPath(); g.ellipse(rn() * 256, rn() * 512, 3 + rn() * 10, 2 + rn() * 4, 0, 0, 6.3); g.fill(); } // moss and lichen in the joints
     const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; }
-  function buildCrevices() { if (CRV.mesh) { scene.remove(CRV.mesh); CRV.mesh.geometry.dispose(); }
+  /* perf: split one big mesh into map-grid chunks (by triangle centroid) so the main and shadow passes frustum-cull it piece by piece (lossless) */
+  function splitGeo(geo, cell) { const idx = geo.index ? geo.index.array : null, P = geo.attributes.position, nT = (idx ? idx.length : P.count) / 3, B = new Map();
+    for (let t = 0; t < nT; t++) { let cx = 0, cz = 0; for (let k = 0; k < 3; k++) { const v = idx ? idx[t * 3 + k] : t * 3 + k; cx += P.getX(v); cz += P.getZ(v); } const key = Math.floor(cx / 3 / cell) + ',' + Math.floor(cz / 3 / cell); let L = B.get(key); if (!L) B.set(key, (L = [])); L.push(t); }
+    const out = []; for (const L of B.values()) { const map = new Map(), ni = []; for (const t of L) for (let k = 0; k < 3; k++) { const v = idx ? idx[t * 3 + k] : t * 3 + k; let j = map.get(v); if (j === undefined) { j = map.size; map.set(v, j); } ni.push(j); }
+      const g = new THREE.BufferGeometry(), src = [...map.keys()]; for (const n in geo.attributes) { const a = geo.attributes[n], s = a.itemSize, arr = new a.array.constructor(src.length * s); src.forEach((v, j) => { for (let q = 0; q < s; q++) arr[j * s + q] = a.array[v * s + q]; }); g.setAttribute(n, new THREE.BufferAttribute(arr, s, a.normalized)); }
+      g.setIndex(ni); g.computeBoundingSphere(); out.push(g); } return out; }
+  function buildCrevices() { if (CRV.mesh) { scene.remove(CRV.mesh); CRV.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
     const pos = [], col = [], uv = [], idx = []; let sd = 3; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
     // wall profile across the crack, from the left lip down to the floor and up to the right lip: [offset as a fraction of the half-width (+ extra units), depth fraction]
     const PROF = [[1.0, 3.5, -1], [1.0, 0, 0.012], [0.96, 0, 0.035], [0.9, 0, 0.08], [0.83, 0, 0.17], [0.74, 0, 0.3], [0.64, 0, 0.46], [0.52, 0, 0.68], [0.36, 0, 1]]; // a grassy rounded lip that overhangs a little, then rock bulging and receding down into the dark
@@ -137,7 +143,7 @@ const M3 = (() => {
         const endHere = i === n - 1 || hollowDist(c.pts[i + 1][0], c.pts[i + 1][1]) < 30; if (prev < 0 || endHere) for (let q = 1; q + 1 < m / 2; q++) { const a0 = base + q, b0 = base + q + 1, c0 = base + m - 1 - q, d0 = base + m - 2 - q; idx.push(a0, b0, c0, b0, d0, c0); } /* end caps: a rock wall closes each end of the cut (no open, see-through ends) */
         prev = base; } }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
-    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Mesh(geo, mat); CRV.mesh.name = 'crevices'; CRV.mesh.receiveShadow = true; CRV.mesh.castShadow = true; /* the walls shade their own depths */ scene.add(CRV.mesh);
+    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Group(); CRV.mesh.name = 'crevices'; for (const g of splitGeo(geo, 1500)) { const m = new THREE.Mesh(g, mat); m.name = 'creviceChunk'; m.receiveShadow = true; m.castShadow = true; CRV.mesh.add(m); } geo.dispose(); /* the walls shade their own depths */ scene.add(CRV.mesh);
     CRV.maskCv = document.createElement('canvas'); CRV.maskCv.width = CRV.maskCv.height = 2048; CRV.tex = new THREE.CanvasTexture(CRV.maskCv); CRV.tex.flipY = false; CRV.tex.generateMipmaps = false; CRV.tex.minFilter = THREE.LinearFilter; CRV.win = null; }
   // ground including the crevices: inside a crack the floor lies its depth below the (cut-away) ground surface
   function groundH(x, y) { const h = meshH(x, y), cell = 160, gx = Math.floor(x / cell), gy = Math.floor(y / cell); let best = 1e9, bw = 0; if (!W.crackGrid) return h;
@@ -197,7 +203,7 @@ const M3 = (() => {
     const pos = geo.attributes.position; // after rotation: x right, z = map y (row iy -> z = -half + iy*step)
     for (let i = 0; i < pos.count; i++) pos.setY(i, g.h[i]);
     geo.setAttribute('aMt', new THREE.BufferAttribute(g.m, 1)); geo.computeVertexNormals();
-    const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false; return mesh;
+    const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.frustumCulled = false; return mesh;
   }
 
   /* ---------- painted ground textures (re-using the 2D painter in ground-only mode) ---------- */
@@ -415,16 +421,47 @@ void main() {
   // an instanced set: one InstancedMesh per LOD, refilled with only the instances in view (nearest get the detailed LOD)
   function makeSet(key, list, opt) { const m = MD[key], meshes = m.geos.map((g0, li) => { const g = new THREE.BufferGeometry(); for (const n in g0.attributes) g.setAttribute(n, g0.attributes[n]); g.setIndex(g0.index);
       g.setAttribute('iLum', new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length)), 1)); const im = new THREE.InstancedMesh(g, m.mat, Math.max(1, list.length)); im.count = 0; im.frustumCulled = false;
-      im.castShadow = li === 0 && opt.shadow; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length) * 3), 3); scene.add(im); return im; });
+      im.name = 'set_' + key + '_' + li; im.castShadow = li === 0 && opt.shadow; im.receiveShadow = true; im.userData.noCull = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length) * 3), 3); scene.add(im); return im; });
+    /* perf: the detailed layer's instances beyond the sun's shadow box go to a twin that doesn't cast (they could never land in the shadow map, but the shadow pass still drew them) */
+    let ns = null; if (opt.shadow && meshes[0]) { const g0 = meshes[0].geometry, g = new THREE.BufferGeometry(); for (const n in g0.attributes) if (n !== 'iLum') g.setAttribute(n, g0.attributes[n]); g.setIndex(g0.index); g.setAttribute('iLum', new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length)), 1));
+      ns = new THREE.InstancedMesh(g, meshes[0].material, Math.max(1, list.length)); ns.count = 0; ns.frustumCulled = false; ns.name = 'set_' + key + '_ns'; ns.castShadow = false; ns.receiveShadow = true; ns.userData.noCull = true; ns.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length) * 3), 3); scene.add(ns); }
     const M = new Float32Array(list.length * 16), C = new Float32Array(list.length * 3), Lm = new Float32Array(list.length), P = new Float32Array(list.length * 4), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
     list.forEach((o, i) => { e.set(o.tilt || 0, o.rot, 0, 'YXZ'); q.setFromEuler(e); mt.compose(v3().set(o.x, o.y, o.z), q, v3().set(o.s * (o.sx || 1), o.s * (o.sy || 1), o.s * (o.sz || 1))); mt.toArray(M, i * 16); C.set(o.c, i * 3); Lm[i] = o.lum || 0; P.set([o.x, o.y + o.s * 0.4, o.z, o.s * 0.8], i * 4); });
-    const set = { key, list, meshes, M, C, L: Lm, P, near: opt.near, far: opt.far || 1e9, minZ: opt.minZ || 0 }; IM.all.push(set); return set; }
+    const set = { key, list, meshes, ns, M, C, L: Lm, P, near: opt.near, far: opt.far || 1e9, minZ: opt.minZ || 0 }; IM.all.push(set); return set; }
   const frus = new THREE.Frustum(), pm = new THREE.Matrix4(), sph = new THREE.Sphere();
-  function fillSet(set, camZ) { const [m0, m1] = set.meshes; let n0 = 0, n1 = 0; const cp = camera.position, hide = camZ < set.minZ;
+  function fillSet(set, camZ) { const [m0, m1] = set.meshes, ns = set.ns; let n0 = 0, n1 = 0, n2 = 0; const cp = camera.position, hide = camZ < set.minZ;
+    const far = Math.min(set.far, scene.fog ? scene.fog.far * 1.05 : 1e9), shR = st.shS ? st.shS * 1.05 : 1e9; /* perf: nothing past the fog's far plane is drawn (it would be pure fog colour) */
     if (!hide) for (let i = 0, n = set.list.length; i < n; i++) { sph.center.set(set.P[i * 4], set.P[i * 4 + 1], set.P[i * 4 + 2]); sph.radius = set.P[i * 4 + 3]; if (!frus.intersectsSphere(sph)) continue;
-      const d = sph.center.distanceTo(cp); if (d > set.far) continue; const tgt = d < set.near || !m1 ? m0 : m1, j = tgt === m0 ? n0++ : n1++;
+      const d = sph.center.distanceTo(cp); if (d - sph.radius > far) continue; let tgt = d < set.near || !m1 ? m0 : m1; if (tgt === m0 && ns && Math.max(Math.abs(sph.center.x - T.x), Math.abs(sph.center.z - T.y)) - sph.radius * 2.5 > shR) tgt = ns; const j = tgt === m0 ? n0++ : tgt === m1 ? n1++ : n2++;
       tgt.instanceMatrix.array.set(set.M.subarray(i * 16, i * 16 + 16), j * 16); tgt.instanceColor.array.set(set.C.subarray(i * 3, i * 3 + 3), j * 3); tgt.geometry.attributes.iLum.array[j] = set.L[i]; }
-    for (const [m, n] of [[m0, n0], [m1, n1]]) if (m) { m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; m.geometry.attributes.iLum.needsUpdate = true; } }
+    for (const [m, n] of [[m0, n0], [m1, n1], [ns, n2]]) if (m) { m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; m.geometry.attributes.iLum.needsUpdate = true; } }
+  /* ---------- perf: per-instance culling for the big static instanced sets (ore fields, cliff trees/vines, Lumen leaf cards, vines...) that were drawn whole, map-wide, every frame
+     (main pass AND shadow pass). Each LOD tick the instances inside the view frustum (spheres inflated so off-screen casters still throw their shadows in) and nearer than the fog's
+     far plane are packed to the front of the buffers. Owners that animate or refill their own instances opt out (userData.noCull, or live under mosby / groundDetail / petMole / doors). */
+  const ICU = { L: [], seen: new WeakSet(), scanN: 0, sk: null };
+  const ICU_SKIP = /^(mosby|groundDetail|petMole|exploreDoors|exploreWren)$/;
+  function icuReg(im) { const n = im.count; if (n < 4) return; im.updateMatrixWorld(true); const g = im.geometry; if (!g.boundingSphere) g.computeBoundingSphere(); const r0 = g.boundingSphere.radius, c0 = g.boundingSphere.center;
+    const M = im.instanceMatrix.array.slice(0, n * 16), C = im.instanceColor ? im.instanceColor.array.slice(0, n * 3) : null, IA = []; for (const k in g.attributes) { const a = g.attributes[k]; if (a.isInstancedBufferAttribute) IA.push([a, a.array.slice(0, n * a.itemSize), a.itemSize]); }
+    const S = new Float32Array(n * 4), mt = new THREE.Matrix4(), v = v3(); for (let i = 0; i < n; i++) { mt.fromArray(M, i * 16).premultiply(im.matrixWorld); v.copy(c0).applyMatrix4(mt); S[i * 4] = v.x; S[i * 4 + 1] = v.y; S[i * 4 + 2] = v.z; S[i * 4 + 3] = r0 * mt.getMaxScaleOnAxis(); }
+    ICU.L.push({ im, n, M, C, IA, S, mw: im.matrixWorld.elements.slice() }); }
+  /* perf: small shadow casters (door parts, trim, props < ~1 m) stop casting beyond ~35 m from the camera: their shadows are sub-texel there, yet each was a shadow-pass draw */
+  const SCS = { L: [], seen: new WeakSet() }, scsV = new THREE.Vector3(), scsS = new THREE.Sphere();
+  function scsScan() { const WS = 6.35; scene.traverse((o) => { if (!o.isMesh || o.isInstancedMesh || SCS.seen.has(o)) return; SCS.seen.add(o); if (!o.castShadow || o.name === 'terrainTile' || o.name === 'creviceChunk') return; const g = o.geometry; if (!g) return; if (!g.boundingSphere) g.computeBoundingSphere(); o.updateMatrixWorld(); scsS.copy(g.boundingSphere).applyMatrix4(o.matrixWorld); if (scsS.radius < WS) SCS.L.push({ o, c: g.boundingSphere.center, r: scsS.radius }); });
+    SCS.L = SCS.L.filter((R) => { for (let q = R.o; q; q = q.parent) if (q === scene) return true; return false; }); }
+  function scsTick() { const cp = camera.position, d2 = (6.35 * 35) ** 2, t2 = QUALITY.name === 'high' ? (6.35 * 12) ** 2 : 0, tiny = 6.35 * 0.25; /* tiny parts (< 25 cm: locks, ports, bolts) are sub-texel in the mobile shadow map; on High they still cast up close */
+    for (const R of SCS.L) { scsV.copy(R.c).applyMatrix4(R.o.matrixWorld); R.o.castShadow = scsV.distanceToSquared(cp) < (R.r < tiny ? t2 : d2); } }
+  function icuScan() { scene.traverse((o) => { if (!o.isInstancedMesh || ICU.seen.has(o)) return; ICU.seen.add(o); if (o.userData.noCull || o.frustumCulled) return; for (let q = o.parent; q && q !== scene; q = q.parent) if (ICU_SKIP.test(q.name)) return; icuReg(o); });
+    ICU.L = ICU.L.filter((R) => { for (let q = R.im; q; q = q.parent) if (q === scene) return true; return false; }); }
+  function icuCull() { const far = scene.fog ? scene.fog.far * 1.05 : 1e9, cp = camera.position, s = sph, c = s.center; let tot = 0;
+    for (const R of ICU.L) { const im = R.im, n = R.n, S = R.S; let j = 0; const me = im.matrixWorld.elements; if (me[12] !== R.mw[12] || me[13] !== R.mw[13] || me[14] !== R.mw[14]) { R.dead = true; continue; } // it moved: hand it back untouched
+      for (let i = 0; i < n; i++) { const r = S[i * 4 + 3]; c.set(S[i * 4], S[i * 4 + 1], S[i * 4 + 2]); if (c.distanceTo(cp) - r > far) continue; s.radius = r * 2.6 + 40; if (!frus.intersectsSphere(s)) continue;
+        if (j !== i) { im.instanceMatrix.array.set(R.M.subarray(i * 16, i * 16 + 16), j * 16); if (R.C) im.instanceColor.array.set(R.C.subarray(i * 3, i * 3 + 3), j * 3); for (const [a, arr, k] of R.IA) a.array.set(arr.subarray(i * k, i * k + k), j * k); } else { im.instanceMatrix.array.set(R.M.subarray(i * 16, i * 16 + 16), j * 16); if (R.C) im.instanceColor.array.set(R.C.subarray(i * 3, i * 3 + 3), j * 3); for (const [a, arr, k] of R.IA) a.array.set(arr.subarray(i * k, i * k + k), j * k); }
+        j++; }
+      im.count = j; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; for (const [a] of R.IA) a.needsUpdate = true; if (j === 0 && im.visible) { im.visible = false; im.userData.icuHid = true; } else if (j > 0 && im.userData.icuHid) { im.visible = true; im.userData.icuHid = false; } tot += j; }
+    if (ICU.L.some((R) => R.dead)) ICU.L = ICU.L.filter((R) => { if (!R.dead) return true; const im = R.im; im.count = R.n; im.instanceMatrix.array.set(R.M); if (R.C) im.instanceColor.array.set(R.C); for (const [a, arr] of R.IA) a.array.set(arr); im.instanceMatrix.needsUpdate = true; if (im.userData.icuHid) { im.visible = true; im.userData.icuHid = false; } return false; });
+    st.icu = tot; }
+  function icuTick() { if (++ICU.scanN % 90 === 1) { icuScan(); scsScan(); } scsTick(); const p = camera.position, q = camera.quaternion, k = Math.round(p.x / 40) + ',' + Math.round(p.y / 40) + ',' + Math.round(p.z / 40) + ',' + Math.round(q.x * 60) + ',' + Math.round(q.y * 60) + ',' + Math.round(q.z * 60) + ',' + Math.round(q.w * 60) + ',' + Math.round((scene.fog ? scene.fog.far : 0) / 200);
+    if (k === ICU.sk && ICU.scanN % 90 !== 1) return; ICU.sk = k; pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frus.setFromProjectionMatrix(pm); icuCull(); }
   /* ---------- bushes, boulders and biome props (bushes_sheet, boulders_sheet; Dominic's region transitions): clustered round the trees (focal points) with a thin open-ground scatter;
      coal approaches get slag heaps, copper rust/verdigris and ore-flecked rock with gorse and scrub, tin pale scree with silvery shrubs, the water reeds,
      cattails and lily pads. Every pick is drawn from the biome weights, so props blend across a border exactly like the trees ---------- */
@@ -794,7 +831,7 @@ diffuseColor *= sdc;
   function animPulley(t, night) {
     if (HWX.mush) { const k = 0.45 + night * 0.75; HWX.mush.color.setRGB(0.32 * k, 0.78 * k, 1.0 * k); HWX.hollowGlow.color.setRGB(0.3 * k, 0.75 * k, 0.95 * k); HWX.mushGlow.material.opacity = 0.12 + night * 0.5; HWX.mushGlow.visible = false; } }
   // props meshes: rebuilt (instances near the camera only) on each LOD pass
-  function propMesh(geo, mat, cap) { const im = new THREE.InstancedMesh(geo, mat, cap); im.count = 0; im.frustumCulled = false; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); scene.add(im); return im; }
+  function propMesh(geo, mat, cap) { const im = new THREE.InstancedMesh(geo, mat, cap); im.count = 0; im.frustumCulled = false; im.userData.noCull = true; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); scene.add(im); return im; }
   // climb spots: every crevice that runs out of the Hollow gets a glowing, tappable crack where its mouth breaks the rim - a lumen ribbon draped down the first
   // stretch of the crack (bright along its spine, soft at its edges, pulsing slowly) and a floating climb-down marker; tapping it offers "Climb down (coming soon)"
   const CLB = { spots: [], grp: null };
@@ -890,11 +927,11 @@ diffuseColor *= sdc;
     st.building = true; const prog = onProgress || (() => {});
     cv3 = document.createElement('canvas'); cv3.id = 'city3d'; wrap.insertBefore(cv3, wrap.firstChild);
     renderer = new THREE.WebGLRenderer({ canvas: cv3, antialias: true, powerPreference: 'high-performance' }); // MSAA: tree cut-outs, roofs and ridgelines were stair-stepped (the 'pixelated' look)
-    renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25; renderer.shadowMap.enabled = true; renderer.shadowMap.type = QUALITY.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; renderer.info.autoReset = false; /* st.tris/calls count the shadow pass too */
     scene = new THREE.Scene(); scene.background = new THREE.Color(0xbcd3e6); scene.fog = new THREE.Fog(0xbcd3e6, 1e4, 4e4);
     camera = new THREE.PerspectiveCamera(FOV, 1, 20, 2e5);
     hemi = new THREE.HemisphereLight(0xdfeeff, 0x5a6a40, 0.55); scene.add(hemi);
-    sun = new THREE.DirectionalLight(0xfff1d6, 1.15); sun.castShadow = true; const mob = Math.min(screen.width, screen.height) < 700; sun.shadow.mapSize.set(mob ? 1024 : 2048, mob ? 1024 : 2048);
+    sun = new THREE.DirectionalLight(0xfff1d6, 1.15); sun.castShadow = true; const mob = Math.min(screen.width, screen.height) < 700, smz = Math.min(QUALITY.shadowMap, mob ? 1024 : 2048); sun.shadow.mapSize.set(smz, smz);
     sun.shadow.bias = -0.0006; sun.shadow.normalBias = 1.5; scene.add(sun); scene.add(sun.target);
     lumen = new THREE.PointLight(0xffc878, 1, CITY.hollowR * 3.4, 1.1); lumen.position.set(0, P_H - 1500, 0); scene.add(lumen);
     lumen2 = new THREE.PointLight(0xffc878, 0, CITY.hollowR * 2.2, 1.0); lumen2.position.set(0, P_H + 300, 0); scene.add(lumen2); // lifts the glow onto the lip and the nearest rooftops
@@ -928,7 +965,7 @@ diffuseColor *= sdc;
 
   /* ---------- camera ---------- */
   let cssW = 1, cssH = 1;
-  function resize(w, h, dpr) { if (!renderer) return; cssW = w; cssH = h; renderer.setPixelRatio(Math.min(2, dpr)); renderer.setSize(w, h, false); cv3.style.width = w + 'px'; cv3.style.height = h + 'px'; camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  function resize(w, h, dpr) { if (!renderer) return; cssW = w; cssH = h; renderer.setPixelRatio(Math.min(QUALITY.dpr, dpr)); renderer.setSize(w, h, false); cv3.style.width = w + 'px'; cv3.style.height = h + 'px'; camera.aspect = w / h; camera.updateProjectionMatrix(); }
   function dist(cam) { return cssH / (cam.z * 2 * Math.tan((FOV * Math.PI) / 360)); }
   function targetH(x, y) { let th = Math.max(meshH(x, y), P_H * (1 - clamp((Math.hypot(x, y) - CITY.hollowR) / 600, 0, 1)) - 200);
     return th; }
@@ -1004,7 +1041,7 @@ diffuseColor *= sdc;
     // sun & sky
     const sunDir = st.camOv ? v3().set(-0.6, 0.46, -0.5).normalize() : v3().set(-0.55, 0.75, -0.45).normalize(); /* close up (Explore): a lower, warmer afternoon sun - long soft shadows */
     sun.position.set(T.x + sunDir.x * 9000, T.h + sunDir.y * 9000, T.y + sunDir.z * 9000); sun.target.position.set(T.x, T.h, T.y); sun.target.updateMatrixWorld();
-    const S = clamp(D * 1.1, 500, 9000), sc = sun.shadow.camera; if (sc.right !== S) { sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 100; sc.far = 22000; sc.updateProjectionMatrix(); }
+    const S = clamp(D * 1.1, 500, 9000), sc = sun.shadow.camera; st.shS = S; if (sc.right !== S) { sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 100; sc.far = 22000; sc.updateProjectionMatrix(); }
     const wm = st.camOv ? 1 : 0; sun.intensity = (1.15 + 0.1 * wm) * (1 - night * 0.88); sun.color.setRGB(1, 0.95 - night * 0.1 - 0.06 * wm, 0.85 - night * 0.1 - 0.17 * wm);
     hemi.intensity = 0.55 - night * 0.33; hemi.color.copy(tmpC.set(wm ? 0xfff0d6 : 0xdfeeff).lerp(new THREE.Color(0x5068a8), night)); hemi.groundColor.set(wm ? 0x6a5a2c : 0x5a6a40);
     const sky = tmpC.copy(cDay).lerp(cNight, night); scene.background.copy(sky); scene.fog.color.copy(sky);
@@ -1031,7 +1068,7 @@ diffuseColor *= sdc;
     const wx = weatherNow(t); for (const c of clouds) { const u = c.userData, a = u.a + t * u.sp * 0.1; c.position.set(Math.cos(a) * u.r, 2600 + u.sz * 0.2, Math.sin(a) * u.r); c.material.opacity = (wx.type === 'cloud' ? 0.55 : 0.32) * (1 - night * 0.6) * clamp((D - 1500) / 4000, 0, 1); }
     updateModels(t, cam, night, pulse, LC);
     updateDetail(cam);
-    renderer.render(scene, camera); st.calls = renderer.info.render.calls; st.tris = renderer.info.render.triangles;
+    icuTick(); renderer.info.reset(); renderer.render(scene, camera); st.calls = renderer.info.render.calls; st.tris = renderer.info.render.triangles;
     if (st.overlay) { const enc = renderer.outputEncoding, tm = renderer.toneMapping, ac = renderer.autoClear; renderer.autoClear = false; renderer.outputEncoding = THREE.LinearEncoding; renderer.toneMapping = THREE.NoToneMapping; renderer.render(st.overlay, camera); renderer.outputEncoding = enc; renderer.toneMapping = tm; renderer.autoClear = ac; } // Explore: Wren drawn with her own Character-tab lights and colour response, depth-tested against the map
   }
   function tapSprites(sx, sy, list) { // screen-space hit test against standing billboards: distance to the segment from base to top

@@ -89,7 +89,7 @@ const Mosby = (() => {
     const mesh = (geo, mat, p, s, r) => { const m = new THREE.Mesh(geo, mat); if (p) m.position.set(...p); if (s) m.scale.set(...s); if (r) m.rotation.set(...r); m.castShadow = true; m.receiveShadow = true; return m; };
     const inst = (geo, mat, list) => { const im = new THREE.InstancedMesh(geo, mat, list.length), E = new THREE.Euler(), Q = new THREE.Quaternion(), S = new THREE.Vector3(); list.forEach((o, i) => { if (o.q) Q.copy(o.q); else { E.set(o.rx || 0, o.ry || 0, o.rz || 0); Q.setFromEuler(E); } im.setMatrixAt(i, new THREE.Matrix4().compose(o.p, Q, S.set(...o.s))); if (o.c) im.setColorAt(i, o.c); }); im.castShadow = true; im.receiveShadow = true; return im; };
     // ---- shell: carved scute plates (grooves + raised plates + growth-ring ripples), a rim lip that turns under
-    const sh = new THREE.Group(); body.add(sh); MS.shell = sh; { const NA = 200, NS = 128, pos = [], uv = [], idx = [], V = new THREE.Vector3(), Nn = new THREE.Vector3();
+    const sh = new THREE.Group(); body.add(sh); MS.shell = sh; { const NA = 160, NS = 100, pos = [], uv = [], idx = [], V = new THREE.Vector3(), Nn = new THREE.Vector3();
       for (let j = 0; j <= NS; j++) { const s = (j / NS) * 1.12; for (let i = 0; i <= NA; i++) { const az = (i / NA) * 2 * Math.PI - Math.PI; dome(az, s, V); if (s <= 1) { const e = scute(V).e, ring = (0.5 + 0.5 * Math.cos((e / 0.085) * 6.283)) * (1 - sm(0.1, 0.45, e)); const disp = (-0.1 * (1 - sm(0, 0.06, e)) + 0.07 * sm(0.04, 0.5, e) - 0.008 * ring) * (1 - sm(0.975, 1, s));
           Nn.set(V.x / (B.rx * B.rx), (V.y - B.by) / (B.ry * B.ry) + 0.015, V.z / (B.rz * B.rz)).normalize(); V.addScaledVector(Nn, disp); } pos.push(V.x, V.y, V.z); uv.push(i / NA, 1 - j / NS); } }
       for (let j = 0; j < NS; j++) for (let i = 0; i < NA; i++) { const a = j * (NA + 1) + i, b = a + NA + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
@@ -179,7 +179,7 @@ const Mosby = (() => {
       const th = Math.asin(Math.max(-1, Math.min(1, y))), ap = Math.abs(Math.atan2(x, z)), tm = mouthTh(ap), fade = 1 - sm(1.3, 1.45, ap), gv = Math.exp(-(((th - tm) / 0.04) ** 2)) * fade;
       const lip = Math.exp(-(((th - tm - 0.075) / 0.05) ** 2)) * fade * (1 - sm(0.9, 1.3, ap)), jaw = Math.exp(-(((th - tm + 0.09) / 0.06) ** 2)) * (1 - sm(0.5, 1.2, ap));
       b += -0.05 * gv + 0.03 * lip - 0.02 * jaw; return (V || new THREE.Vector3()).set(px * (1 + b), py * (1 + b), pz * (1 + b)); };
-    { const hg = new THREE.SphereGeometry(1, 110, 80), p = hg.attributes.position, d = new THREE.Vector3(), col = [];
+    { const hg = new THREE.SphereGeometry(1, 96, 68), p = hg.attributes.position, d = new THREE.Vector3(), col = [];
       for (let i = 0; i < p.count; i++) { d.fromBufferAttribute(p, i).normalize(); const th = Math.asin(d.y), ap = Math.abs(Math.atan2(d.x, d.z)), tm = mouthTh(ap), gv = Math.exp(-(((th - tm) / 0.03) ** 2)) * (1 - sm(1.3, 1.45, ap));
         const moss = sm(0.42, 0.62, d.y - 0.25 * Math.max(0, d.z)) * sm(0.35, 0.5, fbm(d.x * 4, d.y * 4, d.z * 4, 3) + 0.2 * d.y), chin = sm(0.2, 0.7, -d.y) * 0.08;
         headPt(d, d); p.setXYZ(i, d.x, d.y, d.z); col.push((1 + chin) * (1 - 0.68 * gv) * (1 - 0.25 * moss), (1 + chin) * (1 - 0.7 * gv) * (1 + 0.02 * moss), (1 + chin * 0.6) * (1 - 0.72 * gv) * (1 - 0.6 * moss)); }
@@ -205,10 +205,19 @@ const Mosby = (() => {
     // dust puffs at foot plants
     const dm = new THREE.SpriteMaterial({ map: C(64, 64, (g2) => { const gr = g2.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(200,180,140,0.7)'); gr.addColorStop(1, 'rgba(200,180,140,0)'); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); }), transparent: true, depthWrite: false });
     MS.dustM = dm; MS.dustG = new THREE.Group(); g.add(MS.dustG); for (let i = 0; i < 24; i++) { const s = new THREE.Sprite(dm.clone()); s.visible = false; MS.dustG.add(s); MS.dust.push({ s, t: 9 }); }
+    // perf LOD: the instanced greenery/moss sets (frustum-culled with Mosby as a whole, see lod()) drop out past ~90 m
+    MS.detList = []; g.traverse((o) => { if (o.isInstancedMesh) { o.frustumCulled = false; MS.detList.push(o); } });
+    // perf: the small parts (nails, eyes, lids, wraps, rings, buckles, nostrils...) sit inside his own big shadow; only the big forms cast (cuts ~120 shadow-pass draws)
+    smallNoCast(g, g);
     return g; }
+  function smallNoCast(root, g) { g.updateMatrixWorld(true); const bs = new THREE.Sphere(), k = g.scale.x || 1; root.traverse((o) => { if (!o.isMesh || o.isInstancedMesh || !o.castShadow) return; const gg = o.geometry; if (!gg.boundingSphere) gg.computeBoundingSphere(); bs.copy(gg.boundingSphere).applyMatrix4(o.matrixWorld); if (bs.radius / k < 0.75) o.castShadow = false; }); }
+  // perf: cull him as a whole when off-screen or beyond the fog (his instanced sets can't self-cull), and hide the small greenery past ~90 m
+  const FR = { f: null, m: null, s: null }; function lod() { const cam = M3.camera; if (!cam || !MS.g) return; if (!FR.f) { FR.f = new THREE.Frustum(); FR.m = new THREE.Matrix4(); FR.s = new THREE.Sphere(); }
+    const WS = Explore.WS, s = FR.s; s.center.set(MS.g.position.x, MS.g.position.y + WS * 6, MS.g.position.z); s.radius = WS * 14; FR.m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); FR.f.setFromProjectionMatrix(FR.m);
+    const d = cam.position.distanceTo(s.center), fogF = M3.scene && M3.scene.fog ? M3.scene.fog.far : 1e9; MS.g.visible = d - s.radius < fogF && FR.f.intersectsSphere(s); const near = d < WS * 90; if (near !== MS.detOn) { MS.detOn = near; for (const o of MS.detList) o.visible = near; } }
   // the player's current house tier on the deck (rebuilt when it changes), scaled to sit on the cradle
   function houseSync() { if (!MS.houseSlot || typeof W === 'undefined' || !W.player || !M3.houseModel) return; const key = W.player._key; if (!key || key === MS.houseKey) return; const hm = M3.houseModel(key); if (!hm) return;
-    MS.houseSlot.clear(); const bb = hm.userData.bb, w = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z), s = 3.25 / w; hm.scale.setScalar(s); hm.position.set(-(bb.min.x + bb.max.x) / 2 * s, -bb.min.y * s, -(bb.min.z + bb.max.z) / 2 * s); hm.rotation.y = 0; MS.houseSlot.add(hm); MS.houseKey = key; }
+    MS.houseSlot.clear(); const bb = hm.userData.bb, w = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z), s = 3.25 / w; hm.scale.setScalar(s); hm.position.set(-(bb.min.x + bb.max.x) / 2 * s, -bb.min.y * s, -(bb.min.z + bb.max.z) / 2 * s); hm.rotation.y = 0; MS.houseSlot.add(hm); MS.houseKey = key; smallNoCast(hm, MS.g); }
   // where he lives: near the Ledge, off to one side of the door, on clear dry ground
   function spot() { const WS = Explore.WS, F = Explore.ledgeFront(); if (!F) return null; const R = B.rz * WS * 1.25; let best = null;
     for (let k = 0; k < 48; k++) { const a = (k / 48) * 6.283, d = WS * (26 + (k % 4) * 6), x = F.x + Math.cos(a) * d, y = F.y + Math.sin(a) * d; if (typeof isWet === 'function' && isWet(x, y, R)) continue; const fd = F.nx != null ? (x - F.x) * F.nx + (y - F.y) * F.ny : 0; Explore.solidsOff(true); let hit = 0; for (const [ox, oy] of [[0, 0], [R * 0.6, 0], [-R * 0.6, 0], [0, R * 0.6], [0, -R * 0.6]]) { const p = Explore.collide(x + ox, y + oy, R * 0.55); if (Math.hypot(p[0] - x - ox, p[1] - y - oy) > 1) hit++; } Explore.solidsOff(false);
@@ -237,7 +246,7 @@ const Mosby = (() => {
     if (MS.st === 'idle') { MS.wait -= dt; if (MS.wait <= 0 && !MS.hold) { MS.path = pickWalk(); MS.st = MS.path ? 'turn' : 'idle'; MS.wait = 10 + rnd() * 10; } }
     else if (MS.st === 'turn') { const want = Math.atan2(MS.path.x - MS.at.x, MS.path.y - MS.at.y); let d = want - MS.g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); const r = 0.12 * dt; MS.g.rotation.y += Math.max(-r, Math.min(r, d)); moving = true; if (Math.abs(d) < 0.02) MS.st = 'walk'; }
     else if (MS.st === 'walk') { const dx = MS.path.x - MS.at.x, dy = MS.path.y - MS.at.y, D = Math.hypot(dx, dy), v = (B.stride / B.cyc) * s * dt; moving = true; if (D < v) { MS.st = 'idle'; MS.wait = 12 + rnd() * 12; } else { MS.at.x += dx / D * v; MS.at.y += dy / D * v; } }
-    if (MS.forceWalk) moving = true; MS.g.position.set(MS.at.x, M3.meshH(MS.at.x, MS.at.y) - WS * 0.05, MS.at.y); stepAnim(dt, moving); dustTick(dt); cols(); }
+    if (MS.forceWalk) moving = true; MS.g.position.set(MS.at.x, M3.meshH(MS.at.x, MS.at.y) - WS * 0.05, MS.at.y); stepAnim(dt, moving); dustTick(dt); cols(); lod(); }
   // drive it off the map renderer (it ticks in Character and Dev views alike)
   function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__mos) return; const R0 = M3.render; M3.render = function () { try { tick(); } catch (e) { if (!MS.err) console.error(MS.err = e); } return R0.apply(this, arguments); }; M3.render.__mos = true; }
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 500); }

@@ -343,6 +343,7 @@ function settingsModal() {
       <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
     <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
     <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Ledgeville map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
+    <div class="switch"><div><b>Graphics quality</b><div class="dim">${QUALITY.override ? 'Set by hand' : 'Auto (this device: ' + QUALITY.auto + ')'}. Mobile caps resolution, shadows and frame rate to keep phones cool.</div></div><div class="wrapgap">${['auto', 'high', 'mobile'].map((k) => `<button class="btn sm ${(k === 'auto' ? !QUALITY.override : QUALITY.override === k) ? 'alt' : 'ghost'}" data-act="quality" data-id="${k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div></div>
     <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
 }
@@ -418,6 +419,7 @@ function onAct(act, ds) {
     case 'raidnow': S.shieldUntil = 0; S.nextRaidAt = S.gameTime; ui.collecting = null; aiRaid(); return rerender(true);
     case 'settings': return settingsModal();
     case 'close': return closeModal();
+    case 'quality': return QUALITY.set(ds.id);
     case 'toggletest': S.testMode = !S.testMode; save(); settingsModal(); return rerender(true);
     case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayReturn(sum); save(); return rerender(true); }
     case 'reset': if (confirm('Reset all Hollowdeep progress?')) resetSave(); return;

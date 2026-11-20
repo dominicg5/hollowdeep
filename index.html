@@ -322,11 +322,20 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='5a9c71a1';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 5a9c71a1</div>
-<script src="assets/vendor/three.min.js?v=5a9c71a1"></script>
+<script>window.HD_BUILD='8f03b535';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 8f03b535</div>
+<script src="assets/vendor/three.min.js?v=8f03b535"></script>
 <script>
 'use strict';
+
+/* ---- render quality preset (perf pass, Dominic: the phone ran hot and drained the battery). 'high' for PC, 'mobile' for phones (auto-detected from the
+   user agent / a coarse pointer on a small screen); a manual override lives in Settings (localStorage 'hdQuality') or ?quality=high|mobile.
+   mobile: pixel ratio capped at 1.5, a 1024 PCF shadow map, ground/crevices receive but don't cast, 30 fps cap (steady frame time), 10 fps when idle. */
+const QUALITY = (() => { const P = { high: { name: 'high', dpr: 2, shadowMap: 2048, softShadows: true, fps: 0, idleFps: 30, groundShadow: true }, mobile: { name: 'mobile', dpr: 1.5, shadowMap: 1024, softShadows: false, fps: 30, idleFps: 10, groundShadow: false } };
+  const auto = () => { try { const ua = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent), coarse = matchMedia('(pointer: coarse)').matches, small = Math.min(screen.width, screen.height) < 820; return ua || (coarse && small) ? 'mobile' : 'high'; } catch (e) { return 'high'; } };
+  let pick = null; try { pick = new URLSearchParams(location.search).get('quality') || localStorage.getItem('hdQuality'); } catch (e) {}
+  const Q = Object.assign({}, P[pick] || P[auto()]); Q.auto = auto(); Q.override = P[pick] ? pick : null;
+  Q.set = (k) => { try { if (k === 'auto') localStorage.removeItem('hdQuality'); else localStorage.setItem('hdQuality', k); } catch (e) {} location.reload(); }; return Q; })();
 /* =====================================================================
    HOLLOWDEEP — playable prototype
    All tunable numbers live in CONFIG. Times are in GAME hours/minutes;
@@ -1326,6 +1335,7 @@ function settingsModal() {
       <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
     <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
     <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Ledgeville map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
+    <div class="switch"><div><b>Graphics quality</b><div class="dim">${QUALITY.override ? 'Set by hand' : 'Auto (this device: ' + QUALITY.auto + ')'}. Mobile caps resolution, shadows and frame rate to keep phones cool.</div></div><div class="wrapgap">${['auto', 'high', 'mobile'].map((k) => `<button class="btn sm ${(k === 'auto' ? !QUALITY.override : QUALITY.override === k) ? 'alt' : 'ghost'}" data-act="quality" data-id="${k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div></div>
     <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
 }
@@ -1401,6 +1411,7 @@ function onAct(act, ds) {
     case 'raidnow': S.shieldUntil = 0; S.nextRaidAt = S.gameTime; ui.collecting = null; aiRaid(); return rerender(true);
     case 'settings': return settingsModal();
     case 'close': return closeModal();
+    case 'quality': return QUALITY.set(ds.id);
     case 'toggletest': S.testMode = !S.testMode; save(); settingsModal(); return rerender(true);
     case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayReturn(sum); save(); return rerender(true); }
     case 'reset': if (confirm('Reset all Hollowdeep progress?')) resetSave(); return;
@@ -4222,7 +4233,7 @@ const M3 = (() => {
       for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const s0 = (y0 + j) * N1 + (x0 + i), d = j * nx + i; P[d * 3] = fp.getX(s0); P[d * 3 + 1] = fp.getY(s0); P[d * 3 + 2] = fp.getZ(s0); Nn[d * 3] = fn.getX(s0); Nn[d * 3 + 1] = fn.getY(s0); Nn[d * 3 + 2] = fn.getZ(s0); UV[d * 2] = fu.getX(s0); UV[d * 2 + 1] = fu.getY(s0); M[d] = g.m[s0]; }
       for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, c, d, b); } // PlaneGeometry's own split (a-c-b, c-d-b), so meshH matches
       const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(Nn, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); geo.setAttribute('aMt', new THREE.BufferAttribute(M, 1)); geo.setIndex(idx); geo.computeBoundingSphere(); geo.computeBoundingBox();
-      const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
+      const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
     full.dispose(); return out; }
   /* ---------- crevices: every crack on the map is a real cut - the ground is masked away over it (tK) and rock walls with strata drop into darkness ---------- */
   const CRV = { mesh: null, maskCv: null, tex: null, win: null, depth: [] };
@@ -4234,7 +4245,13 @@ const M3 = (() => {
     for (let k = 0; k < 900; k++) { const q = 70 + rn() * 90 | 0; g.fillStyle = `rgba(${q},${q - 5},${q - 12},${0.12 + rn() * 0.2})`; g.beginPath(); g.ellipse(rn() * 256, rn() * 512, 2 + rn() * 12, 1 + rn() * 5, rn() * 3, 0, 6.3); g.fill(); } // weathered blotches and pits
     for (let k = 0; k < 60; k++) { g.fillStyle = `rgba(${70 + rn() * 30 | 0},${96 + rn() * 30 | 0},${44 + rn() * 20 | 0},${0.25 + rn() * 0.3})`; g.beginPath(); g.ellipse(rn() * 256, rn() * 512, 3 + rn() * 10, 2 + rn() * 4, 0, 0, 6.3); g.fill(); } // moss and lichen in the joints
     const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); return t; }
-  function buildCrevices() { if (CRV.mesh) { scene.remove(CRV.mesh); CRV.mesh.geometry.dispose(); }
+  /* perf: split one big mesh into map-grid chunks (by triangle centroid) so the main and shadow passes frustum-cull it piece by piece (lossless) */
+  function splitGeo(geo, cell) { const idx = geo.index ? geo.index.array : null, P = geo.attributes.position, nT = (idx ? idx.length : P.count) / 3, B = new Map();
+    for (let t = 0; t < nT; t++) { let cx = 0, cz = 0; for (let k = 0; k < 3; k++) { const v = idx ? idx[t * 3 + k] : t * 3 + k; cx += P.getX(v); cz += P.getZ(v); } const key = Math.floor(cx / 3 / cell) + ',' + Math.floor(cz / 3 / cell); let L = B.get(key); if (!L) B.set(key, (L = [])); L.push(t); }
+    const out = []; for (const L of B.values()) { const map = new Map(), ni = []; for (const t of L) for (let k = 0; k < 3; k++) { const v = idx ? idx[t * 3 + k] : t * 3 + k; let j = map.get(v); if (j === undefined) { j = map.size; map.set(v, j); } ni.push(j); }
+      const g = new THREE.BufferGeometry(), src = [...map.keys()]; for (const n in geo.attributes) { const a = geo.attributes[n], s = a.itemSize, arr = new a.array.constructor(src.length * s); src.forEach((v, j) => { for (let q = 0; q < s; q++) arr[j * s + q] = a.array[v * s + q]; }); g.setAttribute(n, new THREE.BufferAttribute(arr, s, a.normalized)); }
+      g.setIndex(ni); g.computeBoundingSphere(); out.push(g); } return out; }
+  function buildCrevices() { if (CRV.mesh) { scene.remove(CRV.mesh); CRV.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
     const pos = [], col = [], uv = [], idx = []; let sd = 3; const rn = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
     // wall profile across the crack, from the left lip down to the floor and up to the right lip: [offset as a fraction of the half-width (+ extra units), depth fraction]
     const PROF = [[1.0, 3.5, -1], [1.0, 0, 0.012], [0.96, 0, 0.035], [0.9, 0, 0.08], [0.83, 0, 0.17], [0.74, 0, 0.3], [0.64, 0, 0.46], [0.52, 0, 0.68], [0.36, 0, 1]]; // a grassy rounded lip that overhangs a little, then rock bulging and receding down into the dark
@@ -4250,7 +4267,7 @@ const M3 = (() => {
         const endHere = i === n - 1 || hollowDist(c.pts[i + 1][0], c.pts[i + 1][1]) < 30; if (prev < 0 || endHere) for (let q = 1; q + 1 < m / 2; q++) { const a0 = base + q, b0 = base + q + 1, c0 = base + m - 1 - q, d0 = base + m - 2 - q; idx.push(a0, b0, c0, b0, d0, c0); } /* end caps: a rock wall closes each end of the cut (no open, see-through ends) */
         prev = base; } }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
-    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Mesh(geo, mat); CRV.mesh.name = 'crevices'; CRV.mesh.receiveShadow = true; CRV.mesh.castShadow = true; /* the walls shade their own depths */ scene.add(CRV.mesh);
+    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Group(); CRV.mesh.name = 'crevices'; for (const g of splitGeo(geo, 1500)) { const m = new THREE.Mesh(g, mat); m.name = 'creviceChunk'; m.receiveShadow = true; m.castShadow = true; CRV.mesh.add(m); } geo.dispose(); /* the walls shade their own depths */ scene.add(CRV.mesh);
     CRV.maskCv = document.createElement('canvas'); CRV.maskCv.width = CRV.maskCv.height = 2048; CRV.tex = new THREE.CanvasTexture(CRV.maskCv); CRV.tex.flipY = false; CRV.tex.generateMipmaps = false; CRV.tex.minFilter = THREE.LinearFilter; CRV.win = null; }
   // ground including the crevices: inside a crack the floor lies its depth below the (cut-away) ground surface
   function groundH(x, y) { const h = meshH(x, y), cell = 160, gx = Math.floor(x / cell), gy = Math.floor(y / cell); let best = 1e9, bw = 0; if (!W.crackGrid) return h;
@@ -4310,7 +4327,7 @@ const M3 = (() => {
     const pos = geo.attributes.position; // after rotation: x right, z = map y (row iy -> z = -half + iy*step)
     for (let i = 0; i < pos.count; i++) pos.setY(i, g.h[i]);
     geo.setAttribute('aMt', new THREE.BufferAttribute(g.m, 1)); geo.computeVertexNormals();
-    const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false; return mesh;
+    const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.frustumCulled = false; return mesh;
   }
 
   /* ---------- painted ground textures (re-using the 2D painter in ground-only mode) ---------- */
@@ -4528,16 +4545,47 @@ void main() {
   // an instanced set: one InstancedMesh per LOD, refilled with only the instances in view (nearest get the detailed LOD)
   function makeSet(key, list, opt) { const m = MD[key], meshes = m.geos.map((g0, li) => { const g = new THREE.BufferGeometry(); for (const n in g0.attributes) g.setAttribute(n, g0.attributes[n]); g.setIndex(g0.index);
       g.setAttribute('iLum', new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length)), 1)); const im = new THREE.InstancedMesh(g, m.mat, Math.max(1, list.length)); im.count = 0; im.frustumCulled = false;
-      im.castShadow = li === 0 && opt.shadow; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length) * 3), 3); scene.add(im); return im; });
+      im.name = 'set_' + key + '_' + li; im.castShadow = li === 0 && opt.shadow; im.receiveShadow = true; im.userData.noCull = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length) * 3), 3); scene.add(im); return im; });
+    /* perf: the detailed layer's instances beyond the sun's shadow box go to a twin that doesn't cast (they could never land in the shadow map, but the shadow pass still drew them) */
+    let ns = null; if (opt.shadow && meshes[0]) { const g0 = meshes[0].geometry, g = new THREE.BufferGeometry(); for (const n in g0.attributes) if (n !== 'iLum') g.setAttribute(n, g0.attributes[n]); g.setIndex(g0.index); g.setAttribute('iLum', new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length)), 1));
+      ns = new THREE.InstancedMesh(g, meshes[0].material, Math.max(1, list.length)); ns.count = 0; ns.frustumCulled = false; ns.name = 'set_' + key + '_ns'; ns.castShadow = false; ns.receiveShadow = true; ns.userData.noCull = true; ns.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, list.length) * 3), 3); scene.add(ns); }
     const M = new Float32Array(list.length * 16), C = new Float32Array(list.length * 3), Lm = new Float32Array(list.length), P = new Float32Array(list.length * 4), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
     list.forEach((o, i) => { e.set(o.tilt || 0, o.rot, 0, 'YXZ'); q.setFromEuler(e); mt.compose(v3().set(o.x, o.y, o.z), q, v3().set(o.s * (o.sx || 1), o.s * (o.sy || 1), o.s * (o.sz || 1))); mt.toArray(M, i * 16); C.set(o.c, i * 3); Lm[i] = o.lum || 0; P.set([o.x, o.y + o.s * 0.4, o.z, o.s * 0.8], i * 4); });
-    const set = { key, list, meshes, M, C, L: Lm, P, near: opt.near, far: opt.far || 1e9, minZ: opt.minZ || 0 }; IM.all.push(set); return set; }
+    const set = { key, list, meshes, ns, M, C, L: Lm, P, near: opt.near, far: opt.far || 1e9, minZ: opt.minZ || 0 }; IM.all.push(set); return set; }
   const frus = new THREE.Frustum(), pm = new THREE.Matrix4(), sph = new THREE.Sphere();
-  function fillSet(set, camZ) { const [m0, m1] = set.meshes; let n0 = 0, n1 = 0; const cp = camera.position, hide = camZ < set.minZ;
+  function fillSet(set, camZ) { const [m0, m1] = set.meshes, ns = set.ns; let n0 = 0, n1 = 0, n2 = 0; const cp = camera.position, hide = camZ < set.minZ;
+    const far = Math.min(set.far, scene.fog ? scene.fog.far * 1.05 : 1e9), shR = st.shS ? st.shS * 1.05 : 1e9; /* perf: nothing past the fog's far plane is drawn (it would be pure fog colour) */
     if (!hide) for (let i = 0, n = set.list.length; i < n; i++) { sph.center.set(set.P[i * 4], set.P[i * 4 + 1], set.P[i * 4 + 2]); sph.radius = set.P[i * 4 + 3]; if (!frus.intersectsSphere(sph)) continue;
-      const d = sph.center.distanceTo(cp); if (d > set.far) continue; const tgt = d < set.near || !m1 ? m0 : m1, j = tgt === m0 ? n0++ : n1++;
+      const d = sph.center.distanceTo(cp); if (d - sph.radius > far) continue; let tgt = d < set.near || !m1 ? m0 : m1; if (tgt === m0 && ns && Math.max(Math.abs(sph.center.x - T.x), Math.abs(sph.center.z - T.y)) - sph.radius * 2.5 > shR) tgt = ns; const j = tgt === m0 ? n0++ : tgt === m1 ? n1++ : n2++;
       tgt.instanceMatrix.array.set(set.M.subarray(i * 16, i * 16 + 16), j * 16); tgt.instanceColor.array.set(set.C.subarray(i * 3, i * 3 + 3), j * 3); tgt.geometry.attributes.iLum.array[j] = set.L[i]; }
-    for (const [m, n] of [[m0, n0], [m1, n1]]) if (m) { m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; m.geometry.attributes.iLum.needsUpdate = true; } }
+    for (const [m, n] of [[m0, n0], [m1, n1], [ns, n2]]) if (m) { m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; m.geometry.attributes.iLum.needsUpdate = true; } }
+  /* ---------- perf: per-instance culling for the big static instanced sets (ore fields, cliff trees/vines, Lumen leaf cards, vines...) that were drawn whole, map-wide, every frame
+     (main pass AND shadow pass). Each LOD tick the instances inside the view frustum (spheres inflated so off-screen casters still throw their shadows in) and nearer than the fog's
+     far plane are packed to the front of the buffers. Owners that animate or refill their own instances opt out (userData.noCull, or live under mosby / groundDetail / petMole / doors). */
+  const ICU = { L: [], seen: new WeakSet(), scanN: 0, sk: null };
+  const ICU_SKIP = /^(mosby|groundDetail|petMole|exploreDoors|exploreWren)$/;
+  function icuReg(im) { const n = im.count; if (n < 4) return; im.updateMatrixWorld(true); const g = im.geometry; if (!g.boundingSphere) g.computeBoundingSphere(); const r0 = g.boundingSphere.radius, c0 = g.boundingSphere.center;
+    const M = im.instanceMatrix.array.slice(0, n * 16), C = im.instanceColor ? im.instanceColor.array.slice(0, n * 3) : null, IA = []; for (const k in g.attributes) { const a = g.attributes[k]; if (a.isInstancedBufferAttribute) IA.push([a, a.array.slice(0, n * a.itemSize), a.itemSize]); }
+    const S = new Float32Array(n * 4), mt = new THREE.Matrix4(), v = v3(); for (let i = 0; i < n; i++) { mt.fromArray(M, i * 16).premultiply(im.matrixWorld); v.copy(c0).applyMatrix4(mt); S[i * 4] = v.x; S[i * 4 + 1] = v.y; S[i * 4 + 2] = v.z; S[i * 4 + 3] = r0 * mt.getMaxScaleOnAxis(); }
+    ICU.L.push({ im, n, M, C, IA, S, mw: im.matrixWorld.elements.slice() }); }
+  /* perf: small shadow casters (door parts, trim, props < ~1 m) stop casting beyond ~35 m from the camera: their shadows are sub-texel there, yet each was a shadow-pass draw */
+  const SCS = { L: [], seen: new WeakSet() }, scsV = new THREE.Vector3(), scsS = new THREE.Sphere();
+  function scsScan() { const WS = 6.35; scene.traverse((o) => { if (!o.isMesh || o.isInstancedMesh || SCS.seen.has(o)) return; SCS.seen.add(o); if (!o.castShadow || o.name === 'terrainTile' || o.name === 'creviceChunk') return; const g = o.geometry; if (!g) return; if (!g.boundingSphere) g.computeBoundingSphere(); o.updateMatrixWorld(); scsS.copy(g.boundingSphere).applyMatrix4(o.matrixWorld); if (scsS.radius < WS) SCS.L.push({ o, c: g.boundingSphere.center, r: scsS.radius }); });
+    SCS.L = SCS.L.filter((R) => { for (let q = R.o; q; q = q.parent) if (q === scene) return true; return false; }); }
+  function scsTick() { const cp = camera.position, d2 = (6.35 * 35) ** 2, t2 = QUALITY.name === 'high' ? (6.35 * 12) ** 2 : 0, tiny = 6.35 * 0.25; /* tiny parts (< 25 cm: locks, ports, bolts) are sub-texel in the mobile shadow map; on High they still cast up close */
+    for (const R of SCS.L) { scsV.copy(R.c).applyMatrix4(R.o.matrixWorld); R.o.castShadow = scsV.distanceToSquared(cp) < (R.r < tiny ? t2 : d2); } }
+  function icuScan() { scene.traverse((o) => { if (!o.isInstancedMesh || ICU.seen.has(o)) return; ICU.seen.add(o); if (o.userData.noCull || o.frustumCulled) return; for (let q = o.parent; q && q !== scene; q = q.parent) if (ICU_SKIP.test(q.name)) return; icuReg(o); });
+    ICU.L = ICU.L.filter((R) => { for (let q = R.im; q; q = q.parent) if (q === scene) return true; return false; }); }
+  function icuCull() { const far = scene.fog ? scene.fog.far * 1.05 : 1e9, cp = camera.position, s = sph, c = s.center; let tot = 0;
+    for (const R of ICU.L) { const im = R.im, n = R.n, S = R.S; let j = 0; const me = im.matrixWorld.elements; if (me[12] !== R.mw[12] || me[13] !== R.mw[13] || me[14] !== R.mw[14]) { R.dead = true; continue; } // it moved: hand it back untouched
+      for (let i = 0; i < n; i++) { const r = S[i * 4 + 3]; c.set(S[i * 4], S[i * 4 + 1], S[i * 4 + 2]); if (c.distanceTo(cp) - r > far) continue; s.radius = r * 2.6 + 40; if (!frus.intersectsSphere(s)) continue;
+        if (j !== i) { im.instanceMatrix.array.set(R.M.subarray(i * 16, i * 16 + 16), j * 16); if (R.C) im.instanceColor.array.set(R.C.subarray(i * 3, i * 3 + 3), j * 3); for (const [a, arr, k] of R.IA) a.array.set(arr.subarray(i * k, i * k + k), j * k); } else { im.instanceMatrix.array.set(R.M.subarray(i * 16, i * 16 + 16), j * 16); if (R.C) im.instanceColor.array.set(R.C.subarray(i * 3, i * 3 + 3), j * 3); for (const [a, arr, k] of R.IA) a.array.set(arr.subarray(i * k, i * k + k), j * k); }
+        j++; }
+      im.count = j; im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; for (const [a] of R.IA) a.needsUpdate = true; if (j === 0 && im.visible) { im.visible = false; im.userData.icuHid = true; } else if (j > 0 && im.userData.icuHid) { im.visible = true; im.userData.icuHid = false; } tot += j; }
+    if (ICU.L.some((R) => R.dead)) ICU.L = ICU.L.filter((R) => { if (!R.dead) return true; const im = R.im; im.count = R.n; im.instanceMatrix.array.set(R.M); if (R.C) im.instanceColor.array.set(R.C); for (const [a, arr] of R.IA) a.array.set(arr); im.instanceMatrix.needsUpdate = true; if (im.userData.icuHid) { im.visible = true; im.userData.icuHid = false; } return false; });
+    st.icu = tot; }
+  function icuTick() { if (++ICU.scanN % 90 === 1) { icuScan(); scsScan(); } scsTick(); const p = camera.position, q = camera.quaternion, k = Math.round(p.x / 40) + ',' + Math.round(p.y / 40) + ',' + Math.round(p.z / 40) + ',' + Math.round(q.x * 60) + ',' + Math.round(q.y * 60) + ',' + Math.round(q.z * 60) + ',' + Math.round(q.w * 60) + ',' + Math.round((scene.fog ? scene.fog.far : 0) / 200);
+    if (k === ICU.sk && ICU.scanN % 90 !== 1) return; ICU.sk = k; pm.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); frus.setFromProjectionMatrix(pm); icuCull(); }
   /* ---------- bushes, boulders and biome props (bushes_sheet, boulders_sheet; Dominic's region transitions): clustered round the trees (focal points) with a thin open-ground scatter;
      coal approaches get slag heaps, copper rust/verdigris and ore-flecked rock with gorse and scrub, tin pale scree with silvery shrubs, the water reeds,
      cattails and lily pads. Every pick is drawn from the biome weights, so props blend across a border exactly like the trees ---------- */
@@ -4907,7 +4955,7 @@ diffuseColor *= sdc;
   function animPulley(t, night) {
     if (HWX.mush) { const k = 0.45 + night * 0.75; HWX.mush.color.setRGB(0.32 * k, 0.78 * k, 1.0 * k); HWX.hollowGlow.color.setRGB(0.3 * k, 0.75 * k, 0.95 * k); HWX.mushGlow.material.opacity = 0.12 + night * 0.5; HWX.mushGlow.visible = false; } }
   // props meshes: rebuilt (instances near the camera only) on each LOD pass
-  function propMesh(geo, mat, cap) { const im = new THREE.InstancedMesh(geo, mat, cap); im.count = 0; im.frustumCulled = false; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); scene.add(im); return im; }
+  function propMesh(geo, mat, cap) { const im = new THREE.InstancedMesh(geo, mat, cap); im.count = 0; im.frustumCulled = false; im.userData.noCull = true; im.receiveShadow = true; im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(cap * 3), 3); scene.add(im); return im; }
   // climb spots: every crevice that runs out of the Hollow gets a glowing, tappable crack where its mouth breaks the rim - a lumen ribbon draped down the first
   // stretch of the crack (bright along its spine, soft at its edges, pulsing slowly) and a floating climb-down marker; tapping it offers "Climb down (coming soon)"
   const CLB = { spots: [], grp: null };
@@ -5003,11 +5051,11 @@ diffuseColor *= sdc;
     st.building = true; const prog = onProgress || (() => {});
     cv3 = document.createElement('canvas'); cv3.id = 'city3d'; wrap.insertBefore(cv3, wrap.firstChild);
     renderer = new THREE.WebGLRenderer({ canvas: cv3, antialias: true, powerPreference: 'high-performance' }); // MSAA: tree cut-outs, roofs and ridgelines were stair-stepped (the 'pixelated' look)
-    renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.25; renderer.shadowMap.enabled = true; renderer.shadowMap.type = QUALITY.softShadows ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap; renderer.info.autoReset = false; /* st.tris/calls count the shadow pass too */
     scene = new THREE.Scene(); scene.background = new THREE.Color(0xbcd3e6); scene.fog = new THREE.Fog(0xbcd3e6, 1e4, 4e4);
     camera = new THREE.PerspectiveCamera(FOV, 1, 20, 2e5);
     hemi = new THREE.HemisphereLight(0xdfeeff, 0x5a6a40, 0.55); scene.add(hemi);
-    sun = new THREE.DirectionalLight(0xfff1d6, 1.15); sun.castShadow = true; const mob = Math.min(screen.width, screen.height) < 700; sun.shadow.mapSize.set(mob ? 1024 : 2048, mob ? 1024 : 2048);
+    sun = new THREE.DirectionalLight(0xfff1d6, 1.15); sun.castShadow = true; const mob = Math.min(screen.width, screen.height) < 700, smz = Math.min(QUALITY.shadowMap, mob ? 1024 : 2048); sun.shadow.mapSize.set(smz, smz);
     sun.shadow.bias = -0.0006; sun.shadow.normalBias = 1.5; scene.add(sun); scene.add(sun.target);
     lumen = new THREE.PointLight(0xffc878, 1, CITY.hollowR * 3.4, 1.1); lumen.position.set(0, P_H - 1500, 0); scene.add(lumen);
     lumen2 = new THREE.PointLight(0xffc878, 0, CITY.hollowR * 2.2, 1.0); lumen2.position.set(0, P_H + 300, 0); scene.add(lumen2); // lifts the glow onto the lip and the nearest rooftops
@@ -5041,7 +5089,7 @@ diffuseColor *= sdc;
 
   /* ---------- camera ---------- */
   let cssW = 1, cssH = 1;
-  function resize(w, h, dpr) { if (!renderer) return; cssW = w; cssH = h; renderer.setPixelRatio(Math.min(2, dpr)); renderer.setSize(w, h, false); cv3.style.width = w + 'px'; cv3.style.height = h + 'px'; camera.aspect = w / h; camera.updateProjectionMatrix(); }
+  function resize(w, h, dpr) { if (!renderer) return; cssW = w; cssH = h; renderer.setPixelRatio(Math.min(QUALITY.dpr, dpr)); renderer.setSize(w, h, false); cv3.style.width = w + 'px'; cv3.style.height = h + 'px'; camera.aspect = w / h; camera.updateProjectionMatrix(); }
   function dist(cam) { return cssH / (cam.z * 2 * Math.tan((FOV * Math.PI) / 360)); }
   function targetH(x, y) { let th = Math.max(meshH(x, y), P_H * (1 - clamp((Math.hypot(x, y) - CITY.hollowR) / 600, 0, 1)) - 200);
     return th; }
@@ -5117,7 +5165,7 @@ diffuseColor *= sdc;
     // sun & sky
     const sunDir = st.camOv ? v3().set(-0.6, 0.46, -0.5).normalize() : v3().set(-0.55, 0.75, -0.45).normalize(); /* close up (Explore): a lower, warmer afternoon sun - long soft shadows */
     sun.position.set(T.x + sunDir.x * 9000, T.h + sunDir.y * 9000, T.y + sunDir.z * 9000); sun.target.position.set(T.x, T.h, T.y); sun.target.updateMatrixWorld();
-    const S = clamp(D * 1.1, 500, 9000), sc = sun.shadow.camera; if (sc.right !== S) { sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 100; sc.far = 22000; sc.updateProjectionMatrix(); }
+    const S = clamp(D * 1.1, 500, 9000), sc = sun.shadow.camera; st.shS = S; if (sc.right !== S) { sc.left = -S; sc.right = S; sc.top = S; sc.bottom = -S; sc.near = 100; sc.far = 22000; sc.updateProjectionMatrix(); }
     const wm = st.camOv ? 1 : 0; sun.intensity = (1.15 + 0.1 * wm) * (1 - night * 0.88); sun.color.setRGB(1, 0.95 - night * 0.1 - 0.06 * wm, 0.85 - night * 0.1 - 0.17 * wm);
     hemi.intensity = 0.55 - night * 0.33; hemi.color.copy(tmpC.set(wm ? 0xfff0d6 : 0xdfeeff).lerp(new THREE.Color(0x5068a8), night)); hemi.groundColor.set(wm ? 0x6a5a2c : 0x5a6a40);
     const sky = tmpC.copy(cDay).lerp(cNight, night); scene.background.copy(sky); scene.fog.color.copy(sky);
@@ -5144,7 +5192,7 @@ diffuseColor *= sdc;
     const wx = weatherNow(t); for (const c of clouds) { const u = c.userData, a = u.a + t * u.sp * 0.1; c.position.set(Math.cos(a) * u.r, 2600 + u.sz * 0.2, Math.sin(a) * u.r); c.material.opacity = (wx.type === 'cloud' ? 0.55 : 0.32) * (1 - night * 0.6) * clamp((D - 1500) / 4000, 0, 1); }
     updateModels(t, cam, night, pulse, LC);
     updateDetail(cam);
-    renderer.render(scene, camera); st.calls = renderer.info.render.calls; st.tris = renderer.info.render.triangles;
+    icuTick(); renderer.info.reset(); renderer.render(scene, camera); st.calls = renderer.info.render.calls; st.tris = renderer.info.render.triangles;
     if (st.overlay) { const enc = renderer.outputEncoding, tm = renderer.toneMapping, ac = renderer.autoClear; renderer.autoClear = false; renderer.outputEncoding = THREE.LinearEncoding; renderer.toneMapping = THREE.NoToneMapping; renderer.render(st.overlay, camera); renderer.outputEncoding = enc; renderer.toneMapping = tm; renderer.autoClear = ac; } // Explore: Wren drawn with her own Character-tab lights and colour response, depth-tested against the map
   }
   function tapSprites(sx, sy, list) { // screen-space hit test against standing billboards: distance to the segment from base to top
@@ -5204,7 +5252,7 @@ const CityMap = (() => {
     if (typeof M3 !== 'undefined') M3.init(wrap, (p) => { showLoader(p == null ? null : p); if (p == null) { resize(); M3.place(cam, true); autoView(); } });
   }
   function layout() { const top = $('#top').offsetHeight, bot = $('#tabs').offsetHeight; wrap.style.top = top + 'px'; wrap.style.bottom = bot + 'px'; }
-  function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
+  function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, QUALITY.dpr); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
   function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); if (p != null) { L.querySelector('i').style.width = Math.round(p * 100) + '%'; L.querySelector('.ldPct').textContent = Math.round(p * 100) + '%'; } }
   function show() {
     if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Ledgeville art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
@@ -5283,8 +5331,12 @@ const CityMap = (() => {
 
   /* ---------- frame ---------- */
   const dwell = { ri: -1, t: 0 };
+  /* perf (QUALITY): a frame-rate cap for a steady frame time (Mobile 30 fps), a slower idle rate when nothing moves and no one touches the screen, and nothing at all while hidden */
+  const IDLE = { t: performance.now(), h: null }; ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart'].forEach((e) => window.addEventListener(e, () => { IDLE.t = performance.now(); }, { passive: true }));
+  function frameDue(now) { if (document.hidden) return false; let fps = QUALITY.fps; const h = typeof Explore !== 'undefined' && Explore.on ? Explore.here() : [cam.x, cam.y, cam.z, cam.rot]; const k = h ? h.map((v) => Math.round(v * 10)).join(',') : '';
+    if (k !== IDLE.h || cam.fly) { IDLE.h = k; IDLE.t = Math.max(IDLE.t, now - 4000); } if (now - IDLE.t > 12000) fps = fps ? Math.min(fps, QUALITY.idleFps) : QUALITY.idleFps; return !fps || now - lastFrame >= 1000 / fps - 3; }
   function frame(now) {
-    if (!running) return; raf = requestAnimationFrame(frame);
+    if (!running) return; raf = requestAnimationFrame(frame); if (!frameDue(now)) return;
     const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; fps = fps * 0.95 + (1 / Math.max(dt, 0.001)) * 0.05; frameN++;
     if (cam.fly) { const u = clamp((now - cam.fly.t0) / cam.fly.d, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; cam.x = cam.fly.x0 + (cam.fly.x - cam.fly.x0) * e; cam.y = cam.fly.y0 + (cam.fly.y - cam.fly.y0) * e; cam.z = cam.fly.z0 * Math.pow(cam.fly.z / cam.fly.z0, e); if (cam.fly.r1 != null) cam.rot = cam.fly.r0 + (cam.fly.r1 - cam.fly.r0) * e; if (u >= 1) cam.fly = null; }
     else if (!ptrs.size && (Math.abs(cam.vx) > 0.05 || Math.abs(cam.vy) > 0.05)) { cam.x += cam.vx; cam.y += cam.vy; cam.vx *= 0.92; cam.vy *= 0.92; clampCam(); }
@@ -7055,7 +7107,7 @@ const CharView = (() => {
   /* ---------- stage, camera, input ---------- */
   function initGL() { wrap = document.getElementById('charWrap'); canvas = document.getElementById('charCanvas');
     try { R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false }); } catch (e) { st.ok = false; return false; }
-    R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.outputEncoding = THREE.LinearEncoding;
+    R.setPixelRatio(Math.min(QUALITY.dpr, window.devicePixelRatio || 1)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.outputEncoding = THREE.LinearEncoding;
     scene = new THREE.Scene(); scene.background = cv(8, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f6e7cc'); gr.addColorStop(0.55, '#e9c99a'); gr.addColorStop(1, '#b9814f'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
     cam = new THREE.PerspectiveCamera(26, 1, 0.1, 160);
     scene.add(new THREE.HemisphereLight(0xfff1dc, 0x7a5236, 0.4));
@@ -9722,7 +9774,7 @@ const Mole = (() => {
       <button class="btn alt" data-mo="go" ${ready ? '' : 'disabled'} style="min-height:46px">${SC.kind === 'haul' ? '🐾 Start hauling' : '🐾 Fetch these'}</button><button class="btn ghost" data-mo="close">Close</button></div>`; }
   function render() { const b = document.getElementById('modalBody'); if (!b || ui.modal !== 'mole') return; const pv = b.querySelector('#molePrev canvas'); b.innerHTML = screenHTML(); const slot = b.querySelector('#molePrev'); if (pv && slot) slot.insertBefore(pv, slot.firstChild); else preview(slot); }
   function preview(slot) { if (!slot || typeof THREE === 'undefined') return; if (SC.pv) { try { SC.pv.R.dispose(); } catch (e) {} SC.pv = null; } const cv = document.createElement('canvas'); slot.insertBefore(cv, slot.firstChild); let R; try { R = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); } catch (e) { return; }
-    const w = slot.clientWidth || 320, h = slot.clientHeight || 220; R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); R.setSize(w, h, false); R.outputEncoding = THREE.sRGBEncoding; const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, w / h, 0.05, 20); cam.position.set(0, 0.62, 3.1); cam.lookAt(0, 0.46, 0);
+    const w = slot.clientWidth || 320, h = slot.clientHeight || 220; R.setPixelRatio(Math.min(QUALITY.dpr, window.devicePixelRatio || 1)); R.setSize(w, h, false); R.outputEncoding = THREE.sRGBEncoding; const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, w / h, 0.05, 20); cam.position.set(0, 0.62, 3.1); cam.lookAt(0, 0.46, 0);
     sc.add(new THREE.HemisphereLight(0xfff1dc, 0x5a4236, 0.75)); const L1 = new THREE.DirectionalLight(0xfff0dc, 0.9); L1.position.set(1.4, 2.4, 2.6); sc.add(L1); const L2 = new THREE.DirectionalLight(0xbfd8ff, 0.35); L2.position.set(-2, 1, -1.5); sc.add(L2);
     const g = build(); g.userData.solo = true; g.visible = true; sc.add(g); const gr = new THREE.Mesh(new THREE.CircleGeometry(0.62, 40), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 })); gr.rotation.x = -Math.PI / 2; sc.add(gr);
     const P = SC.pv = { R, sc, cam, g, yaw: 0.5, vy: 0.4, drag: null }; cv.addEventListener('pointerdown', (e) => { P.drag = e.clientX; P.vy = 0; try { cv.setPointerCapture(e.pointerId); } catch (_) {} }); cv.addEventListener('pointermove', (e) => { if (P.drag == null) return; P.yaw += (e.clientX - P.drag) * 0.012; P.vy = (e.clientX - P.drag) * 0.4; P.drag = e.clientX; }); const up = () => { P.drag = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
@@ -9830,7 +9882,7 @@ const Mosby = (() => {
     const mesh = (geo, mat, p, s, r) => { const m = new THREE.Mesh(geo, mat); if (p) m.position.set(...p); if (s) m.scale.set(...s); if (r) m.rotation.set(...r); m.castShadow = true; m.receiveShadow = true; return m; };
     const inst = (geo, mat, list) => { const im = new THREE.InstancedMesh(geo, mat, list.length), E = new THREE.Euler(), Q = new THREE.Quaternion(), S = new THREE.Vector3(); list.forEach((o, i) => { if (o.q) Q.copy(o.q); else { E.set(o.rx || 0, o.ry || 0, o.rz || 0); Q.setFromEuler(E); } im.setMatrixAt(i, new THREE.Matrix4().compose(o.p, Q, S.set(...o.s))); if (o.c) im.setColorAt(i, o.c); }); im.castShadow = true; im.receiveShadow = true; return im; };
     // ---- shell: carved scute plates (grooves + raised plates + growth-ring ripples), a rim lip that turns under
-    const sh = new THREE.Group(); body.add(sh); MS.shell = sh; { const NA = 200, NS = 128, pos = [], uv = [], idx = [], V = new THREE.Vector3(), Nn = new THREE.Vector3();
+    const sh = new THREE.Group(); body.add(sh); MS.shell = sh; { const NA = 160, NS = 100, pos = [], uv = [], idx = [], V = new THREE.Vector3(), Nn = new THREE.Vector3();
       for (let j = 0; j <= NS; j++) { const s = (j / NS) * 1.12; for (let i = 0; i <= NA; i++) { const az = (i / NA) * 2 * Math.PI - Math.PI; dome(az, s, V); if (s <= 1) { const e = scute(V).e, ring = (0.5 + 0.5 * Math.cos((e / 0.085) * 6.283)) * (1 - sm(0.1, 0.45, e)); const disp = (-0.1 * (1 - sm(0, 0.06, e)) + 0.07 * sm(0.04, 0.5, e) - 0.008 * ring) * (1 - sm(0.975, 1, s));
           Nn.set(V.x / (B.rx * B.rx), (V.y - B.by) / (B.ry * B.ry) + 0.015, V.z / (B.rz * B.rz)).normalize(); V.addScaledVector(Nn, disp); } pos.push(V.x, V.y, V.z); uv.push(i / NA, 1 - j / NS); } }
       for (let j = 0; j < NS; j++) for (let i = 0; i < NA; i++) { const a = j * (NA + 1) + i, b = a + NA + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
@@ -9920,7 +9972,7 @@ const Mosby = (() => {
       const th = Math.asin(Math.max(-1, Math.min(1, y))), ap = Math.abs(Math.atan2(x, z)), tm = mouthTh(ap), fade = 1 - sm(1.3, 1.45, ap), gv = Math.exp(-(((th - tm) / 0.04) ** 2)) * fade;
       const lip = Math.exp(-(((th - tm - 0.075) / 0.05) ** 2)) * fade * (1 - sm(0.9, 1.3, ap)), jaw = Math.exp(-(((th - tm + 0.09) / 0.06) ** 2)) * (1 - sm(0.5, 1.2, ap));
       b += -0.05 * gv + 0.03 * lip - 0.02 * jaw; return (V || new THREE.Vector3()).set(px * (1 + b), py * (1 + b), pz * (1 + b)); };
-    { const hg = new THREE.SphereGeometry(1, 110, 80), p = hg.attributes.position, d = new THREE.Vector3(), col = [];
+    { const hg = new THREE.SphereGeometry(1, 96, 68), p = hg.attributes.position, d = new THREE.Vector3(), col = [];
       for (let i = 0; i < p.count; i++) { d.fromBufferAttribute(p, i).normalize(); const th = Math.asin(d.y), ap = Math.abs(Math.atan2(d.x, d.z)), tm = mouthTh(ap), gv = Math.exp(-(((th - tm) / 0.03) ** 2)) * (1 - sm(1.3, 1.45, ap));
         const moss = sm(0.42, 0.62, d.y - 0.25 * Math.max(0, d.z)) * sm(0.35, 0.5, fbm(d.x * 4, d.y * 4, d.z * 4, 3) + 0.2 * d.y), chin = sm(0.2, 0.7, -d.y) * 0.08;
         headPt(d, d); p.setXYZ(i, d.x, d.y, d.z); col.push((1 + chin) * (1 - 0.68 * gv) * (1 - 0.25 * moss), (1 + chin) * (1 - 0.7 * gv) * (1 + 0.02 * moss), (1 + chin * 0.6) * (1 - 0.72 * gv) * (1 - 0.6 * moss)); }
@@ -9946,10 +9998,19 @@ const Mosby = (() => {
     // dust puffs at foot plants
     const dm = new THREE.SpriteMaterial({ map: C(64, 64, (g2) => { const gr = g2.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(200,180,140,0.7)'); gr.addColorStop(1, 'rgba(200,180,140,0)'); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); }), transparent: true, depthWrite: false });
     MS.dustM = dm; MS.dustG = new THREE.Group(); g.add(MS.dustG); for (let i = 0; i < 24; i++) { const s = new THREE.Sprite(dm.clone()); s.visible = false; MS.dustG.add(s); MS.dust.push({ s, t: 9 }); }
+    // perf LOD: the instanced greenery/moss sets (frustum-culled with Mosby as a whole, see lod()) drop out past ~90 m
+    MS.detList = []; g.traverse((o) => { if (o.isInstancedMesh) { o.frustumCulled = false; MS.detList.push(o); } });
+    // perf: the small parts (nails, eyes, lids, wraps, rings, buckles, nostrils...) sit inside his own big shadow; only the big forms cast (cuts ~120 shadow-pass draws)
+    smallNoCast(g, g);
     return g; }
+  function smallNoCast(root, g) { g.updateMatrixWorld(true); const bs = new THREE.Sphere(), k = g.scale.x || 1; root.traverse((o) => { if (!o.isMesh || o.isInstancedMesh || !o.castShadow) return; const gg = o.geometry; if (!gg.boundingSphere) gg.computeBoundingSphere(); bs.copy(gg.boundingSphere).applyMatrix4(o.matrixWorld); if (bs.radius / k < 0.75) o.castShadow = false; }); }
+  // perf: cull him as a whole when off-screen or beyond the fog (his instanced sets can't self-cull), and hide the small greenery past ~90 m
+  const FR = { f: null, m: null, s: null }; function lod() { const cam = M3.camera; if (!cam || !MS.g) return; if (!FR.f) { FR.f = new THREE.Frustum(); FR.m = new THREE.Matrix4(); FR.s = new THREE.Sphere(); }
+    const WS = Explore.WS, s = FR.s; s.center.set(MS.g.position.x, MS.g.position.y + WS * 6, MS.g.position.z); s.radius = WS * 14; FR.m.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse); FR.f.setFromProjectionMatrix(FR.m);
+    const d = cam.position.distanceTo(s.center), fogF = M3.scene && M3.scene.fog ? M3.scene.fog.far : 1e9; MS.g.visible = d - s.radius < fogF && FR.f.intersectsSphere(s); const near = d < WS * 90; if (near !== MS.detOn) { MS.detOn = near; for (const o of MS.detList) o.visible = near; } }
   // the player's current house tier on the deck (rebuilt when it changes), scaled to sit on the cradle
   function houseSync() { if (!MS.houseSlot || typeof W === 'undefined' || !W.player || !M3.houseModel) return; const key = W.player._key; if (!key || key === MS.houseKey) return; const hm = M3.houseModel(key); if (!hm) return;
-    MS.houseSlot.clear(); const bb = hm.userData.bb, w = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z), s = 3.25 / w; hm.scale.setScalar(s); hm.position.set(-(bb.min.x + bb.max.x) / 2 * s, -bb.min.y * s, -(bb.min.z + bb.max.z) / 2 * s); hm.rotation.y = 0; MS.houseSlot.add(hm); MS.houseKey = key; }
+    MS.houseSlot.clear(); const bb = hm.userData.bb, w = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z), s = 3.25 / w; hm.scale.setScalar(s); hm.position.set(-(bb.min.x + bb.max.x) / 2 * s, -bb.min.y * s, -(bb.min.z + bb.max.z) / 2 * s); hm.rotation.y = 0; MS.houseSlot.add(hm); MS.houseKey = key; smallNoCast(hm, MS.g); }
   // where he lives: near the Ledge, off to one side of the door, on clear dry ground
   function spot() { const WS = Explore.WS, F = Explore.ledgeFront(); if (!F) return null; const R = B.rz * WS * 1.25; let best = null;
     for (let k = 0; k < 48; k++) { const a = (k / 48) * 6.283, d = WS * (26 + (k % 4) * 6), x = F.x + Math.cos(a) * d, y = F.y + Math.sin(a) * d; if (typeof isWet === 'function' && isWet(x, y, R)) continue; const fd = F.nx != null ? (x - F.x) * F.nx + (y - F.y) * F.ny : 0; Explore.solidsOff(true); let hit = 0; for (const [ox, oy] of [[0, 0], [R * 0.6, 0], [-R * 0.6, 0], [0, R * 0.6], [0, -R * 0.6]]) { const p = Explore.collide(x + ox, y + oy, R * 0.55); if (Math.hypot(p[0] - x - ox, p[1] - y - oy) > 1) hit++; } Explore.solidsOff(false);
@@ -9978,7 +10039,7 @@ const Mosby = (() => {
     if (MS.st === 'idle') { MS.wait -= dt; if (MS.wait <= 0 && !MS.hold) { MS.path = pickWalk(); MS.st = MS.path ? 'turn' : 'idle'; MS.wait = 10 + rnd() * 10; } }
     else if (MS.st === 'turn') { const want = Math.atan2(MS.path.x - MS.at.x, MS.path.y - MS.at.y); let d = want - MS.g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); const r = 0.12 * dt; MS.g.rotation.y += Math.max(-r, Math.min(r, d)); moving = true; if (Math.abs(d) < 0.02) MS.st = 'walk'; }
     else if (MS.st === 'walk') { const dx = MS.path.x - MS.at.x, dy = MS.path.y - MS.at.y, D = Math.hypot(dx, dy), v = (B.stride / B.cyc) * s * dt; moving = true; if (D < v) { MS.st = 'idle'; MS.wait = 12 + rnd() * 12; } else { MS.at.x += dx / D * v; MS.at.y += dy / D * v; } }
-    if (MS.forceWalk) moving = true; MS.g.position.set(MS.at.x, M3.meshH(MS.at.x, MS.at.y) - WS * 0.05, MS.at.y); stepAnim(dt, moving); dustTick(dt); cols(); }
+    if (MS.forceWalk) moving = true; MS.g.position.set(MS.at.x, M3.meshH(MS.at.x, MS.at.y) - WS * 0.05, MS.at.y); stepAnim(dt, moving); dustTick(dt); cols(); lod(); }
   // drive it off the map renderer (it ticks in Character and Dev views alike)
   function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__mos) return; const R0 = M3.render; M3.render = function () { try { tick(); } catch (e) { if (!MS.err) console.error(MS.err = e); } return R0.apply(this, arguments); }; M3.render.__mos = true; }
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 500); }

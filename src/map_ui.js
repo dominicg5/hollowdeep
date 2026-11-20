@@ -37,7 +37,7 @@ const CityMap = (() => {
     if (typeof M3 !== 'undefined') M3.init(wrap, (p) => { showLoader(p == null ? null : p); if (p == null) { resize(); M3.place(cam, true); autoView(); } });
   }
   function layout() { const top = $('#top').offsetHeight, bot = $('#tabs').offsetHeight; wrap.style.top = top + 'px'; wrap.style.bottom = bot + 'px'; }
-  function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
+  function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, QUALITY.dpr); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
   function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); if (p != null) { L.querySelector('i').style.width = Math.round(p * 100) + '%'; L.querySelector('.ldPct').textContent = Math.round(p * 100) + '%'; } }
   function show() {
     if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Ledgeville art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
@@ -116,8 +116,12 @@ const CityMap = (() => {
 
   /* ---------- frame ---------- */
   const dwell = { ri: -1, t: 0 };
+  /* perf (QUALITY): a frame-rate cap for a steady frame time (Mobile 30 fps), a slower idle rate when nothing moves and no one touches the screen, and nothing at all while hidden */
+  const IDLE = { t: performance.now(), h: null }; ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart'].forEach((e) => window.addEventListener(e, () => { IDLE.t = performance.now(); }, { passive: true }));
+  function frameDue(now) { if (document.hidden) return false; let fps = QUALITY.fps; const h = typeof Explore !== 'undefined' && Explore.on ? Explore.here() : [cam.x, cam.y, cam.z, cam.rot]; const k = h ? h.map((v) => Math.round(v * 10)).join(',') : '';
+    if (k !== IDLE.h || cam.fly) { IDLE.h = k; IDLE.t = Math.max(IDLE.t, now - 4000); } if (now - IDLE.t > 12000) fps = fps ? Math.min(fps, QUALITY.idleFps) : QUALITY.idleFps; return !fps || now - lastFrame >= 1000 / fps - 3; }
   function frame(now) {
-    if (!running) return; raf = requestAnimationFrame(frame);
+    if (!running) return; raf = requestAnimationFrame(frame); if (!frameDue(now)) return;
     const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now; fps = fps * 0.95 + (1 / Math.max(dt, 0.001)) * 0.05; frameN++;
     if (cam.fly) { const u = clamp((now - cam.fly.t0) / cam.fly.d, 0, 1), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; cam.x = cam.fly.x0 + (cam.fly.x - cam.fly.x0) * e; cam.y = cam.fly.y0 + (cam.fly.y - cam.fly.y0) * e; cam.z = cam.fly.z0 * Math.pow(cam.fly.z / cam.fly.z0, e); if (cam.fly.r1 != null) cam.rot = cam.fly.r0 + (cam.fly.r1 - cam.fly.r0) * e; if (u >= 1) cam.fly = null; }
     else if (!ptrs.size && (Math.abs(cam.vx) > 0.05 || Math.abs(cam.vy) > 0.05)) { cam.x += cam.vx; cam.y += cam.vy; cam.vx *= 0.92; cam.vy *= 0.92; clampCam(); }
