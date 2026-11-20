@@ -187,7 +187,7 @@ const CityMap = (() => {
       c.strokeStyle = '#5a3e24'; c.lineWidth = 5; c.beginPath(); c.moveTo(cr.x, cr.y); c.lineTo(ex, ey); c.stroke(); c.fillStyle = '#7a5434'; c.fillRect(cr.x - 8, cr.y - 8, 16, 16);
       const u = (Math.sin(t * 0.4 + cr.phase) + 1) / 2, lx = cr.x + (ex - cr.x) * u, ly = cr.y + (ey - cr.y) * u, sw = Math.sin(t * 1.5 + cr.phase) * 4;
       c.fillStyle = 'rgba(0,0,0,.3)'; c.fillRect(lx - 5 + sw + 6, ly - 5 + 9, 10, 10); c.fillStyle = '#b0844a'; c.fillRect(lx - 5 + sw, ly - 5, 10, 10); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1; c.strokeRect(lx - 5 + sw, ly - 5, 10, 10); }
-    // windmills, smoke, carts
+    // windmills, smoke
     for (const m of W.windmills) { if (ART.ok || !inV(m.x, m.y, 30)) continue; c.save(); c.translate(m.x, m.y); c.rotate(t * 1.2 + m.seed * 10); c.fillStyle = '#f2ead6'; c.strokeStyle = '#7a5f3c'; c.lineWidth = 1;
       for (let i = 0; i < 4; i++) { c.rotate(Math.PI / 2); c.fillRect(2, -2.5, 22, 5); c.strokeRect(2, -2.5, 22, 5); } c.restore(); c.fillStyle = '#7a5f3c'; c.beginPath(); c.arc(m.x, m.y, 3, 0, TAU); c.fill(); }
     if (z > 0.3) for (const v of W.vents) { if (!inV(v.x, v.y, 90)) continue; for (let k = 0; k < 5; k++) { const u = (t * 0.2 + k / 5 + v.seed) % 1; glow(c, v.x + u * 26 + Math.sin(u * 4 + v.seed * 9) * 5, v.y - v.r * 2 - u * 60, 5 + u * 18, 'rgba(110,100,100,.9)', Math.min(1, u * 6) * (1 - u) * 0.4); } }
@@ -197,8 +197,7 @@ const CityMap = (() => {
       for (let k = 0; k < 4; k++) { const u = (t * 0.18 + k / 4 + sd) % 1; glow(c, fx + u * 14 + Math.sin(u * 5 + sd * 9) * 2, fy - u * 26, 2.5 + u * 8, 'rgba(205,200,195,.9)', Math.min(1, u * 5) * (1 - u) * 0.22 * clamp((z - 0.45) / 0.3, 0, 1)); } } }
     if (ART.ok && W.river.length) { const e0 = W.river[W.river.length - 1], d = Math.hypot(e0[0], e0[1]), ex = e0[0] + e0[0] / d * 50, ey = e0[1] + e0[1] / d * 50, sp = ART_MANIFEST.s.props2_2;
       if (sp && inV(ex, ey, 160)) { const fh = 92 * sp[4] / sp[3], by = ey - fh * 0.1 + fh * 0.86; for (let k = 0; k < 7; k++) { const u = (t * 0.35 + k / 7) % 1; glow(c, ex - 30 + ((k * 37) % 60) + Math.sin(t + k) * 4, by - u * 22, 8 + u * 18, 'rgba(235,245,255,1)', (1 - u) * 0.3); } } }
-    for (const m of W.mines) { if (!inV(m.x, m.y, 80)) continue; const u = (Math.sin(t * 0.5 + m.seed * 9) + 1) / 2, d = 14 + u * 52; const x = m.x + Math.cos(m.a) * d, y = m.y + Math.sin(m.a) * d;
-      if (ART.ok) { drawSprite(c, 'props_4', x, y, 18, 0.5, 0.7, Math.cos(m.a) < 0); continue; } c.save(); c.translate(x, y); c.rotate(m.a); c.fillStyle = '#5a4a3a'; c.fillRect(-5, -4, 10, 8); c.fillStyle = '#b9a4ff'; c.beginPath(); c.arc(-1.5, 0, 1.6, 0, TAU); c.arc(2, 1, 1.4, 0, TAU); c.fill(); c.restore(); }
+    /* (no ore carts rolling out of the mines: Dominic - no mine carts or cart track anywhere) */
     // homes: lanterns, pets
     const homes = z > 0.32 ? queryObjs(view.x0, view.y0, view.x1, view.y1, 40).filter((o) => o.type === 'home') : [];
     if (z > 0.5) for (const h of homes) { if (!h.pet || h.isPlayer) continue; let x, y, a, sl = h.petSleep || night > 0.6;
