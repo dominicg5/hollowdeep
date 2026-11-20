@@ -695,13 +695,13 @@ if (vSeam.a > 4.5) { vec3 p = vOP * 1.6; /* a = 5: copper giants - soft teal-gre
   float n1 = sin(p.x * 1.1 + 1.6 * sin(p.y * 0.8 + p.z * 0.6)) * sin(p.z * 0.9 - p.y * 0.7 + 1.2 * sin(p.x * 0.7)) + 0.35 * sin(p.x * 2.7 + p.y * 2.1) * sin(p.z * 2.4 - p.y * 1.3);
   float g = sin(vOP.x * 23.0 + 3.0 * sin(vOP.z * 9.0 + vOP.y * 7.0)) * sin(vOP.y * 19.0 + 3.0 * sin(vOP.x * 11.0)) * sin(vOP.z * 21.0 + 2.0 * sin(vOP.y * 13.0)); diffuseColor.rgb *= 0.94 + 0.08 * g; /* pitted grain */
   float pt = smoothstep(0.38, 0.62, n1 + 0.12 * g), rim = smoothstep(0.25, 0.4, n1) * (1.0 - pt); diffuseColor.rgb *= 1.0 - 0.18 * rim; diffuseColor.rgb = mix(diffuseColor.rgb, vSeam.rgb * (0.8 + 0.3 * g), pt * 0.75); }
-else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : vSeam.a < 2.5 ? vOP * 2.0 : vOP * 3.0; /* tin (a = 2): fewer, longer veins (mining_large_tin) */ /* a = 4: cliff walls - few long veins running down the face (cliff_veins_*) */ /* vOP in ~1/13 m: seams ~2.5 m apart on every rock, so a small stone carries one line at most, a giant a network */
+else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : vOP * 2.0; /* tin (a = 2): fewer, longer veins (mining_large_tin) */ /* a = 4: cliff walls - few long veins running down the face (cliff_veins_*) */ /* vOP in ~1/13 m: seams ~2.5 m apart on every rock, so a small stone carries one line at most, a giant a network */
   float f1 = sin(p.x * 1.3 + 1.7 * sin(p.y * 0.9 + p.z * 0.7) + 0.8 * sin(p.z * 2.1)) + 0.6 * sin(p.y * 1.7 - p.z * 1.1 + 1.3 * sin(p.x * 1.2));
   float f2 = sin(p.z * 1.1 - p.y * 1.6 + 1.5 * sin(p.x * 0.8)) + 0.5 * sin(p.x * 2.3 + p.y * 0.6);
-  float wl = vSeam.a > 3.5 ? 0.6 : 1.0, tp = 0.55 + 0.45 * sin(p.x * 0.7 + p.y * 1.9 + p.z * 0.4), w1 = 0.05 * tp * wl, w2 = (vSeam.a > 3.5 || vSeam.a < 2.5) ? -1.0 : 0.03 * (1.6 - tp); /* walls: one family of thinner veins */
+  float wl = vSeam.a > 3.5 ? 0.6 : 1.0, tp = 0.55 + 0.45 * sin(p.x * 0.7 + p.y * 1.9 + p.z * 0.4), w1 = 0.05 * tp * wl, w2 = -1.0; /* one family of veins on every rock (a net of two read as a cage) */ /* walls: one family of thinner veins */
   float l1 = 1.0 - smoothstep(w1, w1 + fwidth(f1) * 1.4, abs(f1)), l2 = 1.0 - smoothstep(w2, w2 + fwidth(f2) * 1.4, abs(f2)), ln = max(l1, l2 * 0.9);
   float halo = max(1.0 - smoothstep(w1, w1 + 0.16, abs(f1)), 0.75 * (1.0 - smoothstep(w2, w2 + 0.1, abs(f2))));
-  diffuseColor.rgb *= (vSeam.a > 2.5 && vSeam.a < 3.5) ? 1.0 + 0.9 * halo : 1.0 - 0.4 * halo;
+  diffuseColor.rgb *= (vSeam.a > 2.5 && vSeam.a < 3.5) ? 0.72 * (1.0 + 0.9 * halo) : 1.0 - 0.4 * halo; /* coal: blacker rock (mining_large_coal) */
   diffuseColor.rgb = mix(diffuseColor.rgb, vSeam.rgb, ln);
   if (vSeam.a < 2.5) { vec3 q = vOP * 2.4; float lc = sin(q.x * 1.3 + 1.4 * sin(q.z * 1.1 + q.y)) * sin(q.z * 1.2 - q.y * 0.9 + 1.1 * sin(q.x * 0.8)) + 0.3 * sin(q.x * 7.0 + q.y * 5.0) * sin(q.z * 6.0); diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.72, 0.43, 0.17), smoothstep(0.56, 0.74, lc) * (1.0 - ln) * 0.6); } /* tin: orange lichen patches */ }`); };
     rockM.customProgramCacheKey = () => 'oreSeams';
