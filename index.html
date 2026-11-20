@@ -292,9 +292,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='359311a8';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 359311a8</div>
-<script src="assets/vendor/three.min.js?v=359311a8"></script>
+<script>window.HD_BUILD='378d511c';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 378d511c</div>
+<script src="assets/vendor/three.min.js?v=378d511c"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -3768,11 +3768,11 @@ const GRAND = (() => {
   const toL = (x, y) => { const dx = x - G.T.x, dy = y - G.T.y; return [dx * G.ox + dy * G.oy, dx * G.lx + dy * G.ly]; };
   // the ground in front of the door is evened out into the same gentle grassy rim ground as all round the tree (no ridges, cliffs or ledges)
   function carve(x, y, h, mh, hf) { [h, mh] = carveTree(x, y, h, mh); [h, mh] = carveRamps(x, y, h, mh, hf); return carveW(x, y, h, mh); }
-  /* ---------- plateau access, OPTION B (Dominic hasn't chosen; off unless ?ramps=1 or localStorage hdLumenRamps=1): instead of the stone steps
+  /* ---------- plateau access, OPTION B (Dominic: keep both - on by default with the stone steps; ?ramps=0 or localStorage hdLumenRamps=0 turns it off): instead of the stone steps
      ~600 m east, up to three graded earthen ramps straight out from the door's side of the summit, in the root-free lanes, each bridging the bank
      where it is shortest; the roots stay unclimbable (the ramps start beyond their reach) ---------- */
   const RAMP = { on: null, built: false, building: false, list: [] };
-  function rampsOn() { if (RAMP.on == null) { try { RAMP.on = /[?&]ramps=1/.test(location.search) || localStorage.getItem('hdLumenRamps') === '1'; } catch (e) { RAMP.on = false; } } return RAMP.on; }
+  function rampsOn() { if (RAMP.on == null) { try { RAMP.on = !(/[?&]ramps=0/.test(location.search) || localStorage.getItem('hdLumenRamps') === '0'); /* Dominic chose BOTH: the ramps are on by default alongside the east-bank stone steps (?ramps=0 turns them off) */ } catch (e) { RAMP.on = false; } } return RAMP.on; }
   /* option B ramps: the bank below the summit drops ~1400 and is scored by clefts, so a straight ramp can't be gentle or clean. Each ramp is
      a least-cost graded path found on an 80-unit grid over the bank (clefts, water and the root sprawl forbidden, steep moves penalised),
      starting in a root-free lane beside the door; its height is the ground smoothed along the path and held to <= 0.3 grade. */
@@ -4356,7 +4356,7 @@ if (uExOn > 0.5) { float wF = grassM * (1.0 - exF) * (1.0 - smoothstep(3000.0, 9
   float oakW = max(0.0, 1.0 - bz2.r - bz2.g - bz2.b) + bz2.b, bwE = 0.025 + 0.17 * smoothstep(0.3, 0.7, vn2(wp / 405.0 + vec2(15.5, -8.0)));
   float zbi = smoothstep(0.5 - bwE, 0.5 + bwE, 0.5 + 2.6 * (bz2.r - max(bz2.g, oakW)) + 0.36 * eB), zwd = smoothstep(0.5 - bwE, 0.5 + bwE, 0.5 + 2.6 * (bz2.g - max(bz2.r, oakW)) - 0.36 * eB) * (1.0 - zbi); tc.rgb = mix(tc.rgb, vec3(0.215, 0.29, 0.135) * clamp(tl2 / 0.228, 0.6, 1.4) * (0.92 + 0.16 * zf), zm * zbi * 0.8); /* birch floor: cooler green, fallen-leaf flecks */ tc.rgb = mix(tc.rgb, vec3(0.55, 0.24, 0.07) * clamp(tl2 / 0.228, 0.6, 1.4), zm * zbi * 0.45 * smoothstep(0.8, 0.86, vn2(wp / 1.1 + 5.0)) * smoothstep(0.45, 0.6, zl)); /* fallen leaves: hand-sized flecks in drifts, not metre-wide splats */ tc.rgb = mix(tc.rgb, vec3(0.42, 0.33, 0.08) * clamp(tl2 / 0.228, 0.6, 1.4), zm * zbi * 0.6 * smoothstep(0.8, 0.9, vn2(wp / 4.5 + 3.3) + 0.12 * (zf - 0.5))); /* (biome_edge_irregular) small round golden islands, a few metres across, not camo sheets */ /* sage birch floor (biome_edge_irregular) with golden meadow islands and fallen-leaf flecks */
   tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.92, 0.84, 0.62), zm * zwd * 0.42 * (0.72 + 0.28 * zn)); /* beech-maple wood: leaf litter under the canopy */
-  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.78, 0.97, 0.72) * (0.9 + 0.2 * zn), zm * zw * 0.5); float zd = smoothstep(0.5, 0.8, bz.a + 0.35 * eB) * smoothstep(0.35, 0.6, zn + 0.25 * zf); /* lakeside: lush, and damp brown soil with pebbles right at the edge */
+  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.78, 0.97, 0.72) * (0.9 + 0.2 * zn), zm * zw * 0.5); float zd = smoothstep(0.84, 0.97, bz.a + 0.12 * eB) * smoothstep(0.4, 0.62, zn + 0.25 * zf); /* (stream_into_lake) damp brown soil only in a thin ragged rim right at the water; the banks beyond stay lush green, not a wide mud band */ /* lakeside: lush, and damp brown soil with pebbles right at the edge */
   tc.rgb = mix(tc.rgb, vec3(0.159, 0.091, 0.042) * (0.8 + 0.4 * zf) + vec3(0.14) * smoothstep(0.74, 0.8, vn2(wp / 1.6)), zm * zd * 0.8);
   /* scree: pale gravel with mint and rust lichen flecks; copper earth flecked orange; soot earth with black coal grit */
   float fk = vn2(wp / 1.5 + 7.0); tc.rgb = mix(tc.rgb, vec3(0.25, 0.42, 0.28), zm * zt * 0.5 * smoothstep(0.82, 0.87, fk)); tc.rgb = mix(tc.rgb, vec3(0.75, 0.25, 0.06), zm * zt * 0.45 * smoothstep(0.84, 0.89, 1.0 - fk));
@@ -8413,7 +8413,10 @@ const Explore = (() => {
     let comp; const comps = (prune) => { comp = new Int32Array(N).fill(-1); { const q = new Int32Array(N); let nc = 0; const size = []; for (let s0 = 0; s0 < N; s0++) { if (!cls[s0] || comp[s0] >= 0) continue; let qh = 0, qt = 0; q[qt++] = s0; comp[s0] = nc;
         while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (cls[m] && comp[m] < 0 && (!di || !dj || (cls[j * nx + a] && cls[b * nx + i]))) { comp[m] = nc; q[qt++] = m; } } } size.push(qt); nc++; } NV.size = size;
       NV.pruned = 0; NV.scenery = []; const mainC = size.indexOf(Math.max(...size)); if (prune && !NV.keepSmall) { for (let c = 0; c < size.length; c++) if (c !== mainC && size[c] >= MIN_REGION) NV.scenery.push(size[c]); for (let k = 0; k < N; k++) if (comp[k] >= 0 && comp[k] !== mainC) { cls[k] = 0; comp[k] = -1; NV.pruned++; } } NV.main = mainC; } };
-    comps(false); lumenSteps(comp); comps(true); // one walkable world: with the bridges and cliff stairs every region meant for walking joins the main one; what is still cut off (ledges in the summit's sheer cliff bands, slivers between cracks, scraps on the edge peaks) is scenery
+    /* (Dominic: keep BOTH plateau accesses) the ramps would join the door region to the main walk area, so the stone steps are laid with the ramp cells
+       masked out first; then the ramps are opened again - she can go up either way */
+    const rampK = []; if (typeof GRAND !== 'undefined' && GRAND.rampsOn && GRAND.rampsOn() && GRAND.onRamp) for (let k = 0; k < N; k++) if (cls[k] && GRAND.onRamp(REG.X0 + (k % nx) * C, REG.Y0 + ((k / nx) | 0) * C, 60)) { rampK.push([k, cls[k]]); cls[k] = 0; }
+    comps(false); lumenSteps(comp); for (const [k, v] of rampK) cls[k] = v; comps(true); // one walkable world: with the bridges and cliff stairs every region meant for walking joins the main one; what is still cut off (ledges in the summit's sheer cliff bands, slivers between cracks, scraps on the edge peaks) is scenery
     Object.assign(NV, { built: true, nx, ny, N, h, cls, sl, comp, root: null, rootBlk: root, ms: Math.round(performance.now() - t0) }); return NV; }
   const cellOf = (x, y) => [clamp(Math.round((x - REG.X0) / C), 0, NV.nx - 1), clamp(Math.round((y - REG.Y0) / C), 0, NV.ny - 1)];
   const cxy = (k) => [REG.X0 + (k % NV.nx) * C, REG.Y0 + ((k / NV.nx) | 0) * C];

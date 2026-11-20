@@ -15,11 +15,11 @@ const GRAND = (() => {
   const toL = (x, y) => { const dx = x - G.T.x, dy = y - G.T.y; return [dx * G.ox + dy * G.oy, dx * G.lx + dy * G.ly]; };
   // the ground in front of the door is evened out into the same gentle grassy rim ground as all round the tree (no ridges, cliffs or ledges)
   function carve(x, y, h, mh, hf) { [h, mh] = carveTree(x, y, h, mh); [h, mh] = carveRamps(x, y, h, mh, hf); return carveW(x, y, h, mh); }
-  /* ---------- plateau access, OPTION B (Dominic hasn't chosen; off unless ?ramps=1 or localStorage hdLumenRamps=1): instead of the stone steps
+  /* ---------- plateau access, OPTION B (Dominic: keep both - on by default with the stone steps; ?ramps=0 or localStorage hdLumenRamps=0 turns it off): instead of the stone steps
      ~600 m east, up to three graded earthen ramps straight out from the door's side of the summit, in the root-free lanes, each bridging the bank
      where it is shortest; the roots stay unclimbable (the ramps start beyond their reach) ---------- */
   const RAMP = { on: null, built: false, building: false, list: [] };
-  function rampsOn() { if (RAMP.on == null) { try { RAMP.on = /[?&]ramps=1/.test(location.search) || localStorage.getItem('hdLumenRamps') === '1'; } catch (e) { RAMP.on = false; } } return RAMP.on; }
+  function rampsOn() { if (RAMP.on == null) { try { RAMP.on = !(/[?&]ramps=0/.test(location.search) || localStorage.getItem('hdLumenRamps') === '0'); /* Dominic chose BOTH: the ramps are on by default alongside the east-bank stone steps (?ramps=0 turns them off) */ } catch (e) { RAMP.on = false; } } return RAMP.on; }
   /* option B ramps: the bank below the summit drops ~1400 and is scored by clefts, so a straight ramp can't be gentle or clean. Each ramp is
      a least-cost graded path found on an 80-unit grid over the bank (clefts, water and the root sprawl forbidden, steep moves penalised),
      starting in a root-free lane beside the door; its height is the ground smoothed along the path and held to <= 0.3 grade. */
