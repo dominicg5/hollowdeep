@@ -567,7 +567,7 @@ diffuseColor *= sdc;
     for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i);
       const n = 1 + 0.16 * (vnoise(x * 2.1 + seed, z * 2.1 + y * 1.9 + seed) - 0.5) * 2 + 0.07 * Math.sin(x * 9 + seed) * Math.sin(y * 8 + 1) * Math.sin(z * 9 + 2) + 0.04 * Math.sin(x * 17 + y * 13 + z * 15);
       P.setXYZ(i, x * n, (y > 0 ? y * 0.92 : y * 0.62) * n, z * n);
-      const t = clamp((y + 0.75) / 1.6, 0, 1), sh = 0.38 + 0.78 * Math.pow(t, 1.15); cc.push(sh * (0.97 + 0.1 * t), sh, sh * (0.86 - 0.14 * t)); uv.push((Math.atan2(z, x) / Math.PI + 1) * 1.5, (y + 1) * 1.2); }
+      const t = clamp((y + 0.75) / 1.6, 0, 1), sh = (0.3 + 0.92 * Math.pow(t, 1.3)) * (1 + 0.3 * t * (vnoise(x * 4.3 + seed * 2, z * 4.3 + y * 3) - 0.5)); cc.push(sh * (0.95 + 0.2 * t), sh, sh * (0.86 - 0.26 * t)); /* (critique) heartwood.jpg: sunlit yellow-green leaf-cluster tops, deep shade under each pad */ uv.push((Math.atan2(z, x) / Math.PI + 1) * 1.5, (y + 1) * 1.2); }
     g.setAttribute('color', new THREE.Float32BufferAttribute(cc, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.computeVertexNormals();
     { const N = g.attributes.normal, acc = new Map(), key = (i) => Math.round(P.getX(i) * 1e4) + ',' + Math.round(P.getY(i) * 1e4) + ',' + Math.round(P.getZ(i) * 1e4); // the icosphere is unindexed: average the face normals per corner so the floret shades soft and leafy, not as flat facets
       for (let i = 0; i < P.count; i++) { const k = key(i), v = acc.get(k) || acc.set(k, [0, 0, 0]).get(k); v[0] += N.getX(i); v[1] += N.getY(i); v[2] += N.getZ(i); }
