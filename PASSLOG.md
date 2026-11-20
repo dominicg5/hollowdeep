@@ -22,3 +22,14 @@
   Removed (19): no gap: link0, 1, 2, 3, 5, 6, 7, 8, 9, 12, 13, 17. Too steep: link4, 10, 15, 23, 26. Banks ~2 m apart in height: link24, 29. 25 bridges left; 11 cliff stairs untouched.
   The curved groove lines were hairline cracks (max width < 12 units ≈ 1.9 m, about a third of all cracks) drawn as 1 m slots. They are dropped at world gen (map_gen), except `wide`/`mouth` ones.
   test/paths.js adds brNoGap (gap depth under the centre ≥ 2 m), brList (per bridge: length m, tilt, gap m, arch m) and `gone` with reasons. Now 105 paths, all checks 0. Full suite (13 tests incl. paths, perfmobile) ALL PASS. Renders: final/93 (top-down), 95b (link23), 96 (kept bridges, eye level), 97 (removed sites).
+- 9:05–10:15 AM pass (commits 0974402, 7e6ba70, a483a91; full suite green at each push: paths, collide, eta, tether, streams, transitions, mole, mosby, mapui, drillui, tetherorb, doorgirth, perfmobile).
+  - Mosby polish (0974402): darker olive shell and moss, flatter leg scales, darker nails, shaggier pines with streaks, and the coil rope rings replaced by lashing bands. Sibling static meshes are merged (168 → 52 meshes). Render: final/98-mosby-polish.jpg.
+  - Mosby perf (7e6ba70): on the mobile preset, instanced moss and flowers plus parts under 1.6 m cast no shadow, and the deck house is merged. Mosby view went from 1.29M tris / 250 calls (27d5f2e) to 1.20M / 195. The rest of the calls are scene-wide (crevice chunks, house sets, terrain).
+  - Copper giants (a483a91): about 1.5× larger (9–10 m, per mining_large_copper), mid boulders 5–6 m. Render: final/99-copper-giant-size.jpg. Path push-out now swings round the rim, and the ore path check uses the collider set (cls <= 3, > 0.9 m).
+  - Perf, mobile (tris / calls): ledge 1.10M / 154, lumen 0.82M / 215, mine 1.00M / 158, willow 0.72M / 72, mosby 1.20M / 195, dev 2.85M / 378.
+  - next steps (resume here):
+    - Birch density: deterministic, with colliders; run collide and tether.
+    - Ledges up to walk-in caverns (cliff_ledge_cavern.jpg): plank-step path up the rock to a cave mouth with a sign post; sign text stays blank.
+    - Mole fur blockiness.
+    - Climb-pace visual check.
+    - Mosby view to 150 calls: crevice chunks (10 calls) and house sets (about 17 calls).
