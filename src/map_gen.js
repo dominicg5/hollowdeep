@@ -531,7 +531,7 @@ function makeHeartwood() { let best = null, bd = -1;
   const a = best, [bx, by] = polar(hollowR(a) - HW_R0 * 0.5, a); // the trunk stands against the inner wall, just inside the rim: its back half is sunk into the lip
   return { a, x: bx, y: by, H: HW_H, R0: HW_R0, base: CITY.summitH - 650, in: Math.atan2(-by, -bx), type: 'heartwood' }; }
 // trunk radius at height fraction f (flared base, gently tapering), and the trunk's slightly wandering axis
-function hwTrunkR(f) { const g = Math.max(0, f); return HW_R0 * (0.62 + 0.38 * Math.exp(-g * 4)) * (1 - 0.3 * Math.min(1, g)) * (f < 0 ? 1 - f * 1.2 : 1); }
+function hwTrunkR(f) { const g = Math.max(0, f); return HW_R0 * (0.76 + 0.24 * Math.exp(-g * 4)) * (1 - 0.24 * Math.min(1, g)) /* heartwood.jpg: the trunk stays massive up to the crown */ * (f < 0 ? 1 - f * 1.2 : 1); }
 function hwAxis(f) { const T = W.heartwood, g = Math.max(0, f); return [T.x + Math.sin(g * 5.1 + 0.7) * HW_H * 0.009 - Math.sin(0.7) * HW_H * 0.009, T.y + Math.sin(g * 4.3 + 2.1) * HW_H * 0.007 - Math.sin(2.1) * HW_H * 0.007]; } // nearly plumb: the roots hold it straight up
 // no Ledge under the Heartwood's crown (its florets reach ~4,100 from the trunk) or on its roots: a clear disc round the tree
 const HW_CLEAR = 4500; function underHeartwood(x, y, pad) { const T = W.heartwood; return !!T && Math.hypot(x - T.x, y - T.y) < HW_CLEAR + (pad || 0); }
