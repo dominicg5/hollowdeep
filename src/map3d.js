@@ -444,7 +444,7 @@ void main() {
     const M = new Float32Array(list.length * 16), C = new Float32Array(list.length * 3), Lm = new Float32Array(list.length), P = new Float32Array(list.length * 4), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
     list.forEach((o, i) => { e.set(o.tilt || 0, o.rot, 0, 'YXZ'); q.setFromEuler(e); mt.compose(v3().set(o.x, o.y, o.z), q, v3().set(o.s * (o.sx || 1), o.s * (o.sy || 1), o.s * (o.sz || 1))); mt.toArray(M, i * 16); C.set(o.c, i * 3); Lm[i] = o.lum || 0; P.set([o.x, o.y + o.s * 0.4, o.z, o.s * 0.8], i * 4); });
     const set = { key, list, meshes, ns, M, C, L: Lm, P, near: opt.near, far: opt.far || 1e9, minZ: opt.minZ || 0 }; if (opt.mg && meshes[1]) mgJoin(opt.mg, set, m.mat); IM.all.push(set); return set; }
-  /* perf (draw calls): the far LOD of a group of sets sharing one material (every house kit) is drawn as ONE merged mesh instead of one InstancedMesh per kit.
+  /* perf (draw calls): the far LOD of a group of sets sharing one material (every house kit; every rock/bush prop kit) is drawn as ONE merged mesh instead of one InstancedMesh per kit.
      The per-instance pick (frustum, fog distance, near/far LOD) is unchanged - fillSet just routes the far-LOD picks here, and the merged geometry is rebaked
      (transform, normal, colour x instance tint, Lumen glow) only when that pick changes. Same geometry, same material, same pixels; ~20 calls become 1. */
   const MG = new Map(), MG_ATT = { position: 3, normal: 3, color: 0, uv: 2 }, mgM = new THREE.Matrix4(), mgN = new THREE.Matrix3();
@@ -565,7 +565,7 @@ void main() {
       for (const sd of [-1, 1]) for (let k = 0; k < 3; k++) { const x = x0 + nx * sd * (w * 1.6 + k * 14) - ux * (20 + k * 18), y = y0 + ny * sd * (w * 1.6 + k * 14) - uy * (20 + k * 18); put(k === 1 ? 'pCattail' : 'pReeds', x, y, 11 + H(k, si) * 4, null, { y: Math.max(meshH(x, y), L.wl - 3) - 0.5 }); }
       const ls = H(si, 90) < 0.5 ? -1 : 1; for (let k = 0; k < 6; k++) { const x = x0 + nx * ls * (w * 3 + H(k, 91) * 50) + ux * (30 + H(91, k) * 60), y = y0 + ny * ls * (w * 3 + H(k, 91) * 50) + uy * (30 + H(91, k) * 60); if (GRAND.lakeE(L, x, y) < -15) put('pLily', x, y, 11 + H(k, 8) * 5, null, { y: L.wl + 0.6 }); }
       for (const sd of [-1, 1]) { const x = x0 + nx * sd * (w * 2.6) - ux * 55, y = y0 + ny * sd * (w * 2.6) - uy * 55; put('rMossy', x, y, 18 + H(si, sd + 5) * 8, rockC(z, 0.6, 'rMossy')); } }
-    for (const k of PK) if (byKey['p_' + k]) { MD['p_' + k] = MD[k]; const sm = k[0] === 'p' && k !== 'pTrack'; IM.trees.push(makeSet('p_' + k, byKey['p_' + k], { near: sm ? 700 : 1100, far: k === 'rSlag' || k === 'rAngular' || k === 'rScree' || k === 'rRust' || k === 'rCoal' ? 9000 : sm ? 2600 : 4800, minZ: 0.0, shadow: k[0] === 'r' })); } }
+    for (const k of PK) if (byKey['p_' + k]) { MD['p_' + k] = MD[k]; const sm = k[0] === 'p' && k !== 'pTrack'; IM.trees.push(makeSet('p_' + k, byKey['p_' + k], { near: sm ? 700 : 1100, far: k === 'rSlag' || k === 'rAngular' || k === 'rScree' || k === 'rRust' || k === 'rCoal' ? 9000 : sm ? 2600 : 4800, minZ: 0.0, shadow: k[0] === 'r', mg: 'props' })); } }
   function homeElev(h) { return h.elev != null ? h.elev : meshH(h.x, h.y); }
   const M3LM = { list: [], minD: 0 }; // landmark (boulder-gripping) trees: where they are and the enforced spacing
   /* the mine approaches stain their trees: soot-dark near coal, warm rust near copper, silvery-pale near tin */
