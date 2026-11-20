@@ -431,7 +431,7 @@ void main() {
   function pickL(list, h) { let t = 0; for (const [, v] of list) t += v; let a = h * t; for (const [k, v] of list) { a -= v; if (a <= 0) return k; } return list[0][0]; }
   function scatterProps(push, byKey) { if (!MD.bBerry || typeof biomeAt !== 'function') return; const PK = new Set(), H = (a, b) => hash1(a * 12.9898 + b * 78.233);
     const put = (k, x, y, s, c, o) => { if (!MD[k]) return; const wetOk = k === 'pLily' || k === 'pReeds' || k === 'pCattail' || (o && o.wet); if (!wetOk && isWet(x, y, 6)) return; if (!wetOk && (hollowDist(x, y) < 120 || nearHeartwood(x, y))) return; const sd = H(x, y);
-      push('p_' + k, { x, y: o && o.y != null ? o.y : meshH(x, y) - s * 0.04, z: y, rot: sd * TAU * 5, s, sx: 0.85 + 0.3 * H(y, x), sz: 0.85 + 0.3 * H(x * 1.7, y), sy: 0.85 + 0.3 * H(y * 1.3, x), tilt: o && o.tilt || 0, c: c || [1, 1, 1], lum: lumAt(x, y) * 0.8, wet: !!(o && o.wet), edge: !!(o && o.edge) }); PK.add(k); };
+      push('p_' + k, { x, y: o && o.y != null ? o.y : meshH(x, y) - s * 0.04, z: y, rot: sd * TAU * 5, s, sx: 0.85 + 0.3 * H(y, x), sz: 0.85 + 0.3 * H(x * 1.7, y), sy: (0.85 + 0.3 * H(y * 1.3, x)) * (o && o.tall || 1), tilt: o && o.tilt || 0, c: c || [1, 1, 1], lum: lumAt(x, y) * 0.8, wet: !!(o && o.wet), edge: !!(o && o.edge) }); PK.add(k); };
     const rockC = (z, h, k) => (k === 'rCoal' ? [0.16, 0.15, 0.16] : k.startsWith('pCrystal') || k === 'rRust' ? [1, 1, 1] : z === 'tin' && k === 'rLichen' ? [1.15, 1.12, 1.05] : z === 'copper' && h < 0.3 ? [0.78, 1.04, 0.94] : PTINT[z] || [1, 1, 1]);
     const bushS = (k) => (k === 'bFern' ? 9 : k === 'bHeather' ? 7 : 7.5), rockS = (k) => (k === 'rScree' ? 20 : k === 'rCoal' ? 14 : k === 'rRust' ? 22 : k === 'pCrystalCu' || k === 'pCrystalSn' ? 10 : k === 'rSlag' ? 36 : k === 'rAngular' ? 12 : k === 'rStack' ? 9 : 11);
     // round the trees: a bush or two at the crown's edge, now and then a stone
@@ -468,7 +468,7 @@ void main() {
     // B a trickle from under one great boulder over wet stones, C a pool fed from a stack of boulders; ferns, moss and a few flowers tight in at the rocks
     if (WT && WT.streams) for (const [si, S] of WT.streams.entries()) { if (S.lp == null) continue; const L = WT.lakes[S.lp], ux = S.ux, uy = S.uy, z = pickZ(biomeFast(L.x, L.y), 0.5), R = Math.max(L.rx, L.ry), kind = si % 3;
       const at = (a, d) => { const ca = Math.cos(a), sa = Math.sin(a); return [L.x + (ux * ca - uy * sa) * d, L.y + (uy * ca + ux * sa) * d]; }; /* a = 0 points downstream */
-      const rock = (k, a, d, s, lift) => { const [x, y] = at(a, d); put(k, x, y, s, rockC(z, 0.6, k), { y: meshH(x, y) - s * 0.12 + (lift || 0) }); };
+      const rock = (k, a, d, s, lift) => { const [x, y] = at(a, d); put(k, x, y, s, rockC(z, 0.6, k), { y: meshH(x, y) - s * 0.12 + (lift || 0), tall: s > 18 ? 1.55 : 1 }); }; /* stream_spring_source: the big spring boulders stand tall and rounded, not low lumps */
       if (kind === 0) { rock('rMossy', Math.PI - 0.5, R + 10, 40); rock('rMossy', Math.PI + 0.55, R + 8, 34); rock('rHalf', 1.9, R + 10, 22); rock('rMossy', -1.95, R + 9, 20); }
       else if (kind === 1) { rock('rMossy', Math.PI, R + 16, 56); rock('rHalf', Math.PI - 1.2, R + 8, 26); rock('rLichen', Math.PI + 1.25, R + 8, 22); for (let k = 0; k < 5; k++) rock('rFlat', (k % 2 ? 1 : -1) * (0.5 + k * 0.08), R + 6 + k * 9, 9 + H(si, k) * 4); }
       else { rock('rMossy', Math.PI - 0.6, R + 10, 32); rock('rMossy', Math.PI + 0.6, R + 10, 32); rock('rMossy', Math.PI, R + 14, 30, 22); rock('rHalf', 1.6, R + 8, 20); rock('rHalf', -1.6, R + 8, 20); }
