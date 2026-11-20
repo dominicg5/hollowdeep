@@ -636,6 +636,10 @@ diffuseColor *= sdc;
       for (let k = 0; k < 11; k++) { if (k === 5) continue; /* the Lumen Tree's great door stands where this root ran */ const a = OUT + (k / 10 - 0.5) * 3.9 + (hash1(k * 3.1) - 0.5) * 0.2, side = Math.abs(Math.cos(a - OUT)), L = H * (0.165 + 0.18 * side) * (0.8 + 0.4 * hash1(k + 9)), /* (critique) a wider root sprawl */ r0 = HW_R0 * (0.3 + 0.12 * hash1(k + 2));
         const R1 = lipRoot(a, 0.1 + hash1(k + 5) * 0.16, L, r0, k);
         for (const s0 of [-1, 1]) if (hash1(k * 5 + s0) < 0.75) { const i = 8 + ((hash1(k * 2 + s0) * 8) | 0), adf = (q) => Math.abs(Math.atan2(Math.sin(q - OUT), Math.cos(q - OUT))), s = (adf(a + s0 * 0.7) < adf(a) && adf(a) < 1.2) ? -s0 : s0; /* (Dominic: no climbing the roots) a side root never swings across the door's approach - it branches away from it, so she walks in on the ground */ if (R1.pts[i]) lipRoot(a + s * (0.5 + hash1(k + s0) * 0.4), 0, L * 0.45, R1.rs[i] * 0.55, k + s * 20, { p: v3().copy(R1.pts[i]) }); } }
+      /* (critique: root sprawl not readable) heartwood.jpg: lesser roots between the great ones, so the foot reads as a dense writhing sprawl down the mound
+         (solid like the rest; none in the door's approach lane) */
+      for (let k = 0; k < 10; k++) { const a = OUT + ((k + 0.5) / 10 - 0.5) * 3.9 + (hash1(k * 7.7) - 0.5) * 0.12; if (Math.abs(Math.atan2(Math.sin(a - OUT), Math.cos(a - OUT))) < 0.75) continue; const side = Math.abs(Math.cos(a - OUT));
+        lipRoot(a, 0.05 + hash1(k + 15) * 0.08, H * (0.1 + 0.1 * side) * (0.8 + 0.4 * hash1(k + 19)), HW_R0 * (0.17 + 0.07 * hash1(k + 12)), k + 50); }
       // the bridge root: one of the lip roots, grown long, arching over the pools above the falls
 
       // WALL ROOTS: from the trunk's Hollow side straight down the inner wall, clawing into the rock, holding the tree up
@@ -691,16 +695,16 @@ diffuseColor *= sdc;
          cushion, 3-5 lobes round it at staggered heights and a low crowning tuft; c[6] = flatness (height / width) */
       const clumps = []; const clump = (x, y, z, r, sh, hue, fl) => clumps.push([x, y, z, r, sh, hue, fl || 0.8]);
       const floret = (c, R, sd) => { const hue = hash1(sd * 1.3);
-        clump(c.x, c.y, c.z, R * 0.8, 0.66, hue, 0.46);
-        const n = 3 + ((hash1(sd) * 3) | 0); for (let k = 0; k < n; k++) { const aa = (k / n) * TAU + hash1(sd + k) * 0.9, rr = R * (0.5 + hash1(sd * 2 + k) * 0.28); clump(c.x + Math.cos(aa) * rr, c.y + (hash1(sd * 3 + k) - 0.5) * R * 0.3, c.z + Math.sin(aa) * rr, R * (0.4 + hash1(sd * 5 + k) * 0.16), 0.7 + hash1(sd * 7 + k) * 0.2, hue + (hash1(k + sd) - 0.5) * 0.3, 0.48 + hash1(sd * 9 + k) * 0.14); }
-        const aa = hash1(sd * 11) * TAU; clump(c.x + Math.cos(aa) * R * 0.15, c.y + R * 0.2, c.z + Math.sin(aa) * R * 0.15, R * 0.42, 0.95, hue, 0.5); };
+        clump(c.x, c.y, c.z, R * 0.82, 0.66, hue, 0.6); /* domed top, flat underside (puffGeo squashes the lower half) */
+        const n = 3 + ((hash1(sd) * 3) | 0); for (let k = 0; k < n; k++) { const aa = (k / n) * TAU + hash1(sd + k) * 0.9, rr = R * (0.5 + hash1(sd * 2 + k) * 0.28); clump(c.x + Math.cos(aa) * rr, c.y + (hash1(sd * 3 + k) - 0.5) * R * 0.3, c.z + Math.sin(aa) * rr, R * (0.4 + hash1(sd * 5 + k) * 0.16), 0.7 + hash1(sd * 7 + k) * 0.2, hue + (hash1(k + sd) - 0.5) * 0.3, 0.6 + hash1(sd * 9 + k) * 0.16); }
+        const aa = hash1(sd * 11) * TAU; clump(c.x + Math.cos(aa) * R * 0.15, c.y + R * 0.2, c.z + Math.sin(aa) * R * 0.15, R * 0.46, 0.95, hue, 0.72); };
       ends.forEach((e2, i) => floret(e2.p, e2.R * 1.08, i * 5.7 + 1));
       for (const L of limbs) if (L.depth === 2 && hash1(L.th * 9.1) < 0.5) { const p = L.pts[12]; floret(v3().copy(p).add(v3().set(0, 300, 0)), 700, p.x * 0.01); }
       { const top = ax(0.8); floret(v3().copy(top).add(v3().set(0, 560, 0)), 1500, 99); floret(v3().copy(top).add(v3().set(0, 150, 0)).addScaledVector(dirAt(OUT), 1000), 1100, 98); }
       const keep = clumps; HWX.clumps = keep;
       const big = keep.filter((c) => c[3] >= 520), small = keep.filter((c) => c[3] < 520);
       const lm = new THREE.MeshLambertMaterial({ map: canopyLeafTex(), vertexColors: true }), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
-      const PAL = [[1.1, 1.12, 0.66], [0.96, 1.06, 0.62], [1.18, 1.12, 0.6], [0.86, 0.98, 0.6]]; /* (critique) lush, sunlit yellow-green crowns (heartwood.jpg), not dark pads */
+      const PAL = [[1.42, 1.36, 0.7], [1.26, 1.3, 0.66], [1.5, 1.38, 0.64], [1.16, 1.22, 0.64]]; /* (critique) heartwood.jpg tops are light olive / yellow-green in the sun */ /* (critique) lush, sunlit yellow-green crowns (heartwood.jpg), not dark pads */
       for (const [L2, det] of [[big, 3], [small, 2]]) { if (!L2.length) continue; const im = new THREE.InstancedMesh(puffGeo(det, det * 3.7), lm, L2.length); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(L2.length * 3), 3);
         L2.forEach((c, i) => { e.set((hash1(i * 2.9) - 0.5) * 0.3, hash1(i * 1.7) * TAU, (hash1(i * 3.9) - 0.5) * 0.3); q.setFromEuler(e); mt.compose(v3().set(c[0], c[1], c[2]), q, v3().set(c[3] * (1.0 + hash1(i + 2) * 0.14), c[3] * c[6] * (0.9 + hash1(i) * 0.2), c[3] * (1.0 + hash1(i + 1) * 0.14))); im.setMatrixAt(i, mt);
           const hu = ((c[5] % 1) + 1) % 1, a = PAL[(hu * 4) | 0], b = PAL[(((hu * 4) | 0) + 1) % 4], u = (hu * 4) % 1, ht = 0.86 + 0.3 * clamp((c[1] - B - H * 0.5) / (H * 0.35), 0, 1), s = c[4] * ht;
@@ -716,7 +720,7 @@ diffuseColor *= sdc;
             CL.push([c[0] + dx * c[3] * 0.9, c[1] + dy * c[3] * c[6] * 0.86, c[2] + dz * c[3] * 0.9, dx, dy, dz, c[3] * (0.5 + hash1(ci + k * 2.3) * 0.3), c, h1]); } });
         const im = new THREE.InstancedMesh(cg, cm, CL.length); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(CL.length * 3), 3); const up = v3().set(0, 1, 0), dir = v3(), q3 = new THREE.Quaternion();
         CL.forEach((L, i) => { const out = 1 - Math.max(0, L[4]); dir.set(L[3] * (0.35 + 0.65 * out), 1 - 0.55 * out + 0.25 * Math.max(0, L[4]), L[5] * (0.35 + 0.65 * out)).normalize(); q.setFromUnitVectors(up, dir); q3.setFromAxisAngle(dir, L[8] * 31.4); q.premultiply(q3); mt.compose(v3().set(L[0], L[1] - L[6] * 0.12, L[2]), q, v3().set(L[6], L[6] * 0.7, L[6])); im.setMatrixAt(i, mt);
-          const c = L[7], hu = ((c[5] % 1) + 1) % 1, a = PAL[(hu * 4) | 0], ht = 0.86 + 0.3 * clamp((c[1] - B - H * 0.5) / (H * 0.35), 0, 1), lt = (0.46 + 0.4 * clamp(L[4] + 0.35, 0, 1.2)) * ht * (0.88 + 0.2 * hash1(i * 1.9)); im.instanceColor.setXYZ(i, lt * a[0], lt * a[1], lt * a[2]); });
+          const c = L[7], hu = ((c[5] % 1) + 1) % 1, a = PAL[(hu * 4) | 0], ht = 0.86 + 0.3 * clamp((c[1] - B - H * 0.5) / (H * 0.35), 0, 1), lt = (0.42 + 0.52 * clamp(L[4] + 0.35, 0, 1.2)) * ht * (0.88 + 0.2 * hash1(i * 1.9)); im.instanceColor.setXYZ(i, lt * a[0], lt * a[1], lt * a[2]); });
         im.castShadow = true; im.receiveShadow = true; im.name = 'hwLeafRims'; add(im); HWX.leafCards = CL.length; }
       // hanging moss: strands under the limbs and the florets
       const hang = []; for (const L of limbs) for (let k = 3; k < L.pts.length - 1; k += 2) { const p = L.pts[k], n2 = 1 + ((hash1(k * 3 + L.th) * 3) | 0); for (let j = 0; j < n2; j++) { const hx = p.x + (hash1(k + j * 7 + L.th) - 0.5) * L.r0 * 1.4, hz = p.z + (hash1(k * 5 + j + L.th) - 0.5) * L.r0 * 1.4; { const lo = clamp(1 - (p.y - B - H * 0.4) / (H * 0.3), 0, 1), len = (140 + hash1(k * 11 + j + L.th * 3) * 420) * (1 + 2.2 * lo * hash1(k * 2.7 + j + L.th)); hang.push([hx, p.y - L.r0 * 0.5, hz, len]); } /* (critique) long moss strands trail from the lower limbs (heartwood.jpg) */ } }
