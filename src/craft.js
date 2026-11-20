@@ -8,6 +8,7 @@ const Craft = (() => {
   for (const [k, n, c] of ORE_T) ITEMS['ore:' + k] = { name: n + ' ore', short: n, emoji: '🪨', col: c, kind: 'ore', base: 2 };
   TIERS.forEach(([k, n, c], i) => { ITEMS['ingot:' + k] = { name: n + ' ingot', short: n, emoji: '🧱', col: c, kind: 'ingot', tier: i };
     for (const [t, tn, e] of TOOLS) ITEMS['tool:' + t + '_' + k] = { name: n + ' ' + tn.toLowerCase(), short: n, emoji: e, col: c, kind: 'tool', tool: t, tier: i }; });
+  for (const [k, n, c] of TIERS) ITEMS['tether:' + k] = { name: n + ' Ledge Tether', short: n + ' Tether', emoji: '🪢', col: c, kind: 'teth', tool: 'lifeline', unit: 'm', grade: k }; // coils measured in metres: lay drop tethers, upgrade / swap strands (Tether Orb)
   ITEMS['drill:mithril'] = { name: 'Mithril Drill', short: 'Mithril Drill', emoji: '🛠️', col: '#9cc0e6', kind: 'drill' }; // one per drill she has left to set up (S.drills.left); not traded or stored
   // ---- recipes (placeholders; cost climbs steeply per tier)
   const coal = (i) => Math.round(1.6 ** i);
@@ -29,9 +30,9 @@ const Craft = (() => {
   const sellP = (id) => Math.max(1, Math.floor(value(id) * 0.8)), buyP = (id) => Math.max(1, Math.ceil(value(id) * 1.15));
   // ---- storage: backpack = S.backpack {id:n}; vault = S.ledgeVault (ores/ingots/gear) with iron, coal, steel living in S.res
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
-  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) S.backpack['drill:mithril'] = n; } return S.backpack; } // first run: the Mithril Drills are seeded into the backpack
-  function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines']) v[k] = v[k] || {}; return v; }
-  function vSlot(id) { const [kind, key] = id.split(':'), v = vault(); return kind === 'ore' ? [v.ores, key] : kind === 'ingot' ? [v.ingots, key] : [v.gear, key]; }
+  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) S.backpack['drill:mithril'] = n; } if (!S.tetherSeed) { S.tetherSeed = 1; S.backpack['tether:mithril'] = (S.backpack['tether:mithril'] || 0) + 4000; } return S.backpack; } // first run: the Mithril Drills are seeded into the backpack
+  function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines', 'coils']) v[k] = v[k] || {}; if (!S.coilSeed) { S.coilSeed = 1; for (const [k] of TIERS) v.coils[k] = (v.coils[k] || 0) + 5000; } return v; } // first run: 5000 m of every Ledge Tether grade in the vault (to try swaps)
+  function vSlot(id) { const [kind, key] = id.split(':'), v = vault(); return kind === 'ore' ? [v.ores, key] : kind === 'ingot' ? [v.ingots, key] : kind === 'tether' ? [v.coils, key] : [v.gear, key]; }
   function get(where, id) { if (where === 'bag') return Math.floor(bag()[id] || 0); if (RES[id]) return Math.floor((S.res && S.res[RES[id]]) || 0); const [o, k] = vSlot(id); return Math.floor(o[k] || 0); }
   // ---- slot grids: the backpack has BAG_N slots, the vault VAULT_N; one item kind per slot, stacks are unlimited (no weight). S.bagOrder / S.vaultOrder keep which kind
   // sits in which slot (counts stay in S.backpack / the vault store), so a kind needs a free slot only when it is new to that container
@@ -61,7 +62,7 @@ const Craft = (() => {
   const nm = (id) => (ITEMS[id] ? ITEMS[id].name : id);
   const qtyBar = () => `<div class="cxq">${[1, 10, 100, 'all'].map((q) => `<button class="btn sm ${st.qty === q ? 'alt' : 'ghost'}" data-cx="qty" data-v="${q}">${q === 'all' ? 'All' : '×' + q}</button>`).join('')}</div>`;
   const destBar = () => `<div class="cxq"><span class="dim">Output to</span>${[['bag', '🎒 Backpack'], ['vault', '🔒 Vault']].map(([k, l]) => `<button class="btn sm ${st.dest === k ? 'alt' : 'ghost'}" data-cx="dest" data-v="${k}">${l}</button>`).join('')}</div>`;
-  const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && ITEMS[id].kind !== 'drill');
+  const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && ITEMS[id].kind !== 'drill' && ITEMS[id].kind !== 'teth');
   // ---- hand-drawn item icons (inline SVG): a wobbly inked outline over the item's colour, a highlight, per-kind drawings; jitter seeded by the id so each looks inked once
   const ICO = {};
   function svgIco(id) { if (ICO[id]) return ICO[id]; const it = ITEMS[id] || { kind: '?', col: '#888' }; let sd = 7; for (const ch of id) sd = (sd * 31 + ch.charCodeAt(0)) % 2147483647; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, j = (v) => (v + (R() - 0.5) * 1.6).toFixed(1);
@@ -83,17 +84,20 @@ const Craft = (() => {
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
     for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? svgIco(id) + `<b class="cxct">${fmtN(c)}</b>` : ''}</div>`; }
     return h + '</div>'; }
-  function gridsHTML(inModal) { const used = (w) => order(w).filter(Boolean).length;
-    let h = `<div class="cxp cxgrid" data-cxv="${inModal ? 'xfer' : 'bag'}"><div class="row between"><h2>🎒 Backpack</h2><span class="tag">${used('bag')} / ${BAG_N} slots</span></div>`;
-    h += `<div class="dim">Tap a stack to move all of it to the other side; press and hold for more (equip, move some). Stacks have no limit and no weight.</div>` + gridHTML('bag');
-    h += `<div class="row between" style="margin-top:12px"><h2>🔒 Ledge Vault</h2><span class="tag">${used('vault')} / ${VAULT_N} slots</span></div>` + gridHTML('vault');
+  const used = (w) => order(w).filter(Boolean).length;
+  // the Backpack shows only what she carries; the Ledge Vault sits beside it only on the vault's own Backpack ⇄ Vault screen (xfer)
+  function gridsHTML(inModal, xfer) {
+    let h = `<div class="cxp cxgrid" data-cxv="${xfer ? 'xfer' : 'bag'}"><div class="row between"><h2>🎒 Backpack</h2><span class="tag">${used('bag')} / ${BAG_N} slots</span></div>`;
+    h += `<div class="dim">${xfer ? 'Tap a stack to move all of it to the other side; press and hold for more (equip, move some).' : 'What Wren carries. Tap an item for its options.'} Stacks have no limit and no weight.</div>` + gridHTML('bag');
+    if (xfer) h += `<div class="row between" style="margin-top:12px"><h2>🔒 Ledge Vault</h2><span class="tag">${used('vault')} / ${VAULT_N} slots</span></div>` + gridHTML('vault');
     h += st.menu ? menuHTML() : ''; return h + (inModal ? '<button class="btn ghost" data-cx="close">Close</button>' : '') + '</div>'; }
   function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
     if (it && it.kind === 'drill') return drillMenuHTML(id, c);
+    if (it && it.kind === 'teth') return dropMenuHTML(id, c);
     return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
       (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
-      `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q} → ${to}</button>`).join('')}</div>` +
-      `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` +
+      (st.menu.x ? `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q} → ${to}</button>`).join('')}</div>` +
+      `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` : `<div class="dim">${w === 'bag' ? 'Carried in the backpack. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : ''}</div>`) +
       `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
   // the Mithril Drill's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up
   function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0;
@@ -101,15 +105,25 @@ const Craft = (() => {
       : `<div class="cxnear">${svgIco('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
     return `<div class="cxmenu cxdrill" data-w="bag" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>Mithril Drill</b><small>${fmtN(c)} in Backpack · Mithril bit, burns coal from its tank</small></span></div>${near}` +
       `<button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
-  function bagHTML(inModal) { return gridsHTML(inModal); }
-  function xferHTML() { return gridsHTML(true); }
+  // the Mithril Ledge Tether coil: 'Create a drop Ledge tether here?' - the length the rope needs from the Ledge door to her spot vs what is left on the coil
+  function dropMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.dropNeed ? Explore.dropNeed(id) : { err: 'explore' }, ok = !X.err && X.ok;
+    const info = X.err ? `<div class="cxnear dim">Lay a drop tether out on the map: open the map in Character view, then pick the coil from 🎒 Bag.</div>` : `<div class="cxnear${X.ok ? '' : ' none'}">🪢<span><b>Create a drop Ledge tether here?</b><small>${esc(X.name)} · needs ${X.need} m from the Ledge door · ${X.have} m on the coil</small></span></div>${X.ok ? '' : '<div class="cxnear none">⛔ Not enough tether</div>'}`;
+    return `<div class="cxmenu cxdrop" data-w="bag" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} m in Backpack · same braid as the door tethers</small></span></div>${info}` +
+      `<button class="btn alt cxdset" data-cx="dropok" data-id="${id}" ${ok ? '' : 'disabled'}>🪢 Create drop tether</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
+  function bagHTML(inModal) { return gridsHTML(inModal, false); }
+  function xferHTML() { return gridsHTML(true, true); }
+  // the Backpack as a bottom sheet over the map's Character view (about a third of the screen) until closed
+  function sheetHTML() { return `<div class="bsh"><h2>🎒 Backpack</h2><span class="tag">${used('bag')} / ${BAG_N} slots</span><button class="bsx" data-cx="sclose" aria-label="Close the backpack">✕</button></div><div class="bsb cxgrid" data-cxv="sheet">${gridHTML('bag')}${st.menu && st.menu.w === 'bag' ? menuHTML() : ''}</div>`; }
+  function sheet(on) { let el = document.getElementById('bagSheet'); if (!el && on) { el = document.createElement('div'); el.id = 'bagSheet'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Backpack'); (document.getElementById('cityWrap') || document.body).appendChild(el); }
+    st.sheet = !!on; st.menu = null; if (!el) return false; el.classList.toggle('on', !!on); el.innerHTML = on ? sheetHTML() : ''; const b = document.getElementById('exBagBtn'); if (b) b.classList.toggle('sel', !!on); return !!on; }
+  const sheetOn = () => !!st.sheet;
   // long-press opens the stack menu; a plain tap moves the whole stack
   let lp = null; const LP_MS = 450;
-  document.addEventListener('pointerdown', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; lp = { t, x: e.clientX, y: e.clientY, fired: false, tm: setTimeout(() => { if (!lp) return; lp.fired = true; st.menu = { w: t.dataset.w, id: t.dataset.id }; refresh(); }, LP_MS) }; });
+  document.addEventListener('pointerdown', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; lp = { t, x: e.clientX, y: e.clientY, fired: false, tm: setTimeout(() => { if (!lp) return; lp.fired = true; const cv = t.closest('[data-cxv]'); st.menu = { w: t.dataset.w, id: t.dataset.id, x: !!cv && cv.dataset.cxv === 'xfer' }; refresh(); }, LP_MS) }; });
   document.addEventListener('pointermove', (e) => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) { clearTimeout(lp.tm); lp = null; } });
   document.addEventListener('pointerup', () => { if (lp && !lp.fired) clearTimeout(lp.tm); });
   document.addEventListener('contextmenu', (e) => { if (e.target.closest('.cxs')) e.preventDefault(); });
-  document.addEventListener('click', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; if (lp && lp.fired) { lp = null; return; } lp = null; const w = t.dataset.w, id = t.dataset.id, to = w === 'bag' ? 'vault' : 'bag'; if (ITEMS[id] && ITEMS[id].kind === 'drill') { st.menu = { w, id }; return refresh(); }
+  document.addEventListener('click', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; if (lp && lp.fired) { lp = null; return; } lp = null; const w = t.dataset.w, id = t.dataset.id, to = w === 'bag' ? 'vault' : 'bag', cv = t.closest('[data-cxv]'); if ((ITEMS[id] && (ITEMS[id].kind === 'drill' || ITEMS[id].kind === 'teth')) || !cv || cv.dataset.cxv !== 'xfer') { st.menu = { w, id, x: !!cv && cv.dataset.cxv === 'xfer' }; return refresh(); }
     const n = move(w, to, id, get(w, id)); if (!n && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); refresh(); });
   const cost = (r, x) => Object.keys(r.in).map((k) => `<span class="cxc${have(k) >= r.in[k] * x ? '' : ' short'}">${ico(k)}${r.in[k] * x} ${esc(ITEMS[k].short)}<small>/${fmt(have(k))}</small></span>`).join('');
   function recipeHTML(kind) { const F = kind === 'furnace', list = F ? SMELT : SMITH;
@@ -125,20 +139,22 @@ const Craft = (() => {
   function exHTML() { const S2 = st.tab === 'sell';
     let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 Lumen Crystal</h2><span class="tag">✦ ${fmt(lum())} Lumen</span></div><div class="dim">The crystal trades with the Hollow. Placeholder local market prices.</div>`;
     h += `<div class="cxq">${[['sell', 'Sell'], ['buy', 'Buy']].map(([k, l]) => `<button class="btn sm ${st.tab === k ? 'alt' : 'ghost'}" data-cx="tab" data-v="${k}">${l}</button>`).join('')}</div>${qtyBar()}`;
-    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'drill');
+    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'drill' && ITEMS[id].kind !== 'teth');
     h += ids.length ? `<div class="card cxl">${ids.map((id) => { const p = S2 ? sellP(id) : buyP(id), n = st.qty === 'all' ? (S2 ? have(id) : Math.floor(lum() / p)) : st.qty, ok = S2 ? have(id) >= Math.max(1, n) : lum() >= p * Math.max(1, n);
       return `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}<small>✦ ${p} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
     return h + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
   const VIEW = { bag: () => bagHTML(true), xfer: xferHTML, furnace: () => recipeHTML('furnace'), anvil: () => recipeHTML('anvil'), exchange: exHTML };
   function open(kind) { if (typeof openModal !== 'function' || !VIEW[kind]) return false; st.kind = kind; st.menu = null; openModal(VIEW[kind](), 'cx-' + kind); return true; }
-  function refresh() { const b = document.getElementById('modalBody'); if (st.kind && b && typeof ui !== 'undefined' && ui.modal === 'cx-' + st.kind) b.innerHTML = VIEW[st.kind](); else if (typeof ui !== 'undefined' && ui.tab === 'bag' && typeof rerender === 'function') rerender(true); if (typeof save === 'function') try { save(); } catch (e) {} }
+  function refresh() { const sh = document.getElementById('bagSheet'); if (st.sheet && sh) sh.innerHTML = sheetHTML(); const b = document.getElementById('modalBody'); if (st.kind && b && typeof ui !== 'undefined' && ui.modal === 'cx-' + st.kind) b.innerHTML = VIEW[st.kind](); else if (typeof ui !== 'undefined' && ui.tab === 'bag' && typeof rerender === 'function') rerender(true); if (typeof save === 'function') try { save(); } catch (e) {} }
   const nOf = (avail) => (st.qty === 'all' ? avail : Math.min(st.qty, avail));
   document.addEventListener('click', (e) => { const t = e.target.closest('[data-cx]'); if (!t || t.disabled) return; const a = t.dataset.cx, id = t.dataset.id;
     if (a === 'close') return typeof closeModal === 'function' && closeModal();
+    if (a === 'sclose') return sheet(false);
     if (a === 'qty') st.qty = t.dataset.v === 'all' ? 'all' : +t.dataset.v; else if (a === 'dest') st.dest = t.dataset.v; else if (a === 'tab') st.tab = t.dataset.v; else if (a === 'acat') st.acat = t.dataset.v; else if (a === 'atool') st.atool = t.dataset.v;
     else if (a === 'xfer') return open('xfer');
     else if (a === 'mclose') st.menu = null;
-    else if (a === 'dset') { st.menu = null; const r = typeof Explore !== 'undefined' && Explore.drillSetup ? Explore.drillSetup() : null; if (r && !r.err) { if (typeof closeModal === 'function') closeModal(); return; } }
+    else if (a === 'dropok') { st.menu = null; const r = typeof Explore !== 'undefined' && Explore.dropCreate ? Explore.dropCreate(id) : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
+    else if (a === 'dset') { st.menu = null; const r = typeof Explore !== 'undefined' && Explore.drillSetup ? Explore.drillSetup() : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
     else if (a === 'equip') { if (equip(id) && typeof toast === 'function') toast(`✅ Equipped ${nm(id)}`); st.menu = null; }
     else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); } st.menu = null; }
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
@@ -146,5 +162,5 @@ const Craft = (() => {
     else if (a === 'sell') { const n = sell(id, nOf(have(id))); if (n && typeof toast === 'function') toast(`💠 Sold ${n}× ${nm(id)}`); }
     else if (a === 'buy') { const n = buy(id, nOf(Math.floor(lum() / buyP(id)))); if (n && typeof toast === 'function') toast(`💠 Bought ${n}× ${nm(id)}`); }
     refresh(); });
-  return { BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, TIERS, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st };
+  return { BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, TIERS, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm };
 })();

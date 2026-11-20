@@ -33,16 +33,16 @@ const CityMap = (() => {
     window.addEventListener('resize', resize);
     $('#cityCount').textContent = `· ${W.homes.length.toLocaleString()} ${CITY.homeTerm}s`;
     buildLegend(); buildMinimapBase(); resize();
-    mount.done = true;
-    if (typeof M3 !== 'undefined') M3.init(wrap, (p) => { showLoader(p == null ? null : p); if (p == null) { resize(); M3.place(cam, true); } });
+    mount.done = true; const V0 = mapView(); if (V0.mode === 'dev' && V0.dev) Object.assign(cam, V0.dev, { vx: 0, vy: 0, fly: null }); viewMark();
+    if (typeof M3 !== 'undefined') M3.init(wrap, (p) => { showLoader(p == null ? null : p); if (p == null) { resize(); M3.place(cam, true); autoView(); } });
   }
   function layout() { const top = $('#top').offsetHeight, bot = $('#tabs').offsetHeight; wrap.style.top = top + 'px'; wrap.style.bottom = bot + 'px'; }
   function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, 2); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
   function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); if (p != null) { L.querySelector('i').style.width = Math.round(p * 100) + '%'; L.querySelector('.ldPct').textContent = Math.round(p * 100) + '%'; } }
   function show() {
     if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Ledgeville art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
-    if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } }
-  function hide() { if (typeof Explore !== 'undefined') Explore.exit(); if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
+    if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } autoView(); }
+  function hide() { devSave(); if (typeof Explore !== 'undefined') Explore.exit(); if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
 
   /* ---------- camera ---------- */
   const kpx = () => cam.z * dpr;
@@ -130,7 +130,7 @@ const CityMap = (() => {
       const inV = (x, y, m) => { const [sx, sy] = M3.project(x, y, 0); const mm2 = (m || 0) * cam.z + 40; return sx > -mm2 && sx < Wc / dpr + mm2 && sy > -mm2 && sy < Hc / dpr + mm2; };
       const S2 = (x, y, u2, u3, abs) => { const [sx, sy] = M3.project(x, y, u3 || 0, abs); return [sx * dpr, sy * dpr]; };
       if (!st.noLabels && !(typeof Explore !== 'undefined' && Explore.on)) drawLabels(c, t, view, inV, S2); else st.labels = []; st.view = view; // (in Explore she is down among the houses: no floating name pills)
-      if (frameN % 4 === 0) drawMinimap(view);
+      if (frameN % 60 === 0) devSave();
       if (t - tickerT > 7 || !tickerT) { tickerT = t; updateTicker(); }
       if (frameN % 15 === 0) updateInfo(t); st.frames++; st.lastDraw = now; return; }
     const vx0 = cam.x - Wc / 2 / k, vy0 = cam.y - Hc / 2 / k, vx1 = cam.x + Wc / 2 / k, vy1 = cam.y + Hc / 2 / k;
@@ -142,7 +142,7 @@ const CityMap = (() => {
     if (!CITY.base) drawLife(c, t, view, inV);
     c.setTransform(1, 0, 0, 1, 0, 0);
     drawOverlay(c, t, view, inV);
-    if (frameN % 4 === 0) drawMinimap();
+    if (frameN % 60 === 0) devSave();
     if (t - tickerT > 7 || !tickerT) { tickerT = t; updateTicker(); }
     if (frameN % 15 === 0) updateInfo(t);
     st.frames++; st.lastDraw = now;
@@ -413,9 +413,23 @@ const CityMap = (() => {
     const m = currentMole(); if (m) { mctx.fillStyle = '#c8634c'; mctx.beginPath(); mctx.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, 4.5, 0, TAU); mctx.fill(); }
     mctx.restore(); void s;
   }
+  /* ---------- views: Character (third-person on her; what the map opens at) or Dev (the overview camera; zoom / rotate / tilt live only there).
+     The last view and where it was (her spot, facing and follow camera; the Dev camera) persist in memory (S.mapView) and localStorage, so leaving the tab and
+     coming back resumes there instead of resetting to the Ledge */
+  let MVc = null;
+  function mapView() { if (MVc) return MVc; let v = null; try { v = JSON.parse(localStorage.getItem('hdMapView') || 'null'); } catch (e) {} MVc = Object.assign({ mode: 'char' }, v || {}, (typeof S !== 'undefined' && S.mapView) || {}); if (typeof S !== 'undefined') S.mapView = MVc; return MVc; }
+  function mapViewSave(ch) { const v = mapView(); if (ch) Object.assign(v, ch); if (typeof S !== 'undefined') S.mapView = v; try { localStorage.setItem('hdMapView', JSON.stringify(v)); } catch (e) {} return v; }
+  function devSave() { if (mount.done && !(typeof Explore !== 'undefined' && Explore.on) && mapView().mode === 'dev') mapViewSave({ dev: { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt } }); }
+  function viewMark() { const m = mapView().mode; if (wrap) { wrap.classList.toggle('devv', m === 'dev'); wrap.querySelectorAll('.cityBtns .vb').forEach((b) => b.classList.toggle('on', b.dataset.city === (m === 'dev' ? 'vdev' : 'vchar'))); } }
+  function charEnter() { if (typeof Explore === 'undefined' || !is3d() || !M3.scene || Explore.on) return !!(typeof Explore !== 'undefined' && Explore.on); const c = mapView().char; let ok = false; try { ok = c && isFinite(c.x) ? Explore.enter(c.x, c.y, c) : Explore.enter(); } catch (e) { console.error(e); } return ok; }
+  function autoView() { if (typeof ui !== 'undefined' && ui.tab !== 'city') return; viewMark(); if (mapView().mode !== 'dev') charEnter(); }
+  function setView(m) { const v = mapView(); if (m === 'dev') { if (typeof Explore !== 'undefined' && Explore.on) { const h = Explore.here(); Explore.exit(); if (!v.dev && h) { cam.x = h[0]; cam.y = h[1]; cam.z = clamp(2.5 * Math.min(Wc, Hc) / dpr / (CITY.plateauR * 2.9), CITY.zoomMin, CITY.zoomMax); cam.rot = cam.rot || 0; cam.tilt = 55; } /* first Dev view: an overview centred on her */ } v.mode = 'dev'; if (v.dev) Object.assign(cam, v.dev, { vx: 0, vy: 0, fly: null }); if (is3d()) M3.place(cam, true); devSave(); }
+    else { devSave(); v.mode = 'char'; charEnter(); } mapViewSave(); viewMark(); return v.mode; }
   function cityButton(b) {
+    if (b === 'vchar' || b === 'vdev') return setView(b === 'vdev' ? 'dev' : 'char');
+    if ((b === 'zin' || b === 'zout' || b === 'rotl' || b === 'rotr' || b === 'tilt') && mapView().mode !== 'dev') return; // camera options exist only in Dev view
     if (b === 'rotl' || b === 'rotr') { if (is3d()) cam.fly = { x0: cam.x, y0: cam.y, z0: cam.z, x: cam.x, y: cam.y, z: cam.z, r0: cam.rot, r1: cam.rot + (b === 'rotl' ? -1 : 1) * Math.PI / 4, t0: performance.now(), d: 500 }; return; }
-    if (b === 'explore') { if (typeof Explore === 'undefined' || !is3d()) return; return Explore.on ? Explore.exit() : Explore.enter(); }
+    if (b === 'explore') { if (typeof Explore === 'undefined' || !is3d()) return; return setView(Explore.on ? 'dev' : 'char'); }
     if (b === 'tilt') { if (is3d()) cam.tilt = cam.tilt < 45 ? 55 : cam.tilt < 62 ? 70 : 38; return; }
     if (b === 'zin') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1.5);
     if (b === 'zout') return zoomAt(Wc / dpr / 2, Hc / dpr / 2, 1 / 1.5);
@@ -600,5 +614,5 @@ const CityMap = (() => {
     }
     return false;
   }
-  return { climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
+  return { mapView, mapViewSave, setView, autoView, climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
 })();

@@ -22,7 +22,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   if (s0.far) { const f = await p.evaluate(async () => { Explore.enter(__T.far[0], __T.far[1]); for (let i = 0; i < 10; i++) Explore.tick(1 / 30); document.getElementById('exBagBtn').click(); await new Promise((r) => setTimeout(r, 200));
       document.querySelector('.cxs.full[data-id="drill:mithril"]').click(); await new Promise((r) => setTimeout(r, 200)); const m = document.querySelector('.cxdrill'); return { m: !!m, txt: m && m.textContent, dis: m && m.querySelector('[data-cx=dset]').disabled }; });
     ok(f.m && /No ore within 5 s walk/.test(f.txt) && f.dis, `away from ore the drill menu says "No ore within 5 s walk" and Set up is disabled`); await shot('menu-none.png');
-    await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} }); }
+    await p.evaluate(() => { try { closeModalQuiet(); Craft.sheet(false); } catch (e) {} }); }
   // near ore: type + distance, confirm walks there and sets up
   const n1 = await p.evaluate(async () => { const WS = Explore.WS, st = __T.st, n = Explore.ORE.nodes[__T.tgt]; let k = null; for (const a of [0, 1.6, 3.1, 4.7, 0.8, 2.4, 3.9, 5.5]) { const q = Explore.reach(st[0] + Math.cos(a) * WS * 10, st[1] + Math.sin(a) * WS * 10); if (Explore.clsAt(q[0], q[1]) === 1 && Math.hypot(q[0] - st[0], q[1] - st[1]) > WS * 6) { k = q; break; } } if (!k) k = Explore.reach(st[0], st[1]);
     Explore.exit(); Explore.enter(k[0], k[1]); for (let i = 0; i < 20; i++) Explore.tick(1 / 30); const X = Explore.drillNear(); document.getElementById('exBagBtn').click(); await new Promise((r) => setTimeout(r, 200));

@@ -24,6 +24,7 @@ const ExMap = (() => {
   function labels() { const L = [], P = Explore.places(), by = (id) => P.find((q) => q.id === id);
     const ledge = by('ledge'); if (ledge) L.push({ x: ledge.ox, y: ledge.oy, t: '🏠 Your Ledge', k: 'home' }); const tr = by('tree'); if (tr) L.push({ x: tr.ox, y: tr.oy, t: '🌳 Lumen Tree', k: 'tree' });
     const ci = by('city'); if (ci) L.push({ x: ci.ox, y: ci.oy, t: '🏘️ Ledgeville', k: 'city' }); const ss = by('silverseam'); if (ss) L.push({ x: ss.ox, y: ss.oy, t: '⛺ Silverseam portaledge', k: 'ss' });
+    if (Explore.tetherList) for (const t of Explore.tetherList()) if (!t.camp && t.kind !== 'door' && isFinite(t.x)) L.push({ x: t.x, y: t.y, t: (t.kind === 'drop' ? '🪢 ' : '🛠️ ') + t.name, k: 'teth' }); // every tether end, by its (renamable) name
     return L; } // labels only for the key places; bridges are drawn as part of the path network
   function draw() { const cv = st.cv; if (!cv) return; const g = cv.getContext('2d'), v = st.view, B = baseImage(), dpr = v.dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#18202e'; g.fillRect(0, 0, v.W, v.H);
     const R = Explore.REG, C = Explore.C, [ox, oy] = W2S(R.X0, R.Y0), sc = v.s * C * B.K; g.imageSmoothingEnabled = true; g.drawImage(B.cv, ox, oy, B.bw * sc, B.bh * sc);
@@ -32,6 +33,7 @@ const ExMap = (() => {
     for (const c of W.cracks || []) line(c.pts, Math.max(1.2, 30 * v.s), 'rgba(12,8,16,.85)'); // crevices
     const PW = Math.max(1.4, Math.min(4, 22 * v.s)); for (const f of Explore.allPaths()) { const pts = []; for (let i = 1; i + 1 < f.length; i += 2) pts.push([f[i], f[i + 1]]); line(pts, PW + 1.6, 'rgba(70,48,24,.55)'); line(pts, PW, f[0] ? '#efe2c0' : '#e2c890'); } // footpaths (the cobbled way paler)
     for (const Bq of Explore.BRIDGES) { if (!Bq.a || Bq.a[0] > 1e6) continue; line([Bq.a, Bq.b], PW + 2.4, 'rgba(70,48,24,.75)'); line([Bq.a, Bq.b], PW + 0.6, '#c9a46a'); } // bridges: just a plank-toned stretch of the path network
+    if (Explore.tetherList) for (const t of Explore.tetherList()) if (t.kind === 'drop' || t.kind === 'drill') { line(t.pts, 3.4, 'rgba(10,20,40,.55)'); line(t.pts, 1.8, '#9cc0e6'); } // the laid tethers themselves
     const T = st.trip; if (T && T.P) { line(T.P.pts, 5, 'rgba(0,0,0,.35)'); line(T.P.pts, 3, '#ff6a3d', [8, 6]); const [dx, dy] = W2S(T.dest.x, T.dest.y); g.fillStyle = '#ff6a3d'; g.beginPath(); g.arc(dx, dy, 6, 0, 6.3); g.fill(); g.strokeStyle = '#fff'; g.lineWidth = 2; g.stroke(); }
     // ore spots: a small crystal per cluster (copper orange, tin silver-blue, coal black); cliff veins get a dashed ring (seen, not yet minable)
     if (Explore.oreSpots) { const OC = { copper: '#e0803c', tin: '#c8d4e4', coal: '#22222a' }, r = Math.max(4, Math.min(7, v.s * 40)); for (const p of Explore.oreSpots()) { const [x, y] = W2S(p.x, p.y); if (x < -10 || y < -10 || x > v.W + 10 || y > v.H + 10) continue; g.fillStyle = OC[p.type]; g.strokeStyle = p.type === 'coal' ? '#d8d8e0' : '#2a1a10'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - r * 1.4); g.lineTo(x + r * 0.8, y - r * 0.2); g.lineTo(x, y + r); g.lineTo(x - r * 0.8, y - r * 0.2); g.closePath(); g.fill(); g.stroke(); if (p.cliff) { g.setLineDash([3, 3]); g.beginPath(); g.arc(x, y, r * 1.9, 0, 6.3); g.stroke(); g.setLineDash([]); } } }
@@ -40,7 +42,7 @@ const ExMap = (() => {
     chip(); }
   // ---- ETA: walk / run pace on the ground, the Climbing Pick grade's pace on climb pitches (3D length), deck = ground
   const CLIMB_MPS = { stone: 1.1, bronze: 1.4, iron: 1.5, steel: 1.6, gold: 1.7, mithril: 1.85, rune: 2.0, lumen: 2.15, onyx: 2.3 };
-  function eta(P) { const WS = Explore.WS, gait = (CharView.st && CharView.st.gait) || 'run', K = (typeof CharView !== 'undefined' && CharView.EXK) || 1, vG = (gait === 'walk' ? 1.2 : 3.7) * K, vC = vG * 0.35; /* her real pace: the ground speed scaled by her map body scale (EXK), 0.35x on a climb - along the planned path, not the straight line */ let t = 0, Lg = 0, Lc = 0;
+  function eta(P) { const WS = Explore.WS, gait = (CharView.st && CharView.st.gait) || 'run', K = (typeof CharView !== 'undefined' && CharView.EXK) || 1, vG = ((CharView.GW && CharView.GW.spd) || 3.7) * K /* she always runs */, vC = 0.795 * ((CharView.CLIMB_EX) || 0.6) * K; /* her climbing pace: its own gait rate (CharView.CLIMB_EX), not the run speed */ /* her real pace: the ground speed scaled by her map body scale (EXK), 0.35x on a climb - along the planned path, not the straight line */ let t = 0, Lg = 0, Lc = 0;
     for (let i = 0; i + 1 < P.pts.length; i++) { const [ax, ay] = P.pts[i], [bx, by] = P.pts[i + 1], L = Math.hypot(bx - ax, by - ay) / WS, c = Explore.clsAt((ax + bx) / 2, (ay + by) / 2); if (c === 2) { const dh = Math.abs(Explore.hAt(bx, by) - Explore.hAt(ax, ay)) / WS, l3 = Math.hypot(L, dh); Lc += l3; t += l3 / vC; } else { Lg += L; t += L / vG; } }
     return { s: t, ground: Lg, climb: Lc, gait, climbGrade: S.climbGrade }; }
   const TRAVEL = { dest: null, mode: 'walk' }; // dest: any world point {x, y, label}; mode 'walk' only for now ('teleport' reserved)
@@ -75,5 +77,5 @@ const ExMap = (() => {
   function zoomAt(sx, sy, k, quiet) { const v = st.view, [wx, wy] = S2W(sx, sy); v.s = Math.max(v.s0 * 0.8, Math.min(v.s0 * 60, v.s * k)); v.cx = wx - (sx - v.W / 2) / v.s; v.cy = wy - (sy - v.H / 2) / v.s; if (!quiet) draw(); }
   function tapAt(x, y) { const L = labels().find((q) => { const a = W2S(q.x, q.y), b = W2S(x, y); return Math.hypot(a[0] - b[0], a[1] - b[1]) < 16; }); return travelTo(L ? L.x : x, L ? L.y : y, L ? L.t.replace(/^\S+\s/, '') : null); }
   function close() { const el = document.getElementById('exMap'); if (el) el.classList.remove('on'); st.open = false; }
-  return { st, TRAVEL, open, close, draw, travelTo, tapAt, cancel, eta, progress, baseImage, W2S, S2W, CLIMB_MPS };
+  return { st, TRAVEL, labels, open, close, draw, travelTo, tapAt, cancel, eta, progress, baseImage, W2S, S2W, CLIMB_MPS };
 })();
