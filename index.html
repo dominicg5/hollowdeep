@@ -292,9 +292,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='b84ed219';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build b84ed219</div>
-<script src="assets/vendor/three.min.js?v=b84ed219"></script>
+<script>window.HD_BUILD='5051285b';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 5051285b</div>
+<script src="assets/vendor/three.min.js?v=5051285b"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -8283,9 +8283,9 @@ const Explore = (() => {
     const leafT = cvT(64, 64, (g) => { g.clearRect(0, 0, 64, 64); g.fillStyle = '#6fa24a'; g.beginPath(); g.moveTo(32, 2); g.quadraticCurveTo(60, 26, 32, 62); g.quadraticCurveTo(4, 26, 32, 2); g.fill(); g.strokeStyle = '#3f6d28'; g.lineWidth = 2; g.beginPath(); g.moveTo(32, 6); g.lineTo(32, 58); g.stroke(); });
     const flowerT = cvT(32, 32, (g) => { g.clearRect(0, 0, 32, 32); g.fillStyle = '#fbf8f0'; for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; g.beginPath(); g.ellipse(16 + Math.cos(a) * 7, 16 + Math.sin(a) * 7, 6, 4, a, 0, 7); g.fill(); } g.fillStyle = '#f2c84a'; g.beginPath(); g.arc(16, 16, 3.4, 0, 7); g.fill(); });
     const LM = (c, k, o) => { const m = new THREE.MeshLambertMaterial(Object.assign({ color: c }, o || {})); m.userData.kind = k; return m; };
-    const mats = { plank: LM(0x9a7448, 'wood', { map: grain }), wood: LM(0x7a5636, 'wood', { map: grain }), log: LM(0x8a6a4c, 'wood', { map: bark }), stone: LM(0xa49c8e, 'stone', { map: stoneT }), vine: LM(0x41672a, 'vine'), leaf: LM(0xffffff, 'leaf', { map: leafT, alphaTest: 0.5, side: THREE.DoubleSide }), flower: LM(0xffffff, 'flower', { map: flowerT, alphaTest: 0.5, side: THREE.DoubleSide, emissive: 0x222018 }), iron: LM(0x1a1a1c, 'iron') };
+    const mats = { plank: LM(0x9a7448, 'wood', { map: grain }), wood: LM(0x7a5636, 'wood', { map: grain }), log: LM(0x8a6a4c, 'wood', { map: bark }), stone: LM(0xa49c8e, 'stone', { map: stoneT }), vine: LM(0x41672a, 'vine'), leaf: LM(0xffffff, 'leaf', { map: leafT, alphaTest: 0.5, side: THREE.DoubleSide }), flower: LM(0xffffff, 'flower', { map: flowerT, alphaTest: 0.5, side: THREE.DoubleSide, emissive: 0x222018 }), iron: LM(0x1a1a1c, 'iron'), rope: LM(0xb89c6c, 'wood') };
     const geos = { box: new THREE.BoxGeometry(1, 1, 1), cyl: new THREE.CylinderGeometry(1, 1, 1, 8).rotateX(Math.PI / 2), quad: new THREE.PlaneGeometry(1, 1) };
-    const KIND = { plank: 'box', wood: 'box', stone: 'box', iron: 'box', log: 'cyl', vine: 'cyl', leaf: 'quad', flower: 'quad' };
+    const KIND = { plank: 'box', wood: 'box', stone: 'box', iron: 'box', log: 'cyl', vine: 'cyl', rope: 'cyl', leaf: 'quad', flower: 'quad' };
     const chunks = new Map(); let L = null; const Z = new THREE.Vector3(0, 0, 1), up = new THREE.Vector3(0, 1, 0), m4 = new THREE.Matrix4(), bx = new THREE.Vector3(), by = new THREE.Vector3(), bz = new THREE.Vector3(), qq = new THREE.Quaternion(), ee = new THREE.Euler();
     const beam = (k, p0, p1, w, hh) => { bz.subVectors(p1, p0); const len = bz.length(); if (len < 0.01) return; bz.normalize(); bx.crossVectors(Math.abs(bz.y) > 0.95 ? Z : up, bz).normalize(); by.crossVectors(bz, bx); m4.makeBasis(bx, by, bz).scale(new THREE.Vector3(w, hh == null ? w : hh, len)).setPosition((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2); L[k].push(m4.clone()); };
     const box = (k, c, sx, sy, sz, ang, rx, rz) => { ee.set(rx || 0, ang || 0, rz || 0, 'YXZ'); qq.setFromEuler(ee); m4.compose(c, qq, new THREE.Vector3(sx, sy, sz)); L[k].push(m4.clone()); };
@@ -8294,6 +8294,10 @@ const Explore = (() => {
       if (!chunks.has(ck)) { const o = {}; for (const k in mats) o[k] = []; chunks.set(ck, { L: o, x: 0, y: 0, n: 0 }); } const CH = chunks.get(ck); CH.x += mx; CH.y += my; CH.n++; L = CH.L;
       const P = (t, s, dy) => { const x = B.a[0] + B.ux * t * Lr - B.uy * s, y = B.a[1] + B.uy * t * Lr + B.ux * s; return new THREE.Vector3(x, deckH(B, t) + (dy || 0), y); }, PA = (t, s, y) => { const v = P(t, s, 0); v.y = y; return v; }, at = (u) => u / Lr;
       const W2 = DW / 2, gAt = (t, s) => { const v = P(t, s, 0); return gH(v.x, v.z); };
+      // the style (Art's bridges_paths_sheet, varied round the map): plank decks with rope rails (end posts only, or posts all along with two ropes),
+      // a stone slab laid on boulders, a mossy stone arch; the long spans and the cliff stairs keep the heavy log trestle bridge
+      const hs = (Math.abs(Math.sin(mx * 0.0131 + my * 0.0173) * 43758.5) % 1), style = stair || Lr > 200 || B.id === 'south' ? 'log' : hs < 0.28 ? 'rope' : hs < 0.52 ? 'rope2' : hs < 0.8 ? (Lr < 140 ? 'arch' : 'rope2') : (Lr < 75 ? 'slab' : 'rope');
+      B.style = style;
       // ---- the hero bridge before the Lumen Tree (approved concept): a massive arched log bridge right across the three falls - a deck many strides wide,
       // thick stringers and fascia logs, heavy cut-top log posts, twisted branch rails wound with leafy vines and small white flowers, a broad plank stair
       // off the middle down to the cobbled path to the door, and stone footings bedded into the grassy hills at each end
@@ -8302,6 +8306,19 @@ const Explore = (() => {
       for (const end of [0, 1]) { const dir = end ? -1 : 1, t0 = end, top = deckH(B, t0) - 1.2;
         for (const s0 of [-W2 + 2, 0, W2 - 2]) { let y = top - 2, u = 2; for (let c = 0; c < 9; c++) { const t = t0 + dir * at(u), g = gAt(t, s0); const h = 5 + rn() * 2.5; y = Math.min(y, deckH(B, clamp(t, 0, 1)) - 3.2); /* never poke up through a sloping (stair) deck */ if (y - h < g - 12 && c > 1) break; box('stone', PA(t, s0 + (rn() - 0.5) * 1.2, y - h / 2), 7 + rn() * 2.5, h, 7 + rn() * 3, ang + (rn() - 0.5) * 0.3); y -= h * 0.92; u += (g < y - 4 ? 2.2 : 0.6); } }
         beam('log', P(t0 + dir * at(1), -W2 - 3, -2.2), P(t0 + dir * at(1), W2 + 3, -2.2), 2.4); }
+      // ferns and stones bedded at the abutments (every style)
+      for (const end of [0, 1]) for (let k = 0; k < 7; k++) { const t = end ? 1 + at(4 + rn() * 10) : -at(4 + rn() * 10), sd2 = (rn() < 0.5 ? -1 : 1) * (W2 + 2 + rn() * 7), g = gAt(t, sd2); if (k < 3) box('stone', PA(t, sd2, g + 0.6), 2.2 + rn() * 2.4, 1.6 + rn() * 1.6, 2.2 + rn() * 2.4, rn() * 6); else for (let f = 0; f < 3; f++) box('leaf', PA(t, sd2 + (rn() - 0.5) * 2, g + 1.1), 2.2, 2.8, 1, rn() * 6, -0.9 + rn() * 0.5, 0); }
+      if (style === 'slab' || style === 'arch') { const yd = (t) => deckH(B, clamp(t, 0, 1));
+        if (style === 'slab') { const n = Math.max(1, Math.ceil(Lr / 42)); for (let q = 0; q < n; q++) { const t = (q + 0.5) / n; box('stone', P(t, (rn() - 0.5) * 0.8, -1.7), DW + 3 + rn() * 2, 3.4, Lr / n * 1.08 + 4, ang + (rn() - 0.5) * 0.06, (rn() - 0.5) * 0.03, (rn() - 0.5) * 0.03); }
+          for (let q = 0; q <= n; q++) { const t = q / n; for (const s0 of [-W2 + 2, W2 - 2, 0]) { const g = gAt(t, s0), top = yd(t) - 3.2; let y = top; for (let c = 0; c < 4 && y > g - 4; c++) { const h = 5 + rn() * 4, w = 7 + rn() * 4; box('stone', PA(t + at((rn() - 0.5) * 3), s0 + (rn() - 0.5) * 2, y - h / 2), w, h, w * (0.8 + rn() * 0.4), rn() * 6, (rn() - 0.5) * 0.3, (rn() - 0.5) * 0.3); y -= h * 0.85; } } } }
+        else { const m = Math.max(8, Math.round(Lr / 3.5)), g0 = Math.min(gAt(0, 0), gAt(1, 0)), base = Math.min(g0, gAt(0.5, 0)) - 4;
+          for (let q = 0; q < m; q++) { const t = (q + 0.5) / m, d = yd(t), ya = base + Math.max(0, d - 6 - base) * Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, (t + 0.06) / 1.12))), 0.55);
+            box('stone', P(t, 0, -1.1), DW + 1.6, 2.4, Lr / m * 0.97, ang + (rn() - 0.5) * 0.02); /* the paving */
+            if (d - 2.2 - ya > 0.6) box('stone', PA(t, 0, (ya + d - 2.2) / 2), DW + 1.2, d - 2.2 - ya, Lr / m * 1.02, ang); /* the spandrel walls over the arch ring */
+            box('stone', PA(t, 0, ya - 0.6), DW + 2.2, 1.8, Lr / m * 0.9, ang); /* the voussoirs */
+            for (const sd2 of [-1, 1]) box('stone', P(t, sd2 * (W2 + 0.4), 1.0 + (q % 2) * 0.25), 1.8, 2.6, Lr / m * 0.92, ang + (rn() - 0.5) * 0.04); } /* low parapets */
+          for (const end of [0, 1]) for (const sd2 of [-1, 1]) box('stone', P(end, sd2 * (W2 + 0.6), 1.6), 2.6, 3.8, 3.2, ang); }
+        continue; }
       // ---- deck: three log stringers, a gently arched plank deck with small gaps, edge boards
       for (const so of [-(W2 - 3), 0, W2 - 3]) { const n = 6; for (let q = 0; q < n; q++) beam('log', P(-at(4) + q / n * (1 + at(8)), so, -2.6), P(-at(4) + (q + 1) / n * (1 + at(8)), so, -2.6), 2.0); }
       const np = Math.max(6, Math.round(Lr / (stair ? 3.4 : 2.6))); for (let q = 0; q < np; q++) { const t = (q + 0.5) / np, c = P(t, (rn() - 0.5) * 0.6, -0.7 + (rn() - 0.5) * 0.15); box(q % 5 === 2 ? 'wood' : 'plank', c, DW + (rn() - 0.5) * 1.6, stair ? 1.4 : 1.2, (stair ? 3.0 : 2.3), ang + (rn() - 0.5) * 0.03); if (stair) box('wood', P(t, 0, -1.8), DW - 1, 1.2, 1.0, ang); }
@@ -8312,7 +8329,11 @@ const Explore = (() => {
 
       // ---- rustic log posts with cut tops, branch rails (top + mid) bending with the arch, wound with vines, leaves and tiny white flowers
       const npost = Math.max(2, Math.round(Lr / 16)); const Hp = 5.4;
-      for (const sd2 of [-1, 1]) { const s1 = sd2 * (W2 + 0.4);
+      if (style === 'rope' || style === 'rope2') { const np3 = style === 'rope' ? 1 : Math.max(1, Math.round(Lr / 26)), Hr = 4.6;
+        for (const sd2 of [-1, 1]) { const s1 = sd2 * (W2 + 0.2); for (let q = 0; q <= np3; q++) { const t = q / np3, big = q === 0 || q === np3; beam('log', P(t, s1, -3.4), P(t, s1, Hr + (big ? 1.2 : 0.4)), big ? 1.5 : 1.15); box('wood', P(t, s1, Hr + (big ? 1.9 : 1.0)), big ? 2.0 : 1.6, 0.5, big ? 2.0 : 1.6, ang);
+            for (const hy of style === 'rope' ? [Hr] : [Hr, Hr * 0.45]) box('rope', P(t, s1, hy), 2.0, 0.45, 2.0, ang); } /* rope lashings */
+          for (const hy of style === 'rope' ? [Hr] : [Hr, Hr * 0.45]) for (let q = 0; q < np3; q++) { const seg = 8, sag = Math.min(2.2, Lr / np3 * 0.035); let prev = null; for (let k = 0; k <= seg; k++) { const u = k / seg, t = (q + u) / np3, p = P(t, s1, hy - sag * 4 * u * (1 - u)); if (prev) beam('rope', prev, p, 0.32); prev = p; } } } }
+      else for (const sd2 of [-1, 1]) { const s1 = sd2 * (W2 + 0.4);
         for (let q = 0; q <= npost; q++) { const t = q / npost, b0 = P(t, s1, -3.2), tp = P(t, s1, Hp + 0.6 + (q === 0 || q === npost ? 0.8 : 0)); beam('log', b0, tp, q === 0 || q === npost ? 1.35 : 1.05); box('wood', P(t, s1, Hp + 1.5 + (q === 0 || q === npost ? 0.8 : 0)), 1.9, 0.5, 1.9, ang); } // cut log end
         for (const [hy, rr] of [[Hp, 0.62], [Hp * 0.48, 0.48]]) { const seg = npost * 3; let prev = null; for (let q = 0; q <= seg; q++) { const t = q / seg, wob = Math.sin(q * 1.7 + sd2) * 0.35, p = P(t, s1 + wob * 0.4, hy + wob); if (prev) beam('log', prev, p, rr); prev = p; } }
         // vines: a spiral strand round the top rail with leaf pairs and flowers; a few hanging tendrils
