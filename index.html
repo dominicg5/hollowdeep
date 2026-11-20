@@ -237,6 +237,15 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #areaLoader .al-bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #f0c860, #6fe0d0); border-radius: 3px; animation: alBar .9s cubic-bezier(.2,.7,.3,1) forwards; }
 @keyframes alSpin { to { transform: rotate(360deg); } }
 @keyframes alBar { from { width: 4%; } to { width: 92%; } }
+
+.cxnear{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(159,246,255,.08);box-shadow:inset 0 0 0 1px rgba(159,246,255,.15);color:#eaffff;font-size:13px}.cxnear .cxsv{position:static;width:34px;height:34px;flex:0 0 34px}.cxnear span{display:flex;flex-direction:column}.cxnear small{opacity:.75;font-size:11.5px}.cxnear.none{color:#ffc2b0}.cxnear.dim{color:#cfe6ea}.cxdset{min-height:46px;font-size:15px}
+#exBagBtn{position:absolute;right:12px;bottom:152px;z-index:7;display:none;flex-direction:column;align-items:center;justify-content:center;width:58px;height:58px;border-radius:16px;border:1px solid rgba(110,80,40,.35);background:rgba(246,236,212,.96);font-size:24px;box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer;padding:0}#exBagBtn span{font:700 11px system-ui,sans-serif;color:#3a2a18}#exBagBtn.on{display:flex}
+#drillHud{position:absolute;left:10px;bottom:138px;z-index:7;display:none;flex-direction:column-reverse;gap:6px;max-height:calc(100% - 330px);overflow-y:auto;scrollbar-width:none;padding:2px}#drillHud.on{display:flex}
+#drillHud .dh{position:relative;width:50px;height:50px;flex:0 0 50px;border-radius:14px;border:1px solid rgba(110,80,40,.35);background:rgba(246,236,212,.96);box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;cursor:pointer;padding:0;touch-action:manipulation}
+#drillHud .dh .di{font-size:21px;line-height:1}#drillHud .dh small{font:700 9.5px system-ui,sans-serif;color:#3a2a18;max-width:46px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#drillHud .dh .dot{position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:#9a9a90;box-shadow:0 0 0 1.5px #fff8ea}#drillHud .dh.run .dot{background:#2fae5a}#drillHud .dh.coal .dot{background:#d8402a}#drillHud .dh.full .dot{background:#e8a020}
+#drillHud .dh .tw{position:absolute;bottom:13px;left:2px;font-size:10px;font-style:normal}#drillHud .dh.sel{background:#4a2e1a;border-color:#4a2e1a}#drillHud .dh.sel small{color:#fff3df}
+#drillCtl [data-k=act]{flex-wrap:wrap;overflow:visible}#drillCtl [data-k=act] button,#drillCtl .dk button{min-height:34px;padding:6px 11px;font-size:12px}#drillCtl .dst{font-weight:700}#drillCtl .dst.run{color:#1f8a46}#drillCtl .dst.coal{color:#c0341f}#drillCtl .dst.full{color:#b87400}
 </style>
 </head>
 <body>
@@ -292,9 +301,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='cd0db4eb';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build cd0db4eb</div>
-<script src="assets/vendor/three.min.js?v=cd0db4eb"></script>
+<script>window.HD_BUILD='88936872';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 88936872</div>
+<script src="assets/vendor/three.min.js?v=88936872"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -1435,6 +1444,7 @@ const Craft = (() => {
   for (const [k, n, c] of ORE_T) ITEMS['ore:' + k] = { name: n + ' ore', short: n, emoji: '🪨', col: c, kind: 'ore', base: 2 };
   TIERS.forEach(([k, n, c], i) => { ITEMS['ingot:' + k] = { name: n + ' ingot', short: n, emoji: '🧱', col: c, kind: 'ingot', tier: i };
     for (const [t, tn, e] of TOOLS) ITEMS['tool:' + t + '_' + k] = { name: n + ' ' + tn.toLowerCase(), short: n, emoji: e, col: c, kind: 'tool', tool: t, tier: i }; });
+  ITEMS['drill:mithril'] = { name: 'Mithril Drill', short: 'Mithril Drill', emoji: '🛠️', col: '#9cc0e6', kind: 'drill' }; // one per drill she has left to set up (S.drills.left); not traded or stored
   // ---- recipes (placeholders; cost climbs steeply per tier)
   const coal = (i) => Math.round(1.6 ** i);
   const SMELT = [
@@ -1455,7 +1465,7 @@ const Craft = (() => {
   const sellP = (id) => Math.max(1, Math.floor(value(id) * 0.8)), buyP = (id) => Math.max(1, Math.ceil(value(id) * 1.15));
   // ---- storage: backpack = S.backpack {id:n}; vault = S.ledgeVault (ores/ingots/gear) with iron, coal, steel living in S.res
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
-  function bag() { if (!S.backpack) S.backpack = {}; return S.backpack; }
+  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) S.backpack['drill:mithril'] = n; } return S.backpack; } // first run: the Mithril Drills are seeded into the backpack
   function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines']) v[k] = v[k] || {}; return v; }
   function vSlot(id) { const [kind, key] = id.split(':'), v = vault(); return kind === 'ore' ? [v.ores, key] : kind === 'ingot' ? [v.ingots, key] : [v.gear, key]; }
   function get(where, id) { if (where === 'bag') return Math.floor(bag()[id] || 0); if (RES[id]) return Math.floor((S.res && S.res[RES[id]]) || 0); const [o, k] = vSlot(id); return Math.floor(o[k] || 0); }
@@ -1487,7 +1497,7 @@ const Craft = (() => {
   const nm = (id) => (ITEMS[id] ? ITEMS[id].name : id);
   const qtyBar = () => `<div class="cxq">${[1, 10, 100, 'all'].map((q) => `<button class="btn sm ${st.qty === q ? 'alt' : 'ghost'}" data-cx="qty" data-v="${q}">${q === 'all' ? 'All' : '×' + q}</button>`).join('')}</div>`;
   const destBar = () => `<div class="cxq"><span class="dim">Output to</span>${[['bag', '🎒 Backpack'], ['vault', '🔒 Vault']].map(([k, l]) => `<button class="btn sm ${st.dest === k ? 'alt' : 'ghost'}" data-cx="dest" data-v="${k}">${l}</button>`).join('')}</div>`;
-  const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0);
+  const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && ITEMS[id].kind !== 'drill');
   // ---- hand-drawn item icons (inline SVG): a wobbly inked outline over the item's colour, a highlight, per-kind drawings; jitter seeded by the id so each looks inked once
   const ICO = {};
   function svgIco(id) { if (ICO[id]) return ICO[id]; const it = ITEMS[id] || { kind: '?', col: '#888' }; let sd = 7; for (const ch of id) sd = (sd * 31 + ch.charCodeAt(0)) % 2147483647; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, j = (v) => (v + (R() - 0.5) * 1.6).toFixed(1);
@@ -1499,6 +1509,7 @@ const Craft = (() => {
     else if (it.tool === 'climb') b = `<path d="M${j(18)} ${j(41)} L${j(26)} ${j(12)}" stroke="#7a5230" stroke-width="4.5" stroke-linecap="round"/><path d="M${j(25)} ${j(10)} Q${j(36)} ${j(9)} ${j(40)} ${j(19)} L${j(36)} ${j(17)} Q${j(32)} ${j(13)} ${j(26)} ${j(15)} Z" fill="${c}" ${st}/><path d="M${j(24)} ${j(12)} L${j(17)} ${j(8)}" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/><path d="M${j(13)} ${j(33)} Q${j(18)} ${j(37)} ${j(23)} ${j(33)}" stroke="#b89a62" stroke-width="3" fill="none"/>`;
     else if (it.tool === 'tlink') b = [0, 1, 2].map((k) => `<ellipse cx="${j(14 + k * 10)}" cy="${j(30 - k * 6)}" rx="7" ry="4.6" transform="rotate(-32 ${14 + k * 10} ${30 - k * 6})" fill="none" stroke="${ink}" stroke-width="5"/><ellipse cx="${14 + k * 10}" cy="${30 - k * 6}" rx="7" ry="4.6" transform="rotate(-32 ${14 + k * 10} ${30 - k * 6})" fill="none" stroke="${c}" stroke-width="2.6"/>`).join('');
     else if (it.tool === 'lifeline') { b = ''; for (let k = 0; k < 4; k++) b += `<ellipse cx="${j(24)}" cy="${j(25 + k * 1.2)}" rx="${15 - k * 3}" ry="${10 - k * 2}" fill="none" stroke="${ink}" stroke-width="5"/><ellipse cx="24" cy="${25 + k * 1.2}" rx="${15 - k * 3}" ry="${10 - k * 2}" fill="none" stroke="${c}" stroke-width="2.8"/>`; b += `<path d="M${j(36)} ${j(31)} Q${j(42)} ${j(38)} ${j(38)} ${j(43)}" stroke="${c}" stroke-width="3" fill="none"/>`; }
+    else if (it.kind === 'drill') b = `<path d="M${j(8)} ${j(40)} L${j(17)} ${j(24)} M${j(17)} ${j(24)} L${j(22)} ${j(41)}" stroke="#5a5048" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="${P([[12, 25], [22, 18], [30, 23], [20, 31]])}" fill="#d8a440" ${st}/><path d="${P([[26, 20], [42, 9], [31, 25]])}" fill="${c}" ${st}/><path d="M29 17 L36 14 M31 21 L38 17" stroke="rgba(255,255,255,.6)" stroke-width="1.6"/><circle cx="${j(15)}" cy="${j(26)}" r="2.6" fill="#3a2a18"/>`;
     else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
     return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
   const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
@@ -1514,11 +1525,18 @@ const Craft = (() => {
     h += `<div class="row between" style="margin-top:12px"><h2>🔒 Ledge Vault</h2><span class="tag">${used('vault')} / ${VAULT_N} slots</span></div>` + gridHTML('vault');
     h += st.menu ? menuHTML() : ''; return h + (inModal ? '<button class="btn ghost" data-cx="close">Close</button>' : '') + '</div>'; }
   function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
+    if (it && it.kind === 'drill') return drillMenuHTML(id, c);
     return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
       (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
       `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q} → ${to}</button>`).join('')}</div>` +
       `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` +
       `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
+  // the Mithril Drill's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up
+  function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0;
+    const near = X.err === 'explore' ? `<div class="cxnear dim">Set it up out on the map: open 🧭 Explore, then pick the drill from 🎒 Bag.</div>` : X.err ? `<div class="cxnear none">⛔ No ore within 5 s walk <small>(${X.R} m at your run speed)</small></div>`
+      : `<div class="cxnear">${svgIco('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
+    return `<div class="cxmenu cxdrill" data-w="bag" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>Mithril Drill</b><small>${fmtN(c)} in Backpack · Mithril bit, burns coal from its tank</small></span></div>${near}` +
+      `<button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
   function bagHTML(inModal) { return gridsHTML(inModal); }
   function xferHTML() { return gridsHTML(true); }
   // long-press opens the stack menu; a plain tap moves the whole stack
@@ -1527,7 +1545,7 @@ const Craft = (() => {
   document.addEventListener('pointermove', (e) => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) { clearTimeout(lp.tm); lp = null; } });
   document.addEventListener('pointerup', () => { if (lp && !lp.fired) clearTimeout(lp.tm); });
   document.addEventListener('contextmenu', (e) => { if (e.target.closest('.cxs')) e.preventDefault(); });
-  document.addEventListener('click', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; if (lp && lp.fired) { lp = null; return; } lp = null; const w = t.dataset.w, id = t.dataset.id, to = w === 'bag' ? 'vault' : 'bag';
+  document.addEventListener('click', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; if (lp && lp.fired) { lp = null; return; } lp = null; const w = t.dataset.w, id = t.dataset.id, to = w === 'bag' ? 'vault' : 'bag'; if (ITEMS[id] && ITEMS[id].kind === 'drill') { st.menu = { w, id }; return refresh(); }
     const n = move(w, to, id, get(w, id)); if (!n && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); refresh(); });
   const cost = (r, x) => Object.keys(r.in).map((k) => `<span class="cxc${have(k) >= r.in[k] * x ? '' : ' short'}">${ico(k)}${r.in[k] * x} ${esc(ITEMS[k].short)}<small>/${fmt(have(k))}</small></span>`).join('');
   function recipeHTML(kind) { const F = kind === 'furnace', list = F ? SMELT : SMITH;
@@ -1543,7 +1561,7 @@ const Craft = (() => {
   function exHTML() { const S2 = st.tab === 'sell';
     let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 Lumen Crystal</h2><span class="tag">✦ ${fmt(lum())} Lumen</span></div><div class="dim">The crystal trades with the Hollow. Placeholder local market prices.</div>`;
     h += `<div class="cxq">${[['sell', 'Sell'], ['buy', 'Buy']].map(([k, l]) => `<button class="btn sm ${st.tab === k ? 'alt' : 'ghost'}" data-cx="tab" data-v="${k}">${l}</button>`).join('')}</div>${qtyBar()}`;
-    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'ore' || true);
+    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'drill');
     h += ids.length ? `<div class="card cxl">${ids.map((id) => { const p = S2 ? sellP(id) : buyP(id), n = st.qty === 'all' ? (S2 ? have(id) : Math.floor(lum() / p)) : st.qty, ok = S2 ? have(id) >= Math.max(1, n) : lum() >= p * Math.max(1, n);
       return `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}<small>✦ ${p} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
     return h + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
@@ -1556,6 +1574,7 @@ const Craft = (() => {
     if (a === 'qty') st.qty = t.dataset.v === 'all' ? 'all' : +t.dataset.v; else if (a === 'dest') st.dest = t.dataset.v; else if (a === 'tab') st.tab = t.dataset.v; else if (a === 'acat') st.acat = t.dataset.v; else if (a === 'atool') st.atool = t.dataset.v;
     else if (a === 'xfer') return open('xfer');
     else if (a === 'mclose') st.menu = null;
+    else if (a === 'dset') { st.menu = null; const r = typeof Explore !== 'undefined' && Explore.drillSetup ? Explore.drillSetup() : null; if (r && !r.err) { if (typeof closeModal === 'function') closeModal(); return; } }
     else if (a === 'equip') { if (equip(id) && typeof toast === 'function') toast(`✅ Equipped ${nm(id)}`); st.menu = null; }
     else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); } st.menu = null; }
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
@@ -9100,7 +9119,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   const DRILL = { N0: 20, TANK: 200, FILL: 100, HOP: 300, TETHER_M: 3000, meshes: new Map(), sel: null };
   const bitOf = (k) => BITS.find((b) => b.k === k) || BITS[0];
   function drillState() { if (typeof S === 'undefined' || !S) return null; if (!S.drills) { S.drills = { left: DRILL.N0, tetherM: DRILL.TETHER_M, list: [], nid: 1, bit: 'bronze' }; if (S.res) S.res.coal = Math.max(S.res.coal || 0, 5000); } // first run: 20 drills, 3 km of Ledge Tether, 5000 coal seeded in the vault
-    const D = S.drills; if (!D.list.some((d) => d.camp)) D.list.push({ id: 'camp', camp: true, name: 'Hanging Camp drill', type: (CharView.LG && CharView.LG.ore) || 'mithril', tier: (CharView.LG && CharView.LG.dg) || 'bronze', coal: DRILL.FILL, hop: 0, acc: 0, port: 'c', len: 0 }); return D; }
+    const D = S.drills; if (!D.list.some((d) => d.camp)) D.list.push({ id: 'camp', camp: true, name: 'Hanging Camp drill', type: (CharView.LG && CharView.LG.ore) || 'mithril', tier: (CharView.LG && CharView.LG.dg) || 'bronze', coal: DRILL.FILL, hop: 0, acc: 0, port: 'c', len: 0 }); syncItem(D); return D; }
   const tetherUsed = (D) => D.list.reduce((a, d) => a + (d.port && !d.camp ? d.len || 0 : 0), 0);
   function drillPos(n) { const a = (Math.atan2(n.y - n.spot.y, n.x - n.spot.x) || n.rot) + 1.7; return [n.x + Math.cos(a) * (n.s * 0.24 + WS * 0.2), n.y + Math.sin(a) * (n.s * 0.24 + WS * 0.2)]; } // the bit's tip sits at the drill's origin: right on the cluster's flank, the frame behind // beside the node, off her mining stand
   function drillNode(d) { return d.camp ? null : ORE.nodes[d.node]; }
@@ -9135,16 +9154,16 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
       if (wired && d.coal < DRILL.TANK * 0.5 && S.res.coal > 0) { const f = Math.min(DRILL.TANK - d.coal, S.res.coal); S.res.coal -= f; d.coal += f; }
       const run = Math.min(h, d.coal / b.burn); d.on = run > 0 && (wired || d.hop < DRILL.HOP); if (!d.on) continue; d.coal = Math.max(0, d.coal - b.burn * run); if (d.coal < 1e-6) d.on = false; d.acc += b.rate * run; const n = Math.floor(d.acc); if (!n) continue; d.acc -= n; d.mined = (d.mined || 0) + n;
       const id = 'ore:' + d.type; if (wired && typeof Craft !== 'undefined' && Craft.add('vault', id, n)) continue; d.hop = Math.min(DRILL.HOP, d.hop + n); } }
-  function drillDeploy(n) { const D = drillState(); if (!D) return null; const i = ORE.nodes.indexOf(n), ex = D.list.find((d) => d.node === i); if (ex) return ex; if (D.left <= 0) { if (typeof toast === 'function') toast('No drills left'); return null; }
-    const fill = Math.min(DRILL.FILL, Math.floor(S.res.coal || 0)); S.res.coal -= fill; D.left--; const d = { id: 'd' + D.nid++, node: i, spot: n.spot.id, type: n.type, name: ORE_LOOK[n.type].name + ' drill #' + (D.nid - 1), tier: D.bit || 'bronze', coal: fill, hop: 0, acc: 0, port: null, len: 0, t: S.gameTime };
-    D.list.push(d); if (typeof save === 'function') save(); return d; }
-  function drillPickUp(d) { const D = drillState(); if (d.camp) return; if (d.port) drillWire(d, false); const b = Craft && Craft.add ? Craft.add('bag', 'ore:' + d.type, d.hop) : 0; S.res.coal += Math.floor(d.coal); D.list.splice(D.list.indexOf(d), 1); D.left++; const m = DRILL.meshes.get(d.id); if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); } if (typeof save === 'function') save(); }
+  function drillDeploy(n, tier) { const D = drillState(); if (!D) return null; const i = ORE.nodes.indexOf(n), ex = D.list.find((d) => d.node === i); if (ex) return ex; if (D.left <= 0) { if (typeof toast === 'function') toast('No drills left'); return null; }
+    const fill = Math.min(DRILL.FILL, Math.floor(S.res.coal || 0)); S.res.coal -= fill; D.left--; const d = { id: 'd' + D.nid++, node: i, spot: n.spot.id, type: n.type, name: ORE_LOOK[n.type].name + ' drill #' + (D.nid - 1), tier: tier || D.bit || 'bronze', coal: fill, hop: 0, acc: 0, port: null, len: 0, t: S.gameTime };
+    D.list.push(d); syncItem(D); drillHud(); if (typeof save === 'function') save(); return d; }
+  function drillPickUp(d) { const D = drillState(); if (d.camp) return; if (d.port) drillWire(d, false); const b = Craft && Craft.add ? Craft.add('bag', 'ore:' + d.type, d.hop) : 0; S.res.coal += Math.floor(d.coal); D.list.splice(D.list.indexOf(d), 1); D.left++; syncItem(D); if (DRILL.sel === d) DRILL.sel = null; const m = DRILL.meshes.get(d.id); if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); } if (typeof save === 'function') save(); }
   function drillWire(d, on) { const D = drillState(), hs = CharView.homeState(); if (!on) { if (d.port && !d.camp) { CharView.unplugPort(d.port); d.port = null; } NV.tdest = {}; if (typeof save === 'function') save(); return true; }
     if (d.port) return true; const r = drillRoute(d); if (!r) return false; d.len = r.len; const free = D.tetherM - tetherUsed(D); if (r.len > free) { if (typeof toast === 'function') toast(`Needs ${r.len} m of Ledge Tether, you have ${free} m free`); return false; }
     let id = CharView.PORTS.slice(1).find((p, i) => i < hs.open && !hs.ports[p]); if (!id && hs.open < 8) { CharView.unlockPort(); id = CharView.PORTS[hs.open]; } if (!id) { if (typeof toast === 'function') toast('Every door port is in use'); return false; }
     NV.tdest = {}; if (!CharView.plugPort(id, d.tier === 'onyx' ? 'lumen' : d.tier, 'to')) return false; d.port = id; if (typeof save === 'function') save(); CharView.refreshPorts(); return true; }
   function drillPanel(d) { DRILL.sel = d; let box = document.getElementById('drillCtl'); if (!box) { box = document.createElement('div'); box.id = 'drillCtl'; (document.getElementById('cityWrap') || document.body).appendChild(box); box.addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (!b || !DRILL.sel) return; drillAct(DRILL.sel, b.parentNode.dataset.k, b.dataset.v); }); }
-    if (!d) { box.classList.remove('on'); return; } box.classList.add('on'); drillUI(); }
+    if (!d) { box.classList.remove('on'); DRILL.sel = null; drillHud(); return; } box.classList.add('on'); drillUI(); drillHud(); }
   function drillAct(d, k, v) { const D = drillState(); if (k === 'x') return drillPanel(null); if (k === 'bit') { d.tier = v; D.bit = v; if (d.camp && CharView.setDrillGrade) CharView.setDrillGrade(v); const m = DRILL.meshes.get(d.id); if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); } }
     else if (v === 'fuel') { const f = Math.min(DRILL.TANK - d.coal, Math.floor(S.res.coal || 0), DRILL.FILL); S.res.coal -= f; d.coal += f; } else if (v === 'collect') { const got = Craft.add('bag', 'ore:' + d.type, d.hop); if (got) d.hop = 0; else if (typeof toast === 'function') toast('Backpack full'); }
     else if (v === 'wire') drillWire(d, !d.port); else if (v === 'up') { drillPickUp(d); return drillPanel(null); } if (typeof save === 'function') save(); drillUI(); }
@@ -9152,11 +9171,39 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     const need = d.port || d.camp ? d.len : (d.need != null ? d.need : (d.need = (drillRoute(d) || { len: 0 }).len));
     box.innerHTML = `<div class="dhead"><b>⛏️ ${d.name} · ${ORE_LOOK[d.type] ? ORE_LOOK[d.type].name : d.type} ore</b><span class="dl">${D.left} drills left</span><span class="dk" data-k="x"><button data-v="x" title="Close">✕</button></span></div>`
       + `<div class="lrow"><b>Bit</b><div class="chips" data-k="bit">${BITS.map((q) => `<button data-v="${q.k}" class="${q.k === d.tier ? 'on' : ''}">${q.name}<small>${q.rate}/h · ${q.burn} coal/h</small></button>`).join('')}</div></div>`
-      + `<div class="drow">${d.on ? '● Running' : d.coal <= 0 ? '■ Stopped: out of coal' : d.hop >= DRILL.HOP ? '■ Stopped: hopper full' : '■ Idle'} · mines <b>${b.rate} ore/h</b> · burns <b>${b.burn} coal/h</b> · coal ${Math.floor(d.coal)}/${DRILL.TANK} (${hrs.toFixed(1)} h) · vault coal ${Math.floor(S.res.coal || 0)}</div>`
-      + `<div class="drow">${d.camp ? 'Strung to the Ledge door: main port (feeds the vault)' : d.port ? `Ledge Tether: ${d.len} m on door port ${CharView.PORTS.indexOf(d.port)} · feeds the vault and forge` : `Ledge Tether: needs <b>${need} m</b> · you own ${D.tetherM} m (${free} m free)`} · hopper ${d.hop}/${DRILL.HOP}</div>`
-      + `<div class="lrow"><b></b><div class="chips" data-k="act"><button data-v="fuel">+ Coal</button>${d.camp ? '' : `<button data-v="wire"${!d.port && need > free ? ' class="dis"' : ''}>${d.port ? 'Unstring tether' : 'String Ledge Tether'}</button><button data-v="collect">Collect ore</button><button data-v="up">Pick up drill</button>`}</div></div>`; }
+      + (d.camp ? '' : drillLoc(d))
+      + `<div class="drow"><span class="dst ${drillStat(d)}">${d.on ? '● Running' : d.coal <= 0 ? '■ Out of coal' : d.hop >= DRILL.HOP ? '■ Full: hopper ' + d.hop + '/' + DRILL.HOP : '■ Idle'}</span> · mines <b>${b.rate} ore/h</b> · burns <b>${b.burn} coal/h</b> · coal ${Math.floor(d.coal)}/${DRILL.TANK} (${hrs.toFixed(1)} h) · vault coal ${Math.floor(S.res.coal || 0)}</div>`
+      + `<div class="drow">${d.camp ? 'Strung to the Ledge door: main port (feeds the vault)' : d.port ? `Ledge Tether: ${d.len} m on door port ${CharView.PORTS.indexOf(d.port)} · feeds the vault and forge` : `Ledge Tether: needs <b>${need} m</b> · available <b>${free} m</b> of ${D.tetherM} m${need > free ? ' · <span class="dst coal">not enough</span>' : ''}`}</div>`
+      + `<div class="drow">Mined so far <b>${d.mined || 0} ore</b> · ${d.port || d.camp ? 'sent straight to the vault' : `in its hopper <b>${d.hop}/${DRILL.HOP}</b>`}</div>`
+      + `<div class="lrow"><b></b><div class="chips" data-k="act"><button data-v="fuel">+ Coal</button>${d.camp ? '' : `<button data-v="wire"${!d.port && need > free ? ' class="dis"' : ''}>${d.port ? 'Untether' : 'Tether to Ledge'}</button><button data-v="collect"${d.hop ? '' : ' class="dis"'}>Collect ore</button><button data-v="up">Pick up drill</button>`}</div></div>`; }
   function drillAt(n) { const D = drillState(); if (!D || !n) return null; const i = ORE.nodes.indexOf(n); return D.list.find((d) => d.node === i) || null; }
   function longPress(sx, sy) { if (!EX.on) return false; const n = oreHit(sx, sy); if (!n) return false; const d = drillAt(n) || drillDeploy(n); if (d) drillPanel(d); return !!d; }
+  /* ---- Mithril Drill (a backpack item; one per drill she has left): "Set up at nearest ore" picks the nearest drill-free ore cluster she can reach on foot
+     within a 5 s walk at her current run speed (the walked route, not the crow line), walks her there and puts the drill up exactly as a long-press deploy does */
+  const DRILL_ITEM = 'drill:mithril', SETUP_S = 5;
+  function syncItem(D) { if (typeof Craft === 'undefined' || !Craft.ITEMS[DRILL_ITEM] || !D) return; const c = Craft.get('bag', DRILL_ITEM); if (c !== D.left) Craft.add('bag', DRILL_ITEM, D.left - c); }
+  const runSpeed = () => ((CharView.GW && CharView.GW.spd) || 3.7) * (CharView.EXK || 1); // m/s, her ground run (Explore body scale included)
+  function drillNear() { if (!EX.on) return { err: 'explore' }; const h = here(), D = drillState(); if (!h || !D) return { err: 'explore' }; build(); const R = SETUP_S * runSpeed() * WS, used = new Set(D.list.map((d) => d.node)); let best = null;
+    const cand = ORE.nodes.map((n, i) => [n, i, Math.hypot(n.x - h[0], n.y - h[1])]).filter((c) => !used.has(c[1]) && c[2] < R + WS * 3).sort((a, b) => a[2] - b[2]).slice(0, 12);
+    for (const [n, i] of cand) { const s2 = oreStand(n); if (!s2) continue; const dd = Math.hypot(s2[0] - h[0], s2[1] - h[1]); let L = dd; if (dd > WS * 0.6) { const P = plan(h[0], h[1], s2[0], s2[1]); if (!P) continue; L = pathLen(P.pts); } if (L <= R && (!best || L < best.L)) best = { n, i, L, s2 }; }
+    if (!best) return { err: 'none', R: Math.round(R / WS) }; const look = ORE_LOOK[best.n.type];
+    return { n: best.n, node: best.i, type: best.n.type, name: look ? look.name : best.n.type, m: Math.max(1, Math.round(best.L / WS)), s: +(best.L / WS / runSpeed()).toFixed(1), stand: best.s2, R: Math.round(R / WS), left: D.left }; }
+  function drillSetup() { const r = drillNear(), D = drillState(), T = (m) => typeof toast === 'function' && toast(m); if (r.err) { T(r.err === 'explore' ? 'Set the drill up out on the map (Explore)' : 'No ore within 5 s walk'); return r; }
+    if (!D || D.left <= 0) { T('No drills left'); return { err: 'left' }; } mineStop(); EX.pend = 'drill';
+    const fin = () => { EX.pend = null; const d = drillDeploy(r.n, 'mithril'); if (d) { const G = CharView.st.gnd, h = here(); if (G && h) G.face = Math.atan2(r.n.x - h[0], r.n.y - h[1]); T('🛠️ Mithril Drill set up on ' + r.name + ' ore'); drillPanel(d); } DRILL.setup = d ? d.id : null; };
+    const h = here(); if (Math.hypot(r.stand[0] - h[0], r.stand[1] - h[1]) < WS * 0.6 || !goTo(r.stand[0], r.stand[1], fin)) fin(); return r; }
+  // HUD: one button per active drill, stacked up the lower-left edge above the minimap (status dot: green running, red out of coal, amber full, grey idle)
+  const drillStat = (d) => (d.on ? 'run' : d.coal <= 0 ? 'coal' : d.hop >= DRILL.HOP ? 'full' : 'idle');
+  function drillLoc(d) { const n = drillNode(d), H = doorSpots().find((q) => q.type === 'ledge'), h = EX.on ? here() : null; if (!n) return '';
+    return `<div class="drow">📍 ${Math.round(Math.hypot(n.x - H.x, n.y - H.y) / WS)} m from the Ledge door${h ? ` · ${Math.round(Math.hypot(n.x - h[0], n.y - h[1]) / WS)} m from you` : ''} · map ${Math.round(n.x / WS)}, ${Math.round(n.y / WS)}</div>`; }
+  function drillHud() { let h = document.getElementById('drillHud'); const D = EX.on ? drillState() : null, L = D ? D.list.filter((d) => !d.camp && drillNode(d)) : [];
+    if (!h) { if (!L.length) return; h = document.createElement('div'); h.id = 'drillHud'; h.setAttribute('aria-label', 'Your drills'); (document.getElementById('cityWrap') || document.body).appendChild(h);
+      h.addEventListener('click', (e) => { const b = e.target.closest('button[data-d]'), D2 = drillState(); if (!b || !D2) return; const d = D2.list.find((q) => q.id === b.dataset.d); if (!d) return; drillPanel(DRILL.sel === d && document.getElementById('drillCtl').classList.contains('on') ? null : d); drillHud(); }); }
+    const open = !!(DRILL.sel && document.getElementById('drillCtl') && document.getElementById('drillCtl').classList.contains('on')), sig = L.map((d) => d.id + drillStat(d) + (d.port ? 'w' : '')).join() + '|' + (open ? DRILL.sel.id : '');
+    h.classList.toggle('on', L.length > 0); const mm = document.getElementById('miniMap'), W = h.parentNode; if (mm && W && mm.offsetParent !== null) { const a = W.getBoundingClientRect(), m = mm.getBoundingClientRect(); h.style.bottom = Math.round(a.bottom - m.top + 8) + 'px'; } // sits just above the minimap, whatever size it is drawn
+    if (h.dataset.sig === sig) return; h.dataset.sig = sig;
+    const LBL = { run: 'running', coal: 'out of coal', full: 'full', idle: 'idle' };
+    h.innerHTML = L.map((d) => { const s2 = drillStat(d), o = ORE_LOOK[d.type]; return `<button data-d="${d.id}" class="dh ${s2}${open && DRILL.sel === d ? ' sel' : ''}" title="${d.name}: ${LBL[s2]}" aria-label="${d.name}: ${LBL[s2]}"><span class="di">🛠️</span><i class="dot"></i>${d.port ? '<i class="tw">🪢</i>' : ''}<small>${o ? o.name.split(' ')[0] : d.type}</small></button>`; }).join(''); }
   // the drill on the map: the Hanging Camp's Lifeline Drill at the same size it has there next to her (bit + hub about her height), bit angled into the node
   const DRILL_SC = WS * 2.3;
   function drillMesh(d) { const n = drillNode(d); if (!n || !CharView.mapDrill) return null; let m = DRILL.meshes.get(d.id); if (m) return m; oreBuild(); if (!ORE.grp) return null; m = CharView.mapDrill(d.tier, d.type); const [ex2, ey] = drillPos(n);
@@ -9164,7 +9211,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function drillTick(dt) { const D = drillState(); if (!D || !ORE.grp) return; const [x, y] = here();
     for (const d of D.list) { if (d.camp) continue; const n = drillNode(d); if (!n) continue; const m = drillMesh(d);
       if (m && Math.hypot(n.x - x, n.y - y) < WS * 120) CharView.mapDrillTick(m, dt, d.on); }
-    if (DRILL.sel && (DRILL.ui = (DRILL.ui || 0) + dt) > 0.5) { DRILL.ui = 0; drillUI(); } }
+    if ((DRILL.ui = (DRILL.ui || 0) + dt) > 0.5) { DRILL.ui = 0; if (DRILL.sel) drillUI(); drillHud(); } }
   if (CharView.CV_HOOK) CharView.CV_HOOK.veinHold = () => { const D = drillState(); if (D) drillPanel(D.list.find((d) => d.camp)); };
   function doorLabel(text) { const c = document.createElement('canvas'); c.width = 512; c.height = 96; const x = c.getContext('2d'); x.font = '600 38px system-ui,sans-serif'; const w = Math.min(500, x.measureText(text).width + 92);
     x.fillStyle = 'rgba(14,24,30,.82)'; x.strokeStyle = 'rgba(159,246,255,.9)'; x.lineWidth = 4; x.beginPath(); x.roundRect((512 - w) / 2, 14, w, 64, 32); x.fill(); x.stroke(); x.fillStyle = '#eaffff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('\u{1F446} ' + text, 256, 47);
@@ -9264,8 +9311,9 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function ui3(on) { let b = document.getElementById('exploreBar'); if (!b && on) { b = document.createElement('div'); b.id = 'exploreBar'; b.innerHTML = '<button data-ex="walk">🚶 Walk</button><button data-ex="run">🏃 Run</button><button data-ex="exit">✕ Exit</button><span id="exploreInfo"></span>'; (document.getElementById('cityWrap') || document.body).appendChild(b);
       b.addEventListener('click', (e) => { const t = e.target.closest('[data-ex]'); if (!t) return; const k = t.dataset.ex; if (k === 'exit') exit(); else { EX.gait = k; CharView.st.gait = k; } ui3(EX.on); }); }
     let mb = document.getElementById('exMapBtn'); if (!mb && on) { mb = document.createElement('button'); mb.id = 'exMapBtn'; mb.innerHTML = '🗺️<span>Map</span>'; mb.setAttribute('aria-label', 'Open the map'); mb.addEventListener('click', () => typeof ExMap !== 'undefined' && ExMap.open()); (document.getElementById('cityWrap') || document.body).appendChild(mb); } if (mb) mb.classList.toggle('on', !!on);
-    if (b) { b.classList.toggle('on', !!on); b.querySelectorAll('[data-ex]').forEach((q) => q.classList.toggle('sel', q.dataset.ex === (CharView.st.gait || 'run'))); } const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); }
-  return { enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, longPress };
+    let bb = document.getElementById('exBagBtn'); if (!bb && on) { bb = document.createElement('button'); bb.id = 'exBagBtn'; bb.innerHTML = '🎒<span>Bag</span>'; bb.setAttribute('aria-label', 'Open the backpack'); bb.addEventListener('click', () => typeof Craft !== 'undefined' && Craft.open('bag')); (document.getElementById('cityWrap') || document.body).appendChild(bb); } if (bb) bb.classList.toggle('on', !!on);
+    if (b) { b.classList.toggle('on', !!on); b.querySelectorAll('[data-ex]').forEach((q) => q.classList.toggle('sel', q.dataset.ex === (CharView.st.gait || 'run'))); } const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); drillHud(); if (!on && DRILL.sel) drillPanel(null); }
+  return { enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, longPress, drillNear, drillSetup, drillHud, drillUI, DRILL_ITEM, runSpeed };
 })();
 /* ---------- Explore: the Map screen - a full-screen stylized 2D map drawn from the nav grid / heightfield (toon hypsometric tint + hillshade, cliffs, water,
    crevices, the footpath network, every bridge marked), labelled places and Wren's marker; tap anywhere -> A* travel (snapped to the nearest reachable spot)

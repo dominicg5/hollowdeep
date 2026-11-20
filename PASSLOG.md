@@ -1,1 +1,2 @@
-- 3:5x Pass 16: drill tether ropeEnd — exits along socket axis 0.55m then bezier droop (sag 0.1d) to route; no 90° kink (final/54). Field rocks smoothed (lumpy avg normals). 7/7 tests pass.
+- 3:38 Pass 16: drill tether ropeEnd — exits along socket axis 0.55m then bezier droop (sag 0.1d) to route; no 90° kink (final/54). Field rocks smoothed (lumpy avg normals). 7/7 tests pass.
+- 3:55 Pass 16: Mithril Drill setup UI — bag item (1 per drill left), 'Set up at nearest ore' (5 s run = 21.8 m walked, type+distance / 'No ore within 5 s walk'), walks + deploys (mithril bit), stacked lower-left HUD icons above minimap, panel adds location/mined/status/tether need vs available/Untether; 🎒 Bag button in Explore; long-press kept. test/drillui.js. final/55-59.
