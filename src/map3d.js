@@ -282,17 +282,18 @@ if (uExOn > 0.5) { float wF = grassM * (1.0 - exF) * (1.0 - smoothstep(3000.0, 9
 { vec4 bz = texture2D(tZ, (wp - uA.xy) / uA.zw); float zm = grassM * (1.0 - snow), zn = fbm2(wp / 70.0 + 2.2), zf = fbm2(wp / 13.0 - 6.1), tl2 = dot(tc.rgb, vec3(0.3, 0.59, 0.11));
   /* biome ground (Dominic: region transitions): soot-dark soil round the coal pits, red earth by the copper, pale lichen scree by the tin, lush wet green at the water; patchy edges from noise so each blends over tens of metres */
   float zc = bz.r * smoothstep(0.15, 0.55, bz.r + 0.35 * (zn - 0.5)), zu = bz.g * smoothstep(0.15, 0.55, bz.g + 0.35 * (zn - 0.5)), zt = bz.b * smoothstep(0.15, 0.55, bz.b + 0.35 * (zn - 0.5)), zw = bz.a;
-  tc.rgb = mix(tc.rgb, vec3(tl2) * vec3(0.62, 0.55, 0.45) * (0.75 + 0.5 * zf) + vec3(0.04, 0.05, 0.0) * smoothstep(0.55, 0.75, zn), zm * zc * 0.78);
-  tc.rgb = mix(tc.rgb, tc.rgb * vec3(1.18, 0.7, 0.46) * (0.86 + 0.28 * zf), zm * zu * 0.7);
-  tc.rgb = mix(tc.rgb, vec3(tl2 * 1.15 + 0.06) * vec3(0.98, 1.02, 0.96) * (0.88 + 0.24 * zf), zm * zt * 0.66);
+  /* colours sampled from Art's ground_swatches.jpg (linear), carried at the meadow's own light level so painted shading survives */ float gk = clamp(tl2 / 0.228, 0.6, 1.4) * (0.86 + 0.28 * zf);
+  tc.rgb = mix(tc.rgb, vec3(0.084, 0.072, 0.056) * gk, zm * zc * 0.85);
+  tc.rgb = mix(tc.rgb, vec3(0.314, 0.093, 0.032) * gk, zm * zu * 0.8);
+  tc.rgb = mix(tc.rgb, vec3(0.266, 0.205, 0.136) * gk, zm * zt * 0.8);
   vec4 bz2 = texture2D(tZ2, (wp - uA.xy) / uA.zw); float zl = fbm2(wp / 5.0 + 1.3);
-  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.84, 0.98, 0.9), zm * bz2.r * 0.55); /* birch floor: cooler green, fallen-leaf flecks */ tc.rgb = mix(tc.rgb, tc.rgb * vec3(1.25, 1.0, 0.5), zm * bz2.r * 0.5 * smoothstep(0.62, 0.72, zl));
+  tc.rgb = mix(tc.rgb, vec3(0.216, 0.227, 0.08) * clamp(tl2 / 0.228, 0.6, 1.4), zm * bz2.r * 0.6); /* birch floor: cooler green, fallen-leaf flecks */ tc.rgb = mix(tc.rgb, vec3(0.6, 0.22, 0.05), zm * bz2.r * 0.6 * smoothstep(0.7, 0.76, zl));
   tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.92, 0.82, 0.6), zm * bz2.g * 0.45 * smoothstep(0.45, 0.7, zn)); /* beech-maple wood: leaf litter under the canopy */
   tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.78, 0.97, 0.72) * (0.9 + 0.2 * zn), zm * zw * 0.5); float zd = smoothstep(0.7, 0.95, zw) * smoothstep(0.35, 0.6, zn + 0.25 * zf); /* lakeside: lush, and damp brown soil with pebbles right at the edge */
-  tc.rgb = mix(tc.rgb, vec3(0.3, 0.24, 0.17) * (0.8 + 0.4 * zf) + vec3(0.18) * smoothstep(0.72, 0.8, vn2(wp / 1.6)), zm * zd * 0.7);
+  tc.rgb = mix(tc.rgb, vec3(0.159, 0.091, 0.042) * (0.8 + 0.4 * zf) + vec3(0.14) * smoothstep(0.74, 0.8, vn2(wp / 1.6)), zm * zd * 0.8);
   /* scree: pale gravel with mint and rust lichen flecks; copper earth flecked orange; soot earth with black coal grit */
-  float fk = vn2(wp / 2.2 + 7.0); tc.rgb = mix(tc.rgb, vec3(0.55, 0.72, 0.6), zm * zt * 0.6 * smoothstep(0.78, 0.84, fk)); tc.rgb = mix(tc.rgb, vec3(0.72, 0.42, 0.22), zm * zt * 0.6 * smoothstep(0.8, 0.86, 1.0 - fk));
-  tc.rgb = mix(tc.rgb, vec3(0.85, 0.42, 0.16), zm * zu * 0.5 * smoothstep(0.76, 0.84, fk)); tc.rgb = mix(tc.rgb, vec3(0.06, 0.055, 0.06), zm * zc * 0.7 * smoothstep(0.72, 0.8, fk)); }
+  float fk = vn2(wp / 2.2 + 7.0); tc.rgb = mix(tc.rgb, vec3(0.25, 0.42, 0.28), zm * zt * 0.7 * smoothstep(0.78, 0.84, fk)); tc.rgb = mix(tc.rgb, vec3(0.75, 0.25, 0.06), zm * zt * 0.6 * smoothstep(0.8, 0.86, 1.0 - fk));
+  tc.rgb = mix(tc.rgb, vec3(0.12, 0.3, 0.26), zm * zu * 0.6 * smoothstep(0.8, 0.86, fk)); tc.rgb = mix(tc.rgb, vec3(0.012, 0.011, 0.012), zm * zc * 0.85 * smoothstep(0.72, 0.78, fk)); }
 float inPit = 1.0 - smoothstep(uHR * 0.98, uHR * 1.04, length(wp));
 float dep = clamp((uPH - vWP.y) / 3000.0, 0.0, 1.0);
 // pit walls: moss on the ledges, dangling roots below the lip, darker undercuts beneath each ledge
@@ -418,15 +419,15 @@ void main() {
      coal approaches get slag heaps, cart track and lantern posts, copper rust/verdigris and ore-flecked rock with gorse and scrub, tin pale scree with silvery shrubs, the water reeds,
      cattails and lily pads. Every pick is drawn from the biome weights, so props blend across a border exactly like the trees ---------- */
   const PBUSH = { oak: [['bBerry', 2], ['bRose', 2], ['bBramble', 2], ['bFern', 1]], birch: [['bFern', 3], ['bBramble', 1], ['bBerry', 1]], wood: [['bFern', 3], ['bHolly', 2], ['bBerry', 1]], hedge: [['bBramble', 3], ['bRose', 2], ['bHolly', 1]], water: [['bFern', 2], ['bBerry', 1]], coal: [['bJuniper', 3], ['bHeather', 2]], copper: [['bGorse', 3], ['bScrub', 3], ['bHeather', 1]], tin: [['bSilver', 3], ['bHeather', 2], ['bJuniper', 1]] },
-    PROCK = { oak: [['rMossy', 2], ['rHalf', 2], ['rFlat', 1], ['rStack', 0.3]], birch: [['rHalf', 2], ['rMossy', 1], ['rLichen', 1]], wood: [['rMossy', 3], ['rCracked', 1]], hedge: [['rFlat', 2], ['rHalf', 1]], water: [['rMossy', 3], ['rHalf', 2]], coal: [['rCoal', 3], ['rCracked', 2], ['rAngular', 1], ['rSlag', 1]], copper: [['rOre', 2], ['rLichen', 2], ['rAngular', 1], ['rCracked', 1]], tin: [['rScree', 3], ['rAngular', 2], ['rFlat', 1]] },
+    PROCK = { oak: [['rMossy', 2], ['rHalf', 2], ['rFlat', 1], ['rStack', 0.3]], birch: [['rHalf', 2], ['rMossy', 1], ['rLichen', 1]], wood: [['rMossy', 3], ['rCracked', 1]], hedge: [['rFlat', 2], ['rHalf', 1]], water: [['rMossy', 3], ['rHalf', 2]], coal: [['rCoal', 4], ['rCracked', 1], ['rSlag', 1]], copper: [['rRust', 4], ['pCrystalCu', 3], ['rOre', 1], ['rCracked', 1]], tin: [['rScree', 3], ['rLichen', 3], ['pCrystalSn', 3], ['rAngular', 1]] },
     PTINT = { coal: [0.42, 0.4, 0.4], copper: [1.22, 0.8, 0.62], tin: [1.28, 1.28, 1.24] }, POPEN = { oak: [0.05, 0.05], birch: [0.08, 0.06], wood: [0.12, 0.08], hedge: [0.22, 0.05], water: [0.08, 0.08], coal: [0.22, 0.32], copper: [0.36, 0.4], tin: [0.25, 0.62] }; // [bush, rock] chance per open cell
   function pickZ(w, h) { let t = 0; for (const k in w) t += w[k]; let a = h * t; for (const k in w) { a -= w[k]; if (a <= 0) return k; } return 'oak'; }
   function pickL(list, h) { let t = 0; for (const [, v] of list) t += v; let a = h * t; for (const [k, v] of list) { a -= v; if (a <= 0) return k; } return list[0][0]; }
   function scatterProps(push, byKey) { if (!MD.bBerry || typeof biomeAt !== 'function') return; const PK = new Set(), H = (a, b) => hash1(a * 12.9898 + b * 78.233);
-    const put = (k, x, y, s, c, o) => { if (!MD[k]) return; const wetOk = k === 'pLily' || k === 'pReeds' || k === 'pCattail'; if (!wetOk && isWet(x, y, 6)) return; if (!wetOk && (hollowDist(x, y) < 120 || nearHeartwood(x, y))) return; const sd = H(x, y);
+    const put = (k, x, y, s, c, o) => { if (!MD[k]) return; const wetOk = k === 'pLily' || k === 'pReeds' || k === 'pCattail' || (o && o.wet); if (!wetOk && isWet(x, y, 6)) return; if (!wetOk && (hollowDist(x, y) < 120 || nearHeartwood(x, y))) return; const sd = H(x, y);
       push('p_' + k, { x, y: o && o.y != null ? o.y : meshH(x, y) - s * 0.04, z: y, rot: sd * TAU * 5, s, sx: 0.85 + 0.3 * H(y, x), sz: 0.85 + 0.3 * H(x * 1.7, y), sy: 0.85 + 0.3 * H(y * 1.3, x), tilt: o && o.tilt || 0, c: c || [1, 1, 1], lum: lumAt(x, y) * 0.8 }); PK.add(k); };
-    const rockC = (z, h, k) => (k === 'rCoal' ? [0.2, 0.19, 0.2] : z === 'copper' && h < 0.3 ? [0.78, 1.04, 0.94] : PTINT[z] || [1, 1, 1]);
-    const bushS = (k) => (k === 'bFern' ? 9 : k === 'bHeather' ? 7 : 7.5), rockS = (k) => (k === 'rScree' ? 20 : k === 'rCoal' ? 13 : k === 'rSlag' ? 36 : k === 'rAngular' ? 12 : k === 'rStack' ? 9 : 11);
+    const rockC = (z, h, k) => (k === 'rCoal' ? [0.16, 0.15, 0.16] : k.startsWith('pCrystal') || k === 'rRust' ? [1, 1, 1] : z === 'tin' && k === 'rLichen' ? [1.15, 1.12, 1.05] : z === 'copper' && h < 0.3 ? [0.78, 1.04, 0.94] : PTINT[z] || [1, 1, 1]);
+    const bushS = (k) => (k === 'bFern' ? 9 : k === 'bHeather' ? 7 : 7.5), rockS = (k) => (k === 'rScree' ? 20 : k === 'rCoal' ? 14 : k === 'rRust' ? 22 : k === 'pCrystalCu' || k === 'pCrystalSn' ? 10 : k === 'rSlag' ? 36 : k === 'rAngular' ? 12 : k === 'rStack' ? 9 : 11);
     // round the trees: a bush or two at the crown's edge, now and then a stone
     for (const o of W.objs) if (o.type === 'tree') { const h1 = H(o.x, o.y), w = biomeFast(o.x, o.y), z = pickZ(w, H(o.y, o.x)); if (h1 > 0.42) continue; const nb = 1 + (h1 < 0.12 ? 1 : 0);
       for (let k = 0; k < nb; k++) { const a = H(o.x + k, o.y) * TAU, d = o.r * (1.6 + 1.6 * H(o.x, o.y + k)), x = o.x + Math.cos(a) * d, y = o.y + Math.sin(a) * d, kk = pickL(PBUSH[z], H(x, y)); put(kk, x, y, bushS(kk) * (0.8 + 0.5 * H(y, k)), null); }
@@ -439,15 +440,35 @@ void main() {
     if (typeof MINES_W !== 'undefined') MINES_W.forEach((m, mi) => { if (m.type !== 'coal') return; const a0 = H(m.x, m.y) * TAU;
       for (let k = 0; k < 3; k++) { const a = a0 + 1.4 + k * 1.6 + H(mi, k) * 0.6, d = 240 + H(k, mi) * 160; put('rSlag', m.x + Math.cos(a) * d, m.y + Math.sin(a) * d, 34 + H(mi, k + 9) * 20, [0.2, 0.19, 0.2]); }
       const ca = Math.cos(a0), sa = Math.sin(a0); let bend = 0; for (let j = 0; j < 18; j++) { const d = 150 + j * 15.5; bend += (H(mi, j) - 0.5) * 0.04; const x = m.x + Math.cos(a0 + bend) * d, y = m.y + Math.sin(a0 + bend) * d; if (isWet(x, y, 10)) break; put('pTrack', x, y, 16, [0.9, 0.86, 0.8], { y: meshH(x, y) - 0.3 }); const last = byKey['p_pTrack'] && byKey['p_pTrack'][byKey['p_pTrack'].length - 1]; if (last) last.rot = Math.PI / 2 - (a0 + bend); /* rails (model z) along the run */
-        if (j % 5 === 2) { const sx = x - sa * 24, sy = y + ca * 24; put('pLantern', sx, sy, 15, [1, 1, 1]); } } });
+        if (j % 5 === 2) { const sx = x - sa * 24, sy = y + ca * 24; put('pLantern', sx, sy, 15, [1, 1, 1]); } if (j === 9) { put('pCart', x, y, 16, [1, 1, 1], { y: meshH(x, y) + 0.5 }); const lc = byKey['p_pCart'] && byKey['p_pCart'][byKey['p_pCart'].length - 1]; if (lc) lc.rot = Math.PI / 2 - (a0 + bend); } } });
+    if (typeof MINES_W !== 'undefined') MINES_W.forEach((m, mi) => { if (m.type !== 'tin') return; const a = H(mi, 77) * TAU, d = 230 + H(77, mi) * 100; put('pCart', m.x + Math.cos(a) * d, m.y + Math.sin(a) * d, 16, [1, 1, 1]); });
     // the water's edge: reeds and cattails in patches along every lake shore and stream bank, lily pads out on the still lakes
-    const WT = typeof GRAND !== 'undefined' && GRAND.water; if (WT && WT.lakes) for (const [li, L] of WT.lakes.entries()) { const per = 2 * Math.PI * Math.max(L.rx, L.ry), n = Math.round(per / 22);
+    const WT = typeof GRAND !== 'undefined' && GRAND.water; if (WT && WT.lakes) for (const [li, L] of WT.lakes.entries()) { if (L.pool) continue; const per = 2 * Math.PI * Math.max(L.rx, L.ry), n = Math.round(per / 22);
       for (let i = 0; i < n; i++) { const a = i / n * TAU, rr = 1 + 0.08 * Math.sin(3 * a + L.ph) + 0.05 * Math.sin(5 * a + L.ph * 2) + 0.03 * Math.sin(8 * a + L.ph), ex = Math.cos(a) * L.rx * rr, ey = Math.sin(a) * L.ry * rr, patch = vnoise(ex / 140 + li * 7, ey / 140);
         if (patch > 0.42) { const off = -12 + H(i, li) * 22, f = 1 + off / Math.max(1, Math.min(L.rx, L.ry)), x = L.x + ex * f, y = L.y + ey * f, k = H(li, i) < 0.35 ? 'pCattail' : 'pReeds'; put(k, x, y, 10 + H(i, 3) * 5, null, { y: Math.max(meshH(x, y), L.wl - 4) - 0.5 }); }
         if (patch < 0.36 && H(i, li + 5) < 0.3) { const off = -30 - H(li, i + 2) * 70, f = 1 + off / Math.max(1, Math.min(L.rx, L.ry)), x = L.x + ex * f, y = L.y + ey * f; put('pLily', x, y, 11 + H(i, 8) * 6, null, { y: L.wl + 0.6 }); } } }
     if (WT && WT.streams) for (const [si, S] of WT.streams.entries()) for (let i = 1; i < S.P.length - 1; i += 2) { if (H(si, i) > 0.4) continue; const [x0, y0] = S.P[i], [x1, y1] = S.P[i + 1], dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, sd = H(i, si) < 0.5 ? -1 : 1, w = (S.w || 20) + 4 + H(i, 2) * 6;
       const x = x0 + nx * w * sd, y = y0 + ny * w * sd; put(H(i, si + 1) < 0.3 ? 'pCattail' : 'pReeds', x, y, 9 + H(i, 4) * 4, null); }
-    for (const k of PK) if (byKey['p_' + k]) { MD['p_' + k] = MD[k]; const sm = k[0] === 'p' && k !== 'pTrack'; IM.trees.push(makeSet('p_' + k, byKey['p_' + k], { near: sm ? 700 : 1100, far: k === 'rSlag' || k === 'rAngular' || k === 'rScree' ? 9000 : sm ? 2600 : 4800, minZ: 0.0, shadow: k[0] === 'r' })); } }
+    // the springs (Art's stream_spring_source sheets, three kinds round the map): A water spilling between two big mossy boulders into its pool,
+    // B a trickle from under one great boulder over wet stones, C a pool fed from a stack of boulders; ferns, moss and a few flowers tight in at the rocks
+    if (WT && WT.streams) for (const [si, S] of WT.streams.entries()) { if (S.lp == null) continue; const L = WT.lakes[S.lp], ux = S.ux, uy = S.uy, z = pickZ(biomeFast(L.x, L.y), 0.5), R = Math.max(L.rx, L.ry), kind = si % 3;
+      const at = (a, d) => { const ca = Math.cos(a), sa = Math.sin(a); return [L.x + (ux * ca - uy * sa) * d, L.y + (uy * ca + ux * sa) * d]; }; /* a = 0 points downstream */
+      const rock = (k, a, d, s, lift) => { const [x, y] = at(a, d); put(k, x, y, s, rockC(z, 0.6, k), { y: meshH(x, y) - s * 0.12 + (lift || 0) }); };
+      if (kind === 0) { rock('rMossy', Math.PI - 0.5, R + 10, 40); rock('rMossy', Math.PI + 0.55, R + 8, 34); rock('rHalf', 1.9, R + 10, 22); rock('rMossy', -1.95, R + 9, 20); }
+      else if (kind === 1) { rock('rMossy', Math.PI, R + 16, 56); rock('rHalf', Math.PI - 1.2, R + 8, 26); rock('rLichen', Math.PI + 1.25, R + 8, 22); for (let k = 0; k < 5; k++) rock('rFlat', (k % 2 ? 1 : -1) * (0.5 + k * 0.08), R + 6 + k * 9, 9 + H(si, k) * 4); }
+      else { rock('rMossy', Math.PI - 0.6, R + 10, 32); rock('rMossy', Math.PI + 0.6, R + 10, 32); rock('rMossy', Math.PI, R + 14, 30, 22); rock('rHalf', 1.6, R + 8, 20); rock('rHalf', -1.6, R + 8, 20); }
+      for (let k = 0; k < 9; k++) rock(k % 3 ? 'rMossy' : 'rFlat', (k / 8 - 0.5) * 4.6 + Math.PI + (H(si, k + 40) - 0.5) * 0.3, R + 4 + H(k, si + 40) * 6, 6 + H(si, k + 50) * 5); /* the ring of small stones round the pool */
+      for (let k = 0; k < 10; k++) { const a = Math.PI + (H(si, k + 20) - 0.5) * 5.2, d = R + 22 + H(k + 20, si) * 34, [x, y] = at(a, d); put(k < 6 ? 'bFern' : k < 8 ? 'bHeather' : 'bBerry', x, y, k < 6 ? 8 + H(k, 31) * 4 : 6.5, null); }
+      for (const sd of [-1, 1]) { const [x, y] = at(sd * 0.9, R + 6); put('pReeds', x, y, 9, null); } }
+    // where each stream runs into its lake (Art's stream_into_lake): a pebble delta fanning out into the shallows, reeds and cattails flanking the mouth,
+    // lily pads in the sheltered corner beside it and a couple of mossy stones on the bank
+    if (WT && WT.streams) for (const [si, S] of WT.streams.entries()) { if (S.l1 < 0) continue; const L = WT.lakes[S.l1], P = S.P; let m = P.findIndex((p) => GRAND.lakeE(L, p[0], p[1]) < 0); if (m < 2) continue;
+      const [x0, y0] = P[m], [xp, yp] = P[m - 2], dl = Math.hypot(x0 - xp, y0 - yp) || 1, ux = (x0 - xp) / dl, uy = (y0 - yp) / dl, nx = -uy, ny = ux, w = S.w || 22, z = pickZ(biomeFast(x0, y0), 0.5);
+      for (let k = 0; k < 26; k++) { const t = H(si, k + 60), sd = (H(k, si + 60) - 0.5) * (0.6 + t * 2.4), x = x0 + ux * (t * 90 - 10) + nx * sd * w * 1.4, y = y0 + uy * (t * 90 - 10) + ny * sd * w * 1.4; put(k % 4 ? 'rFlat' : 'rMossy', x, y, (k % 4 ? 4 : 6) + H(si, k + 70) * 4, rockC(z, 0.5, 'rFlat'), { wet: true, y: Math.max(meshH(x, y) + 0.5, L.wl - 1.2 - t * 2) }); }
+      for (const sd of [-1, 1]) for (let k = 0; k < 3; k++) { const x = x0 + nx * sd * (w * 1.6 + k * 14) - ux * (20 + k * 18), y = y0 + ny * sd * (w * 1.6 + k * 14) - uy * (20 + k * 18); put(k === 1 ? 'pCattail' : 'pReeds', x, y, 11 + H(k, si) * 4, null, { y: Math.max(meshH(x, y), L.wl - 3) - 0.5 }); }
+      const ls = H(si, 90) < 0.5 ? -1 : 1; for (let k = 0; k < 6; k++) { const x = x0 + nx * ls * (w * 3 + H(k, 91) * 50) + ux * (30 + H(91, k) * 60), y = y0 + ny * ls * (w * 3 + H(k, 91) * 50) + uy * (30 + H(91, k) * 60); if (GRAND.lakeE(L, x, y) < -15) put('pLily', x, y, 11 + H(k, 8) * 5, null, { y: L.wl + 0.6 }); }
+      for (const sd of [-1, 1]) { const x = x0 + nx * sd * (w * 2.6) - ux * 55, y = y0 + ny * sd * (w * 2.6) - uy * 55; put('rMossy', x, y, 18 + H(si, sd + 5) * 8, rockC(z, 0.6, 'rMossy')); } }
+    for (const k of PK) if (byKey['p_' + k]) { MD['p_' + k] = MD[k]; const sm = k[0] === 'p' && k !== 'pTrack'; IM.trees.push(makeSet('p_' + k, byKey['p_' + k], { near: sm ? 700 : 1100, far: k === 'rSlag' || k === 'rAngular' || k === 'rScree' || k === 'rRust' || k === 'rCoal' ? 9000 : sm ? 2600 : 4800, minZ: 0.0, shadow: k[0] === 'r' })); } }
   function homeElev(h) { return h.elev != null ? h.elev : meshH(h.x, h.y); }
   const M3LM = { list: [], minD: 0 }; // landmark (boulder-gripping) trees: where they are and the enforced spacing
   /* the mine approaches stain their trees: soot-dark near coal, warm rust near copper, silvery-pale near tin */

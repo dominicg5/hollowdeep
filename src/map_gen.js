@@ -165,7 +165,7 @@ function biomeAt(x, y) { const w = {}, mn = mineNear(x, y), ws = wetNear(x, y);
   const zs = z.oak + z.birch + z.wood + z.hedge; for (const k in z) w[k] = z[k] / zs * rest; return w; }
 const BIOME_TREES = { // [key, weight] per zone
   water: [['willowW', 4], ['willowW2', 3], ['alder', 2], ['alder2', 2], ['birch3', 1]],
-  coal: [['pineDead', 3], ['pineDead2', 3], ['pine', 2], ['pine2', 2], ['spruce2', 1]], /* charred dead pines among a few living ones */
+  coal: [['pineDead', 4], ['pineDead2', 4], ['pine', 1], ['pine2', 1], ['spruce2', 0.5]], /* charred dead pines among a few living ones */
   copper: [['hawthorn', 3], ['hawthorn2', 2], ['oakY', 2], ['ash2', 2], ['crabapple2', 1]],
   tin: [['birch', 3], ['birch2', 3], ['birch3', 2], ['pine2', 2], ['ash', 1]],
   oak: [['oakM', 3], ['oak', 2], ['oak2', 2], ['oak3', 2], ['oakY', 2], ['oakLean', 1], ['maple', 1], ['hawthorn', 1]],
@@ -223,6 +223,21 @@ const PET_NAMES = { pup: 'Moss Pup', wisp: 'Chalk Wisp', moth: 'Amber Moth', fer
 const LAYER_COLORS = ['#d9b46a', '#7fb07a', '#c08a4a', '#b0573a'];
 
 /* ---------- generation ---------- */
+// no crevice ever cuts a stream: where a crack would run into one it stops short (tapering shut) and picks up again beyond it.
+// Done after everything else is placed so the seeded layout of the rest of the world is unchanged.
+function pruneCracksAtStreams() { if (typeof GRAND === 'undefined' || !GRAND.streamLines) return; const SL = GRAND.streamLines(); if (!SL || !SL.length) return;
+  const sd = (x, y) => { let b = 1e9; for (const S of SL) for (let k = 0; k + 1 < S.P.length; k++) { const a = S.P[k], c = S.P[k + 1], dx = c[0] - a[0], dy = c[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)); b = Math.min(b, Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t) - S.w); } return b; };
+  const out = [], rad = []; let cut = 0;
+  for (const c of W.cracks) { const bad = c.pts.map((p, i) => sd(p[0], p[1]) < c.ws[i] / 2 + 150); if (!bad.some(Boolean)) { out.push(c); if (c.radial) rad.push(c); continue; } cut++;
+    let i = 0; while (i < c.pts.length) { while (i < c.pts.length && bad[i]) i++; const j0 = i; while (i < c.pts.length && !bad[i]) i++; if (i - j0 < 5) continue;
+      const pts = c.pts.slice(j0, i), ws = c.ws.slice(j0, i); const n = Math.min(4, pts.length >> 1); for (let k = 0; k < n; k++) { const f = (k + 1) / (n + 1); if (j0 > 0) ws[k] = Math.max(2, ws[k] * f); if (i < c.pts.length) ws[ws.length - 1 - k] = Math.max(2, ws[ws.length - 1 - k] * f); }
+      const d = Object.assign({}, c, { pts, ws, cut: true }); delete d.poly; out.push(d); if (c.radial && j0 === 0) rad.push(d); } }
+  if (!cut) return; W.cracks = out; W.radial = rad; W.crackGrid = new Map(); W.crackCut = cut;
+  for (const c of W.cracks) { const { pts, ws } = c; for (let i = 0; i < pts.length - 1; i++) segGridAdd(W.crackGrid, { x1: pts[i][0], y1: pts[i][1], x2: pts[i + 1][0], y2: pts[i + 1][1], w: Math.max(ws[i], ws[i + 1]), w1: ws[i], w2: ws[i + 1] }, 160);
+    const L = [], Rr = []; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[Math.min(i + 1, pts.length - 1)], o = pts[Math.max(i - 1, 0)]; const ang = Math.atan2(q[1] - o[1], q[0] - o[0]), nx = -Math.sin(ang), ny = Math.cos(ang), w = ws[i] / 2 * (0.85 + hash2(i, pts.length) * 0.3);
+      L.push([p[0] + nx * w, p[1] + ny * w]); Rr.push([p[0] - nx * w, p[1] - ny * w]); } c.poly = L.concat(Rr.reverse()); c.bbox = bboxOf(c.poly, 20); }
+  if (W.cranes) W.cranes = W.cranes.filter((cr) => chasmDist(cr.x, cr.y) < (cr.len || 60) + 40);
+  if (W.rifts) W.rifts = W.cracks.filter((c) => c.outer && c.glow && !c.lava && c.pts.length > 6).slice(0, 10); }
 function generateCity() {
   const t0 = performance.now();
   const rnd = mulberry32(CITY.seed);
@@ -471,6 +486,7 @@ function generateCity() {
 
   // Ambient life
   if (CITY.base) { W.npcs = []; W.caravans = []; W.dayFish = []; W.nightFish = []; W.motes = []; W.visitors = []; W.walkers = []; } else genLife(rnd);
+  pruneCracksAtStreams();
   relocatePlayer(true);
   W.genMs = Math.round(performance.now() - t0);
   W.ready = true;
