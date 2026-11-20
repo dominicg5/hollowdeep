@@ -24,7 +24,7 @@ const GRAND = (() => {
   /* ---------- the door ---------- */
   function doorWoodTex(hw, H) { return cvTex(512, 768, (g, w, h) => { const r = prng(41);
     // planks
-    for (let i = 0; i < 8; i++) { const v = 0.82 + r() * 0.25; g.fillStyle = `rgb(${172 * v | 0},${146 * v | 0},${112 * v | 0})`; g.fillRect(i * w / 8, 0, w / 8, h);
+    for (let i = 0; i < 8; i++) { const v = 0.82 + r() * 0.25; g.fillStyle = `rgb(${158 * v | 0},${112 * v | 0},${70 * v | 0})`; /* (critique) warm oak, not grey */ g.fillRect(i * w / 8, 0, w / 8, h);
       for (let k = 0; k < 40; k++) { g.strokeStyle = `rgba(${r() < 0.5 ? '110,90,66' : '235,220,195'},${0.15 + r() * 0.2})`; g.lineWidth = 1 + r() * 2; const x = i * w / 8 + r() * w / 8; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (r() - 0.5) * 10, h * 0.3, x + (r() - 0.5) * 10, h * 0.7, x + (r() - 0.5) * 6, h); g.stroke(); }
       g.fillStyle = 'rgba(70,54,38,.6)'; g.fillRect(i * w / 8, 0, 3, h); }
     // carved panels with glyphs (two per leaf)
@@ -35,6 +35,8 @@ const GRAND = (() => {
         g.stroke(); g.restore(); } g.restore(); };
     // iron straps with rivets
     for (const y of [0.17, 0.5, 0.84]) { g.fillStyle = '#2f2a26'; g.fillRect(0, h * y - 10, w, 20); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(0, h * y - 10, w, 4); for (let x = 12; x < w; x += 30) { g.fillStyle = '#1a1714'; g.beginPath(); g.arc(x, h * y, 4.5, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,240,220,.25)'; g.beginPath(); g.arc(x - 1, h * y - 1, 1.6, 0, 6.3); g.fill(); } }
+    // grand-door.jpg: carved glyph panels on each leaf, between the iron straps (they were defined but never drawn)
+    for (const [cx, k] of [[w * 0.25, 0], [w * 0.75, 1]]) { panel(cx, h * 0.335, w * 0.26, h * 0.2, k); panel(cx, h * 0.67, w * 0.26, h * 0.2, 1 - k); }
     // centre seam darkening and grime at the foot
     const gr = g.createLinearGradient(0, h, 0, h * 0.8); gr.addColorStop(0, 'rgba(40,30,16,.5)'); gr.addColorStop(1, 'rgba(40,30,16,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); }); }
   function glowTex2() { return cvTex(128, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(40,200,210,1)'); gr.addColorStop(0.5, 'rgba(230,255,250,1)'); gr.addColorStop(1, 'rgba(40,200,210,1)'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
@@ -60,7 +62,7 @@ const GRAND = (() => {
     const { gy, rD } = doorSpot(C);
     const fG = (gy - T.base) / T.H, c = ax(fG), P0 = v3().set(c.x + n.x * (rD + 40), gy, c.z + n.z * (rD + 40));
     const hw = 330, ys = 620, H = 1020, grp = new THREE.Group(); grp.position.copy(P0); grp.rotation.y = Math.atan2(n.x, n.z); grp.scale.setScalar(1.35); scene.add(grp); GX.door = { x: P0.x, y: P0.z, up: gy, hgt: H * 1.35, w: hw * 2 * 1.35, grp, nx: n.x, nz: n.z };
-    const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood }), ironM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0x8e8780 }); // the grey-brown trunk bark, matched (no warm tint)
+    const wood = doorWoodTex(hw, H), woodM = new THREE.MeshLambertMaterial({ map: wood, emissive: 0x2a1406 }), ironM = new THREE.MeshLambertMaterial({ color: 0x4a3020 }), frameM = new THREE.MeshLambertMaterial({ map: barkMat.map, color: 0xa88a70 }); // the warm brown trunk barkk, matched (no warm tint)
     const A = archPts(hw, ys, H, 16), outline = [[-hw, 0]].concat(A.map(([x, y]) => [-x, y]), A.slice().reverse().slice(1), [[hw, 0]]); // left foot -> left springing -> apex -> right springing -> right foot (the old order zig-zagged through the opening)
     // the glow inside: a bright plane set back in the doorway (you can't see in, only the light)
     { const sh = new THREE.Shape(); sh.moveTo(-hw, 0); for (const [x, y] of outline) sh.lineTo(x, y); const gm = new THREE.MeshBasicMaterial({ color: 0xfff7ec, toneMapped: false, side: THREE.DoubleSide, fog: false });
@@ -80,6 +82,24 @@ const GRAND = (() => {
     // the carved frame: a thick bark portal grown round a dressed timber moulding, with a keystone ornament at the apex
     const curveOf = (k, z) => new THREE.CatmullRomCurve3(outline.map(([x, y]) => new THREE.Vector3(x * k, y * (k > 1 ? (y > 5 ? 1 + (k - 1) * 0.55 : 1) : 1), z)));
     { const tm = new THREE.Mesh(new THREE.TubeGeometry(curveOf(1.03, -34), 60, 13, 6, false), new THREE.MeshLambertMaterial({ map: wood, color: 0xd2c0a4 })); grp.add(tm);
+      /* (critique) the carved arch frame and keystone (grand-door.jpg): a broad moulded timber archivolt round the lancet - a raised centre bead between
+         carved grooves with rune knots along it, rounded outer roll - capped at the apex by a pointed carved keystone set with a glowing Lumen gem */
+      { const FT = cvTex(512, 128, (g, w, h) => { const r = prng(63); g.fillStyle = 'rgb(104,66,36)'; g.fillRect(0, 0, w, h);
+          for (let k = 0; k < 120; k++) { const y = r() * h; g.strokeStyle = `rgba(${r() < 0.5 ? '70,44,22' : '196,150,98'},${0.12 + r() * 0.2})`; g.lineWidth = 1 + r() * 2; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * 0.3, y + (r() - 0.5) * 8, w * 0.7, y + (r() - 0.5) * 8, w, y); g.stroke(); }
+          for (const [y, c, lw] of [[0.3, 'rgba(36,20,8,.85)', 7], [0.7, 'rgba(36,20,8,.85)', 7], [0.33, 'rgba(220,170,110,.35)', 2], [0.73, 'rgba(220,170,110,.35)', 2], [0.5, 'rgba(236,196,140,.4)', 5], [0.04, 'rgba(30,18,8,.7)', 8], [0.96, 'rgba(30,18,8,.7)', 8]]) { g.strokeStyle = c; g.lineWidth = lw; g.beginPath(); g.moveTo(0, h * y); g.lineTo(w, h * y); g.stroke(); }
+          for (let i = 0; i < 4; i++) { const cx = (i + 0.5) * w / 4, cy = h * 0.5; for (const [col, lw, o] of [['rgba(30,16,6,.9)', 6, 1.5], ['rgba(226,182,120,.8)', 3, 0]]) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(cx - 26 + o, cy + o); g.lineTo(cx + o, cy - 14 + o); g.lineTo(cx + 26 + o, cy + o); g.lineTo(cx + o, cy + 14 + o); g.closePath(); g.moveTo(cx - 52 + o, cy + o); g.lineTo(cx - 34 + o, cy + o); g.moveTo(cx + 34 + o, cy + o); g.lineTo(cx + 52 + o, cy + o); g.stroke(); } } });
+        FT.wrapS = THREE.RepeatWrapping; const fM = new THREE.MeshLambertMaterial({ map: FT, emissive: 0x1e0e04, side: THREE.DoubleSide });
+        const FL = outline, NF = FL.length, fn = FL.map(([x, y], i) => { if (y < ys) return [Math.sign(x) || 1, 0]; const a = FL[Math.max(0, i - 1)], b = FL[Math.min(NF - 1, i + 1)]; let nx = b[1] - a[1], ny = -(b[0] - a[0]); const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l; if (nx * x + ny * (y - ys * 0.5) < 0) { nx = -nx; ny = -ny; } return [nx, ny]; });
+        const PRO = [[6, -40], [9, -6], [20, 8], [38, 13], [56, 9], [74, 14], [92, 6], [100, -14], [104, -46]], NP = PRO.length, P = [], UV = [], I = []; let acc = 0;
+        FL.forEach(([x, y], i) => { if (i) acc += Math.hypot(x - FL[i - 1][0], y - FL[i - 1][1]); PRO.forEach(([o, z], k) => { P.push(x + fn[i][0] * o, y + fn[i][1] * o - (y < 1 ? 20 : 0), z); UV.push(acc / 300, k / (NP - 1)); }); });
+        for (let i = 0; i < NF - 1; i++) for (let k = 0; k < NP - 1; k++) { const a = i * NP + k, b = a + NP; I.push(a, b, a + 1, a + 1, b, b + 1); }
+        const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); fg.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); fg.setIndex(I); fg.computeVertexNormals(); const fr = new THREE.Mesh(fg, fM); fr.castShadow = true; grp.add(fr);
+        const KT = cvTex(256, 256, (g, w, h) => { g.fillStyle = 'rgb(132,88,50)'; g.fillRect(0, 0, w, h); const r = prng(71); for (let k = 0; k < 50; k++) { g.strokeStyle = `rgba(${r() < 0.5 ? '70,44,22' : '200,156,104'},${0.15 + r() * 0.2})`; g.lineWidth = 1 + r() * 2; const x = r() * w; g.beginPath(); g.moveTo(x, 0); g.lineTo(x + (r() - 0.5) * 12, h); g.stroke(); }
+          for (const [col, lw, o] of [['rgba(30,16,6,.9)', 9, 2], ['rgba(230,186,124,.85)', 4, 0]]) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); for (const sc of [0.86, 0.6]) { g.moveTo(w / 2 + o, h * (1 - 0.04 * sc - 0.9 * sc) + o); g.lineTo(w / 2 + w * 0.4 * sc + o, h * 0.58 + o); g.lineTo(w / 2 + w * 0.32 * sc + o, h * (0.18 + 0.1 * (1 - sc)) + o); g.lineTo(w / 2 + o, h * (0.02 + 0.2 * (1 - sc)) + o); g.lineTo(w / 2 - w * 0.32 * sc + o, h * (0.18 + 0.1 * (1 - sc)) + o); g.lineTo(w / 2 - w * 0.4 * sc + o, h * 0.58 + o); g.closePath(); } g.moveTo(w / 2 + o, h * 0.2 + o); g.lineTo(w / 2 + o, h * 0.85 + o); g.stroke(); } });
+        const ks = new THREE.Shape(), KP = [[0, -70], [78, 30], [64, 150], [0, 232], [-64, 150], [-78, 30]]; ks.moveTo(KP[0][0], KP[0][1]); for (const [x, y] of KP.slice(1)) ks.lineTo(x, y); ks.closePath();
+        const kg = new THREE.ExtrudeGeometry(ks, { depth: 46, bevelEnabled: true, bevelThickness: 12, bevelSize: 10, bevelSegments: 2, curveSegments: 2 }); { const Pk = kg.attributes.position, uk = kg.attributes.uv; for (let i = 0; i < Pk.count; i++) uk.setXY(i, (Pk.getX(i) + 88) / 176, (Pk.getY(i) + 80) / 322); }
+        const key = new THREE.Mesh(kg, new THREE.MeshLambertMaterial({ map: KT, emissive: 0x1e0e04 })); key.position.set(0, H - 24, -24); key.castShadow = true; grp.add(key);
+        const gem = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), new THREE.MeshBasicMaterial({ color: 0x8fe4ff, toneMapped: false })); gem.scale.set(24, 38, 14); gem.position.set(0, H + 70, 40); grp.add(gem); GX.keyGem = gem.material; }
       /* slim timber casing only: the trunk and its roots frame the rest */
       /* no keystone or board over the arch: the door and its light carry it */
       // threshold step and side bases
@@ -131,12 +151,12 @@ const GRAND = (() => {
     { GX.poolM = new THREE.MeshBasicMaterial({ map: radialTex('rgba(255,250,240,.95)', 'rgba(255,240,220,.3)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0.5 });
       const pool = new THREE.Mesh(new THREE.PlaneGeometry(900, 1200), GX.poolM); pool.rotation.x = -Math.PI / 2; pool.position.set(0, 30, 420); grp.add(pool);
       const shG = new THREE.BufferGeometry(); shG.setAttribute('position', new THREE.Float32BufferAttribute([-gap / 2, 0, -60, gap / 2, 0, -60, gap / 2, 700, -60, -gap / 2, 700, -60, -260, 0, 700, 260, 0, 700], 3)); shG.setAttribute('uv', new THREE.Float32BufferAttribute([0.45, 0, 0.55, 0, 0.55, 1, 0.45, 1, 0, 0.5, 1, 0.5], 2)); shG.setIndex([0, 1, 5, 0, 5, 4, 0, 4, 3, 1, 2, 5]);
-      GX.shaftM = new THREE.MeshBasicMaterial({ color: 0xfff2e0, transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false }); grp.add(new THREE.Mesh(shG, GX.shaftM));
-      GX.doorLight = new THREE.PointLight(0xfff0e0, 0.6, 2600, 1.6); GX.doorLight.position.set(0, 400, 380); grp.add(GX.doorLight);
+      GX.shaftM = new THREE.MeshBasicMaterial({ color: 0xffe2b4, transparent: true, opacity: 0.18, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false }); grp.add(new THREE.Mesh(shG, GX.shaftM));
+      GX.doorLight = new THREE.PointLight(0xffd9a0, 0.6, 2600, 1.6); GX.doorLight.position.set(0, 400, 380); grp.add(GX.doorLight);
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex('rgba(255,252,245,1)', 'rgba(255,245,230,.35)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.6, toneMapped: false })); sp.position.set(0, 450, 40); sp.scale.set(700, 1300, 1); grp.add(sp); GX.doorSprite = sp; }
     GX.lamps = lampPts; return GX.door; }
   function animDoor(t, night) { if (!GX.door) return; const fl = 0.9 + 0.1 * Math.sin(t * 2.1) + 0.04 * Math.sin(t * 7.3);
-    const k = (0.85 + 0.9 * night) * fl; GX.doorGlow.color.setRGB(1, 0.97, 0.92); GX.poolM.opacity = (0.08 + 0.6 * night) * fl; GX.shaftM.opacity = (0.04 + 0.22 * night) * fl; GX.doorLight.intensity = (0.25 + 1.2 * night) * fl; GX.doorSprite.material.opacity = (0.25 + 0.5 * night) * fl;
+    const k = (0.85 + 0.9 * night) * fl; GX.doorGlow.color.setRGB(1, 0.9, 0.7); /* (critique) a warm glow from the gap */ GX.poolM.opacity = (0.08 + 0.6 * night) * fl; GX.shaftM.opacity = (0.04 + 0.22 * night) * fl; GX.doorLight.intensity = (0.25 + 1.2 * night) * fl; GX.doorSprite.material.opacity = (0.25 + 0.5 * night) * fl;
     const lk = 0.55 + night * 0.7; GX.lampM.color.setRGB(lk, lk * 0.75, lk * 0.42); const mk = 0.5 + night * 0.7; GX.mushB.color.setRGB(0.36 * mk, 0.82 * mk, 1.0 * mk); GX.mushV.color.setRGB(0.72 * mk, 0.52 * mk, 1.0 * mk); GX.doorMushGlow.material.opacity = 0.1 + night * 0.5; }
 
   function doorCard() { const btn = (h) => `<div class="wrapgap" style="margin-top:10px">${h}</div>`;
@@ -206,11 +226,13 @@ const GRAND = (() => {
     const wm = (vs, fs) => { const m = new THREE.ShaderMaterial({ uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uT: { value: 0 }, uN: { value: 0 }, uMn: { value: MO.length } }]), transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide, stencilWrite: true, stencilRef: 1, stencilFunc: THREE.NotEqualStencilFunc, stencilZPass: THREE.ReplaceStencilOp, stencilFail: THREE.KeepStencilOp, stencilZFail: THREE.KeepStencilOp,
       vertexShader: '#include <fog_pars_vertex>\n' + vs + ' vec4 mvPosition = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mvPosition;\n#include <fog_vertex>\n}', fragmentShader: '#include <fog_pars_fragment>\n' + WNOISE + '\n' + fs + ' gl_FragColor = vec4(col, a);\n#include <tonemapping_fragment>\n#include <encodings_fragment>\n#include <fog_fragment>\n}' }); m.uniforms.uMo = { value: MV }; mats.push(m); return m; };
     const WCOL = `uniform float uT; uniform float uN; uniform vec3 uMo[24]; uniform float uMn; vec4 wcol(float dep, vec3 vP, float flow, vec2 vU){ float mj = 0.0; for (int i = 0; i < 24; i++) { if (float(i) >= uMn) break; mj = max(mj, 1.0 - smoothstep(0.4, 1.0, length(vP.xz - uMo[i].xy) / uMo[i].z)); } dep = mix(dep, 18.0, mj); flow *= 1.0 - mj; vec2 w = vP.xz / 380.0; float r = fb(w + vec2(uT * 0.05, uT * 0.03)) - 0.5 * fb(w * 1.7 - vec2(uT * 0.04, -uT * 0.02)); float sh = smoothstep(0.0, 45.0, dep);
-  vec3 col = mix(vec3(0.05, 0.27, 0.4), vec3(0.02, 0.11, 0.24), sh); vec3 V = normalize(cameraPosition - vP); float fr = pow(1.0 - clamp(V.y, 0.0, 1.0), 3.0); col = mix(col, vec3(0.36, 0.55, 0.68), fr * 0.32 + r * 0.1);
+  /* stream_into_lake: clear teal over the shallows, through mid blue to deep blue out in the middle, the shelf edge broken up by noise (never a clean ring) */
+  float sn = fb(w * 2.3 + 4.0) - 0.5, s1 = smoothstep(0.0, 16.0, dep + sn * 10.0), s2 = smoothstep(16.0, 52.0, dep + sn * 16.0);
+  vec3 col = mix(mix(vec3(0.17, 0.45, 0.42), vec3(0.06, 0.29, 0.41), s1), vec3(0.02, 0.11, 0.24), s2); vec3 V = normalize(cameraPosition - vP); float fr = pow(1.0 - clamp(V.y, 0.0, 1.0), 3.0); col = mix(col, vec3(0.36, 0.55, 0.68), (fr * 0.32 + r * 0.1) * (0.45 + 0.55 * s1));
   col += smoothstep(0.74, 0.92, fb(w * 3.0 + vec2(uT * 0.12, uT * 0.07))) * 0.16 * (1.0 - uN);
   if (flow > 0.001) { vec2 q = vec2(vU.x * 3.0, vU.y * 0.9 - uT * 1.6); float st = fb(q * vec2(2.0, 1.0)), gl = smoothstep(0.78, 0.95, fb(q * vec2(5.0, 3.0) + 3.0)); col = mix(col, col * (0.82 + 0.36 * st) + gl * 0.24, flow); }
   float fw = mix(1.0, 0.3, flow), shore = (1.0 - smoothstep(fw, (9.0 + 5.0 * vn(w * 8.0 + uT * 0.3)) * fw, dep)) * (0.6 + 0.4 * sin(uT * 1.5 + w.x * 9.0)) * (1.0 - mj);
-  col = mix(col, vec3(0.95, 0.98, 1.0), clamp(shore * 0.75, 0.0, 1.0)); col *= mix(1.0, 0.14, uN); return vec4(col, mix(0.84, 0.995, smoothstep(0.0, 16.0, dep)) + shore * 0.2); } /* near-opaque once a few units deep: trenches cut under a lake must not ghost through as a ribbon */`;
+  col = mix(col, vec3(0.95, 0.98, 1.0), clamp(shore * 0.75, 0.0, 1.0)); col *= mix(1.0, 0.14, uN); return vec4(col, mix(0.6, 0.995, smoothstep(0.0, 20.0, dep)) + shore * 0.2); } /* near-opaque once a few units deep: trenches cut under a lake must not ghost through as a ribbon */`;
     /* lakes stop a few units past their shore (aE): out along a stream's channel the stream's own surface takes over at the same level */
     const lm = wm('attribute float aD; attribute float aE; varying float vD; varying float vE; varying vec3 vP; void main(){ vD = aD; vE = aE; vP = (modelMatrix * vec4(position, 1.0)).xyz;', WCOL + `
   varying float vD; varying float vE; varying vec3 vP; void main(){ if (vD < -1.5 || vE > 10.0) discard; vec4 c = wcol(vD, vP, 0.0, vec2(0.0)); vec3 col = c.rgb; float a = c.a;`);

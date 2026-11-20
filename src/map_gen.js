@@ -178,7 +178,7 @@ function biomeAt(x, y) { const w = {}, mn = mineNear(x, y), ws = wetNear(x, y);
   const z = { oak: 0.35 + smooth01g(0.4, 0.6, n1) * (1 - smooth01g(0.5, 0.7, n2)), birch: (1 - smooth01g(0.24, 0.38, n1)) * 1.4, wood: smooth01g(0.48, 0.66, n2) * smooth01g(0.3, 0.5, n1) * 1.4, hedge: 0.18 };
   const zs = z.oak + z.birch + z.wood + z.hedge; for (const k in z) w[k] = z[k] / zs * rest; return w; }
 const BIOME_TREES = { // [key, weight] per zone
-  water: [['willowW', 4], ['willowW2', 3], ['alder', 2], ['alder2', 2], ['birch3', 1]],
+  water: [['willowW', 3], ['willowW2', 2], ['willowW3', 2], ['willowW4', 1.5], ['alder', 2], ['alder2', 2], ['birch3', 1]],
   coal: [['pineDead', 4], ['pineDead2', 4], ['pine', 1], ['pine2', 1], ['spruce2', 0.5]], /* charred dead pines among a few living ones */
   copper: [['hawthorn', 3], ['hawthorn2', 2], ['oakY', 2], ['ash2', 2], ['crabapple2', 1]],
   tin: [['birch', 3], ['birch2', 3], ['birch3', 2], ['pine2', 2], ['ash', 1]],

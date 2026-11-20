@@ -367,13 +367,25 @@ const HOUSE_KIT = (() => {
     for (let k = 0; k < 26; k++) { g.strokeStyle = 'rgba(70,60,50,.18)'; g.lineWidth = 0.8 + r(); g.beginPath(); let x = 564 + r() * 140, y = 256 + r() * 256; g.moveTo(x, y); for (let s = 0; s < 4; s++) { x += (r() - 0.5) * 30; y += (r() - 0.5) * 30; g.lineTo(x, y); } g.stroke(); }
     g.fillStyle = '#7f9a2e'; g.fillRect(564, 0, 140, 256); for (let i = 0; i < 3600; i++) { const k = r(); g.fillStyle = k < 0.3 ? 'rgba(96,118,34,.35)' : k < 0.8 ? 'rgba(146,170,54,.35)' : 'rgba(180,200,84,.4)'; g.beginPath(); g.arc(564 + r() * 140, r() * 256, 0.5 + r() * 1.2, 0, 6.3); g.fill(); }
     // leaf-cluster cards: a rounded clump of small leaves with a scalloped outline, top-lit, transparent outside
-    for (let c = 0; c < 6; c++) { const ox = 706 + (c % 2) * 159, oy = (c >> 1) * 166, cx = ox + 79, cy = oy + 82, R = 62, rc = rng(100 + c);
+    for (let c = 0; c < 5; c++) { const ox = 706 + (c % 2) * 159, oy = (c >> 1) * 166, cx = ox + 79, cy = oy + 82, R = 62, rc = rng(100 + c);
       g.save(); g.beginPath(); g.rect(ox + 1, oy + 1, 157, 162); g.clip();
       g.fillStyle = 'rgb(62,88,30)'; g.beginPath(); for (let k = 0; k <= 40; k++) { const a = k / 40 * 6.283, rr = R * (0.8 + 0.1 * Math.sin(a * 7 + c)); g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.92); } g.fill();
       const L = []; for (let i = 0; i < 260; i++) { const a = rc() * 6.283, d = R * Math.sqrt(rc()) * 0.98; L.push([cx + Math.cos(a) * d, cy + Math.sin(a) * d * 0.92, a, d]); } L.sort((p, q) => q[1] - p[1]);
       for (const [x, y, a, d] of L) { const up = 1 - (y - (cy - R)) / (2 * R), k = rc(), lit = Math.min(1, Math.max(0, up * 0.9 + (k - 0.5) * 0.5)); const R0 = 84 + 92 * lit, G0 = 108 + 92 * lit, B0 = 30 + 44 * lit;
         leafDab(x, y, 7 + rc() * 5, a + (rc() - 0.5) * 0.8, `rgb(${R0 | 0},${G0 | 0},${B0 | 0})`, lit > 0.45 ? `rgba(${R0 + 60 | 0},${G0 + 46 | 0},${B0 + 40 | 0},.75)` : 'rgba(52,74,24,.45)'); }
       g.restore(); }
+    /* card 5: willow strand sheet (willow_waterside) - 4 columns, each two slender hanging stems thick with narrow pointed leaves angled down and out;
+       columns 0, 1, 3 are strand bodies, column 2 a tapering tip. One even willow green: lit leaf faces, a darker leaf under each, no hue patches */
+    { const ox = 706 + 159, oy = 332, rw = rng(907); for (let col = 0; col < 4; col++) { const x0 = ox + 2 + col * 38.75, tip = col === 2; g.save(); g.beginPath(); g.rect(x0 + 0.5, oy + 1, 37.75, 162); g.clip();
+      for (const st of [0.34, 0.66]) { const sx0 = x0 + 38.75 * st + (rw() - 0.5) * 3, ph = rw() * 6, stem = (y) => sx0 + 2.2 * Math.sin((y - oy) * 0.045 + ph);
+        g.strokeStyle = 'rgba(92,104,40,.9)'; g.lineWidth = 1.1; g.beginPath(); for (let y = oy; y <= oy + (tip ? 150 : 164); y += 4) g.lineTo(stem(y), y); g.stroke();
+        for (let y = oy - 6; y < oy + (tip ? 150 : 166); y += 2.1 + rw() * 1.2) { const f = tip ? 1 - Math.max(0, (y - oy) / 150) * 0.7 : 1; if (tip && rw() > 0.25 + 0.75 * f) continue;
+          for (const sd of [-1, 1]) { if (rw() < 0.12) continue; const L = (8 + rw() * 5) * f, wd = (1.7 + rw() * 0.9) * f, a = Math.PI / 2 - sd * (0.32 + rw() * 0.42), x = stem(y) + sd * 0.6, cxl = x + Math.cos(a) * L * 0.5, cyl = y + Math.sin(a) * L * 0.5, k = rw();
+            const lit = Math.min(1, Math.max(0, 0.55 + (k - 0.5) * 0.7 + (sd < 0 ? 0.12 : -0.05)));
+            g.fillStyle = `rgb(${68 + 18 * lit | 0},${92 + 16 * lit | 0},${30 + 6 * lit | 0})`; g.beginPath(); g.ellipse(cxl + 0.5, cyl + 0.7, L * 0.5, wd, a, 0, 6.3); g.fill(); /* the shaded under-leaf */
+            g.fillStyle = `rgb(${108 + 50 * lit | 0},${138 + 40 * lit | 0},${44 + 20 * lit | 0})`; g.beginPath(); g.ellipse(cxl, cyl, L * 0.47, wd * 0.82, a, 0, 6.3); g.fill();
+            if (lit > 0.55) { g.strokeStyle = `rgba(222,228,150,${0.35 + 0.3 * lit})`; g.lineWidth = 0.6; g.beginPath(); g.moveTo(x, y); g.lineTo(cxl + Math.cos(a) * L * 0.4, cyl + Math.sin(a) * L * 0.4); g.stroke(); } } } }
+      g.restore(); } }
     const T = new THREE.CanvasTexture(cv); T.encoding = THREE.sRGBEncoding; T.anisotropy = 8; T.generateMipmaps = true; T.minFilter = THREE.LinearMipmapLinearFilter; T.magFilter = THREE.LinearFilter; return T; }
   function TBuilder() { const B = { p: [], n: [], uv: [], c: [], i: [] }; B.v = (x, y, z, nx, ny, nz, u, v, c) => { B.p.push(x, y, z); B.n.push(nx, ny, nz); B.uv.push(u, v); B.c.push(c[0], c[1], c[2]); return B.p.length / 3 - 1; };
     B.geo = () => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(B.n, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(B.uv, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(B.c, 3)); g.setIndex(B.i); g.computeBoundingSphere(); return g; }; return B; }
@@ -407,7 +419,7 @@ const HOUSE_KIT = (() => {
       const yy = 1 - (k + 0.5) / nCard * 1.6, rr = Math.sqrt(Math.max(0, 1 - yy * yy)), th = ga * k + r() * 6.283; let n = [Math.cos(th) * rr, yy, Math.sin(th) * rr]; if (n[0] * q.d[0] + n[1] * q.d[1] + n[2] * q.d[2] < -0.35) continue;
       const hs = q.s * (lod ? 0.95 : 0.62) * (0.85 + r() * 0.3), p = [q.c[0] + n[0] * q.s * 0.78, q.c[1] + n[1] * q.s * 0.72, q.c[2] + n[2] * q.s * 0.78];
       const pn = new THREE.Vector3(n[0] + (r() - 0.5) * 0.7, n[1] + (r() - 0.5) * 0.5, n[2] + (r() - 0.5) * 0.7).normalize(), up = Math.abs(pn.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0), ta = new THREE.Vector3().crossVectors(up, pn).normalize(), tb = new THREE.Vector3().crossVectors(pn, ta); if (tb.y < 0) { tb.negate(); ta.negate(); } const ro = (r() - 0.5) * 0.5, cr = Math.cos(ro), sr = Math.sin(ro);
-      const A = ta.clone().multiplyScalar(cr).addScaledVector(tb, sr).multiplyScalar(hs), Bv = ta.clone().multiplyScalar(-sr).addScaledVector(tb, cr).multiplyScalar(hs), cc = (r() * 6) | 0, b0 = B.p.length / 3;
+      const A = ta.clone().multiplyScalar(cr).addScaledVector(tb, sr).multiplyScalar(hs), Bv = ta.clone().multiplyScalar(-sr).addScaledVector(tb, cr).multiplyScalar(hs), cc = (r() * 5) | 0, b0 = B.p.length / 3; /* card 5 is the willow strand sheet */
       for (const [su, sv] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const x = p[0] + A.x * su + Bv.x * sv, y = p[1] + A.y * su + Bv.y * sv, z = p[2] + A.z * su + Bv.z * sv, N2 = crN(x, y, z), lit = N2[3] * (1.08 + r() * 0.12); const [u, v] = CARD(cc, (su + 1) / 2, (sv + 1) / 2);
         B.v(x, y, z, N2[0] * 0.8 + n[0] * 0.2, N2[1] * 0.8 + n[1] * 0.2, N2[2] * 0.8 + n[2] * 0.2, u, v, [lit * q.hue[0], lit * q.hue[1], lit * q.hue[2]]); }
       B.i.push(b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3); } }
@@ -465,6 +477,49 @@ const HOUSE_KIT = (() => {
       limb(B, [[x0, y, 0], [x0 + Math.cos(a) * L * 0.55, y + dn * 0.25 + 0.01, Math.sin(a) * L * 0.55], [ex, y + dn, ez]], 0.014, 0.004, lod ? 3 : 4, 0.85);
       if (!lod) { const a2 = a + (r() < 0.5 ? -0.7 : 0.7), mx = x0 + Math.cos(a) * L * 0.55, my = y + dn * 0.3, mz = Math.sin(a) * L * 0.55; limb(B, [[mx, my, mz], [mx + Math.cos(a2) * L * 0.25, my + L * 0.3, mz + Math.sin(a2) * L * 0.25], [mx + Math.cos(a2) * L * 0.4, my + L * 0.62, mz + Math.sin(a2) * L * 0.4]], 0.008, 0.002, 3, 0.85); }
       if (tufts && !lod && r() < 0.3) floret(B, ex, y + dn + 0.015, ez, 0.04, 0.025, 0.04, 0, (r() * 1e6) | 0, [0.34, 0.38, 0.26], 1, null, 0); }
+    BT = [1, 1, 1]; return B.geo(); }
+  /* ---------- weeping willow (willow_waterside.jpg; Dominic t290u + critique): a thick, twisted, leaning trunk that splits low into a few limbs;
+     the limbs arch up, out and over into a rounded dome; long leafy weeping strands hang from the arches in layered tiers (short ones over the top,
+     the longest round the outside), parting here and there to show the trunk and limbs; one even willow green, lit on top, shaded inside ---------- */
+  const bez3 = (a, b, c, d, n) => { const o = []; for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t, A = u * u * u, Bq = 3 * u * u * t, Cq = 3 * u * t * t, D = t * t * t; o.push([0, 1, 2].map((k) => A * a[k] + Bq * b[k] + Cq * c[k] + D * d[k])); } return o; };
+  /* one strand: a short arc out from its twig, then hanging; leafy texture columns (body, body, tip) on two crossed quads so it has volume from any side */
+  function wStrand(B, x, y, z, ox, oz, L, w, segs, lit, r, cross) { const sw = (r() - 0.5) * 0.5, sx = -oz, sz = ox, P = [];
+    for (let j = 0; j <= segs; j++) { const t = j / segs, o = L * 0.14 * (1 - (1 - t) * (1 - t)), s = L * 0.06 * sw * t * t; P.push([x + ox * o + sx * s, y - L * t, z + oz * o + sz * s]); }
+    const cols = segs >= 3 ? [r() < 0.5 ? 0 : 3, r() < 0.5 ? 1 : 3, 2] : [r() < 0.5 ? 0 : 1, 2], nx = ox * 0.72, ny = 0.6, nz = oz * 0.72;
+    for (const [ax, az] of cross ? [[sx, sz], [ox * 0.8 + sx * 0.2, oz * 0.8 + sz * 0.2]] : [[sx, sz]]) for (let j = 0; j < segs; j++) { const p0 = P[j], p1 = P[j + 1], c = cols[Math.min(j, cols.length - 1)], l0 = lit * (1 - 0.2 * j / segs), l1 = lit * (1 - 0.2 * (j + 1) / segs), w0 = w * (j ? 1 : 0.75), b0 = B.p.length / 3;
+      for (const [p, ww, uu, vv, l] of [[p0, -w0, 0, 1, l0], [p0, w0, 1, 1, l0], [p1, w, 1, 0, l1], [p1, -w, 0, 0, l1]]) { const [u, v] = CARD(5, (c + 0.04 + uu * 0.92) / 4, vv); B.v(p[0] + ax * ww, p[1], p[2] + az * ww, nx, ny, nz, u, v, [l, l, l * 0.97]); }
+      B.i.push(b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3); } }
+  function willowTree(lod, seed, P) { const B = TBuilder(), r = rng(seed), H = P.H || 0.95, R = P.R || 0.42, sp = P.split || 0.34, TR = P.trunk || [0.1, 0.075], tk = TR[0] / 0.1, lx = P.lean[0], lz = P.lean[1], ph = r() * 6.283;
+    BKS = 0; BT = [1.22, 1.04, 0.84]; /* warm brown, deeply furrowed and twisted */
+    const S = [lx, sp, lz], tw = 0.03 * (P.twist || 1);
+    limb(B, bez3([0, -0.06, 0], [lx * 0.05 + tw, sp * 0.35, lz * 0.05 - tw * 0.5], [lx * 0.75 - tw, sp * 0.72, lz * 0.75 + tw], S, lod ? 3 : 8), TR[0], TR[1], lod ? 7 : 16, 0.66, lod ? 0 : 0.14, 1.6 * (P.twist || 1));
+    limb(B, [[0, -0.06, 0], [0, 0.03, 0], [lx * 0.1, 0.13, lz * 0.1]], 0.15 * tk, 0.085 * tk, lod ? 7 : 16, 0.58, lod ? 0 : 0.2, 0.8); /* flared foot */
+    if (P.bould) { const ba = r() * 6.283, bR = 0.2, bc = [Math.cos(ba) * 0.2, 0.03, Math.sin(ba) * 0.2]; boulder(B, bc[0], bc[1], bc[2], bR * 1.1, bR * 0.95, bR, lod ? 1 : 3, seed); P._ba = ba; }
+    { const nr = lod ? 4 : 7; for (let k = 0; k < nr; k++) { const a = k / nr * 6.283 + r() * 0.5; if (P._ba != null && Math.cos(a - P._ba) > 0.5) continue; const L = (0.08 + r() * 0.09) * tk, w = (r() - 0.5) * 0.6;
+      limb(B, curve([Math.cos(a) * 0.07 * tk, 0.1, Math.sin(a) * 0.07 * tk], [Math.cos(a) * (0.15 + L * 0.2) * tk, 0.0, Math.sin(a) * (0.15 + L * 0.2) * tk], [Math.cos(a + w) * (0.12 + L) * tk, -0.03, Math.sin(a + w) * (0.12 + L) * tk], lod ? 3 : 7), 0.05 * tk, 0.01, lod ? 4 : 7, 0.66, lod ? 0 : 0.1, 0.4); } }
+    /* limbs: from the split up steeply, then out and over - each an arch whose tip turns down at the dome's rim */
+    const cx = lx * 0.6, cz = lz * 0.6, na = P.na || 4, arches = [], bot = P.bot || 0.25, gaps = [ph + 0.4, ph + 2.4 + r() * 1.2, ph + 4.3 + r() * 0.8].slice(0, P.gaps || 3);
+    for (let k = 0; k < na; k++) { const a = k / na * 6.283 + ph + (r() - 0.5) * 0.7, ca = Math.cos(a), sa = Math.sin(a), s0 = [S[0] - lx * 0.12 * (k % 2), S[1] - 0.05 * (k % 2), S[2] - lz * 0.12 * (k % 2)], rp = R * (0.42 + r() * 0.18), hp = H - 0.02 - r() * 0.07, rt = R * (0.86 + r() * 0.2), ht = hp - 0.1 - r() * 0.06;
+      const pts = bez3(s0, [s0[0] + ca * 0.05, s0[1] + 0.2, s0[2] + sa * 0.05], [cx + ca * rp, hp + 0.05, cz + sa * rp], [cx + ca * rt, ht, cz + sa * rt], lod ? 5 : 10);
+      limb(B, pts, 0.058 * tk, 0.01, lod ? 5 : 9, 0.66, lod ? 0 : 0.08, 0.6); arches.push({ pts, a, w: 1 });
+      const nf = lod ? 0 : 1 + (r() < 0.6 ? 1 : 0); for (let f = 0; f < nf; f++) { const i0 = 3 + f * 2, p = pts[i0], a2 = a + (f ? 1 : -1) * (0.45 + r() * 0.35), r2 = R * (0.7 + r() * 0.25), h2 = hp - 0.04 - r() * 0.05;
+        const q = bez3(p, [p[0] + Math.cos(a2) * 0.06, p[1] + 0.08, p[2] + Math.sin(a2) * 0.06], [cx + Math.cos(a2) * r2 * 0.6, h2 + 0.04, cz + Math.sin(a2) * r2 * 0.6], [cx + Math.cos(a2) * r2, h2 - 0.08, cz + Math.sin(a2) * r2], 6); limb(B, q, 0.026 * tk, 0.006, 6, 0.72); arches.push({ pts: q, a: a2, w: 0.7 }); } }
+    /* a shaded inner leaf mass inside the dome so no sky shows through the top */
+    const c0 = B.p.length / 3; WILM = true; for (const A of arches) for (const t of [0.6]) { const p = A.pts[Math.round(t * (A.pts.length - 1))]; floret(B, p[0] * 0.85 + cx * 0.15, p[1] - 0.06, p[2] * 0.85 + cz * 0.15, R * 0.2, 0.06, R * 0.2, lod ? 0 : 1, (r() * 1e6) | 0, [0.5, 0.55, 0.42], 1, null, 0.7); } WILM = false; tintFrom(B, c0, [0.9, 0.95, 0.62]);
+    const gapK = (a) => { let m = 0; for (const g of gaps) { const d = Math.abs(Math.atan2(Math.sin(a - g), Math.cos(a - g))); m = Math.max(m, 1 - Math.min(1, d / 0.45)); } return m; };
+    const lvl = (y) => Math.min(1, Math.max(0, (y - bot) / (H - bot)));
+    /* strands hung along each arch's outer part: the longest reach the curtain's ragged lower edge; some stop short so the tiers layer */
+    const dens = lod ? 5 : 24, segs = lod ? 2 : 3, W = (P.sw || 0.042) * (lod ? 1.6 : 1);
+    for (const A of arches) { const N = Math.round(dens * A.w); for (let k = 0; k < N; k++) { const t = 0.42 + 0.58 * Math.pow(r(), 0.6), p = A.pts[Math.min(A.pts.length - 1, Math.round(t * (A.pts.length - 1)))], jx = (r() - 0.5) * 0.07, jz = (r() - 0.5) * 0.07, x = p[0] + jx, z = p[2] + jz, y = p[1] - 0.005 + (r() - 0.5) * 0.02;
+      let ox = x - cx, oz = z - cz; const rl = Math.hypot(ox, oz) || 1; ox /= rl; oz /= rl; const az = Math.atan2(oz, ox), eb = bot + 0.05 * Math.sin(az * 3 + ph) + 0.04 * (r() - 0.5);
+      let L = Math.max(0.06, y - eb); if (r() < 0.5) L *= 0.3 + r() * 0.35; L *= 1 - 0.7 * gapK(az) * Math.min(1, rl / (R * 0.5));
+      wStrand(B, x, y, z, ox, oz, L, W * (0.85 + r() * 0.3), segs, 0.9 + 0.22 * lvl(y) + (r() - 0.5) * 0.05, r, !lod); } }
+    /* the top tiers: short strands all over the dome cap, lit by the sun, each layer draping over the one below */
+    /* the top tiers (the concept's scalloped dome): lumps of short strands over the cap - each lump's strands spring from its rounded head and drape
+       over the tier below, lit on top */
+    const NL = lod ? 6 : 16; for (let k = 0; k < NL; k++) { const u = Math.sqrt((k + 0.5) / NL), a = k * 2.39996 + ph, rr = R * 0.8 * u, lyc = H - 0.05 - Math.pow(u, 2) * 0.17 + (r() - 0.5) * 0.03, lr = R * (0.24 + r() * 0.08), lx0 = cx + Math.cos(a) * rr, lz0 = cz + Math.sin(a) * rr, ns = lod ? 3 : 11;
+      for (let j = 0; j < ns; j++) { const b = r() * 6.283, d = lr * Math.sqrt(r()), x = lx0 + Math.cos(b) * d, z = lz0 + Math.sin(b) * d, y = lyc + lr * 0.45 * Math.sqrt(Math.max(0, 1 - (d / lr) * (d / lr))); let ox = Math.cos(b) * 0.6 + Math.cos(a) * u * 0.7, oz = Math.sin(b) * 0.6 + Math.sin(a) * u * 0.7; const ol = Math.hypot(ox, oz) || 1; ox /= ol; oz /= ol;
+        const L = (0.12 + 0.14 * r()) * (0.7 + 0.6 * u); wStrand(B, x, y, z, ox, oz, L, W * (0.9 + r() * 0.3), lod ? 1 : 2, 1.02 + 0.12 * (1 - u) * (1 - d / lr) + (r() - 0.5) * 0.05, r, !lod && d > lr * 0.5); } }
     BT = [1, 1, 1]; return B.geo(); }
   function conifer(lod, seed, tint, nt) { const B = TBuilder(), r = rng(seed || 11), tiers = lod ? 5 : nt || 11; limb(B, [[0, -0.06, 0], [0.005, 0.5, 0], [0.01, 0.95, 0]], 0.055, 0.012, lod ? 5 : 7, 0.6);
     for (let t = 0; t < tiers; t++) { const f = t / (tiers - 1), y0 = 0.12 + f * 0.78, y1 = y0 + (lod ? 0.26 : 0.19) - f * 0.06, rad = 0.36 * Math.pow(1 - f, 0.9) + 0.025, n = lod ? 7 : 16, sh = 0.5 + f * 0.55, rot = r() * 6.28;
@@ -548,8 +603,9 @@ const HOUSE_KIT = (() => {
       pReeds: T((l) => reedsGeo(l, 1401, false)), pCattail: T((l) => reedsGeo(l, 1403, true)), pLily: T((l) => lilyGeo(l, 1405)), pTrack: T((l) => trackGeo(l)), pLantern: T((l) => lanternGeo(l)) }; }
   function trees() { if (!treeAtlas) treeAtlas = paintTreeAtlas(); const mat = new THREE.MeshLambertMaterial({ map: treeAtlas, vertexColors: true, side: THREE.DoubleSide, alphaTest: 0.5 });
     const T = (fn) => ({ geos: [fn(0), fn(1)], mat, tree: true }), S2 = (sp, seed, o) => T((l) => speciesGeo(cut(sp, o), seed, l));
+    /* willows: foliage lit by its own (outward) normals from both sides - a strand seen from behind must not flip dark (lumenify reads userData.foliage) */ const wmat = mat.clone(); wmat.userData.foliage = 1; wmat.customProgramCacheKey = () => 'willowFoliage'; const WT = (seed, P) => ({ geos: [willowTree(0, seed, Object.assign({}, P)), willowTree(1, seed, Object.assign({}, P))], mat: wmat, tree: true });
     return { oak: { geos: [broadleaf(0, false, 18), broadleaf(1, false, 18)], mat, tree: true }, willow: { geos: [broadleaf(0, true, 24), broadleaf(1, true, 24)], mat, tree: true },
-      /* landmark trees: the ones gripping a mossy boulder - rare, placed far apart (map3d) */ oakL: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, oak3L: { geos: [broadleaf(0, false, 47), broadleaf(1, false, 47)], mat, tree: true }, willowL: { geos: [broadleaf(0, true, 23), broadleaf(1, true, 23)], mat, tree: true }, sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true },
+      /* landmark trees: the ones gripping a mossy boulder - rare, placed far apart (map3d) */ oakL: { geos: [broadleaf(0, false, 17), broadleaf(1, false, 17)], mat, tree: true }, oak3L: { geos: [broadleaf(0, false, 47), broadleaf(1, false, 47)], mat, tree: true }, willowL: WT(1023, { H: 0.94, R: 0.55, split: 0.32, lean: [0.07, 0.03], trunk: [0.11, 0.08], na: 5, bot: 0.24, bould: 1 }), sequoia: { geos: [conifer(0), conifer(1)], mat, tree: true },
       oak2: { geos: [broadleaf(0, false, 31), broadleaf(1, false, 31)], mat, tree: true }, oak3: { geos: [broadleaf(0, false, 48), broadleaf(1, false, 48)], mat, tree: true }, willow2: { geos: [broadleaf(0, true, 59), broadleaf(1, true, 59)], mat, tree: true }, sequoia2: { geos: [conifer(0, 71), conifer(1, 71)], mat, tree: true },
       /* trees_variation_oak: a young oak (slim, high small crown) and a leaning one */ oakY: S2('oak', 101, { C: [0.0, 0.74, 0.0], R: [0.27, 0.23, 0.27], split: 0.55, trunk: [0.06, 0.042], ncl: 12, nb: 3 }), oakLean: S2('oak', 103, { C: [0.16, 0.66, 0.04], R: [0.4, 0.25, 0.36], split: 0.38, lean: [0.12, 0.03], kink: 0.03 }),
       maple: S2('maple', 211), maple2: S2('maple', 213, { R: [0.3, 0.34, 0.3], C: [0.02, 0.68, 0.0], lean: [0.03, 0.0] }),
@@ -559,7 +615,8 @@ const HOUSE_KIT = (() => {
       sycamore: S2('sycamore', 601), sycamore2: S2('sycamore', 607, { R: [0.4, 0.32, 0.4], lean: [-0.04, 0.02] }),
       alder: S2('alder', 701), alder2: S2('alder', 709, { R: [0.25, 0.33, 0.25], lean: [0.05, 0.0] }),
       hawthorn: S2('hawthorn', 801), hawthorn2: S2('hawthorn', 809, { R: [0.32, 0.27, 0.3], lean: [-0.06, 0.02], kink: -0.05 }),
-      willowW: S2('willow', 1001), willowW2: S2('willow', 1009, { R: [0.32, 0.33, 0.3], C: [0.04, 0.76, 0.0], lean: [0.08, 0.02] }), oakM: S2('oak', 1101, { C: [0.0, 0.72, 0.0], R: [0.5, 0.32, 0.48], ncl: 24, nb: 5, trunk: [0.14, 0.1], fl: 0.14, tw: 0.9 }),
+      /* willow_waterside: mature, leaning over the water, young, old and gnarled - by age, lean and shape */ willowW: WT(1001, { H: 0.96, R: 0.54, split: 0.34, lean: [0.08, 0.02], trunk: [0.1, 0.075], na: 4, bot: 0.24 }), willowW2: WT(1009, { H: 0.92, R: 0.5, split: 0.3, lean: [0.17, 0.04], trunk: [0.095, 0.07], na: 4, bot: 0.2, twist: 1.5 }),
+      willowW3: WT(1013, { H: 1.0, R: 0.36, split: 0.42, lean: [0.03, 0.0], trunk: [0.06, 0.045], na: 3, bot: 0.34, sw: 0.036, gaps: 1 }), willowW4: WT(1019, { H: 0.9, R: 0.6, split: 0.26, lean: [0.06, -0.05], trunk: [0.135, 0.1], na: 5, bot: 0.22, twist: 1.8 }), oakM: S2('oak', 1101, { C: [0.0, 0.72, 0.0], R: [0.5, 0.32, 0.48], ncl: 24, nb: 5, trunk: [0.14, 0.1], fl: 0.14, tw: 0.9 }),
       pineDead: { geos: [deadPine(0, 1501, false), deadPine(1, 1501, false)], mat, tree: true }, pineDead2: { geos: [deadPine(0, 1507, false), deadPine(1, 1507, false)], mat, tree: true },
       crabapple: S2('crabapple', 901), crabapple2: S2('crabapple', 907, { R: [0.3, 0.3, 0.3], lean: [0.05, 0.0] }),
       pine: T((l) => pineTree(l, 1001)), pine2: T((l) => pineTree(l, 1013)),
