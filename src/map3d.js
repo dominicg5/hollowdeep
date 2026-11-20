@@ -74,7 +74,7 @@ const M3 = (() => {
     let mh = mtnH(x, y) + rock * 0.55;
     // the world's edge rises into a wall of rocky peaks fading into haze (no sea, no coastline)
     const eg = smooth01(CITY.R - 700, CITY.R + 900, r); if (eg > 0) { const rn = (u, v) => 1 - Math.abs(2 * vnoise(u, v) - 1); { const q = 0.6 * rn(x / 420, y / 420) + 0.4 * rn(x / 150 + 3, y / 150); mh = Math.max(mh, eg * (260 + 760 * q * q)); } }
-    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh); return routeCarve(x, y, c); } // the Lumen Tree's streams, falls and lake
+    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh, heightAt); return routeCarve(x, y, c); } // the Lumen Tree's streams, falls and lake
     return routeCarve(x, y, [h + mh - rock * 0.55, mh]);
   }
   // terrain probe used when placing homes (height + slope), before or after the meshes exist
@@ -772,7 +772,7 @@ diffuseColor *= sdc;
   function buildModelScene() { if (!MD || !scene) return;
     for (const s2 of IM.all) for (const m of s2.meshes) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = [];
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
-    const byKey = {}; const push = (k, o) => (byKey[k] || (byKey[k] = [])).push(o);
+    const byKey = {}; const onR = typeof GRAND !== 'undefined' && GRAND.onRamp; const push = (k, o) => { if (onR && !/^(h\d|h_|home)|P\d+$/.test(k) && GRAND.onRamp(o.x, o.z, k.startsWith('t_') ? 150 : 70)) return; (byKey[k] || (byKey[k] = [])).push(o); }; // option B ramps stay clear of trees, rocks and props
     W.homes.forEach((h, i) => { const tier = tierOf(h); let key = HOUSE_KIT.keyFor(tier, hash1(i * 3.71 + 0.3)), w = homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
       if (h.isPlayer && /^h\d/.test(key) && HOUSE_KIT.variant) { const pk = key + 'P' + Math.round(w * 10); if (!MD[pk]) { const raw = HOUSE_KIT.variant(key, 1), d0 = raw.doors[0]; MD[pk] = d0 ? HOUSE_KIT.variant(key, HOUSE_KIT.DOOR_H / (d0.h * w), true) : raw; } key = pk; } // the player's larger home: its door still the one world size
       h._rot = rot; h._key = key; h._w = w; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9, h }); yardProps(h, i, key, w); });

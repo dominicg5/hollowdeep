@@ -14,7 +14,50 @@ const GRAND = (() => {
   const toW = (d, s) => [G.T.x + G.ox * d + G.lx * s, G.T.y + G.oy * d + G.ly * s];
   const toL = (x, y) => { const dx = x - G.T.x, dy = y - G.T.y; return [dx * G.ox + dy * G.oy, dx * G.lx + dy * G.ly]; };
   // the ground in front of the door is evened out into the same gentle grassy rim ground as all round the tree (no ridges, cliffs or ledges)
-  function carve(x, y, h, mh) { [h, mh] = carveTree(x, y, h, mh); return carveW(x, y, h, mh); }
+  function carve(x, y, h, mh, hf) { [h, mh] = carveTree(x, y, h, mh); [h, mh] = carveRamps(x, y, h, mh, hf); return carveW(x, y, h, mh); }
+  /* ---------- plateau access, OPTION B (Dominic hasn't chosen; off unless ?ramps=1 or localStorage hdLumenRamps=1): instead of the stone steps
+     ~600 m east, up to three graded earthen ramps straight out from the door's side of the summit, in the root-free lanes, each bridging the bank
+     where it is shortest; the roots stay unclimbable (the ramps start beyond their reach) ---------- */
+  const RAMP = { on: null, built: false, building: false, list: [] };
+  function rampsOn() { if (RAMP.on == null) { try { RAMP.on = /[?&]ramps=1/.test(location.search) || localStorage.getItem('hdLumenRamps') === '1'; } catch (e) { RAMP.on = false; } } return RAMP.on; }
+  /* option B ramps: the bank below the summit drops ~1400 and is scored by clefts, so a straight ramp can't be gentle or clean. Each ramp is
+     a least-cost graded path found on an 80-unit grid over the bank (clefts, water and the root sprawl forbidden, steep moves penalised),
+     starting in a root-free lane beside the door; its height is the ground smoothed along the path and held to <= 0.3 grade. */
+  function buildRamps(hf) { RAMP.built = true; if (!G) return; RAMP.building = true; const DB = RAMP.dbg = {}; const T = G.T, OUT = T.in + Math.PI, HH = (x, y) => hf(x, y)[0], rootR = T.H * 0.42 + 700;
+    const S = 80, RX = 10000, N = Math.ceil((2 * RX) / S), X0 = T.x - RX, Y0 = T.y - RX, ux = Math.cos(OUT), uy = Math.sin(OUT);
+    const hg = new Float32Array(N * N).fill(NaN), ok = new Uint8Array(N * N); let nOk = 0;
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = X0 + i * S, y = Y0 + j * S, dx = x - T.x, dy = y - T.y, r = Math.hypot(dx, dy); if (r < rootR - 60 || r > 9800) continue; const a = Math.atan2(dx * uy - dy * ux, dx * ux + dy * uy); if (Math.abs(a) > 1.4) continue;
+      if ((typeof chasmDist === 'function' && chasmDist(x, y) < 140) || wetW(x, y, 90)) continue; const k = j * N + i; hg[k] = HH(x, y); ok[k] = 1; nOk++; }
+    DB.cells = nOk; const summit = HH(T.x + ux * (rootR - 200), T.y + uy * (rootR - 200)); DB.summit = Math.round(summit);
+    const used = []; for (let pass = 0; pass < 3; pass++) {
+      const dist = new Float32Array(N * N).fill(Infinity), prev = new Int32Array(N * N).fill(-1), heap = [];
+      const push = (k, d) => { heap.push([d, k]); let c = heap.length - 1; while (c > 0) { const p = (c - 1) >> 1; if (heap[p][0] <= heap[c][0]) break; [heap[p], heap[c]] = [heap[c], heap[p]]; c = p; } };
+      const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let c = 0; for (;;) { const l = 2 * c + 1, r = l + 1; let m = c; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; c = m; } } return top; };
+      const near = (x, y, d) => used.some((P) => P.some((q) => Math.hypot(q[0] - x, q[1] - y) < d));
+      for (let a = -0.7; a <= 0.701; a += 0.035) { if ((Math.abs(a) > 0.29 && Math.abs(a) < 0.51)) continue; const r = rootR + 40, x = T.x + Math.cos(OUT + a) * r, y = T.y + Math.sin(OUT + a) * r, i = Math.round((x - X0) / S), j = Math.round((y - Y0) / S), k = j * N + i; if (!ok[k] || hg[k] < summit - 150 || near(x, y, 1400)) continue; dist[k] = Math.abs(a) * 1800; push(k, dist[k]); }
+      let goal = -1; const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1], [2, 1], [1, 2], [-2, 1], [-1, 2], [2, -1], [1, -2], [-2, -1], [-1, -2]];
+      while (heap.length) { const [d, k] = pop(); if (d > dist[k]) continue; const i = k % N, j = (k / N) | 0, x = X0 + i * S, y = Y0 + j * S;
+        if (hg[k] < summit - 1250) { const e = 2, sl = (k - e >= 0 && k + e < N * N && k - e * N >= 0 && k + e * N < N * N && ok[k - e] && ok[k + e] && ok[k - e * N] && ok[k + e * N]) ? Math.hypot(hg[k + e] - hg[k - e], hg[k + e * N] - hg[k - e * N]) / (4 * S) : 9; if (sl < 0.3) { goal = k; break; } }
+        for (const [di, dj] of NB) { const i2 = i + di, j2 = j + dj; if (i2 < 0 || j2 < 0 || i2 >= N || j2 >= N) continue; const k2 = j2 * N + i2; if (!ok[k2]) continue; const L = Math.hypot(di, dj) * S, g = Math.abs(hg[k2] - hg[k]) / L;
+          let c = L * (1 + 40 * Math.max(0, g - 0.26) ** 1.5 + (g > 0.6 ? 50 : 0)); if (used.length && near(X0 + i2 * S, Y0 + j2 * S, 700)) c += L * 4; const nd = d + c; if (nd < dist[k2]) { dist[k2] = nd; prev[k2] = k; push(k2, nd); } } }
+      if (goal < 0) { DB['fail' + pass] = 1; break; }
+      const P = []; for (let k = goal; k >= 0; k = prev[k]) P.push([X0 + (k % N) * S, Y0 + ((k / N) | 0) * S]); P.reverse();
+      /* smooth the line (chaikin), then arc-length heights: ground smoothed along the path, clamped to <= 0.3 grade both ways */
+      let Q = P; for (let it = 0; it < 3; it++) { const R2 = [Q[0]]; for (let q = 0; q < Q.length - 1; q++) { const A = Q[q], B = Q[q + 1]; R2.push([A[0] * 0.75 + B[0] * 0.25, A[1] * 0.75 + B[1] * 0.25], [A[0] * 0.25 + B[0] * 0.75, A[1] * 0.25 + B[1] * 0.75]); } R2.push(Q[Q.length - 1]); Q = R2; }
+      for (let it = 0; it < 24; it++) { const Q2 = Q.map((q) => q.slice()); for (let q = 2; q < Q.length - 2; q++) { const nx2 = (Q[q - 2][0] + Q[q - 1][0] * 2 + Q[q][0] * 2 + Q[q + 1][0] * 2 + Q[q + 2][0]) / 8, ny2 = (Q[q - 2][1] + Q[q - 1][1] * 2 + Q[q][1] * 2 + Q[q + 1][1] * 2 + Q[q + 2][1]) / 8; if ((typeof chasmDist !== 'function' || chasmDist(nx2, ny2) > 120) && Math.hypot(nx2 - T.x, ny2 - T.y) > rootR - 60) Q2[q] = [nx2, ny2]; } Q = Q2; } /* relax the grid's zig-zags into easy curves */
+      const sA = [0]; for (let q = 1; q < Q.length; q++) sA.push(sA[q - 1] + Math.hypot(Q[q][0] - Q[q - 1][0], Q[q][1] - Q[q - 1][1]));
+      const raw = Q.map((q) => HH(q[0], q[1])), hs = raw.map((_, q) => { let sw = 0, sh = 0; for (let m = 0; m < Q.length; m++) { const ds = Math.abs(sA[m] - sA[q]); if (ds > 360) continue; const w = 1 - ds / 360; sw += w; sh += w * raw[m]; } return sh / sw; });
+      const GM = 0.3; for (let it = 0; it < 3; it++) { for (let q = 1; q < Q.length; q++) { const dS = sA[q] - sA[q - 1]; hs[q] = Math.min(hs[q - 1] + GM * dS, Math.max(hs[q - 1] - GM * dS, hs[q])); } for (let q = Q.length - 2; q >= 0; q--) { const dS = sA[q + 1] - sA[q]; hs[q] = Math.min(hs[q + 1] + GM * dS, Math.max(hs[q + 1] - GM * dS, hs[q])); } }
+      let fill = 0, gmax = 0; for (let q = 0; q < Q.length; q++) { fill = Math.max(fill, Math.abs(hs[q] - raw[q])); if (q) gmax = Math.max(gmax, Math.abs(hs[q] - hs[q - 1]) / Math.max(1, sA[q] - sA[q - 1])); }
+      let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9; for (const q of Q) { bx0 = Math.min(bx0, q[0]); by0 = Math.min(by0, q[1]); bx1 = Math.max(bx1, q[0]); by1 = Math.max(by1, q[1]); }
+      const a0 = Math.atan2((Q[0][0] - T.x) * uy - (Q[0][1] - T.y) * ux, (Q[0][0] - T.x) * ux + (Q[0][1] - T.y) * uy);
+      RAMP.list.push({ P: Q, s: sA, h: hs, L: sA[sA.length - 1], ha: hs[0], hb: hs[hs.length - 1], g: (hs[0] - hs[hs.length - 1]) / sA[sA.length - 1], gmax, fill, a: a0, bb: [bx0 - 300, by0 - 300, bx1 + 300, by1 + 300] }); used.push(P); }
+    RAMP.building = false; }
+  function carveRamps(x, y, h, mh, hf) { if (!G || RAMP.building || !rampsOn()) return [h, mh]; if (!RAMP.built) { if (!hf) return [h, mh]; buildRamps(hf); } if (!RAMP.list.length) return [h, mh];
+    const W0 = 90, SH = 200; for (const R of RAMP.list) { const b = R.bb; if (x < b[0] || y < b[1] || x > b[2] || y > b[3]) continue; let best = 1e9, bh = 0, bt = 0; const P = R.P;
+      for (let q = 0; q < P.length - 1; q++) { const ax = P[q][0], ay = P[q][1], ex = P[q + 1][0] - ax, ey = P[q + 1][1] - ay, ll = ex * ex + ey * ey || 1; let t = ((x - ax) * ex + (y - ay) * ey) / ll; t = t < 0 ? 0 : t > 1 ? 1 : t; const d = Math.hypot(x - ax - ex * t, y - ay - ey * t); if (d < best) { best = d; bh = R.h[q] + (R.h[q + 1] - R.h[q]) * t; bt = (q + t) / (P.length - 1); } }
+      if (best > W0 + SH) continue; const w = (1 - sm(W0, W0 + SH, best)) * sm(0, 0.04, bt); if (w <= 0) continue; h = h + (bh - h) * w; mh = mh * (1 - w); }
+    return [h, mh]; }
   function carveTree(x, y, h, mh) { if (!G) return [h, mh]; const [d, s2] = toL(x, y); if (d < -300 || d > 5000 || Math.abs(s2) > 4400) return [h, mh]; const w = sm(5000, 3000, d) * sm(4400, 3000, Math.abs(s2)) * sm(-300, 400, d); if (w <= 0) return [h, mh];
     const tgt = CITY.summitH + 25 * Math.sin(d / 900 + s2 / 1300) * Math.cos(s2 / 1100); return [h + (tgt - h) * w, mh * (1 - w)]; }
   function wet(x, y, m) { return wetW(x, y, m); }
@@ -257,5 +300,5 @@ float fb(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a *
   function animW(t, night) { if (!GX.wmats) return; for (const m of GX.wmats) { m.uniforms.uT.value = t; m.uniforms.uN.value = night || 0; } }
   function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); } buildLakes(C); }
   function anim(t, night) { animDoor(t, night); animW(t, night); }
-  return { build, anim, wet, streamBridges, streamLines() { wGeom(); return WT.streams; }, lakeE, water: WT, dodge, doorSpot, carve, fit, doorCard, enterTree, toW, toL, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
+  return { ramps: RAMP, rampsOn, onRamp(x, y, m) { if (!rampsOn() || !RAMP.list.length) return false; for (const R of RAMP.list) { const b = R.bb; if (x < b[0] || y < b[1] || x > b[2] || y > b[3]) continue; for (let q = 0; q < R.P.length; q += 2) if (Math.hypot(R.P[q][0] - x, R.P[q][1] - y) < 90 + m) return true; } return false; }, build, anim, wet, streamBridges, streamLines() { wGeom(); return WT.streams; }, lakeE, water: WT, dodge, doorSpot, carve, fit, doorCard, enterTree, toW, toL, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
 })();
