@@ -292,9 +292,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='36fa3662';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 36fa3662</div>
-<script src="assets/vendor/three.min.js?v=36fa3662"></script>
+<script>window.HD_BUILD='a62602b7';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a62602b7</div>
+<script src="assets/vendor/three.min.js?v=a62602b7"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -4668,12 +4668,12 @@ diffuseColor *= sdc;
       { const pts = [], fs = []; for (let i = 0; i <= 72; i++) { const f = -0.07 + (i / 72) * 0.8, fr = f; fs.push(fr); pts.push(ax(fr)); }
         /* the doorway: the trunk is recessed behind the door's light plane inside the arch, so no bark sits in the doorway (seen through the leaves' gap) */
         const DS = GRAND.doorSpot(DC), dHW = 330 * 1.35 + 30, dH = 1020 * 1.35, dYS = 620 * 1.35, rIn = DS.rD - 160, inDoor = (i, ph, r) => { const d = Math.atan2(Math.sin(ph - DC.OUT), Math.cos(ph - DC.OUT)); if (Math.cos(d) <= 0.3) return r; const x = Math.sin(d) * r, y = pts[i].y - DS.gy; if (Math.abs(x) > dHW || y < -250 || y > dYS + (dH - dYS) * Math.sqrt(Math.max(0, 1 - (x / dHW) ** 2)) + 40) return r; return Math.min(r, rIn / Math.cos(d)); };
-        gaTube(A, pts, 64, (i, a) => inDoor(i, Math.PI / 2 - a, trunkRad(fs[i], Math.PI / 2 - a) * (fs[i] < 0 ? 1 + fs[i] * 3 : 1)) /* gaTube's ring angle a is measured from its own frame (vertex at world azimuth pi/2 - a on the upright trunk): trunkRad wants the world azimuth, else the buttress lobes land where the door's smooth cleft should be and bulge over the door */, (i, a, p, d) => moss(p, d, 0), [7, 900]); }
+        gaTube(A, pts, 64, (i, a) => inDoor(i, Math.PI / 2 - a, trunkRad(fs[i], Math.PI / 2 - a) * (fs[i] < 0 ? 1 + fs[i] * 3 : 1)) /* gaTube's ring angle a is measured from its own frame (vertex at world azimuth pi/2 - a on the upright trunk): trunkRad wants the world azimuth, else the buttress lobes land where the door's smooth cleft should be and bulge over the door */, (i, a, p, d) => moss(p, d, 0), [4, 1500]); } /* (critique: trunk reads as a basket of small slats) coarser bark so the rope strands lead */
       // strands wound round the trunk up into the crown
       /* (critique: trunk too plain) heartwood.jpg: thick rope-like strands spiral up the trunk, standing proud with deep shadowed seams between them */
       HWX.strands = []; for (let k = 0; k < 12; k++) { const a0 = (k / 12) * TAU + 0.3, pts = [], rs = [], f1 = 0.56 + hash1(k * 7.3) * 0.16, n = 64, tw = 4.6 + hash1(k * 2.1) * 1.2; HWX.strands.push({ a0, tw, f1, r: HW_R0 * (0.22 + 0.08 * hash1(k)) });
         for (let i = 0; i <= n; i++) { const f = 0.0 + (f1 - 0.0) * i / n, aa = a0 + f * tw; pts.push(tr(f, aa, trunkRad(f, aa) * 0.9)); rs.push(HW_R0 * (0.22 + 0.08 * hash1(k)) * (1 - 0.5 * i / n) * (i < 3 ? 0.55 + i / 6.6 : 1) * (1 + 0.12 * Math.sin(i * 0.35 + k))); }
-        GRAND.dodge(pts, DC, rs); gaTube(A, pts, 10, (i, aa) => rs[i] * (1 + 0.1 * Math.sin(aa * 2 + i * 0.4)), (i, aa, p, d) => moss(p, d, k + 40), [2, 600]); }
+        GRAND.dodge(pts, DC, rs); gaTube(A, pts, 10, (i, aa) => rs[i] * (1 + 0.1 * Math.sin(aa * 2 + i * 0.4)), (i, aa, p, d) => moss(p, d, k + 40), [2, 1700]); } /* long fibres along each rope strand */
       // LIP ROOTS: wind down the trunk, then arch out over the lip and grip the plateau behind the tree
       /* (critique: banded bark) heartwood.jpg roots: a few broad fibrous strands twisting slowly along the root (not fast spiral bands), with knots and
          swellings here and there; the bark's fibres run along and wind round with the strands */
