@@ -517,7 +517,7 @@ const HOUSE_KIT = (() => {
     /* the top tiers: short strands all over the dome cap, lit by the sun, each layer draping over the one below */
     /* the top tiers (the concept's scalloped dome): lumps of short strands over the cap - each lump's strands spring from its rounded head and drape
        over the tier below, lit on top */
-    const NL = lod ? 6 : 16; for (let k = 0; k < NL; k++) { const u = Math.sqrt((k + 0.5) / NL), a = k * 2.39996 + ph, rr = R * 0.8 * u, lyc = H - 0.05 - Math.pow(u, 2) * 0.17 + (r() - 0.5) * 0.03, lr = R * (0.24 + r() * 0.08), lx0 = cx + Math.cos(a) * rr, lz0 = cz + Math.sin(a) * rr, ns = lod ? 3 : 11;
+    const NL = lod ? 7 : 22; for (let k = 0; k < NL; k++) { const u = Math.sqrt((k + 0.5) / NL), a = k * 2.39996 + ph, rr = R * 0.96 * u, /* out to the arches' crowns so no bare limb shows over the top */ lyc = H + 0.01 - Math.pow(u, 1.7) * 0.25 + (r() - 0.5) * 0.03, /* (gap: dome top too flat) a rounder, higher crown falling away to the rim (willow_waterside) */ lr = R * (0.24 + r() * 0.08), lx0 = cx + Math.cos(a) * rr, lz0 = cz + Math.sin(a) * rr, ns = lod ? 3 : 11;
       for (let j = 0; j < ns; j++) { const b = r() * 6.283, d = lr * Math.sqrt(r()), x = lx0 + Math.cos(b) * d, z = lz0 + Math.sin(b) * d, y = lyc + lr * 0.45 * Math.sqrt(Math.max(0, 1 - (d / lr) * (d / lr))); let ox = Math.cos(b) * 0.6 + Math.cos(a) * u * 0.7, oz = Math.sin(b) * 0.6 + Math.sin(a) * u * 0.7; const ol = Math.hypot(ox, oz) || 1; ox /= ol; oz /= ol;
         const L = (0.12 + 0.14 * r()) * (0.7 + 0.6 * u); wStrand(B, x, y, z, ox, oz, L, W * (0.9 + r() * 0.3), lod ? 1 : 2, 1.02 + 0.12 * (1 - u) * (1 - d / lr) + (r() - 0.5) * 0.05, r, !lod && d > lr * 0.5); } }
     BT = [1, 1, 1]; return B.geo(); }
