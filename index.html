@@ -292,9 +292,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='ec7e11c1';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build ec7e11c1</div>
-<script src="assets/vendor/three.min.js?v=ec7e11c1"></script>
+<script>window.HD_BUILD='ae3ca781';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build ae3ca781</div>
+<script src="assets/vendor/three.min.js?v=ae3ca781"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -8822,7 +8822,7 @@ const Explore = (() => {
     const leaf = new THREE.IcosahedronGeometry(1, 0), nug = new THREE.DodecahedronGeometry(1, 0), xtal = new THREE.CylinderGeometry(0.0, 0.32, 1, 6); xtal.translate(0, 0.5, 0);
     sites.forEach((S, si) => { const G = new THREE.Group(); G.name = 'cliff' + si; G.userData.sp = S.sp || { x: S.x, y: S.y, R: S.R }; grp.add(G); if (!S.sp) ORE.fields.push(G); else ORE.fields[ORE.spots.indexOf(S.sp)].add(G);
       // the face: downhill direction g (out of the wall), tangent t along it
-      const e = WS * 3, gx = -(mH(S.x + e, S.y) - mH(S.x - e, S.y)), gy = -(mH(S.x, S.y + e) - mH(S.x, S.y - e)), gl = Math.hypot(gx, gy) || 1, ox = gx / gl, oy = gy / gl, tx = -oy, ty = ox, V = S.type ? VL[S.type] : null, ROCK = S.type === 'coal' ? [0.1, 0.095, 0.09] : S.type === 'copper' ? [0.17, 0.1, 0.06] : S.type === 'tin' ? [0.37, 0.345, 0.3] /* cliff_veins_tin: pale grey-tan rock (was near-black) */ : ROCK0[si % 3].map((u) => u * 0.75);
+      const e = WS * 3, gx = -(mH(S.x + e, S.y) - mH(S.x - e, S.y)), gy = -(mH(S.x, S.y + e) - mH(S.x, S.y - e)), gl = Math.hypot(gx, gy) || 1, ox = gx / gl, oy = gy / gl, tx = -oy, ty = ox, V = S.type ? VL[S.type] : null, ROCK = S.type === 'coal' ? [0.1, 0.095, 0.09] : S.type === 'copper' ? [0.42, 0.275, 0.11] /* sampled to cliff_veins_copper (123,79,29) */ : S.type === 'tin' ? [0.37, 0.345, 0.3] /* cliff_veins_tin: pale grey-tan rock (was near-black) */ : ROCK0[si % 3].map((u) => u * 0.75);
       const P = [], C = [], PG = [], CG = [], veinPts = [], tops = [], blocks = [], nodes = S.sp ? S.sp.nodes : [];
       const PP = []; for (const pth of (typeof PATHS !== 'undefined' ? PATHS : [])) for (let i = 1; i + 3 < pth.length; i += 2) if (Math.abs(pth[i] - S.x) < 900 && Math.abs(pth[i + 1] - S.y) < 900) PP.push([pth[i], pth[i + 1], pth[i + 2], pth[i + 3]]); const onPath = (x, y, rr) => PP.some(([ax, ay, bx2, by2]) => { const dx = bx2 - ax, dy = by2 - ay, L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)); return Math.hypot(x - ax - dx * t, y - ay - dy * t) < rr; }); /* walls never stand on a worn path */
       const half = (S.sp ? 0.75 : 0.5) * (S.R || WS * 40), ncol = Math.max(5, Math.round(half * 2 / (WS * 5.5))), bandK = 0.9 + r() * 0.6, sk = r() * 100;
