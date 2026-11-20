@@ -281,19 +281,19 @@ if (exF > 0.002) {
 if (uExOn > 0.5) { float wF = grassM * (1.0 - exF) * (1.0 - smoothstep(3000.0, 9000.0, camD)), mL = fbm2(wp / 140.0 + 9.1), mS = fbm2(wp / 60.0 - 2.3); vec3 wg = tc.rgb * mix(vec3(0.98, 1.0, 0.7), vec3(1.2, 1.04, 0.5), smoothstep(0.28, 0.72, mL)) * (0.9 + 0.2 * mS); float wl = dot(wg, vec3(0.3, 0.59, 0.11)); wg = max(vec3(0.0), mix(vec3(wl), wg, 1.3)); tc.rgb = mix(tc.rgb, wg, wF); float gB = grassM * (1.0 - smoothstep(3000.0, 9000.0, camD)); vec3 gw = tc.rgb * vec3(1.2, 1.0, 0.34) * 1.04; float gwl = dot(gw, vec3(0.3, 0.59, 0.11)); tc.rgb = mix(tc.rgb, max(vec3(0.0), mix(vec3(gwl), gw, 1.12)), gB * 0.85); /* golden straw-green (Mia's meadow) */ } /* the ACES grade lifts bright albedo to pastel: a deeper, more saturated golden-green meadow reads warm and sunlit after it */ /* Explore: the meadow beyond the close-up band shares its warm golden-green grade and soft mottling (no flat pale green past ~100 m) */
 { vec4 bz = texture2D(tZ, (wp - uA.xy) / uA.zw); float zm = grassM * (1.0 - snow), zn = fbm2(wp / 70.0 + 2.2), zf = fbm2(wp / 13.0 - 6.1), tl2 = dot(tc.rgb, vec3(0.3, 0.59, 0.11));
   /* biome ground (Dominic: region transitions): soot-dark soil round the coal pits, red earth by the copper, pale lichen scree by the tin, lush wet green at the water; patchy edges from noise so each blends over tens of metres */
-  float zc = bz.r * smoothstep(0.15, 0.55, bz.r + 0.35 * (zn - 0.5)), zu = bz.g * smoothstep(0.15, 0.55, bz.g + 0.35 * (zn - 0.5)), zt = bz.b * smoothstep(0.15, 0.55, bz.b + 0.35 * (zn - 0.5)), zw = bz.a;
+  float zc = smoothstep(0.1, 0.42, bz.r + 0.3 * (zn - 0.5)), zu = smoothstep(0.1, 0.42, bz.g + 0.3 * (zn - 0.5)), zt = smoothstep(0.1, 0.42, bz.b + 0.3 * (zn - 0.5)), zw = bz.a; /* saturates well inside each approach: Art's approach sheets show the mine ground in full a short way in from a soft edge */
   /* colours sampled from Art's ground_swatches.jpg (linear), carried at the meadow's own light level so painted shading survives */ float gk = clamp(tl2 / 0.228, 0.6, 1.4) * (0.86 + 0.28 * zf);
-  tc.rgb = mix(tc.rgb, vec3(0.084, 0.072, 0.056) * gk, zm * zc * 0.85);
-  tc.rgb = mix(tc.rgb, vec3(0.314, 0.093, 0.032) * gk, zm * zu * 0.8);
-  tc.rgb = mix(tc.rgb, vec3(0.266, 0.205, 0.136) * gk, zm * zt * 0.8);
+  tc.rgb = mix(tc.rgb, vec3(0.084, 0.072, 0.056) * gk, zm * zc * 0.95);
+  tc.rgb = mix(tc.rgb, vec3(0.314, 0.093, 0.032) * gk, zm * zu * 0.92);
+  tc.rgb = mix(tc.rgb, vec3(0.266, 0.205, 0.136) * gk, zm * zt * 0.92);
   vec4 bz2 = texture2D(tZ2, (wp - uA.xy) / uA.zw); float zl = fbm2(wp / 5.0 + 1.3);
   tc.rgb = mix(tc.rgb, vec3(0.216, 0.227, 0.08) * clamp(tl2 / 0.228, 0.6, 1.4), zm * bz2.r * 0.6); /* birch floor: cooler green, fallen-leaf flecks */ tc.rgb = mix(tc.rgb, vec3(0.6, 0.22, 0.05), zm * bz2.r * 0.6 * smoothstep(0.7, 0.76, zl));
   tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.92, 0.82, 0.6), zm * bz2.g * 0.45 * smoothstep(0.45, 0.7, zn)); /* beech-maple wood: leaf litter under the canopy */
   tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.78, 0.97, 0.72) * (0.9 + 0.2 * zn), zm * zw * 0.5); float zd = smoothstep(0.7, 0.95, zw) * smoothstep(0.35, 0.6, zn + 0.25 * zf); /* lakeside: lush, and damp brown soil with pebbles right at the edge */
   tc.rgb = mix(tc.rgb, vec3(0.159, 0.091, 0.042) * (0.8 + 0.4 * zf) + vec3(0.14) * smoothstep(0.74, 0.8, vn2(wp / 1.6)), zm * zd * 0.8);
   /* scree: pale gravel with mint and rust lichen flecks; copper earth flecked orange; soot earth with black coal grit */
-  float fk = vn2(wp / 2.2 + 7.0); tc.rgb = mix(tc.rgb, vec3(0.25, 0.42, 0.28), zm * zt * 0.7 * smoothstep(0.78, 0.84, fk)); tc.rgb = mix(tc.rgb, vec3(0.75, 0.25, 0.06), zm * zt * 0.6 * smoothstep(0.8, 0.86, 1.0 - fk));
-  tc.rgb = mix(tc.rgb, vec3(0.12, 0.3, 0.26), zm * zu * 0.6 * smoothstep(0.8, 0.86, fk)); tc.rgb = mix(tc.rgb, vec3(0.012, 0.011, 0.012), zm * zc * 0.85 * smoothstep(0.72, 0.78, fk)); }
+  float fk = vn2(wp / 1.5 + 7.0); tc.rgb = mix(tc.rgb, vec3(0.25, 0.42, 0.28), zm * zt * 0.5 * smoothstep(0.82, 0.87, fk)); tc.rgb = mix(tc.rgb, vec3(0.75, 0.25, 0.06), zm * zt * 0.45 * smoothstep(0.84, 0.89, 1.0 - fk));
+  tc.rgb = mix(tc.rgb, vec3(0.12, 0.3, 0.26), zm * zu * 0.35 * smoothstep(0.86, 0.9, fk)); tc.rgb = mix(tc.rgb, vec3(0.012, 0.011, 0.012), zm * zc * 0.85 * smoothstep(0.72, 0.78, fk)); }
 float inPit = 1.0 - smoothstep(uHR * 0.98, uHR * 1.04, length(wp));
 float dep = clamp((uPH - vWP.y) / 3000.0, 0.0, 1.0);
 // pit walls: moss on the ledges, dangling roots below the lip, darker undercuts beneath each ledge
@@ -439,8 +439,8 @@ void main() {
     // coal approaches: slag heaps, a run of cart track out from the pit with lantern posts along it
     if (typeof MINES_W !== 'undefined') MINES_W.forEach((m, mi) => { if (m.type !== 'coal') return; const a0 = H(m.x, m.y) * TAU;
       for (let k = 0; k < 3; k++) { const a = a0 + 1.4 + k * 1.6 + H(mi, k) * 0.6, d = 240 + H(k, mi) * 160; put('rSlag', m.x + Math.cos(a) * d, m.y + Math.sin(a) * d, 34 + H(mi, k + 9) * 20, [0.2, 0.19, 0.2]); }
-      const ca = Math.cos(a0), sa = Math.sin(a0); let bend = 0; for (let j = 0; j < 18; j++) { const d = 150 + j * 15.5; bend += (H(mi, j) - 0.5) * 0.04; const x = m.x + Math.cos(a0 + bend) * d, y = m.y + Math.sin(a0 + bend) * d; if (isWet(x, y, 10)) break; put('pTrack', x, y, 16, [0.9, 0.86, 0.8], { y: meshH(x, y) - 0.3 }); const last = byKey['p_pTrack'] && byKey['p_pTrack'][byKey['p_pTrack'].length - 1]; if (last) last.rot = Math.PI / 2 - (a0 + bend); /* rails (model z) along the run */
-        if (j % 5 === 2) { const sx = x - sa * 24, sy = y + ca * 24; put('pLantern', sx, sy, 15, [1, 1, 1]); } if (j === 9) { put('pCart', x, y, 16, [1, 1, 1], { y: meshH(x, y) + 0.5 }); const lc = byKey['p_pCart'] && byKey['p_pCart'][byKey['p_pCart'].length - 1]; if (lc) lc.rot = Math.PI / 2 - (a0 + bend); } } });
+      const ca = Math.cos(a0), sa = Math.sin(a0); let bend = 0; for (let j = 0; j < 44; j++) { const d = 60 + j * 15.5; /* the main line runs from the pit right out across the (now 79 m) field to the meadow */ bend += (H(mi, j) - 0.5) * 0.04; const x = m.x + Math.cos(a0 + bend) * d, y = m.y + Math.sin(a0 + bend) * d; if (isWet(x, y, 10)) break; put('pTrack', x, y, 16, [0.9, 0.86, 0.8], { y: meshH(x, y) - 0.3 }); const last = byKey['p_pTrack'] && byKey['p_pTrack'][byKey['p_pTrack'].length - 1]; if (last) last.rot = Math.PI / 2 - (a0 + bend); /* rails (model z) along the run */
+        if (j % 6 === 2) { const sx = x - sa * 24, sy = y + ca * 24; put('pLantern', sx, sy, 15, [1, 1, 1]); } if (j === 9 || j === 30) { put('pCart', x, y, 16, [1, 1, 1], { y: meshH(x, y) + 0.5 }); const lc = byKey['p_pCart'] && byKey['p_pCart'][byKey['p_pCart'].length - 1]; if (lc) lc.rot = Math.PI / 2 - (a0 + bend); } } });
     if (typeof MINES_W !== 'undefined') MINES_W.forEach((m, mi) => { if (m.type !== 'tin') return; const a = H(mi, 77) * TAU, d = 230 + H(77, mi) * 100; put('pCart', m.x + Math.cos(a) * d, m.y + Math.sin(a) * d, 16, [1, 1, 1]); });
     // the water's edge: reeds and cattails in patches along every lake shore and stream bank, lily pads out on the still lakes
     const WT = typeof GRAND !== 'undefined' && GRAND.water; if (WT && WT.lakes) for (const [li, L] of WT.lakes.entries()) { if (L.pool) continue; const per = 2 * Math.PI * Math.max(L.rx, L.ry), n = Math.round(per / 22);

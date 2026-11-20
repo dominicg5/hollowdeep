@@ -159,7 +159,7 @@ function mineNear(x, y) { const o = { coal: 1e9, copper: 1e9, tin: 1e9 }; for (c
 function wetNear(x, y) { return isWet(x, y, 40) ? 1 : isWet(x, y, 110) ? 0.75 : isWet(x, y, 220) ? 0.4 : isWet(x, y, 360) ? 0.15 : 0; } /* every lake, river and the Lumen Tree's streams */
 function biomeAt(x, y) { const w = {}, mn = mineNear(x, y), ws = wetNear(x, y);
   const near = (d, r0, r1) => 1 - smooth01g(r0, r1, d); // 1 inside r0, fading to 0 at r1 (units; 6.35 = 1 m)
-  w.coal = near(mn.coal, 280, 1150); w.copper = near(mn.copper, 260, 1050); w.tin = near(mn.tin, 260, 1050); w.water = ws;
+  w.coal = near(mn.coal, 500, 1370); w.copper = near(mn.copper, 500, 1290); w.tin = near(mn.tin, 500, 1290); /* full biome over the whole 79 m field, then the old fade widths outward */ w.water = ws;
   const n1 = vnoise(x / 2600 + 3.1, y / 2600 - 1.7), n2 = vnoise(x / 1700 - 5.3, y / 1700 + 2.9), rest = Math.max(0, 1 - Math.max(w.coal, w.copper, w.tin, w.water) * 1.1);
   const z = { oak: 0.35 + smooth01g(0.4, 0.6, n1) * (1 - smooth01g(0.5, 0.7, n2)), birch: (1 - smooth01g(0.24, 0.38, n1)) * 1.4, wood: smooth01g(0.48, 0.66, n2) * smooth01g(0.3, 0.5, n1) * 1.4, hedge: 0.18 };
   const zs = z.oak + z.birch + z.wood + z.hedge; for (const k in z) w[k] = z[k] / zs * rest; return w; }
@@ -457,11 +457,11 @@ function generateCity() {
   };
   if (typeof GRAND !== 'undefined') GRAND.fit(); /* the Lumen Tree's water known before the trees go down: willows and alders line it, nothing grows in it */
   void decorAt; // regional scenery retired: flat grass and only a handful of trees
-  for (let gx = -R; gx < R; gx += 90) for (let gy = -R; gy < R; gy += 90) { const x = gx + rnd() * 80, y = gy + rnd() * 80, q = rnd(); if (q > biomeDensity(x, y) || MINES_W.some((m) => Math.hypot(m.x - x, m.y - y) < 190) || Math.hypot(x, y) > R - 200 || hollowDist(x, y) < 150 || nearHeartwood(x, y) || chasmDist(x, y) < 14 || isWet(x, y, 8)) continue;
+  for (let gx = -R; gx < R; gx += 90) for (let gy = -R; gy < R; gy += 90) { const x = gx + rnd() * 80, y = gy + rnd() * 80, q = rnd(); if (q > biomeDensity(x, y) || MINES_W.some((m) => Math.hypot(m.x - x, m.y - y) < 470) || Math.hypot(x, y) > R - 200 || hollowDist(x, y) < 150 || nearHeartwood(x, y) || chasmDist(x, y) < 14 || isWet(x, y, 8)) continue;
     const r0 = 16 + rnd() * 8; if (!occFree(OCC.obj, x, y, r0)) continue; W.objs.push({ type: 'tree', x, y, r: r0, layer: 1, region: 0, seed: rnd() }); occMark(OCC.obj, x, y, r0);
     /* groves: a tree in a wooded patch brings neighbours (own hash, so the main stream is untouched): clumps with clearings between, not an even sprinkle */
     const dn = biomeDensity(x, y), nc = dn > 0.1 ? Math.round(dn * 9) : 0; for (let k = 0; k < nc; k++) { const hh = (i) => { const v = Math.sin(x * 12.9898 + y * 78.233 + k * 37.719 + i * 11.13) * 43758.5453; return v - Math.floor(v); }, a = hh(1) * TAU, d = 34 + hh(2) * 46, cx = x + Math.cos(a) * d, cy = y + Math.sin(a) * d, cr = 13 + hh(3) * 9;
-      if (MINES_W.some((m) => Math.hypot(m.x - cx, m.y - cy) < 190) || Math.hypot(cx, cy) > R - 200 || hollowDist(cx, cy) < 150 || nearHeartwood(cx, cy) || chasmDist(cx, cy) < 14 || isWet(cx, cy, 8) || !occFree(OCC.obj, cx, cy, cr)) continue; W.objs.push({ type: 'tree', x: cx, y: cy, r: cr, layer: 1, region: 0, seed: hh(4) }); occMark(OCC.obj, cx, cy, cr); } }
+      if (MINES_W.some((m) => Math.hypot(m.x - cx, m.y - cy) < 470) || Math.hypot(cx, cy) > R - 200 || hollowDist(cx, cy) < 150 || nearHeartwood(cx, cy) || chasmDist(cx, cy) < 14 || isWet(cx, cy, 8) || !occFree(OCC.obj, cx, cy, cr)) continue; W.objs.push({ type: 'tree', x: cx, y: cy, r: cr, layer: 1, region: 0, seed: hh(4) }); occMark(OCC.obj, cx, cy, cr); } }
   for (let i = 0; i < 2600; i++) { const a = rnd() * TAU - Math.PI, top = rnd() < 0.45, r = top ? plateauR(a) - 30 - rnd() * 60 : plateauR(a) + cliffW(a) + 25 + rnd() * 120, [x, y] = polar(r, a);
     if (chasmDist(x, y) < 20 || isWet(x, y, 8) || nearHeartwood(x, y) || vnoise(x / 300 + 11, y / 300) < 0.5) continue; const r0 = 13 + rnd() * 8; if (!occFree(OCC.obj, x, y, r0)) continue;
     W.objs.push({ type: 'tree', x, y, r: r0, layer: 1, region: 0, seed: rnd() }); occMark(OCC.obj, x, y, r0); }
