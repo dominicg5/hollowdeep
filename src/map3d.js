@@ -290,9 +290,9 @@ if (uExOn > 0.5) { float wF = grassM * (1.0 - exF) * (1.0 - smoothstep(3000.0, 9
   tc.rgb = mix(tc.rgb, vec3(0.314, 0.093, 0.032) * gk, zm * zu * 0.92);
   tc.rgb = mix(tc.rgb, vec3(0.266, 0.205, 0.136) * gk, zm * zt * 0.92);
   vec4 bz2 = texture2D(tZ2, (wp - uA.xy) / uA.zw); float zl = fbm2(wp / 5.0 + 1.3);
-  tc.rgb = mix(tc.rgb, vec3(0.216, 0.227, 0.08) * clamp(tl2 / 0.228, 0.6, 1.4), zm * eM(bz2.r, eB, wp, 45.0, 4.2) * 0.6); /* birch floor: cooler green, fallen-leaf flecks */ tc.rgb = mix(tc.rgb, vec3(0.6, 0.22, 0.05), zm * eM(bz2.r, eB, wp, 45.0, 4.2) * 0.6 * smoothstep(0.7, 0.76, zl));
+  float zbi = eM(bz2.r, eB, wp, 45.0, 4.2); tc.rgb = mix(tc.rgb, vec3(0.17, 0.25, 0.12) * clamp(tl2 / 0.228, 0.6, 1.4) * (0.92 + 0.16 * zf), zm * zbi * 0.8); /* birch floor: cooler green, fallen-leaf flecks */ tc.rgb = mix(tc.rgb, vec3(0.6, 0.22, 0.05), zm * zbi * 0.6 * smoothstep(0.7, 0.76, zl)); tc.rgb = mix(tc.rgb, vec3(0.42, 0.33, 0.08) * clamp(tl2 / 0.228, 0.6, 1.4), zm * zbi * 0.7 * smoothstep(0.8, 0.86, vn2(wp / 9.0 + 3.3))); /* sage birch floor (biome_edge_irregular) with golden meadow islands and fallen-leaf flecks */
   tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.92, 0.82, 0.6), zm * eM(bz2.g, eA, wp, 70.0, 5.7) * 0.45 * smoothstep(0.45, 0.7, zn)); /* beech-maple wood: leaf litter under the canopy */
-  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.78, 0.97, 0.72) * (0.9 + 0.2 * zn), zm * zw * 0.5); float zd = smoothstep(0.62, 0.9, bz.a + 0.35 * eB) * smoothstep(0.35, 0.6, zn + 0.25 * zf); /* lakeside: lush, and damp brown soil with pebbles right at the edge */
+  tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.78, 0.97, 0.72) * (0.9 + 0.2 * zn), zm * zw * 0.5); float zd = smoothstep(0.5, 0.8, bz.a + 0.35 * eB) * smoothstep(0.35, 0.6, zn + 0.25 * zf); /* lakeside: lush, and damp brown soil with pebbles right at the edge */
   tc.rgb = mix(tc.rgb, vec3(0.159, 0.091, 0.042) * (0.8 + 0.4 * zf) + vec3(0.14) * smoothstep(0.74, 0.8, vn2(wp / 1.6)), zm * zd * 0.8);
   /* scree: pale gravel with mint and rust lichen flecks; copper earth flecked orange; soot earth with black coal grit */
   float fk = vn2(wp / 1.5 + 7.0); tc.rgb = mix(tc.rgb, vec3(0.25, 0.42, 0.28), zm * zt * 0.5 * smoothstep(0.82, 0.87, fk)); tc.rgb = mix(tc.rgb, vec3(0.75, 0.25, 0.06), zm * zt * 0.45 * smoothstep(0.84, 0.89, 1.0 - fk));
