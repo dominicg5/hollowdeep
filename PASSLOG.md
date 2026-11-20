@@ -1,0 +1,1 @@
+- 3:5x Pass 16: drill tether ropeEnd — exits along socket axis 0.55m then bezier droop (sag 0.1d) to route; no 90° kink (final/54). Field rocks smoothed (lumpy avg normals). 7/7 tests pass.
