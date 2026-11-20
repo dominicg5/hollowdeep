@@ -292,9 +292,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='4a3d536f';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 4a3d536f</div>
-<script src="assets/vendor/three.min.js?v=4a3d536f"></script>
+<script>window.HD_BUILD='36fa3662';(function(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 36fa3662</div>
+<script src="assets/vendor/three.min.js?v=36fa3662"></script>
 <script>
 'use strict';
 /* =====================================================================
@@ -3639,13 +3639,13 @@ const HOUSE_KIT = (() => {
     /* strands hung along each arch's outer part: the longest reach the curtain's ragged lower edge; some stop short so the tiers layer */
     const dens = lod ? 5 : 24, segs = lod ? 2 : 3, W = (P.sw || 0.042) * (lod ? 1.6 : 1);
     for (const A of arches) { const N = Math.round(dens * A.w); for (let k = 0; k < N; k++) { const t = 0.42 + 0.58 * Math.pow(r(), 0.6), p = A.pts[Math.min(A.pts.length - 1, Math.round(t * (A.pts.length - 1)))], jx = (r() - 0.5) * 0.07, jz = (r() - 0.5) * 0.07, x = p[0] + jx, z = p[2] + jz, y = p[1] - 0.005 + (r() - 0.5) * 0.02;
-      let ox = x - cx, oz = z - cz; const rl = Math.hypot(ox, oz) || 1; ox /= rl; oz /= rl; const az = Math.atan2(oz, ox), eb = bot + 0.05 * Math.sin(az * 3 + ph) + 0.04 * (r() - 0.5);
+      let ox = x - cx, oz = z - cz; const rl = Math.hypot(ox, oz) || 1; ox /= rl; oz /= rl; const az = Math.atan2(oz, ox), eb = bot + 0.08 * Math.sin(az * 3 + ph) + 0.05 * Math.sin(az * 7 + ph * 2) + 0.1 * (r() - 0.5); /* (willow_waterside) a ragged, uneven hem, not a level cut */
       let L = Math.max(0.06, y - eb); if (r() < 0.5) L *= 0.3 + r() * 0.35; L *= 1 - 0.7 * gapK(az) * Math.min(1, rl / (R * 0.5));
       wStrand(B, x, y, z, ox, oz, L, W * (0.85 + r() * 0.3), segs, 0.9 + 0.22 * lvl(y) + (r() - 0.5) * 0.05, r, !lod); } }
     /* the top tiers: short strands all over the dome cap, lit by the sun, each layer draping over the one below */
     /* the top tiers (the concept's scalloped dome): lumps of short strands over the cap - each lump's strands spring from its rounded head and drape
        over the tier below, lit on top */
-    const NL = lod ? 7 : 22; for (let k = 0; k < NL; k++) { const u = Math.sqrt((k + 0.5) / NL), a = k * 2.39996 + ph, rr = R * 0.96 * u, /* out to the arches' crowns so no bare limb shows over the top */ lyc = H + 0.01 - Math.pow(u, 1.7) * 0.25 + (r() - 0.5) * 0.03, /* (gap: dome top too flat) a rounder, higher crown falling away to the rim (willow_waterside) */ lr = R * (0.24 + r() * 0.08), lx0 = cx + Math.cos(a) * rr, lz0 = cz + Math.sin(a) * rr, ns = lod ? 3 : 11;
+    const NL = lod ? 7 : 22; for (let k = 0; k < NL; k++) { const u = Math.sqrt((k + 0.5) / NL), a = k * 2.39996 + ph, rr = R * 0.96 * u, /* out to the arches' crowns so no bare limb shows over the top */ lyc = H + 0.05 - Math.pow(u, 2) * 0.32 + (r() - 0.5) * 0.03, /* (gap: dome top too flat) a rounder, higher crown falling away to the rim (willow_waterside) */ lr = R * (0.24 + r() * 0.08), lx0 = cx + Math.cos(a) * rr, lz0 = cz + Math.sin(a) * rr, ns = lod ? 3 : 11;
       for (let j = 0; j < ns; j++) { const b = r() * 6.283, d = lr * Math.sqrt(r()), x = lx0 + Math.cos(b) * d, z = lz0 + Math.sin(b) * d, y = lyc + lr * 0.45 * Math.sqrt(Math.max(0, 1 - (d / lr) * (d / lr))); let ox = Math.cos(b) * 0.6 + Math.cos(a) * u * 0.7, oz = Math.sin(b) * 0.6 + Math.sin(a) * u * 0.7; const ol = Math.hypot(ox, oz) || 1; ox /= ol; oz /= ol;
         const L = (0.12 + 0.14 * r()) * (0.7 + 0.6 * u); wStrand(B, x, y, z, ox, oz, L, W * (0.9 + r() * 0.3), lod ? 1 : 2, 1.02 + 0.12 * (1 - u) * (1 - d / lr) + (r() - 0.5) * 0.05, r, !lod && d > lr * 0.5); } }
     BT = [1, 1, 1]; return B.geo(); }
