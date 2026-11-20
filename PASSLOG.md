@@ -27,9 +27,13 @@
   - Mosby perf (7e6ba70): on the mobile preset, instanced moss and flowers plus parts under 1.6 m cast no shadow, and the deck house is merged. Mosby view went from 1.29M tris / 250 calls (27d5f2e) to 1.20M / 195. The rest of the calls are scene-wide (crevice chunks, house sets, terrain).
   - Copper giants (a483a91): about 1.5× larger (9–10 m, per mining_large_copper), mid boulders 5–6 m. Render: final/99-copper-giant-size.jpg. Path push-out now swings round the rim, and the ore path check uses the collider set (cls <= 3, > 0.9 m).
   - Perf, mobile (tris / calls): ledge 1.10M / 154, lumen 0.82M / 215, mine 1.00M / 158, willow 0.72M / 72, mosby 1.20M / 195, dev 2.85M / 378.
+  - (done since: birch groves 97a3d81, walk-in caves b909a6b, mole fur 4855ecb, draw-call batching 23c0798 - see below)
+- 12:20–1:00 PM EST pass, Nov 20 (full suite green before push: paths, collide, eta, tether, streams, transitions, mole, mosby, mapui, drillui, tetherorb, doorgirth, cavern, perfmobile).
+  - Perf: the far LOD of every rock/bush/plant prop kit now joins the merged far-LOD mesh ('props' group, same pick/LOD as before). Mobile calls (HEAD 23c0798 -> now): ledge 129 -> 115, lumen 159 -> 145, mine 128 -> 115, willow 56 -> 55, mosby 170 -> 155, dev 301 -> 301; tris unchanged (mosby 1.29M). Pixel diff vs 23c0798 at ledge/lumen/mosby views: only the animated character differs.
+  - Climb pace: checked, no change needed. The wall climb runs at its own gait rate (CLIMB_EX 0.6), not the run speed; measured about 0.23 m/s vertical over 7 s on a rock pitch, picks alternating. Frames: final/107-climb-pace-frames.jpg.
+  - Caves vs cliff_ledge_cavern: the ramp read as a solid plank stair; now spaced treads (one per ~0.75 m of rise, 72-84% of the ramp width) with lighter packed dirt between, weathered planks, stakes at the tread ends.
+  - Mole fur vs mole_detail_body_fur: lower-contrast, fewer and longer locks, softer parting, larger tile, so it reads as soft fur and not speckle at game size.
+  - Renders: final/103 (cave before/after vs concept), 104 (birch grove before/after), 105 (mole before/after vs fur sheet and turnaround), 106 (Mosby before/after vs front34 concept, studio and in game), 107 (climb frames).
+  - Known gaps: the caves are grey on tin walls, while the concept is warm orange rock; the ramp sides are straight-edged, with fewer boulders along the ramp than the concept (extra boulders would need colliders); Mosby's in-game shot has him mostly out of frame; the mole is still a bit warmer and more mottled than the sheet.
   - next steps (resume here):
-    - Birch density: deterministic, with colliders; run collide and tether.
-    - Ledges up to walk-in caverns (cliff_ledge_cavern.jpg): plank-step path up the rock to a cave mouth with a sign post; sign text stays blank.
-    - Mole fur blockiness.
-    - Climb-pace visual check.
-    - Mosby view to 150 calls: crevice chunks (10 calls) and house sets (about 17 calls).
+    - Waiting on Dominic: Lumen door path stop point, port requirements, Mosby fee, the replacement name for "Delver", and the Ledge interior layout.
