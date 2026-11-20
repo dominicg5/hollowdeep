@@ -333,7 +333,7 @@ function doTap(x, y) {
 }
 
 /* ---------- modal ---------- */
-function openModal(html, kind) { ui.modalAt = performance.now(); ui.modal = kind || 'x'; $('#modalBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
+function openModal(html, kind) { ui.modalAt = performance.now(); ui.modal = kind || 'x'; $('#modal').dataset.k = ui.modal; /* skins the field-kit panels (vault, backpack, transfer) */ $('#modalBody').innerHTML = html; $('#modal').classList.remove('hidden'); }
 function closeModal() { ui.modal = null; $('#modal').classList.add('hidden'); $('#modalBody').innerHTML = ''; rerender(true); if (S.pendingReveal && CONFIG.raidsEnabled) { const r = S.pendingReveal; setTimeout(() => showReveal(r), 250); } }
 function settingsModal() {
   openModal(`<h2>⚙️ Settings</h2>

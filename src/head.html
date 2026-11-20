@@ -269,6 +269,108 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherOrb .toSeg{display:flex;border-radius:12px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(159,246,255,.35);flex:0 0 auto}#tetherOrb .toSeg button{min-height:40px;padding:4px 10px;border:0;background:transparent;color:#cfe6ea;font:700 12px system-ui,sans-serif}#tetherOrb .toSeg button.on{background:#2f6f6a;color:#fff}
 #tetherOrb .toPorts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:4px 8px 8px}#tetherOrb .toPort{display:flex;flex-direction:column;gap:2px;padding:6px;border-radius:12px;background:rgba(159,246,255,.07);box-shadow:inset 0 0 0 1px rgba(159,246,255,.16);min-width:0}#tetherOrb .toPort.full{background:rgba(47,111,106,.35)}#tetherOrb .toPort.lock{opacity:.55}#tetherOrb .toPort small{font-size:10.5px;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tetherOrb .toPort button{min-height:34px;border-radius:9px;border:0;background:rgba(159,246,255,.16);color:#eaffff;font:700 12px system-ui,sans-serif}
 #tetherOrb .toSwap{padding:0 10px 8px 34px;display:flex;flex-direction:column;gap:4px}#tetherOrb .toSwap>small{opacity:.75;font-size:11.5px}#tetherOrb .toChips{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none}#tetherOrb .toChips button{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;min-height:44px;min-width:58px;padding:4px 7px;border-radius:10px;border:1px solid rgba(159,246,255,.3);background:rgba(10,14,22,.5);color:#eaffff;font:700 11px system-ui,sans-serif}#tetherOrb .toChips button i{width:22px;height:5px;border-radius:3px;margin-bottom:2px}#tetherOrb .toChips button small{font:500 9.5px system-ui;opacity:.75}#tetherOrb .toChips button.dis{opacity:.35}
+/* ===== Field kit & brass skin (Dominic picked Art's direction B, /workspace/mia/ui/v3/B_*): panels only, real text, live data ===== */
+.kKit,#bagSheet{--kInk:#33200f;--kCream:#f3e4c2}
+.kLeather,#bagSheet{border:24px solid transparent;border-image:url(assets/ui/kit_leather.webp) 62 fill / 24px stretch}
+.kKit h2,#bagSheet .bsh h2{font:600 17px Georgia,"Iowan Old Style",serif;color:var(--kInk);text-shadow:0 1px 0 rgba(255,228,180,.35);margin:0}
+.kGauge{position:relative;display:inline-block;flex:none;width:46px;height:46px;margin-left:auto;background:url(assets/ui/kit_gauge.webp) center/contain no-repeat;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.kGauge i{position:absolute;left:calc(50% - 1px);bottom:50%;width:2px;height:36%;border-radius:2px;background:#2a160a;transform-origin:50% 100%;transform:rotate(calc(-58deg + var(--g) * 116deg))}
+.kGauge:after{content:'';position:absolute;left:calc(50% - 3px);top:calc(50% - 3px);width:6px;height:6px;border-radius:50%;background:#7a4f1c}
+.kGauge b{position:absolute;left:0;right:0;bottom:17%;text-align:center;font:700 8.5px Georgia,serif;color:#2a160a;white-space:nowrap}
+.kX,#bagSheet .bsx.kX,#tetherOrb .toBack.kX{flex:none;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;border:0;background:radial-gradient(circle at 50% 46%,#f7ead0 0 50%,#6e4a1c 53%,#f0cd82 60%,#b07a34 76%,#5e3c14 100%);color:#3a2412;font:700 19px Georgia,serif;line-height:44px;box-shadow:0 2px 4px rgba(0,0,0,.45);cursor:pointer}
+/* the backpack sheet over the map */
+#bagSheet{left:4px;right:4px;bottom:4px;height:38%;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk)}
+#bagSheet .bsh{margin:-8px -6px 4px 2px;gap:10px}#bagSheet .bsh h2{font-size:18px}
+#bagSheet .bsb{display:flex;flex-direction:column;padding:2px}#bagSheet .cxg{flex:1;grid-auto-rows:minmax(46px,1fr)}#bagSheet .cxs{aspect-ratio:auto}
+.kKit .cxg,#bagSheet .cxg{background:none;box-shadow:none;padding:3px;gap:8px;margin-top:4px}
+.kKit .cxs,.kKit .cxs.full,#bagSheet .cxs,#bagSheet .cxs.full{border-radius:7px;background:radial-gradient(110% 95% at 50% 38%,#3f2716,#22130a);box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 1px 0 3px rgba(255,222,170,.28)}
+.kKit .cxs.eq,#bagSheet .cxs.eq{box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #ffd36a,0 0 0 3px #4e2d12,0 0 9px 3px rgba(255,211,106,.55)}
+.kKit .cxsv,#bagSheet .cxsv{inset:4% 14% auto;width:72%;height:66%}
+.kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:4px;transform:translateX(-50%);padding:0 5px;border-radius:5px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
+.kFoot{margin:8px auto 2px;padding:5px 14px;text-align:center;font:italic 12.5px Georgia,serif;color:var(--kInk);border-radius:8px;background:rgba(110,62,24,.22);box-shadow:inset 0 0 0 1px rgba(60,30,10,.35);outline:1px dashed rgba(255,226,180,.45);outline-offset:-4px}
+.kKit .cxmenu,#bagSheet .cxmenu{background:linear-gradient(#f8eed6,#e8d4aa);color:var(--kInk);box-shadow:0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 6px 16px rgba(0,0,0,.5);outline:1px dashed rgba(140,100,50,.55);outline-offset:-5px}
+.kKit .cxmh span,#bagSheet .cxmh span{color:var(--kInk)}.kKit .cxmh b,#bagSheet .cxmh b{font-family:Georgia,serif}
+.kKit .cxnear,#bagSheet .cxnear{background:rgba(110,62,24,.12);box-shadow:inset 0 0 0 1px rgba(110,62,24,.3);color:var(--kInk)}#bagSheet .cxnear.none,.kKit .cxnear.none{color:#a8381c}#bagSheet .cxnear.dim,.kKit .cxnear.dim{color:#5a4026}
+.kKit .cxin,#bagSheet .cxin{background:#fbf3df;color:#2a160a;border:1px solid #a76d33}
+.kBtn,#bagSheet .cxmenu .btn.alt,.kKit .cxmenu .btn.alt{border:0;border-radius:14px;font:700 15px Georgia,serif;color:#f8ecd2;text-shadow:0 1px 1px rgba(0,0,0,.5);background:radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66);box-shadow:0 0 0 3px #e6bb68,0 0 0 5px #7a4f1c,0 4px 8px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.35),inset 0 -3px 6px rgba(0,0,0,.35)}
+.kBtn.kCream{color:#33200f;text-shadow:0 1px 0 rgba(255,255,255,.5);background:radial-gradient(120% 95% at 50% 25%,#fff6e0,#e8d2a2 60%,#c8a66a)}
+.kBtn.kRed{background:radial-gradient(120% 95% at 50% 22%,#ec8a60,#b0421f 55%,#6e2010)}
+.kKit .btn:active{transform:translateY(1px)}
+/* modal panels (vault, backpack, transfer): no sheet behind the panels */
+#modal[data-k=vault] .sheet,#modal[data-k=cx-xfer] .sheet,#modal[data-k=cx-bag] .sheet{background:none;box-shadow:none;padding:10px 8px calc(env(safe-area-inset-bottom) + 12px)}
+.cxp.kKit{display:flex;flex-direction:column}.kKit .kPanel{padding:0 2px 2px}.kKit .kHead{gap:10px;margin:-6px -4px 6px 2px}.kKit .kSub{color:#5a3c20;margin:-2px 0 4px}
+.kSwap{display:flex;flex-direction:column;align-items:center;gap:4px;margin:8px 0}.kPlate{display:grid;place-items:center;width:62px;height:30px;border-radius:6px;font:700 18px Georgia,serif;color:#2a160a;background:linear-gradient(#f0cd82,#b07a34);box-shadow:0 0 0 1px #5e3c14,0 2px 4px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.5)}.kSwap small{font:12.5px Georgia,serif;color:#f8ecd2;text-align:center;text-shadow:0 1px 2px #000}
+.cxp.kKit>.kBtn{margin-top:12px;min-height:48px;width:auto}
+.kKit .cxg-vault{max-height:290px}
+/* the vault overview */
+.vaultp.kKit{position:relative;margin-top:60px;padding:0;color:var(--kCream);border:30px solid transparent;border-image:url(assets/ui/kit_dark.webp) 74 fill / 30px stretch}
+.kVHead{position:relative;height:66px;margin:-16px -14px 4px;border-radius:6px;background:repeating-linear-gradient(45deg,rgba(0,0,0,.06) 0 2px,transparent 2px 4px),linear-gradient(#636a38,#4a4f27);box-shadow:inset 0 0 0 1px rgba(0,0,0,.45),0 2px 0 rgba(255,220,160,.15)}
+.kDoor{position:absolute;left:50%;top:-84px;width:136px;height:auto;transform:translateX(-50%);filter:drop-shadow(0 4px 6px rgba(0,0,0,.55))}
+.kTag,.vaultp .tag.kTag{display:inline-block;margin:0;padding:3px 10px;border:0;border-radius:5px;background:linear-gradient(#5e3d1d,#3a220e);color:var(--kCream);font:600 14px Georgia,serif;white-space:nowrap;box-shadow:0 0 0 2px #c8954a,0 0 0 3px #4e2d12,0 2px 3px rgba(0,0,0,.5)}
+.kVHead .kTag{position:absolute;right:6px;bottom:8px}
+.vaultp.kKit .vsec{margin:12px 0 0;padding:8px;border:0;border-radius:8px;background:rgba(18,10,4,.38);box-shadow:inset 0 0 0 1px rgba(200,150,74,.4),inset 0 2px 8px rgba(0,0,0,.55);color:var(--kCream)}
+.vaultp.kKit .vsec>.row{margin:2px 2px 8px}.vaultp.kKit h3.kTag{font-size:15px}
+.vaultp.kKit .vgrid{gap:6px;margin:0}.vaultp.kKit .vs-ores .vgrid,.vaultp.kKit .vs-gear .vgrid{grid-template-columns:repeat(3,1fr)}
+.vaultp.kKit .vitem{flex-direction:column;justify-content:flex-start;gap:3px;padding:7px 3px 6px;border:0;border-radius:6px;text-align:center;background:linear-gradient(#3a2412,#2a180a);box-shadow:inset 0 0 0 1px #8a5e2c,0 1px 0 rgba(255,220,160,.1)}
+.vaultp.kKit .vitem.zero{opacity:.55}
+.vaultp.kKit .vic{display:grid;place-items:center;width:58px;height:34px;border-radius:50%;background:radial-gradient(closest-side,#1d1108 62%,#d9a85a 70%,#7a4f1c 84%,#5e3c14 100%);box-shadow:0 2px 3px rgba(0,0,0,.5)}
+.vaultp.kKit .vic img,.vaultp.kKit .vic .ve{width:32px;height:32px;margin-top:-10px;font-size:24px;line-height:32px}
+.vaultp.kKit .vn{flex:none;font:600 12.5px Georgia,serif;color:var(--kCream)}.vaultp.kKit .vs-ores .vn small,.vaultp.kKit .vs-ingots .vn{display:none}
+.vaultp.kKit .vc{font:600 12.5px Georgia,serif;color:var(--kCream)}.vaultp.kKit .vitem.eq .vc{display:none}
+.vaultp.kKit .vn small{display:inline-block;margin-top:3px;padding:0 6px;border-radius:4px;color:#e9d7ae;font:11px Georgia,serif;background:rgba(243,228,194,.1);box-shadow:0 0 0 1px #8a5e2c}
+.vaultp.kKit .vs-ingots .vgrid{grid-template-columns:repeat(8,1fr);gap:0}.vaultp.kKit .vs-ingots .vitem{border-radius:0;padding:6px 0 4px}.vaultp.kKit .vs-ingots .vic{width:auto;height:auto;background:none;box-shadow:none}.vaultp.kKit .vs-ingots .vic img{margin:0}
+.vaultp.kKit .vs-lines .vgrid{grid-template-columns:1fr}.vaultp.kKit .vs-lines .vitem{flex-direction:row;justify-content:center;gap:14px;text-align:left;padding:8px}.vaultp.kKit .vs-lines .vn{font-size:15px}
+.kVBtns{display:flex;gap:14px;margin:16px 4px 4px;align-items:stretch}.kVBtns .kBtn{width:auto;margin:0;min-height:58px}.kVBtns .kBlue{flex:1;font-size:18px}.kVBtns .kCream{flex:0 0 84px;font-size:17px;border-radius:12px}.kBag{margin-right:8px;font-size:22px;vertical-align:-3px}
+/* the Tether Orb: one moss-canvas panel over a dimmed room */
+#tetherOrb{background:rgba(8,10,14,.5);align-items:center;justify-content:center;color:var(--kCream);font:14px Georgia,serif}
+#tetherOrb .toPanel{box-sizing:border-box;display:flex;flex-direction:column;width:min(440px,calc(100% - 14px));height:calc(100% - 14px);max-height:920px;border:24px solid transparent;border-image:url(assets/ui/kit_moss.webp) 52 fill / 24px stretch}
+#tetherOrb .toTop{border:0;padding:0 0 6px;margin:-8px -8px 0}#tetherOrb .toTop h2{font:500 15px Georgia,serif;color:var(--kCream);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+#tetherOrb .toBody{padding:6px 4px 10px;gap:12px}#tetherOrb .toDim{opacity:1;color:#eadfbf;font:12.5px Georgia,serif;text-shadow:0 1px 1px rgba(0,0,0,.5)}
+#tetherOrb .kOrb{width:150px;height:auto;align-self:center;margin:4px 0 2px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}#tetherOrb .kv-home .toDim{text-align:center;font-size:13.5px;margin:0 20px 12px}
+#tetherOrb .toBig{margin:6px 14px 10px;min-height:106px;padding:14px 16px;border:0;border-radius:24px;color:#f8ecd2;text-shadow:0 1px 2px rgba(0,0,0,.5);box-shadow:0 0 0 5px #e6bb68,0 0 0 7px #7a4f1c,0 0 0 10px #c8954a,0 0 0 11px #5e3c14,0 6px 12px rgba(0,0,0,.5),inset 0 3px 0 rgba(255,255,255,.3),inset 0 -5px 10px rgba(0,0,0,.35)}
+#tetherOrb .toBig.kBlue{background:radial-gradient(120% 95% at 50% 20%,#5ea8d8,#20649a 55%,#153f66)}#tetherOrb .toBig.kRed{background:radial-gradient(120% 95% at 50% 20%,#e57e52,#ad401e 55%,#6e2010)}
+#tetherOrb .toBig span{display:grid;place-items:center;width:50px;height:50px;border-radius:50%;font-size:24px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%);box-shadow:0 2px 3px rgba(0,0,0,.4)}
+#tetherOrb .toBig b{font:700 21px Georgia,serif}#tetherOrb .toBig small{opacity:1;font:13px Georgia,serif;color:#f1e3c4}
+/* teleport rows: parchment tags with a leather tab and a blue enamel Teleport dome */
+#tetherOrb .kv-tp .toRow{position:relative;margin:0 0 0 20px;padding:12px 10px 12px 12px;border-radius:12px;color:#2a160a;background:linear-gradient(#f8eed6,#e9d6ae);box-shadow:0 0 0 1px #b48a52,0 3px 6px rgba(0,0,0,.4);outline:1.5px dashed rgba(140,100,50,.55);outline-offset:-6px}
+#tetherOrb .kv-tp .toRow:before{content:'';position:absolute;left:-22px;top:50%;width:24px;height:34px;margin-top:-17px;border-radius:6px 0 0 6px;background:radial-gradient(circle at 50% 50%,#e6bb68 0 4px,#7a4f1c 5px,transparent 6px),linear-gradient(#5f6c35,#404a22);box-shadow:inset 0 0 0 1px #2a3214}
+#tetherOrb .kv-tp .toI{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:50%;font-size:22px;background:radial-gradient(closest-side,#45502a 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%);box-shadow:0 2px 3px rgba(0,0,0,.35)}
+#tetherOrb .kv-tp .toN b{font:700 16.5px Georgia,serif;color:#2a160a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#tetherOrb .kv-tp .toN small{opacity:1;color:#4a3420;font:12.5px Georgia,serif}
+#tetherOrb .kTp,#tetherOrb .toRow .btn.kTp{flex:none;width:62px;height:62px;min-height:62px;padding:0;border:0;border-radius:50%;font:700 11.5px Georgia,serif;color:#f8ecd2;text-shadow:0 1px 1px rgba(0,0,0,.6);background:radial-gradient(circle at 50% 35%,#5ea8d8,#1f5f93 60%,#153f66);box-shadow:0 0 0 3px #e6bb68,0 0 0 5px #7a4f1c,0 3px 6px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.35)}
+/* Tether Settings: parchment cards, brass jack sockets, lever toggles, per-minute flow */
+#tetherOrb .kv-set .toCard{gap:6px;padding:10px;border-radius:10px;color:#2a160a;background:linear-gradient(#f8eed6,#e8d4a8);box-shadow:0 0 0 2px #a8783c,0 0 0 3px #4e2d12,0 3px 6px rgba(0,0,0,.4);outline:1.5px dashed rgba(140,100,50,.55);outline-offset:-6px}
+#tetherOrb .kv-set .toCard .toRow{padding:2px 4px}#tetherOrb .kv-set .toN small{opacity:1;color:#4a3420;font:12px Georgia,serif;text-align:center}
+#tetherOrb .toDoor{flex-direction:row;align-items:center;gap:16px;padding:14px 16px}#tetherOrb .toDoor .toN{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center}#tetherOrb .toDoor .toN b{font:600 15px Georgia,serif}#tetherOrb .toDoor .toN b+small{margin-bottom:6px}
+#tetherOrb .kDome{flex:none;width:64px;height:64px;border-radius:50%;border:0;cursor:pointer;background:radial-gradient(circle at 42% 30%,#ffc09a,#c8502a 36%,#7a2410 78%);box-shadow:0 0 0 4px #c8954a,0 0 0 6px #5e3c14,0 4px 8px rgba(0,0,0,.5),inset 0 -4px 8px rgba(0,0,0,.35)}#tetherOrb .kDome:active{transform:translateY(2px)}#tetherOrb .kDome:disabled{filter:grayscale(.8) brightness(.8);cursor:not-allowed}
+#tetherOrb .kv-set .toPorts{padding:6px;gap:4px;border-radius:10px;background:#3c4421;box-shadow:0 0 0 2px #a8783c,0 0 0 3px #4e2d12,inset 0 2px 8px rgba(0,0,0,.5)}
+#tetherOrb .kv-set .toPort{position:relative;align-items:center;gap:3px;padding:8px 4px 6px;border-radius:6px;text-align:center;color:var(--kCream);background:#4d5730;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.07)}
+#tetherOrb .kv-set .toPort.full{background:#4d5730}#tetherOrb .kv-set .toPort.lock{opacity:1;background:#5e6744}#tetherOrb .kv-set .toPort.lock small{opacity:.7}
+#tetherOrb .kv-set .toPort>b{position:absolute;left:5px;top:3px;font:700 13px Georgia,serif;color:#f3e4c2}
+#tetherOrb .kJack{position:relative;width:54px;height:54px;background:url(assets/ui/kit_jack.webp) center/contain no-repeat;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}#tetherOrb .toPort.lock .kJack{background-image:url(assets/ui/kit_jack_lock.webp)}
+#tetherOrb .kJack i{position:absolute;left:50%;top:44%;width:12px;height:36px;border-radius:6px;transform:rotate(-38deg);transform-origin:50% 0;background:repeating-linear-gradient(50deg,var(--c1) 0 4px,var(--c2) 4px 8px);box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+#tetherOrb .kv-set .toPort small{max-width:100%;font:12px Georgia,serif;opacity:1}
+#tetherOrb .kv-set .toPort button{min-height:30px;padding:2px 10px;border:0;border-radius:6px;color:#2a160a;font:600 12px Georgia,serif;background:linear-gradient(#f0cd82,#b98642);box-shadow:0 0 0 1px #5e3c14,0 2px 3px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.45)}
+#tetherOrb .kv-set .toIn{min-height:38px;border-radius:6px;border:1px solid #a8783c;background:#fbf3df;color:#2a160a;font:600 15px Georgia,serif;text-align:center;box-shadow:inset 0 1px 3px rgba(0,0,0,.2)}
+#tetherOrb .kv-set .toCard .btn{color:#2a160a;font:600 13px Georgia,serif;background:linear-gradient(#f0cd82,#b98642);box-shadow:0 0 0 1px #5e3c14,0 2px 3px rgba(0,0,0,.4)}
+#tetherOrb .kv-set .toStr{flex-wrap:wrap;gap:6px 8px;margin:2px 0;padding:8px 10px;border-radius:8px;background:rgba(255,250,235,.55);box-shadow:0 0 0 1px #c09a62}
+#tetherOrb .kSl{flex:0 0 100%;font:700 13.5px Georgia,serif;color:#2a160a}
+#tetherOrb .kv-set .toSw{flex:0 0 64px;width:64px;height:14px;border-radius:7px;background:repeating-linear-gradient(60deg,var(--c) 0 5px,color-mix(in srgb,var(--c) 55%,#000) 5px 7px,color-mix(in srgb,var(--c) 65%,#fff) 7px 10px);box-shadow:0 0 0 1px rgba(0,0,0,.4),0 1px 2px rgba(0,0,0,.3)}
+#tetherOrb .kv-set .toIn.sm{flex:1;min-width:0;min-height:34px;font-size:13px}
+#tetherOrb .kv-set .toSeg{display:flex;align-items:center;gap:3px;overflow:visible;box-shadow:none;border-radius:0;flex:0 0 auto}
+#tetherOrb .kv-set .toSeg button{min-height:40px;padding:2px 7px;border-radius:12px;background:transparent;color:#4a3420;font:600 12px Georgia,serif;line-height:1.1}
+#tetherOrb .kv-set .toSeg.pull button.on{color:#123a5c;background:radial-gradient(closest-side,rgba(96,170,230,.55),rgba(96,170,230,0))}#tetherOrb .kv-set .toSeg.push button.on{color:#6e2010;background:radial-gradient(closest-side,rgba(240,130,70,.6),rgba(240,130,70,0))}
+#tetherOrb .kLever{position:relative;flex:none;width:22px;height:40px;border-radius:11px;background:linear-gradient(90deg,#7a4f1c,#e6bb68 45%,#9a6a2c);box-shadow:0 0 0 1px #4e2d12,0 2px 3px rgba(0,0,0,.4)}
+#tetherOrb .kLever:after{content:'';position:absolute;left:3px;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#5a3a1a,#2a160a);box-shadow:0 0 0 2px #c8954a;transition:top .15s}
+#tetherOrb .toSeg.pull .kLever:after{top:3px}#tetherOrb .toSeg.push .kLever:after{top:21px}
+#tetherOrb .kRate{flex:0 0 100%;text-align:center;font:12px Georgia,serif;color:#4a3420}#tetherOrb .kRate b{color:#1f5f93}
+.kBtn.kBlue{background:radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66)}.kBtn.kBlue:disabled{filter:grayscale(.7)}
+.kKit .cxsv,#bagSheet .cxsv{inset:3% 9% auto;width:82%;height:74%}
+.vaultp.kKit .vs-lines .vitem{justify-content:flex-start;gap:12px;padding:8px 12px}.vaultp.kKit .vs-lines .vic{width:auto;height:auto;background:none;box-shadow:none}.vaultp.kKit .vs-lines .vic img{width:46px;height:46px;margin:0}.vaultp.kKit .vs-lines .vn small{display:block;background:none;box-shadow:none;padding:0;font-size:12px}
+.vaultp.kKit .vs-gear .vn small{display:table;margin:3px auto 0}
+#tetherOrb .kv-set .toCard .toDim{color:#5a4026;text-shadow:none;text-align:center}
+#tetherOrb .kv-set .toSeg button{width:52px;padding:2px 3px;white-space:normal}#tetherOrb .kv-set .toIn.sm{min-width:80px}#tetherOrb .kv-set .toSw{flex-basis:52px;width:52px}
+.kKit .cxsv,#bagSheet .cxsv{transform:scale(1.35);transform-origin:50% 40%}
+#bagSheet .cxg{gap:7px}#bagSheet .kFoot{margin-top:6px}
 </style>
 </head>
 <body>

@@ -82,15 +82,17 @@ const Craft = (() => {
   const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; return !!E && S[E[0]] === TIERS[it.tier][0]; };
   function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
-    for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? svgIco(id) + `<b class="cxct">${fmtN(c)}</b>` : ''}</div>`; }
+    for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? svgIco(id) + `<b class="cxct">${fmtN(c)}${ITEMS[id] && ITEMS[id].unit === 'm' ? ' m' : ''}</b>` : ''}</div>`; }
     return h + '</div>'; }
   const used = (w) => order(w).filter(Boolean).length;
   // the Backpack shows only what she carries; the Ledge Vault sits beside it only on the vault's own Backpack ⇄ Vault screen (xfer)
+  // (Dominic: field-kit skin, Art's B_* concepts) a brass gauge for slot counts: needle sweeps with how full it is; the numbers are live
+  const gauge = (n, N) => `<span class="kGauge" style="--g:${Math.min(1, n / N).toFixed(3)}" role="img" aria-label="${n} of ${N} slots used"><i></i><b>${n} / ${N}</b></span>`;
   function gridsHTML(inModal, xfer) {
-    let h = `<div class="cxp cxgrid" data-cxv="${xfer ? 'xfer' : 'bag'}"><div class="row between"><h2>🎒 Backpack</h2><span class="tag">${used('bag')} / ${BAG_N} slots</span></div>`;
-    h += `<div class="dim">${xfer ? 'Tap a stack to move all of it to the other side; press and hold for more (equip, move some).' : 'What Wren carries. Tap an item for its options.'} Stacks have no limit and no weight.</div>` + gridHTML('bag');
-    if (xfer) h += `<div class="row between" style="margin-top:12px"><h2>🔒 Ledge Vault</h2><span class="tag">${used('vault')} / ${VAULT_N} slots</span></div>` + gridHTML('vault');
-    h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal ? '<button class="btn ghost" data-cx="close">Close</button>' : '') + '</div>'; }
+    let h = `<div class="cxp cxgrid kKit" data-cxv="${xfer ? 'xfer' : 'bag'}"><div class="kPanel kLeather"><div class="row between kHead"><h2>Backpack</h2>${gauge(used('bag'), BAG_N)}${inModal && !xfer ? '<button class="kX" data-cx="close" aria-label="Close">✕</button>' : ''}</div>`;
+    h += (xfer ? '' : `<div class="dim kSub">What Wren carries. Tap an item for its options.</div>`) + gridHTML('bag') + (xfer ? '' : '<div class="kFoot">Stacks have no limit and no weight.</div>') + '</div>';
+    if (xfer) h += `<div class="kSwap"><span class="kPlate">⇄</span><small>Tap to move a stack · hold for more (equip, move some). Stacks have no limit and no weight.</small></div><div class="kPanel kLeather"><div class="row between kHead"><h2>Ledge Vault</h2>${gauge(used('vault'), VAULT_N)}</div>` + gridHTML('vault') + '</div>';
+    h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal && xfer ? '<button class="btn ghost kBtn kCream" data-cx="close">Close</button>' : '') + '</div>'; }
   function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
     if (it && it.kind === 'drill') return drillMenuHTML(id, c);
     if (it && it.kind === 'teth') return dropMenuHTML(id, c);
@@ -113,7 +115,7 @@ const Craft = (() => {
   function bagHTML(inModal) { if (st.menu && st.menu.w !== 'bag') st.menu = null; return gridsHTML(inModal, false); } // the Backpack (tab, modal, map sheet): carried items only, never the vault
   function xferHTML() { return gridsHTML(true, true); }
   // the Backpack as a bottom sheet over the map's Character view (about a third of the screen) until closed
-  function sheetHTML() { return `<div class="bsh"><h2>🎒 Backpack</h2><span class="tag">${used('bag')} / ${BAG_N} slots</span><button class="bsx" data-cx="sclose" aria-label="Close the backpack">✕</button></div><div class="bsb cxgrid" data-cxv="sheet">${gridHTML('bag')}${st.menu && st.menu.w === 'bag' ? menuHTML() : ''}</div>`; }
+  function sheetHTML() { return `<div class="bsh"><h2>Backpack</h2>${gauge(used('bag'), BAG_N)}<button class="bsx kX" data-cx="sclose" aria-label="Close the backpack">✕</button></div><div class="bsb cxgrid" data-cxv="sheet">${gridHTML('bag')}<div class="kFoot">Stacks have no limit and no weight.</div>${st.menu && st.menu.w === 'bag' ? menuHTML() : ''}</div>`; }
   function sheet(on) { let el = document.getElementById('bagSheet'); if (!el && on) { el = document.createElement('div'); el.id = 'bagSheet'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Backpack'); (document.getElementById('cityWrap') || document.body).appendChild(el); }
     st.sheet = !!on; st.menu = null; if (!el) return false; el.classList.toggle('on', !!on); el.innerHTML = on ? sheetHTML() : ''; const b = document.getElementById('exBagBtn'); if (b) b.classList.toggle('sel', !!on); return !!on; }
   const sheetOn = () => !!st.sheet;
