@@ -506,6 +506,7 @@ function generateCity() {
   // Ambient life
   if (CITY.base) { W.npcs = []; W.caravans = []; W.dayFish = []; W.nightFish = []; W.motes = []; W.visitors = []; W.walkers = []; } else genLife(rnd);
   pruneCracksAtStreams();
+  if (W.cracks) W.cracks = W.cracks.filter((c) => c.wide || c.mouth || Math.max(...c.ws) >= 12); /* hairline cracks (never wider than ~1.9 m) read as odd groove lines in the grass, not crevices: gone */
   relocatePlayer(true);
   W.genMs = Math.round(performance.now() - t0);
   W.ready = true;
