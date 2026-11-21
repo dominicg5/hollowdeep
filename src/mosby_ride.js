@@ -21,9 +21,9 @@ const MosbyRide = (() => {
   const rAt = (q) => { const G = region(), f = ((q / (Math.PI * 2)) % 1 + 1) % 1 * G.N, i = Math.floor(f), t = f - i; return G.rmax[i % G.N] * (1 - t) + G.rmax[(i + 1) % G.N] * t; };
   // metres <-> shell units; inside(x, z) in metres, with her body radius (0.4 m) kept inside the boundary
   function clampM(x, z) { const G = region(), u = um(), lx = x * u - G.sx, lz = z * u - G.sz, r = Math.hypot(lx, lz), q = Math.atan2(lz, lx), lim = Math.max(0, rAt(q) - 0.4 * u); if (r <= lim) return [x, z, true]; return [(G.sx + lx / r * lim) / u, (G.sz + lz / r * lim) / u, false]; }
-  // the heightfield: once, the carved carapace mesh rasterised top-down in the shell's own frame (so it moves with him): 0.35 m cells over the walkable top
+  // the heightfield: once, the carved carapace mesh rasterised top-down in the shell's own frame (so it moves with him): 0.2 m cells over the walkable top
   function hfBuild() { if (R.hf) return R.hf; const G = region(), u = um(), sh = shell(); let mesh = null, mc = 0; for (const o of sh.children) if (o.isMesh && o.geometry && o.geometry.attributes.position.count > mc) { mc = o.geometry.attributes.position.count; mesh = o; } /* the carved carapace (the biggest piece of the shell) */
-    const rmx = Math.max(...G.rmax), cell = 0.35, half = Math.ceil(rmx / u / cell) + 3, n = half * 2 + 1, h = new Float32Array(n * n).fill(NaN), cu = cell * u, ox = G.sx - half * cu, oz = G.sz - half * cu;
+    const rmx = Math.max(...G.rmax), cell = 0.2, half = Math.ceil(rmx / u / cell) + 3, n = half * 2 + 1, h = new Float32Array(n * n).fill(NaN), cu = cell * u, ox = G.sx - half * cu, oz = G.sz - half * cu;
     if (mesh) { const P = mesh.geometry.attributes.position, I = mesh.geometry.index, m = mesh.matrix, A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), nt = I ? I.count / 3 : P.count / 3; mesh.updateMatrix();
       for (let t = 0; t < nt; t++) { const ia = I ? I.getX(3 * t) : 3 * t, ib = I ? I.getX(3 * t + 1) : 3 * t + 1, ic = I ? I.getX(3 * t + 2) : 3 * t + 2; A.fromBufferAttribute(P, ia).applyMatrix4(m); B.fromBufferAttribute(P, ib).applyMatrix4(m); C.fromBufferAttribute(P, ic).applyMatrix4(m);
         const i0 = Math.max(0, Math.ceil((Math.min(A.x, B.x, C.x) - ox) / cu)), i1 = Math.min(n - 1, Math.floor((Math.max(A.x, B.x, C.x) - ox) / cu)), j0 = Math.max(0, Math.ceil((Math.min(A.z, B.z, C.z) - oz) / cu)), j1 = Math.min(n - 1, Math.floor((Math.max(A.z, B.z, C.z) - oz) / cu)); if (i0 > i1 || j0 > j1) continue;
@@ -32,13 +32,15 @@ const MosbyRide = (() => {
     return (R.hf = { h, n, half, cell }); }
   function hy(x, z) { const H = hfBuild(), G = region(), u = um(), fx = (x * u - G.sx) / (H.cell * u) + H.half, fz = (z * u - G.sz) / (H.cell * u) + H.half, i = Math.floor(fx), j = Math.floor(fz), tx = fx - i, tz = fz - j, at = (a, b) => (a < 0 || b < 0 || a >= H.n || b >= H.n) ? NaN : H.h[b * H.n + a];
     let v = at(i, j) * (1 - tx) * (1 - tz) + at(i + 1, j) * tx * (1 - tz) + at(i, j + 1) * (1 - tx) * tz + at(i + 1, j + 1) * tx * tz; if (!isFinite(v)) { const y = Mosby.domeY(x * u, z * u); v = y == null ? G.sy : y; } return v / u; }
+  // where her feet rest: the highest shell under her soles (centre and 4 points 0.3 m out), so a sole bridges a groove between plates instead of sinking into it
+  const foot = (x, z) => Math.max(hy(x, z), hy(x + 0.3, z), hy(x - 0.3, z), hy(x, z + 0.3), hy(x, z - 0.3));
   // pin her group to the shell: shell matrix x (1 / units per metre)
   const _m = new THREE.Matrix4(), _s = new THREE.Matrix4(), _one = new THREE.Vector3(1, 1, 1);
   function sync() { if (!R.on) return; const sh = shell(), P = Explore.EX.par; if (!sh || !P) return; sh.updateWorldMatrix(true, false); const u = um(); _m.compose(sh.position, sh.quaternion, _one).premultiply(sh.parent.matrixWorld).multiply(_s.makeScale(u, u, u)); _m.decompose(P.position, P.quaternion, P.scale); P.updateMatrixWorld(true); } /* the shell's frame minus its slow breathing (her group keeps a uniform scale); keep() lifts her with the breathing */
-  function keep(G) { const c = clampM(G.x, G.z); G.x = c[0]; G.z = c[1]; G.y = hy(G.x, G.z) * shell().scale.y; if (!c[2] && G.path) { G.path = null; G.goal = null; } }
+  function keep(G) { const c = clampM(G.x, G.z); G.x = c[0]; G.z = c[1]; G.y = foot(G.x, G.z) * shell().scale.y; if (!c[2] && G.path) { G.path = null; G.goal = null; } }
   const api = { sync, keep, tap: (sx, sy) => tapAboard(sx, sy), detach };
   function mount(at) { if (!Explore.on || !GM().g || !shell()) return false; const G = CharView.st.gnd; if (!G) return false; if (Mosby.MEET) Mosby.MEET.on = false; if (typeof ExMap !== 'undefined' && ExMap.st && ExMap.st.trip) ExMap.cancel();
-    const Rg = region(), u = um(); R.on = true; Explore.EX.ride = api; const p = clampM(at ? at.x : Rg.sx / u, at ? at.z : Rg.sz / u - 3); G.x = p[0]; G.z = p[1]; G.hy = hy; G.y = hy(G.x, G.z); G.path = null; G.goal = null; G.exC = null; G.exW = 0;
+    const Rg = region(), u = um(); R.on = true; Explore.EX.ride = api; const p = clampM(at ? at.x : Rg.sx / u, at ? at.z : Rg.sz / u - 3); G.x = p[0]; G.z = p[1]; G.hy = foot; G.y = foot(G.x, G.z); G.path = null; G.goal = null; G.exC = null; G.exW = 0;
     G.bnd = { X0: -1e5, X1: 1e5, Z0: -1e5, Z1: 1e5 }; if (CharView.st.exCf) CharView.st.exCf.set(G.x, G.y, G.z); sync(); S.mosbyRide = { on: true, x: +G.x.toFixed(2), z: +G.z.toFixed(2) }; try { save(); } catch (e) {} ui(true); return true; }
   // her group back to the plain ground frame (exit, or before hopping off); the saved ride is kept unless she hopped off
   function detach() { R.on = false; Explore.EX.ride = null; const P = Explore.EX.par; if (P) P.quaternion.identity(); ui(false); }
