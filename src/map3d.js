@@ -74,8 +74,8 @@ const M3 = (() => {
     let mh = mtnH(x, y) + rock * 0.55;
     // the world's edge rises into a wall of rocky peaks fading into haze (no sea, no coastline)
     const eg = smooth01(CITY.R - 700, CITY.R + 900, r); if (eg > 0) { const rn = (u, v) => 1 - Math.abs(2 * vnoise(u, v) - 1); { const q = 0.6 * rn(x / 420, y / 420) + 0.4 * rn(x / 150 + 3, y / 150); mh = Math.max(mh, eg * (260 + 760 * q * q)); } }
-    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh, heightAt); return routeCarve(x, y, c); } // the Lumen Tree's streams, falls and lake
-    return routeCarve(x, y, [h + mh - rock * 0.55, mh]);
+    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh, heightAt); return townCarve(x, y, routeCarve(x, y, c)); } // the Lumen Tree's streams, falls and lake
+    return townCarve(x, y, routeCarve(x, y, [h + mh - rock * 0.55, mh]));
   }
   // terrain probe used when placing homes (height + slope), before or after the meshes exist
   // the Silverseam climb: a ledge route carved up the summit cliff above the Silverseam portaledge - broad ledges joined by short
@@ -98,7 +98,8 @@ const M3 = (() => {
     const a = g.h[iy * N1 + ix], b = g.h[iy * N1 + ix + 1], c = g.h[(iy + 1) * N1 + ix], d = g.h[(iy + 1) * N1 + ix + 1];
     // PlaneGeometry splits each quad along the (ix,iy+1)-(ix+1,iy) diagonal
     if (u + v <= 1) return a + (b - a) * u + (c - a) * v; return d + (c - d) * (1 - u) + (b - d) * (1 - v); }
-  function meshH(x, y) { const gi = grids[1]; if (gi && Math.abs(x) < gi.half && Math.abs(y) < gi.half) return gridH(gi, x, y); return grids[0] ? gridH(grids[0], x, y) : 0; }
+  const townCarve = (x, y, hm) => (typeof Town !== 'undefined' ? Town.carve(x, y, hm) : hm); // the beginner town's terraces (town.js): ground cut under the platforms, banked round them
+  function meshH(x, y) { if (typeof Town !== 'undefined') { const t = Town.hOver(x, y); if (t !== null) return t; } /* walking on the town's terrace tops and stairs */ const gi = grids[1]; if (gi && Math.abs(x) < gi.half && Math.abs(y) < gi.half) return gridH(gi, x, y); return grids[0] ? gridH(grids[0], x, y) : 0; }
   // the fine grid's outer band eases onto the coarse grid's surface so the two meet without a step (nav saw the old seam as a cliff)
   function edgeBlend(g, o) { const N1 = g.N + 1, band = 8 * g.step; for (let iy = 0; iy <= g.N; iy++) for (let ix = 0; ix <= g.N; ix++) { const x = -g.half + ix * g.step, y = -g.half + iy * g.step, e = g.half - Math.max(Math.abs(x), Math.abs(y)); if (e >= band) continue; const w = smooth01(0, band, e), q = iy * N1 + ix; g.h[q] = gridH(o, x, y) + (g.h[q] - gridH(o, x, y)) * w; } }
   // the fine grid as T x T tiles (normals from the whole grid, so no lighting seams) - tiles out of view are culled
@@ -907,7 +908,7 @@ diffuseColor *= sdc;
   function buildModelScene() { if (!MD || !scene) return;
     for (const s2 of IM.all) for (const m of s2.meshes.concat(s2.ns ? [s2.ns] : [])) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = []; for (const G of MG.values()) if (G.mesh) { scene.remove(G.mesh); G.mesh.geometry.dispose(); } MG.clear();
     PR.box = []; PR.cyl = []; PR.lamp = []; PR.smoke = []; PR.glow = [];
-    const byKey = {}; const onR = typeof GRAND !== 'undefined' && GRAND.onRamp; const cvH = typeof Explore !== 'undefined' && Explore.caveHit; const push = (k, o) => { if (onR && !o.edge && !/^(h\d|h_|home)|P\d+$/.test(k) && GRAND.onRamp(o.x, o.z, k.startsWith('t_') ? 150 : 70)) return; if (cvH && !/^(h\d|h_|home)|P\d+$/.test(k) && cvH(o.x, o.z, k.startsWith('t_') ? 40 : 12)) return; /* the walk-in caves keep their footprint clear */ (byKey[k] || (byKey[k] = [])).push(o); }; // option B ramps stay clear of trees, rocks and props
+    const byKey = {}; const onR = typeof GRAND !== 'undefined' && GRAND.onRamp; const cvH = typeof Explore !== 'undefined' && Explore.caveHit; const push = (k, o) => { if (onR && !o.edge && !/^(h\d|h_|home)|P\d+$/.test(k) && GRAND.onRamp(o.x, o.z, k.startsWith('t_') ? 150 : 70)) return; if (cvH && !/^(h\d|h_|home)|P\d+$/.test(k) && cvH(o.x, o.z, k.startsWith('t_') ? 40 : 12)) return; if (typeof Town !== 'undefined' && !/^(h\d|h_|home)|P\d+$/.test(k) && Town.hit(o.x, o.z, k.startsWith('t_') ? 30 : 8)) return; /* nor the beginner town's */ /* the walk-in caves keep their footprint clear */ (byKey[k] || (byKey[k] = [])).push(o); }; // option B ramps stay clear of trees, rocks and props
     W.homes.forEach((h, i) => { const tier = tierOf(h); let key = HOUSE_KIT.keyFor(tier, hash1(i * 3.71 + 0.3)), w = homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
       if (h.isPlayer && /^h\d/.test(key) && HOUSE_KIT.variant) { const pk = key + 'P' + Math.round(w * 10); if (!MD[pk]) { const raw = HOUSE_KIT.variant(key, 1), d0 = raw.doors[0]; MD[pk] = d0 ? HOUSE_KIT.variant(key, HOUSE_KIT.DOOR_H / (d0.h * w), true) : raw; } key = pk; } // the player's larger home: its door still the one world size
       h._rot = rot; h._key = key; h._w = w; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9, h }); yardProps(h, i, key, w); });
