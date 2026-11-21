@@ -441,9 +441,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='1af80686';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 1af80686</div>
-<script src="assets/vendor/three.min.js?v=1af80686"></script>
+<script>window.HD_BUILD='2e9878c4';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 2e9878c4</div>
+<script src="assets/vendor/three.min.js?v=2e9878c4"></script>
 <script>
 'use strict';
 
@@ -4279,12 +4279,12 @@ const Town = (() => {
   const FIELD = 132, LV = [FIELD + 2.8 * WS, FIELD + 1.6 * WS, FIELD + 1.6 * WS];
   const STEP = [13.2 * 14, 13.2 * 14], RUN = 2.1 * 14, BAND = [22.5 * 14, 26.5 * 14];
   // extras3: S1/S2/S3 field entries, S4 upper terrace, S5 back entry. Metres, axis and ascending direction.
-  const ENTRIES = [ // heightmap ramps (README extras4): S1 x 2.0->4.8, S2 x 58.5->55.7, S3 y 47.2->44.4, S4 y 13.0->10.9, S5 y -0.7->4.2 (14 x 0.20)
+  const ENTRIES = [ // heightmap ramps (README extras4): S1 x 2.0->4.8, S2 x 58.5->55.7, S3 y 47.2->44.4, S4 y 13.0->10.9, S5 y -1.0->4.2 (14 x 0.20 + landing)
     {id:'S1',x:2.0,y:24.2,axis:'x',dir:1,w:4,run:2.8,lo:FIELD,hi:LV[1],n:8},
     {id:'S2',x:58.5,y:24.0,axis:'x',dir:-1,w:4,run:2.8,lo:FIELD,hi:LV[1],n:8},
     {id:'S3',x:30,y:47.2,axis:'y',dir:-1,w:2.5,run:2.8,lo:FIELD,hi:LV[1],n:8},
     {id:'S4',x:30,y:13.0,axis:'y',dir:-1,w:2.5,run:2.1,lo:LV[1],hi:LV[0],n:6},
-    {id:'S5',x:30,y:-0.7,axis:'y',dir:1,w:2.5,run:4.9,lo:FIELD,hi:LV[0],n:14}
+    {id:'S5',x:30,y:-1.0,axis:'y',dir:1,w:2.5,run:5.2,lo:FIELD,hi:LV[0],n:14,land:1.0,landAt:7} // extras5: 12 x 0.35 treads + a 1.0 landing after riser 7
   ];
   const STAIRS = [];
   const stairCoord=(e,px,py)=>{const x=px/14,y=py/14;return [(e.axis==='x'?x-e.x:y-e.y)*e.dir,Math.abs(e.axis==='x'?y-e.y:x-e.x)];};
@@ -4530,17 +4530,31 @@ Town.ground = (G) => {
   const step=.65,inTop=(x,y)=>T.inPoly(T.OUT,x*14,y*14)&&!T.entryAt(x*14,y*14);
   for(let y=1;y<48;y+=step)for(let x=0;x<59;x+=step){if(!inTop(x+step*.5,y+step*.5))continue;
     const h=T.lvlPx((x+step*.5)*14,(y+step*.5)*14),cs=[[x,y],[x,y+step],[x+step,y+step],[x+step,y]].map(([a,b])=>floorCol(a,b,false));B.at();B.quad('dirt',P(x,y,h),P(x,y+step,h),P(x+step,y+step,h),P(x+step,y,h),cs);}
-  // Rim: bulging strata, half-sunk toe boulders, soil and 0.15m moss lip overhanging .4m. No berm ledge.
-  const rim=(a,b,ha,hb)=>{const ax=a[0]/14,ay=a[1]/14,bx=b[0]/14,by=b[1]/14,dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy),nx=dy/len,ny=-dx/len;
-    let sg=T.inPoly(T.OUT,(ax+nx*.3)*14,(ay+ny*.3)*14)?-1:1;const pt=(x,y,h,o)=>P(x+nx*o*sg,y+ny*o*sg,h);
-    for(const [u,v,ka,kb,m,col] of [[0,.30,.05,.17,'stone',[.52,.47,.4]],[.30,.69,.17,.08,'stone',[.62,.56,.45]],[.69,.91,.08,.03,'dirt',[.58,.48,.36]],[.91,1,.03,0,'dirt',[.62,.54,.4]]]){B.at();B.quad(m,pt(ax,ay,F+(ha-F)*u,ka),pt(bx,by,F+(hb-F)*u,ka),pt(bx,by,F+(hb-F)*v,kb),pt(ax,ay,F+(ha-F)*v,kb),col);}
-    B.at();B.quad('moss',pt(ax,ay,ha-.15*W,.42),pt(bx,by,hb-.15*W,.42),pt(bx,by,hb,.36),pt(ax,ay,ha,.36),[.72,.75,.62]);B.quad('moss',pt(ax,ay,ha,.36),pt(bx,by,hb,.36),pt(bx,by,hb,-.2),pt(ax,ay,ha,-.2),[.9,.93,.78]);
-  };
-  for(let i=0;i<T.OUT.length;i++){const a=T.OUT[i],b=T.OUT[(i+1)%T.OUT.length];if(T.entryAt(a[0],a[1],.5))continue;rim(a,b,T.lvlPx(...a),T.lvlPx(...b));if(i%3===0){const x=a[0]/14,y=a[1]/14,h=T.lvlPx(...a);const p=P(x,y,F-.22*W);B.lump('stone',p,[.35+hash(i,1)*.3,.6+hash(i,2)*.3,.4+hash(i,3)*.3],[.58,.5,.4],i+7);}}
+  // extras5 rim_stair_paintover: three value bands at the 1.6 m rim - moss lip roll (r 0.15, 0.30 out over the face, #6E7436 top / #3F4424 under), pale capstone
+  // course (0.25, 0.05 proud, #A89A80), dark face (1.15 m in 3 courses, 8 deg batter, #5C4C3C) - then half-sunk toe boulders (#4E4034) and a #5E4C2A contact shadow; a 0.30 #7E6850 kerb on top.
+  const TXM={stone:lin('7D674F'),moss:lin('5B5E30'),dirt:lin('8D8049')},hx=(h,k)=>lin(h).map((v,i)=>v/TXM[k][i]);
+  const RC={face:['5C4C3C','56473A','60503F'].map(h=>hx(h,'stone')),cap:hx('A89A80','stone'),kerb:hx('7E6850','stone'),top:hx('6E7436','moss'),und:hx('3F4424','moss'),toe:hx('4E4034','stone'),sh:hx('5E4C2A','dirt'),drip:hx('2F3318','moss')};
+  const rim=(a,b,ha,hb,i)=>{const ax=a[0]/14,ay=a[1]/14,bx=b[0]/14,by=b[1]/14,dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy),nx=dy/len,ny=-dx/len;
+    let sg=T.inPoly(T.OUT,(ax+nx*.3)*14,(ay+ny*.3)*14)?-1:1;const pt=(x,y,h,o)=>P(x+nx*o*sg,y+ny*o*sg,h),Q=(m,u0,u1,o0,o1,col)=>{B.at();B.quad(m,pt(ax,ay,u0(ha),o0),pt(bx,by,u0(hb),o0),pt(bx,by,u1(hb),o1),pt(ax,ay,u1(ha),o1),col);},Hm=(m)=>(h)=>m<=1.15?F+(h-F-.45*W)*(m/1.15):h-(1.6-m)*W;
+    const bat=Math.tan(8*Math.PI/180);for(let c=0;c<3;c++){const m0=c*1.15/3,m1=(c+1)*1.15/3;Q('stone',Hm(m0),Hm(m1),.16-bat*m0,.16-bat*m1,RC.face[(c+i)%3]);}
+    Q('stone',Hm(1.15),Hm(1.40),.05,.05,RC.cap);
+    const roll=[[1.36,.30],[1.5,.36],[1.6,-.12]];for(let k=0;k<roll.length-1;k++)Q('moss',Hm(roll[k][0]),Hm(roll[k+1][0]),roll[k][1],roll[k+1][1],k===0?RC.und:RC.top);Q('moss',Hm(1.40),Hm(1.36),.05,.30,RC.und);
+    Q('stone',Hm(1.6),Hm(1.6),-.12,-.42,RC.kerb);B.at();B.quad('dirt',pt(ax,ay,F+.01*W,.25),pt(bx,by,F+.01*W,.25),pt(bx,by,F+.01*W,.7),pt(ax,ay,F+.01*W,.7),RC.sh);
+    if(i%2===0){const t=hash(i,5),xx=ax+dx*t,yy=ay+dy*t,L=.2+hash(i,6)*.1;B.at();B.tri('moss',pt(xx-dx/len*.05,yy-dy/len*.05,F+1.37*W,.3),pt(xx+dx/len*.05,yy+dy/len*.05,F+1.37*W,.3),pt(xx,yy,F+(1.37-L)*W,.31),RC.drip);} };
+  for(let i=0;i<T.OUT.length;i++){const a=T.OUT[i],b=T.OUT[(i+1)%T.OUT.length];if(T.entryAt(a[0],a[1],.5))continue;rim(a,b,T.lvlPx(...a),T.lvlPx(...b),i);if(i%3===0){const x=a[0]/14,y=a[1]/14,sz=.4+hash(i,1)*.5;const p=P(x,y,F-.1*W);B.lump('stone',p,[sz*.6,sz*.55,sz*.5],RC.toe,i+7);}}
   // Wavy upper terrace retaining wall with the same strata, cut for S4.
   for(let i=0;i<T.UPPER.length;i++){const a=T.UPPER[i],b=T.UPPER[(i+1)%T.UPPER.length],m=[(a[0]+b[0])/2,(a[1]+b[1])/2];if(T.edgeD(m[0],m[1])<14*1.2||T.entryAt(m[0],m[1],.7))continue;const A=P(a[0]/14,a[1]/14,T.LV[1]),Bp=P(b[0]/14,b[1]/14,T.LV[1]),C=P(b[0]/14,b[1]/14,T.LV[0]+.04*W),D=P(a[0]/14,a[1]/14,T.LV[0]+.04*W);B.at();B.quad('stone',A,Bp,C,D,[.78,.73,.62]);B.quad('moss',D,C,P(b[0]/14,b[1]/14+.12,T.LV[0]+.06*W),P(a[0]/14,a[1]/14+.12,T.LV[0]+.06*W),[.8,.84,.7]);}
-  // Five real stone stair flights, precise .20 m risers and .35 m treads (S5 needs 14 to reach +2.8).
-  for(const e of T.ENTRIES)for(let i=0;i<e.n;i++){const u0=e.run*i/e.n,u1=e.run*(i+1)/e.n,h=e.lo+(e.hi-e.lo)*(i+1)/e.n,pt=(u,v,hh)=>P(e.x+(e.axis==='x'?u*e.dir:v),e.y+(e.axis==='y'?u*e.dir:v),hh),a=pt(u0,-e.w/2,h),b=pt(u1,-e.w/2,h),c=pt(u1,e.w/2,h),d=pt(u0,e.w/2,h);B.at();B.quad('stone',a,b,c,d,[1,.96,.86]);B.quad('stone',pt(u0,-e.w/2,h-.2*W),a,d,pt(u0,e.w/2,h-.2*W),[.67,.63,.55]);}
+  // extras5 stair kit (S1-S5): cut slab treads (2 per tread, offset joint), 0.04 nosing, dark risers, 0.35 edge stones each side; S5 has a 1.0 m landing after riser 7.
+  const SC={tr:hx('9C8C72','stone'),nos:hx('B4A68A','stone'),ri:hx('4E4236','stone'),jo:hx('3A3026','stone'),ec:hx('A89A80','stone'),ef:hx('8A7C64','stone')};
+  for(const e of T.ENTRIES){const td=e.land?(e.run-e.land)/(e.n-2):e.run/e.n,rs=(i)=>e.land?(i<e.landAt?i*td:(e.landAt-1)*td+e.land+(i-e.landAt)*td):i*td,pt=(u,v,hh)=>P(e.x+(e.axis==='x'?u*e.dir:v),e.y+(e.axis==='y'?u*e.dir:v),hh),hw=e.w/2,flip=(e.axis==='x')!==(e.dir>0);
+    const Qd=(a,b,c,d,col)=>{B.at();if(flip)B.quad('stone',d,c,b,a,col);else B.quad('stone',a,b,c,d,col);};
+    for(let i=0;i<e.n;i++){const u0=rs(i),u1=Math.max(rs(i+1),u0+.05),h=e.lo+(e.hi-e.lo)*(i+1)/e.n,j=-hw*.3+hash(i,e.n)*hw*.6;
+      Qd(pt(u0+.04,-hw,h),pt(u1,-hw,h),pt(u1,hw,h),pt(u0+.04,hw,h),SC.tr);Qd(pt(u0,-hw,h),pt(u0+.04,-hw,h),pt(u0+.04,hw,h),pt(u0,hw,h),SC.nos);
+      Qd(pt(u0+.04,j-.006,h+.002),pt(u1,j-.006,h+.002),pt(u1,j+.006,h+.002),pt(u0+.04,j+.006,h+.002),SC.jo);
+      Qd(pt(u0,-hw,h-.2*W),pt(u0,-hw,h),pt(u0,hw,h),pt(u0,hw,h-.2*W),SC.ri);
+      for(const sv of [-1,1]){const v0=sv*hw,v1=sv*(hw+.35),ht=h+.1*W;Qd(...(sv<0?[pt(u0,v1,ht),pt(u1,v1,ht),pt(u1,v0,ht),pt(u0,v0,ht)]:[pt(u0,v0,ht),pt(u1,v0,ht),pt(u1,v1,ht),pt(u0,v1,ht)]),SC.ec);
+        B.at();const f=[pt(u0,v1,e.lo-.05*W),pt(u1,v1,e.lo-.05*W),pt(u1,v1,ht),pt(u0,v1,ht)];if((sv>0)!==flip)B.quad('stone',f[0],f[1],f[2],f[3],SC.ef);else B.quad('stone',f[3],f[2],f[1],f[0],SC.ef);
+        B.at();const g=[pt(u0,v1,ht-.1*W-.2*W),pt(u0,v0,ht-.1*W-.2*W),pt(u0,v0,ht),pt(u0,v1,ht)];B.quad('stone',g[0],g[1],g[2],g[3],SC.ef);}}}
   // Main street + square: warm laid cobble, 4 m street, 14 m square; lanes 2.5 m.
   const curbD=(x,y)=>Math.min(Math.abs(y-22.5),Math.abs(y-26.5),Math.abs(Math.hypot(x-30,y-24.5)-7)),cobC=(x,y)=>{const c=floorCol(x,y,true),cd=curbD(x,y),mc=Math.max(0,Math.min(1,(.9-cd)/.6))*Math.min(1,Math.max(0,(fbm(x/2,y/2,5)-.35)*2.5));return c.map((v,i)=>v*(1+(kMO[i]*1.25-1)*mc*.5));};
   const pave=(x,y,dx,dy)=>{const h=T.lvlPx((x+dx*.5)*14,(y+dy*.5)*14)+W*.035;B.at();B.quad('cobble',P(x,y,h),P(x,y+dy,h),P(x+dx,y+dy,h),P(x+dx,y,h),[[x,y],[x,y+dy],[x+dx,y+dy],[x+dx,y]].map(([a,b])=>cobC(a,b)));};
