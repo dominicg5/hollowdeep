@@ -6,6 +6,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
   const p = await (await b.newContext({ viewport: { width: 540, height: 900 } })).newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.goto(URL); await p.waitForTimeout(800); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 200000 }); await p.waitForTimeout(500);
+  const snap = async (f) => { if (!SHOT) return; await p.evaluate(() => document.getAnimations().forEach((a) => { try { if (a.effect && a.effect.getTiming().iterations !== Infinity) a.finish(); } catch (e) {} })); await p.screenshot({ path: `${SHOT}/${f}.jpg`, type: 'jpeg', quality: 86 }); };
   let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
   const o = await p.evaluate(() => { Explore.build(); const T = Town, F = T.folk; for (let i = 0; i < 5 && !F.ST.built; i++) { T.tick(); F.tick(); }
     const L = F.ST.list, door = W.playerDoor || W.player; const r = { n: L.length, people: [] };
@@ -25,12 +26,12 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
     await p.evaluate(() => { for (let k = 0; k < 600 && Town.folk.ST.walking; k++) Explore.tick(1 / 30); }); await p.waitForTimeout(1500);
     const d = await p.evaluate(() => { const e = document.getElementById('townDlg'); return e && { on: !e.classList.contains('hidden'), txt: e.querySelector('.tdWell p').textContent, img: e.querySelector('.tdPort').style.backgroundImage, name: e.querySelector('.tdName').textContent, who: Town.folk.ST.talk && Town.folk.ST.talk.id }; });
     ok(r.r === 'npc' && d && d.on && d.who === id && d.img.includes(id), `tap ${id} (${r.r}): walks up, dialogue opens with the portrait (${d && d.name}: "${d && d.txt.slice(0, 40)}...")`);
-    if (SHOT) await p.screenshot({ path: `${SHOT}/town-dlg-${id}.jpg`, type: 'jpeg', quality: 86 });
+    await snap(`town-dlg-${id}`);
     if (!d || !d.on) continue;
     await p.click('#townDlg .tdWell p'); const last = await p.evaluate(() => [...document.querySelectorAll('#townDlg .tdBtns button')].map((b) => b.dataset.a));
     ok(last.includes('bye'), `${id}: tapping advances to the last page with its choices (${last.join(', ')})`);
-    if (id === 'ambrose') { await p.click('#townDlg [data-a=vault]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'vault', `the bank's keeper opens the vault (${k})`); if (SHOT) await p.screenshot({ path: `${SHOT}/town-bank-vault.jpg`, type: 'jpeg', quality: 86 }); await p.evaluate(() => closeModal()); }
-    else if (id === 'goldie') { if (SHOT) await p.screenshot({ path: `${SHOT}/town-dlg-goldie-choice.jpg`, type: 'jpeg', quality: 86 }); await p.click('#townDlg [data-a=buy]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'town-shop', `the store's Buy opens the placeholder shop (${k})`); if (SHOT) await p.screenshot({ path: `${SHOT}/town-shop-buy.jpg`, type: 'jpeg', quality: 86 }); await p.evaluate(() => closeModal()); }
+    if (id === 'ambrose') { await p.click('#townDlg [data-a=vault]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'vault', `the bank's keeper opens the vault (${k})`); await snap(`town-bank-vault`); await p.evaluate(() => closeModal()); }
+    else if (id === 'goldie') { await snap(`town-dlg-goldie-choice`); await p.click('#townDlg [data-a=buy]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'town-shop', `the store's Buy opens the placeholder shop (${k})`); await snap(`town-shop-buy`); await p.evaluate(() => closeModal()); }
     else { await p.click('#townDlg [data-a=bye]'); const h = await p.evaluate(() => document.getElementById('townDlg').classList.contains('hidden')); ok(h, 'Goodbye closes the dialogue'); } }
   const dc = await p.evaluate(() => Town.ST.g.children.filter((m) => m.isMesh).length + Town.folk.ST.list.length); ok(dc <= 30, `town + folk draw calls ${dc}`);
   ok(!errs.length, 'no page errors ' + errs.join(' | ')); console.log(fails ? fails + ' FAIL' : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0); })();
