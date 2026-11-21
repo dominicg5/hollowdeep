@@ -43,7 +43,7 @@ const NpcKit = (() => {
     brannick: { idle: 'idle', work: null, grips: { hand_r: 'hammer' } },
     tess: { idle: 'idle', work: 'interact', workEvery: [8, 14], grips: {} },
     hattie: { idle: 'idle', work: null, grips: { hand_r: 'tray_r', hand_l: 'tray_l' }, stance: 0.12 }, // tray on prop_r (right palm), left hand on its rim
-    fennick: { idle: 'idle', work: null, grips: { hand_r: 'staff' }, stance: 0.08 } };
+    fennick: { idle: 'idle', work: null, grips: { hand_r: 'staff' }, stance: 0.08, stoop: { spine_02: 9, spine_03: 11, neck_01: -10, Head: -8 } } }; // Art's stoop (deg, forward about her side axis), additive over every clip
   // ---- build one keeper
   function create(id, opt) { opt = opt || {}; if (!has(id)) return null; const g = ST.gl, K = ST.keepers[id], kn = g.nodes[K.node], root = new THREE.Group(); root.name = 'npc_' + id;
     const bones = {}, byIdx = {}; let skinIdx = -1; const lodNodes = [];
@@ -101,6 +101,7 @@ const NpcKit = (() => {
     k.root.updateMatrixWorld(true);
     // skirted keepers stand with their feet closer than the library idle's wide stance
     if (k.role.stance) { const fw = new THREE.Vector3(0, 0, 1).transformDirection(k.root.matrixWorld); for (const s of ['l', 'r']) { const th = k.bones['thigh_' + s], ft = k.bones['foot_' + s]; if (!th) continue; const q0 = ft && ft.getWorldQuaternion(new THREE.Quaternion()); rotWorld(th, fw, (s === 'l' ? -1 : 1) * k.role.stance); if (ft) { ft.parent.getWorldQuaternion(_q2); ft.quaternion.copy(_q2.invert().multiply(q0)); ft.updateMatrixWorld(true); } } }
+    if (k.role.stoop) { const sx = new THREE.Vector3(1, 0, 0).transformDirection(k.root.matrixWorld); for (const [bn, deg] of Object.entries(k.role.stoop)) if (k.bones[bn]) rotWorld(k.bones[bn], sx, deg * Math.PI / 180); }
     if (Math.abs(k.look) > 1e-3) { if (k.bones.neck_01) rotWorld(k.bones.neck_01, UP, k.look * 0.4); rotWorld(k.bones.Head, UP, k.look * 0.6); }
     // hands locked on their props (hammer haft, tray rim, staff, ledger)
     for (const [hand, gp] of Object.entries(k.grips)) { if (k.working && hand === 'hand_r' && k.id !== 'hattie') continue; const T = gp.local.clone().applyMatrix4(gp.bone.matrixWorld); const pole = gp.pole.clone().transformDirection(k.root.matrixWorld); ik(k, hand.slice(-1), T, pole);
