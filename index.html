@@ -572,9 +572,9 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 #drillCtl,#drillUse{overflow:hidden;background:#6b4322;z-index:40;bottom:72px}
 #drillCtl .dlist,#drillUse .dlist{overflow:auto;max-height:min(60vh,520px);-webkit-overflow-scrolling:touch}
 #drillCtl.kLeather,#drillUse.kLeather{background-color:#6b4322}
-<script>window.HD_BUILD='129a6871';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 129a6871</div>
-<script src="assets/vendor/three.min.js?v=129a6871"></script>
+<script>window.HD_BUILD='595d8147';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 595d8147</div>
+<script src="assets/vendor/three.min.js?v=595d8147"></script>
 <script>
 'use strict';
 
@@ -4675,11 +4675,12 @@ const Town = (() => {
   function lvlPx(px, py) {const e=entryAt(px,py);if(e){const [u]=stairCoord(e,px,py);return e.lo+(e.hi-e.lo)*clamp(u/e.run,0,1);}return LV[tIdx(px,py)];}
   const GATE=W2(0.8*14,24.2*14),GATE_IN=W2(6*14,24.3*14);
   const inEntry=(px,py)=>!!entryAt(px,py,.6);
+  const SITE = true; // Dominic: no town plateau - each building is a standalone site module on the natural ground (Art is placing them across the lower map)
   let SKIP = false; // bypass: natural ground (for building the walls and the tests)
   /* terrain hooks (map3d): the rendered ground under the town is cut a little below the terraces (hidden under the platforms) and
      banks down to them outside; at the entrance the ground rises to meet the main street. meshH() reports the terrace tops. */
-  function carve(x,y,hm){if(SKIP||!near(x,y,WS*5))return hm;const [px,py]=P2(x,y),d=edgeD(px,py)*K;if(inPoly(OUT,px,py))return [Math.min(FIELD-WS*.15,hm[0]),0];if(d>WS*4)return hm;const w=1-sm(WS*1.5,WS*4,d);return [hm[0]+(FIELD-hm[0])*w,hm[1]*(1-w)];}
-  function hOver(x,y){if(SKIP||!near(x,y,WS*.2))return null;const [px,py]=P2(x,y);if(!inPoly(OUT,px,py)&&!entryAt(px,py))return null;return lvlPx(px,py);}
+  function carve(x,y,hm){if(SITE)return sitePad(x,y,hm);if(SKIP||!near(x,y,WS*5))return hm;const [px,py]=P2(x,y),d=edgeD(px,py)*K;if(inPoly(OUT,px,py))return [Math.min(FIELD-WS*.15,hm[0]),0];if(d>WS*4)return hm;const w=1-sm(WS*1.5,WS*4,d);return [hm[0]+(FIELD-hm[0])*w,hm[1]*(1-w)];}
+  function hOver(x,y){if(SITE||SKIP||!near(x,y,WS*.2))return null;const [px,py]=P2(x,y);if(!inPoly(OUT,px,py)&&!entryAt(px,py))return null;return lvlPx(px,py);}
   const nat = (x, y) => { SKIP = true; const h = M3.heightAt(x, y)[0]; SKIP = false; return h; };
   // ---- buildings: concept-map centre (px), facing (+1: toward +py, -1: toward -py), footprint (local metres, x across the front, z depth)
   const BLD = [
@@ -4692,7 +4693,15 @@ const Town = (() => {
   const LOTS=[['H1',8.5*14,8.6*14,8*14,6*14],['H2',18.1*14,8.6*14,8*14,6*14],['H3',42.5*14,17.5*14,8*14,6*14],['H4',49*14,32.5*14,8*14,6*14],['H5',18*14,40.2*14,8*14,6*14],['H6',49*14,40.5*14,8*14,6*14],['L1',30*14,24.5*14,0,0,2*14],['L2',52*14,23.5*14,6*14,10*14],['L3',55*14,30*14,0,0,1*14]];
   const SQ={px:30*14,py:24.5*14,r:7*14};
   // world placement of a building: origin at its centre on its terrace, yaw so local +z (the front) points the right way
-  function place(B) { const [x, y] = W2(B.px, B.py), dir = W2(B.px, B.py + B.face), fx = dir[0] - x, fy = dir[1] - y; return { x, y, h: lvlPx(B.px,B.py), yaw: Math.atan2(fx, fy) }; }
+  // site module: the floor sits at the highest natural ground under the footprint; a stone plinth (Town.ground) runs down below the lowest point so it conforms
+  // each site grades a pad round itself (footprint + 1 m flat at the floor, easing back to the natural ground over 4 m) so it can stand on any slope and be walked round
+  let PADS = null; function pads() { if (!PADS) { PADS = []; for (const B of BLD) { const P = place(B); PADS.push({ x: P.x, y: P.y, h: P.h - 0.03 * WS, r: (Math.hypot(B.w, B.round ? B.w : B.d) / 2 + 1) * WS }); } } return PADS; }
+  function sitePad(x, y, hm) { if (SKIP || !near(x, y, WS * 40)) return hm; pads();
+    let h = hm[0], s2 = hm[1]; for (const q of PADS) { const d = Math.hypot(x - q.x, y - q.y) - q.r; if (d > WS * 4) continue; const w = d <= 0 ? 1 : 1 - sm(0, WS * 4, d); h = h + (q.h - h) * w; s2 = s2 * (1 - w); } return [h, s2]; }
+  const SH = {}; function siteH(B, x, y, yaw) { if (SH[B.id]) return SH[B.id]; const cs = Math.cos(yaw), sn = Math.sin(yaw), hw = (B.round ? B.w / 2 : B.w / 2) + 0.3, hd = (B.round ? B.w / 2 : B.d / 2) + 0.3; let lo = 1e9, hi = -1e9;
+    for (let a = -1; a <= 1; a += 0.25) for (let b = -1; b <= 1; b += 0.25) { const lx = a * hw, lz = b * hd, h = nat(x + (lx * cs + lz * sn) * WS, y + (-lx * sn + lz * cs) * WS); lo = Math.min(lo, h); hi = Math.max(hi, h); }
+    return (SH[B.id] = { h: hi + 0.04 * WS, lo }); }
+  function place(B) { const [x, y] = B.wx != null ? [B.wx, B.wy] : W2(B.px, B.py), dir = W2(B.px, B.py + B.face), fx = dir[0] - W2(B.px, B.py)[0], fy = dir[1] - W2(B.px, B.py)[1], yaw = B.wyaw != null ? B.wyaw : Math.atan2(fx, fy); return { x, y, h: SITE ? siteH(B, x, y, yaw).h : lvlPx(B.px,B.py), lo: SITE ? siteH(B, x, y, yaw).lo : null, yaw }; }
   // ---- solids (Explore.colList): every wall, prop and the drop edges are circles
   let COLS = null;
   function cols() { if (COLS) return COLS; if (typeof M3 === 'undefined' || !M3.st || !M3.st.ok || !M3.scene) return []; if (Town.ST && !Town.ST.built) Town.build(); COLS = []; const add = (x, y, r, key) => COLS.push({ x, y, r, key: key || 'town' });
@@ -4704,15 +4713,17 @@ const Town = (() => {
     for (const c of PCOL) add(c[0], c[1], c[2], 'townProp');
     for (const B of BLD) { const [x, y] = npcSpot(B).at; add(x, y, WS * 0.38, 'townNpc'); } // the townsfolk stand still: solid
     // Solid rim, skirt and cheek walls share the visual outline. Entries are genuinely open.
-    for(let i=0;i<OUT.length;i+=2){const p=OUT[i];if(entryAt(p[0],p[1],.6))continue;const [x,y]=W2(...p);add(x,y,WS*.42,'townWall');}
-    for(const e of ENTRIES) for(const side of [-1,1]) for(let u=.3;u<e.run;u+=.7){const x=e.x+(e.axis==='x'?u*e.dir:side*(e.w/2+.25)),y=e.y+(e.axis==='y'?u*e.dir:side*(e.w/2+.25));add(...W2(x*14,y*14),WS*.23,'townStair');}
+    if(!SITE)for(let i=0;i<OUT.length;i+=2){const p=OUT[i];if(entryAt(p[0],p[1],.6))continue;const [x,y]=W2(...p);add(x,y,WS*.42,'townWall');}
+    if(!SITE)for(const e of ENTRIES) for(const side of [-1,1]) for(let u=.3;u<e.run;u+=.7){const x=e.x+(e.axis==='x'?u*e.dir:side*(e.w/2+.25)),y=e.y+(e.axis==='y'?u*e.dir:side*(e.w/2+.25));add(...W2(x*14,y*14),WS*.23,'townStair');}
     return COLS; }
   function nav(cls, nx, ny, REG, C) { const L = cols(); if (!L.length) return; const i0 = Math.max(0, Math.floor((BB.x0 - REG.X0) / C)), i1 = Math.min(nx - 1, Math.ceil((BB.x1 - REG.X0) / C)), j0 = Math.max(0, Math.floor((BB.y0 - REG.Y0) / C)), j1 = Math.min(ny - 1, Math.ceil((BB.y1 - REG.Y0) / C));
-    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const [px, py] = P2(REG.X0 + i * C, REG.Y0 + j * C); if (inPoly(OUT, px, py) || entryAt(px, py, 0.6)) cls[j * nx + i] = 1; } // the S1-S5 flights walk (0.20 m rises), never a climb
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const [px, py] = P2(REG.X0 + i * C, REG.Y0 + j * C); if (!SITE && (inPoly(OUT, px, py) || entryAt(px, py, 0.6))) cls[j * nx + i] = 1; }
+    // each site's levelled pad (and its eased apron) walks, wherever the site is placed - even out in the edge band the map would otherwise leave unwalked
+    if (SITE) for (const q of pads()) { const R = q.r + WS * 4, a0 = Math.max(0, Math.floor((q.x - R - REG.X0) / C)), a1 = Math.min(nx - 1, Math.ceil((q.x + R - REG.X0) / C)), b0 = Math.max(0, Math.floor((q.y - R - REG.Y0) / C)), b1 = Math.min(ny - 1, Math.ceil((q.y + R - REG.Y0) / C)); for (let j = b0; j <= b1; j++) for (let i = a0; i <= a1; i++) if (Math.hypot(REG.X0 + i * C - q.x, REG.Y0 + j * C - q.y) < R) cls[j * nx + i] = 1; } // the S1-S5 flights walk (0.20 m rises), never a climb
     for (const c of L) { const R = c.r + C * (c.key === 'townStair' || c.key === 'townWall' ? 0.08 : 0.15), a0 = Math.max(0, Math.floor((c.x - R - REG.X0) / C)), a1 = Math.min(nx - 1, Math.ceil((c.x + R - REG.X0) / C)), b0 = Math.max(0, Math.floor((c.y - R - REG.Y0) / C)), b1 = Math.min(ny - 1, Math.ceil((c.y + R - REG.Y0) / C)); for (let j = b0; j <= b1; j++) for (let i = a0; i <= a1; i++) if (Math.hypot(REG.X0 + i * C - c.x, REG.Y0 + j * C - c.y) < R) cls[j * nx + i] = 0; } }
   // where each building's keeper stands (beside the door, facing the street) and where she stops to talk (in front of them)
   function npcSpot(B) { const P = place(B), cs = Math.cos(P.yaw), sn = Math.sin(P.yaw), L = (lx, lz) => [P.x + (lx * cs + lz * sn) * WS, P.y + (-lx * sn + lz * cs) * WS], D = B.round ? B.w / 2 : B.d / 2, o = NPCX[B.id] || [1.8, 1.4];
-    return { at: L(o[0], D + o[1]), talk: L(o[0], D + o[1] + 1.5), yaw: P.yaw, h: lvlPx(B.px,B.py) }; }
+    return { at: L(o[0], D + o[1]), talk: L(o[0], D + o[1] + 1.5), yaw: P.yaw, h: SITE ? nat(...L(o[0], D + o[1])) : lvlPx(B.px,B.py) }; }
   const NPCX = { general_store: [-1.9, 1.5], smithy: [1.6, 1.4], bank: [1.9, 1.2], rope_maker: [1.5, 1.2], inn: [-2.0, 1.3], guide_hut: [1.6, 1.3] };
   const PCOL = []; // prop circles (world x, y, r), filled as the meshes are built
   // ---- keep-out for the map's trees, rocks, tufts and focal boulders
@@ -4723,7 +4734,9 @@ const Town = (() => {
     if (!best) return []; const pts = [GATE, mid], v = [mid[0] - best[0], mid[1] - best[1]], L = Math.hypot(v[0], v[1]), n = Math.max(1, Math.round(L / 60));
     for (let k = 1; k <= n; k++) pts.push([mid[0] - v[0] * k / n, mid[1] - v[1] * k / n]);
     PTH = [[0, ...pts.flat().map((q) => Math.round(q))]]; return PTH; }
-  return { WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
+  // site modules: move one building (with its plinth, solids, props and keeper spot) to any world point and facing; the town rebuilds on the next frame
+  function setSite(id, x, y, yaw) { const B = BLD.find((q) => q.id === id); if (!B) return false; B.wx = x; B.wy = y; if (yaw != null) B.wyaw = yaw; delete SH[id]; PADS = null; COLS = null; if (Town.rebuild) Town.rebuild(); if (typeof Explore !== 'undefined' && Explore.NV) { Explore.NV.built = false; Explore.NV.tidy = null; } return true; } // (the walk grid is rebuilt on the next plan; the terrain mesh under a moved pad is re-carved when its chunk is next rebuilt)
+  return { setSite, SITE, siteH, WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
     nav, resetCols: () => { COLS = null; }, get skip() { return SKIP; }, set skip(v) { SKIP = v; } };
 })();
 /* ---- the town's meshes: painted canvas textures (one per material), geometry merged per material ---- */
@@ -4888,7 +4901,11 @@ Town.gb = (() => {
 })();
 /* ---- the town-wide pieces: terrace tops, retaining walls, cobble streets and square, stairs, rope rails, lot markings ---- */
 Town.ground = (G) => {
-  const T=Town,B=Town.gb,W=T.WS,F=T.FIELD;B.frame(0,0,0,0);B.at();
+  const T=Town,B=Town.gb,W=T.WS,F=T.FIELD;
+  if(T.SITE){ // standalone sites: a dressed-stone plinth under each footprint, from the floor down past the lowest ground point (no rim, terraces, stairs or streets)
+    for(const Bd of T.BLD){const P0=T.place(Bd),dep=(P0.h-P0.lo)/W+.35,w=(Bd.round?Bd.w:Bd.w)+.24,d=(Bd.round?Bd.w:Bd.d)+.24;B.frame(P0.x,P0.y,P0.h,P0.yaw);if(Bd.round)B.cyl('stone',[0,-dep,0],w/2,w/2,dep+.02,14,.85);else B.box('stone',[0,-dep,0],[w,dep+.02,d],.85);}
+    return B.flush(G,'townGround',{noShadow:true}); }
+  B.frame(0,0,0,0);B.at();
   const P=(x,y,h)=>{const p=T.W2(x*14,y*14);return [p[0]/W,h/W,p[1]/W];};
   const hash=(x,y)=>{const q=Math.sin(x*91.7+y*47.3)*43758.545;return q-Math.floor(q);};
   // Anti-tile floor (extras3 floor_game_camera_antitile): world-space macro layers on the vertex colour, never UV. 4 layers in one draw:
@@ -5158,7 +5175,8 @@ Object.assign(Town, (() => {
     const d = Math.hypot(cam.position.x - TW.T.cx, cam.position.z - TW.T.cy); ST.g.visible = d < 9000; const sm = d < 2600; for (const m of ST.small) m.visible = sm; for (const m of ST.g.children) if (m.isMesh) m.castShadow = d < 2200 && !/_(dirt|cobble|glow)/.test(m.name); }
   function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__town) return; const R0 = M3.render; M3.render = function () { try { tick(); if (Town.npcTick) Town.npcTick(); } catch (e) { if (!ST.err) console.error((ST.err = e)); } return R0.apply(this, arguments); }; M3.render.__town = true; }
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 400); }
-  return { build, tick, ST };
+  function rebuild() { if (ST.g && ST.g.parent) ST.g.parent.remove(ST.g); ST.built = false; ST.g = null; if (Town.folk && Town.folk.ST) { const F = Town.folk.ST; if (F.mesh && F.mesh.parent) F.mesh.parent.remove(F.mesh); if (F.ink && F.ink.parent) F.ink.parent.remove(F.ink); F.built = false; F.list.length = 0; } if (typeof Explore !== 'undefined' && Explore.build) { try { Explore.rebuildNav && Explore.rebuildNav(); } catch (e) {} } }
+  return { build, tick, ST, rebuild };
 })());
 /* ---- the townsfolk (phase 2): one keeper per building, from each folder's npc_turnaround (placeholder names and roles). Each is one merged,
    vertex-coloured mesh (6 draw calls), standing with a breathing / weight-shift idle, turning to face her when she comes close. Tap one ->
