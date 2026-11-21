@@ -136,7 +136,7 @@ if sk and ap:
         tgt = min(near) - 0.03
         if v.co.y < tgt: v.co.y = tgt + (v.co.y - tgt) * 0.3
 # ---- back straps: densify the 7-point polylines and lift them 12 mm off the vest so they stop cutting through on the back
-st_o = find(lambda n: kw(n, 'strap')); bo = find(lambda n: kw(n, '_peasant_body'))
+st_o = find(lambda n: kw(n, 'strap') and dom_bone(M[n]) not in ('Head', 'neck_01')); bo = find(lambda n: kw(n, '_peasant_body'))
 if st_o and bo:
     bm = bmesh.new(); bm.from_mesh(st_o.data); bmesh.ops.subdivide_edges(bm, edges=[e for e in bm.edges if e.calc_length() > 0.03], cuts=2, use_grid_fill=True); bm.to_mesh(st_o.data); bm.free()
     bt = bmesh.new(); bt.from_mesh(bo.data); bt.normal_update(); body_bvh = BVHTree.FromBMesh(bt); bt.free()
@@ -147,8 +147,10 @@ if st_o and bo:
         if s < 0.012: v.co = loc + nn * 0.012 + (v.co - loc - nn * s) * 0.0
 # ---- hem cap: a dark disc just above the hem lip so nothing reads hollow under the skirt when she walks
 if sk:
-    ring = [v.co for v in sk.data.vertices if v.co.z < 0.25]
-    zc = 0.245; rad = min(math.hypot(p.x, p.y) for p in ring) * 0.96 if ring else 0.25
+    z0 = min(v.co.z for v in sk.data.vertices); bnd = {i for e in sk.data.edges if sum(1 for p in sk.data.polygons if e.key in p.edge_keys) == 1 for i in e.vertices}
+    lo = [sk.data.vertices[i].co.z for i in bnd if sk.data.vertices[i].co.z < z0 + 0.15] or [z0]
+    # cap sits just above the highest point of this keeper's hem lip
+    zc = max(lo) + 0.01; ring = [v.co for v in sk.data.vertices if abs(v.co.z - zc) < 0.03] or [v.co for v in sk.data.vertices if v.co.z < z0 + 0.015]; rad = min(math.hypot(p.x, p.y) for p in ring) * 0.9 if ring else 0.25
     img = np.asarray(__import__('PIL.Image', fromlist=['Image']).open(os.path.join(ART, K + '_atlas_1024.png')).convert('RGB')).astype(np.float32)
     sub = img[530:690, 530:1010].sum(2); yy, xx = np.unravel_index(np.argmin(sub), sub.shape); du, dvv = (530 + xx + 0.5) / 1024, 1 - (530 + yy + 0.5) / 1024
     bm = bmesh.new(); cyv = []
@@ -183,7 +185,10 @@ if held and C.get('carry') == 'tray':
 for n, g in allg.items():   # other one-hand grips from the keeper config (hammer, staff), unchanged
     if n not in GRIPS and n != 'book' and not n.startswith('tray'): GRIPS[n] = tuple(g) + (None,)
 # ---- mitten rig (23 bones)
-EXTRA = [n for n in ('braid_00', 'braid_01', 'braid_02', 'braid_03', 'prop_l', 'prop_r') if n in arm.data.bones and (any(o.vertex_groups.get(n) for o in M.values()) or any(g[0] == n for g in GRIPS.values()))]
+def used(o, n):
+    g = o.vertex_groups.get(n)
+    return bool(g) and any(e.group == g.index and e.weight > 1e-4 for v in o.data.vertices for e in v.groups)
+EXTRA = [n for n in ('braid_00', 'braid_01', 'braid_02', 'braid_03', 'prop_l', 'prop_r') if n in arm.data.bones and (any(used(o, n) for o in M.values()) or any(g[0] == n for g in GRIPS.values()))]
 BONES = KEEP + EXTRA   # Art's props may ride the palm sockets prop_l / prop_r (children of the hands); Tess's braid chain
 for n in EXTRA: J[n] = bone_head(arm, n)
 for o in M.values(): merge_fingers(o); drop_groups(o, set(BONES))
