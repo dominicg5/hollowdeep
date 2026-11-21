@@ -31,7 +31,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.path=T.paths([]);
     { let inStrip=0, n=0; T.paths([]).forEach((f,pi)=>{ for(let i=1;i+3<f.length;i+=2){ if(pi===0&&i===1)continue; const ax=f[i],ay=f[i+1],bx=f[i+2],by=f[i+3]; for(let t=0;t<=1;t+=.05){n++; if(Mosby.trailHit(ax+(bx-ax)*t,ay+(by-ay)*t,10*WS+1.3*WS))inStrip++;} } }); o.pathStrip={inStrip,n};
       const AP=E.allPaths(), vtx=[]; for(const f of AP)for(let i=1;i+1<f.length;i+=2)vtx.push([f[i],f[i+1]]); const segD=(x,y)=>{let m=1e9;for(const f of AP)for(let i=1;i+3<f.length;i+=2){const ax=f[i],ay=f[i+1],dx=f[i+2]-ax,dy=f[i+3]-ay,l2=dx*dx+dy*dy||1,t=Math.max(0,Math.min(1,((x-ax)*dx+(y-ay)*dy)/l2));m=Math.min(m,Math.hypot(x-ax-dx*t,y-ay-dy*t));}return m/WS;};
-      o.pathKept=T.VALLEY.map(p=>+segD(p[0],p[1]).toFixed(1)).concat(T.BLD.flatMap(B=>{const q=T.SITE_PLAN[B.id],pts=[q.approach[0]];if(!q.yard.some(y=>y.material==='cobble'))pts.push(q.door);return pts.map(l=>{const w=T.local(B,...l);return +segD(w[0],w[1]).toFixed(1);});}));
+      o.pathKept=T.VALLEY.map(p=>+segD(p[0],p[1]).toFixed(1)).concat(T.BLD.flatMap(B=>{const q=T.SITE_PLAN[B.id],pts=[q.approach[0],q.door];return pts.map(l=>{const w=T.local(B,...l);return +segD(w[0],w[1]).toFixed(1);});}));
       const sm=T.BLD.find(b=>b.id==='smithy'); o.birch=T.SITE_PLAN.smithy.remove.map(r=>{const w=T.local(sm,r[0],r[1]);return M3.colliders().filter(c=>Math.hypot(c.x-w[0],c.y-w[1])<2*WS).length;}); }
     // routes: Ledge door -> each building front and each keeper's talk spot, on the natural ground (no climbing)
     const door = W.playerDoor || W.player, S0 = [door.x, door.y], goals = o.bld.map((q) => [q.id, q.front]).concat(T.BLD.map((B) => ['keeper ' + B.npc, T.npcSpot(B).talk]));
@@ -61,7 +61,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   for (const q of R.strip) ok(!q.hit, `${q.id}: whole building plus 10 m outside Mosby's current strip`);
   ok(R.path.length>=6 && R.path[0][1]===-5635, 'one valley path from the Ledge door, plus direct branches; no old town link');
   ok(R.pathStrip.inStrip===0, `valley path and branches >= 10 m outside Mosby's strip past the Ledge crossing (${R.pathStrip.inStrip}/${R.pathStrip.n} samples inside)`);
-  ok(R.pathKept.every(d=>d<3.5), `the painted network keeps the whole valley path and every branch to its yard edge (and on to the door where the yard is dirt; paths stop at the cobble) (no dead-end trim): ${R.pathKept.join(',')} m`);
+  ok(R.pathKept.every(d=>d<3.5), `the painted network keeps the whole valley path and every branch on to its door (grass yards, no cobble) (no dead-end trim): ${R.pathKept.join(',')} m`);
   ok(R.birch.every(n=>n===0), `the 2 birches at the Smithy are gone (${R.birch})`);
   for (const r of R.routes) ok(r.ok && r.end < 3 && r.climb === 0, `route Ledge -> ${r.id}: ${r.ok ? r.len + ' m, ends ' + r.end + ' m off, climb ' + r.climb : 'none'}`);
   for (const w of R.walks) ok(w.end < 2.5 && w.off < 0.3 && w.maxStep < 0.6 && w.solid === 0 && w.body < 0.3, `walks the field to the ${w.id} door (${w.end} m off, feet ${w.off} m off the ground, max step ${w.maxStep} m, ${w.solid} frames inside a wall, body in ground ${w.body} m)`);

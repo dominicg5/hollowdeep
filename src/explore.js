@@ -73,7 +73,9 @@ const Explore = (() => {
         for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const d = Math.hypot(REG.X0 + i * C - x, REG.Y0 + j * C - y); if (d >= r) continue; const k = j * nx + i, hh = Math.sqrt(r * r - d * d), top = py + hh, bot = py - hh; if (top > h[k] + 1 && bot < h[k] + WS * 2.2) root[k] = 1; } } } }); }
     const sl = new Float32Array(N); for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, a = h[k]; let m = 0; if (i > 0) m = Math.max(m, Math.abs(a - h[k - 1])); if (i < nx - 1) m = Math.max(m, Math.abs(a - h[k + 1])); if (j > 0) m = Math.max(m, Math.abs(a - h[k - nx])); if (j < ny - 1) m = Math.max(m, Math.abs(a - h[k + nx])); sl[k] = m / C; }
     const wet = typeof GRAND !== 'undefined' && GRAND.wet ? GRAND.wet : null;
+    const rt = new Uint8Array(N); NV.rt = rt;
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, x = REG.X0 + i * C, y = REG.Y0 + j * C, r = Math.hypot(x, y); let c = sl[k] < SLOPE_WALK ? 1 : sl[k] < SLOPE_CLIMB ? 2 : 0;
+      { const vq = M3.vrNear && M3.vrNear(x, y); if (vq && vq.d <= M3.VR.core) { rt[k] = vq.g.kind; c = c === 1 ? 1 : vq.g.kind; } } // Art's valley routes R1-R4: their corridor walks (R3, R4) or climbs (R1, R2) however tall the face (crack, water and solid masks still apply below)
       if (r < 3800 && h[k] < 1350) c = 0; // the Hollow itself is not walked (its crevices are climbed down later)
       if (c && wet && wet(x, y, 6)) c = 0; if (r > CITY.R - 800) c = 0; cls[k] = c; } // (the world's edge rises into a wall of peaks: not walked)
     // every crack is a real crevice (rock walls into darkness, the ground cut away): its cells and a lip margin are not walked - bridges cross them
@@ -93,7 +95,7 @@ const Explore = (() => {
     // steep faces taller than FACE_MAX are cliffs, not climbs: flood each steep patch and measure its height
     { const seen = new Uint8Array(N), q = new Int32Array(N); for (let s0 = 0; s0 < N; s0++) { if (cls[s0] !== 2 || seen[s0]) continue; let qh = 0, qt = 0, lo = 1e9, hi = -1e9; q[qt++] = s0; seen[s0] = 1;
         while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; lo = Math.min(lo, h[k]); hi = Math.max(hi, h[k]); for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (!seen[m] && cls[m] === 2) { seen[m] = 1; q[qt++] = m; } } }
-        if (hi - lo > FACE_MAX) for (let n = 0; n < qt; n++) { const k = q[n], x = REG.X0 + (k % nx) * C, y = REG.Y0 + ((k / nx) | 0) * C; if (!(sl[k] < 1.1 && Math.max(Math.abs(x), Math.abs(y)) > 7150)) cls[k] = 0; } } }
+        if (hi - lo > FACE_MAX) for (let n = 0; n < qt; n++) { const k = q[n], x = REG.X0 + (k % nx) * C, y = REG.Y0 + ((k / nx) | 0) * C; if (!rt[k] && !(sl[k] < 1.1 && Math.max(Math.abs(x), Math.abs(y)) > 7150)) cls[k] = 0; } } }
     // (the lowland foothills beyond the plateau are grassy hillsides, not rock: up to ~48 deg they stay a scramble however tall)
     // (Dominic) the Lumen Tree and its roots are NOT climbable: every root footprint (and one cell of padding) is solid, no walkable back, no step-up -
     // she walks round them on the ground and reaches the door at ground level. Only a root arching clear over head height is walked under.

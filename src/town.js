@@ -102,7 +102,7 @@ const Town = (() => {
   const PCOL = []; // prop circles (world x, y, r), filled as the meshes are built
   // ---- keep-out for the map's trees, rocks, tufts and focal boulders
   const moved = () => BLD.some((B) => B.wx != null);
-  function hit(x, y, pad) { if (SITE) { const m = pad || 0; for (const B of BLD) { const P=place(B), cs=Math.cos(P.yaw),sn=Math.sin(P.yaw),dx=(x-P.x)/WS,dy=(y-P.y)/WS,lx=dx*cs-dy*sn,lz=dx*sn+dy*cs,q=SITE_PLAN[B.id], p=m/WS;
+  function hit(x, y, pad) { if (SITE) { const m = pad || 0; if (typeof M3 !== 'undefined' && M3.vrNear) { const q = M3.vrNear(x, y); if (q && q.d < M3.VR.tread + Math.min(m, WS)) return true; } /* Art's valley routes: no tree, bush or boulder on a tread (Art threaded round them; on a 16 u nav grid a trunk beside the line still shut the corridor) */ for (const B of BLD) { const P=place(B), cs=Math.cos(P.yaw),sn=Math.sin(P.yaw),dx=(x-P.x)/WS,dy=(y-P.y)/WS,lx=dx*cs-dy*sn,lz=dx*sn+dy*cs,q=SITE_PLAN[B.id], p=m/WS;
       if(Math.abs(lx)<B.w/2+p+.5 && Math.abs(lz)<(B.round?B.w:B.d)/2+p+.5)return true;
       for(const Y of q.yard){const a=Y.rect_local_m,c=Y.circle_local_m;if(a&&lx>a[0]-p&&lx<a[2]+p&&lz>a[1]-p&&lz<a[3]+p)return true;if(c&&Math.hypot(lx-c[0],lz-c[1])<c[2]+p)return true;}
       for(const a of q.remove)if(Math.hypot(lx-a[0],lz-a[1])<p+1.2)return true;
@@ -111,7 +111,7 @@ const Town = (() => {
   // ---- the connecting footpath: out of the main street's land end, round the town's south-east corner, onto the nearest worn path
   let PTH = null;
   function anchors() { const o = []; if (SITE) for (const B of BLD) { const q = SITE_PLAN[B.id]; o.push(local(B, ...q.door), local(B, ...q.approach[0])); } return o; }
-  function paths(base) { if(SITE){const out=[[0,...VALLEY.flat()]];for(const B of BLD){const q=SITE_PLAN[B.id],a=q.approach.map(p=>local(B,...p));out.push([0,...a.flat()]); const edge=q.approach[0],stop=q.yard.some(y=>y.material==='cobble')?edge:q.door; if(stop!==edge)out.push([0,...local(B,...edge),...local(B,...stop)]);}return out;}return []; }
+  function paths(base) { if(SITE){const out=[[-2.5,...VALLEY.flat()]];for(const B of BLD){const q=SITE_PLAN[B.id],a=q.approach.map(p=>local(B,...p));out.push([-2,...a.flat()],[-2,...local(B,...q.approach[0]),...local(B,...q.door)]);} /* (Dominic: grass, no stone, in front of the buildings) the 2.5 m valley path, 2 m branches run on to every door */ return out;}return []; }
   // site modules: move one building (with its plinth, solids, props and keeper spot) to any world point and facing; the town rebuilds on the next frame
   function setSite(id, x, y, yaw) { const B = BLD.find((q) => q.id === id); if (!B) return false; B.wx = x; B.wy = y; if (yaw != null) B.wyaw = yaw; delete SH[id]; PADS = null; COLS = null; if (Town.rebuild) Town.rebuild(); if (typeof Explore !== 'undefined' && Explore.NV) { Explore.NV.built = false; Explore.NV.tidy = null; } return true; } // (the walk grid is rebuilt on the next plan; the terrain mesh under a moved pad is re-carved when its chunk is next rebuilt)
   return { setSite, SITE, SITE_PLAN, VALLEY, local, anchors, siteH, WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
@@ -282,18 +282,9 @@ Town.ground = (G) => {
   const T=Town,B=Town.gb,W=T.WS,F=T.FIELD;
   if(T.SITE){ // standalone sites: a dressed-stone plinth under each footprint, from the floor down past the lowest ground point (no rim, terraces, stairs or streets)
     for(const Bd of T.BLD){const P0=T.place(Bd),dep=(P0.h-P0.lo)/W+.35,w=(Bd.round?Bd.w:Bd.w)+.24,d=(Bd.round?Bd.w:Bd.d)+.24;B.frame(P0.x,P0.y,P0.h,P0.yaw);if(Bd.round)B.cyl('stone',[0,-dep,0],w/2,w/2,dep+.02,14,.85);else B.box('stone',[0,-dep,0],[w,dep+.02,d],.85);}
-    // Art's keeper-valley yards (sites.json): painted dirt / cinder / cobble draped on the ground, in each site's own frame; the rope walk's rope lies along its lane
-    const lin=(h)=>[0,2,4].map(i=>Math.pow(parseInt(h.slice(i,i+2),16)/255,2.2)),TXG=lin('8D8049'),TXC=lin('6E6252'),hs=(x,y)=>{const q=Math.sin(x*91.7+y*47.3)*43758.545;return q-Math.floor(q);};
-    const PAL={dirt:['74644A','8A7656','9C8A6A','6F6A48'],cinder:['4E463C','5A5044','463F37','5E5648'],cobble:['6E6252']};
+    // (Dominic) normal textured grass in front of the buildings - no cobble, cinder or dirt yards; the rope walk's rope still lies along its lane
     for(const Bd of T.BLD){const q=T.SITE_PLAN[Bd.id];if(!q)continue;const P0=T.place(Bd),cs=Math.cos(P0.yaw),sn=Math.sin(P0.yaw);B.frame(P0.x,P0.y,P0.h,P0.yaw);B.at();
       const gy=(lx,lz)=>(M3.meshH(P0.x+(lx*cs+lz*sn)*W,P0.y+(-lx*sn+lz*cs)*W)-P0.h)/W+.05;
-      const col=(m,lx,lz)=>{const wx=P0.x/W+lx*cs+lz*sn,wz=P0.y/W-lx*sn+lz*cs;if(m==='cobble')return CB0.map(v=>v*(1+.14*(hs(Math.floor(wx/.6),Math.floor(wz/.6))-.5)));const pl=PAL[m]||PAL.dirt,t=hs(Math.floor(wx/2.5),Math.floor(wz/2.5)),u=hs(Math.floor(wx/.9)+.5,Math.floor(wz/.9)),a=lin(pl[Math.floor(t*3)%3]),c=lin(pl[3]);return a.map((v,i)=>(v*.6+c[i]*.4)*(.92+.16*u)/TXG[i]*[.47,.53,.49][i]);}; // (x lit calibration: the raw key read #C29D77 lit at zoom 18; Art's dirt is #74644A-#9C8A6A)
-      const CB0=lin('6E6252').map((v,i)=>v*[.478,.637,1.157][i]/TXC[i]);
-      for(const Y of q.yard){const m=Y.material==='cobble'?'cobble':'dirt',km=Y.material,st=m==='cobble'?.5:1;
-        if(Y.rect_local_m){let [x0,z0,x1,z1]=Y.rect_local_m;const nx=Math.ceil((x1-x0)/st),nz=Math.ceil((z1-z0)/st);for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){const a=x0+(x1-x0)*i/nx,b=x0+(x1-x0)*(i+1)/nx,c=z0+(z1-z0)*j/nz,d=z0+(z1-z0)*(j+1)/nz,V=(x,z)=>[x,gy(x,z),z];
-          B.quad(m,V(a,d),V(b,d),V(b,c),V(a,c),[col(km,a,d),col(km,b,d),col(km,b,c),col(km,a,c)]);}}
-        if(Y.circle_local_m){const [cx,cz,r]=Y.circle_local_m,NR=Math.ceil(r/st),NA=28;for(let i=0;i<NR;i++)for(let k=0;k<NA;k++){const r0=r*i/NR,r1=r*(i+1)/NR,a0=k/NA*6.2832,a1=(k+1)/NA*6.2832,V=(rr,aa)=>{const x=cx+Math.cos(aa)*rr,z=cz+Math.sin(aa)*rr;return [x,gy(x,z),z];},C=(rr,aa)=>col(km,cx+Math.cos(aa)*rr,cz+Math.sin(aa)*rr);
-          B.quad(m,V(r0,a0),V(r0,a1),V(r1,a1),V(r1,a0),[C(r0,a0),C(r0,a1),C(r1,a1),C(r1,a0)]);}}}
       if(q.rope){const [a,b]=q.rope.local_m,n=15;for(let i=0;i<n;i++){const t0=i/n,t1=(i+1)/n,p=(t)=>{const x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;return [x,gy(x,z)+.0,z];},A=p(t0),Bq=p(t1);Town.kit.beam(A,Bq,.045,'rope',.85);}}}
     return B.flush(G,'townGround',{noShadow:true}); }
   B.frame(0,0,0,0);B.at();

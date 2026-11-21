@@ -572,9 +572,9 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 #drillCtl,#drillUse{overflow:hidden;background:#6b4322;z-index:40;bottom:72px}
 #drillCtl .dlist,#drillUse .dlist{overflow:auto;max-height:min(60vh,520px);-webkit-overflow-scrolling:touch}
 #drillCtl.kLeather,#drillUse.kLeather{background-color:#6b4322}
-<script>window.HD_BUILD='af7bb28f';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build af7bb28f</div>
-<script src="assets/vendor/three.min.js?v=af7bb28f"></script>
+<script>window.HD_BUILD='a26affb9';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a26affb9</div>
+<script src="assets/vendor/three.min.js?v=a26affb9"></script>
 <script>
 'use strict';
 
@@ -2514,8 +2514,8 @@ function generateCity() {
 
   if (typeof GRAND !== 'undefined') GRAND.fit(); // the Lumen Tree's streams, falls and lake: clear the water, re-house anyone standing in it
   // last terrain pass done: anyone whose plot ended up on steep ground (the later set pieces reshape the land after the rings were placed) moves to the nearest flat plot
-  if (typeof M3 !== 'undefined' && M3.ground) for (const h of W.homes) { if (h.isPlayer || M3.ground(h.x, h.y).slope <= 0.33) continue;
-    for (let t = 0; t < 90; t++) { const a = t * 2.39996, d = 40 + t * 14, x = h.x + Math.cos(a) * d, y = h.y + Math.sin(a) * d; if (M3.ground(x, y).slope > 0.3 || hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < h.size + 8 || isWet(x, y, 8)) continue;
+  if (typeof M3 !== 'undefined' && M3.ground) for (const h of W.homes) { if (h.isPlayer || (M3.ground(h.x, h.y).slope <= 0.33 && !onRoute(h.x, h.y, h.size))) continue; // (and off Art's valley routes R1-R4: no home stands on a tread)
+    for (let t = 0; t < 90; t++) { const a = t * 2.39996, d = 40 + t * 14, x = h.x + Math.cos(a) * d, y = h.y + Math.sin(a) * d; if (M3.ground(x, y).slope > 0.3 || onRoute(x, y, h.size) || hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < h.size + 8 || isWet(x, y, 8)) continue;
       if (W.homes.some((o) => o !== h && Math.hypot(o.x - x, o.y - y) < (o.size + h.size) * 1.15)) continue; h.x = x; h.y = y; break; } }
   // Spatial index for drawing & hit tests
   if (typeof Mosby !== 'undefined' && Mosby.trailHit) W.objs = W.objs.filter((o) => o.type !== 'tree' || !Mosby.trailHit(o.x, o.y, o.r || 20)); // no tree in the giant's trail (his legs / shell never meet one)
@@ -2543,7 +2543,8 @@ function ringR(k, a, u) { const hr = hollowR(a), pr = plateauR(a);
   if (k <= 1) { const r0 = hr + 160, r1 = hr + 0.55 * (pr - hr); return r0 + (r1 - r0) * u; }
   const r0 = pr + 1100, w = (CITY.R - 1500 - r0) / (CITY.rings - 1); return r0 + (k - 2 + u) * w; }
 // follow the terrain: no steep slopes or cliffs; ring 1 stays on the summit, outer rings stay below it
-function ringGround(x, y, k) { if (typeof M3 === 'undefined' || !M3.ground) return true; const g = M3.ground(x, y); if (g.slope > 0.33) return false;
+function onRoute(x, y, r) { if (typeof M3 === 'undefined' || !M3.vrNear) return false; const q = M3.vrNear(x, y); return !!q && q.d < M3.VR.skirt + r * 1.1 + 8; } // a home's footprint (~size) plus her body clear of a valley route's tread and skirt
+function ringGround(x, y, k) { if (typeof M3 === 'undefined' || !M3.ground) return true; const g = M3.ground(x, y); if (g.slope > 0.33 || onRoute(x, y, 40)) return false;
   return k <= 1 ? g.h > CITY.summitH - 90 : g.h < CITY.summitH * 0.72; }
 /* ---- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall, its roots gripping the lip. ---- */
 const HW_H = 8600, HW_R0 = 1250;
@@ -4737,7 +4738,7 @@ const Town = (() => {
   const PCOL = []; // prop circles (world x, y, r), filled as the meshes are built
   // ---- keep-out for the map's trees, rocks, tufts and focal boulders
   const moved = () => BLD.some((B) => B.wx != null);
-  function hit(x, y, pad) { if (SITE) { const m = pad || 0; for (const B of BLD) { const P=place(B), cs=Math.cos(P.yaw),sn=Math.sin(P.yaw),dx=(x-P.x)/WS,dy=(y-P.y)/WS,lx=dx*cs-dy*sn,lz=dx*sn+dy*cs,q=SITE_PLAN[B.id], p=m/WS;
+  function hit(x, y, pad) { if (SITE) { const m = pad || 0; if (typeof M3 !== 'undefined' && M3.vrNear) { const q = M3.vrNear(x, y); if (q && q.d < M3.VR.tread + Math.min(m, WS)) return true; } /* Art's valley routes: no tree, bush or boulder on a tread (Art threaded round them; on a 16 u nav grid a trunk beside the line still shut the corridor) */ for (const B of BLD) { const P=place(B), cs=Math.cos(P.yaw),sn=Math.sin(P.yaw),dx=(x-P.x)/WS,dy=(y-P.y)/WS,lx=dx*cs-dy*sn,lz=dx*sn+dy*cs,q=SITE_PLAN[B.id], p=m/WS;
       if(Math.abs(lx)<B.w/2+p+.5 && Math.abs(lz)<(B.round?B.w:B.d)/2+p+.5)return true;
       for(const Y of q.yard){const a=Y.rect_local_m,c=Y.circle_local_m;if(a&&lx>a[0]-p&&lx<a[2]+p&&lz>a[1]-p&&lz<a[3]+p)return true;if(c&&Math.hypot(lx-c[0],lz-c[1])<c[2]+p)return true;}
       for(const a of q.remove)if(Math.hypot(lx-a[0],lz-a[1])<p+1.2)return true;
@@ -4746,7 +4747,7 @@ const Town = (() => {
   // ---- the connecting footpath: out of the main street's land end, round the town's south-east corner, onto the nearest worn path
   let PTH = null;
   function anchors() { const o = []; if (SITE) for (const B of BLD) { const q = SITE_PLAN[B.id]; o.push(local(B, ...q.door), local(B, ...q.approach[0])); } return o; }
-  function paths(base) { if(SITE){const out=[[0,...VALLEY.flat()]];for(const B of BLD){const q=SITE_PLAN[B.id],a=q.approach.map(p=>local(B,...p));out.push([0,...a.flat()]); const edge=q.approach[0],stop=q.yard.some(y=>y.material==='cobble')?edge:q.door; if(stop!==edge)out.push([0,...local(B,...edge),...local(B,...stop)]);}return out;}return []; }
+  function paths(base) { if(SITE){const out=[[-2.5,...VALLEY.flat()]];for(const B of BLD){const q=SITE_PLAN[B.id],a=q.approach.map(p=>local(B,...p));out.push([-2,...a.flat()],[-2,...local(B,...q.approach[0]),...local(B,...q.door)]);} /* (Dominic: grass, no stone, in front of the buildings) the 2.5 m valley path, 2 m branches run on to every door */ return out;}return []; }
   // site modules: move one building (with its plinth, solids, props and keeper spot) to any world point and facing; the town rebuilds on the next frame
   function setSite(id, x, y, yaw) { const B = BLD.find((q) => q.id === id); if (!B) return false; B.wx = x; B.wy = y; if (yaw != null) B.wyaw = yaw; delete SH[id]; PADS = null; COLS = null; if (Town.rebuild) Town.rebuild(); if (typeof Explore !== 'undefined' && Explore.NV) { Explore.NV.built = false; Explore.NV.tidy = null; } return true; } // (the walk grid is rebuilt on the next plan; the terrain mesh under a moved pad is re-carved when its chunk is next rebuilt)
   return { setSite, SITE, SITE_PLAN, VALLEY, local, anchors, siteH, WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
@@ -4917,18 +4918,9 @@ Town.ground = (G) => {
   const T=Town,B=Town.gb,W=T.WS,F=T.FIELD;
   if(T.SITE){ // standalone sites: a dressed-stone plinth under each footprint, from the floor down past the lowest ground point (no rim, terraces, stairs or streets)
     for(const Bd of T.BLD){const P0=T.place(Bd),dep=(P0.h-P0.lo)/W+.35,w=(Bd.round?Bd.w:Bd.w)+.24,d=(Bd.round?Bd.w:Bd.d)+.24;B.frame(P0.x,P0.y,P0.h,P0.yaw);if(Bd.round)B.cyl('stone',[0,-dep,0],w/2,w/2,dep+.02,14,.85);else B.box('stone',[0,-dep,0],[w,dep+.02,d],.85);}
-    // Art's keeper-valley yards (sites.json): painted dirt / cinder / cobble draped on the ground, in each site's own frame; the rope walk's rope lies along its lane
-    const lin=(h)=>[0,2,4].map(i=>Math.pow(parseInt(h.slice(i,i+2),16)/255,2.2)),TXG=lin('8D8049'),TXC=lin('6E6252'),hs=(x,y)=>{const q=Math.sin(x*91.7+y*47.3)*43758.545;return q-Math.floor(q);};
-    const PAL={dirt:['74644A','8A7656','9C8A6A','6F6A48'],cinder:['4E463C','5A5044','463F37','5E5648'],cobble:['6E6252']};
+    // (Dominic) normal textured grass in front of the buildings - no cobble, cinder or dirt yards; the rope walk's rope still lies along its lane
     for(const Bd of T.BLD){const q=T.SITE_PLAN[Bd.id];if(!q)continue;const P0=T.place(Bd),cs=Math.cos(P0.yaw),sn=Math.sin(P0.yaw);B.frame(P0.x,P0.y,P0.h,P0.yaw);B.at();
       const gy=(lx,lz)=>(M3.meshH(P0.x+(lx*cs+lz*sn)*W,P0.y+(-lx*sn+lz*cs)*W)-P0.h)/W+.05;
-      const col=(m,lx,lz)=>{const wx=P0.x/W+lx*cs+lz*sn,wz=P0.y/W-lx*sn+lz*cs;if(m==='cobble')return CB0.map(v=>v*(1+.14*(hs(Math.floor(wx/.6),Math.floor(wz/.6))-.5)));const pl=PAL[m]||PAL.dirt,t=hs(Math.floor(wx/2.5),Math.floor(wz/2.5)),u=hs(Math.floor(wx/.9)+.5,Math.floor(wz/.9)),a=lin(pl[Math.floor(t*3)%3]),c=lin(pl[3]);return a.map((v,i)=>(v*.6+c[i]*.4)*(.92+.16*u)/TXG[i]*[.47,.53,.49][i]);}; // (x lit calibration: the raw key read #C29D77 lit at zoom 18; Art's dirt is #74644A-#9C8A6A)
-      const CB0=lin('6E6252').map((v,i)=>v*[.478,.637,1.157][i]/TXC[i]);
-      for(const Y of q.yard){const m=Y.material==='cobble'?'cobble':'dirt',km=Y.material,st=m==='cobble'?.5:1;
-        if(Y.rect_local_m){let [x0,z0,x1,z1]=Y.rect_local_m;const nx=Math.ceil((x1-x0)/st),nz=Math.ceil((z1-z0)/st);for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){const a=x0+(x1-x0)*i/nx,b=x0+(x1-x0)*(i+1)/nx,c=z0+(z1-z0)*j/nz,d=z0+(z1-z0)*(j+1)/nz,V=(x,z)=>[x,gy(x,z),z];
-          B.quad(m,V(a,d),V(b,d),V(b,c),V(a,c),[col(km,a,d),col(km,b,d),col(km,b,c),col(km,a,c)]);}}
-        if(Y.circle_local_m){const [cx,cz,r]=Y.circle_local_m,NR=Math.ceil(r/st),NA=28;for(let i=0;i<NR;i++)for(let k=0;k<NA;k++){const r0=r*i/NR,r1=r*(i+1)/NR,a0=k/NA*6.2832,a1=(k+1)/NA*6.2832,V=(rr,aa)=>{const x=cx+Math.cos(aa)*rr,z=cz+Math.sin(aa)*rr;return [x,gy(x,z),z];},C=(rr,aa)=>col(km,cx+Math.cos(aa)*rr,cz+Math.sin(aa)*rr);
-          B.quad(m,V(r0,a0),V(r0,a1),V(r1,a1),V(r1,a0),[C(r0,a0),C(r0,a1),C(r1,a1),C(r1,a0)]);}}}
       if(q.rope){const [a,b]=q.rope.local_m,n=15;for(let i=0;i<n;i++){const t0=i/n,t1=(i+1)/n,p=(t)=>{const x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;return [x,gy(x,z)+.0,z];},A=p(t0),Bq=p(t1);Town.kit.beam(A,Bq,.045,'rope',.85);}}}
     return B.flush(G,'townGround',{noShadow:true}); }
   B.frame(0,0,0,0);B.at();
@@ -5719,8 +5711,8 @@ const M3 = (() => {
     let mh = mtnH(x, y) + rock * 0.55;
     // the world's edge rises into a wall of rocky peaks fading into haze (no sea, no coastline)
     const eg = smooth01(CITY.R - 700, CITY.R + 900, r); if (eg > 0) { const rn = (u, v) => 1 - Math.abs(2 * vnoise(u, v) - 1); { const q = 0.6 * rn(x / 420, y / 420) + 0.4 * rn(x / 150 + 3, y / 150); mh = Math.max(mh, eg * (260 + 760 * q * q)); } }
-    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh, heightAt); return townCarve(x, y, routeCarve(x, y, c)); } // the Lumen Tree's streams, falls and lake
-    return townCarve(x, y, routeCarve(x, y, [h + mh - rock * 0.55, mh]));
+    if (typeof GRAND !== 'undefined') { const c = GRAND.carve(x, y, h + mh - rock * 0.55, mh, heightAt); return townCarve(x, y, vrCarve(x, y, routeCarve(x, y, c))); } // the Lumen Tree's streams, falls and lake
+    return townCarve(x, y, vrCarve(x, y, routeCarve(x, y, [h + mh - rock * 0.55, mh])));
   }
   // terrain probe used when placing homes (height + slope), before or after the meshes exist
   // the Silverseam climb: a ledge route carved up the summit cliff above the Silverseam portaledge - broad ledges joined by short
@@ -5731,12 +5723,21 @@ const M3 = (() => {
     const u = tc * SSR.N, k = Math.floor(u), f = u - k, face = k < SSR.N ? smooth01(SSR.ledge, 1, f) : 0, ht = SSR.h0 + (SSR.h1 - SSR.h0) * Math.min(1, (k + face) / SSR.N);
     const wt = smooth01(W, SSR.w, d) * smooth01(-0.08, 0, t) * smooth01(1.08, 1, t), h = hm[0] + (ht - hm[0]) * wt, rk = f > SSR.ledge && f < 0.995 && k < SSR.N ? 300 : 30;
     return [h, hm[1] + (rk - hm[1]) * wt]; }
+  // Art's valley routes R1-R4 (handoff/town/valley_routes/routes.json, the 14 u polylines: x, y in u, z in m; the lowland homes are kept off them in map_gen): the ground is sculpted to each line's
+  // profile - flat across within VR.core of the line (the 4 m tread / 3 m ledges and their shoulders), blended back to the land by VR.bat -
+  // and the nav marks that corridor walk (R3, R4: switchback ramps <= 20 deg) or climb (R1, R2: rock-ledge and root-step scrambles <= 42 deg)
+  const WS = 6.35, VR = { core: 28, bat: 60, tread: 12.7, ledge: 9.5, skirt: 20, B: 128, list: [["R1",2,[[-4208,5568,49.1],[-4256,5568,52.0],[-4400,5664,71.5],[-4208,5280,108.2],[-3872,4944,130.1],[-3968,4992,140.7],[-3872,4896,150.5],[-3968,4944,165.4],[-3632,4608,196.4],[-3536,4560,200.5],[-3584,4560,207.0],[-3488,4512,212.2],[-3536,4512,219.0],[-3440,4464,229.0],[-3392,4464,232.9],[-3296,4512,231.1],[-3200,4464,244.2],[-3296,4416,257.2],[-3344,4416,259.9],[-3296,4320,274.9],[-3344,4272,275.6]]],["R2",2,[[-5024,5760,101.1],[-4976,5664,113.0],[-4880,5568,128.9],[-4784,5376,149.7],[-4592,5280,170.4],[-4352,4848,224.5],[-4160,4752,248.4],[-3968,4560,275.1],[-3728,4416,273.7],[-3632,4272,278.2]]],["R3",1,[[-6464,5280,41.4],[-6512,5184,45.5],[-6320,5280,55.1],[-6464,4992,66.3],[-6464,4896,70.5],[-6416,4992,74.2],[-6416,4656,89.2],[-6368,4704,92.9],[-6368,4656,94.9],[-6320,4704,98.6],[-6320,4656,100.5],[-6272,4704,103.4],[-6272,4608,108.4],[-6320,4512,110.3],[-6224,4560,116.3],[-6224,4512,118.9],[-6128,4464,124.9],[-6032,4512,130.6],[-5936,4464,136.5],[-5696,4224,151.8],[-5648,4128,155.7],[-5648,4320,164.2],[-5600,4224,166.3],[-5408,4080,177.9],[-5408,4128,180.5],[-5312,3984,188.4],[-5312,4080,191.5],[-5264,4176,197.6],[-5168,4176,201.0],[-5216,4080,205.0],[-5120,3888,213.8],[-5120,3840,214.6],[-5072,3936,220.2],[-5072,3984,220.7],[-5024,3888,226.7],[-5024,3792,228.4],[-4976,3696,234.4],[-4976,3744,235.0],[-4928,3648,239.9],[-4928,3600,241.5],[-4880,3696,245.4],[-4832,3600,251.3],[-4784,3696,255.6],[-4736,3600,261.2],[-4736,3504,265.3],[-4640,3552,270.7],[-4496,3552,278.0],[-4304,3648,280.4],[-4208,3744,278.5],[-4112,3696,283.8],[-4112,3648,286.4],[-4064,3600,289.9],[-3872,3504,300.8],[-3824,3408,305.3],[-3920,3216,316.9],[-3920,3024,318.0],[-3968,2928,317.2],[-4112,2784,321.3],[-4304,2688,324.8],[-4352,2688,326.5]]],["R4",1,[[-7136,3984,43.7],[-7088,4032,47.1],[-6944,4320,63.6],[-6944,4272,65.9],[-6896,4320,69.5],[-6704,4416,77.2],[-6752,4320,80.9],[-6656,4368,83.7],[-6752,4176,90.5],[-6560,4272,97.8],[-6608,4176,101.3],[-6560,4176,103.8],[-6608,4080,109.8],[-6320,4080,122.1],[-6176,3936,128.9],[-5792,3744,147.0],[-5840,3648,152.8],[-5936,3552,159.1],[-5696,3312,171.9],[-5648,3216,177.1],[-5696,3120,180.0],[-5600,3168,184.2],[-5648,3072,189.0],[-5504,3168,193.9],[-5504,3120,195.9],[-5456,3216,201.4],[-5408,3120,206.7],[-5456,3024,208.8],[-5360,3072,214.7],[-5360,3168,215.4],[-5312,3072,221.3],[-5360,2976,224.5],[-5264,3024,229.7],[-5312,2928,235.5],[-5216,2976,238.6],[-5168,3072,242.3],[-5168,3120,244.4],[-5120,3024,249.6],[-5120,2976,250.7],[-5168,2880,255.4],[-5072,2928,259.7],[-5120,2832,265.8],[-4976,2928,271.2],[-4976,2880,273.2],[-5120,2640,288.0],[-5024,2688,293.7],[-5168,2352,300.3],[-5120,2256,305.4]]]], bins: null };
+  function vrBins() { VR.bins = new Map(); VR.segs = []; for (const [id, kind, P] of VR.list) { let s = 0; for (let q = 0; q + 1 < P.length; q++) { const a = P[q], b = P[q + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = VR.segs.push({ id, kind, i: q, ax: a[0], ay: a[1], bx: b[0], by: b[1], za: a[2] * WS, zb: b[2] * WS, s0: s, L }) - 1; s += L;
+      const r = VR.bat + 80; for (let bx = Math.floor((Math.min(a[0], b[0]) - r) / VR.B); bx <= Math.floor((Math.max(a[0], b[0]) + r) / VR.B); bx++) for (let by = Math.floor((Math.min(a[1], b[1]) - r) / VR.B); by <= Math.floor((Math.max(a[1], b[1]) + r) / VR.B); by++) { const k = bx * 100003 + by; let l = VR.bins.get(k); if (!l) VR.bins.set(k, (l = [])); l.push(n); } } } }
+  function vrNear(x, y) { if (!VR.bins) vrBins(); const l = VR.bins.get(Math.floor(x / VR.B) * 100003 + Math.floor(y / VR.B)); if (!l) return null; let best = null, bd = 1e9;
+    for (const n of l) { const g = VR.segs[n], dx = g.bx - g.ax, dy = g.by - g.ay, t = clamp(((x - g.ax) * dx + (y - g.ay) * dy) / (dx * dx + dy * dy || 1), 0, 1), d = Math.hypot(x - g.ax - dx * t, y - g.ay - dy * t); if (d < bd) { bd = d; best = { d, g, t, z: g.za + (g.zb - g.za) * t }; } } return best; }
+  function vrCarve(x, y, hm) { const q = vrNear(x, y); if (!q || q.d >= VR.bat) return hm; const w = smooth01(VR.bat, VR.core, q.d), rk = q.g.kind === 1 ? 24 : 260; return [hm[0] + (q.z - hm[0]) * w, hm[1] + (rk - hm[1]) * w]; }
   function ground(x, y) { if (!mtGrid) buildMtGrid(); const e = 30, h = heightAt(x, y)[0], hx = heightAt(x + e, y)[0], hy = heightAt(x, y + e)[0]; return { h, slope: Math.hypot(hx - h, hy - h) / e }; }
   function buildGrid(half, N, hide) {
     const g = { half, N, step: (2 * half) / N, h: new Float32Array((N + 1) * (N + 1)), m: new Float32Array((N + 1) * (N + 1)) };
     for (let iy = 0; iy <= N; iy++) for (let ix = 0; ix <= N; ix++) { const x = -half + ix * g.step, y = -half + iy * g.step; const q = iy * (N + 1) + ix;
       if (hide && Math.abs(x) < hide - 2 * g.step && Math.abs(y) < hide - 2 * g.step) { g.h[q] = -4000; continue; }
-      const [h, mh] = heightAt(x, y); g.h[q] = h - (hide && Math.abs(x) < hide + g.step && Math.abs(y) < hide + g.step ? 25 : 0); g.m[q] = clamp(mh / 320, 0, 1); }
+      const [h0, mh] = heightAt(x, y), h = vrLow(x, y, h0, g.step); g.h[q] = h - (hide && Math.abs(x) < hide + g.step && Math.abs(y) < hide + g.step ? 25 : 0); g.m[q] = clamp(mh / 320, 0, 1); }
     return g;
   }
   function gridH(g, x, y) { const fx = (x + g.half) / g.step, fy = (y + g.half) / g.step; const ix = clamp(Math.floor(fx), 0, g.N - 1), iy = clamp(Math.floor(fy), 0, g.N - 1), u = clamp(fx - ix, 0, 1), v = clamp(fy - iy, 0, 1), N1 = g.N + 1;
@@ -5744,7 +5745,26 @@ const M3 = (() => {
     // PlaneGeometry splits each quad along the (ix,iy+1)-(ix+1,iy) diagonal
     if (u + v <= 1) return a + (b - a) * u + (c - a) * v; return d + (c - d) * (1 - u) + (b - d) * (1 - v); }
   const townCarve = (x, y, hm) => (typeof Town !== 'undefined' ? Town.carve(x, y, hm) : hm); // the beginner town's terraces (town.js): ground cut under the platforms, banked round them
-  function meshH(x, y) { if (typeof Town !== 'undefined') { const t = Town.hOver(x, y); if (t !== null) return t; } /* walking on the town's terrace tops and stairs */ const gi = grids[1]; if (gi && Math.abs(x) < gi.half && Math.abs(y) < gi.half) return gridH(gi, x, y); return grids[0] ? gridH(grids[0], x, y) : 0; }
+  function meshH(x, y) { if (typeof Town !== 'undefined') { const t = Town.hOver(x, y); if (t !== null) return t; } /* walking on the town's terrace tops and stairs */ const gi = grids[1], gm = gi && Math.abs(x) < gi.half && Math.abs(y) < gi.half ? gridH(gi, x, y) : grids[0] ? gridH(grids[0], x, y) : 0; return vrH(x, y, gm); }
+  // on Art's valley routes she walks the sculpted profile exactly (the switchback treads are finer than the terrain grid); it eases back to the mesh by VR.bat
+  function vrH(x, y, gm) { const q = VR.list.length ? vrNear(x, y) : null; const tw = q && q.g.kind === 2 ? VR.ledge : VR.tread; if (!q || q.d >= tw + 7.3) return gm; return gm + (q.z - gm) * smooth01(tw + 7.3, tw, q.d); }
+  // the terrain grid is too coarse (~30 u) for a 4 m switchback shelf: under the walk routes its vertices are cut down to just below the nearest tread, and
+  // a tread mesh (the painted 4 m shelf, with an earth skirt down to the ground each side) carries the walk - so feet, tread and ground agree
+  function vrLow(x, y, h, step) { if (!VR.list.length) return h; if (!VR.bins) vrBins(); const r = VR.tread + step * 1.5, seen = new Set(); let lo = h;
+    for (const bx of [Math.floor((x - r) / VR.B), Math.floor((x + r) / VR.B)]) for (const by of [Math.floor((y - r) / VR.B), Math.floor((y + r) / VR.B)]) { const l = VR.bins.get(bx * 100003 + by); if (l) for (const n of l) { if (seen.has(n)) continue; seen.add(n); const g = VR.segs[n]; const dx = g.bx - g.ax, dy = g.by - g.ay, t = clamp(((x - g.ax) * dx + (y - g.ay) * dy) / (dx * dx + dy * dy || 1), 0, 1); if (Math.hypot(x - g.ax - dx * t, y - g.ay - dy * t) < r) lo = Math.min(lo, g.za + (g.zb - g.za) * t - 2.5 - Math.abs(g.zb - g.za) / (g.L || 1) * step * 1.5); } /* (minus the rise across one grid cell, so no triangle edge pokes up through a steep ledge) */ }
+    return lo; }
+  function buildVR() { if (VR.mesh) { for (const m of VR.mesh) { scene.remove(m); m.geometry.dispose(); } } VR.mesh = []; const mat = VR.mat || (VR.mat = new THREE.MeshLambertMaterial({ map: stoneTex(), vertexColors: true })); mat.userData.kind = 'dirt';
+    const U = [-0.25, 0, 0.5, 1, 1.25], CH = 3000;
+    for (const [id, kind, P] of VR.list) { const TW = kind === 2 ? VR.ledge : VR.tread, O = [-TW - 7.3, -TW, 0, TW, TW + 7.3]; const Q = []; for (let q = 0; q + 1 < P.length; q++) { const a = P[q], c = P[q + 1], n = Math.max(1, Math.ceil(Math.hypot(c[0] - a[0], c[1] - a[1]) / 10)); for (let u = 0; u < n; u++) Q.push([a[0] + (c[0] - a[0]) * u / n, a[1] + (c[1] - a[1]) * u / n]); } Q.push(P[P.length - 1].slice(0, 2));
+      const bins = new Map(); let run = 0;
+      for (let i = 0; i < Q.length; i++) { const p = Q[i], a = Q[Math.max(0, i - 1)], b = Q[Math.min(Q.length - 1, i + 1)]; let tx = b[0] - a[0], ty = b[1] - a[1]; const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl; if (i) run += Math.hypot(p[0] - Q[i - 1][0], p[1] - Q[i - 1][1]);
+        const key = Math.floor(p[0] / CH) + ',' + Math.floor(p[1] / CH); let G = bins.get(key); if (!G) bins.set(key, (G = { pos: [], col: [], uv: [], idx: [], prev: -1 })); const base = G.pos.length / 3;
+        for (let c = 0; c < O.length; c++) { const o = O[c], x = p[0] - ty * o, y = p[1] + tx * o, edge = Math.abs(o) > TW; let z = meshH(p[0] - ty * Math.sign(o) * Math.min(Math.abs(o), TW), p[1] + tx * Math.sign(o) * Math.min(Math.abs(o), TW));
+          if (edge) z = Math.min(z - 1.5, meshGridH(x, y) - 1); G.pos.push(x, z + 0.3, y); G.uv.push(U[c], run / 48); const k = kind === 2 ? (edge ? [0.42, 0.41, 0.4] : [0.66, 0.64, 0.6]) : edge ? [0.62, 0.56, 0.46] : [1, 1, 1]; /* (climbs: grey rock ledges) */ G.col.push(...k); }
+        if (G.prev >= 0) for (let c = 0; c + 1 < O.length; c++) { const a0 = G.prev + c, b0 = base + c; G.idx.push(a0, a0 + 1, b0, a0 + 1, b0 + 1, b0); } G.prev = base; }
+      for (const G of bins.values()) { if (!G.idx.length) continue; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(G.pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(G.col, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(G.uv, 2)); g.setIndex(G.idx); g.computeVertexNormals(); g.computeBoundingSphere();
+        const m = new THREE.Mesh(g, mat); m.name = 'vrTread_' + id; m.receiveShadow = true; m.userData.path = true; scene.add(m); VR.mesh.push(m); } } }
+  function meshGridH(x, y) { const gi = grids[1]; return gi && Math.abs(x) < gi.half && Math.abs(y) < gi.half ? gridH(gi, x, y) : grids[0] ? gridH(grids[0], x, y) : 0; }
   // the fine grid's outer band eases onto the coarse grid's surface so the two meet without a step (nav saw the old seam as a cliff)
   function edgeBlend(g, o) { const N1 = g.N + 1, band = 8 * g.step; for (let iy = 0; iy <= g.N; iy++) for (let ix = 0; ix <= g.N; ix++) { const x = -g.half + ix * g.step, y = -g.half + iy * g.step, e = g.half - Math.max(Math.abs(x), Math.abs(y)); if (e >= band) continue; const w = smooth01(0, band, e), q = iy * N1 + ix; g.h[q] = gridH(o, x, y) + (g.h[q] - gridH(o, x, y)) * w; } }
   // the fine grid as T x T tiles (normals from the whole grid, so no lighting seams) - tiles out of view are culled
@@ -5823,8 +5843,8 @@ const M3 = (() => {
      under the path's core (tK green) so the dip shows; soft alpha edges into the grass. Data: Explore.allPaths() = [kind, x0, y0, x1, y1, ...] (kind 1 = cobbled) ---------- */
   const PTH = { HW: 12, DIP: 0.55, list: [], hash: new Map(), B: 160, chunks: [] };
   function pathDip(x, y) { if (!PTH.list.length) return 0; const B = PTH.B, bx = Math.floor(x / B), by = Math.floor(y / B), L = PTH.hash.get(bx * 100003 + by); if (!L) return 0; let d2 = 1e9;
-    for (const sgi of L) { const sg = PTH.segs[sgi], ax = sg[0], ay = sg[1], dx = sg[2] - ax, dy = sg[3] - ay, l2 = dx * dx + dy * dy || 1, t = clamp(((x - ax) * dx + (y - ay) * dy) / l2, 0, 1), ex = ax + dx * t - x, ey = ay + dy * t - y; d2 = Math.min(d2, ex * ex + ey * ey); }
-    const d = Math.sqrt(d2) / PTH.HW; return d >= 1 ? 0 : PTH.DIP * (1 - d * d) ** 2; }
+    for (const sgi of L) { const sg = PTH.segs[sgi], ax = sg[0], ay = sg[1], dx = sg[2] - ax, dy = sg[3] - ay, l2 = dx * dx + dy * dy || 1, t = clamp(((x - ax) * dx + (y - ay) * dy) / l2, 0, 1), ex = ax + dx * t - x, ey = ay + dy * t - y; d2 = Math.min(d2, (ex * ex + ey * ey) / (sg[4] * sg[4])); }
+    const d = Math.sqrt(d2); return d >= 1 ? 0 : PTH.DIP * (1 - d * d) ** 2; }
   // the concept's lightly stoned footway: worn tan dirt, a scatter of flat pale flagstones set into it (thicker down the middle), soft grassy edges
   function stoneTex() { return hwCanvasTex(128, 512, (g, w, h) => { let sd = 53; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
       const img = g.createImageData(w, h), D = img.data; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const k = (y * w + x) * 4, e = Math.abs(x / w - 0.5) * 2, n = 0.9 + 0.1 * Math.sin(x * 0.31 + y * 0.07) * Math.sin(y * 0.05 - x * 0.11) + 0.06 * Math.sin(y * 0.6 + x * 0.9) + (R() - 0.5) * 0.14, wear = 1.06 - 0.12 * e;
@@ -5844,8 +5864,8 @@ const M3 = (() => {
       for (let q = 0; q < 90; q++) { const x = R() < 0.5 ? R() * 16 : w - R() * 16, y = R() * h; g.strokeStyle = `rgba(${70 + R() * 40 | 0},${110 + R() * 40 | 0},${40 + R() * 20 | 0},.75)`; g.lineWidth = 1.5; for (let b = 0; b < 4; b++) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + (R() - 0.5) * 8, y - 4 - R() * 7); g.stroke(); } } }); }
   function setPaths(list) { for (const m of PTH.chunks) { scene && scene.remove(m); m.geometry.dispose(); } PTH.chunks = []; PTH.hash = new Map(); PTH.segs = []; PTH.list = [];
     const chaik = (P) => { const o = [P[0]]; for (let i = 0; i + 1 < P.length; i++) { const a = P[i], b = P[i + 1]; o.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25], [a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]); } o.push(P[P.length - 1]); return o; };
-    for (const f of list || []) { let P = []; for (let i = 1; i + 1 < f.length; i += 2) P.push([f[i], f[i + 1]]); if (P.length < 2) continue; P = chaik(chaik(P)); const Q = [P[0]]; for (let i = 1; i < P.length; i++) { const a = Q[Q.length - 1], b = P[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.ceil(L / 6); for (let q = 1; q <= n; q++) Q.push([a[0] + (b[0] - a[0]) * q / n, a[1] + (b[1] - a[1]) * q / n]); } PTH.list.push({ k: f[0], P: Q }); }
-    for (const pa of PTH.list) for (let i = 0; i + 1 < pa.P.length; i++) { const a = pa.P[i], b = pa.P[i + 1], id = PTH.segs.push([a[0], a[1], b[0], b[1]]) - 1, r = PTH.HW + 2; for (let bx = Math.floor((Math.min(a[0], b[0]) - r) / PTH.B); bx <= Math.floor((Math.max(a[0], b[0]) + r) / PTH.B); bx++) for (let by = Math.floor((Math.min(a[1], b[1]) - r) / PTH.B); by <= Math.floor((Math.max(a[1], b[1]) + r) / PTH.B); by++) { const key = bx * 100003 + by; let L = PTH.hash.get(key); if (!L) PTH.hash.set(key, (L = [])); L.push(id); } }
+    for (const f of list || []) { let P = []; for (let i = 1; i + 1 < f.length; i += 2) P.push([f[i], f[i + 1]]); if (P.length < 2) continue; P = chaik(chaik(P)); const Q = [P[0]]; for (let i = 1; i < P.length; i++) { const a = Q[Q.length - 1], b = P[i], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.ceil(L / 6); for (let q = 1; q <= n; q++) Q.push([a[0] + (b[0] - a[0]) * q / n, a[1] + (b[1] - a[1]) * q / n]); } PTH.list.push({ k: f[0], P: Q, hw: f[0] < 0 ? -f[0] * 6.35 / 1.9 : PTH.HW }); } /* kind < 0: a dirt way -kind metres wide (its visible edge, alpha 0.5, sits at 0.95 hw) */
+    for (const pa of PTH.list) for (let i = 0; i + 1 < pa.P.length; i++) { const a = pa.P[i], b = pa.P[i + 1], id = PTH.segs.push([a[0], a[1], b[0], b[1], pa.hw]) - 1, r = pa.hw + 2; for (let bx = Math.floor((Math.min(a[0], b[0]) - r) / PTH.B); bx <= Math.floor((Math.max(a[0], b[0]) + r) / PTH.B); bx++) for (let by = Math.floor((Math.min(a[1], b[1]) - r) / PTH.B); by <= Math.floor((Math.max(a[1], b[1]) + r) / PTH.B); by++) { const key = bx * 100003 + by; let L = PTH.hash.get(key); if (!L) PTH.hash.set(key, (L = [])); L.push(id); } }
     if (!scene) return; const mats = PTH.mats || (PTH.mats = [0, 1].map((c) => { const m = new THREE.MeshLambertMaterial({ map: c ? pathTex(c) : stoneTex(), vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -4 }); m.userData.kind = c ? 'cobble' : 'dirt'; return m; }));
     const O = [-1.18, -0.92, -0.6, -0.3, 0, 0.3, 0.6, 0.92, 1.18], CH = 3000, bins = new Map();
     const BE = []; if (typeof Explore !== 'undefined' && Explore.BRIDGES) for (const B of Explore.BRIDGES) if (B.a && B.b && B.a[0] < 1e6) BE.push(B.a, B.b);
@@ -5854,10 +5874,10 @@ const M3 = (() => {
         const base = G.pos.length / 3, endF = Math.min(1, Math.min(i, P.length - 1 - i) / 3);
         /* bridges_paths_sheet: the way spreads wider and patchier where feet bunch up at a bridge end - each side by its own noisy amount */
         let bd = 1e9; for (const e of BE) bd = Math.min(bd, Math.hypot(p[0] - e[0], p[1] - e[1])); const bw = bd < 110 ? (1 - bd / 110) ** 1.5 : 0;
-        for (const o of O) { const sw = 1 + bw * (o < 0 ? 0.55 + 0.6 * hash1(Math.floor(run / 14) * 1.7 + 3.1) : 0.45 + 0.7 * hash1(Math.floor(run / 11) * 2.3 + 8.4)) * Math.min(1, Math.abs(o) / 0.6), x = p[0] - ty * o * PTH.HW * sw, y = p[1] + tx * o * PTH.HW * sw, d = Math.abs(o), dip = d < 1 ? PTH.DIP * (1 - d * d) ** 2 : 0, gh = meshH(x, y); G.pos.push(x, gh + 1 - dip * 0.4, y); G.uv.push((o / 1.18 + 1) / 2, run / 48); const al = (d < 0.72 ? 1 : Math.max(0, 1 - (d - 0.72) / 0.46)) * (0.35 + 0.65 * endF) * (d > 0.5 ? 1 - bw * 0.55 * hash1(x * 0.07 + y * 0.13) : 1), sh = 1 - 0.1 * (1 - Math.min(1, d)); G.col.push(sh, sh, sh, al); }
+        for (const o of O) { const sw = 1 + bw * (o < 0 ? 0.55 + 0.6 * hash1(Math.floor(run / 14) * 1.7 + 3.1) : 0.45 + 0.7 * hash1(Math.floor(run / 11) * 2.3 + 8.4)) * Math.min(1, Math.abs(o) / 0.6), x = p[0] - ty * o * pa.hw * sw, y = p[1] + tx * o * pa.hw * sw, d = Math.abs(o), dip = d < 1 ? PTH.DIP * (1 - d * d) ** 2 : 0, gh = meshH(x, y); G.pos.push(x, gh + 1 - dip * 0.4, y); G.uv.push((o / 1.18 + 1) / 2, run / 48); const al = (d < 0.72 ? 1 : Math.max(0, 1 - (d - 0.72) / 0.46)) * (0.35 + 0.65 * endF) * (d > 0.5 ? 1 - bw * 0.55 * hash1(x * 0.07 + y * 0.13) : 1), sh = 1 - 0.1 * (1 - Math.min(1, d)); G.col.push(sh, sh, sh, al); }
         if (G.prev >= 0) for (let c = 0; c + 1 < O.length; c++) { const a0 = G.prev + c, b0 = base + c; G.idx.push(a0, a0 + 1, b0, a0 + 1, b0 + 1, b0); } /* wound to face up (the other way round they were culled from above) */ G.prev = base; } }
     for (const G of bins.values()) { if (!G.idx.length) continue; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(G.pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(G.col, 4)); g.setAttribute('uv', new THREE.Float32BufferAttribute(G.uv, 2)); g.setIndex(G.idx); g.computeVertexNormals(); g.computeBoundingBox(); g.computeBoundingSphere();
-      const m = new THREE.Mesh(g, PTH.mats[G.k ? 1 : 0]); m.receiveShadow = true; m.renderOrder = 1; m.userData.path = true; scene.add(m); PTH.chunks.push(m); }
+      const m = new THREE.Mesh(g, PTH.mats[G.k === 1 ? 1 : 0]); m.receiveShadow = true; m.renderOrder = 1; m.userData.path = true; scene.add(m); PTH.chunks.push(m); }
     CRV.win = null; }
   function pathsVis(x0, y0, S) { for (const m of PTH.chunks) { const b = m.geometry.boundingBox; m.visible = b.max.x > x0 && b.min.x < x0 + S && b.max.z > y0 && b.min.z < y0 + S; } } // only where the mask (which cuts the ground under them) is laid
   function makeTerrain(g) {
@@ -6656,6 +6676,7 @@ diffuseColor *= sdc;
         const ct = glowTex('rgba(255,255,255,.9)', 'rgba(255,255,255,.35)'); for (let i = 0; i < 14; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, depthWrite: false, opacity: 0.5 })); s.userData = { a: hash1(i * 7) * TAU, r: 3000 + hash1(i * 3) * 8000, sp: 0.004 + hash1(i) * 0.006, sz: 1800 + hash1(i + 9) * 2200 }; s.scale.set(s.userData.sz * 1.6, s.userData.sz, 1); clouds.push(s); scene.add(s); }
         if (typeof Explore !== 'undefined') Explore.buildWorld(scene); // sturdy bridges across the summit clefts
         if (typeof Explore !== 'undefined' && Explore.allPaths) setPaths(Explore.allPaths()); // worn footpaths between the key places and every bridge
+        buildVR(); // Art's valley switchback treads
         st.ok = true; st.building = false; loadModels(); },
     ];
     let i = 0; const run = () => { const t0 = performance.now(); while (i < steps.length && performance.now() - t0 < 30) { steps[i](); i++; prog(i / steps.length); } if (i < steps.length) setTimeout(run, 0); else prog(null); };
@@ -6787,7 +6808,7 @@ diffuseColor *= sdc;
     const n = list.length, Lm = new Float32Array(n), C = new Float32Array(n * 3), im = new THREE.InstancedMesh(g, m.mat, n), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
     list.forEach((o, i) => { e.set(o.tilt || 0, o.rot || 0, 0, 'YXZ'); q.setFromEuler(e); mt.compose(v3().set(o.x, o.y, o.z), q, v3().set(o.s, o.s, o.s)); im.setMatrixAt(i, mt); C.set(o.c || [1, 1, 1], i * 3); Lm[i] = o.lum || 0; });
     g.setAttribute('iLum', new THREE.InstancedBufferAttribute(Lm, 1)); im.instanceColor = new THREE.InstancedBufferAttribute(C, 3); im.frustumCulled = false; im.castShadow = true; im.receiveShadow = true; return im; }
-  return { CRV, MG, mgFlush, kitMesh, houseModel, imStats: () => IM.all.map((q) => { const t = q.meshes.map((m) => Math.round((m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3)); return [q.key, q.list.length, t[0], t[1] || 0, q.meshes.map((m) => m.count)]; }), landmarks: M3LM, colliders: () => COLL.list, setPaths, pathDip, get paths() { return PTH; }, solids, groundH, get crevices() { return CRV; }, SSR, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, get im() { return IM; }, lodReset: () => { lodAt = null; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
+  return { CRV, MG, mgFlush, kitMesh, houseModel, imStats: () => IM.all.map((q) => { const t = q.meshes.map((m) => Math.round((m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3)); return [q.key, q.list.length, t[0], t[1] || 0, q.meshes.map((m) => m.count)]; }), landmarks: M3LM, colliders: () => COLL.list, setPaths, pathDip, get paths() { return PTH; }, solids, groundH, get crevices() { return CRV; }, SSR, VR, vrNear, meshGridH, routeCarve, get scene() { return scene; }, get camera() { return camera; }, get renderer() { return renderer; }, heightAt, get climb() { return CLB; }, get hwx() { return HWX; }, get im() { return IM; }, lodReset: () => { lodAt = null; }, focusView, sightBlocked, targetH, treeKind, refresh: () => { if (st.ok) { buildBillboards(); buildRoofLOD(); drapeRing(); lightsPts(); if (MD) buildModelScene(); } }, st, ground, get models() { return mdState; }, init, resize, render, project, unproject, viewBox, meshH, place, tapSprites, dist, get dbg() { return { texA, texB, texC, U: terrainMat && terrainMat.userData.U }; }, get canvas() { return cv3; } };
 })();
 
 /* =====================================================================
@@ -10365,7 +10386,9 @@ const Explore = (() => {
         for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const d = Math.hypot(REG.X0 + i * C - x, REG.Y0 + j * C - y); if (d >= r) continue; const k = j * nx + i, hh = Math.sqrt(r * r - d * d), top = py + hh, bot = py - hh; if (top > h[k] + 1 && bot < h[k] + WS * 2.2) root[k] = 1; } } } }); }
     const sl = new Float32Array(N); for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, a = h[k]; let m = 0; if (i > 0) m = Math.max(m, Math.abs(a - h[k - 1])); if (i < nx - 1) m = Math.max(m, Math.abs(a - h[k + 1])); if (j > 0) m = Math.max(m, Math.abs(a - h[k - nx])); if (j < ny - 1) m = Math.max(m, Math.abs(a - h[k + nx])); sl[k] = m / C; }
     const wet = typeof GRAND !== 'undefined' && GRAND.wet ? GRAND.wet : null;
+    const rt = new Uint8Array(N); NV.rt = rt;
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const k = j * nx + i, x = REG.X0 + i * C, y = REG.Y0 + j * C, r = Math.hypot(x, y); let c = sl[k] < SLOPE_WALK ? 1 : sl[k] < SLOPE_CLIMB ? 2 : 0;
+      { const vq = M3.vrNear && M3.vrNear(x, y); if (vq && vq.d <= M3.VR.core) { rt[k] = vq.g.kind; c = c === 1 ? 1 : vq.g.kind; } } // Art's valley routes R1-R4: their corridor walks (R3, R4) or climbs (R1, R2) however tall the face (crack, water and solid masks still apply below)
       if (r < 3800 && h[k] < 1350) c = 0; // the Hollow itself is not walked (its crevices are climbed down later)
       if (c && wet && wet(x, y, 6)) c = 0; if (r > CITY.R - 800) c = 0; cls[k] = c; } // (the world's edge rises into a wall of peaks: not walked)
     // every crack is a real crevice (rock walls into darkness, the ground cut away): its cells and a lip margin are not walked - bridges cross them
@@ -10385,7 +10408,7 @@ const Explore = (() => {
     // steep faces taller than FACE_MAX are cliffs, not climbs: flood each steep patch and measure its height
     { const seen = new Uint8Array(N), q = new Int32Array(N); for (let s0 = 0; s0 < N; s0++) { if (cls[s0] !== 2 || seen[s0]) continue; let qh = 0, qt = 0, lo = 1e9, hi = -1e9; q[qt++] = s0; seen[s0] = 1;
         while (qh < qt) { const k = q[qh++], i = k % nx, j = (k / nx) | 0; lo = Math.min(lo, h[k]); hi = Math.max(hi, h[k]); for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (!seen[m] && cls[m] === 2) { seen[m] = 1; q[qt++] = m; } } }
-        if (hi - lo > FACE_MAX) for (let n = 0; n < qt; n++) { const k = q[n], x = REG.X0 + (k % nx) * C, y = REG.Y0 + ((k / nx) | 0) * C; if (!(sl[k] < 1.1 && Math.max(Math.abs(x), Math.abs(y)) > 7150)) cls[k] = 0; } } }
+        if (hi - lo > FACE_MAX) for (let n = 0; n < qt; n++) { const k = q[n], x = REG.X0 + (k % nx) * C, y = REG.Y0 + ((k / nx) | 0) * C; if (!rt[k] && !(sl[k] < 1.1 && Math.max(Math.abs(x), Math.abs(y)) > 7150)) cls[k] = 0; } } }
     // (the lowland foothills beyond the plateau are grassy hillsides, not rock: up to ~48 deg they stay a scramble however tall)
     // (Dominic) the Lumen Tree and its roots are NOT climbable: every root footprint (and one cell of padding) is solid, no walkable back, no step-up -
     // she walks round them on the ground and reaches the door at ground level. Only a root arching clear over head height is walked under.
@@ -11720,7 +11743,7 @@ const ExMap = (() => {
     const line = (pts, w, col, dash) => { g.beginPath(); pts.forEach(([x, y], i) => { const [a, b] = W2S(x, y); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.lineWidth = w; g.strokeStyle = col; g.setLineDash(dash || []); g.stroke(); g.setLineDash([]); };
     g.lineCap = g.lineJoin = 'round';
     for (const c of W.cracks || []) line(c.pts, Math.max(1.2, 30 * v.s), 'rgba(12,8,16,.85)'); // crevices
-    const PW = Math.max(1.4, Math.min(4, 22 * v.s)); for (const f of Explore.allPaths()) { const pts = []; for (let i = 1; i + 1 < f.length; i += 2) pts.push([f[i], f[i + 1]]); line(pts, PW + 1.6, 'rgba(70,48,24,.55)'); line(pts, PW, f[0] ? '#efe2c0' : '#e2c890'); } // footpaths (the cobbled way paler)
+    const PW = Math.max(1.4, Math.min(4, 22 * v.s)); for (const f of Explore.allPaths()) { const pts = []; for (let i = 1; i + 1 < f.length; i += 2) pts.push([f[i], f[i + 1]]); line(pts, PW + 1.6, 'rgba(70,48,24,.55)'); line(pts, PW, f[0] === 1 ? '#efe2c0' : '#e2c890'); } // footpaths (the cobbled way paler)
     for (const Bq of Explore.BRIDGES) { if (!Bq.a || Bq.a[0] > 1e6) continue; line([Bq.a, Bq.b], PW + 2.4, 'rgba(70,48,24,.75)'); line([Bq.a, Bq.b], PW + 0.6, '#c9a46a'); } // bridges: just a plank-toned stretch of the path network
     const strokeTether = (t) => {
       const pts = t.pts; if (!pts || pts.length < 2) return;
