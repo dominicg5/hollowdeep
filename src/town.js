@@ -525,7 +525,7 @@ Town.sculpt = (() => {
   const lin = (h) => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map((v) => Math.pow(v / 255, 2.2));
   const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
   let OUT = null; // { p, n, c, si, sw, idx } accumulators
-  let BONE = 0, XF = null; // current bone index, current local->mesh matrix
+  let BONE = 0, XF = null, PNT = 0; // current bone index, current local->mesh matrix
   // a grid of rows (each row: array of [x,y,z]) -> indexed geometry, normals, per-vertex colours (row colours or fn)
   function grid(rows, col, o) { o = o || {}; const R = rows.length, C = rows[0].length, pos = [], idx = []; for (const r of rows) for (const p of r) pos.push(p[0], p[1], p[2]);
     const wrap = o.wrap !== false; for (let i = 0; i < R - 1; i++) for (let j = 0; j < C - (wrap ? 0 : 1); j++) { const j2 = (j + 1) % C, a = i * C + j, b = i * C + j2, c = (i + 1) * C + j, d = (i + 1) * C + j2; if (o.flip) idx.push(a, b, c, b, d, c); else idx.push(a, c, b, b, c, d); }
@@ -533,7 +533,7 @@ Town.sculpt = (() => {
     // seam normals: average the wrap seam (rows are closed rings, first==last not duplicated, so nothing to do) and pole rows
     const cols = []; for (let i = 0; i < R; i++) for (let j = 0; j < C; j++) { const c = typeof col === 'function' ? col(i / (R - 1), j / C, rows[i][j]) : Array.isArray(col) && Array.isArray(col[0]) ? col[Math.min(col.length - 1, Math.floor(i / (R - 1) * col.length * 0.999))] : col; cols.push(...c); }
     add(g, cols); }
-  function add(g, cols) { if (XF) g.applyMatrix4(XF); const P = g.attributes.position, N = g.attributes.normal, base = OUT.p.length / 3; for (let i = 0; i < P.count; i++) { OUT.p.push(P.getX(i), P.getY(i), P.getZ(i)); OUT.n.push(N.getX(i), N.getY(i), N.getZ(i)); OUT.c.push(cols[i * 3], cols[i * 3 + 1], cols[i * 3 + 2]); OUT.si.push(BONE, 0, 0, 0); OUT.sw.push(1, 0, 0, 0); }
+  function add(g, cols) { if (XF) g.applyMatrix4(XF); const P = g.attributes.position, N = g.attributes.normal, base = OUT.p.length / 3; for (let i = 0; i < P.count; i++) { OUT.p.push(P.getX(i), P.getY(i), P.getZ(i)); OUT.n.push(N.getX(i), N.getY(i), N.getZ(i)); OUT.c.push(cols[i * 3], cols[i * 3 + 1], cols[i * 3 + 2]); OUT.si.push(BONE, PNT, 0, 0); OUT.sw.push(1, 0, 0, 0); }
     const I = g.index.array; for (let k = 0; k < I.length; k++) OUT.idx.push(I[k] + base); g.dispose(); }
   // lathe: rings [y, rx, rz, cz, cx] (Catmull-Rom between, sub steps), seg around; a0..a1 arc (open if partial); fold: [amp, count] cloth folds growing toward the low end; caps close the ends
   function lathe(rings, col, o) { o = o || {}; const seg = Math.min(o.seg || 14, 16), sub = o.sub || 2, R = []; for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < sub; k++) { const p0 = rings[Math.max(0, i - 1)], p1 = rings[i], p2 = rings[i + 1], p3 = rings[Math.min(rings.length - 1, i + 2)]; R.push([0, 1, 2, 3, 4].map((j) => crm(p0[j] || 0, p1[j] || 0, p2[j] || 0, p3[j] || 0, k / sub))); } R.push(rings[rings.length - 1].map((v) => v || 0));
@@ -561,9 +561,10 @@ Town.sculpt = (() => {
   function fan(cen, ring, col) { const pos = [...cen], idx = []; for (const p of ring) pos.push(...p); for (let i = 0; i < ring.length; i++) idx.push(0, 1 + i, 1 + (i + 1) % ring.length); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); const nz = g.attributes.normal.getZ(0); if (nz < 0) { for (let k = 0; k < idx.length; k += 3) { const t = idx[k + 1]; idx[k + 1] = idx[k + 2]; idx[k + 2] = t; } g.setIndex(idx); g.computeVertexNormals(); } const cs = []; for (let i = 0; i < ring.length + 1; i++) cs.push(...col); add(g, cs); }
   function begin() { OUT = { p: [], n: [], c: [], si: [], sw: [], idx: [] }; }
   function bone(i, m) { BONE = i; XF = m || null; }
+  function paint(v) { PNT = v ? 1 : 0; }
   function end() { const g = new THREE.BufferGeometry(), O = OUT; g.setAttribute('position', new THREE.Float32BufferAttribute(O.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(O.n, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(O.c, 3)); g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(O.si, 4)); g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(O.sw, 4)); g.setIndex(O.idx.length > 65535 ? new THREE.Uint32BufferAttribute(O.idx, 1) : new THREE.Uint16BufferAttribute(O.idx, 1)); g.computeBoundingSphere(); OUT = null; return g; }
   const tris = () => (OUT ? OUT.idx.length / 3 : 0);
-  return { lathe, tube, ell, box, torus, hand, fan, begin, bone, end, lin, mix, tris, V };
+  return { lathe, tube, ell, box, torus, hand, fan, begin, bone, paint, end, lin, mix, tris, V };
 })();
 /* the six keepers, after each folder's npc_turnaround: local metres, feet at y 0, front +z. bones: b+0 root (legs, skirt, boots), b+1 chest
    (torso, apron, belt, props on the body), b+2 head (face, hair, beard, hat), b+3 / b+4 left / right arm (sleeve, hand, what it holds) */
@@ -610,26 +611,24 @@ Town.folkModel = (() => {
     const R = [[-0.5, 0.028, 0.03, 0.055], [-0.42, 0.06 * w, 0.06, 0.035], [-0.3, 0.08 * w * ch, 0.078, 0.02], [-0.16, 0.09 * w * ch, 0.088, 0.01], [-0.02, 0.094 * w * ch, 0.093, 0.004], [0.12, 0.095 * w, 0.096, 0], [0.28, 0.09 * w, 0.094, -0.006], [0.44, 0.068 * w, 0.072, -0.012], [0.53, 0.012, 0.014, -0.014]].map(([y, rx, rz, cz]) => [c[1] + y * hh, rx * hs, rz * hs, c[2] + cz * hs]);
     const fy = (t) => c[1] + t * hh, hl = o.hairline == null ? 0.27 : o.hairline, nape = o.nape == null ? -0.28 : o.nape, hairC = o.hairC;
     const scalp = hairC ? (u, v, p) => { const fr = (p[2] - c[2]) / (0.095 * hs), t = (p[1] - c[1]) / hh, lim = fr > 0 ? hl + (1 - fr) * 0.05 : hl + (nape - hl) * Math.min(1, -fr * 1.6); return t > lim ? hairC : o.skin; } : o.skin;
-    S.lathe(R, scalp, { seg: 14, cap0: true, cap1: true, sub: 1 }); const fz = (t) => c[2] + 0.094 * hs * (1 - t * t * 0.9) - 0.002;
+    S.paint(1); S.lathe(R, scalp, { seg: 16, cap0: true, cap1: true, sub: 2 }); S.paint(0); const fz = (t) => c[2] + 0.094 * hs * (1 - t * t * 0.9) - 0.002;
     const ey = fy(0.06), ex = 0.036 * hs * w, rzE = 0.0948 * hs, rxE = 0.0948 * hs * w * ch, ez = c[2] + rzE, eH = o.eyeH || 1, dk = S.mix(o.skin, [0, 0, 0], 0.3), lidC = o.lid ? L(o.lid) : S.mix(o.skin, L(0x4a2818), 0.5);
     const sf = (x, y, k) => [x, y, c[2] + rzE * Math.sqrt(Math.max(0.05, 1 - (x / rxE) * (x / rxE))) + k * hs]; // a point on the face surface, k proud
+    S.paint(1); // v6: the face is painted into the atlas (brows, lids, iris, highlight, socket/cheek shading); geometry only for silhouette
     for (const sx of [-1, 1]) { const ring = (rx, ru, rd, k, n, dy) => { const r = []; for (let i = 0; i < n; i++) { const a = i / n * TAU, up = Math.sin(a) > 0, x = Math.cos(a) * rx; r.push(sf(sx * ex + x, ey + (dy || 0) + Math.sin(a) * (up ? ru : rd) * eH + (up ? 0 : 0.0015 * hs) - x * sx * 0.08, k)); } return r; };
-      if (!o.lowFace) S.fan(sf(sx * ex, ey, 0.0004), ring(0.026 * hs, 0.016 * hs, 0.012 * hs, 0.0004, 10), dk); // socket shade (plane B)
-      const al = ring(0.021 * hs, 0.0125 * hs, 0.0085 * hs, 0.0012, 10); S.fan(sf(sx * ex, ey, 0.0012), al, C.white); // almond opening: 10 verts, the ball sits back under the lids
-      S.fan(sf(sx * ex, ey - 0.001 * hs, 0.0019), ring(0.0098 * hs, 0.0098 * hs, 0.0078 * hs, 0.0019, 8, -0.001 * hs - 0.0015 * hs), o.iris || C.iris);
-      S.fan(sf(sx * ex, ey - 0.001 * hs, 0.0025), ring(0.0042 * hs, 0.0042 * hs, 0.0042 * hs, 0.0025, 6, -0.001 * hs - 0.0015 * hs), C.ink);
-      { const p = sf(sx * ex + 0.0035 * hs, ey + 0.0035 * hs, 0.003), r4 = [0, 1, 2, 3].map((i) => [p[0] + Math.cos(i * 1.571) * 0.0022 * hs, p[1] + Math.sin(i * 1.571) * 0.0022 * hs, p[2] + 0.0002]); S.fan(p, r4, C.white); } // catch-light
-      const upr = [al[0], al[1], al[2], al[3], al[4], al[5]].map((q) => sf(q[0], q[1] + 0.0016 * hs, 0.0042)); S.tube(upr, [0.002, 0.0045, 0.006, 0.006, 0.0045, 0.002], lidC, { seg: 3, sub: 1, caps: false }); // upper lid loop, 0.012 thick
-      const lwr = [al[5], al[6], al[7], al[8], al[9], al[0]].map((q) => sf(q[0], q[1] - 0.0012 * hs, 0.0026)); S.tube(lwr, [0.0015, 0.003, 0.0034, 0.0034, 0.003, 0.0015], S.mix(o.skin, [0, 0, 0], 0.1), { seg: 3, sub: 1, caps: false }); // lower lid ridge
-      const bw = o.browW || 1; S.tube([[sx * (ex - 0.022 * hs), ey + 0.03 * hs, ez + 0.006], [sx * ex, ey + 0.037 * hs + (o.browUp || 0), ez + 0.008], [sx * (ex + 0.026 * hs * bw), ey + 0.03 * hs - (o.browDroop || 0), ez - 0.004]], [0.0055 * bw, 0.007 * bw, 0.004 * bw], o.brow, { seg: 5, sub: 1 });
-      S.ell([sx * 0.093 * hs * w, fy(0.0), c[2] - 0.004], [0.014 * hs, 0.028 * hs, 0.02 * hs], o.skin, { w: 5, h: 3 }); // ears
-      if (o.lowFace < 2 || !o.lowFace) S.ell([sx * 0.05 * hs * w * ch, fy(-0.16), c[2] + 0.078 * hs], [0.03 * hs * ch, 0.022 * hs, 0.018 * hs], o.blush ? S.mix(o.skin, o.blush, 0.3) : o.skin, { w: 6, h: 3 }); } // cheek plane (C)
-    S.ell([0, ey + 0.024 * hs, ez + 0.002 * hs], [0.072 * hs * w, 0.011 * hs, 0.012 * hs], o.skin, { w: 8, h: 3 }); // brow ridge (A): the hard edge that shades the sockets
-    const nl = o.nose || 1, nC = S.mix(o.skin, L(0xa05a3a), 0.12); S.tube([[0, ey - 0.012 * hs, ez + 0.002 * hs], [0, fy(-0.1), c[2] + 0.1 * hs + 0.008 * nl], [0, fy(-0.17), c[2] + 0.104 * hs + 0.012 * nl]], [0.008 * hs, 0.012 * hs * nl, 0.016 * hs * nl], nC, { seg: 5, sub: 1, flat: 0.55 }); // nose wedge (D)
-    if (!o.lowFace) for (const sx of [-1, 1]) S.ell([sx * 0.012 * hs * nl, fy(-0.18), c[2] + 0.096 * hs + 0.006 * nl], [0.009 * hs, 0.008 * hs, 0.008 * hs], nC, { w: 4, h: 3 });
-    const my = fy(-0.3), mz = c[2] + 0.092 * hs, sm = o.smile == null ? 1 : o.smile; S.ell([0, my + 0.004 * hs, mz - 0.004 * hs], [0.034 * hs, 0.022 * hs, 0.014 * hs], o.skin, { w: 6, h: 3 }); // mouth barrel (E)
-    S.tube([[-0.028 * hs, my + 0.007 * sm, mz + 0.006 * hs], [-0.012 * hs, my - 0.003 * sm, mz + 0.012 * hs], [0.012 * hs, my - 0.003 * sm, mz + 0.012 * hs], [0.028 * hs, my + 0.007 * sm, mz + 0.006 * hs]], [0.0035, 0.0055, 0.0055, 0.0035], C.lip, { seg: 5, sub: 1 });
-    S.ell([0, fy(-0.42), c[2] + 0.076 * hs], [0.036 * hs * w, 0.022 * hs, 0.02 * hs], o.skin, { w: 6, h: 3 }); // jaw / chin (F)
+      S.fan(sf(sx * ex, ey, 0.0006), ring(0.022 * hs, 0.0135 * hs, 0.0095 * hs, 0.0006, 10), C.white); // almond: the painted iris lands on it
+      S.ell([sx * (ex + 0.004 * hs), ey + 0.02 * hs, ez - 0.001 * hs], [0.03 * hs, 0.012 * hs, 0.014 * hs], o.skin, { w: 8, h: 4 }); // brow ridge over the socket (A)
+      S.ell([sx * (ex + 0.006 * hs), ey - 0.022 * hs, ez - 0.004 * hs], [0.024 * hs, 0.008 * hs, 0.01 * hs], o.skin, { w: 6, h: 3 }); // under-eye / socket floor
+      if (o.browGeo) { const bw = o.browW || 1; S.tube([[sx * (ex - 0.022 * hs), ey + 0.03 * hs, ez + 0.006], [sx * ex, ey + 0.037 * hs + (o.browUp || 0), ez + 0.008], [sx * (ex + 0.026 * hs * bw), ey + 0.03 * hs - (o.browDroop || 0), ez - 0.004]], [0.0055 * bw, 0.007 * bw, 0.004 * bw], o.brow, { seg: 5, sub: 1 }); }
+      S.ell([sx * 0.093 * hs * w, fy(0.0), c[2] - 0.004], [0.014 * hs, 0.028 * hs, 0.02 * hs], o.skin, { w: 6, h: 4 }); // ears
+      S.ell([sx * 0.052 * hs * w * ch, fy(-0.15), c[2] + 0.07 * hs], [0.03 * hs * ch, 0.024 * hs, 0.018 * hs], o.skin, { w: 8, h: 5 }); // cheek plane (C)
+      S.tube([[sx * 0.084 * hs * w, fy(-0.1), c[2] + 0.008 * hs], [sx * 0.076 * hs * w, fy(-0.3), c[2] + 0.03 * hs], [sx * 0.05 * hs * w, fy(-0.43), c[2] + 0.062 * hs], [sx * 0.016 * hs, fy(-0.48), c[2] + 0.078 * hs]], [0.006 * hs, 0.009 * hs, 0.009 * hs, 0.008 * hs], o.skin, { seg: 6, sub: 2, flat: 0.5 }); } // jaw line
+    const nl = o.nose || 1, nC = S.mix(o.skin, L(0xa05a3a), 0.12); S.tube([[0, ey + 0.004 * hs, ez + 0.001 * hs], [0, ey - 0.02 * hs, ez + 0.005 * hs], [0, fy(-0.1), c[2] + 0.1 * hs + 0.008 * nl], [0, fy(-0.165), c[2] + 0.106 * hs + 0.012 * nl], [0, fy(-0.19), c[2] + 0.1 * hs + 0.01 * nl]], [0.008 * hs, 0.009 * hs, 0.012 * hs * nl, 0.016 * hs * nl, 0.01 * hs], nC, { seg: 6, sub: 2, flat: 0.6 }); // nose: bridge, tip, under
+    S.ell([0, fy(-0.165), c[2] + 0.108 * hs + 0.012 * nl], [0.011 * hs * nl, 0.01 * hs, 0.01 * hs], nC, { w: 6, h: 4 }); // nose ball
+    for (const sx of [-1, 1]) S.ell([sx * 0.014 * hs * nl, fy(-0.18), c[2] + 0.097 * hs + 0.006 * nl], [0.01 * hs, 0.008 * hs, 0.009 * hs], nC, { w: 6, h: 4 }); // nostril wings
+    const my = fy(-0.3), mz = c[2] + 0.092 * hs, sm = o.smile == null ? 1 : o.smile; S.ell([0, my + 0.004 * hs, mz - 0.004 * hs], [0.036 * hs, 0.024 * hs, 0.015 * hs], o.skin, { w: 8, h: 4 }); // mouth barrel (E)
+    S.ell([0, fy(-0.42), c[2] + 0.078 * hs], [0.036 * hs * w, 0.024 * hs, 0.02 * hs], o.skin, { w: 8, h: 4 }); // chin (F)
+    S.paint(0); DBG.H = { c, hh, hs, ey, ex, ez, w, ch, hl, my, mz, sm, o, nC, lidC, dk };
     DBG.face = S.tris() - t0; DBG.t1 = S.tris(); return { c, hh, hs, ey, ex, ez, fy }; }
   // one sculpted hair clump (extras4 hair_top_back_all): a tapered bent wedge, 6 sides at the root -> 3 at the tip, 40-90 tris; path in head space
   const lock = (pts, r0, col, o) => { o = o || {}; r0 *= o.k || 0.85; const n = pts.length, rs = pts.map((_, i) => Math.max(0.0015, r0 * Math.pow(1 - i / (n - 1), o.taper || 0.9) * (1 + (o.bulge || 0) * Math.sin(Math.PI * i / (n - 1))) * (i === n - 1 ? 0.25 : 1))); S.tube(pts, rs, col, { seg: o.seg || 5, sub: 1, caps: false, flat: o.flat == null ? 0.72 : o.flat }); };
@@ -658,7 +657,7 @@ Town.folkModel = (() => {
       const bn = onSkull(Hd, Math.PI * 0.85, 1.15, 1.32); S.ell(bn, [0.048 * hs, 0.04 * hs, 0.048 * hs], S.mix(hair, [0, 0, 0], 0.12), { w: 7, h: 5 });
       for (let k = 0; k < 3; k++) { const pts = []; for (let i = 0; i < 5; i++) { const a = k * 2.1 + i * 1.3; pts.push([bn[0] + Math.cos(a) * 0.05 * hs, bn[1] + (i - 2) * 0.012 * hs + k * 0.006, bn[2] + Math.sin(a) * 0.036 * hs]); } lock(pts, 0.02 * hs, tone(hair, k + 1), { taper: 0.5 }); }
       S.tube([[bn[0] - 0.03, bn[1] - 0.04 * hs, bn[2] + 0.01], [bn[0] + 0.05, bn[1] + 0.08 * hs, bn[2] - 0.03]], [0.006, 0.004], L(0xd8a848), { seg: 5 }); },
-    brannick(M, B) { const o = { M, h: 1.92, g: 0.3, gd: 0.25, sw: 0.33, belly: 0.8, skin: L(0xc98a62), legs: L(0x464a32), boots: L(0x5a3a22), cuff: L(0x6a4428), torsoC: L(0x8a3226), apron: 1, apronC: L(0x6a4428), strap: L(0x4a2e18), apronY0: 0.42, apronTop: 1.25, sleeve: L(0x8a3226), roll: 1, belt: L(0x4a2e18), brow: L(0x5a5450), iris: L(0x3a2a1a), hs: 1.05, faceW: 1.05, nose: 1.3, smile: -0.3, browDroop: 0.006, eyeH: 0.85, chest: 1, hairC: L(0x8c8a86), hairline: 3, nape: 3, lowFace: 1 };
+    brannick(M, B) { const o = { M, h: 1.92, g: 0.3, gd: 0.25, sw: 0.33, belly: 0.8, skin: L(0xc98a62), legs: L(0x464a32), boots: L(0x5a3a22), cuff: L(0x6a4428), torsoC: L(0x8a3226), apron: 1, apronC: L(0x6a4428), strap: L(0x4a2e18), apronY0: 0.42, apronTop: 1.25, sleeve: L(0x8a3226), roll: 1, belt: L(0x4a2e18), brow: L(0x5a5450), iris: L(0x3a2a1a), hs: 1.05, faceW: 1.05, nose: 1.3, smile: -0.3, browDroop: 0.006, eyeH: 0.85, chest: 1, hairC: L(0x8c8a86), hairline: 3, nape: 3 };
       const J = body(o, B); S.bone(B + 1, M); S.box([0, J.hipY + 0.06, J.gd * 1.32 + 0.02], [0.07, 0.05, 0.012], C.brass); for (let i = 0; i < 4; i++) S.box([-0.2 + i * 0.05, J.hipY - 0.06, J.gd * 1.3 + 0.03], [0.012, 0.16, 0.01], i % 2 ? C.iron : C.ironDk, [0, 0, 0.15 * (i - 1.5)]); S.box([0.2, J.hipY - 0.12, J.gd * 1.2], [0.11, 0.14, 0.06], C.leatherDk); S.box([-0.27, J.hipY - 0.12, J.gd * 0.9], [0.08, 0.14, 0.1], C.leatherDk);
       arm(o, B, J, -1, [0.02, -0.3, 0.02], [0.02, -0.25, 0.08], { curl: 0.6, glove: L(0x5a3a22), gauntlet: 1, pal: [1, 0, 0] });
       const A = arm(o, B, J, 1, [0.05, -0.24, 0.12], [-0.04, 0.1, 0.12], { curl: 0.9, pal: [-1, 0, 0] }); S.bone(B + 4, M); const hp = [A.wr[0] + 0.0, A.wr[1] + 0.04, A.wr[2] + 0.03], hd = [0.06, 0.735, -0.674], at = (k) => [hp[0] + hd[0] * k, hp[1] + hd[1] * k, hp[2] + hd[2] * k];
@@ -670,7 +669,7 @@ Town.folkModel = (() => {
       for (const sx of [-1, 1]) lock([[sx * 0.004, Hd.fy(-0.22), c[2] + 0.108 * hs], [sx * 0.03 * hs, Hd.fy(-0.25), c[2] + 0.104 * hs], [sx * 0.052 * hs, Hd.fy(-0.34), c[2] + 0.092 * hs]], 0.016 * hs, tone(bc, sx > 0 ? 3 : 0), { seg: 5 });
       for (const sx of [-1, 1]) { const p0 = [sx * 0.03 * hs, Hd.fy(-0.86), c[2] + 0.075 * hs], pts = []; for (let i = 0; i < 6; i++) pts.push([p0[0] + Math.sin(i * 1.6) * 0.006, p0[1] - i * 0.04, p0[2] - i * 0.004 + Math.cos(i * 1.6) * 0.006]); lock(pts, 0.016 * hs, tone(bc, sx + 2), { taper: 0.5, seg: 5 }); S.torus([p0[0], p0[1] - 0.17, p0[2] - 0.016], 0.016, 0.006, C.brass, [Math.PI / 2, 0, 0], { t: 8 }); }
       S.torus([0, c[1] + 0.07 * hs, c[2] - 0.004], 0.1 * hs, 0.011, C.leatherDk, [Math.PI / 2 + 0.25, 0, 0], { t: 9 }); for (const sx of [-1, 1]) { S.torus([sx * 0.038, c[1] + 0.1 * hs, c[2] + 0.085 * hs], 0.024, 0.008, C.brass, [-0.25, 0, 0], { t: 9, r: 4 }); S.ell([sx * 0.038, c[1] + 0.1 * hs, c[2] + 0.088 * hs], [0.02, 0.02, 0.006], L(0x6a8a8a), { w: 7, h: 4 }); } }, // goggles: 2 brass rings on the strap
-    tess(M, B) { const o = { M, h: 1.75, g: 0.17, gd: 0.14, sw: 0.19, skin: L(0xd9a27a), legs: L(0x6e4a2e), boots: L(0x7a5434), cuff: L(0x5a3a22), torsoC: L(0xa08460), skirt: 0.6, skirtC: L(0xa08460), sleeve: L(0xd9a27a), roll: 0, belt: L(0x5a3a22), brow: L(0x4a2a16), iris: L(0x4a3018), hs: 0.98, blush: L(0xd88a6a), faceW: 0.95, hairC: L(0x5a321a), hairline: 0.26, lowFace: 1 };
+    tess(M, B) { const o = { M, h: 1.75, g: 0.17, gd: 0.14, sw: 0.19, skin: L(0xd9a27a), legs: L(0x6e4a2e), boots: L(0x7a5434), cuff: L(0x5a3a22), torsoC: L(0xa08460), skirt: 0.6, skirtC: L(0xa08460), sleeve: L(0xd9a27a), roll: 0, belt: L(0x5a3a22), brow: L(0x4a2a16), iris: L(0x4a3018), hs: 0.98, blush: L(0xd88a6a), faceW: 0.95, hairC: L(0x5a321a), hairline: 0.26 };
       const J = body(o, B); S.bone(B + 1, M); for (let i = 0; i < 10; i++) { const t = i / 9; S.ell([-J.sw * 0.9 + t * J.sw * 1.8, J.shY - 0.02 - t * 0.48, J.gd * 1.05 + Math.sin(t * Math.PI) * 0.03], [0.022, 0.022, 0.022], C.rope, { w: 6, h: 4 }); } // rope across the body
       for (let i = 0; i < 4; i++) S.torus([J.sw * 1.05, J.hipY - 0.08 - i * 0.02, 0.03], 0.08 - i * 0.004, 0.011, C.rope, [Math.PI / 2 - 0.3, 0.2, 0.2], { t: 10 }); S.lathe([[J.hipY - 0.02, 0.05, 0.05, 0.06, -J.sw * 1.1], [J.hipY - 0.13, 0.05, 0.05, 0.06, -J.sw * 1.1]], C.teal, { seg: 12, sub: 1, cap0: true, cap1: true }); for (const y of [J.hipY - 0.02, J.hipY - 0.13]) S.torus([-J.sw * 1.1, y, 0.06], 0.058, 0.01, C.wood, [Math.PI / 2, 0, 0], { t: 12 });
       arm(o, B, J, -1, [0.04, -0.28, 0.02], [0.02, -0.25, 0.04], { curl: 0.35, pal: [1, 0, 0] }); arm(o, B, J, 1, [0.03, -0.28, 0.0], [0.01, -0.25, 0.05], { curl: 0.35, pal: [-1, 0, 0] }); S.bone(B + 3, M); for (const sx of [-1, 1]) { S.bone(B + (sx < 0 ? 3 : 4), M); S.lathe([[J.shY - 0.6, 0.045, 0.045, 0.04, sx * (J.sw + 0.03)], [J.shY - 0.48, 0.048, 0.048, 0.03, sx * (J.sw + 0.02)]], L(0xd8c8a8), { seg: 10, sub: 1 }); }
@@ -700,7 +699,7 @@ Town.folkModel = (() => {
       for (let i = 0; i < 3; i++) lock(sweep(Hd, (i - 1) * 0.55, 0.55, Math.PI * 0.8 * (i === 1 ? 1 : 0.9) * (i === 0 ? -1 : 1), 0.9, 1.09, 1.03, 5), 0.034 * hs, tone(hair, i), { taper: 0.8 });
       lock(sweep(Hd, 0.32, 0.5, 0.9, 1.1, 1.11, 1.06, 4), 0.026 * hs, L(0x8e8a84), { taper: 0.8, flat: 0.85 }); // the silver lock, own clump
       for (const sx of [-1, 1]) S.torus([sx * 0.095 * hs, Hd.fy(-0.2), c[2]], 0.012, 0.0028, C.brass, [0, Math.PI / 2, 0], { t: 9 }); },
-    fennick(M, B) { const o = { M, h: 1.22, g: 0.2, gd: 0.18, sw: 0.21, stoop: 1.0, skin: L(0x8a5a3a), legs: L(0x6a5030), boots: L(0x7a5434), skirt: 0.2, skirtC: L(0xb09a72), torsoC: L(0xb09a72), cloak: 0.24, cloakC: L(0x56603a), sleeve: L(0x56603a), roll: 0, belt: L(0x8a6438), brow: L(0xf0ece4), browW: 1.9, browDroop: 0.01, iris: L(0x2a1a10), hs: 1.12, faceW: 1.02, nose: 1.35, eyeH: 0.8, hairC: L(0xece8e0), hairline: 0.32, nape: -0.1, lowFace: 2 };
+    fennick(M, B) { const o = { M, h: 1.22, g: 0.2, gd: 0.18, sw: 0.21, stoop: 1.0, skin: L(0x8a5a3a), legs: L(0x6a5030), boots: L(0x7a5434), skirt: 0.2, skirtC: L(0xb09a72), torsoC: L(0xb09a72), cloak: 0.24, cloakC: L(0x56603a), sleeve: L(0x56603a), roll: 0, belt: L(0x8a6438), brow: L(0xf0ece4), browW: 1.9, browDroop: 0.01, iris: L(0x2a1a10), hs: 1.12, faceW: 1.02, nose: 1.35, eyeH: 0.8, hairC: L(0xece8e0), hairline: 0.32, nape: -0.1, browGeo: 1 };
       const J = body(o, B); S.bone(B + 1, M); S.lathe([[J.shY - 0.03, 0.15, 0.13, -0.04], [J.shY + 0.08, 0.14, 0.12, -0.08], [J.shY + 0.14, 0.06, 0.05, -0.1]], o.cloakC, { seg: 12, a0: 1.7, a1: TAU - 1.7, cap1: true }); // the hood down his back
       for (let i = 0; i < 3; i++) S.lathe([[J.hipY - 0.1, 0.022, 0.022, J.gd * 1.2, 0.04 + i * 0.03], [J.hipY + 0.06 + i * 0.01, 0.022, 0.022, J.gd * 1.22, 0.04 + i * 0.03]], C.paper, { seg: 8, sub: 1, cap1: true }); S.box([-0.08, J.hipY - 0.08, J.gd * 1.25], [0.1, 0.12, 0.05], C.leather);
       S.tube([[0, J.shY + 0.02, J.gd * 0.9 + J.fz], [0, J.shY - 0.18, J.gd * 1.15 + J.fz]], [0.004, 0.004], C.leatherDk, { seg: 4 }); S.lathe([[J.shY - 0.18, 0.012, 0.012, J.gd * 1.18 + J.fz], [J.shY - 0.27, 0.03, 0.03, J.gd * 1.2 + J.fz]], C.brass, { seg: 10, sub: 1, cap0: true }); // the bell
@@ -722,22 +721,54 @@ Town.folkModel = (() => {
 })();
 
 // Bone/material-aware spatial edge clustering: actual indexed LOD topology, never deleted random triangles.
-Town.folkReduce = (src, budgets) => {
+Town.folkReduce = (src, budgets, faceB) => {
   const P=src.attributes.position,N=src.attributes.normal,C=src.attributes.color,SI=src.attributes.skinIndex,SW=src.attributes.skinWeight,I=src.index.array, all={p:[],n:[],c:[],si:[],sw:[],idx:[]}, counts=[];
   for(let owner=0;owner<budgets.length;owner++) { const ts=[]; for(let k=0;k<I.length;k+=3) if(Math.floor(SI.getX(I[k])/5)===owner) ts.push(I[k],I[k+1],I[k+2]);
-    const make=(cell)=> {const map=new Map(),vs=[],ix=[],seen=new Map(), remap=new Map();
-      for(const v of ts) {if(remap.has(v))continue; const cl=SI.getX(v)%5===2?cell*.3:cell; /* the head keeps its face (eyes, lids, lips): it clusters on a finer grid */ const key=[Math.floor(P.getX(v)/cl),Math.floor(P.getY(v)/cl),Math.floor(P.getZ(v)/cl),SI.getX(v),Math.round(C.getX(v)*12),Math.round(C.getY(v)*12),Math.round(C.getZ(v)*12)].join('/'); let j=map.get(key); if(j==null){j=vs.length;map.set(key,j);vs.push({p:[0,0,0],n:[0,0,0],c:[0,0,0],v,num:0});} const a=vs[j];a.num++;for(let q=0;q<3;q++){a.p[q]+=P.array[v*3+q];a.n[q]+=N.array[v*3+q];a.c[q]+=C.array[v*3+q];}remap.set(v,j);}
+    const make=(cell,fc)=> {const map=new Map(),vs=[],ix=[],seen=new Map(), remap=new Map();
+      for(const v of ts) {if(remap.has(v))continue; const cl=SI.getY(v)===1&&fc?fc:SI.getX(v)%5===2?cell*.3:cell; /* the head keeps its face (eyes, lids, lips): it clusters on a finer grid */ const key=[Math.floor(P.getX(v)/cl),Math.floor(P.getY(v)/cl),Math.floor(P.getZ(v)/cl),SI.getX(v),SI.getY(v),Math.round(C.getX(v)*12),Math.round(C.getY(v)*12),Math.round(C.getZ(v)*12)].join('/'); let j=map.get(key); if(j==null){j=vs.length;map.set(key,j);vs.push({p:[0,0,0],n:[0,0,0],c:[0,0,0],v,num:0});} const a=vs[j];a.num++;for(let q=0;q<3;q++){a.p[q]+=P.array[v*3+q];a.n[q]+=N.array[v*3+q];a.c[q]+=C.array[v*3+q];}remap.set(v,j);}
       for(let k=0;k<ts.length;k+=3){const a=remap.get(ts[k]),b=remap.get(ts[k+1]),c=remap.get(ts[k+2]);if(a===b||b===c||c===a)continue;const key=[a,b,c].sort((a,b)=>a-b).join('/');if(seen.has(key))continue;seen.set(key,1);ix.push(a,b,c);}return {vs,ix};};
-    let lo=.00001,hi=Town.WS*.22,r=make(lo);if(r.ix.length/3>budgets[owner]){for(let j=0;j<14;j++){const mid=(lo+hi)*.5,q=make(mid);if(q.ix.length/3>budgets[owner])lo=mid;else{hi=mid;r=q;}}r=make(hi);}
+    const fb=faceB&&faceB[owner], faceTris=(r)=>{let n=0;for(let k=0;k<r.ix.length;k+=3)if(SI.getY(r.vs[r.ix[k]].v)===1)n++;return n;}; let fc=0;
+    if(fb){let lo=.00001,hi=Town.WS*.05;if(faceTris(make(.00001,lo))>fb){for(let j=0;j<12;j++){const mid=(lo+hi)*.5;if(faceTris(make(.00001,mid))>fb)lo=mid;else hi=mid;}fc=hi;}else fc=lo;} /* v6: the face gets its own budget (silhouette), the rest of the body shares what is left */
+    let lo=.00001,hi=Town.WS*.22,r=make(lo,fc);if(r.ix.length/3>budgets[owner]){for(let j=0;j<14;j++){const mid=(lo+hi)*.5,q=make(mid,fc);if(q.ix.length/3>budgets[owner])lo=mid;else{hi=mid;r=q;}}r=make(hi,fc);}
     const base=all.p.length/3;for(const a of r.vs){for(let q=0;q<3;q++){all.p.push(a.p[q]/a.num);all.n.push(a.n[q]/a.num);all.c.push(a.c[q]/a.num);}for(let q=0;q<4;q++){all.si.push(SI.array[a.v*4+q]);all.sw.push(SW.array[a.v*4+q]);}}for(const v of r.ix)all.idx.push(base+v);counts.push(r.ix.length/3);
   }
   const g=new THREE.BufferGeometry();for(const [key,arr,size] of [['position',all.p,3],['normal',all.n,3],['color',all.c,3],['skinWeight',all.sw,4]])g.setAttribute(key,new THREE.Float32BufferAttribute(arr,size));g.setAttribute('skinIndex',new THREE.Uint16BufferAttribute(all.si,4));g.setIndex(all.idx);g.normalizeNormals();g.computeBoundingSphere();g.userData.tris=counts;return g;
 };
 // One 1024 atlas: 4096 painted palette patches with subtle fibre/value variation. Linear vertex colours -> sRGB diffuse texture.
-Town.folkAtlas = (geos) => {const cv=document.createElement('canvas');cv.width=cv.height=1024;const ctx=cv.getContext('2d'),im=ctx.createImageData(1024,1024);
-  for(let i=0;i<4096;i++){const r=(i>>8)&15,g=(i>>4)&15,b=i&15,x=(i%64)*16,y=Math.floor(i/64)*16;for(let yy=0;yy<16;yy++)for(let xx=0;xx<16;xx++){const k=((y+yy)*1024+x+xx)*4,v=1+Math.sin(xx*17+yy*33+i)*.015;im.data[k]=r/15*255*v;im.data[k+1]=g/15*255*v;im.data[k+2]=b/15*255*v;im.data[k+3]=255;}}ctx.putImageData(im,0,0);
-  for(const geo of geos){const counts=geo.userData.tris;const expanded=geo.toNonIndexed();geo.copy(expanded);geo.userData.tris=counts;expanded.dispose();const c=geo.attributes.color,uv=[];for(let i=0;i<c.count;i+=3){let r=0,g=0,b=0;for(let j=0;j<3;j++){r+=c.getX(i+j);g+=c.getY(i+j);b+=c.getZ(i+j);}const q=(x)=>Math.min(15,Math.round(Math.pow(Math.max(0,x/3),1/2.2)*15));r=q(r);g=q(g);b=q(b); /* 4 bits per channel in sRGB (perceptual) steps, so dark browns keep their hue */const n=r*256+g*16+b;for(let j=0;j<3;j++)uv.push(((n%64)*16+8)/1024,1-(Math.floor(n/64)*16+8)/1024);}geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); const indices=Array.from({length:c.count},(_,i)=>i);geo.setIndex(indices);}
-
+Town.folkAtlas = (geos, people) => {
+  const cv=document.createElement('canvas'); cv.width=cv.height=1024; const ctx=cv.getContext('2d'), im=ctx.createImageData(1024,768), patch=12;
+  for(let i=0;i<4096;i++){const r=(i>>8)&15,g=(i>>4)&15,b=i&15,x=(i%64)*patch,y=Math.floor(i/64)*patch;for(let yy=0;yy<patch;yy++)for(let xx=0;xx<patch;xx++){const k=((y+yy)*1024+x+xx)*4,v=1+Math.sin(xx*17+yy*33+i)*.015;im.data[k]=r/15*255*v;im.data[k+1]=g/15*255*v;im.data[k+2]=b/15*255*v;im.data[k+3]=255;}}ctx.putImageData(im,0,0);
+  const rgb=(a)=>'#'+a.map(v=>Math.round(Math.pow(Math.max(0,Math.min(1,v)),1/2.2)*255).toString(16).padStart(2,'0')).join('');
+  people.forEach((n,q)=>{const H=n.face, {hs,c,ey,ex,o}=H, ox=q*204,oy=784,size=200;
+    const X=x=>ox+2+(x/(.28*hs)+.5)*size,Y=y=>oy+2+(.5-(y-c[1])/(.3*hs))*size;
+    const oval=(x,y,rx,ry,col)=>{ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(X(x),Y(y),rx/(.28*hs)*size,ry/(.3*hs)*size,0,0,Math.PI*2);ctx.fill();};
+    const stroke=(pts,col,width)=>{ctx.strokeStyle=col;ctx.lineWidth=width/(.28*hs)*size;ctx.lineCap='round';ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(X(p[0]),Y(p[1])):ctx.moveTo(X(p[0]),Y(p[1])));ctx.stroke();};
+    ctx.fillStyle=rgb(o.skin);ctx.fillRect(ox,oy,204,204);
+    if(o.hairC){const hl=H.hl,rx=.095*hs*H.w;ctx.fillStyle=rgb(o.hairC);ctx.beginPath();ctx.moveTo(X(-.15*hs),Y(c[1]+.2*hs));for(let i=0;i<=24;i++){const x=(-1+i/12)*rx*.98,fr=Math.sqrt(Math.max(0,1-(x/rx)**2));ctx.lineTo(X(x),Y(c[1]+(hl+(1-fr)*.05)*H.hh));}ctx.lineTo(X(.15*hs),Y(c[1]+.2*hs));ctx.fill();
+      const dark=rgb(o.hairC.map(v=>v*.55)),lite=rgb(o.hairC.map(v=>Math.min(1,v*1.6)));for(let i=0;i<9;i++){const x=(-.8+i*.2)*rx,yb=c[1]+(hl+.03)*H.hh+((i*37)%5)*.002*hs;ctx.strokeStyle=i%2?dark:lite;ctx.lineWidth=2.2;ctx.beginPath();ctx.arc(X(x),Y(yb),5+(i%3)*2,Math.PI*.15,Math.PI*1.25);ctx.stroke();}} /* curl strokes along the hairline */
+    for(const sx of [-1,1]){const e=sx*ex;
+      const grad=ctx.createRadialGradient(X(sx*.052*hs),Y(c[1]-.045*hs),0,X(sx*.052*hs),Y(c[1]-.045*hs),22);grad.addColorStop(0,'rgba(155,67,43,.23)');grad.addColorStop(1,'rgba(155,67,43,0)');ctx.fillStyle=grad;ctx.fillRect(ox,oy,204,204);
+      oval(e,ey,.027*hs,.017*hs,rgb(H.dk));
+      oval(e,ey,.021*hs,.0102*hs*(o.eyeH||1),'#f2e8d7');
+      oval(e,ey-.001*hs,.009*hs,.009*hs*(o.eyeH||1),rgb(o.iris||[.1,.05,.02]));
+      oval(e,ey-.001*hs,.004*hs,.0055*hs,'#1c1711');
+      oval(e+.0032*hs,ey+.0032*hs,.0023*hs,.0023*hs,'#fff7e8');
+      stroke([[e-.021*hs,ey],[e-.012*hs,ey+.0095*hs],[e+.005*hs,ey+.0105*hs],[e+.021*hs,ey]],rgb(H.lidC),.0028*hs);
+      stroke([[e-.018*hs,ey-.004*hs],[e,ey-.0095*hs],[e+.018*hs,ey-.004*hs]],rgb(H.dk),.0014*hs);
+      stroke([[e-sx*.022*hs,ey+.028*hs],[e,ey+.036*hs+(o.browUp||0)],[e+sx*.026*hs*(o.browW||1),ey+.028*hs-(o.browDroop||0)]],rgb(o.brow),.006*hs*(o.browW||1));
+      oval(sx*.014*hs*(o.nose||1),c[1]-.18*H.hh,.005*hs,.0027*hs,'#70402c');
+    }
+    stroke([[-.028*hs,H.my+.007*H.sm],[-.012*hs,H.my-.003*H.sm],[.012*hs,H.my-.003*H.sm],[.028*hs,H.my+.007*H.sm]],'#985749',.0032*hs);
+    n.faceUV={X,Y};
+  });
+  for(const geo of geos){const counts=geo.userData.tris,expanded=geo.toNonIndexed();geo.copy(expanded);geo.userData.tris=counts;expanded.dispose();const co=geo.attributes.color,P=geo.attributes.position,SI=geo.attributes.skinIndex,uv=[],v=new THREE.Vector3();
+    for(let i=0;i<co.count;i+=3){let r=0,g=0,b=0;for(let j=0;j<3;j++){r+=co.getX(i+j);g+=co.getY(i+j);b+=co.getZ(i+j);}const qn=(x)=>Math.min(15,Math.round(Math.pow(Math.max(0,x/3),1/2.2)*15)),index=qn(r)*256+qn(g)*16+qn(b), owner=Math.floor(SI.getX(i)/5),n=people[owner],H=n.face;
+      const locals=[0,1,2].map(j=>new THREE.Vector3().fromBufferAttribute(P,i+j).applyMatrix4(n.inv));
+      const skin=H.o.skin,dist=Math.abs(r/3-skin[0])+Math.abs(g/3-skin[1])+Math.abs(b/3-skin[2]);
+      const painted=SI.getY(i)===1 && (dist<.2 || r+g+b>7) && locals.every(p=>p.z>H.c[2]+.045*H.hs && Math.abs(p.x)<.135*H.hs && Math.abs(p.y-H.c[1])<.145*H.hs);
+      for(let j=0;j<3;j++)uv.push(painted?n.faceUV.X(locals[j].x)/1024:((index%64)*patch+6)/1024,painted?1-n.faceUV.Y(locals[j].y)/1024:1-(Math.floor(index/64)*patch+6)/1024);
+    } geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setIndex(Array.from({length:co.count},(_,i)=>i));
+  }
   const tx=new THREE.CanvasTexture(cv);tx.encoding=THREE.sRGBEncoding;tx.name='townFolk_paintedAtlas1024';return tx;
 };
 Town.folk = (() => {
@@ -802,14 +833,20 @@ Town.folk = (() => {
     if (o.prop === 'staff') { const p = hand(1); CY([p[0] + 0.02, 0, p[2]], 0.028, 0.022, H + 0.25, 0x5a3a22); for (let i = 0; i < 3; i++) LU([p[0] + 0.02, H + 0.02 + i * 0.05, p[2]], [0.04, 0.03, 0.04], 0x6a4428, 130 + i); LU([p[0] + 0.02, H + 0.2, p[2]], [0.06, 0.18, 0.06], 0x4fe0c8, 133); CY([0, hipY - 0.1, g * 0.9], 0.04, 0.045, 0.1, 0xc09040, null, { top: true }); for (let i = 0; i < 2; i++) CY([-g * 0.6 + i * 0.06, hipY - 0.25, g * 0.95], 0.025, 0.025, 0.22, 0xe8dcc0, null, { top: true }); }
   }
   const ST = { built: false, list: [], dlg: null, talk: null };
+  // v6: face normals follow the head's ellipsoid (blended with the welded mesh normal) so the shading reads round instead of faceted across the face planes
+  function smoothFace(g) { const P = g.attributes.position, N = g.attributes.normal, SI = g.attributes.skinIndex, v = new THREE.Vector3(), nn = new THREE.Vector3(), weld = new Map(), cell = 0.003 * WS;
+    for (let i = 0; i < P.count; i++) { if (SI.getY(i) !== 1) continue; const k = [P.getX(i), P.getY(i), P.getZ(i)].map((x) => Math.round(x / cell)).join('/'); let a = weld.get(k); if (!a) weld.set(k, a = [0, 0, 0, []]); a[0] += N.getX(i); a[1] += N.getY(i); a[2] += N.getZ(i); a[3].push(i); }
+    for (const [, a] of weld) for (const i of a[3]) { const n = ST.list[Math.floor(SI.getX(i) / 5)], H = n.face, M = n.M || (n.M = n.inv.clone().invert()), nm = n.nm || (n.nm = new THREE.Matrix3().getNormalMatrix(M)); v.fromBufferAttribute(P, i).applyMatrix4(n.inv); const rx = 0.095 * H.hs * H.w, ry = 0.12 * H.hs, rz = 0.1 * H.hs;
+      nn.set((v.x - H.c[0]) / (rx * rx), (v.y - H.c[1]) / (ry * ry), (v.z - H.c[2] + 0.01 * H.hs) / (rz * rz)).applyMatrix3(nm).normalize(); const m = new THREE.Vector3(a[0], a[1], a[2]).normalize(); m.multiplyScalar(0.55).addScaledVector(nn, 0.45).normalize(); N.setXYZ(i, m.x, m.y, m.z); }
+    N.needsUpdate = true; }
   function build() { if (ST.built || !TW.ST || !TW.ST.built || !TW.ST.g) return; ST.built = true; const S = Town.sculpt, FM = Town.folkModel, bones = []; S.begin();
     for (const B of TW.BLD) { const sp = TW.npcSpot(B), id = B.npc, o = P[id]; if (!o || !FM.NPC[id]) continue; const q = ST.list.length, M = new THREE.Matrix4().compose(new THREE.Vector3(sp.at[0], sp.h, sp.at[1]), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), sp.yaw), new THREE.Vector3(WS, WS, WS)), t0 = S.tris();
-      FM.NPC[id](M, q * 5); const J = FM.joints(id), bn = [0, 1, 2, 3, 4].map(() => new THREE.Bone()); bn[0].position.set(sp.at[0], sp.h, sp.at[1]); bn[0].rotation.y = sp.yaw; bn[0].scale.setScalar(WS);
+      FM.NPC[id](M, q * 5); const face=FM.DBG.H, inv=M.clone().invert(); const J = FM.joints(id), bn = [0, 1, 2, 3, 4].map(() => new THREE.Bone()); bn[0].position.set(sp.at[0], sp.h, sp.at[1]); bn[0].rotation.y = sp.yaw; bn[0].scale.setScalar(WS);
       bn[1].position.set(...J.hip); bn[0].add(bn[1]); bn[2].position.set(J.neck[0] - J.hip[0], J.neck[1] - J.hip[1], J.neck[2] - J.hip[2]); bn[1].add(bn[2]); bn[3].position.set(J.shL[0], J.shL[1] - J.hip[1], J.shL[2]); bn[4].position.set(J.shR[0], J.shR[1] - J.hip[1], J.shR[2]); bn[1].add(bn[3], bn[4]);
-      bones.push(...bn); ST.list.push({ id, B, o, sp, bones: bn, yaw: sp.yaw, look: 0, ph: B.px * 0.013, x: sp.at[0], y: sp.at[1], h: sp.h, hgt: o.h * WS, tris: S.tris() - t0 }); }
-    const raw = S.end(), targets=ST.list.map(n=>({goldie:4500,brannick:5100,tess:4000,hattie:4500,fennick:4500}[n.id]));
-    const geo = Town.folkReduce(raw,targets), lod1=Town.folkReduce(geo,targets.map(n=>Math.floor(n*.5))), lod2=Town.folkReduce(geo,targets.map(n=>Math.floor(n*.2))); raw.dispose(); ST.lods=[geo,lod1,lod2]; for(let i=0;i<ST.list.length;i++) {ST.list[i].tris=geo.userData.tris[i]; ST.list[i].lodTris=ST.lods.map(g=>g.userData.tris[i]);}
-    const atlas=Town.folkAtlas(ST.lods); ST.atlas=atlas; const grad = (() => { const c = document.createElement('canvas'); c.width = 6; c.height = 1; const g = c.getContext('2d'); ['#5e5650', '#7d746c', '#a99f95', '#d7cdc2', '#f3ece4', '#ffffff'].forEach((col, i) => { g.fillStyle = col; g.fillRect(i, 0, 1, 1); }); const t = new THREE.CanvasTexture(c); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; return t; })();
+      bones.push(...bn); ST.list.push({ id, B, o, sp, face, inv, bones: bn, yaw: sp.yaw, look: 0, ph: B.px * 0.013, x: sp.at[0], y: sp.at[1], h: sp.h, hgt: o.h * WS, tris: S.tris() - t0 }); }
+    const raw = S.end(), targets=ST.list.map(n=>({goldie:4854,brannick:5356,tess:4256,hattie:4754,fennick:4754}[n.id]));
+    const faceT=ST.list.map(n=>({goldie:1200,brannick:1050,tess:1050,hattie:1100,fennick:1000}[n.id])), geo = Town.folkReduce(raw,targets,faceT), lod1=Town.folkReduce(geo,targets.map(n=>Math.floor(n*.5)),faceT.map(n=>Math.floor(n*.45))), lod2=Town.folkReduce(geo,targets.map(n=>Math.floor(n*.2)),faceT.map(n=>Math.floor(n*.15))); raw.dispose(); ST.lods=[geo,lod1,lod2]; for(let i=0;i<ST.list.length;i++) {ST.list[i].tris=geo.userData.tris[i]; ST.list[i].lodTris=ST.lods.map(g=>g.userData.tris[i]);}
+    for(const g of ST.lods) smoothFace(g); const atlas=Town.folkAtlas(ST.lods, ST.list); ST.atlas=atlas; const grad = (() => { const c = document.createElement('canvas'); c.width = 6; c.height = 1; const g = c.getContext('2d'); ['#5e5650', '#7d746c', '#a99f95', '#d7cdc2', '#f3ece4', '#ffffff'].forEach((col, i) => { g.fillStyle = col; g.fillRect(i, 0, 1, 1); }); const t = new THREE.CanvasTexture(c); t.minFilter = t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; return t; })();
     const mat = new THREE.MeshLambertMaterial({ map:atlas }); mat.name = 'town_folk'; const ink = new THREE.MeshBasicMaterial({ color: 0x2a1a10, side: THREE.BackSide }); ink.name = 'town_folkInk'; ink.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n\ttransformed += normalize(objectNormal) * ' + (0.007 * WS).toFixed(4) + ';'); };
     const m = new THREE.SkinnedMesh(geo, mat); m.name = 'townFolk'; m.castShadow = true; m.frustumCulled = false; for (let q = 0; q < ST.list.length; q++) m.add(ST.list[q].bones[0]); TW.ST.g.add(m); m.updateMatrixWorld(true); const sk = new THREE.Skeleton(bones); m.bind(sk, m.matrixWorld);
     const ol = new THREE.SkinnedMesh(geo, ink); ol.name = 'townFolkInk'; ol.frustumCulled = false; TW.ST.g.add(ol); ol.updateMatrixWorld(true); ol.bind(sk, ol.matrixWorld); ST.mesh = m; ST.ink = ol; ST.tris = geo.index.count / 3; }
