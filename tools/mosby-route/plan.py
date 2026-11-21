@@ -4,8 +4,8 @@
   python3 tools/mosby-route/plan.py grid.json [avoid.json] [--write]
 
 grid.json  : from dump_grid.js (heights + flags on a 64-unit grid)
-avoid.json : sites he must walk round, [[x, y, r], ...] in map units (tools/mosby-route/avoid.json: empty today - the town comes with the grid; add the keeper
-             buildings here when they move to their own sites, re-dump the grid, re-run with --write and rebuild).
+avoid.json : sites he must walk round, [[x, y, r], ...] in map units (tools/mosby-route/avoid.json: the 5 keeper sites' pads - every footprint /
+             yard circle and rect corner from mia/handoff/town/spread_sites/sites.json, r + 60 u - so his 47 m strip stays >= 10 m off each pad).
              (houses are NOT avoided: he walks through them.)
 --write    : put the new loop into src/mosby.js between /*GLOOP*/ and /*GEND*/ (rebuild after).
 
@@ -65,18 +65,18 @@ L = np.r_[0, np.cumsum(np.hypot(*np.diff(np.vstack([P, P[:1]]), axis=0).T))]; st
 R = np.c_[np.interp(st, L, np.r_[P[:, 0], P[0, 0]]), np.interp(st, L, np.r_[P[:, 1], P[0, 1]])]
 # final clearance pass: his feet plant ~45 m either side of the line, so push the line off any ore node closer than its radius + ORE_CLEAR, then relax
 ORE_CLEAR = float(os.environ.get("ORE_CLEAR", 345))
-if d.get('ore'):
-    O = np.array(d['ore'], float)
+if d.get('ore') or AVOID:
+    O = np.array([[x, y, r + ORE_CLEAR] for x, y, r in d.get('ore', [])] + [[x, y, r + REACH + 25] for x, y, r in AVOID], float)  # (centre, clearance)
     for it in range(60):
         moved = False
         for ox, oy, orr in O:
-            v = R - [ox, oy]; dd = np.hypot(v[:, 0], v[:, 1]); m = dd < orr + ORE_CLEAR
-            if m.any(): R[m] = [ox, oy] + v[m] / dd[m, None] * (orr + ORE_CLEAR); moved = True
+            v = R - [ox, oy]; dd = np.hypot(v[:, 0], v[:, 1]); m = dd < orr
+            if m.any(): R[m] = [ox, oy] + v[m] / dd[m, None] * orr; moved = True
         if not moved: break
         R = 0.5 * R + 0.25 * (np.roll(R, 1, 0) + np.roll(R, -1, 0))
     for ox, oy, orr in O:
-        v = R - [ox, oy]; dd = np.hypot(v[:, 0], v[:, 1]); m = dd < orr + ORE_CLEAR
-        if m.any(): R[m] = [ox, oy] + v[m] / dd[m, None] * (orr + ORE_CLEAR)
+        v = R - [ox, oy]; dd = np.hypot(v[:, 0], v[:, 1]); m = dd < orr
+        if m.any(): R[m] = [ox, oy] + v[m] / dd[m, None] * orr
 samp = nd.map_coordinates(sl, [(R[:, 1] - X0) / G - 0.5, (R[:, 0] - X0) / G - 0.5], order=1)
 print(json.dumps({'points': len(R), 'length_m': round(L[-1] / 6.35), 'slope_max': round(float(samp.max()), 1), 'slope_mean': round(float(samp.mean()), 1), 'over10_pct': round(float((samp > 10).mean() * 100), 1)}))
 loop = [[int(round(x)), int(round(y))] for x, y in R]
