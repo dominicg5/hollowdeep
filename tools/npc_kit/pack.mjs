@@ -27,8 +27,8 @@ for (const id of ids) {
   // skeleton: UAL rest rotations, our joint positions
   const keeper = doc.createNode(id); scene.addChild(keeper); const bn = {}, wq = {}, wp = {};
   bones.forEach((b, i) => { wq[b] = unode[b] ? worldQ(b) : null; wp[b] = new THREE.Vector3(...(b === 'root' ? [0, 0, 0] : heads[i])); });
-  bones.forEach((b) => { const par = b === 'root' ? null : (b.startsWith('braid_') ? (b === 'braid_00' ? 'Head' : 'braid_0' + (+b.slice(-1) - 1)) : parentOf[b]);
-    if (!wq[b]) wq[b] = wq[par].clone(); // braid: same frame as the head
+  bones.forEach((b) => { const par = b === 'root' ? null : (b.startsWith('braid_') ? (b === 'braid_00' ? 'Head' : 'braid_0' + (+b.slice(-1) - 1)) : b.startsWith('prop_') ? 'hand_' + b.slice(-1) : parentOf[b]);
+    if (!wq[b]) wq[b] = wq[par].clone(); // braid / prop sockets: same frame as their parent (head / hand)
     const n = doc.createNode(b); const pq = par ? wq[par] : (unode.Armature ? new THREE.Quaternion(...unode.Armature.getRotation()) : new THREE.Quaternion());
     const lq = pq.clone().invert().multiply(wq[b]); const lt = wp[b].clone().sub(par ? wp[par] : new THREE.Vector3()).applyQuaternion(pq.clone().invert());
     n.setRotation(lq.toArray()).setTranslation(lt.toArray()); bn[b] = n; (par ? bn[par] : keeper).addChild(n); });

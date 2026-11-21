@@ -33,9 +33,9 @@ const NpcKit = (() => {
   const has = (id) => ready() && !!ST.keepers[id];
   let inkMat = null; const mats = {};
   function material(mi, vcol) { if (mats[mi]) return mats[mi]; const g = ST.gl, m = g.materials[mi], ti = m.pbrMetallicRoughness.baseColorTexture.index, tx = g.textures[ti], src = tx.extensions && tx.extensions.EXT_texture_webp ? tx.extensions.EXT_texture_webp.source : tx.source;
-    const t = new THREE.Texture(ST.images[src]); t.flipY = false; t.needsUpdate = true; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4;
+    const t = new THREE.Texture(ST.images[src]); t.flipY = false; t.encoding = THREE.sRGBEncoding; /* painted albedo; the map renderer outputs sRGB + ACES */ t.needsUpdate = true; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4;
     const mat = new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide, vertexColors: !!vcol }); /* vertex colour = baked face AO */ mat.name = 'npc_' + m.name; return (mats[mi] = mat); }
-  function ink() { if (inkMat) return inkMat; inkMat = new THREE.MeshBasicMaterial({ color: 0x2a1a10, side: THREE.BackSide }); inkMat.name = 'npc_ink';
+  function ink() { if (inkMat) return inkMat; inkMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x2a1a10).convertSRGBToLinear(), side: THREE.BackSide }); inkMat.name = 'npc_ink';
     inkMat.onBeforeCompile = (sh) => { sh.vertexShader = 'attribute float inkw;\n' + sh.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n\ttransformed += normalize(objectNormal) * 0.0075 * inkw;'); }; return inkMat; }
   // per-keeper behaviour: which clip is her idle, her work loop, and which hands lock to which prop grip
   const ROLE = {

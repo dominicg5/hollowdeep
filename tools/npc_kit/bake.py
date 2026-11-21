@@ -60,6 +60,21 @@ for n, t in C.get('dec', {}).items():
 rep = {o.name: tris(o) for o in allm + gen}
 print('TRIS', json.dumps(rep), sum(rep.values()))
 if PREV:
+    # shape WIP for Art: root at the floor, Tess's braid chain from Head, palm attach bones for held props, no stray Icosphere
+    delete([o for o in bpy.data.objects if o.name.startswith('Icosphere')]); bpy.context.view_layer.update()
+    hc0, hr0, _ = head_frame(body)
+    bpy.context.view_layer.objects.active = arm; arm.select_set(True); bpy.ops.object.mode_set(mode='EDIT'); E = arm.data.edit_bones
+    rb0 = E['root']; dd = rb0.tail - rb0.head; rb0.head = Vector((0, 0, 0)); rb0.tail = dd
+    if 'extra_joints' in C:
+        par = E['Head']; ej = C['extra_joints'](J, hc0, hr0); names = sorted(ej)
+        for i, n in enumerate(names):
+            a = ej[n]; h = Vector((a[0], -a[2], a[1])); nx = ej[names[i + 1]] if i + 1 < len(names) else None
+            t = Vector((nx[0], -nx[2], nx[1])) if nx else h + (h - prev_h) * 0.8
+            b = E.new(n); b.head = h; b.tail = t if (t - h).length > 1e-3 else h + Vector((0, 0, -0.05)); b.parent = par; b.use_connect = False; par = b; prev_h = h
+    for s_ in 'lr':
+        hb = E['hand_' + s_]; mid = E.get('middle_01_' + s_); tip = mid.head if mid else hb.tail
+        b = E.new('prop_' + s_); b.head = (hb.head + tip) / 2; b.tail = b.head + (tip - hb.head).normalized() * 0.06; b.parent = hb; b.use_connect = False
+    bpy.ops.object.mode_set(mode='OBJECT')
     for o in bpy.data.objects: o.select_set(True)
     bpy.ops.export_scene.gltf(filepath=PREV, export_format='GLB', use_selection=False, export_animations=False)
 # ---- atlas + export ----

@@ -160,7 +160,10 @@ if lg:
     for gg in list(lg.vertex_groups): lg.vertex_groups.remove(gg)
     lg.vertex_groups.new(name='hand_r').add(list(range(len(lg.data.vertices))), 1.0, 'REPLACE')
 # ---- mitten rig (23 bones)
-for o in M.values(): merge_fingers(o); drop_groups(o, set(KEEP))
+EXTRA = [n for n in ('braid_00', 'braid_01', 'braid_02', 'braid_03', 'prop_l', 'prop_r') if n in arm.data.bones and any(o.vertex_groups.get(n) for o in M.values())]
+BONES = KEEP + EXTRA   # Art's props may ride the palm sockets prop_l / prop_r (children of the hands); Tess's braid chain
+for n in EXTRA: J[n] = bone_head(arm, n)
+for o in M.values(): merge_fingers(o); drop_groups(o, set(BONES))
 rep = {n: tris(o) for n, o in M.items()}; print('TRIS', json.dumps(rep), sum(rep.values()))
 # ---- tags for the extractor: src 0 skin / 1 eyes / 2 cloth; rg 15 glasses, 16 ledger, 12 hair (ink widths)
 RG = {'glasses': 15, 'ledger': 16, 'goldie_hair': 12, 'goldie_bun': 12, 'goldie_pencil': 30}
@@ -172,13 +175,13 @@ for n, o in M.items():
     if 'UVorig' not in uvs: uvs.new(name='UVorig')
 from atlas import join, extract
 kp = join(list(M.values()), 'keeper_' + K)
-mesh, _T = extract(kp, KEEP)
+mesh, _T = extract(kp, BONES)
 OUT = os.path.join(HERE, 'out'); D = os.path.join(OUT, K); os.makedirs(D, exist_ok=True)
 import shutil; shutil.copy(os.path.join(ART, K + '_atlas_1024.png'), os.path.join(OUT, K + '_atlas.png'))
 Jy = {n: (v.x, v.z, -v.y) for n, v in J.items()}
-meta = {'bones': KEEP, 'heads': [list(map(float, Jy[b])) for b in KEEP], 'h': C['h'], 'arrays': {}, 'look': 'art:' + K + '_preview.glb'}
+meta = {'bones': BONES, 'heads': [list(map(float, Jy[b])) for b in BONES], 'h': C['h'], 'arrays': {}, 'look': 'art:' + K + '_preview.glb'}
 for k2, a in mesh.items():
     a = np.ascontiguousarray(a); a.tofile(os.path.join(D, k2 + '.bin')); meta['arrays'][k2] = [str(a.dtype), list(a.shape)]
 meta['grips'] = {'book': {'bone': gb, 'pos': [float(G.x), float(G.z), float(-G.y)], 'pole': [float(pole[0]), float(pole[2]), float(-pole[1])], 'carry': {'bone': 'spine_02', 'yaw': CARRY}}}
 json.dump(meta, open(os.path.join(D, 'meta.json'), 'w'))
-print('EXPORT', K, 'verts', len(mesh['pos']), 'tris', len(mesh['idx']) // 3, 'bones', len(KEEP))
+print('EXPORT', K, 'verts', len(mesh['pos']), 'tris', len(mesh['idx']) // 3, 'bones', len(BONES))
