@@ -71,7 +71,7 @@ const MosbyTalk = (() => {
   // the conversation: warm, sleepy; each step: face, line, then either a tap-to-continue (next) or buttons
   const STEPS = {
     hello: { face: 'sleepy', say: 'Mmm\u2026 oh. Hello down there, little one. Mind my toes\u2026 they\u2019re older than the hills.', next: 'from' },
-    from: { face: 'talking', say: 'Where have you come from, on such small feet?', btn: [['From my Ledge', 'ledge', 'cream'], ['Just wandering', 'wander', 'cream']] },
+    from: { face: 'talking', say: 'Where have you come from, on such small feet?', btn: [['From my Ledge', 'ledge', 'cream'], ['Just wandering', 'wander', 'cream'], ['Hitch a ride', 'ride', 'blue']] },
     ledge: { face: 'pleased', say: 'The Ledge\u2026 I remember it. Pretty cliffs. Sleepy cliffs. Good for napping.', next: 'move' },
     wander: { face: 'sleepy', say: 'Wandering is good. I wander too\u2026 only very, very slowly.', next: 'move' },
     move: { face: 'talking', say: 'My little cousin carries houses on his back. Would you like him to move your home somewhere new?', btn: [['Yes', 'pay', 'yes'], ['No', 'nomove', 'no']] },
@@ -82,11 +82,14 @@ const MosbyTalk = (() => {
     sent: { face: 'pleased', say: 'He\u2019s on his way. Your house rides on his back \u2014 he\u2019ll go gently.', end: true },
     poor: { face: 'sleepy', say: 'Ah\u2026 not quite enough gold for that walk. A nearer spot, perhaps?', next: '@map' },
     badspot: { face: 'sleepy', say: () => `Hmm\u2026 not there, little one \u2014 ${ST.bad}. Somewhere flat and dry, with room around it?`, next: '@map' },
+    // (Dominic) hitch a ride on his back - free for now (the fee is undecided); she gets down only by asking him
+    rideon: { face: 'pleased', say: 'Up you come, then. Walk about on my shell if you like \u2014 just keep to the flat of the top. Tap me when you want down.', end: true },
+    aboard: { face: 'talking', say: 'Comfortable up there, little one? Say when you\u2019d like to get down.', btn: [['Hop off', 'hopoff', 'yes'], ['Stay on', '@close', 'cream']] },
     busy: { face: 'sleepy', say: 'He\u2019s still carrying your house, little one. Let him finish first\u2026', end: true } };
   function go(id) { if (id === '@map') return pickMap(); const s = STEPS[id]; if (!s) return close(); ST.step = Object.assign({ id }, s); const d = el(); d.classList.remove('hidden'); d.querySelector('.mdPort').style.backgroundImage = `url(assets/ui/mosby/${s.face}.webp)`; d.querySelector('.mdWell p').textContent = typeof s.say === 'function' ? s.say() : s.say;
     d.querySelector('.mdPip').style.display = s.next || s.end ? '' : 'none'; d.querySelector('.mdBtns').innerHTML = (s.btn || []).map(([t, a, c]) => `<button class="mdB ${c}" data-a="${a}">${t}</button>`).join(''); if (s.end) ST.step.next = '@close'; }
-  function act(a) { if (a === '@close') return close(); if (a === 'confirm') return confirm(); if (a === 'cancel') return closeCard(); go(a); }
-  function open() { if (Mosby.GM) Mosby.GM.hold = true; if (S.mosbyTrip && !S.mosbyTrip.done) return go('busy'); go('hello'); return true; }
+  function act(a) { if (a === '@close') return close(); if (a === 'ride') { if (typeof MosbyRide === 'undefined' || !MosbyRide.mount()) return close(); return go('rideon'); } if (a === 'hopoff') { close(); return typeof MosbyRide !== 'undefined' && MosbyRide.dismount(); } if (a === 'confirm') return confirm(); if (a === 'cancel') return closeCard(); go(a); }
+  function open() { if (Mosby.GM) Mosby.GM.hold = true; if (typeof MosbyRide !== 'undefined' && MosbyRide.on) { go('aboard'); return true; } if (S.mosbyTrip && !S.mosbyTrip.done) return go('busy'); go('hello'); return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.step = null; if (Mosby.GM) Mosby.GM.hold = false; }
   // map: pick the spot, then the trip card
   function pickMap() { if (ST.el) ST.el.classList.add('hidden'); if (typeof ExMap === 'undefined' || !ExMap.pick) return close(); ExMap.pick((x, y) => card(x, y), () => close()); }
@@ -95,5 +98,5 @@ const MosbyTalk = (() => {
       <div class="mcFoot"><button class="mdB blue" data-a="confirm"${ok ? '' : ' disabled'}>Confirm</button><button class="mdB cream" data-a="cancel">Cancel</button></div><div class="mcNote">${ok ? `You have ${g} gold` : `Not enough gold \u2014 you have ${g}`}</div></div>`; c.classList.remove('hidden'); return R; }
   function closeCard() { const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; close(); }
   function confirm() { const R = ST.trip; if (!R || gold() < R.fee) return; S.gold -= R.fee; S.mosbyTrip = { pts: R.pts.map(([x, y]) => [Math.round(x), Math.round(y)]), len: R.len, fee: R.fee, eta: R.eta, t0: Date.now(), done: false, home: R.home }; if (typeof HomeMove !== 'undefined') HomeMove.depart(); try { save(); } catch (e) {} const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; go('sent'); return S.mosbyTrip; }
-  return { TP, tpBuild, route, gold, open, close, go, card, confirm, closeCard, fmtT, crackW, get step() { return ST.step && ST.step.id; }, STEP_W, WADE_D };
+  return { TP, tpBuild, route, gold, open, close, go, act, card, confirm, closeCard, fmtT, crackW, get step() { return ST.step && ST.step.id; }, STEP_W, WADE_D };
 })();

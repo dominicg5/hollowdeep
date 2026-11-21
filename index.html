@@ -572,9 +572,9 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 #drillCtl,#drillUse{overflow:hidden;background:#6b4322;z-index:40;bottom:72px}
 #drillCtl .dlist,#drillUse .dlist{overflow:auto;max-height:min(60vh,520px);-webkit-overflow-scrolling:touch}
 #drillCtl.kLeather,#drillUse.kLeather{background-color:#6b4322}
-<script>window.HD_BUILD='a26affb9';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a26affb9</div>
-<script src="assets/vendor/three.min.js?v=a26affb9"></script>
+<script>window.HD_BUILD='4179117b';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 4179117b</div>
+<script src="assets/vendor/three.min.js?v=4179117b"></script>
 <script>
 'use strict';
 
@@ -10817,16 +10817,17 @@ const Explore = (() => {
   function lod(cx, cy) { if (EX.on) { const [hx, hy] = here(); oreVis(hx, hy, 2600); } else oreVis(cx, cy, 6000); if (!BR) return; for (const G of BR.userData.chunks) G.visible = Math.hypot(G.userData.c[0] - cx, G.userData.c[1] - cy) < 5200; }
   // ---- the explore session: Wren joins the map scene inside a metre-scale group; CharView runs her walker + animation, the map renders
   function hy(x, z) { const O = EX.O; return (hAt(O.x + x * WS, O.y + z * WS) - O.h) / WS; }
-  const toMap = (p) => new THREE.Vector3(EX.O.x + p.x * WS, EX.O.h + p.y * WS, EX.O.y + p.z * WS);
+  /* (riding Mosby) EX.ride is set while she rides on his shell: her group then follows the shell (position, turn, sway) and she walks in its local frame, in metres */
+  const toMap = (p) => EX.ride ? EX.par.localToWorld(new THREE.Vector3(p.x, p.y, p.z)) : new THREE.Vector3(EX.O.x + p.x * WS, EX.O.h + p.y * WS, EX.O.y + p.z * WS);
   function enter(x, y, vw) { if (EX.on) (typeof Explore !== 'undefined' ? Explore.exit : exit)(); /* already out: re-enter there (via the wrapped exit so the pet resets too) */ if (typeof CharView === 'undefined' || !M3.scene) return false; build(); if (M3.lodReset) M3.lodReset(); /* refill the house kits for her view on the very first frame */ if (!NV.spurLaid && M3.setPaths) { NV.spurLaid = true; M3.setPaths(allPaths()); } const P = W.player; if (x == null) { const k = nearest(P.x + 60, P.y + 60, NV.comp[nearest(P.x, P.y)]); [x, y] = cxy(k); }
     EX.O = { x: Math.round(x), y: Math.round(y), h: Math.round(mH(x, y)) }; if (!EX.par) { EX.par = new THREE.Group(); EX.par.name = 'exploreWren'; } EX.par.position.set(EX.O.x, EX.O.h, EX.O.y); EX.par.scale.setScalar(WS); if (!EX.sc) { EX.sc = new THREE.Scene(); EX.sc.add(new THREE.HemisphereLight(0xfff1dc, 0x7a5236, 0.4)); EX.lights = [[0xfff0dc, 0.55, [1.4, 3.2, 2.6]], [0xffd8b0, 0.14, [-2.2, 1.2, 1.4]], [0xffe6c0, 0.32, [-1.6, 2.2, -2.6]], [0xfff0d8, 0.22, [1.8, 1.6, -2.2]]].map(([c, i, d]) => { const L = new THREE.DirectionalLight(c, i); L.userData.dir = d; EX.sc.add(L, L.target); return L; }); } // the Character tab's own rig of lights
     EX.sc.add(EX.par); M3.st.overlay = EX.sc; for (const L of EX.lights) { L.target.position.copy(EX.par.position); L.position.set(EX.par.position.x + L.userData.dir[0] * 40, EX.par.position.y + L.userData.dir[1] * 40, EX.par.position.z + L.userData.dir[2] * 40); }
     const G = CharView.exploreOn(EX.par, 0, 0, Math.PI, hy); if (!G) return false; G.noStall = true; EX.on = true; EX.d = 7.6; EX.tilt = 0.2; EX.az = 0.62; EX.cf = null; if (vw) { if (isFinite(vw.az)) EX.az = vw.az; if (isFinite(vw.d)) EX.d = vw.d; if (isFinite(vw.tilt)) EX.tilt = vw.tilt; if (isFinite(vw.face)) G.face = vw.face; } EX.vsT = 0; CharView.st.gait = 'run'; ui3(true); try { tick(0); } catch (e) {} return true; } // (one tick now: the follow camera is live at once)
-  function exit() { if (!EX.on) return; viewSave(); EX.on = false; if (EX.doorUI) doorPanel(false); if (DR.grp) DR.grp.visible = false; occ(null, 0); CharView.exploreOff(); if (EX.par && EX.par.parent) EX.par.parent.remove(EX.par); M3.st.overlay = null; if (EX.blob) EX.blob.visible = false; M3.st.camOv = null; EX.mark && (EX.mark.visible = false); if (FD.grp) { FD.grp.visible = false; FD.at = null; } if (typeof ExMap !== 'undefined') { ExMap.close(); ExMap.st.trip = null; } ui3(false); const tc = document.getElementById('exTrip'); if (tc) tc.classList.remove('on'); }
+  function exit() { if (!EX.on) return; viewSave(); if (EX.ride) { EX.ride.detach(); } EX.on = false; if (EX.doorUI) doorPanel(false); if (DR.grp) DR.grp.visible = false; occ(null, 0); CharView.exploreOff(); if (EX.par && EX.par.parent) EX.par.parent.remove(EX.par); M3.st.overlay = null; if (EX.blob) EX.blob.visible = false; M3.st.camOv = null; EX.mark && (EX.mark.visible = false); if (FD.grp) { FD.grp.visible = false; FD.at = null; } if (typeof ExMap !== 'undefined') { ExMap.close(); ExMap.st.trip = null; } ui3(false); const tc = document.getElementById('exTrip'); if (tc) tc.classList.remove('on'); }
   // her spot, facing and follow camera, kept for the map's Character view (resumes there after a tab switch)
   function viewSave() { if (!EX.on || typeof CityMap === 'undefined' || !CityMap.mapViewSave) return; const h = here(), G = CharView.st.gnd; if (!h || !G) return; CityMap.mapViewSave({ char: { x: Math.round(h[0]), y: Math.round(h[1]), face: +G.face.toFixed(3), az: +EX.az.toFixed(3), d: +EX.d.toFixed(2), tilt: +EX.tilt.toFixed(3) } }); }
-  function here() { const G = CharView.st.gnd; return G ? [EX.O.x + G.x * WS, EX.O.y + G.z * WS] : null; }
-  function goTo(x, y, done) { const G = CharView.st.gnd; if (!EX.on || !G) return null; const [hx, hy2] = here(), P = plan(hx, hy2, x, y); if (!P) return null; EX.trips++;
+  function here() { const G = CharView.st.gnd; if (G && EX.ride) { const v = toMap(G); return [v.x, v.z]; } return G ? [EX.O.x + G.x * WS, EX.O.y + G.z * WS] : null; }
+  function goTo(x, y, done) { const G = CharView.st.gnd; if (!EX.on || !G || EX.ride) return null; /* aboard Mosby: no ground walks */ const [hx, hy2] = here(), P = plan(hx, hy2, x, y); if (!P) return null; EX.trips++;
     G.path = P.pts.slice(1).map(([px, py]) => ({ x: (px - EX.O.x) / WS, z: (py - EX.O.y) / WS })); G.pi = 0; G.goal = { x: G.path[G.path.length - 1].x, z: G.path[G.path.length - 1].z, fit: true, done: () => { EX.arrived = (EX.arrived || 0) + 1; if (done) done(); } }; G.gBest = 1e9; G.stall = 0; EX.route = P; markAt(P.goal[0], P.goal[1]); return P; }
   function markAt(x, y) { if (!EX.mark) { const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: 0xfff1c2, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }); g.add(new THREE.Mesh(new THREE.RingGeometry(2.6, 3.6, 32).rotateX(-Math.PI / 2), m), new THREE.Mesh(new THREE.CircleGeometry(0.9, 16).rotateX(-Math.PI / 2), m)); g.renderOrder = 6; EX.mark = g; }
     M3.scene.add(EX.mark); EX.mark.position.set(x, hAt(x, y) + 0.6, y); EX.mark.visible = true; }
@@ -10838,7 +10839,7 @@ const Explore = (() => {
   function tapDoor(sx, sy) { const [hx, hy] = here(), ds = doorSpots().filter((o) => Math.hypot(o.x - hx, o.y - hy) < 1400 && !(o.type === 'ledge' && W.player && W.player.away)); let best = null, bd = 1e18; const cam = M3.st.camOv && M3.st.camOv.P;
     for (const o of ds) if (doorHit(sx, sy, o)) { const d = cam ? Math.hypot(cam.x - o.dx, cam.z - o.dy) : 0; if (d < bd) { bd = d; best = o; } } if (best) return best;
     const q = M3.unproject(sx, sy); if (q) for (const o of ds) if (Math.hypot(q[0] - o.x, q[1] - o.y) < WS * 1.2) return o; return null; }
-  function tap(sx, sy) { if (!EX.on) return false;
+  function tap(sx, sy) { if (!EX.on) return false; if (EX.ride) return EX.ride.tap(sx, sy); /* aboard Mosby: taps walk her about his shell top, never off it */
     // (no crevice descents: the Hollow can't be entered from the map for now)
     const dHit = drillHit(sx, sy); if (dHit) return tapDrill(dHit); const on = oreHit(sx, sy); if (on) return mineTap(on); mineStop();
     if (typeof Town !== 'undefined' && Town.tap) { const tn = Town.tap(sx, sy); if (tn) return tn; } // the town's people
@@ -11570,7 +11571,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     const C = L.find((q) => q.key === 'camp'), m = H ? tetherDest('c', H) : null; if (C && m && m.pts && m.pts.length > 1) { const e = m.pts[m.pts.length - 1]; /* (checked) the main line's far end is the Hanging Camp: the rope runs over the ground to the Silverseam cliff top and down to the portaledge; teleportTo('camp') opens that camp (the Portaledges tab), so 'end' = Hanging Camp */ out.push({ key: 'camp', kind: 'main', name: 'Ledge Tether (main line)', pts: m.pts, a: door, b: { key: 'camp', name: nm.camp || 'Hanging Camp', sub: 'Silverseam portaledge \u00b7 opens Portaledges', x: e[0], y: e[1] } }); }
     for (const T of L) if ((T.kind === 'drill' || T.kind === 'drop') && T.pts && T.pts.length > 1) out.push({ key: T.key, kind: T.kind, name: T.name, pts: T.pts, a: door, b: { key: T.key, name: T.name, x: T.x, y: T.y } }); return out; }
   // teleport (the Tether Orb): out onto the map at that tether's end (the Hanging Camp end opens its portaledge)
-  function teleportTo(key) {
+  function teleportTo(key) { if (EX.ride || (typeof S !== 'undefined' && S && S.mosbyRide && S.mosbyRide.on)) { if (typeof toast === 'function') toast('🐢 Hop off Mosby first (tap him)'); return false; } // she only gets off by asking him
     // the house door is always a valid start (drop / drill 'Teleport to start'), even if the main Hanging Camp line is unplugged
     if (key === 'door') { const F = ledgeFront(), k = reach(F.x, F.y); EX.ret = { x: k[0], y: k[1], az: EX.az }; EX.tp = (EX.tp || 0) + 1; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); if (EX.on) { const r = EX.ret; EX.ret = null; enter(r.x, r.y); return true; } if (typeof setTab === 'function') setTab('city'); return true; }
     const T = tetherList().find((q) => q.key === key); if (!T) return false; if (T.camp) { if (CharView.st) CharView.st.exRet = null; if (typeof setTab === 'function') setTab('ledge'); return true; }
@@ -11681,14 +11682,14 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (!G.exAdv) G.exAdv = (dX, dY) => { const te = Math.PI / 2 - (G.exLeanS || 0), f = G.face, hz = Math.cos(te) * dY; G.x += Math.sin(f) * hz + Math.cos(f) * dX; G.z += Math.cos(f) * hz - Math.sin(f) * dX; G.y += Math.sin(te) * dY; EX.climbed = (EX.climbed || 0) + 1; EX.climbDist = (EX.climbDist || 0) + Math.hypot(dX, dY); }; // the body moves exactly as it does in its own wall frame, so planted picks and toes stay put
     if (G.exC && dir !== 'stop' && CharView.an.act === 'climb') { if (EX.climbed !== G.exLast) { G.exLast = EX.climbed; G.exIdle = 0; } else if ((G.exIdle = (G.exIdle || 0) + dt) > 2.5) { G.exNew = true; G.exIdle = 0; EX.regrips = (EX.regrips || 0) + 1; } } // a hold deadlock (no reachable next hold): re-grip from where she hangs
     CharView.st.climbDir = dir; }
-  function tick(dt) { if (!EX.on) return; const G = CharView.st.gnd; if (!G) return exit(); const [x, y] = here(), c = clsAt(x, y); EX.cls = c; G.spdK = (G.exC ? 0.35 : 1) * (CharView.EXK || 1); /* speed scales with her map body scale */ /* full run speed whenever she is not on the wall (no slow band on climb-class cells near a face) */ climbState(G, c, dt); CharView.st.tool = c === 2 || G.exC ? 'climb' : ORE.mining || EX.pend === 'ore' ? 'pick' : 'none'; EX.climbing = !!G.exC;
-    CharView.exploreStep(dt); pinGrip(G); unclip(G); slide(G); const cm = CharView.exploreCam(EX.d, EX.tilt, EX.az), P = toMap(cm.P), L = toMap(cm.L); let gH = -1e9; for (const [ox, oz] of [[0, 0], [5, 0], [-5, 0], [0, 5], [0, -5]]) gH = Math.max(gH, M3.meshH(P.x + ox, P.z + oz) + 4); if (P.y < gH) P.y = gH; // out of the ground by height only - the zoom never changes for geometry
+  function tick(dt) { if (!EX.on) return; const G = CharView.st.gnd; if (!G) return exit(); if (EX.ride) EX.ride.sync(); const [x, y] = here(), c = EX.ride ? 0 : clsAt(x, y); EX.cls = c; G.spdK = (G.exC ? 0.35 : 1) * (CharView.EXK || 1); /* speed scales with her map body scale */ /* full run speed whenever she is not on the wall (no slow band on climb-class cells near a face) */ climbState(G, c, dt); CharView.st.tool = c === 2 || G.exC ? 'climb' : ORE.mining || EX.pend === 'ore' ? 'pick' : 'none'; EX.climbing = !!G.exC;
+    CharView.exploreStep(dt); if (EX.ride) EX.ride.keep(G); else { pinGrip(G); unclip(G); slide(G); } const cm = CharView.exploreCam(EX.d, EX.tilt, EX.az), P = toMap(cm.P), L = toMap(cm.L); let gH = -1e9; for (const [ox, oz] of [[0, 0], [5, 0], [-5, 0], [0, 5], [0, -5]]) gH = Math.max(gH, M3.meshH(P.x + ox, P.z + oz) + 4); if (P.y < gH) P.y = gH; // out of the ground by height only - the zoom never changes for geometry
     if (EX.climbing || G.exW > 0.05) camClear(P, L);
     M3.st.camOv = { P, L, D: Math.max(60, EX.d * WS * 3), near: 1.2, far: 30000 };
     if ((EX.vsT = (EX.vsT || 0) + dt) > 1) { EX.vsT = 0; viewSave(); }
     occ(P, dt); doorsTick(dt); oreTick(dt); drillTick(dt); fdTick(dt);
     if (!EX.blob) { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d'), gr = g.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); EX.blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false })); EX.blob.renderOrder = 4; } // a soft contact shadow on the map ground (she is lit in her own pass)
-    if (!EX.blob.parent) M3.scene.add(EX.blob); const bs = 2.6 - Math.min(1.2, (G.y - G.hy(G.x, G.z)) * 0.5); EX.blob.scale.set(bs * WS * 0.5, 1, bs * WS * 0.5); EX.blob.position.set(x, hAt(x, y) + 0.4, y); EX.blob.visible = !(G.exW > 0.3); /* no ground shadow while she hangs on a face */ CityMap.cam.x = x; CityMap.cam.y = y; }
+    if (!EX.blob.parent) M3.scene.add(EX.blob); const bs = 2.6 - Math.min(1.2, (G.y - G.hy(G.x, G.z)) * 0.5); EX.blob.scale.set(bs * WS * 0.5, 1, bs * WS * 0.5); if (EX.ride) { const f = toMap(new THREE.Vector3(G.x, G.y + 0.02, G.z)); EX.blob.position.copy(f); } else EX.blob.position.set(x, hAt(x, y) + 0.4, y); EX.blob.visible = !(G.exW > 0.3); /* no ground shadow while she hangs on a face */ CityMap.cam.x = x; CityMap.cam.y = y; }
   // Ledge-style cutaway: a great root, the bridge or the trunk standing between the camera and her fades see-through (whole unit) instead of the camera pulling in
   const OCC_A = 0.2, _or = new THREE.Raycaster(), FADED = new Map();
   function occUnits() { const H = M3.hwx, u = (H && H.rootMeshes ? H.rootMeshes.slice() : []); if (BR) { BR.userData.occU = true; u.push(BR); } return u; }
@@ -12399,7 +12400,7 @@ const Mosby = (() => {
   function gTick(dt) { if (!GM.g) { GM.g = build({ giant: true, st: GM }); GM.g.scale.setScalar(gScale()); GM.s = gClockS(); GM.yaw = gYaw(GM.s); GM.at = { x: 0, y: 0 }; } if (!GM.g.parent) M3.scene.add(GM.g);
     const WS = Explore.WS; GM.t += dt; const moving = !GM.hold; if (moving) GM.s = (GM.s + gSpeed() * dt) % gLoop().L; const p = gAt(GM.s); GM.at.x = p[0]; GM.at.y = p[1];
     let d = gYaw(GM.s) - GM.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); GM.yaw += d * Math.min(1, dt * 0.8); GM.g.rotation.y = GM.yaw;
-    GM.g.position.set(p[0], M3.meshH(p[0], p[1]) - WS * 0.3, p[1]); const keep = MS; MS = GM; try { stepAnim(dt, moving); dustTick(dt); } finally { MS = keep; } gCols(); gLod(); }
+    GM.g.position.set(p[0], M3.meshH(p[0], p[1]) - WS * 0.3, p[1]); const keep = MS; MS = GM; try { stepAnim(dt, moving); dustTick(dt); } finally { MS = keep; } gCols(); gLod(); if (typeof MosbyRide !== 'undefined') MosbyRide.sync(); /* a rider stays pinned to his shell this very frame */ }
   // auto-walk to him: a spot just off his flank (the side nearest her), kept fresh as he plods on
   function gMeet(hx, hy) { const s = GM.g ? GM.g.scale.x : gScale(), a = GM.yaw || 0, side = Math.sign((hx - GM.at.x) * Math.cos(a) - (hy - GM.at.y) * Math.sin(a)) || 1, ahead = gSpeed() * 6; const p = gAt((GM.s || 0) + (GM.hold ? 0 : ahead)); return [p[0] + Math.cos(a) * side * s * 5.2, p[1] - Math.sin(a) * side * s * 5.2]; }
   function gNear(hx, hy) { if (!GM.g) return false; const s = GM.g.scale.x; return Math.hypot(hx - GM.at.x, hy - GM.at.y) < s * 7.5; } // in person: within ~85 m of his middle (his flank is ~40 m out)
@@ -12425,7 +12426,7 @@ const Mosby = (() => {
     MEET.iv = setInterval(() => { const h2 = Explore.on && Explore.here(), tr = typeof ExMap !== 'undefined' && ExMap.st.trip; if (!MEET.on || !h2 || (typeof ExMap !== 'undefined' && !(tr && tr.dest && tr.dest.label === 'Mosby'))) { /* she was sent somewhere else (map, door, another tap): stop chasing him */ MEET.on = false; clearInterval(MEET.iv); return; } if (gNear(h2[0], h2[1])) { MEET.on = false; clearInterval(MEET.iv); const G = CharView.st.gnd; if (G) { G.path = null; G.goal = null; } if (typeof ExMap !== 'undefined' && ExMap.st.trip) { ExMap.st.trip.done = true; } return; } meetGoal(); }, 1500);
     return (typeof ExMap !== 'undefined' && ExMap.st.trip) || { going: true }; }
   function talkTap() { const h = Explore.here(); if (!h || !gNear(h[0], h[1])) return meet(); MEET.on = false; if (typeof MosbyTalk !== 'undefined') MosbyTalk.open(); return { talk: true }; }
-  function wrapTap() { if (typeof Explore === 'undefined' || !Explore.tap || Explore.tap.__mosby) return; const t0 = Explore.tap, f = function (sx, sy, ...r) { if (Explore.on && GM.g) { if (iconHit(sx, sy)) return meet() || true; if (bodyHit(sx, sy)) return talkTap() || true; release(); } return t0.call(this, sx, sy, ...r); }; f.__mosby = true; for (const k in t0) if (k.startsWith('__')) f[k] = t0[k]; Explore.tap = f; }
+  function wrapTap() { if (typeof Explore === 'undefined' || !Explore.tap || Explore.tap.__mosby) return; const t0 = Explore.tap, f = function (sx, sy, ...r) { if (Explore.on && GM.g && typeof MosbyRide !== 'undefined' && MosbyRide.on) return MosbyRide.tapAboard(sx, sy); /* riding: walk on his shell / his menu / stay on */ if (Explore.on && GM.g) { if (iconHit(sx, sy)) return meet() || true; if (bodyHit(sx, sy)) return talkTap() || true; release(); } return t0.call(this, sx, sy, ...r); }; f.__mosby = true; for (const k in t0) if (k.startsWith('__')) f[k] = t0[k]; Explore.tap = f; }
   if (typeof window !== 'undefined') setInterval(wrapTap, 1000);
 
   // drive it off the map renderer (it ticks in Character and Dev views alike)
@@ -12439,7 +12440,7 @@ const Mosby = (() => {
     const cv = M3.renderer && M3.renderer.domElement, hb = e.parentElement.getBoundingClientRect(), cb = cv ? cv.getBoundingClientRect() : hb; e.style.display = ''; e.style.left = (cb.left - hb.left + p[0]) + 'px'; e.style.top = (cb.top - hb.top + p[1]) + 'px'; }
   function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__mos) return; const R0 = M3.render; M3.render = function () { try { tick(); } catch (e) { if (!MS.err) console.error(MS.err = e); } try { if (M3.st && M3.st.ok && typeof Explore !== 'undefined' && Explore.ledgeFront) { const now = performance.now(), dt = Math.min(0.1, GM.last ? (now - GM.last) / 1000 : 0.016); GM.last = now; gTick(dt); } pillSync(); } catch (e) { if (!GM.err) console.error(GM.err = e); } return R0.apply(this, arguments); }; M3.render.__mos = true; }
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 500); }
-  return { MS, B, newMS, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, release, meet, talkTap, GM, GLOOP, trailHit, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, G_SHOW, G_GONE, get giant() { return GM.g; }, tick, build, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
+  return { domeY, MS, B, newMS, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, release, meet, talkTap, GM, GLOOP, trailHit, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, G_SHOW, G_GONE, get giant() { return GM.g; }, tick, build, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
 })();
 /* ===== Mosby's dialogue and the transport tortoise (Art: /workspace/mia/ui/v3/mosby_dialog, Direction B field kit) =====
    In person only (she is beside the giant and taps him): a wide leather-and-canvas bar low in the view, the brass porthole portrait over its top-left edge
@@ -12514,7 +12515,7 @@ const MosbyTalk = (() => {
   // the conversation: warm, sleepy; each step: face, line, then either a tap-to-continue (next) or buttons
   const STEPS = {
     hello: { face: 'sleepy', say: 'Mmm\u2026 oh. Hello down there, little one. Mind my toes\u2026 they\u2019re older than the hills.', next: 'from' },
-    from: { face: 'talking', say: 'Where have you come from, on such small feet?', btn: [['From my Ledge', 'ledge', 'cream'], ['Just wandering', 'wander', 'cream']] },
+    from: { face: 'talking', say: 'Where have you come from, on such small feet?', btn: [['From my Ledge', 'ledge', 'cream'], ['Just wandering', 'wander', 'cream'], ['Hitch a ride', 'ride', 'blue']] },
     ledge: { face: 'pleased', say: 'The Ledge\u2026 I remember it. Pretty cliffs. Sleepy cliffs. Good for napping.', next: 'move' },
     wander: { face: 'sleepy', say: 'Wandering is good. I wander too\u2026 only very, very slowly.', next: 'move' },
     move: { face: 'talking', say: 'My little cousin carries houses on his back. Would you like him to move your home somewhere new?', btn: [['Yes', 'pay', 'yes'], ['No', 'nomove', 'no']] },
@@ -12525,11 +12526,14 @@ const MosbyTalk = (() => {
     sent: { face: 'pleased', say: 'He\u2019s on his way. Your house rides on his back \u2014 he\u2019ll go gently.', end: true },
     poor: { face: 'sleepy', say: 'Ah\u2026 not quite enough gold for that walk. A nearer spot, perhaps?', next: '@map' },
     badspot: { face: 'sleepy', say: () => `Hmm\u2026 not there, little one \u2014 ${ST.bad}. Somewhere flat and dry, with room around it?`, next: '@map' },
+    // (Dominic) hitch a ride on his back - free for now (the fee is undecided); she gets down only by asking him
+    rideon: { face: 'pleased', say: 'Up you come, then. Walk about on my shell if you like \u2014 just keep to the flat of the top. Tap me when you want down.', end: true },
+    aboard: { face: 'talking', say: 'Comfortable up there, little one? Say when you\u2019d like to get down.', btn: [['Hop off', 'hopoff', 'yes'], ['Stay on', '@close', 'cream']] },
     busy: { face: 'sleepy', say: 'He\u2019s still carrying your house, little one. Let him finish first\u2026', end: true } };
   function go(id) { if (id === '@map') return pickMap(); const s = STEPS[id]; if (!s) return close(); ST.step = Object.assign({ id }, s); const d = el(); d.classList.remove('hidden'); d.querySelector('.mdPort').style.backgroundImage = `url(assets/ui/mosby/${s.face}.webp)`; d.querySelector('.mdWell p').textContent = typeof s.say === 'function' ? s.say() : s.say;
     d.querySelector('.mdPip').style.display = s.next || s.end ? '' : 'none'; d.querySelector('.mdBtns').innerHTML = (s.btn || []).map(([t, a, c]) => `<button class="mdB ${c}" data-a="${a}">${t}</button>`).join(''); if (s.end) ST.step.next = '@close'; }
-  function act(a) { if (a === '@close') return close(); if (a === 'confirm') return confirm(); if (a === 'cancel') return closeCard(); go(a); }
-  function open() { if (Mosby.GM) Mosby.GM.hold = true; if (S.mosbyTrip && !S.mosbyTrip.done) return go('busy'); go('hello'); return true; }
+  function act(a) { if (a === '@close') return close(); if (a === 'ride') { if (typeof MosbyRide === 'undefined' || !MosbyRide.mount()) return close(); return go('rideon'); } if (a === 'hopoff') { close(); return typeof MosbyRide !== 'undefined' && MosbyRide.dismount(); } if (a === 'confirm') return confirm(); if (a === 'cancel') return closeCard(); go(a); }
+  function open() { if (Mosby.GM) Mosby.GM.hold = true; if (typeof MosbyRide !== 'undefined' && MosbyRide.on) { go('aboard'); return true; } if (S.mosbyTrip && !S.mosbyTrip.done) return go('busy'); go('hello'); return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.step = null; if (Mosby.GM) Mosby.GM.hold = false; }
   // map: pick the spot, then the trip card
   function pickMap() { if (ST.el) ST.el.classList.add('hidden'); if (typeof ExMap === 'undefined' || !ExMap.pick) return close(); ExMap.pick((x, y) => card(x, y), () => close()); }
@@ -12538,7 +12542,94 @@ const MosbyTalk = (() => {
       <div class="mcFoot"><button class="mdB blue" data-a="confirm"${ok ? '' : ' disabled'}>Confirm</button><button class="mdB cream" data-a="cancel">Cancel</button></div><div class="mcNote">${ok ? `You have ${g} gold` : `Not enough gold \u2014 you have ${g}`}</div></div>`; c.classList.remove('hidden'); return R; }
   function closeCard() { const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; close(); }
   function confirm() { const R = ST.trip; if (!R || gold() < R.fee) return; S.gold -= R.fee; S.mosbyTrip = { pts: R.pts.map(([x, y]) => [Math.round(x), Math.round(y)]), len: R.len, fee: R.fee, eta: R.eta, t0: Date.now(), done: false, home: R.home }; if (typeof HomeMove !== 'undefined') HomeMove.depart(); try { save(); } catch (e) {} const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; go('sent'); return S.mosbyTrip; }
-  return { TP, tpBuild, route, gold, open, close, go, card, confirm, closeCard, fmtT, crackW, get step() { return ST.step && ST.step.id; }, STEP_W, WADE_D };
+  return { TP, tpBuild, route, gold, open, close, go, act, card, confirm, closeCard, fmtT, crackW, get step() { return ST.step && ST.step.id; }, STEP_W, WADE_D };
+})();
+/* ===== Hitch a ride on Mosby (Dominic: "an option to hitch a ride on his back ... you have to interact with him to get off ... which will drop you in the
+   general location of where Mosby is at"; then: "don't build a platform on Mosby I like his shell too much. Just make it so the player can walk on his shell
+   and can't walk too far off the slope")
+   - 'Hitch a ride' in his talk menu puts her on the crown of his shell (free for now). Her explore group is pinned to his shell every frame (its position,
+     his turn, his sway and breathing), so she walks about in the shell's own frame, in metres: no sliding as he walks, turns or sways.
+   - She stands on the real carved shell: a heightfield ray-cast once from his shell mesh, in the shell's frame (so it moves with him), bilinear between samples.
+   - Walkable = the gentle top: an invisible boundary where the dome gets steeper than 30 deg; she can't walk or slide past it.
+   - Aboard, a tap on the walkable shell walks her there; a tap anywhere else (ground, sky, the map) does NOT take her off - it only lets go of his
+     dialogue (the tap-fix holds). A tap on the rest of Mosby (head, legs, the steep flanks), or the 'Hop off' button, opens his menu with 'Hop off'.
+   - Hop off: she lands on the nearest safe spot within ~15 m of his flank (dry, walkable, not steep, not a cliff edge or crack, clear of his body and feet).
+   - Saved (S.mosbyRide): a reload while riding puts her back on his shell where she stood. */
+const MosbyRide = (() => {
+  const R = { on: false, btn: null, hf: null };
+  const GM = () => Mosby.GM, WS = () => Explore.WS, MAXSLOPE = 30;
+  const shell = () => GM().shell, um = () => WS() / GM().g.scale.x; // shell-local units per metre
+  // the walkable top: the dome's summit and, per direction, how far out the slope stays <= 30 deg (model units, shell frame)
+  function region() { if (R.reg) return R.reg; const B = Mosby.B, dy = Mosby.domeY; let sx = 0, sz = 0, sy = -1e9; for (let x = -B.rx * 0.6; x <= B.rx * 0.6; x += 0.05) for (let z = -B.rz * 0.6; z <= B.rz * 0.6; z += 0.05) { const y = dy(x, z); if (y != null && y > sy) { sy = y; sx = x; sz = z; } }
+    const slope = (x, z) => { const e = 0.02, a = dy(x + e, z), b = dy(x - e, z), c = dy(x, z + e), d = dy(x, z - e); if (a == null || b == null || c == null || d == null) return 90; return Math.atan(Math.hypot((a - b) / (2 * e), (c - d) / (2 * e))) * 180 / Math.PI; };
+    const N = 72, rmax = []; for (let i = 0; i < N; i++) { const q = i / N * Math.PI * 2, cx = Math.cos(q), cz = Math.sin(q); let r = 0; while (r < 6 && slope(sx + cx * (r + 0.01), sz + cz * (r + 0.01)) <= MAXSLOPE) r += 0.01; rmax.push(r); }
+    return (R.reg = { sx, sz, sy, rmax, N, slope }); }
+  const rAt = (q) => { const G = region(), f = ((q / (Math.PI * 2)) % 1 + 1) % 1 * G.N, i = Math.floor(f), t = f - i; return G.rmax[i % G.N] * (1 - t) + G.rmax[(i + 1) % G.N] * t; };
+  // metres <-> shell units; inside(x, z) in metres, with her body radius (0.4 m) kept inside the boundary
+  function clampM(x, z) { const G = region(), u = um(), lx = x * u - G.sx, lz = z * u - G.sz, r = Math.hypot(lx, lz), q = Math.atan2(lz, lx), lim = Math.max(0, rAt(q) - 0.4 * u); if (r <= lim) return [x, z, true]; return [(G.sx + lx / r * lim) / u, (G.sz + lz / r * lim) / u, false]; }
+  // the heightfield: once, the carved carapace mesh rasterised top-down in the shell's own frame (so it moves with him): 0.35 m cells over the walkable top
+  function hfBuild() { if (R.hf) return R.hf; const G = region(), u = um(), sh = shell(); let mesh = null, mc = 0; for (const o of sh.children) if (o.isMesh && o.geometry && o.geometry.attributes.position.count > mc) { mc = o.geometry.attributes.position.count; mesh = o; } /* the carved carapace (the biggest piece of the shell) */
+    const rmx = Math.max(...G.rmax), cell = 0.35, half = Math.ceil(rmx / u / cell) + 3, n = half * 2 + 1, h = new Float32Array(n * n).fill(NaN), cu = cell * u, ox = G.sx - half * cu, oz = G.sz - half * cu;
+    if (mesh) { const P = mesh.geometry.attributes.position, I = mesh.geometry.index, m = mesh.matrix, A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3(), nt = I ? I.count / 3 : P.count / 3; mesh.updateMatrix();
+      for (let t = 0; t < nt; t++) { const ia = I ? I.getX(3 * t) : 3 * t, ib = I ? I.getX(3 * t + 1) : 3 * t + 1, ic = I ? I.getX(3 * t + 2) : 3 * t + 2; A.fromBufferAttribute(P, ia).applyMatrix4(m); B.fromBufferAttribute(P, ib).applyMatrix4(m); C.fromBufferAttribute(P, ic).applyMatrix4(m);
+        const i0 = Math.max(0, Math.ceil((Math.min(A.x, B.x, C.x) - ox) / cu)), i1 = Math.min(n - 1, Math.floor((Math.max(A.x, B.x, C.x) - ox) / cu)), j0 = Math.max(0, Math.ceil((Math.min(A.z, B.z, C.z) - oz) / cu)), j1 = Math.min(n - 1, Math.floor((Math.max(A.z, B.z, C.z) - oz) / cu)); if (i0 > i1 || j0 > j1) continue;
+        const d = (B.z - C.z) * (A.x - C.x) + (C.x - B.x) * (A.z - C.z); if (Math.abs(d) < 1e-12) continue;
+        for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const x = ox + i * cu, z = oz + j * cu, l1 = ((B.z - C.z) * (x - C.x) + (C.x - B.x) * (z - C.z)) / d, l2 = ((C.z - A.z) * (x - C.x) + (A.x - C.x) * (z - C.z)) / d, l3 = 1 - l1 - l2; if (l1 < -1e-6 || l2 < -1e-6 || l3 < -1e-6) continue; const y = l1 * A.y + l2 * B.y + l3 * C.y, k = j * n + i; if (!(h[k] >= y)) h[k] = y; } } } /* the top-most surface */
+    return (R.hf = { h, n, half, cell }); }
+  function hy(x, z) { const H = hfBuild(), G = region(), u = um(), fx = (x * u - G.sx) / (H.cell * u) + H.half, fz = (z * u - G.sz) / (H.cell * u) + H.half, i = Math.floor(fx), j = Math.floor(fz), tx = fx - i, tz = fz - j, at = (a, b) => (a < 0 || b < 0 || a >= H.n || b >= H.n) ? NaN : H.h[b * H.n + a];
+    let v = at(i, j) * (1 - tx) * (1 - tz) + at(i + 1, j) * tx * (1 - tz) + at(i, j + 1) * (1 - tx) * tz + at(i + 1, j + 1) * tx * tz; if (!isFinite(v)) { const y = Mosby.domeY(x * u, z * u); v = y == null ? G.sy : y; } return v / u; }
+  // pin her group to the shell: shell matrix x (1 / units per metre)
+  const _m = new THREE.Matrix4(), _s = new THREE.Matrix4(), _one = new THREE.Vector3(1, 1, 1);
+  function sync() { if (!R.on) return; const sh = shell(), P = Explore.EX.par; if (!sh || !P) return; sh.updateWorldMatrix(true, false); const u = um(); _m.compose(sh.position, sh.quaternion, _one).premultiply(sh.parent.matrixWorld).multiply(_s.makeScale(u, u, u)); _m.decompose(P.position, P.quaternion, P.scale); P.updateMatrixWorld(true); } /* the shell's frame minus its slow breathing (her group keeps a uniform scale); keep() lifts her with the breathing */
+  function keep(G) { const c = clampM(G.x, G.z); G.x = c[0]; G.z = c[1]; G.y = hy(G.x, G.z) * shell().scale.y; if (!c[2] && G.path) { G.path = null; G.goal = null; } }
+  const api = { sync, keep, tap: (sx, sy) => tapAboard(sx, sy), detach };
+  function mount(at) { if (!Explore.on || !GM().g || !shell()) return false; const G = CharView.st.gnd; if (!G) return false; if (Mosby.MEET) Mosby.MEET.on = false; if (typeof ExMap !== 'undefined' && ExMap.st && ExMap.st.trip) ExMap.cancel();
+    const Rg = region(), u = um(); R.on = true; Explore.EX.ride = api; const p = clampM(at ? at.x : Rg.sx / u, at ? at.z : Rg.sz / u - 3); G.x = p[0]; G.z = p[1]; G.hy = hy; G.y = hy(G.x, G.z); G.path = null; G.goal = null; G.exC = null; G.exW = 0;
+    G.bnd = { X0: -1e5, X1: 1e5, Z0: -1e5, Z1: 1e5 }; if (CharView.st.exCf) CharView.st.exCf.set(G.x, G.y, G.z); sync(); S.mosbyRide = { on: true, x: +G.x.toFixed(2), z: +G.z.toFixed(2) }; try { save(); } catch (e) {} ui(true); return true; }
+  // her group back to the plain ground frame (exit, or before hopping off); the saved ride is kept unless she hopped off
+  function detach() { R.on = false; Explore.EX.ride = null; const P = Explore.EX.par; if (P) P.quaternion.identity(); ui(false); }
+  // where she lands: the nearest safe spot within ~15 m of his flank (on her side first)
+  function landing(side) { const G = GM(), w = WS(), s = G.g.scale.x, h = Explore.here() || [G.at.x, G.at.y], flank = Mosby.B.rx * s, a0 = side != null ? side : Math.atan2(h[1] - G.at.y, h[0] - G.at.x), cands = [];
+    for (let dm = 2; dm <= 15; dm += 1.5) for (let k = 0; k < 36; k++) { const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 18), x = G.at.x + Math.cos(a) * (flank + dm * w), y = G.at.y + Math.sin(a) * (flank + dm * w); cands.push({ x, y, d: dm + Math.ceil(k / 2) * 0.35 }); }
+    cands.sort((p, q) => p.d - q.d); for (const c of cands) { if (!safe(c.x, c.y).ok) continue; const k = Explore.reach(c.x, c.y); /* she lands on the walk grid: the snapped spot must be safe too */ if (k && safe(k[0], k[1]).ok) return k; } return null; }
+  function safe(x, y) { const w = WS(), G = GM(), s = G.g.scale.x; const why = (k) => ({ ok: false, why: k });
+    if ((typeof GRAND !== 'undefined' && GRAND.wet && GRAND.wet(x, y, w * 1)) || (typeof isWet === 'function' && isWet(x, y, 0))) return why('water');
+    if (typeof MosbyTalk !== 'undefined' && MosbyTalk.crackW(x, y)) return why('crack');
+    const dx = x - G.at.x, dy = y - G.at.y, a = G.yaw || 0, lx = dx * Math.cos(a) - dy * Math.sin(a), lz = dx * Math.sin(a) + dy * Math.cos(a); if ((lx / (Mosby.B.rx * s)) ** 2 + (lz / (Mosby.B.rz * s * 1.25)) ** 2 < 1.1) return why('body'); // his shell, head and tail
+    for (const c of G.col || []) if (Math.hypot(c.x - x, c.y - y) < c.r + w * 3) return why('feet');
+    const h0 = M3.meshH(x, y); let mx = 0; for (let k = 0; k < 8; k++) { const q = k / 8 * Math.PI * 2; mx = Math.max(mx, Math.abs(M3.meshH(x + Math.cos(q) * w * 2, y + Math.sin(q) * w * 2) - h0)); } if (mx > w * 0.9) return why('steep'); // > ~24 deg over 2 m, or a drop
+    const k2 = Explore.reach(x, y); if (!k2 || Math.hypot(k2[0] - x, k2[1] - y) > w * 2.5) return why('not walkable');
+    if (Explore.solidAt && Explore.solidAt(x, y)) return why('solid');
+    return { ok: true }; }
+  // he may have carried her far past the walk patch she got on in: if nothing near him is reachable, rebuild the patch beside him (on her side) and look again
+  function dismount() { if (!R.on) return null; const Gm = GM(), h = Explore.here() || [Gm.at.x, Gm.at.y], side = Math.atan2(h[1] - Gm.at.y, h[0] - Gm.at.x), G = CharView.st.gnd, face = G ? G.face : 0, az = Explore.EX.az; let p = landing(side); detach(); S.mosbyRide = null; try { save(); } catch (e) {}
+    if (!p) { const r = Mosby.B.rx * Gm.g.scale.x + WS() * 8; Explore.enter(Gm.at.x + Math.cos(side) * r, Gm.at.y + Math.sin(side) * r, { az, face }); p = landing(side); }
+    const k = p || Explore.here() || [Gm.at.x + WS() * 60, Gm.at.y]; Explore.enter(k[0], k[1], { az, face }); R.last = { x: k[0], y: k[1], want: p }; return R.last; }
+  // a tap while aboard
+  const _rc = new THREE.Raycaster(), _inv = new THREE.Matrix4();
+  // where a tap ray meets the walkable top of his shell (marched in the shell frame, in metres), or null
+  function shellPoint(sx, sy) { const el = M3.renderer && M3.renderer.domElement, w = el ? el.clientWidth : innerWidth, h = el ? el.clientHeight : innerHeight; _rc.setFromCamera(new THREE.Vector2((sx / w) * 2 - 1, -(sy / h) * 2 + 1), M3.camera);
+    const P = Explore.EX.par; P.updateMatrixWorld(true); _inv.copy(P.matrixWorld).invert(); const o = _rc.ray.origin.clone().applyMatrix4(_inv), d = _rc.ray.direction.clone().transformDirection(_inv), Rg = region(), u = um(), reach = Math.max(...Rg.rmax) / u + 2;
+    const f = (t) => { const x = o.x + d.x * t, z = o.z + d.z * t; return o.y + d.y * t - hy(x, z); }, near = (t) => Math.hypot((o.x + d.x * t) * u - Rg.sx, (o.z + d.z * t) * u - Rg.sz) / u < reach;
+    let pt = 0, pf = null; for (let t = 0; t < 600; t += 0.5) { if (!near(t)) { pf = null; pt = t; continue; } const v = f(t); if (pf != null && pf > 0 && v <= 0) { let a = pt, b2 = t; for (let k = 0; k < 20; k++) { const m = (a + b2) / 2; if (f(m) > 0) a = m; else b2 = m; } const x = o.x + d.x * b2, z = o.z + d.z * b2; const c = clampM(x, z); if (!c[2] && Math.hypot(c[0] - x, c[1] - z) > 1.5) return null; return { x: c[0], z: c[1], dist: P.localToWorld(new THREE.Vector3(x, hy(x, z), z)).distanceTo(_rc.ray.origin) }; } pf = v; pt = t; }
+    return null; }
+  // what a tap aboard lands on: 'shell' (the walkable top, nothing of him nearer), 'body' (any other visible part of him: head, legs, steep flanks), or 'none'
+  function classify(sx, sy) { const q = shellPoint(sx, sy); let body = false;
+    if (Mosby.bodyHit(sx, sy)) { const hit = _rc.intersectObject(GM().g, true).find((i) => { if (!i.object.isMesh) return false; for (let o = i.object; o; o = o.parent) if (!o.visible) return false; return true; }); body = !!hit && !(q && hit.distance > q.dist - WS() * 3); }
+    return { k: body ? 'body' : q ? 'shell' : 'none', q }; }
+  function tapAboard(sx, sy) { const c = classify(sx, sy), q = c.q;
+    if (c.k === 'body') { Mosby.release(); if (typeof MosbyTalk !== 'undefined') MosbyTalk.open(); return { talk: true }; }
+    Mosby.release(); if (!q) return { stay: true }; // the ground, the sky: she stays aboard, his dialogue (if any) closes
+    const G = CharView.st.gnd; G.path = [{ x: q.x, z: q.z }]; G.pi = 0; G.goal = { x: q.x, z: q.z, fit: true, done: () => { if (S.mosbyRide) { S.mosbyRide.x = +G.x.toFixed(2); S.mosbyRide.z = +G.z.toFixed(2); } } }; G.gBest = 1e9; G.stall = 0; return { walk: [q.x, q.z] }; }
+  // the 'Hop off' button (opens his menu)
+  function ui(on) { let b = R.btn || document.getElementById('exHopBtn'); if (!b && on) { b = document.createElement('button'); b.id = 'exHopBtn'; b.textContent = '🐢 Hop off'; b.setAttribute('aria-label', 'Ask Mosby to let you down');
+      b.style.cssText = 'position:absolute;right:12px;bottom:calc(env(safe-area-inset-bottom) + 150px);z-index:60;padding:10px 16px;border-radius:22px;border:0;font:700 15px Georgia,serif;color:#f4f0dc;background:radial-gradient(120% 95% at 50% 22%,#9bb36a,#5b7a32 55%,#3b521e);box-shadow:0 0 0 3px #b07a34,0 0 0 5px #6e4a1c,0 3px 5px rgba(0,0,0,.45)';
+      for (const e of ['pointerdown', 'pointerup', 'touchstart']) b.addEventListener(e, (ev) => ev.stopPropagation()); b.addEventListener('click', (e) => { e.stopPropagation(); if (typeof MosbyTalk !== 'undefined') MosbyTalk.open(); }); (document.getElementById('cityWrap') || document.body).appendChild(b); }
+    R.btn = b; if (b) b.style.display = on ? '' : 'none'; }
+  // a reload / coming back to the walking view while riding: back on his shell where she stood
+  function resume() { if (R.on || typeof S === 'undefined' || !S || !S.mosbyRide || !S.mosbyRide.on) return; if (typeof Explore === 'undefined' || !Explore.on || !GM() || !GM().g || !shell() || typeof M3 === 'undefined' || M3.models !== 'ready') return; mount({ x: S.mosbyRide.x || 0, z: S.mosbyRide.z || 0 }); }
+  if (typeof window !== 'undefined') setInterval(resume, 400);
+  return { R, mount, dismount, landing, safe, sync, region, clampM, hy, um, resume, tapAboard, shellPoint, classify, get on() { return R.on; } };
 })();
 // ---- tap-a-tether: tap one of her own laid tethers (the Ledge line, a drop or a drill tether) on the map -> a small field-kit bubble (Art's B_* skin:
 // moss canvas, brass close, enamel buttons) at the rope offering a teleport to its start (the Ledge door) or its end, each with its name. Standing near
