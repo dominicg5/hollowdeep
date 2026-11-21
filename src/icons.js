@@ -63,6 +63,19 @@ const ICONS = {
     'tool:lifeline_onyx':55,
     'tool:lifeline_rune':56,
     'tool:lifeline_steel':57,
+    'stand:timber':58,
+    'stand:iron':59,
+    'stand:brass':60,
+    'stand:lumenite':61,
+    'bit:bronze':62,
+    'bit:iron':63,
+    'bit:steel':64,
+    'bit:gold':65,
+    'bit:mithril':66,
+    'bit:rune':67,
+    'bit:lumen':68,
+    'bit:onyx':69,
+    'drill:mithril':70
   }
 };
 function itemIco(id) {
