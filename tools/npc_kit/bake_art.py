@@ -64,6 +64,8 @@ kd = KDTree(len(orig))
 for i, p in enumerate(orig): kd.insert(p, i)
 kd.balance()
 for i, v in enumerate(head.data.vertices): v.co = orig[i] + disp[i]
+fr = [d.length for o_, d in zip(orig, disp) if o_.y < c.y - r.y * 0.3 and o_.z > c.z - r.z * 0.6]   # front of the face
+print('SHAPE_DISP', K, 'max_mm', round(max(d.length for d in disp) * 1000, 1), 'face_max_mm', round(max(fr or [0]) * 1000, 1), 'face_mean_mm', round(sum(fr) / max(len(fr), 1) * 1000, 1))
 for n in HEADPARTS:
     o = M[n]
     if o is eyes:   # each eyeball moves rigidly with its socket
@@ -72,6 +74,7 @@ for n in HEADPARTS:
             if not vs: continue
             cen = sum((v.co for v in vs), Vector()) / len(vs); nb = kd.find_n(cen, 6); dv = sum((disp[j] for _, j, _ in nb), Vector()) / len(nb)
             for v in vs: v.co += dv
+            print('SHAPE_EYE', K, 'lr'[s < 0], [round(x, 4) for x in (cen + dv)], 'moved_mm', round(dv.length * 1000, 1))
         continue
     for v in o.data.vertices:
         nb = kd.find_n(v.co, 4); ws = [1.0 / (dd + 1e-3) for _, _, dd in nb]; v.co += sum((disp[j] * w for (_, j, _), w in zip(nb, ws)), Vector()) / sum(ws)
