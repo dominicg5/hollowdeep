@@ -145,13 +145,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const measure = (mesh, drill) => {
       mesh.updateMatrixWorld(true);
       const port = mesh.userData.tetherPort;
-      if (!port) return { err: 'no-port', dist: 99, cm: 99 };
+      if (!port) return { err: 'no-port', dist: 99, cm: 99, leaveOk: false };
       const bore = port.localToWorld(new THREE.Vector3(0, seatY, 0));
       const r = Explore.drillRoute(drill);
-      if (!r || !r.end3) return { err: 'no-end3', dist: 99, cm: 99 };
+      if (!r || !r.end3) return { err: 'no-end3', dist: 99, cm: 99, leaveOk: false };
       const end = new THREE.Vector3(r.end3[0], r.end3[1], r.end3[2]);
       const dist = end.distanceTo(bore);
-      return { dist, cm: dist / WS * 100 };
+      const leave = CharView.drillPlugLeave(r);
+      const leaveDeg = leave ? +leave.deg.toFixed(1) : 0;
+      return { dist, cm: dist / WS * 100, leaveDeg, leaveOk: !!(leave && leave.deg >= 45) };
     };
     const mesh0 = Explore.DRILL.meshes.get(d.id);
     if (!mesh0) return { ok: false, err: 'no-mesh' };
@@ -160,13 +162,13 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     for (const p of A.pitches) {
       CharView.setDrillPose(mesh0, yaw0, p); d.pitch = p;
       const m = measure(mesh0, d);
-      pitches.push({ deg: Math.round(p * DEG), cm: +m.cm.toFixed(3), ok: m.dist <= lim });
+      pitches.push({ deg: Math.round(p * DEG), cm: +m.cm.toFixed(3), leaveDeg: m.leaveDeg, ok: m.dist <= lim && m.leaveOk });
     }
     for (let i = 0; i < 24; i++) {
       const yaw = i * A.yawStep;
       CharView.setDrillPose(mesh0, yaw, A.pitchDef); d.yaw = yaw; d.pitch = A.pitchDef;
       const m = measure(mesh0, d);
-      yaws.push({ deg: Math.round(yaw * DEG), cm: +m.cm.toFixed(3), ok: m.dist <= lim });
+      yaws.push({ deg: Math.round(yaw * DEG), cm: +m.cm.toFixed(3), leaveDeg: m.leaveDeg, ok: m.dist <= lim && m.leaveOk });
     }
     CharView.setDrillPose(mesh0, yaw0, pitch0); d.yaw = yaw0; d.pitch = pitch0;
     const parent = mesh0.parent, pos = mesh0.position.clone(), sc = mesh0.scale.x;
@@ -176,7 +178,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const prev = Explore.DRILL.meshes.get(d.id);
       Explore.DRILL.meshes.set(d.id, m);
       const q = measure(m, d);
-      stands.push({ stand, cm: +q.cm.toFixed(3), ok: q.dist <= lim });
+      stands.push({ stand, cm: +q.cm.toFixed(3), leaveDeg: q.leaveDeg, ok: q.dist <= lim && q.leaveOk });
       Explore.DRILL.meshes.set(d.id, prev);
       if (m.parent) m.parent.remove(m);
     }
@@ -194,7 +196,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const r = Explore.drillRoute(fd); if (!r) { Explore.drillPickUp(fd); continue; }
       if (!fd.port) Explore.drillWire(fd, true);
       const q = measure(fm, fd);
-      far = { ok: q.dist <= lim, cm: +q.cm.toFixed(3), m: Math.round(c.d), len: r.len, wired: !!fd.port };
+      far = { ok: q.dist <= lim && q.leaveOk, cm: +q.cm.toFixed(3), leaveDeg: q.leaveDeg, m: Math.round(c.d), len: r.len, wired: !!fd.port };
       break;
     }
     const all = pitches.concat(yaws, stands);
@@ -202,14 +204,17 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       wired: !!d.port, sockY: mesh0.userData.sock && +mesh0.userData.sock.y.toFixed(4),
       pitches, yaws, stands, far,
       pitchOk: pitches.every((q) => q.ok), yawOk: yaws.every((q) => q.ok), standOk: stands.every((q) => q.ok),
+      leaveOk: pitches.every((q) => q.leaveDeg >= 45) && yaws.every((q) => q.leaveDeg >= 45) && stands.every((q) => q.leaveDeg >= 45),
+      minLeave: Math.min(...all.map((q) => q.leaveDeg), far.leaveDeg != null ? far.leaveDeg : 90),
       maxCm: Math.max(...all.map((q) => q.cm), far.cm || 0)
     };
   }, { timeout: 120000 });
-  console.log(JSON.stringify({ seat: { wired: seat.wired, sockY: seat.sockY, pitchOk: seat.pitchOk, yawOk: seat.yawOk, standOk: seat.standOk, far: seat.far, maxCm: seat.maxCm } }));
+  console.log(JSON.stringify({ seat: { wired: seat.wired, sockY: seat.sockY, pitchOk: seat.pitchOk, yawOk: seat.yawOk, standOk: seat.standOk, leaveOk: seat.leaveOk, minLeave: seat.minLeave, far: seat.far, maxCm: seat.maxCm } }));
   ok(seat.wired && seat.pitchOk, `strand end is within 2 cm of the port at every pitch notch (max ${seat.maxCm} cm)`);
   ok(seat.yawOk, 'strand end stays in the port at every 15° yaw');
   ok(seat.standOk, `strand end seats on every stand tier (${(seat.stands || []).map((q) => q.stand).join(', ')})`);
   ok(seat.far && seat.far.ok && seat.far.m >= 200, `far drill (${seat.far.m} m, route ${seat.far.len} m) also seats within 2 cm (${seat.far.cm} cm)`);
+  ok(seat.leaveOk && seat.far && seat.far.leaveDeg >= 45, `strand leaves the port sideways (≥45° from vertical; tightest ${seat.minLeave}°, far ${seat.far && seat.far.leaveDeg}°)`);
 
   ok(!errs.length, 'no page errors ' + errs.slice(0, 2).join(' | '));
   console.log(fails ? 'SOME FAILED' : 'ALL PASS');
