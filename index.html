@@ -440,9 +440,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='cfbee170';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build cfbee170</div>
-<script src="assets/vendor/three.min.js?v=cfbee170"></script>
+<script>window.HD_BUILD='a535210a';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a535210a</div>
+<script src="assets/vendor/three.min.js?v=a535210a"></script>
 <script>
 'use strict';
 
@@ -11341,9 +11341,17 @@ const Mosby = (() => {
   if (typeof window !== 'undefined') setInterval(wrapTap, 1000);
 
   // drive it off the map renderer (it ticks in Character and Dev views alike)
-  function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__mos) return; const R0 = M3.render; M3.render = function () { try { tick(); } catch (e) { if (!MS.err) console.error(MS.err = e); } try { if (M3.st && M3.st.ok && typeof Explore !== 'undefined' && Explore.ledgeFront) { const now = performance.now(), dt = Math.min(0.1, GM.last ? (now - GM.last) / 1000 : 0.016); GM.last = now; gTick(dt); } } catch (e) { if (!GM.err) console.error(GM.err = e); } return R0.apply(this, arguments); }; M3.render.__mos = true; }
+  /* in Explore the map's label layer is off, so the main-view icon is its own DOM pill (same look as the map pills), placed from iconAt() each frame; tap -> meet() */
+  const PILL = { el: null };
+  function pillSync() { const on = typeof Explore !== 'undefined' && Explore.on && GM.g && !(typeof MosbyTalk !== 'undefined' && MosbyTalk.step); const p = on ? iconAt() : null; let e = PILL.el;
+    if (!p) { if (e) e.style.display = 'none'; return; }
+    if (!e) { e = PILL.el = document.createElement('button'); e.id = 'mosbyPill'; e.textContent = '🐢 Mosby'; e.setAttribute('aria-label', 'Walk to Mosby'); e.style.cssText = 'position:absolute;z-index:40;transform:translate(-50%,-100%);padding:3px 10px;border-radius:999px;border:1.5px solid #c99a45;background:rgba(52,96,60,.94);color:#f4f0dc;font:700 12px Georgia,serif;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,.4);cursor:pointer';
+      for (const ev of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) e.addEventListener(ev, (x) => x.stopPropagation()); e.addEventListener('click', (x) => { x.stopPropagation(); meet(); });
+      const host = (M3.renderer && M3.renderer.domElement && M3.renderer.domElement.parentElement) || document.body; host.appendChild(e); }
+    const cv = M3.renderer && M3.renderer.domElement, hb = e.parentElement.getBoundingClientRect(), cb = cv ? cv.getBoundingClientRect() : hb; e.style.display = ''; e.style.left = (cb.left - hb.left + p[0]) + 'px'; e.style.top = (cb.top - hb.top + p[1]) + 'px'; }
+  function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__mos) return; const R0 = M3.render; M3.render = function () { try { tick(); } catch (e) { if (!MS.err) console.error(MS.err = e); } try { if (M3.st && M3.st.ok && typeof Explore !== 'undefined' && Explore.ledgeFront) { const now = performance.now(), dt = Math.min(0.1, GM.last ? (now - GM.last) / 1000 : 0.016); GM.last = now; gTick(dt); } pillSync(); } catch (e) { if (!GM.err) console.error(GM.err = e); } return R0.apply(this, arguments); }; M3.render.__mos = true; }
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 500); }
-  return { MS, B, newMS, tSpeed, tripState, tAt, MEET, iconAt, iconHit, bodyHit, meet, talkTap, GM, GLOOP, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, gImpostor, IMP, get giant() { return GM.g; }, tick, build, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
+  return { MS, B, newMS, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, meet, talkTap, GM, GLOOP, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, gImpostor, IMP, get giant() { return GM.g; }, tick, build, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
 })();
 /* ===== Mosby's dialogue and the transport tortoise (Art: /workspace/mia/ui/v3/mosby_dialog, Direction B field kit) =====
    In person only (she is beside the giant and taps him): a wide leather-and-canvas bar low in the view, the brass porthole portrait over its top-left edge
