@@ -37,3 +37,5 @@
   - Known gaps: the caves are grey on tin walls, while the concept is warm orange rock; the ramp sides are straight-edged, with fewer boulders along the ramp than the concept (extra boulders would need colliders); Mosby's in-game shot has him mostly out of frame; the mole is still a bit warmer and more mottled than the sheet.
   - next steps (resume here):
     - Waiting on Dominic: Lumen door path stop point, port requirements, Mosby fee, the replacement name for "Delver", and the Ledge interior layout.
+- 2026-11-21 18243f5 Mosby shell ride pushed (no platform: walk on his carved shell, 30 deg boundary, Hop off within ~15 m, free, saved across reloads).
+- 2026-11-21 a3c18d4 test/mosbyride.js pushed: 1 run, 22 PASS / 2 FAIL (both the ground-tap check: the scan found no unblocked ground spot; scan fixed in this commit, not re-run). mosbytap PASS; mosbygiant 35 PASS / 1 FAIL (a foot 4.7 m into an ore field since cff71ba, route not re-planned).
