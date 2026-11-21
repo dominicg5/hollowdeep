@@ -278,10 +278,11 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .kGauge:after{content:'';position:absolute;left:calc(50% - 3px);top:calc(50% - 3px);width:6px;height:6px;border-radius:50%;background:#7a4f1c}
 .kGauge b{position:absolute;left:0;right:0;bottom:17%;text-align:center;font:700 8.5px Georgia,serif;color:#2a160a;white-space:nowrap}
 .kX,#bagSheet .bsx.kX,#tetherOrb .toBack.kX{flex:none;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;border:0;background:radial-gradient(circle at 50% 46%,#f7ead0 0 50%,#6e4a1c 53%,#f0cd82 60%,#b07a34 76%,#5e3c14 100%);color:#3a2412;font:700 19px Georgia,serif;line-height:44px;box-shadow:0 2px 4px rgba(0,0,0,.45);cursor:pointer}
-/* the backpack sheet over the map */
-#bagSheet{left:4px;right:4px;bottom:4px;height:38%;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk)}
-#bagSheet .bsh{margin:-8px -6px 4px 2px;gap:10px}#bagSheet .bsh h2{font-size:18px}
-#bagSheet .bsb{display:flex;flex-direction:column;padding:2px}#bagSheet .cxg{flex:1;grid-auto-rows:minmax(46px,1fr)}#bagSheet .cxs{aspect-ratio:auto}
+/* the backpack sheet over the map: all 20 slots visible, no title / gauge / footer, no scrolling */
+#bagSheet{left:4px;right:4px;bottom:4px;height:38%;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk);overflow:hidden;touch-action:manipulation}
+#bagSheet .bsh{display:flex;justify-content:flex-end;align-items:center;margin:-8px -8px 0 0;min-height:0}
+#bagSheet .bsx.kX{position:relative;top:0;right:0;width:36px;height:36px;min-width:36px;min-height:36px;line-height:36px;font-size:16px;z-index:3}
+#bagSheet .bsb{display:flex;flex-direction:column;padding:0 2px 2px;overflow:hidden;flex:1;min-height:0;position:relative}#bagSheet .cxg{flex:1;min-height:0;overflow:hidden;grid-auto-rows:1fr}#bagSheet .cxs{aspect-ratio:auto;min-height:0}#bagSheet .cxmenu{position:absolute;left:4px;right:4px;bottom:4px;z-index:4;margin-top:0}
 .kKit .cxg,#bagSheet .cxg{background:none;box-shadow:none;padding:3px;gap:8px;margin-top:4px}
 .kKit .cxs,.kKit .cxs.full,#bagSheet .cxs,#bagSheet .cxs.full{border-radius:7px;background:radial-gradient(110% 95% at 50% 38%,#3f2716,#22130a);box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 1px 0 3px rgba(255,222,170,.28)}
 .kKit .cxs.eq,#bagSheet .cxs.eq{box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #ffd36a,0 0 0 3px #4e2d12,0 0 9px 3px rgba(255,211,106,.55)}
@@ -378,7 +379,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherOrb .kv-set .toCard .toDim{color:#5a4026;text-shadow:none;text-align:center}
 #tetherOrb .kv-set .toSeg button{width:52px;padding:2px 3px;white-space:normal}#tetherOrb .kv-set .toIn.sm{min-width:80px}#tetherOrb .kv-set .toSw{flex-basis:52px;width:52px}
 .kKit .cxsv,#bagSheet .cxsv{transform:scale(1.35);transform-origin:50% 40%}
-#bagSheet .cxg{gap:7px}#bagSheet .kFoot{margin-top:6px}
+#bagSheet .cxg{gap:6px;margin-top:0}
 /* tap-a-tether bubble (Art's B_* field kit: moss canvas, brass close, blue enamel teleport buttons) */
 #tetherBub{position:absolute;z-index:60;box-sizing:border-box;width:min(300px,calc(100% - 16px));padding:4px 2px 6px;border:16px solid transparent;border-image:url(assets/ui/kit_moss.webp) 52 fill / 16px stretch;color:var(--kCream);font:13px Georgia,serif;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}#tetherBub.hidden{display:none}
 #tetherBub .tbTop{display:flex;align-items:center;gap:8px;margin:-6px -4px 8px}#tetherBub .tbI{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-size:18px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}

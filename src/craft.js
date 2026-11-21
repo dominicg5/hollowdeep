@@ -95,10 +95,11 @@ const Craft = (() => {
     h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal && xfer ? '<button class="btn ghost kBtn kCream" data-cx="close">Close</button>' : '') + '</div>'; }
   function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
     if (it && it.kind === 'drill') return drillMenuHTML(id, c);
-    if (it && it.kind === 'teth') return dropMenuHTML(id, c);
-    return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
+    if (it && it.kind === 'teth' && !st.menu.x) return dropMenuHTML(id, c); // drop-tether confirm only in the backpack; the vault transfer screen needs Move (length / all)
+    const u = it && it.unit === 'm' ? ' m' : '';
+    return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)}${u} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
       (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
-      (st.menu.x ? `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q} → ${to}</button>`).join('')}</div>` +
+      (st.menu.x ? `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}</div>` +
       `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` : `<div class="dim">${w === 'bag' ? 'Carried in the backpack. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : ''}</div>`) +
       `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
   // the Mithril Drill's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up
@@ -115,7 +116,7 @@ const Craft = (() => {
   function bagHTML(inModal) { if (st.menu && st.menu.w !== 'bag') st.menu = null; return gridsHTML(inModal, false); } // the Backpack (tab, modal, map sheet): carried items only, never the vault
   function xferHTML() { return gridsHTML(true, true); }
   // the Backpack as a bottom sheet over the map's Character view (about a third of the screen) until closed
-  function sheetHTML() { return `<div class="bsh"><h2>Backpack</h2>${gauge(used('bag'), BAG_N)}<button class="bsx kX" data-cx="sclose" aria-label="Close the backpack">✕</button></div><div class="bsb cxgrid" data-cxv="sheet">${gridHTML('bag')}<div class="kFoot">Stacks have no limit and no weight.</div>${st.menu && st.menu.w === 'bag' ? menuHTML() : ''}</div>`; }
+  function sheetHTML() { return `<div class="bsh"><button class="bsx kX" data-cx="sclose" aria-label="Close the backpack">✕</button></div><div class="bsb cxgrid" data-cxv="sheet">${gridHTML('bag')}${st.menu && st.menu.w === 'bag' ? menuHTML() : ''}</div>`; } // map sheet: all 20 slots, no title / gauge / footer, no scroll
   function sheet(on) { let el = document.getElementById('bagSheet'); if (!el && on) { el = document.createElement('div'); el.id = 'bagSheet'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Backpack'); (document.getElementById('cityWrap') || document.body).appendChild(el); }
     st.sheet = !!on; st.menu = null; if (!el) return false; el.classList.toggle('on', !!on); el.innerHTML = on ? sheetHTML() : ''; const b = document.getElementById('exBagBtn'); if (b) b.classList.toggle('sel', !!on); return !!on; }
   const sheetOn = () => !!st.sheet;
