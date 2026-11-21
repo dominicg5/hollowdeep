@@ -142,6 +142,14 @@ Town.art = (() => {
       if (c === 3) { P(() => g.arc(cx, cy, r * 0.7, 0, 6.283)); g.fillStyle = '#5fd6c8'; P(() => { g.moveTo(cx, cy - r * 0.45); g.lineTo(cx + r * 0.28, cy); g.lineTo(cx, cy + r * 0.45); g.lineTo(cx - r * 0.28, cy); g.closePath(); }); }
       if (c === 4) { P(() => g.roundRect(cx - r * 0.42, cy - r * 0.3, r * 0.7, r * 0.8, 10)); g.beginPath(); g.arc(cx + r * 0.32, cy + r * 0.08, r * 0.22, -1.4, 1.4); g.lineWidth = 9; g.stroke(); g.fillStyle = '#fbf3dc'; P(() => { g.arc(cx - r * 0.25, cy - r * 0.32, r * 0.2, 0, 6.283); g.arc(cx + r * 0.05, cy - r * 0.42, r * 0.22, 0, 6.283); g.arc(cx + r * 0.25, cy - r * 0.3, r * 0.17, 0, 6.283); }); }
       if (c === 5) { P(() => { g.moveTo(cx - r * 0.3, cy - r * 0.35); g.lineTo(cx + r * 0.3, cy - r * 0.35); g.lineTo(cx + r * 0.36, cy + r * 0.45); g.lineTo(cx - r * 0.36, cy + r * 0.45); g.closePath(); }); g.fillStyle = '#7ff0e0'; P(() => g.arc(cx, cy + r * 0.05, r * 0.18, 0, 6.283)); g.beginPath(); g.arc(cx, cy - r * 0.5, r * 0.18, Math.PI, 0); g.stroke(); } } }
+  // Dominic/Art: roof moss is a muted olive (#3F4424 .. #5E5A3A .. #7E7A40, dry #7A6A3A, lichen #5E5A3A), HSL saturation <= 0.35.
+  // Done in the moss shaders after map * vertex colour: desaturate to 40%, pull toward olive/brown and darken (MOSS_K, calibrated on the LIT
+  // zoom-18 frame like the cobbles), plus two incommensurate low-frequency value/dry waves over the UVs so the 2 m swatch repeat stops reading.
+  const MOSS_K = [0.74, 0.7, 0.47];
+  function olivePatch(m, store) { m.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+      { vec3 c = diffuseColor.rgb; float l = dot(c, vec3(0.3, 0.59, 0.11)); c *= mix(1.0, 0.13 / max(l, 0.015), 0.5); l = dot(c, vec3(0.3, 0.59, 0.11)); c = vec3(l) + (c - vec3(l)) * 0.32; c *= vec3(${MOSS_K.map((v) => v.toFixed(3)).join(',')});
+        vec2 q = vUv${store ? ' * 9.0' : ''}; float w1 = sin(q.x * 1.37 + sin(q.y * 0.91) * 1.7) * sin(q.y * 1.13 - q.x * 0.47 + 0.6), w2 = sin(q.x * 0.29 - q.y * 0.41 + 1.3) * sin(q.x * 0.53 + q.y * 0.37 + 2.1);
+        float dry = smoothstep(0.05, 0.55, w2 * 0.7 + w1 * 0.4); c = mix(c, vec3(l) * vec3(0.98, 0.84, 0.5) * 0.92, dry * 0.55); c *= 0.9 + 0.2 * w1; diffuseColor.rgb = c; }`); }; m.customProgramCacheKey = () => 'olive' + (store ? 1 : 0); }
   function tex(k) { if (TX[k]) return TX[k]; seed = 101 + Math.max(0, Object.keys(PAINT).indexOf(k)) * 977; const cv = k === 'sign' ? canvas(512, paintSigns) : canvas(256, PAINT[k] || PAINT.brass); const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = k === 'sign' ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
     if (SWATCH[k]) { const im = new Image(); im.onload = () => { t.image = im; t.needsUpdate = true; }; im.src = `assets/tex/town/${SWATCH[k]}.jpg`; } // Art's seamless swatch replaces the painted stand-in once it loads
     return (TX[k] = t); }
@@ -158,7 +166,7 @@ Town.art = (() => {
     else if (f === 'aged') m = new THREE.MeshPhongMaterial({ map: t, vertexColors: true, specular: 0x30271c, shininess: 9 });
     else if (f === 'shiny') m = new THREE.MeshLambertMaterial({ map: t, vertexColors: true }); // extras3: painted matte, no metallic glare
     else if (f === 'alpha') m = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    else m = new THREE.MeshLambertMaterial({ map: t, vertexColors: true }); if (k === 'storeMoss') { m.normalMap = mossNormal(); m.normalScale = new THREE.Vector2(1, 1); } m.side = THREE.DoubleSide; m.name = 'town_' + k; return (MATS[k] = m); }
+    else m = new THREE.MeshLambertMaterial({ map: t, vertexColors: true }); if (k === 'storeMoss') { m.normalMap = mossNormal(); m.normalScale = new THREE.Vector2(1, 1); } if (k === 'moss' || k === 'storeMoss') olivePatch(m, k === 'storeMoss'); m.side = THREE.DoubleSide; m.name = 'town_' + k; return (MATS[k] = m); }
   return { tex, mat, MAT, SIGN_CELLS };
 })();
 /* ---- geometry builder: primitives in a building's local metres (x across the front, y up, z out of the front), merged per material ---- */
@@ -222,7 +230,7 @@ Town.gb = (() => {
         const cush = (x, s) => { const a = vn(x / 0.52, s / 0.52, 1), m = vn(x / 0.31, s / 0.31, 2), sm2 = vn(x / 0.15, s / 0.15, 3); return Math.pow(a, 1.6) * 0.085 + Math.pow(m, 1.8) * 0.05 + sm2 * 0.02; };
         const MT = o.mossTint || [1, 1, 1], th0 = Math.atan2(1, 1) * (1 + hsh(sg, 3) * 6), cr0 = Math.cos(th0), sr0 = Math.sin(th0);
         const NX = Math.max(4, Math.round(sx / 0.36)), NT = Math.max(4, Math.round(L / 0.36)), lipT = Math.min(0.3, 0.35 / L);
-        const edgeW = (x, t) => 1 - Math.min(1, Math.min(t * L, (1 - t) * L, x - X0, X1 - x) / 0.6), lift = (x, t) => o.store ? (()=>{ const z=zE+(zm-zE)*t, hs=storeHs(x,z); return hs+(storeH(x,z)-hs)*edgeW(x,t); })() : .30 + cush(x,t*L)*(.06/.155) + .10*(1-Math.min(1,Math.min(t,1-t)*L/.6)), col = (x, t) => { const c0 = cush(x, t * L) / 0.155, ao = 0.8 + 0.3 * c0, dry = Math.max(0, Math.min(1, (vn(x / 1.4, t * L / 1.4, 5) - 0.62) * 4)) * (0.6 + 0.4 * t), mac = 1 + 0.12 * (vn(x / 4.5, t * L / 4.5, 6) - 0.5), lip = t < lipT * 0.5 ? 0.82 : 1;
+        const edgeW = (x, t) => 1 - Math.min(1, Math.min(t * L, (1 - t) * L, x - X0, X1 - x) / 0.6), lift = (x, t) => o.store ? (()=>{ const z=zE+(zm-zE)*t, hs=storeHs(x,z); return hs+(storeH(x,z)-hs)*edgeW(x,t); })() : .30 + cush(x,t*L)*(.06/.155) + .10*(1-Math.min(1,Math.min(t,1-t)*L/.6)), col = (x, t) => { const c0 = cush(x, t * L) / 0.155, ao = 0.8 + 0.3 * c0, dry = Math.max(0, Math.min(1, (vn(x / 1.4, t * L / 1.4, 5) - 0.48) * 3.5)) * (0.6 + 0.4 * t), mac = 1 + 0.12 * (vn(x / 4.5, t * L / 4.5, 6) - 0.5), lip = t < lipT * 0.5 ? 0.82 : 1;
           const v = ao * mac * lip; return [v * MT[0] * (1 + 0.32 * dry), v * MT[1] * (1 + 0.08 * dry), v * MT[2] * (1 + 0.18 * dry)]; };
         const cutS = (x, t) => { const s0 = t * dz - ov, ax = Math.abs(x - 0.35); if (s0 < 0) return ax < 1.25; return 5.69 + 0.08 - ax * Math.tan(50 * Math.PI / 180) > ye + s0 * sl + 0.05 && ax < 1.3; };
         const UVp = (x, t) => { if(o.store)return [(x+4.65)/9.3,1-(zE+(zm-zE)*t+3.85)/7.7]; const s2 = t * L; return [(x * cr0 - s2 * sr0) / tl, (x * sr0 + s2 * cr0) / tl]; };
