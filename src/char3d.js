@@ -1385,55 +1385,157 @@ const CharView = (() => {
     LG.zap = cv(256, 64, (x, w, h) => { x.fillStyle = '#000'; x.fillRect(0, 0, w, h); x.strokeStyle = '#ffffff'; x.lineWidth = 1.4; const q = prng(5); for (let i = 0; i < 9; i++) { let px = q() * w, py = q() * h; x.beginPath(); x.moveTo(px, py); for (let j = 0; j < 6; j++) { px += (q() - 0.3) * 18; py += (q() - 0.5) * 14; x.lineTo(px, py); } x.stroke(); } });
     LG.enM = new THREE.MeshBasicMaterial({ color: 0x7cc4ff, map: cv(64, 8, (x, w, h) => { const gr = x.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, '#fff'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, w, h); }), transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending }); LG.enM.map.repeat.set(10, 1);
   }
-  /* ---------- map drill: the same Lifeline Drill bit (makeDrillBit per tier) on a brass hub, held on an iron A-frame and angled down into an ore node; a deploy-anywhere idle miner ---------- */
-  function mapDrill(grade, ore) { drillMats(); const g = new THREE.Group(); g.name = 'mapDrill'; const D = LG.drill, iron = toon(0x55585e), brass = toon(0xb3893f), brassDk = toon(0x8a6428), O = ORES[ore] || { spark: ore === 'tin' ? 0xdfe8ff : ore === 'coal' ? 0xffb060 : 0xff8a4a };
-    const dr = new THREE.Group(); dr.position.set(0, 0.36, 0); g.add(dr); // bit axis (+z) points forward and down into the node; tip ~ (0, 0.1, 0.75)
-    const zb = D.tip + D.L, hz = zb + 0.09 + D.hub / 2; dr.rotation.set(0.7, Math.PI, 0); /* ~40 deg down into the node */ // flip so the tip leads toward +z of g
-    const bit = makeDrillBit(grade); dr.add(bit); bit.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-    part(dr, cyl(0.085, 0.085, D.hub, 22).rotateX(Math.PI / 2), brass, [0, 0, hz]); part(dr, cyl(0.1, 0.1, 0.03, 22).rotateX(Math.PI / 2), brassDk, [0, 0, hz - D.hub / 2]); part(dr, cyl(0.055, 0.055, 0.04, 18).rotateX(Math.PI / 2), brassDk, [0, 0, hz + D.hub / 2 + 0.02]);
-    /* the Ledge Tether socket on the back of the hub (as on the portaledge drill, where the Lifeline drops into the hub): a flanged brass port with a dark bore and a glowing seat; the map tether plugs straight in */
-    const zs = hz + D.hub / 2 + 0.04; part(dr, cyl(0.075, 0.085, 0.09, 22).rotateX(Math.PI / 2), brass, [0, 0, zs + 0.045]); part(dr, new THREE.TorusGeometry(0.075, 0.016, 8, 22), brassDk, [0, 0, zs + 0.09]); part(dr, new THREE.CircleGeometry(0.058, 20), toon(0x141210), [0, 0, zs + 0.092]);
-    part(dr, new THREE.TorusGeometry(0.06, 0.006, 6, 22), new THREE.MeshBasicMaterial({ color: 0x9ff6ff }), [0, 0, zs + 0.095]); for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; part(dr, cyl(0.009, 0.009, 0.02, 6).rotateX(Math.PI / 2), brassDk, [Math.cos(a) * 0.1, Math.sin(a) * 0.1, zs + 0.01]); }
-    part(dr, cyl(0.03, 0.026, 0.1, 14), brass, [0, 0.11, hz]); part(dr, new THREE.TorusGeometry(0.022, 0.007, 6, 12), iron, [0, 0.18, hz], [0, Math.PI / 2, 0]);
-    // iron A-frame: two splayed legs under the hub and a back strut, feet on little pads
-    g.updateMatrixWorld(true); const hub = dr.localToWorld(V(0, -0.06, hz)), seg = (a, b, r) => { const d = b.clone().sub(a), L = d.length(), o = part(g, cyl(r, r, 1, 6), iron); o.position.copy(a).addScaledVector(d, 0.5); o.scale.set(1, L, 1); o.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); };
-    for (const f of [V(-0.32, 0, hub.z + 0.12), V(0.32, 0, hub.z + 0.12), V(0, 0, hub.z - 0.42)]) { seg(hub, f, 0.018); part(g, rbox(0.1, 0.025, 0.1, 0.008), iron, [f.x, 0.012, f.z]); }
-    // sparks off the bite
-    const N = 60, pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3)); const sp = new THREE.Points(pg, new THREE.PointsMaterial({ color: O.spark, size: 0.06, map: radial('rgba(255,255,255,1)', 'rgba(255,255,255,0)'), transparent: true, depthWrite: false })); sp.frustumCulled = false; g.add(sp);
-    ledgeLook(g); /* same flat-lit look as the Ledge view under the map's sRGB/ACES renderer */ g.updateMatrixWorld(true); const tip = dr.localToWorld(V(0, 0, D.tip)); g.userData = { sock: dr.localToWorld(V(0, 0, zs + 0.09)), sockDir: dr.localToWorld(V(0, 0, zs + 1)).sub(dr.localToWorld(V(0, 0, zs))).normalize(), bit, sp, tip, N, p: new Float32Array(N * 3), v: new Float32Array(N * 3), life: new Float32Array(N), r: prng(7), spin: 0 }; return g; }
-  function mapDrillTick(g, dt, on) { const u = g.userData; u.spin = lerp(u.spin, on ? LG.drill.rps * TAU : 0, 1 - Math.exp(-dt * 3)); u.bit.rotation.z -= u.spin * dt; if (LG.enM) LG.enM.map.offset.x -= dt * 2.2 * (u.spin / (LG.drill.rps * TAU));
-    const P = u.p, Vv = u.v, L = u.life, r = u.r, k = u.spin / (LG.drill.rps * TAU); for (let i = 0; i < u.N; i++) { if (L[i] <= 0 && r() < k * dt * 40) { P[i * 3] = u.tip.x; P[i * 3 + 1] = u.tip.y; P[i * 3 + 2] = u.tip.z; const th = r() * TAU, sp2 = 0.8 + r() * 1.6; Vv[i * 3] = Math.cos(th) * sp2; Vv[i * 3 + 1] = 0.8 + r() * 1.5; Vv[i * 3 + 2] = Math.sin(th) * sp2 - 0.6; L[i] = 0.2 + r() * 0.35; }
-      if (L[i] > 0) { L[i] -= dt; Vv[i * 3 + 1] -= 6.5 * dt; for (let j = 0; j < 3; j++) P[i * 3 + j] += Vv[i * 3 + j] * dt; } else P[i * 3 + 1] = -99; } u.sp.geometry.attributes.position.array.set(P); u.sp.geometry.attributes.position.needsUpdate = true; }
+  /* ---------- field / camp drill: a swappable bit on an adjustable stand (Art's stand_sheet, bit_sheet, stand_angle_adjust) ---------- */
+  const DEG = Math.PI / 180;
+  const DRILL_ANG = { // Art NOTES.md §7
+    pitchMin: -60 * DEG, pitchMax: 15 * DEG, step: 15 * DEG, pitchDef: -30 * DEG, yawStep: 15 * DEG,
+    pitches: [-60, -45, -30, -15, 0, 15].map((d) => d * DEG),
+    portY: 0.17, socketZ: -0.15, hubY: 0.82, hubR: 0.15, collarH: 0.035, bitL: 0.88,
+  };
+  DRILL_ANG.bitLen = Math.abs(DRILL_ANG.socketZ) + DRILL_ANG.collarH + DRILL_ANG.bitL; // hub centre → tip (level)
+  const STAND_LOOK = {
+    timber: { leg: 0x7a5230, band: 0x55585e, foot: 0x7a5230, moss: 0x6e7f3a, rope: 0xc9a66b, iron: 0x55585e, brass: 0xb8893a },
+    iron: { leg: 0x4e5258, band: 0x3a3d42, foot: 0x4e5258, rivet: 0x3a3d42, iron: 0x4e5258, brass: 0xb8893a },
+    brass: { leg: 0x4e5258, band: 0xd2a04a, foot: 0xd2a04a, iron: 0x4e5258, brass: 0xb8893a, bright: 0xd2a04a },
+    lumenite: { leg: 0x2e3136, band: 0xc8963e, foot: 0x2e3136, glow: 0x5fe8f0, iron: 0x2e3136, brass: 0xc8963e },
+  };
+  const BIT_SPARK = { bronze: 0xffb35c, iron: 0xffd9a0, steel: 0xe8f2ff, gold: 0xffe27a, mithril: 0xbfe0ff, rune: 0xb48cff, lumen: 0x7ff4ff, onyx: 0xc8301c };
+  const STAND_KEYS = Object.keys(STAND_LOOK);
+  function snapAng(a, step) { return Math.round(a / step) * step; }
+  // world delta from hub to the vein (y up) → yaw so the bit's -Z points at it, pitch snapped into the 6 notches
+  function drillAim(dx, dy, dz) { const yaw = snapAng(Math.atan2(-dx, -dz), DRILL_ANG.yawStep), horiz = Math.hypot(dx, dz), elev = Math.atan2(dy, horiz);
+    const inRange = elev >= DRILL_ANG.pitchMin - 1e-4 && elev <= DRILL_ANG.pitchMax + 1e-4, pitch = snapAng(clamp(elev, DRILL_ANG.pitchMin, DRILL_ANG.pitchMax), DRILL_ANG.step);
+    return { yaw, pitch, elev, inRange }; }
+  function drillTipOffset(pitch, yaw, sc = 1) { const L = DRILL_ANG.bitLen, cp = Math.cos(pitch), sp = Math.sin(pitch);
+    return { x: -L * cp * Math.sin(yaw) * sc, y: (DRILL_ANG.hubY + L * sp) * sc, z: -L * cp * Math.cos(yaw) * sc }; }
+  function setDrillPose(g, yaw, pitch) { const u = g.userData; if (!u || !u.yawNode) return g;
+    u.yaw = yaw; u.pitch = pitch; u.yawNode.rotation.y = yaw; u.hubPivot.rotation.x = pitch; return g; }
+  function setDrillAngle(g, pitch, yaw) { if (yaw == null) yaw = (g.userData && g.userData.yaw) || 0;
+    pitch = snapAng(clamp(pitch, DRILL_ANG.pitchMin, DRILL_ANG.pitchMax), DRILL_ANG.step);
+    if (yaw != null) yaw = snapAng(yaw, DRILL_ANG.yawStep);
+    return setDrillPose(g, yaw, pitch); }
+  function drillPortUp(g) { const p = g.userData && g.userData.tetherPort; if (!p) return V(0, 1, 0);
+    g.updateMatrixWorld(true); const q = new THREE.Quaternion(); p.getWorldQuaternion(q); return V(0, 1, 0).applyQuaternion(q).normalize(); }
+  function countTris(obj, ink = false) { let n = 0; obj.traverse((o) => { if (!o.isMesh) return; if (!ink && o.material === OUT) return;
+    const g = o.geometry, idx = g.index; n += (idx ? idx.count : g.attributes.position.count) / 3; }); return n; }
+  function swapDrillBit(g, grade) { const sock = g.userData && g.userData.bitSocket; if (!sock) return null;
+    const old = g.userData.bit, a = old ? old.rotation.z : 0; if (old) { sock.remove(old); old.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+    if (!grade) { g.userData.bit = null; g.userData.tipMark = null; return null; }
+    const b = makeDrillBit(grade); b.rotation.z = a; b.traverse((o) => { if (o.isMesh) o.castShadow = true; }); sock.add(b);
+    g.userData.bit = b; g.userData.tipMark = b.userData.tip; g.userData.bitSpark = BIT_SPARK[grade] || 0xffb35c; return b; }
+
   function makeDrillBit(key) { const G = GRADES[key] || GRADES.bronze, T = Math.max(0, G.tier), D = LG.drill, Lb = D.L, R0 = D.R, bit = new THREE.Group(); bit.name = 'drillbit'; bit.userData.grade = key; bit.userData.fx = [];
-    const metal = T === 6 ? new THREE.MeshPhongMaterial({ color: 0x8ff6ff, emissive: 0x1d93ad, specular: 0xffffff, shininess: 90, flatShading: true, transparent: true, opacity: 0.92 })
-      : G.shine ? new THREE.MeshPhongMaterial({ color: G.head, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }) : toon(G.head, null, G.emissive ? { emissive: G.emissive } : {});
-    const bindM = toon(G.bind), z0 = D.tip, zb = z0 + Lb, tipR = T === 0 ? 0.022 : T === 1 ? 0.014 : 0.006;
-    part(bit, new THREE.CylinderGeometry(R0, tipR, Lb, T >= 2 ? 28 : 20, 1).rotateX(Math.PI / 2), metal, [0, 0, z0 + Lb / 2]);
-    const zl = new THREE.MeshBasicMaterial({ color: LGRADES[(LG.tw || TWIN0()).a.grade].en, map: LG.zap, transparent: true, opacity: 0.6, depthWrite: false, blending: THREE.AdditiveBlending }); LG.zapM = zl; part(bit, new THREE.CylinderGeometry(R0 + 0.002, tipR + 0.002, Lb * 0.96, 24, 1, true).rotateX(Math.PI / 2), zl, [0, 0, z0 + Lb / 2], null, null, { ink: false, shadow: false });
-    if (T >= 2) part(bit, new THREE.ConeGeometry(0.012, 0.06, 10).rotateX(-Math.PI / 2), T >= 3 ? bindM : metal, [0, 0, z0 - 0.02]);
-    const helixC = (rOff, turns, ph = 0, n = 260) => { const pts = []; for (let i = 0; i <= n; i++) { const u = i / n, rr = tipR * 0.6 + (R0 - tipR * 0.6) * u + rOff, a = u * turns * TAU + ph; pts.push(V(Math.cos(a) * rr, Math.sin(a) * rr, z0 + 0.012 + u * (Lb - 0.03))); } return new THREE.CatmullRomCurve3(pts); };
-    const nF = [1, 1, 2, 2, 3, 2, 3, 2][T], turns = T === 0 ? 5 : 6.5 - (nF - 1) * 1.2, fr = T === 0 ? 0.015 : 0.013, fM = T === 3 ? bindM : T === 6 ? metal : toon(new THREE.Color(G.head).multiplyScalar(0.8).getHex());
-    for (let f = 0; f < nF; f++) { const ph = f / nF * TAU; part(bit, new THREE.TubeGeometry(helixC(0.004, turns, ph), 520, fr, 6, false), fM);
-      if (T === 2) part(bit, new THREE.TubeGeometry(helixC(0.016, turns, ph), 520, 0.004, 4, false), toon(0xf2f7fc), null, null, null, { ink: false });
-      if (f === 0) part(bit, new THREE.TubeGeometry(helixC(-0.004, turns, ph + 0.25), 520, 0.006, 5, false), LG.enM, null, null, null, { ink: false, shadow: false }); }
-    part(bit, cyl(R0 + 0.012, R0 + 0.012, 0.05, 24).rotateX(Math.PI / 2), T >= 3 ? bindM : metal, [0, 0, zb + 0.02]); part(bit, cyl(R0 - 0.02, R0 - 0.02, 0.05, 24).rotateX(Math.PI / 2), metal, [0, 0, zb + 0.065]);
-    if (T >= 1) { const nr = T >= 3 ? 10 : 6; for (let k = 0; k < nr; k++) { const a = k / nr * TAU; part(bit, ell(0.007, 0.007, 0.005, 8, 6), T >= 3 ? bindM : toon(0x4a4d52), [Math.cos(a) * (R0 + 0.012), Math.sin(a) * (R0 + 0.012), zb + 0.02], null, null, { ink: false }); } }
-    if (T >= 2) part(bit, new THREE.TorusGeometry(R0 + 0.01, 0.006, 6, 28), T >= 3 ? bindM : toon(0x9aa4ae), [0, 0, zb - 0.01]);
-    if (T === 3) { part(bit, cyl(R0 + 0.004, R0 + 0.004, 0.035, 24, true).rotateX(Math.PI / 2), toon(0, fabric(G.wrap, { seed: 25, weave: 0.22 })), [0, 0, zb - 0.045], null, null, { ink: false }); for (const u of [0.35, 0.6, 0.82]) part(bit, new THREE.TorusGeometry(tipR + (R0 - tipR) * u + 0.002, 0.003, 5, 26), toon(0x8a6418), [0, 0, z0 + u * Lb], null, null, { ink: false }); }
-    if (T === 4) { part(bit, new THREE.TubeGeometry(helixC(0.006, -4.5, 1.1), 420, 0.003, 4, false), toon(0xf6fbff, null, { emissive: 0x223040 }), null, null, null, { ink: false }); for (let k = 0; k < 6; k++) { const a = k / 6 * TAU + 0.26; part(bit, new THREE.OctahedronGeometry(0.011, 0), toon(0x9fd8ff, null, { emissive: 0x2a6a9a }), [Math.cos(a) * (R0 + 0.014), Math.sin(a) * (R0 + 0.014), zb + 0.045], null, [1, 1, 0.6], { ink: false }); } }
-    if (T === 5) { const rm = new THREE.MeshBasicMaterial({ map: runeTex(), color: G.glow, transparent: true, depthWrite: false, side: THREE.DoubleSide }); for (const u of [0.5, 0.8]) { const rr = tipR + (R0 - tipR) * u + 0.004; part(bit, new THREE.CylinderGeometry(rr, rr, 0.05, 28, 1, true).rotateX(Math.PI / 2), rm, [0, 0, z0 + u * Lb], null, null, { ink: false, shadow: false }); }
-      const gem = new THREE.MeshBasicMaterial({ color: 0xc9a2ff }); for (let k = 0; k < 4; k++) { const a = k / 4 * TAU; part(bit, new THREE.OctahedronGeometry(0.013, 0), gem, [Math.cos(a) * (R0 + 0.014), Math.sin(a) * (R0 + 0.014), zb + 0.045], null, [1, 1, 0.6], { ink: false }); }
-      const pl = new THREE.PointLight(G.glow, 0.25, 0.9, 2); pl.position.set(0, 0, z0 + Lb * 0.6); bit.add(pl); bit.userData.light = pl; }
-    if (T === 6) { const r = prng(61); for (let i = 0; i < 26; i++) { const u = 0.08 + i / 26 * 0.9, a = u * turns * TAU + r() * 0.4, rr = tipR + (R0 - tipR) * u; part(bit, new THREE.OctahedronGeometry(1, 0), metal, [Math.cos(a) * rr, Math.sin(a) * rr, z0 + u * Lb], [r() * 3, r() * 3, a], [0.012, 0.03 + r() * 0.015, 0.012], { ink: false }); }
-      const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial('rgba(170,250,255,.7)', 'rgba(90,220,255,.2)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); gl.scale.set(0.5, 0.5, 1); gl.position.set(0, 0, z0 + Lb * 0.45); bit.add(gl); bit.userData.glow = gl;
-      const pl = new THREE.PointLight(G.glow, 0.4, 1.1, 2); pl.position.set(0, 0, z0 + Lb * 0.5); bit.add(pl); bit.userData.light = pl; }
-    if (T === 7) { const veinM = new THREE.MeshBasicMaterial({ color: 0xff3418 }), sites = [], r = prng(41), thorn = toon(0x221d26); bit.userData.veins = veinM;
-      for (let f = 0; f < 2; f++) { const pts = []; for (let i = 0; i <= 120; i++) { const u = 0.05 + i / 120 * 0.92, a = u * turns * TAU + (f + 0.5) / 2 * TAU + 0.18 * Math.sin(u * 40 + f), rr = tipR + (R0 - tipR) * u + 0.002; pts.push(V(Math.cos(a) * rr, Math.sin(a) * rr, z0 + u * Lb)); }
-        const c = new THREE.CatmullRomCurve3(pts); part(bit, new THREE.TubeGeometry(c, 240, 0.0035, 4, false), veinM, null, null, null, { ink: false, shadow: false }); for (let i = 0; i < 26; i++) { const p = c.getPointAt((i + r()) / 26.5); sites.push([p, V(p.x, p.y, 0).normalize()]); } }
-      for (let i = 0; i < 14; i++) { const u = 0.15 + i / 14 * 0.8, a = u * turns * TAU, rr = tipR + (R0 - tipR) * u + 0.02, c = part(bit, new THREE.ConeGeometry(0.008, 0.035, 5), thorn, [Math.cos(a) * rr, Math.sin(a) * rr, z0 + u * Lb]); c.quaternion.setFromUnitVectors(V(0, 1, 0), V(Math.cos(a), Math.sin(a), 0)); }
-      for (let k = 0; k < 4; k++) { const a = k / 4 * TAU + 0.4; part(bit, new THREE.OctahedronGeometry(0.012, 0), new THREE.MeshBasicMaterial({ color: 0xff3a1c }), [Math.cos(a) * (R0 + 0.014), Math.sin(a) * (R0 + 0.014), zb + 0.045], null, [1, 1.3, 0.6], { ink: false }); }
-      const fl = flamePoints(sites); bit.add(fl); bit.userData.fx.push(fl); bit.userData.flames = fl; }
-    return bit; }
+    const body = T === 6 ? new THREE.MeshPhongMaterial({ color: 0x7ff4ff, emissive: 0x1d93ad, specular: 0xffffff, shininess: 90, flatShading: true, transparent: true, opacity: 0.92 })
+      : T === 7 ? toon(0x16131a) : G.shine ? new THREE.MeshPhongMaterial({ color: G.head, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }) : toon(G.head, null, G.emissive ? { emissive: G.emissive } : {});
+    const ironM = toon(0x6a6d72), brassM = toon(0xb8893a), zSeat = 0, zCol = -DRILL_ANG.collarH, zTip = zCol - Lb;
+    const tipR = T === 0 ? 0.022 : T === 1 ? 0.02 : T === 3 ? 0.01 : T === 4 ? 0.007 : T === 7 ? 0.016 : T === 6 ? 0.014 : 0.008;
+    // shared shank (into the hub, +Z), key tab at 12 o'clock, detent slot, collar flush at the seat (origin)
+    part(bit, cyl(0.04, 0.04, 0.10, 8).rotateX(Math.PI / 2), ironM, [0, 0, 0.05]);
+    part(bit, new THREE.BoxGeometry(0.020, 0.015, 0.06), ironM, [0, 0.0475, 0.04]);
+    part(bit, new THREE.BoxGeometry(0.022, 0.008, 0.028), toon(0x2a2c30), [0.038, 0, 0.05], null, null, { ink: false });
+    const colM = T === 5 || T === 6 || T === 7 ? brassM : T >= 3 ? toon(G.bind) : body;
+    part(bit, cyl(0.11, 0.11, 0.035, 12).rotateX(Math.PI / 2), colM, [0, 0, zCol / 2]);
+    if (T === 1) { for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; part(bit, new THREE.BoxGeometry(0.012, 0.012, 0.01), toon(0x4a4d52), [Math.cos(a) * 0.11, Math.sin(a) * 0.11, zCol / 2], null, null, { ink: false }); } }
+    if (T === 2) { part(bit, cyl(0.116, 0.1, 0.02, 12).rotateX(Math.PI / 2), colM, [0, 0, zCol / 2], null, null, { ink: false }); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; part(bit, new THREE.BoxGeometry(0.01, 0.01, 0.012), toon(0x9aa4ae), [Math.cos(a) * 0.112, Math.sin(a) * 0.112, zCol / 2], null, null, { ink: false }); } }
+    if (T === 3) { for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; part(bit, new THREE.BoxGeometry(0.018, 0.012, 0.028), colM, [Math.cos(a) * 0.118, Math.sin(a) * 0.118, zCol / 2], [0, 0, a], null, { ink: false }); } }
+    if (T === 4) { part(bit, new THREE.TorusGeometry(0.11, 0.005, 4, 10), toon(0x9cc0e6), [0, 0, zCol / 2], [0, 0, 0], null, { ink: false }); }
+    if (T === 7) { for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; const c = part(bit, new THREE.BoxGeometry(0.02, 0.012, 0.05), brassM, [Math.cos(a) * 0.12, Math.sin(a) * 0.12, zCol * 0.3], null, null, { ink: false }); c.lookAt(0, 0, zCol); } }
+    // spiral cone: tip toward -Z, base at the collar
+    part(bit, cyl(tipR, R0, Lb, 12).rotateX(Math.PI / 2), body, [0, 0, zCol - Lb / 2]);
+    const nF = [2, 2, 3, 3, 4, 3, 2, 3][T], turns = T === 0 ? 4 : T === 4 ? 8.5 : T === 2 || T === 5 ? 7 : 5.5, fr = T === 0 || T === 6 ? 0.016 : T === 2 || T === 4 ? 0.008 : 0.012;
+    const helixC = (rOff, ph, n = 12) => { const pts = []; for (let i = 0; i <= n; i++) { const u = i / n, z = zCol - 0.02 - u * (Lb - 0.06), rr = (R0 - (R0 - tipR) * u) + rOff, a = ph + u * turns * TAU; pts.push(V(Math.cos(a) * rr, Math.sin(a) * rr, z)); } return new THREE.CatmullRomCurve3(pts); };
+    const fM = T === 6 ? body : toon(new THREE.Color(G.head).multiplyScalar(0.85).getHex());
+    for (let f = 0; f < nF; f++) part(bit, new THREE.TubeGeometry(helixC(0.004, f / nF * TAU), 12, fr, 2, false), fM);
+    // tips: needle / iron 4-sided pyramid / spear / slim / crystal / ruby gem (iron is pointy, never a square chisel)
+    if (T === 1) part(bit, new THREE.ConeGeometry(0.03, 0.07, 4).rotateX(-Math.PI / 2), body, [0, 0, zTip - 0.02]);
+    else if (T === 3) part(bit, new THREE.ConeGeometry(0.014, 0.09, 8).rotateX(-Math.PI / 2), body, [0, 0, zTip - 0.03]);
+    else if (T === 4) part(bit, new THREE.ConeGeometry(0.01, 0.1, 8).rotateX(-Math.PI / 2), body, [0, 0, zTip - 0.035]);
+    else if (T === 6) part(bit, new THREE.OctahedronGeometry(0.055, 0), body, [0, 0, zTip - 0.02], [0.4, 0.2, 0.1], [0.7, 1.35, 0.7], { ink: false });
+    else if (T === 7) { const gem = new THREE.MeshPhongMaterial({ color: 0xc8301c, emissive: 0x5a0a08, specular: 0xff8060, shininess: 90, flatShading: true }); part(bit, new THREE.OctahedronGeometry(0.055, 0), gem, [0, 0, zTip - 0.025], [0.3, 0.15, 0.2], [0.85, 1.4, 0.85], { ink: false }); }
+    else if (T === 0 || T === 2 || T === 5) part(bit, new THREE.ConeGeometry(T === 0 ? 0.016 : 0.012, T === 0 ? 0.05 : 0.06, 8).rotateX(-Math.PI / 2), body, [0, 0, zTip - 0.02]);
+    if (T === 5) { const rm = new THREE.MeshBasicMaterial({ map: runeTex(), color: 0xb48cff, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+      for (const u of [0.35, 0.65]) { const rr = tipR + (R0 - tipR) * (1 - u) + 0.004; part(bit, new THREE.CylinderGeometry(rr, rr, 0.04, 10, 1, true).rotateX(Math.PI / 2), rm, [0, 0, zCol - u * Lb], null, null, { ink: false, shadow: false }); } }
+    const tipZ = zTip - (T === 4 ? 0.09 : T === 3 ? 0.08 : T === 1 ? 0.055 : T === 6 || T === 7 ? 0.07 : 0.045);
+    const tip = new THREE.Object3D(); tip.name = 'tip'; tip.position.set(0, 0, tipZ); bit.add(tip); bit.userData.tip = tip; bit.userData.spark = BIT_SPARK[key] || 0xffb35c; return bit; }
+
+  function makeDrillStand(tier, o = {}) { const key = STAND_LOOK[tier] ? tier : 'iron', L = STAND_LOOK[key], deck = !!o.deck, g = new THREE.Group(); g.name = 'drillStand';
+    const brass = toon(L.brass), brassDk = toon(0x8a6428), iron = toon(L.iron), legM = toon(L.leg), bandM = toon(L.band), footM = toon(L.foot);
+    const hubY = deck ? 0 : DRILL_ANG.hubY, footR = 0.70;
+    if (!deck) { // 3 splayed legs, footprint ~1.6 × bit length; the head yaws independently
+      for (let i = 0; i < 3; i++) { const a = i / 3 * TAU + Math.PI, x = Math.cos(a) * footR, z = Math.sin(a) * footR, lg = new THREE.Group(); g.add(lg);
+        const top = V(0, hubY - 0.06, 0), bot = V(x, 0.03, z), d = bot.clone().sub(top), len = d.length();
+        const pole = part(lg, cyl(0.028, 0.022, 1, 8), legM); pole.position.copy(top).addScaledVector(d, 0.5); pole.scale.set(1, len, 1); pole.quaternion.setFromUnitVectors(V(0, 1, 0), d.clone().normalize());
+        if (key === 'timber') { part(lg, rbox(0.08, 0.04, 0.08, 0.01), footM, [x, 0.02, z]); const moss = toon(L.moss); for (let k = 0; k < 3; k++) part(lg, new THREE.IcosahedronGeometry(0.035, 0), moss, [x + (k - 1) * 0.04, 0.02, z + (k % 2) * 0.03 - 0.01], null, [1.2, 0.45, 1], { ink: false });
+          for (const t of [0.25, 0.55, 0.8]) { const p = top.clone().lerp(bot, t); part(lg, new THREE.TorusGeometry(0.03, 0.007, 5, 8), toon(L.rope), [p.x, p.y, p.z], [d.z ? Math.atan2(d.y, Math.hypot(d.x, d.z)) : 0, Math.atan2(d.x, d.z), 0], null, { ink: false }); }
+          for (const t of [0.15, 0.85]) { const p = top.clone().lerp(bot, t); const b = part(lg, cyl(0.032, 0.032, 0.03, 8), toon(L.band)); b.position.copy(p); b.quaternion.copy(pole.quaternion); } }
+        else { part(lg, rbox(key === 'brass' ? 0.09 : 0.1, 0.03, key === 'brass' ? 0.09 : 0.1, 0.008), footM, [x, 0.015, z]);
+          for (const t of [0.2, 0.5, 0.82]) { const p = top.clone().lerp(bot, t); const b = part(lg, cyl(0.032, 0.032, 0.028, 8), bandM); b.position.copy(p); b.quaternion.copy(pole.quaternion); }
+          if (key === 'iron') for (const t of [0.2, 0.5, 0.82]) { const p = top.clone().lerp(bot, t); for (const s of [-1, 1]) part(lg, new THREE.BoxGeometry(0.01, 0.01, 0.01), toon(0x3a3d42), [p.x + 0.03 * s, p.y, p.z], null, null, { ink: false }); }
+          if (key === 'lumenite') { const glow = new THREE.MeshBasicMaterial({ color: 0x5fe8f0 }); const p0 = top.clone().lerp(bot, 0.15), p1 = top.clone().lerp(bot, 0.9), mid = p0.clone().add(p1).multiplyScalar(0.5), ld = p1.clone().sub(p0);
+            const sl = part(lg, cyl(0.006, 0.006, 1, 5), glow, null, null, null, { ink: false, shadow: false }); sl.position.copy(mid); sl.scale.set(1, ld.length(), 1); sl.quaternion.setFromUnitVectors(V(0, 1, 0), ld.normalize()); } }
+      }
+    } else part(g, rbox(0.28, 0.05, 0.28, 0.012), iron, [0, -0.12, 0]);
+    const yawNode = new THREE.Group(); yawNode.name = 'yawNode'; yawNode.position.y = hubY; g.add(yawNode);
+    // yaw turntable + wing lock knob (yaws with the head)
+    part(yawNode, new THREE.TorusGeometry(0.13, 0.018, 6, 20), iron, [0, -0.055, 0], [Math.PI / 2, 0, 0]);
+    part(yawNode, cyl(0.11, 0.11, 0.03, 14), iron, [0, -0.055, 0]);
+    const knob = new THREE.Group(); knob.position.set(0.15, -0.055, 0); yawNode.add(knob); part(knob, cyl(0.012, 0.012, 0.05, 6).rotateZ(Math.PI / 2), brass, [0, 0, 0]); part(knob, rbox(0.05, 0.012, 0.022, 0.004), brass, [0.03, 0, 0]);
+    const yoke = new THREE.Group(); yoke.name = 'yoke'; yawNode.add(yoke);
+    // U tilt yoke: two cheeks + a bridge that carries the Ledge Tether port (never tilts)
+    const cheekX = 0.195, cheekH = 0.22;
+    for (const sx of [-1, 1]) { part(yoke, rbox(0.04, cheekH, 0.08, 0.008), iron, [sx * cheekX, 0.02, 0]); for (let k = 0; k < 3; k++) part(yoke, new THREE.BoxGeometry(0.012, 0.012, 0.012), toon(0x3a3d42), [sx * cheekX, -0.06 + k * 0.07, 0.04], null, null, { ink: false }); }
+    part(yoke, rbox(0.40, 0.035, 0.07, 0.008), iron, [0, 0.15, 0]); // yoke bridge
+    // notched brass quadrant on the +X cheek, 15° stops from +15° to -60°
+    const qpts = [], qR = 0.14; for (let a = 15 * DEG; a >= -60 * DEG - 1e-6; a -= 3 * DEG) qpts.push(V(cheekX - 0.025, Math.sin(a) * qR, -Math.cos(a) * qR));
+    part(yoke, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(qpts), 16, 0.01, 4, false), brass);
+    for (const a of DRILL_ANG.pitches) part(yoke, rbox(0.018, 0.01, 0.018, 0.002), brassDk, [cheekX - 0.02, Math.sin(a) * qR, -Math.cos(a) * qR], null, null, { ink: false });
+    const tetherPort = new THREE.Group(); tetherPort.name = 'tetherPort'; tetherPort.position.set(0, DRILL_ANG.portY, 0); yoke.add(tetherPort);
+    part(tetherPort, cyl(0.04, 0.045, 0.06, 12), brass, [0, 0.01, 0]); part(tetherPort, new THREE.TorusGeometry(0.042, 0.01, 6, 14), brassDk, [0, 0.04, 0], [Math.PI / 2, 0, 0]);
+    part(tetherPort, new THREE.CircleGeometry(0.03, 12).rotateX(-Math.PI / 2), toon(0x141210), [0, 0.042, 0], null, null, { ink: false });
+    part(tetherPort, new THREE.TorusGeometry(0.028, 0.005, 5, 14), new THREE.MeshBasicMaterial({ color: 0x5fe8f0 }), [0, 0.045, 0], [Math.PI / 2, 0, 0], null, { ink: false, shadow: false });
+    part(yoke, cyl(0.022, 0.022, 0.1, 8), brass, [0, 0.08, 0], null, null, { ink: false }); // cosmetic swivel sleeve, stays on the yoke
+    const hubPivot = new THREE.Group(); hubPivot.name = 'hubPivot'; yoke.add(hubPivot);
+    const hub = new THREE.Group(); hub.name = 'hub'; hubPivot.add(hub);
+    // CYLINDER hub (not a ball): Ø0.30, length 0.30, centre at the pivot, front face at z=-0.15
+    part(hub, cyl(0.15, 0.15, 0.30, 20).rotateX(Math.PI / 2), brass, [0, 0, 0]);
+    part(hub, cyl(0.042, 0.042, 0.12, 12).rotateX(Math.PI / 2), toon(0x141210), [0, 0, -0.15 + 0.055], null, null, { ink: false }); // socket bore
+    part(hub, rbox(0.022, 0.03, 0.06, 0.002), toon(0x141210), [0, 0.042, -0.15 + 0.04], null, null, { ink: false }); // key notch at 12 o'clock
+    part(hub, cyl(0.018, 0.018, 0.06, 8).rotateX(Math.PI / 2), brassDk, [0, 0, 0.15 + 0.02]); // rear cap
+    part(hub, cyl(0.012, 0.012, 0.03, 6).rotateZ(Math.PI / 2), iron, [0, 0.15, 0.08]); // static spring pin (no swap animation)
+    // tilt pivot caps (the side caps on the stand sheet) + axle through the hub centre
+    part(yoke, cyl(0.045, 0.045, 0.42, 14).rotateZ(Math.PI / 2), brass, [0, 0, 0]);
+    for (const sx of [-1, 1]) { part(yoke, cyl(0.055, 0.055, 0.03, 14).rotateZ(Math.PI / 2), brass, [sx * 0.21, 0, 0]); part(yoke, cyl(0.02, 0.02, 0.02, 8).rotateZ(Math.PI / 2), brassDk, [sx * 0.23, 0, 0]); }
+    part(hub, rbox(0.16, 0.1, 0.18, 0.012), iron, [0, -0.14, 0.02]); // bearing block, hangs with the hub
+    // locking lever + wooden knob on the hub: the tooth rides the quadrant as the hub pitches
+    const lever = new THREE.Group(); lever.name = 'lever'; lever.position.set(cheekX - 0.06, 0, 0); hub.add(lever);
+    part(lever, cyl(0.01, 0.01, 0.12, 6), iron, [0, 0.05, 0], [0, 0, 0.4]); part(lever, new THREE.SphereGeometry(0.022, 8, 6), toon(0x7a5230), [0, 0.11, 0.02]);
+    const bitSocket = new THREE.Group(); bitSocket.name = 'bitSocket'; bitSocket.position.set(0, 0, DRILL_ANG.socketZ); hub.add(bitSocket);
+    g.userData = { tier: key, deck, yawNode, yoke, hubPivot, hub, bitSocket, tetherPort, lever, pitch: 0, yaw: 0, bit: null };
+    setDrillPose(g, o.yaw || 0, o.pitch != null ? o.pitch : (deck ? 0 : DRILL_ANG.pitchDef)); return g; }
+
+  function mapDrill(grade, ore, standKey, ang) { drillMats(); const g = new THREE.Group(); g.name = 'mapDrill'; const O = ORES[ore] || { spark: ore === 'tin' ? 0xdfe8ff : ore === 'coal' ? 0xffb060 : 0xff8a4a };
+    const stand = makeDrillStand(standKey || 'iron', ang || {}); g.add(stand);
+    const bit = grade ? swapDrillBit(stand, grade) : null;
+    const N = 60, pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
+    pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
+    const sp = new THREE.Points(pg, new THREE.PointsMaterial({ vertexColors: true, size: 0.06, map: radial('rgba(255,255,255,1)', 'rgba(255,255,255,0)'), transparent: true, depthWrite: false })); sp.frustumCulled = false; g.add(sp);
+    const oc = new THREE.Color(O.spark), bc = new THREE.Color((stand.userData.bitSpark) || 0xffb35c);
+    ledgeLook(g); g.updateMatrixWorld(true);
+    const u = stand.userData, tip = V(0, 0, 0);
+    g.updateMatrixWorld(true);
+    const sock = V(0, DRILL_ANG.hubY + DRILL_ANG.portY + 0.045, 0);
+    if (u.tetherPort) { u.tetherPort.localToWorld(sock); g.worldToLocal(sock); }
+    Object.assign(g.userData, u, { stand, sp, N, p: new Float32Array(N * 3), v: new Float32Array(N * 3), life: new Float32Array(N), col: new Float32Array(N * 3), r: prng(7), spin: 0, oreCol: oc, bitCol: bc, tip, sock, sockDir: V(0, 1, 0) });
+    return g; }
+  function mapDrillTick(g, dt, on) { const u = g.userData; u.spin = lerp(u.spin, on ? LG.drill.rps * TAU : 0, 1 - Math.exp(-dt * 3)); if (u.bit) u.bit.rotation.z -= u.spin * dt;
+    if (u.tipMark) { u.tipMark.getWorldPosition(u.tip); g.worldToLocal(u.tip); } else if (u.bit && u.bit.userData.tip) { u.bit.userData.tip.getWorldPosition(u.tip); g.worldToLocal(u.tip); }
+    const P = u.p, Vv = u.v, L = u.life, C = u.col, r = u.r, k = u.spin / (LG.drill.rps * TAU), oc = u.oreCol, bc = u.bitCol;
+    for (let i = 0; i < u.N; i++) { if (L[i] <= 0 && r() < k * dt * 40) { P[i * 3] = u.tip.x; P[i * 3 + 1] = u.tip.y; P[i * 3 + 2] = u.tip.z; const th = r() * TAU, sp2 = 0.8 + r() * 1.6; Vv[i * 3] = Math.cos(th) * sp2; Vv[i * 3 + 1] = 0.8 + r() * 1.5; Vv[i * 3 + 2] = Math.sin(th) * sp2 - 0.6; L[i] = 0.2 + r() * 0.35;
+        const flash = r() < 0.2, cr = flash ? bc : oc; C[i * 3] = cr.r; C[i * 3 + 1] = cr.g; C[i * 3 + 2] = cr.b; }
+      if (L[i] > 0) { L[i] -= dt; Vv[i * 3 + 1] -= 6.5 * dt; for (let j = 0; j < 3; j++) P[i * 3 + j] += Vv[i * 3 + j] * dt; } else P[i * 3 + 1] = -99; }
+    u.sp.geometry.attributes.position.array.set(P); u.sp.geometry.attributes.position.needsUpdate = true;
+    if (u.sp.geometry.attributes.color) { u.sp.geometry.attributes.color.array.set(C); u.sp.geometry.attributes.color.needsUpdate = true; } }
+
   /* ---------- the Ledge Tether per tier; a pulse rises along it only while ore is moving (LG.xfer: auto = while the drill sends up a load, on, off) ---------- */
 
   /* ---------- twin Ledge Tethers: every Ledge Tether is two twined strands, A and B, each with its own tier and its own direction (to / from the Ledge) ---------- */
@@ -1500,10 +1602,13 @@ const CharView = (() => {
     return grp; }
   const rr2 = (U) => (U.rr || 0.02) * 2.6;
   function lifelineState(t) { return LG.xfer === 'on' ? 1 : LG.xfer === 'off' ? 0 : (t % 8 < 3 ? 1 : 0); } // auto: the drill sends a load up every 8 s and the line carries it for 3 s
-  function setDrillGrade(key) { if (!GRADES[key] || key === 'stick') key = 'bronze'; LG.dg = key; if (LG.drillG) { const old = LG.bit, a = old ? old.rotation.z : 0; if (old) { LG.drillG.remove(old); old.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+  function setDrillGrade(key) { if (!GRADES[key] || key === 'stick') key = 'bronze'; LG.dg = key;
+    if (LG.standG) { const b = swapDrillBit(LG.standG, key); if (b) { b.traverse((o) => { if (o.isMesh) o.receiveShadow = true; }); LG.bit = b; } else LG.bit = null; }
+    else if (LG.drillG) { const old = LG.bit, a = old ? old.rotation.z : 0; if (old) { LG.drillG.remove(old); old.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
       const b = makeDrillBit(key); b.rotation.z = a; b.traverse((o) => { if (o.isMesh) o.receiveShadow = true; }); LG.drillG.add(b); LG.bit = b; } ledgeMark(); }
-  function setLine(tw) { LG.tw = twinOf(tw); LG.lg = LG.tw.a.grade; if (LG.drillG) { if (LG.line) { LG.drillG.remove(LG.line); LG.line.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
-      const l = makeLifeline(LG.tw); l.position.set(0, 0, LG.hubZ); LG.drillG.add(l); LG.line = l; const en = LGRADES[LG.tw.a.grade].en; LG.enM.color.setHex(en); if (LG.zapM) LG.zapM.color.setHex(en); } ledgeMark(); }
+  function setLine(tw) { LG.tw = twinOf(tw); LG.lg = LG.tw.a.grade; const hold = LG.portHold || LG.drillG;
+    if (hold) { if (LG.line) { LG.line.parent && LG.line.parent.remove(LG.line); LG.line.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
+      const l = makeLifeline(LG.tw); l.position.set(0, 0, 0); hold.add(l); LG.line = l; const en = LGRADES[LG.tw.a.grade].en; if (LG.enM) LG.enM.color.setHex(en); if (LG.zapM) LG.zapM.color.setHex(en); } ledgeMark(); }
   function setLineGrade(key) { if (!LGRADES[key]) key = 'bronze'; const t = twinOf(LG.tw); t.a.grade = key; t.b.grade = key; setLine(t); } // both strands
   function setStrand(w, ch) { const t = twinOf(LG.tw); Object.assign(t[w === 'b' ? 'b' : 'a'], ch); setLine(t); if (typeof S !== 'undefined' && S) { S.ledgeLine = LG.tw; delete S.lineGrade; if (typeof save === 'function') save(); } }
   function setOre(key) { if (!ORES[key]) key = 'mithril'; LG.ore = key; if (LG.cliff) buildVein(key); const e = document.getElementById('ledgeOre'); if (e) e.textContent = ORES[key].name; ledgeMark(); }
@@ -1573,21 +1678,18 @@ const CharView = (() => {
     // small details: a bucket of crystals by the tent (no hammer, no loose rope on the deck)
     bucket(g, V(0.95, 0.07, LG.z0 + LG.D - 0.2), 0.8); /* no loose rope on the deck by the drill and the mining spot */
     LG.rocks.push(part(cliff, rockGeo(0.8, 0.9, 0.34, 4242, 0.05), rock, [LG.drill.x, LG.drill.y + 0.1, -0.17])); // rock boss the bit bites into, face at z ~ 0
-    // Ledge Tether Drill (idle miner): a spiral cone bit lying on the deck, perpendicular to the cliff, its tip boring into the vein; brass hub at the back on one iron bearing block (its only support);
-    // the Ledge Tether drops from above into the hub. No engine, no gearbox, nothing touches the spinning bit. The bit and the Ledge Tether are rebuilt per tier (setDrillGrade / setLineGrade).
-    { const D = LG.drill, ore = ORES[LG.ore] || ORES.mithril, dr = new THREE.Group(); dr.position.set(D.x, D.y, 0); g.add(dr); LG.drillG = dr;
-      const brass = toon(0xb3893f), brassDk = toon(0x8a6428);
+    // Drill on the deck: the same stand hierarchy (no tripod legs), pitch 0° (level into the cliff vein). The Ledge Tether port sits on the yoke so the line stays vertical. The bit and the line are rebuilt per tier (setDrillGrade / setLineGrade).
+    { const D = LG.drill, ore = ORES[LG.ore] || ORES.mithril, dr = new THREE.Group(); g.add(dr); LG.drillG = dr;
       drillMats(true);
-      const zb = D.tip + D.L, hz = zb + 0.09 + D.hub / 2; LG.hubZ = hz;
-      part(dr, cyl(0.085, 0.085, D.hub, 22).rotateX(Math.PI / 2), brass, [0, 0, hz]); part(dr, cyl(0.1, 0.1, 0.03, 22).rotateX(Math.PI / 2), brassDk, [0, 0, hz - D.hub / 2]);
-      part(dr, cyl(0.055, 0.055, 0.04, 18).rotateX(Math.PI / 2), brassDk, [0, 0, hz + D.hub / 2 + 0.02]); part(dr, cyl(0.03, 0.03, 0.04, 14).rotateX(Math.PI / 2), brass, [0, 0, hz + D.hub / 2 + 0.06]);
-      part(dr, cyl(0.03, 0.026, 0.1, 14), brass, [0, 0.11, hz]); part(dr, cyl(0.04, 0.04, 0.02, 14), brassDk, [0, 0.08, hz]); part(dr, new THREE.TorusGeometry(0.022, 0.007, 6, 12), iron, [0, 0.18, hz], [0, Math.PI / 2, 0]);
-      for (let k = 0; k < 2; k++) part(dr, new THREE.TorusGeometry(0.024, 0.0075, 6, 12), iron, [0, 0.22 + k * 0.04, hz], [0, k ? 0 : Math.PI / 2, 0]);
-      const by = -D.y + 0.07; part(dr, rbox(0.1, D.y - 0.07 - 0.05, 0.12, 0.01), iron, [0, by + (D.y - 0.12) / 2 + 0.035, hz]); part(dr, rbox(0.2, 0.05, 0.2, 0.012), iron, [0, by + 0.025, hz]); part(dr, rbox(0.14, 0.03, 0.15, 0.01), iron, [0, -0.06, hz]);
+      const stand = makeDrillStand('iron', { deck: true, pitch: 0, yaw: 0 });
+      const Ltip = DRILL_ANG.bitLen; // at pitch 0 the tip is Ltip along -Z from the hub
+      stand.position.set(D.x, D.y, D.tip + Ltip); dr.add(stand);
+      LG.standG = stand; LG.portHold = stand.userData.tetherPort; LG.hubZ = D.tip + Ltip; LG.bitSocket = stand.userData.bitSocket;
       const bl = new THREE.PointLight(ore.spark, 0.6, 1.6, 2); bl.position.set(D.x, D.y, 0.2); g.add(bl); LG.biteL = bl;
       const vl = new THREE.PointLight(ore.glow, 0.08 + ore.gl * 0.5, 2.6, 2); vl.position.set(LG.char.x / LG.S + 0.1, 0.6, 0.45); g.add(vl); LG.veinL = vl;
-      const N = 220, pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3)); const spM = new THREE.PointsMaterial({ color: ore.spark, size: 0.05, map: radial('rgba(255,255,255,1)', 'rgba(255,255,255,0)'), transparent: true, depthWrite: false, sizeAttenuation: true });
-      const sp = new THREE.Points(pg, spM); sp.frustumCulled = false; g.add(sp); LG.sparks = { pts: sp, p: new Float32Array(N * 3), v: new Float32Array(N * 3), life: new Float32Array(N), N, acc: 0, rnd: prng(99) };
+      const N = 220, pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(N * 3), 3));
+      const spM = new THREE.PointsMaterial({ vertexColors: true, size: 0.05, map: radial('rgba(255,255,255,1)', 'rgba(255,255,255,0)'), transparent: true, depthWrite: false, sizeAttenuation: true });
+      const sp = new THREE.Points(pg, spM); sp.frustumCulled = false; g.add(sp); LG.sparks = { pts: sp, p: new Float32Array(N * 3), v: new Float32Array(N * 3), life: new Float32Array(N), col: new Float32Array(N * 3), N, acc: 0, rnd: prng(99), oreCol: new THREE.Color(ore.spark), bitCol: new THREE.Color(BIT_SPARK[LG.dg] || 0xffb35c) };
       // a streak layer (short line segments along each spark's velocity) so they read as sparks, not dots
       const lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(N * 6), 3)); const ls = new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: ore.spark, transparent: true, opacity: 0.95, depthWrite: false })); ls.frustumCulled = false; g.add(ls); LG.sparks.lines = ls; LG.bite = V(D.x, D.y, D.tip + 0.01); }
     g.traverse((o) => { if (o.isMesh && o.material !== OUT) o.receiveShadow = true; }); g.scale.setScalar(LG.S); g.visible = false; LG.g = g; LG.cliff = cliff;
@@ -1601,13 +1703,16 @@ const CharView = (() => {
     if (ln) { const U = ln.userData, w = [strandLoad(t, 0), strandLoad(t, 1)], m1 = twinTick(U.main, t, dt, w); twinTick(U.tailCord, t, dt, w); LG.xl = Math.max(...U.main.userData.strands.map((x) => x.xl)); LG.moving = !!m1; }
     const st2 = document.getElementById('ledgeXferS'); if (st2) { const s = LG.moving ? 'moving ore' : 'idle'; if (st2.textContent !== s) st2.textContent = s; }
     const k = on ? 1 : 0, fl = 0.6 + 0.4 * Math.sin(t * 37) * Math.sin(t * 23); LG.biteL.intensity = k * (0.25 + 0.2 * fl); if (LG.biteGlow) { LG.biteGlow.scale.setScalar(0.85 + 0.3 * fl * k); LG.biteGlow.material.opacity = (0.5 + 0.5 * k * fl) * (ORES[LG.ore].gl + 0.1); }
-    const S2 = LG.sparks, P = S2.p, Vv = S2.v, L = S2.life, r = S2.rnd, b = LG.bite; S2.acc += dt * 260 * k * LG.spin / (LG.drill.rps * TAU);
+    if (LG.bit && LG.bit.userData.tip && LEDGE) { LG.bit.userData.tip.getWorldPosition(LG.bite); LEDGE.worldToLocal(LG.bite); }
+    if (LG.sparks) LG.sparks.bitCol.setHex(BIT_SPARK[LG.dg] || 0xffb35c);
+    const S2 = LG.sparks, P = S2.p, Vv = S2.v, L = S2.life, r = S2.rnd, b = LG.bite, Cc = S2.col; S2.acc += dt * 260 * k * LG.spin / (LG.drill.rps * TAU);
     for (let i = 0; i < S2.N; i++) { if (L[i] <= 0 && S2.acc >= 1) { S2.acc -= 1; const a = r() * TAU, rr = 0.02 * r(); P[i * 3] = b.x + Math.cos(a) * rr; P[i * 3 + 1] = b.y + Math.sin(a) * rr; P[i * 3 + 2] = b.z + 0.01;
+        const flash = r() < 0.2, cr = flash ? S2.bitCol : S2.oreCol; if (Cc) { Cc[i * 3] = cr.r; Cc[i * 3 + 1] = cr.g; Cc[i * 3 + 2] = cr.b; }
         const sp = 1.2 + r() * 2.4, th = r() * TAU, cone = 0.35 + r() * 1.0; Vv[i * 3] = Math.cos(th) * Math.sin(cone) * sp; Vv[i * 3 + 1] = Math.sin(th) * Math.sin(cone) * sp + 0.6; Vv[i * 3 + 2] = Math.cos(cone) * sp * 0.8; L[i] = 0.18 + r() * 0.4; }
       if (L[i] > 0) { L[i] -= dt; Vv[i * 3 + 1] -= 6.5 * dt; for (let j = 0; j < 3; j++) { Vv[i * 3 + j] *= Math.exp(-dt * 1.5); P[i * 3 + j] += Vv[i * 3 + j] * dt; } if (P[i * 3 + 2] < 0.01) { P[i * 3 + 2] = 0.01; Vv[i * 3 + 2] *= -0.4; } if (P[i * 3 + 1] < 0.08 && P[i * 3 + 2] > 0.06) L[i] = 0; } }
     const pa = S2.pts.geometry.attributes.position, la = S2.lines.geometry.attributes.position;
     for (let i = 0; i < S2.N; i++) { const live = L[i] > 0, x = live ? P[i * 3] : 0, y = live ? P[i * 3 + 1] : -50, z = live ? P[i * 3 + 2] : 0; pa.setXYZ(i, x, y, z); const s = 0.035; la.setXYZ(i * 2, x, y, z); la.setXYZ(i * 2 + 1, x - Vv[i * 3] * s, y - Vv[i * 3 + 1] * s, z - Vv[i * 3 + 2] * s); }
-    pa.needsUpdate = true; la.needsUpdate = true; lpTick(dt); }
+    pa.needsUpdate = true; la.needsUpdate = true; if (S2.col && S2.pts.geometry.attributes.color) { S2.pts.geometry.attributes.color.array.set(S2.col); S2.pts.geometry.attributes.color.needsUpdate = true; } lpTick(dt); }
   /* ---------- Hanging Camp play: she walks the portaledge deck, mines the ore vein and climbs the cliff, on the Playground's own walker / climb system.
      The camp is laid out in that system's wall frame (x along the cliff, y up, z out from it; the body 0.36 m off the rock) turned by yaw pi and offset onto the deck:
      world = rotY(pi) * frame + LP.off. The deck is the walkable ground (the drill, tent and rigging kept clear), the cliff above it the climbable wall. ---------- */
@@ -2676,5 +2781,5 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
     const G = st.gnd; if (!G) return false; let x = q.x, z = q.z; const L = Math.hypot(x, z); if (L > TR.RW) { x *= TR.RW / L; z *= TR.RW / L; } navTo(G, x, z, () => { st.pg = null; }); pgMark({ x: G.goal.x, z: G.goal.z, y: trHeight(G.goal.x, G.goal.z) }); st.pg = { home: true, tree: true }; return true; }
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
-  return { flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, vaultState, VAULT_SECTIONS, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
+  return { flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, vaultState, VAULT_SECTIONS, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
