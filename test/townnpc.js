@@ -16,7 +16,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
     for (const n of L) { const route = Explore.plan(door.x, door.y, n.sp.talk[0], n.sp.talk[1]), pts = route && route.pts, end = pts && pts.length ? Math.hypot(pts[pts.length - 1][0] - n.sp.talk[0], pts[pts.length - 1][1] - n.sp.talk[1]) / T.WS : 99;
       const k = n.kit || {}, img = k.mesh && k.mesh.material.map && k.mesh.material.map.image;
       r.people.push({ id: n.id, solid: !!Explore.solidAt(n.x, n.y), end: +end.toFixed(1), climb: route ? route.climb : -1, tris: Math.round(n.tris), lods: n.lodTris, h: +(n.hgt / T.WS).toFixed(2),
-        skinned: !!(k.mesh && k.mesh.isSkinnedMesh && k.outline && k.outline.isSkinnedMesh), bones: k.mesh ? k.mesh.skeleton.bones.length : 0, atlas: img ? [img.width, img.height] : [0, 0] }); }
+        skinned: !!(k.mesh && k.mesh.isSkinnedMesh && k.outline && k.outline.isSkinnedMesh), bones: k.mesh ? k.mesh.skeleton.bones.length : 0, atlas: img ? [img.width, img.height] : [0, 0], art: /^art:/.test((NpcKit.ST.keepers[n.id] || {}).extras && NpcKit.ST.keepers[n.id].extras.look || '') }); }
     // idle: the library idle clip moves the spine over time
     const n0 = L[0], sp = n0.kit && (n0.kit.bones.spine_02 || n0.kit.bones.spine_01), q0 = sp ? sp.quaternion.clone() : null; const t2 = performance.now(); while (performance.now() - t2 < 400); F.tick();
     r.idle = sp ? 1 - Math.abs(q0.dot(sp.quaternion)) : 0; r.noBank = !T.BLD.some(b => b.id === 'bank') && !L.some(n => n.id === 'ambrose'); return r; });
@@ -24,7 +24,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
   ok(o.noBank, 'no bank or Ambrose'); ok(o.n === 5, `five townsfolk, no Ambrose (${o.n})`); ok(o.kit, `all five keepers built from the NPC kit (${(o.gb / 1024).toFixed(0)} KB glb)`); ok(o.idle > 1e-7, `idle clip moves (${o.idle.toExponential(2)})`);
   const BUD = { goldie: 6000, brannick: 6000, tess: 6000, hattie: 6000, fennick: 6000 };
   for (const q of o.people) { ok(q.skinned && q.bones >= 20 && q.bones <= 40 + 4, `${q.id}: one skinned mesh + ink outline, ${q.bones} bones`); ok(q.atlas[0] === 1024 && q.atlas[1] === 1024, `${q.id}: one 1024 atlas (${q.atlas.join('x')})`);
-    ok(q.lods[1] <= q.tris * 0.52 && q.lods[2] <= q.tris * 0.4, `${q.id}: LOD topology ${q.lods.join('/')} tris`); ok(q.solid, `${q.id}: solid`); ok(q.end < 3 && q.climb === 0, `${q.id}: reachable from the Ledge (talk spot ${q.end} m off, climb ${q.climb})`); ok(q.tris > 2500 && q.tris <= BUD[q.id], `${q.id}: ${q.tris} tris at LOD0 (${q.h} m tall)`); }
+    ok(q.lods[1] <= q.tris * 0.52 && q.lods[2] <= q.tris * (q.art ? 0.21 : 0.4), `${q.id}: LOD topology ${q.lods.join('/')} tris (far LOD <= ${q.art ? '20% on Art\'s kit' : '40% until Art\'s kit lands'})`); ok(q.solid, `${q.id}: solid`); ok(q.end < 3 && q.climb === 0, `${q.id}: reachable from the Ledge (talk spot ${q.end} m off, climb ${q.climb})`); ok(q.tris > 2500 && q.tris <= BUD[q.id], `${q.id}: ${q.tris} tris at LOD0 (${q.h} m tall)`); }
   for (const id of ['goldie', 'fennick']) {
     const s = await p.evaluate((id) => { const n = Town.folk.ST.list.find((q) => q.id === id), [x, y] = n.sp.talk, dx = x - n.x, dy = y - n.y, l = Math.hypot(dx, dy); Explore.enter(x + dx / l * Town.WS * 4, y + dy / l * Town.WS * 4); const E = Explore.EX; E.d = 70; E.tilt = 0.6; E.az = Math.atan2(dx, dy); for (let k = 0; k < 30; k++) Explore.tick(1 / 30); return id; }, id);
     await p.waitForTimeout(1200);

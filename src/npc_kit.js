@@ -42,7 +42,7 @@ const NpcKit = (() => {
     goldie: { idle: 'idle', work: 'interact', workEvery: [9, 16], grips: { hand_r: 'book' }, stance: 0.13 },
     brannick: { idle: 'idle', work: null, grips: { hand_r: 'hammer' } },
     tess: { idle: 'idle', work: 'interact', workEvery: [8, 14], grips: {} },
-    hattie: { idle: 'idle', work: null, grips: { hand_l: 'tray_l', hand_r: 'tray_r' }, stance: 0.12 },
+    hattie: { idle: 'idle', work: null, grips: { hand_r: 'tray_r', hand_l: 'tray_l' }, stance: 0.12 }, // tray on prop_r (right palm), left hand on its rim
     fennick: { idle: 'idle', work: null, grips: { hand_r: 'staff' }, stance: 0.08 } };
   // ---- build one keeper
   function create(id, opt) { opt = opt || {}; if (!has(id)) return null; const g = ST.gl, K = ST.keepers[id], kn = g.nodes[K.node], root = new THREE.Group(); root.name = 'npc_' + id;
@@ -88,9 +88,10 @@ const NpcKit = (() => {
     if (ctx.camDist != null) { const L = ctx.camDist > 30 ? 2 : ctx.camDist > 15 ? 1 : 0; if (L !== k.lod) { k.lod = L; k.mesh.geometry = k.outline.geometry = k.lods[Math.min(L, k.lods.length - 1)]; } k.outline.visible = ctx.camDist < 40; }
     // clip state: talk while in conversation, an occasional work loop, the idle otherwise
     const want = ctx.talking ? (k.acts.talk || k.cur) : k.working ? k.working : (k.acts[k.role.idle] || k.acts.idle);
-    if (!ctx.talking && k.role.work && k.acts[k.role.work] && !k.working) { k.workT -= dt; if (k.workT <= 0) { const w = k.acts[k.role.work]; w.reset(); w.setLoop(THREE.LoopOnce, 1); w.clampWhenFinished = false; k.working = w; k.workEnd = t + w.getClip().duration * 0.98; const [a, b] = k.role.workEvery || [10, 16]; k.workT = a + Math.random() * (b - a); } }
+    if (!ctx.talking && !ctx.walking && k.role.work && k.acts[k.role.work] && !k.working) { k.workT -= dt; if (k.workT <= 0) { const w = k.acts[k.role.work]; w.reset(); w.setLoop(THREE.LoopOnce, 1); w.clampWhenFinished = false; k.working = w; k.workEnd = t + w.getClip().duration * 0.98; const [a, b] = k.role.workEvery || [10, 16]; k.workT = a + Math.random() * (b - a); } }
     if (k.working && (t > k.workEnd || ctx.talking)) k.working = null;
-    const tgt = ctx.talking ? (k.acts.talk || k.cur) : k.working || (k.acts[k.role.idle] || k.acts.idle);
+    if (ctx.walking) k.working = null;
+    const tgt = ctx.talking ? (k.acts.talk || k.cur) : ctx.walking && k.acts.walk ? k.acts.walk : k.working || (k.acts[k.role.idle] || k.acts.idle);
     if (tgt !== k.cur) { tgt.reset().play(); if (tgt === k.working) tgt.setLoop(THREE.LoopOnce, 1); else tgt.setLoop(THREE.LoopRepeat, Infinity); k.cur.crossFadeTo(tgt, 0.45, false); k.cur = tgt; }
     k.mixer.update(dt);
     // turn: the body part of the way, the head the rest

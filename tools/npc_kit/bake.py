@@ -53,6 +53,11 @@ J = {n: bone_head(arm, n) for n in KEEP}
 for fn in C.get('shape', []): fn(J, out, body)
 for o in allm: merge_fingers(o); drop_groups(o, set(KEEP))
 gen = C['gen'](arm, J) if 'gen' in C else []
+CARRY_G = None
+if C.get('carry') == 'tray':   # Hattie: tray + tankards on the right palm socket, left hand on the rim
+    import carry; carry.ensure_socket(arm, 'r'); J['prop_r'] = bone_head(arm, 'prop_r')
+    hold = [o for o in gen if o.name.split('.')[0] in ('tray', 'mugs', 'foam')]; hold.sort(key=lambda o: o.name != 'tray')
+    CARRY_G = carry.tray_hold(hold, J, C.get('carry_yaw', 150))
 for o in gen: src[o.name] = 3
 for n, t in C.get('dec', {}).items():
     o = body if n == 'head' else eyes if n == 'eyes' else out.get(n)
@@ -72,6 +77,7 @@ if PREV:
             t = Vector((nx[0], -nx[2], nx[1])) if nx else h + (h - prev_h) * 0.8
             b = E.new(n); b.head = h; b.tail = t if (t - h).length > 1e-3 else h + Vector((0, 0, -0.05)); b.parent = par; b.use_connect = False; par = b; prev_h = h
     for s_ in 'lr':
+        if 'prop_' + s_ in E: continue
         hb = E['hand_' + s_]; mid = E.get('middle_01_' + s_); tip = mid.head if mid else hb.tail
         b = E.new('prop_' + s_); b.head = (hb.head + tip) / 2; b.tail = b.head + (tip - hb.head).normalized() * 0.06; b.parent = hb; b.use_connect = False
     bpy.ops.object.mode_set(mode='OBJECT')
@@ -95,7 +101,7 @@ for gname, objs in groups.items():
     g = join(objs, 'grp_' + gname) if len(objs) > 1 else objs[0]
     unwrap_pack(g, RECTS[gname], angle=C.get('uv_angle', {}).get(gname, 60)); done.append(g)
 kp = join(done, 'keeper_' + K)
-bones = KEEP + C.get('extra_bones', [])
+bones = KEEP + C.get('extra_bones', []) + (['prop_r'] if CARRY_G else [])
 mesh, TT = extract(kp, bones)
 texs = {'body': PT.Tex(first(TEX[G]), 2048), 'outfit': PT.Tex(first(TEX['P']), 2048)}
 fcv = PT.face_canvas(C['lm'], C['pal'], extra=C.get('face_extra'))
@@ -109,5 +115,7 @@ meta = {'bones': bones, 'heads': [list(map(float, Jy[b])) for b in bones], 'h': 
 for k2, a in mesh.items():
     a = np.ascontiguousarray(a); a.tofile(os.path.join(D, k2 + '.bin')); meta['arrays'][k2] = [str(a.dtype), list(a.shape)]
 meta['grips'] = {n: {'bone': bb, 'pos': [float(v.x), float(v.z), float(-v.y)], 'pole': [float(p[0]), float(p[2]), float(-p[1])]} for n, (bb, v, p) in C['grips'](J, hc, hr).items()} if 'grips' in C else {}
+if CARRY_G:
+    import carry; meta['grips'].update(carry.grips_meta(CARRY_G))
 json.dump(meta, open(os.path.join(D, 'meta.json'), 'w'))
 print('EXPORT', K, 'verts', len(mesh['pos']), 'tris', len(mesh['idx']) // 3, 'bones', len(bones))

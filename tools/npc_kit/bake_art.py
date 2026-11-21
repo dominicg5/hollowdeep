@@ -3,7 +3,7 @@
 #   stray Icosphere removed, root bone at the floor, head shape pass (rounder / cartoonier, everything on the head follows),
 #   smoothed head normals (SubD transfer), per-vertex face AO, softer curl-lobe normals, apron pulled toward the skirt,
 #   back straps densified and lifted off the body, a hem cap under the skirt, ledger carried by hand_r.
-# usage: python bake_art.py goldie
+# usage: python bake_art.py <keeper>   (reads art/<keeper>_preview.glb + art/<keeper>_atlas_1024.png; no per-keeper code)
 import sys, os, math, json
 sys.path.insert(0, os.path.dirname(__file__))
 from kitlib import *
@@ -23,8 +23,21 @@ M = {o.name: o for o in bpy.data.objects if o.type == 'MESH'}
 bpy.context.view_layer.objects.active = arm; arm.select_set(True); bpy.ops.object.mode_set(mode='EDIT'); eb = arm.data.edit_bones['root']; d = eb.tail - eb.head; eb.head = Vector((0, 0, 0)); eb.tail = d
 bpy.ops.object.mode_set(mode='OBJECT')
 J = {n: bone_head(arm, n) for n in KEEP}
-head = M['Superhero_Female']; eyes = M['Eyes']
-HEADPARTS = [n for n in ('Eyes', 'glasses', 'goldie_hair', 'goldie_bun', 'goldie_pencil') if n in M]
+# ---- parts by role (Art's names are <keeper>_<part> or the base names; no per-keeper code)
+def base(n): n = n.split('.')[0].lower(); return n[len(K) + 1:] if n.startswith(K + '_') else n
+def kw(n, *ws): b = base(n); return any(w in b for w in ws)
+HAIRW = ('hair', 'bun', 'curl', 'lobe', 'braid', 'beard', 'mustache', 'moustache', 'brow', 'lock', 'tuft', 'ringlet')
+def find(pred):
+    c_ = [o for n, o in sorted(M.items()) if pred(n)]; return c_[0] if c_ else None
+head = find(lambda n: base(n).startswith('superhero')); eyes = find(lambda n: base(n) == 'eyes')
+def dom_bone(o):
+    names = {g.index: g.name for g in o.vertex_groups}; cnt = {}
+    for v in o.data.vertices:
+        if v.groups: g = max(v.groups, key=lambda e: e.weight); cnt[names[g.group]] = cnt.get(names[g.group], 0) + 1
+    return max(cnt, key=cnt.get) if cnt else None
+HEADPARTS = [n for n, o in M.items() if o is not head and (dom_bone(o) in ('Head',) or (dom_bone(o) or '').startswith('braid_'))]
+HAIRPARTS = [n for n in M if kw(n, *HAIRW)]
+print('ROLES head', head.name, 'eyes', eyes.name, 'headparts', HEADPARTS, 'hair', HAIRPARTS)
 def wget(o, v, name):
     g = o.vertex_groups.get(name)
     if not g: return 0.0
@@ -53,7 +66,7 @@ kd.balance()
 for i, v in enumerate(head.data.vertices): v.co = orig[i] + disp[i]
 for n in HEADPARTS:
     o = M[n]
-    if n == 'Eyes':   # each eyeball moves rigidly with its socket
+    if o is eyes:   # each eyeball moves rigidly with its socket
         for s in (1, -1):
             vs = [v for v in o.data.vertices if v.co.x * s > 0]
             if not vs: continue
@@ -112,10 +125,9 @@ def soften(o, k=0.55):
     bm.free()
     for p in o.data.polygons: p.use_smooth = True
     o.data.normals_split_custom_set_from_vertices(nrm)
-for n in ('goldie_hair', 'goldie_bun'):
-    if n in M: soften(M[n])
+for n in HAIRPARTS: soften(M[n])
 # ---- apron: follow the skirt bell in the side view (stays >= 3 cm off it) instead of hanging out like a board
-sk = M.get('goldie_skirt'); ap = M.get('goldie_apron')
+sk = find(lambda n: kw(n, 'skirt')); ap = find(lambda n: kw(n, 'apron') and not kw(n, 'tie', 'strap', 'band', 'bow'))
 if sk and ap:
     sv = [v.co.copy() for v in sk.data.vertices]
     for v in ap.data.vertices:
@@ -124,8 +136,8 @@ if sk and ap:
         tgt = min(near) - 0.03
         if v.co.y < tgt: v.co.y = tgt + (v.co.y - tgt) * 0.3
 # ---- back straps: densify the 7-point polylines and lift them 12 mm off the vest so they stop cutting through on the back
-st_o = M.get('goldie_bib_straps'); bo = M['Female_Peasant_Body']
-if st_o:
+st_o = find(lambda n: kw(n, 'strap')); bo = find(lambda n: kw(n, '_peasant_body'))
+if st_o and bo:
     bm = bmesh.new(); bm.from_mesh(st_o.data); bmesh.ops.subdivide_edges(bm, edges=[e for e in bm.edges if e.calc_length() > 0.03], cuts=2, use_grid_fill=True); bm.to_mesh(st_o.data); bm.free()
     bt = bmesh.new(); bt.from_mesh(bo.data); bt.normal_update(); body_bvh = BVHTree.FromBMesh(bt); bt.free()
     for v in st_o.data.vertices:
@@ -150,26 +162,37 @@ if sk:
     me = bpy.data.meshes.new('hem_cap'); bm.to_mesh(me); bm.free(); cap = bpy.data.objects.new('hem_cap', me); bpy.context.collection.objects.link(cap)
     cap.parent = arm; g = cap.vertex_groups.new(name='pelvis'); g.add(list(range(len(me.vertices))), 1.0, 'REPLACE'); mm = cap.modifiers.new('arm', 'ARMATURE'); mm.object = arm
     me.materials.append(sk.data.materials[0]); set_ao(cap, np.ones(len(me.vertices), np.float32)); M['hem_cap'] = cap
-# ---- ledger carried by hand_r: rigid-weight it to the hand, placed in the hand's rest frame so that when the IK puts the wrist on the
-# grip and the runtime turns the hand with the torso (+ carry yaw), the book sits exactly where it was designed
-grips = C['grips'](J, c, r); gb, G, pole = grips['book']; CARRY = math.radians(C.get('carry_yaw', 100))
-lg = M.get('ledger')
-if lg:
-    Rz = Matrix.Rotation(-CARRY, 3, 'Z')
+# ---- held props
+# book (Goldie's ledger): rigid on hand_r, placed in the hand's rest frame so that when the IK puts the wrist on the grip and the
+# runtime turns the hand with the torso (+ carry yaw), the book sits exactly where it was designed
+import carry
+gfn = C.get('grips'); allg = gfn(J, c, r) if gfn else {}; GRIPS = {}
+lg = find(lambda n: kw(n, 'ledger', 'book'))
+if lg and 'book' in allg:
+    gb, G, pole = allg['book']; CARRY = math.radians(C.get('carry_yaw', 100)); Rz = Matrix.Rotation(-CARRY, 3, 'Z')
     for v in lg.data.vertices: v.co = J['hand_r'] + Rz @ (v.co - G)
     for gg in list(lg.vertex_groups): lg.vertex_groups.remove(gg)
     lg.vertex_groups.new(name='hand_r').add(list(range(len(lg.data.vertices))), 1.0, 'REPLACE')
+    GRIPS['book'] = (gb, G, pole, {'bone': 'spine_02', 'yaw': CARRY})
+# tray (Hattie): Art weights it 100 % to prop_r, modelled where it is held (forward at chest height); carry.tray_hold moves it into
+# the right hand's frame and returns the right grip (on the chest bone, + carry) and the left rim grip (on prop_r)
+held = [o for n, o in M.items() if o.vertex_groups.get('prop_r') and dom_bone(o) == 'prop_r']
+if held and C.get('carry') == 'tray':
+    carry.ensure_socket(arm, 'r'); J['prop_r'] = bone_head(arm, 'prop_r'); held.sort(key=lambda o: not kw(o.name, 'tray'))
+    GRIPS.update(carry.tray_hold(held, J, C.get('carry_yaw', 150)))
+for n, g in allg.items():   # other one-hand grips from the keeper config (hammer, staff), unchanged
+    if n not in GRIPS and n != 'book' and not n.startswith('tray'): GRIPS[n] = tuple(g) + (None,)
 # ---- mitten rig (23 bones)
-EXTRA = [n for n in ('braid_00', 'braid_01', 'braid_02', 'braid_03', 'prop_l', 'prop_r') if n in arm.data.bones and any(o.vertex_groups.get(n) for o in M.values())]
+EXTRA = [n for n in ('braid_00', 'braid_01', 'braid_02', 'braid_03', 'prop_l', 'prop_r') if n in arm.data.bones and (any(o.vertex_groups.get(n) for o in M.values()) or any(g[0] == n for g in GRIPS.values()))]
 BONES = KEEP + EXTRA   # Art's props may ride the palm sockets prop_l / prop_r (children of the hands); Tess's braid chain
 for n in EXTRA: J[n] = bone_head(arm, n)
 for o in M.values(): merge_fingers(o); drop_groups(o, set(BONES))
 rep = {n: tris(o) for n, o in M.items()}; print('TRIS', json.dumps(rep), sum(rep.values()))
 # ---- tags for the extractor: src 0 skin / 1 eyes / 2 cloth; rg 15 glasses, 16 ledger, 12 hair (ink widths)
-RG = {'glasses': 15, 'ledger': 16, 'goldie_hair': 12, 'goldie_bun': 12, 'goldie_pencil': 30}
+def rg_of(n): return 15 if kw(n, 'glasses', 'goggle', 'spectacle') else 16 if kw(n, 'ledger', 'book') else 30 if kw(n, 'pencil') else 12 if kw(n, *HAIRW) else 0
 for n, o in M.items():
-    s = 0 if n == 'Superhero_Female' else 1 if n == 'Eyes' else 2
-    for nm, val in (('src', s), ('rg', RG.get(n, 0))):
+    s = 0 if o is head else 1 if o is eyes else 2
+    for nm, val in (('src', s), ('rg', rg_of(n))):
         at = o.data.attributes.new(nm, 'INT', 'FACE'); at.data.foreach_set('value', [val] * len(o.data.polygons))
     uvs = o.data.uv_layers; uvs[0].name = 'UVatlas'
     if 'UVorig' not in uvs: uvs.new(name='UVorig')
@@ -182,6 +205,6 @@ Jy = {n: (v.x, v.z, -v.y) for n, v in J.items()}
 meta = {'bones': BONES, 'heads': [list(map(float, Jy[b])) for b in BONES], 'h': C['h'], 'arrays': {}, 'look': 'art:' + K + '_preview.glb'}
 for k2, a in mesh.items():
     a = np.ascontiguousarray(a); a.tofile(os.path.join(D, k2 + '.bin')); meta['arrays'][k2] = [str(a.dtype), list(a.shape)]
-meta['grips'] = {'book': {'bone': gb, 'pos': [float(G.x), float(G.z), float(-G.y)], 'pole': [float(pole[0]), float(pole[2]), float(-pole[1])], 'carry': {'bone': 'spine_02', 'yaw': CARRY}}}
+meta['grips'] = carry.grips_meta(GRIPS)
 json.dump(meta, open(os.path.join(D, 'meta.json'), 'w'))
 print('EXPORT', K, 'verts', len(mesh['pos']), 'tris', len(mesh['idx']) // 3, 'bones', len(BONES))

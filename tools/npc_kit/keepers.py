@@ -148,13 +148,13 @@ CFG['hattie'] = dict(g='F', h=1.62, curl={'l': 30, 'r': 30}, drop_outfit=['legs'
     dec={'head': 1100, 'eyes': 120, 'arms': 700, 'body': 600, 'feet': 500}, lm=dict(FEMALE_LM, brow_w=1.2), scalp=scalp_hairline(46, 30, -20))
 def hattie_shape(J, out, body): goldie_shape(J, out, body)
 def tray_geo(J):
-    c = Vector((0, J['spine_01'].y - 0.30, J['spine_01'].z + 0.08)); return c
+    c = Vector((0, J['spine_02'].y - 0.30, J['spine_02'].z + 0.07)); return c   # forward at chest height (Art)
 def hattie_gen(arm, J):
     body = bpy.data.objects['Superhero_Female']; res, vb, zt, zh = skirt_apron(arm, J, flare=0.13, apron_angle=58, bib_angle=34)
     L = [(-150, 60, -160, 36), (-100, 62, -110, 34), (-55, 64, -62, 40), (55, 64, 62, 40), (100, 62, 110, 34), (150, 60, 160, 36), (180, 64, 180, 30),
          (-20, 70, -32, 50), (25, 70, 36, 50), (-125, 40, -135, 12), (125, 40, 135, 12), (165, 38, 172, 6), (-165, 38, -172, 6)]
     hair, c, r = hair_lobes(arm, body, L, 0.03, silver=[(-5, 72, -12, 50)])
-    # tray (wood disc + rim) with three tankards and foam, carried at the waist; rides on the chest bone, hands IK onto its rim
+    # placeholder tray (wood disc + rim) with three tankards and foam, authored where it is held; carry.tray_hold moves it onto prop_r
     bm = bmesh.new(); tc = tray_geo(J)
     cyl(bm, tc, 0.22, 0.22, 0.025, seg=14); 
     tray = new_obj('tray', bm, arm, lambda co: {'spine_02': 1.0}, 18, closed=True)
@@ -385,3 +385,5 @@ CFG['fennick'].update(gen=fennick_gen, grips=fennick_grips, pal=dict(
 
 CFG['brannick']['pal']['arm_fn'] = arm_split(-0.15, cuff=(0.72, 0.92, hx(0x6A4428)))
 CFG['fennick']['pal']['arm_fn'] = arm_split(0.94, sleeve_col=hx(0x56603A))
+
+CFG['hattie']['carry'] = 'tray'; CFG['hattie']['carry_yaw'] = 150

@@ -17,7 +17,7 @@ const parentOf = {}; for (const n of U.listNodes()) for (const c of n.listChildr
 function worldQ(name) { const q = new THREE.Quaternion(); const chain = []; let n = name; while (n) { chain.unshift(n); n = parentOf[n]; } for (const c of chain) { const r = unode[c].getRotation(); q.multiply(new THREE.Quaternion(...r)); } return q; }
 const doc = new Document(); const R = doc.getRoot(); const buf = doc.createBuffer();
 doc.createExtension(KHRMeshQuantization).setRequired(true); const webp = doc.createExtension(EXTTextureWebP).setRequired(true);
-const scene = doc.createScene('npc_kit'); const CLIPS = { idle: 'Idle_Loop', talk: 'Idle_Talking_Loop', interact: 'Interact', torch: 'Idle_Torch_Loop', drive: 'Driving_Loop', pickup: 'PickUp_Table' };
+const scene = doc.createScene('npc_kit'); const CLIPS = { idle: 'Idle_Loop', talk: 'Idle_Talking_Loop', interact: 'Interact', torch: 'Idle_Torch_Loop', drive: 'Driving_Loop', pickup: 'PickUp_Table', walk: 'Walk_Loop' };
 const acc = (arr, type, norm) => doc.createAccessor().setArray(arr).setType(type).setNormalized(!!norm).setBuffer(buf);
 let template = null; const report = {};
 for (const id of ids) {
@@ -51,7 +51,7 @@ for (const id of ids) {
     const I16 = new Uint16Array(ix); lodTris.push(I16.length / 3);
     const prim = doc.createPrimitive().setIndices(acc(I16, 'SCALAR')).setAttribute('POSITION', aP).setAttribute('NORMAL', aN).setAttribute('TEXCOORD_0', aU).setAttribute('JOINTS_0', aJ).setAttribute('WEIGHTS_0', aW).setAttribute('_INKW', aI); if (aC) prim.setAttribute('COLOR_0', aC); prim.setMaterial(mat);
     const node = doc.createNode(id + '_lod' + li).setMesh(doc.createMesh(id + '_lod' + li).addPrimitive(prim)).setSkin(skin); keeper.addChild(node); });
-  keeper.setExtras({ h: meta.h, grips: meta.grips, pelvisY: heads[bones.indexOf('pelvis')][1], tris: lodTris, bones: bones.length });
+  keeper.setExtras({ h: meta.h, look: meta.look || 'kit', grips: meta.grips, pelvisY: heads[bones.indexOf('pelvis')][1], tris: lodTris, bones: bones.length });
   report[id] = { verts: nv, tris: lodTris, bones: bones.length };
   if (!template) template = bn;
 }
