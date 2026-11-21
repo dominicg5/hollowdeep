@@ -280,8 +280,8 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .kX,#bagSheet .bsx.kX,#tetherOrb .toBack.kX{flex:none;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;border:0;background:radial-gradient(circle at 50% 46%,#f7ead0 0 50%,#6e4a1c 53%,#f0cd82 60%,#b07a34 76%,#5e3c14 100%);color:#3a2412;font:700 19px Georgia,serif;line-height:44px;box-shadow:0 2px 4px rgba(0,0,0,.45);cursor:pointer}
 /* the backpack sheet over the map: all 20 slots visible, no title / gauge / footer, no scrolling */
 #bagSheet{left:4px;right:4px;bottom:4px;height:38%;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk);overflow:hidden;touch-action:manipulation}
-#bagSheet .bsh{display:flex;justify-content:flex-end;align-items:center;margin:-8px -8px 0 0;min-height:0}
-#bagSheet .bsx.kX{position:relative;top:0;right:0;width:36px;height:36px;min-width:36px;min-height:36px;line-height:36px;font-size:16px;z-index:3}
+#bagSheet .bsh{display:flex;justify-content:flex-end;align-items:center;margin:0;padding:0 0 2px;min-height:0;flex:none}
+#bagSheet .bsx.kX{position:relative;top:auto;right:auto;width:36px;height:36px;min-width:36px;min-height:36px;line-height:36px;font-size:16px;z-index:3;margin:0;flex:none}
 #bagSheet .bsb{display:flex;flex-direction:column;padding:0 2px 2px;overflow:hidden;flex:1;min-height:0;position:relative}#bagSheet .cxg{flex:1;min-height:0;overflow:hidden;grid-auto-rows:1fr}#bagSheet .cxs{aspect-ratio:auto;min-height:0}#bagSheet .cxmenu{position:absolute;left:4px;right:4px;bottom:4px;z-index:4;margin-top:0}
 .kKit .cxg,#bagSheet .cxg{background:none;box-shadow:none;padding:3px;gap:8px;margin-top:4px}
 .kKit .cxs,.kKit .cxs.full,#bagSheet .cxs,#bagSheet .cxs.full{border-radius:7px;background:radial-gradient(110% 95% at 50% 38%,#3f2716,#22130a);box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 1px 0 3px rgba(255,222,170,.28)}
@@ -441,9 +441,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='7387acb5';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7387acb5</div>
-<script src="assets/vendor/three.min.js?v=7387acb5"></script>
+<script>window.HD_BUILD='8e33d792';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 8e33d792</div>
+<script src="assets/vendor/three.min.js?v=8e33d792"></script>
 <script>
 'use strict';
 
