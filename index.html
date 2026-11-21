@@ -386,7 +386,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherBub .tbN{flex:1;display:flex;flex-direction:column;min-width:0}#tetherBub .tbN b{font:700 16px Georgia,serif;color:#f8ecd2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#tetherBub .tbN small{color:#e3d3b0;font-size:12px}
 #tetherBub .tbX{width:34px;height:34px;min-width:34px;min-height:34px;line-height:34px;font-size:15px}
 #tetherBub .tbGo{display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;gap:0 10px;width:calc(100% - 12px);margin:6px 6px 10px;min-height:58px;padding:8px 12px;border:0;border-radius:18px;color:#f8ecd2;text-shadow:0 1px 2px rgba(0,0,0,.5);background:radial-gradient(120% 95% at 50% 20%,#5ea8d8,#20649a 55%,#153f66);box-shadow:0 0 0 3px #e6bb68,0 0 0 4px #7a4f1c,0 0 0 6px #c8954a,0 4px 8px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.3);cursor:pointer}
-#tetherBub .tbGo span{grid-row:1/3;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-size:17px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}#tetherBub .tbGo b{font:700 15px Georgia,serif}#tetherBub .tbGo small{font:12px Georgia,serif;color:#f1e3c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tetherBub .tbGo span{grid-row:1/3;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-size:17px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}#tetherBub .tbGo b{font:700 15px Georgia,serif}#tetherBub .tbGo small{font:12px Georgia,serif;color:#f1e3c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#tetherBub .tbGo.dis,#tetherBub .tbGo:disabled{opacity:.55;filter:grayscale(.35);cursor:default}
 #tetherBub .tbTail{position:absolute;left:calc(var(--tx,50%) - 11px);bottom:-27px;width:0;height:0;border:11px solid transparent;border-top:12px solid #c8954a}#tetherBub.below .tbTail{bottom:auto;top:-27px;border-top-color:transparent;border-bottom:12px solid #c8954a}
 </style>
 </head>
@@ -441,9 +441,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='cd40824b';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build cd40824b</div>
-<script src="assets/vendor/three.min.js?v=cd40824b"></script>
+<script>window.HD_BUILD='7c7ad75a';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7c7ad75a</div>
+<script src="assets/vendor/three.min.js?v=7c7ad75a"></script>
 <script>
 'use strict';
 
@@ -11939,9 +11939,11 @@ const MosbyTalk = (() => {
 })();
 // ---- tap-a-tether: tap one of her own laid tethers (the Ledge line, a drop or a drill tether) on the map -> a small field-kit bubble (Art's B_* skin:
 // moss canvas, brass close, enamel buttons) at the rope offering a teleport to its start (the Ledge door) or its end, each with its name. Standing near
-// one end, it only offers the other. Reuses Explore.teleportTo; the rope's hit band is generous (HIT px either side of the drawn line).
+// one end, it only offers the other. Teleport rows are offered only when she is within TAP_M metres of the nearest point on the tapped
+// strand; farther away the bubble still opens but the teleport row is disabled with a walk-closer hint. Reuses Explore.teleportTo (the
+// Tether Orb is unchanged); the rope's hit band is generous (HIT px either side of the drawn line).
 const TetherTap = (() => {
-  const HIT = 30, NEAR_M = 30, ST = { el: null, T: null };
+  const HIT = 30, NEAR_M = 30, TAP_M = 8, ST = { el: null, T: null };
   const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const KI = { main: '🪢', drill: '🛠️', drop: '🪝' }, KN = { main: 'Ledge Tether', drill: 'Drill tether', drop: 'Drop tether' };
   function routes() { return typeof Explore !== 'undefined' && Explore.tetherRoutes ? Explore.tetherRoutes() : []; }
@@ -11955,19 +11957,30 @@ const TetherTap = (() => {
     return best; }
   function options(T) { const h = Explore.here && Explore.here(), WS = Explore.WS; if (!h) return [T.a, T.b]; const da = Math.hypot(h[0] - T.a.x, h[1] - T.a.y) / WS, db = Math.hypot(h[0] - T.b.x, h[1] - T.b.y) / WS;
     if (da < NEAR_M && da <= db) return [T.b]; if (db < NEAR_M) return [T.a]; return [T.a, T.b]; }
+  // metres to the nearest point on the route polyline (ground points in map units)
+  function distToStrand(T) { const h = Explore.here && Explore.here(), WS = Explore.WS, P = T && T.pts; if (!h || !WS || !P || !P.length) return Infinity;
+    let best = Math.hypot(h[0] - P[0][0], h[1] - P[0][1]) / WS;
+    for (let i = 1; i < P.length; i++) { const a = P[i - 1], b = P[i], vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1;
+      const u = Math.max(0, Math.min(1, ((h[0] - a[0]) * vx + (h[1] - a[1]) * vy) / l2));
+      const d = Math.hypot(a[0] + vx * u - h[0], a[1] + vy * u - h[1]) / WS; if (d < best) best = d; }
+    return best; }
+  function canTeleport(T) { return distToStrand(T) <= TAP_M; }
   function el() { if (ST.el) return ST.el; const d = document.createElement('div'); d.id = 'tetherBub'; d.className = 'kKit hidden'; d.setAttribute('role', 'dialog'); (document.getElementById('cityWrap') || document.body).appendChild(d);
     for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) d.addEventListener(e, (ev) => ev.stopPropagation());
-    d.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (!b) return; if (b.dataset.k === 'close') return close(); go(b.dataset.k); }); return (ST.el = d); }
+    d.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (!b || b.disabled || b.classList.contains('dis') || b.hasAttribute('disabled')) return; if (b.dataset.k === 'close') return close(); if (b.dataset.k) go(b.dataset.k); }); return (ST.el = d); }
   function open(T, sx, sy) { ST.T = T; const d = el(), O = options(T), lbl = (o) => (o === T.a ? 'Start' : 'End');
+    const rows = canTeleport(T)
+      ? O.map((o) => `<button class="tbGo kBlue" data-k="${o.key}" data-side="${lbl(o).toLowerCase()}"><span>✨</span><b>Teleport to ${lbl(o).toLowerCase()}</b><small>${esc(o.name)}${o.sub ? ' \u00b7 ' + esc(o.sub) : ''}</small></button>`).join('')
+      : `<button class="tbGo kBlue dis" disabled data-side="far"><span>✨</span><b>Teleport</b><small>Walk closer to the tether to teleport</small></button>`;
     d.innerHTML = `<div class="tbTop"><span class="tbI">${KI[T.kind] || '🪢'}</span><span class="tbN"><b>${esc(T.name)}</b><small>${T.kind === 'main' ? 'Your house door \u2192 the Hanging Camp' : KN[T.kind] || 'Tether'}</small></span><button class="kX tbX" data-k="close" aria-label="Close">✕</button></div>` +
-      O.map((o) => `<button class="tbGo kBlue" data-k="${o.key}" data-side="${lbl(o).toLowerCase()}"><span>✨</span><b>Teleport to ${lbl(o).toLowerCase()}</b><small>${esc(o.name)}${o.sub ? ' \u00b7 ' + esc(o.sub) : ''}</small></button>`).join('') + '<i class="tbTail"></i>';
+      rows + '<i class="tbTail"></i>';
     d.classList.remove('hidden'); const P = d.parentElement.getBoundingClientRect(), w = d.offsetWidth, hgt = d.offsetHeight; let x = sx - w / 2, y = sy - hgt - 22, up = true; if (y < 8) { y = sy + 22; up = false; }
     x = Math.max(8, Math.min(P.width - w - 8, x)); d.style.left = x + 'px'; d.style.top = y + 'px'; d.classList.toggle('below', !up); d.style.setProperty('--tx', Math.max(18, Math.min(w - 18, sx - x)) + 'px'); return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.T = null; }
   function go(key) { close(); if (typeof Explore !== 'undefined' && Explore.teleportTo) Explore.teleportTo(key); }
   // Explore.tap calls this after ore / town folk / doors and before a plain walk: a tap on her rope opens the bubble, any other tap closes it
   function tap(sx, sy) { const was = !!ST.T; close(); const H = hitAt(sx, sy); if (!H) return was ? 'tetherClose' : null; open(H.T, sx, sy); return 'tether'; }
-  return { HIT, NEAR_M, hitAt, routes, options, open, close, tap, go, get T() { return ST.T; }, get el() { return ST.el; } };
+  return { HIT, NEAR_M, TAP_M, hitAt, routes, options, distToStrand, canTeleport, open, close, tap, go, get T() { return ST.T; }, get el() { return ST.el; } };
 })();
 // ---- Mosby moves her real home (no copy): on Confirm the house is lifted onto the transport tortoise (its plot stands empty, its door and ports with it);
 // when he arrives the house itself is set down on the spot she picked (S.homeAt, saved - it stays there on every reload). If the ground there is not dead
