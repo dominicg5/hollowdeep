@@ -75,6 +75,7 @@ const Town = (() => {
         const [x0, z0, x1, z1] = f, st = 0.8; for (let lx = x0 + 0.4; lx <= x1 - 0.39; lx += st) for (let lz = z0 + 0.4; lz <= z1 - 0.39; lz += st) { const [x, y] = L(lx, lz); add(x, y, WS * 0.56); } } }
     // props placed with the buildings (crates, barrels, anvil, posts, easel, boulder ...)
     for (const c of PCOL) add(c[0], c[1], c[2], 'townProp');
+    for (const B of BLD) { const [x, y] = npcSpot(B).at; add(x, y, WS * 0.38, 'townNpc'); } // the townsfolk stand still: solid
     // retaining walls: the terrace steps (open where the stairs come down) and every outer edge that drops more than ~0.7 m
     for (const [s, a, b] of STAIRS) for (const yy of [a - 3, b + 3]) for (let px = STEP[s]; px < STEP[s] + RUN * 0.8; px += 7) { const [x, y] = W2(px, yy); add(x, y, WS * 0.42, 'townStair'); } // the stairs' cheek walls
     for (let s = 0; s < 2; s++) for (let py = 20; py <= 560; py += 9) { if (STAIRS.some((q) => q[0] === s && py > q[1] - 4 && py < q[2] + 4)) continue; if (!inPoly(OUT, STEP[s] + 4, py) && !inPoly(OUT, STEP[s] - 4, py)) continue; const [x, y] = W2(STEP[s], py); add(x, y, WS * 0.55, 'townWall'); }
@@ -83,6 +84,10 @@ const Town = (() => {
   function nav(cls, nx, ny, REG, C) { const L = cols(); if (!L.length) return; const i0 = Math.max(0, Math.floor((BB.x0 - REG.X0) / C)), i1 = Math.min(nx - 1, Math.ceil((BB.x1 - REG.X0) / C)), j0 = Math.max(0, Math.floor((BB.y0 - REG.Y0) / C)), j1 = Math.min(ny - 1, Math.ceil((BB.y1 - REG.Y0) / C));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { const [px, py] = P2(REG.X0 + i * C, REG.Y0 + j * C); if (inPoly(OUT, px, py)) cls[j * nx + i] = 1; }
     for (const c of L) { const R = c.r + C * (c.key === 'townStair' || c.key === 'townWall' ? 0.15 : 0.45), a0 = Math.max(0, Math.floor((c.x - R - REG.X0) / C)), a1 = Math.min(nx - 1, Math.ceil((c.x + R - REG.X0) / C)), b0 = Math.max(0, Math.floor((c.y - R - REG.Y0) / C)), b1 = Math.min(ny - 1, Math.ceil((c.y + R - REG.Y0) / C)); for (let j = b0; j <= b1; j++) for (let i = a0; i <= a1; i++) if (Math.hypot(REG.X0 + i * C - c.x, REG.Y0 + j * C - c.y) < R) cls[j * nx + i] = 0; } }
+  // where each building's keeper stands (beside the door, facing the street) and where she stops to talk (in front of them)
+  function npcSpot(B) { const P = place(B), cs = Math.cos(P.yaw), sn = Math.sin(P.yaw), L = (lx, lz) => [P.x + (lx * cs + lz * sn) * WS, P.y + (-lx * sn + lz * cs) * WS], D = B.round ? B.w / 2 : B.d / 2, o = NPCX[B.id] || [1.8, 1.4];
+    return { at: L(o[0], D + o[1]), talk: L(o[0], D + o[1] + 1.5), yaw: P.yaw, h: LV[B.t] }; }
+  const NPCX = { general_store: [-1.9, 1.5], smithy: [1.6, 1.4], bank: [1.9, 1.2], rope_maker: [1.5, 1.2], inn: [-2.0, 1.3], guide_hut: [1.6, 1.3] };
   const PCOL = []; // prop circles (world x, y, r), filled as the meshes are built
   // ---- keep-out for the map's trees, rocks, tufts and focal boulders
   function hit(x, y, pad) { if (!near(x, y, (pad || 0) + 40)) return false; const [px, py] = P2(x, y); if (inPoly(OUT, px, py)) return true; return edgeD(px, py) * K < (pad || 0) + WS * 3; }
@@ -92,7 +97,7 @@ const Town = (() => {
     if (!best) return []; const pts = [GATE, W2(-100, 236), W2(-118, 150), mid], v = [mid[0] - best[0], mid[1] - best[1]], L = Math.hypot(v[0], v[1]), n = Math.max(1, Math.round(L / 60));
     for (let k = 1; k <= n; k++) pts.push([mid[0] - v[0] * k / n, mid[1] - v[1] * k / n]);
     PTH = [[0, ...pts.flat().map((q) => Math.round(q))]]; return PTH; }
-  return { WS, K, SU, T, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, cols, hit, paths, PCOL, near, inEntry,
+  return { WS, K, SU, T, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
     nav, resetCols: () => { COLS = null; }, get skip() { return SKIP; }, set skip(v) { SKIP = v; } };
 })();
 /* ---- the town's meshes: painted canvas textures (one per material), geometry merged per material ---- */
@@ -131,6 +136,7 @@ Town.art = (() => {
     glowTeal: (g, n) => { const gr = g.createRadialGradient(n / 2, n / 2, 2, n / 2, n / 2, n / 2); gr.addColorStop(0, '#e8fffb'); gr.addColorStop(0.4, '#5fe6d6'); gr.addColorStop(1, '#1d8f8a'); g.fillStyle = gr; g.fillRect(0, 0, n, n); },
     glowFire: (g, n) => { const gr = g.createRadialGradient(n / 2, n * 0.7, 2, n / 2, n / 2, n * 0.6); gr.addColorStop(0, '#fff2b0'); gr.addColorStop(0.35, '#ffb040'); gr.addColorStop(0.8, '#d0501a'); gr.addColorStop(1, '#6a1a08'); g.fillStyle = gr; g.fillRect(0, 0, n, n); },
     glowWin: (g, n) => { g.fillStyle = '#3a2412'; g.fillRect(0, 0, n, n); const gr = g.createRadialGradient(n / 2, n / 2, 4, n / 2, n / 2, n * 0.55); gr.addColorStop(0, '#ffe7a8'); gr.addColorStop(0.6, '#f0a648'); gr.addColorStop(1, '#a8601e'); g.fillStyle = gr; g.fillRect(n * 0.08, n * 0.08, n * 0.84, n * 0.84); g.fillStyle = '#3a2412'; g.fillRect(n * 0.47, 0, n * 0.06, n); g.fillRect(0, n * 0.47, n, n * 0.06); },
+    cloth: (g, n) => { speck(g, n, '#f2eee6', ['rgba(120,100,80,.10)', 'rgba(255,255,255,.18)', 'rgba(90,70,50,.08)'], 700, 4); g.fillStyle = 'rgba(80,60,40,.05)'; for (let i = 0; i < n; i += 4) g.fillRect(0, i, n, 1); },
     chalk: (g, n) => { g.clearRect(0, 0, n, n); g.fillStyle = 'rgba(240,232,210,.85)'; for (let i = 0; i < 8; i++) g.fillRect(i * n / 8 + 4, n * 0.4, n / 8 - 12, n * 0.2); },
   };
   // pictogram signs (no text): backpack, anvil, coiled rope, coin with a crystal, frothy mug, lantern - one 4x2 sheet
@@ -146,7 +152,7 @@ Town.art = (() => {
       if (c === 5) { P(() => { g.moveTo(cx - r * 0.3, cy - r * 0.35); g.lineTo(cx + r * 0.3, cy - r * 0.35); g.lineTo(cx + r * 0.36, cy + r * 0.45); g.lineTo(cx - r * 0.36, cy + r * 0.45); g.closePath(); }); g.fillStyle = '#7ff0e0'; P(() => g.arc(cx, cy + r * 0.05, r * 0.18, 0, 6.283)); g.beginPath(); g.arc(cx, cy - r * 0.5, r * 0.18, Math.PI, 0); g.stroke(); } } }
   function tex(k) { if (TX[k]) return TX[k]; seed = 101 + Object.keys(PAINT).indexOf(k) * 977; const cv = k === 'sign' ? canvas(512, paintSigns) : canvas(256, PAINT[k]); const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = k === 'sign' ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return (TX[k] = t); }
   // material key -> [texture, metres per tile, extra]
-  const MAT = { cobble: [1.6], stone: [1.5], dirt: [3.2], moss: [2.2], wood: [1.1], woodV: [1.1], plaster: [2.0], brass: [1.4, 'shiny'], canvas: [1.6], canvasG: [1.6], brick: [1.2], iron: [1.0, 'shiny'], rope: [0.4], bark: [1.4], glowTeal: [0.5, 'glow'], glowFire: [1.4, 'glow'], glowWin: [1, 'glow'], chalk: [1.0, 'alpha'], sign: [1, 'sign'] };
+  const MAT = { cobble: [1.6], stone: [1.5], dirt: [3.2], moss: [2.2], wood: [1.1], woodV: [1.1], plaster: [2.0], brass: [1.4, 'shiny'], canvas: [1.6], canvasG: [1.6], brick: [1.2], iron: [1.0, 'shiny'], rope: [0.4], bark: [1.4], glowTeal: [0.5, 'glow'], glowFire: [1.4, 'glow'], glowWin: [1, 'glow'], cloth: [0.35], chalk: [1.0, 'alpha'], sign: [1, 'sign'] };
   const MATS = {}; function mat(k) { if (MATS[k]) return MATS[k]; const t = tex(k), f = MAT[k][1]; let m;
     if (f === 'glow') m = new THREE.MeshBasicMaterial({ map: t, vertexColors: true, toneMapped: false });
     else if (f === 'shiny') m = new THREE.MeshPhongMaterial({ map: t, vertexColors: true, specular: 0x6a5a40, shininess: 40 });
@@ -445,3 +451,118 @@ Object.assign(Town, (() => {
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 400); }
   return { build, tick, ST };
 })());
+/* ---- the townsfolk (phase 2): one keeper per building, from each folder's npc_turnaround (placeholder names and roles). Each is one merged,
+   vertex-coloured mesh (6 draw calls), standing with a breathing / weight-shift idle, turning to face her when she comes close. Tap one ->
+   she walks up -> a field-kit dialogue box (Art's mosby_dialog layout, direction B) with the keeper's portrait. The bank opens the vault,
+   the store has a placeholder buy / sell; the rest talk. ---- */
+Town.folk = (() => {
+  const TW = Town, WS = TW.WS, gb = Town.gb, K = 'cloth', c = (h) => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map((v) => Math.pow(v / 255, 2.2)); // sRGB hex -> linear vertex colour
+  // body plan in metres: h height, g girth (half-width at the hips), sk skirt, colours, hair / beard / props
+  const P = {
+    goldie: { h: 1.55, g: 0.27, sk: 1, skin: 0xf0b896, top: 0xe8dcc0, vest: 0x56663e, low: 0x5a3a26, apron: 0xa8957a, boots: 0x5a3a22, hair: 0x9a4a22, hs: 'bun', specs: 1, prop: 'ledger',
+      name: 'Goldie', role: 'General Store', say: ["Welcome in, love! Rope, snacks, chalk for the climb - if it fits in a pack, I've got it.", "The shelves are still being stocked, but have a look."], acts: [['Buy', 'buy'], ['Sell', 'sell']] },
+    brannick: { h: 1.95, g: 0.32, skin: 0xc98a62, top: 0x8a3226, low: 0x464a32, apron: 0x6a4428, boots: 0x5a3a22, hair: null, hs: 'bald', beard: 'braids', bc: 0x8c8a86, goggles: 1, prop: 'hammer',
+      name: 'Brannick', role: 'Smithy', say: ["Mind the sparks. Bring me good ore and I'll make it sing.", "Upgrades come later. For now, keep that pick sharp."] },
+    tess: { h: 1.75, g: 0.19, skin: 0xd9a27a, top: 0xa08460, low: 0x6e4a2e, boots: 0x6a4428, hair: 0x5a321a, hs: 'braid', band: 0x5a7038, prop: 'coil',
+      name: 'Tess', role: 'Rope Maker', say: ["Every climb hangs on a good rope. I braid mine three ways.", "Come back when you need a longer tether."] },
+    ambrose: { h: 1.9, g: 0.2, skin: 0xeab896, top: 0x234a50, vest: 0xb08a3a, low: 0x4e3424, boots: 0x3a2416, hair: 0xe4e0da, hs: 'chops', specs: 1, coat: 1, stoop: 0.12, prop: 'tray',
+      name: 'Ambrose', role: 'Bank', say: ["Ah. Valuables? The vault keeps what the pit cannot take.", "Shall I open it for you?"], acts: [['Open the vault', 'vault']] },
+    hattie: { h: 1.62, g: 0.29, sk: 1, skin: 0xd9a282, top: 0xe4d4b4, vest: 0x56663e, low: 0x56663e, apron: 0xa84e36, stripe: 1, boots: 0x5a3a22, hair: 0x26201e, hs: 'short', prop: 'mugs',
+      name: 'Hattie', role: 'Inn', say: ["Sit, eat, warm up! The stew's on and the beds are soft.", "Rooms come later - for now, the mugs are full."] },
+    fennick: { h: 1.25, g: 0.22, sk: 1, skin: 0x8a5a3a, top: 0xb09a72, low: 0x6a5030, cloak: 0x56603a, boots: 0x7a5434, hair: 0xe8e4dc, hs: 'cap', cap: 0x8a6438, beard: 'long', bc: 0xece8e0, stoop: 0.2, prop: 'staff',
+      name: 'Old Fennick', role: "Guide's Hut", say: ["New to the edge, are you? Walk the paths, watch the ground.", "Come back up before dark, and I'll point you further down when you're ready."] },
+  };
+  // a figure in local metres (front +z, feet at y 0)
+  function figure(o) { const H = o.h, s = H / 1.75, g = o.g, hipY = 0.86 * s, shY = 1.42 * s - (o.stoop || 0) * 0.3, hr = 0.115 * s * (o.g > 0.25 ? 1.08 : 1), hy = shY + 0.1 * s, fz = (o.stoop || 0) * 0.35;
+    const BX = (k2, cc, sz, col, r) => gb.box(K, cc, sz, c(col), r), CY = (cc, r0, r1, h, col, r, op) => gb.cyl(K, cc, r0, r1, h, 10, c(col), r, op), LU = (cc, sz, col, sd, r) => gb.lump(K, cc, sz, c(col), sd || 3, r);
+    // boots and legs
+    for (const sx of [-1, 1]) { LU([sx * g * 0.42, 0, 0.04], [0.075 * s, 0.13 * s, 0.13 * s], o.boots, 5 + sx); CY([sx * g * 0.42, 0.1 * s, 0], 0.07 * s, 0.075 * s, hipY - 0.1 * s, o.low); }
+    // skirt / coat tails / cloak, torso, belly
+    if (o.sk) CY([0, 0.2 * s, 0], g * 1.08, g * 0.92, hipY - 0.2 * s + 0.05, o.cloak ? o.top : (o.vest || o.low), null, { bot: true });
+    if (o.coat) CY([0, 0.45 * s, 0], g * 1.15, g * 0.95, hipY - 0.45 * s + 0.05, o.top, null, { bot: true });
+    CY([0, hipY, fz * 0.3], g * 0.95, g * 0.8, shY - hipY, o.vest && !o.coat ? o.vest : o.top, [o.stoop || 0, 0, 0], { top: true });
+    if (o.g > 0.25) LU([0, hipY - 0.05, 0.05], [g * 0.95, (shY - hipY) * 0.85, g * 0.95], o.vest || o.top, 9);
+    if (o.coat) { BX(K, [0, hipY, g * 0.72 + fz * 0.3], [g * 0.7, shY - hipY - 0.05, 0.04], o.vest, [o.stoop || 0, 0, 0]); }
+    if (o.apron) { const ay = o.sk ? 0.3 * s : 0.5 * s; BX(K, [0, ay, g * 1.0], [g * 1.5, shY - ay - 0.1 * s, 0.03], o.apron); if (o.stripe) for (let i = -2; i <= 2; i++) BX(K, [i * g * 0.28, ay, g * 1.02], [g * 0.1, shY - ay - 0.1 * s, 0.02], 0xe0c8a8); }
+    if (o.cloak) { CY([0, 0.18 * s, -0.02], g * 1.3, g * 0.9, shY - 0.18 * s, o.cloak, [o.stoop || 0, 0, 0], { bot: true }); LU([0, shY - 0.12 * s, -g * 0.7], [g * 0.8, 0.22 * s, 0.16 * s], o.cloak, 21); }
+    // shoulders, arms (forward when holding something), hands
+    LU([0, shY - 0.08 * s, fz], [g * 1.05, 0.16 * s, g * 0.75], o.coat || o.cloak ? (o.cloak || o.top) : o.top, 4);
+    const hold = { ledger: [0.9, 0.6], hammer: [0.2, 2.4], coil: [0.2, 0.2], tray: [1.2, 0.1], mugs: [1.3, 1.3], staff: [0.2, 0.9] }[o.prop] || [0.1, 0.1];
+    for (const sx of [-1, 1]) { const ax = sx * (g * 1.05 + 0.04), fw = sx < 0 ? hold[0] : hold[1], L = 0.6 * s, r = [-fw, 0, sx * 0.12], v = new THREE.Vector3(0, -L, 0).applyEuler(new THREE.Euler(...r));
+      CY([ax, shY - 0.04, fz], 0.06 * s, 0.05 * s, -L, o.coat ? o.top : o.cloak || (o.prop === 'coil' ? o.skin : o.top), r); LU([ax + v.x, shY - 0.04 + v.y - 0.05 * s, fz + v.z], [0.05 * s, 0.09 * s, 0.05 * s], o.skin, 11 + sx); }
+    // neck, head, face
+    CY([0, shY - 0.02, fz], 0.05 * s, 0.05 * s, 0.1 * s, o.skin); const hz = fz + 0.02;
+    gb.dome(K, [0, hy + hr, hz], hr, hr * 1.1, 10, 4, c(o.skin)); gb.dome(K, [0, hy + hr, hz], hr, -hr, 10, 3, c(o.skin));
+    LU([0, hy + hr * 0.75, hz + hr * 0.92], [0.025 * s, 0.035 * s, 0.03 * s], o.skin, 13); for (const sx of [-1, 1]) { LU([sx * hr * 0.38, hy + hr * 1.12, hz + hr * 0.9], [0.014, 0.016, 0.01], 0x231610, 2); LU([sx * hr * 0.98, hy + hr, hz], [0.02, 0.04, 0.03], o.skin, 3); }
+    if (o.specs) for (const sx of [-1, 1]) gb.cyl(K, [sx * hr * 0.38, hy + hr * 1.12, hz + hr * 0.95], 0.03, 0.03, 0.008, 8, c(0x8a6430), [Math.PI / 2, 0, 0], { out: true });
+    if (o.goggles) { CY([0, hy + hr * 1.45, hz], hr * 1.02, hr * 1.02, 0.04, 0x5a3a22); for (const sx of [-1, 1]) CY([sx * hr * 0.4, hy + hr * 1.5, hz + hr * 0.85], 0.04, 0.04, 0.05, 0xb08a3a, [Math.PI / 2.4, 0, 0], { top: true }); }
+    // hair
+    const HC = o.hair, top = [0, hy + hr * 1.05, hz - 0.01];
+    if (o.hs === 'bun') { gb.dome(K, top, hr * 1.08, hr * 1.05, 10, 3, c(HC)); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283; LU([Math.cos(a) * hr * 0.95, hy + hr * (0.7 + 0.2 * Math.sin(i)), hz + Math.sin(a) * hr * 0.9 - 0.02], [0.05, 0.07, 0.05], HC, 30 + i); } LU([0, hy + hr * 1.9, hz - 0.03], [0.08, 0.11, 0.08], HC, 41); CY([0.03, hy + hr * 2.0, hz - 0.03], 0.006, 0.004, 0.14, 0xd0a040, [0.3, 0, -0.5]); }
+    if (o.hs === 'short') { gb.dome(K, top, hr * 1.1, hr * 1.12, 10, 3, c(HC)); LU([hr * 0.3, hy + hr * 1.9, hz + 0.03], [0.07, 0.04, 0.06], 0x9a9690, 44); for (const sx of [-1, 1]) LU([sx * hr * 1.0, hy + hr * 0.7, hz + 0.01], [0.012, 0.022, 0.012], 0xd0a040, 45); }
+    if (o.hs === 'braid') { gb.dome(K, top, hr * 1.1, hr * 1.08, 10, 3, c(HC)); CY([0, hy + hr * 1.35, hz], hr * 1.08, hr * 1.06, 0.045, o.band); for (let i = 0; i < 6; i++) LU([0.03, hy + hr * 0.4 - i * 0.11 * s, hz - hr * 0.85 - (i < 2 ? 0 : 0.02)], [0.04, 0.07, 0.04], HC, 50 + i); for (let i = 0; i < 5; i++) LU([Math.cos(i * 1.3) * hr, hy + hr * 0.6, hz + Math.sin(i * 1.3) * hr * 0.6], [0.04, 0.08, 0.04], HC, 60 + i); }
+    if (o.hs === 'chops') { for (const sx of [-1, 1]) { LU([sx * hr * 0.95, hy + hr * 0.55, hz + hr * 0.3], [0.04, 0.09, 0.05], HC, 70 + sx); LU([sx * hr * 0.9, hy + hr * 1.25, hz - hr * 0.3], [0.04, 0.06, 0.07], HC, 72 + sx); } LU([0, hy + hr * 2.05, hz], [0.03, 0.03, 0.03], HC, 74); }
+    if (o.hs === 'cap') { gb.dome(K, [0, hy + hr * 1.15, hz], hr * 1.12, hr * 0.95, 10, 3, c(o.cap)); CY([0, hy + hr * 1.05, hz], hr * 1.13, hr * 1.12, 0.05, o.cap); for (const sx of [-1, 1]) LU([sx * hr * 0.98, hy + hr * 0.95, hz - 0.02], [0.04, 0.05, 0.05], HC, 80 + sx); for (const sx of [-1, 1]) LU([sx * hr * 0.38, hy + hr * 1.3, hz + hr * 0.85], [0.04, 0.018, 0.02], HC, 82 + sx); }
+    if (o.hs === 'bald') for (const sx of [-1, 1]) LU([sx * hr * 0.95, hy + hr * 0.95, hz - 0.02], [0.035, 0.05, 0.06], o.bc, 85 + sx);
+    // beards
+    if (o.beard === 'braids') { LU([0, hy + hr * 0.15, hz + hr * 0.6], [hr * 0.9, hr * 0.9, hr * 0.55], o.bc, 90); for (const sx of [-1, 1]) { for (let i = 0; i < 4; i++) LU([sx * 0.045, hy - 0.04 - i * 0.075, hz + hr * 0.75], [0.03, 0.05, 0.03], o.bc, 91 + i); CY([sx * 0.045, hy - 0.3, hz + hr * 0.75], 0.022, 0.022, 0.02, 0xc09040); } }
+    if (o.beard === 'long') { gb.cyl(K, [0, hy + hr * 0.55, hz + hr * 0.6], hr * 0.85, 0.03, -0.34 * s / 0.71, 8, c(o.bc), [0.25, 0, 0]); LU([0, hy + hr * 0.5, hz + hr * 0.7], [hr * 0.8, hr * 0.55, hr * 0.5], o.bc, 95); for (const sx of [-1, 1]) LU([sx * hr * 0.4, hy + hr * 1.45, hz + hr * 0.9], [0.05, 0.022, 0.025], o.bc, 96 + sx); }
+    // carried things
+    const hand = (sx) => { const fw = sx < 0 ? hold[0] : hold[1], v = new THREE.Vector3(0, -0.6 * s, 0).applyEuler(new THREE.Euler(-fw, 0, sx * 0.12)); return [sx * (g * 1.05 + 0.04) + v.x, shY - 0.04 + v.y - 0.04, fz + v.z]; };
+    if (o.prop === 'ledger') { const p = hand(-1); BX(K, [p[0] + 0.04, p[1] - 0.12, p[2] + 0.02], [0.05, 0.3, 0.24], 0x5a3420, [0, 0.3, 0.1]); const q = [g * 0.6, hipY * 0.75, g + 0.05]; LU(q, [0.07, 0.1, 0.03], 0xb08a3a, 98); for (let i = 0; i < 6; i++) CY([-g * 0.6, hipY * 0.95 - i * 0.07, g + 0.05], 0.03, 0.03, 0.04, 0xc8aa5a); }
+    if (o.prop === 'hammer') { const p = hand(1); CY([p[0], p[1], p[2]], 0.025, 0.025, 0.7, 0x6a4428, [2.0, 0, -0.35]); const v = new THREE.Vector3(0, 0.7, 0).applyEuler(new THREE.Euler(2.0, 0, -0.35)); BX(K, [p[0] + v.x, p[1] + v.y - 0.08, p[2] + v.z], [0.14, 0.16, 0.24], 0x4a4c50, [2.0, 0, -0.35]); BX(K, [0, hipY - 0.06, 0], [g * 2.1, 0.07, g * 2.0], 0x4a3020); LU([-g * 1.05 - 0.06, shY - 0.58 * s, fz + 0.1], [0.075, 0.1, 0.075], 0x5a3a22, 99); }
+    if (o.prop === 'coil') { for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; LU([g * 1.0 + Math.cos(a) * 0.14, hipY - 0.12 + Math.sin(a) * 0.16, g * 0.4], [0.035, 0.035, 0.04], 0xa98552, 100 + i); } CY([-g * 1.1, hipY - 0.12, 0.02], 0.07, 0.07, 0.15, 0x4fc8c8, [0, 0, Math.PI / 2], { top: true }); BX(K, [0, shY - 0.3, g * 0.55], [0.06, 0.6, 0.06], 0xa98552, [0, 0, 0.75]); }
+    if (o.prop === 'tray') { const p = hand(-1); CY([p[0], p[1] + 0.05, p[2] + 0.06], 0.14, 0.12, 0.04, 0x6a4428, null, { top: true }); for (let i = 0; i < 5; i++) LU([p[0] + Math.cos(i) * 0.07, p[1] + 0.08, p[2] + 0.06 + Math.sin(i) * 0.06], [0.04, 0.03, 0.04], 0xd4aa48, 110 + i); for (let i = 0; i < 4; i++) CY([g * 0.55 + i * 0.03, hipY - 0.2 - i * 0.03, g * 0.9], 0.02, 0.02, 0.1, 0x9a7a3a); }
+    if (o.prop === 'mugs') { const zf = hand(1)[2]; CY([0, hand(1)[1] + 0.03, zf * 0.85], 0.32, 0.32, 0.035, 0x5a3a22, null, { top: true }); for (let i = -1; i <= 1; i++) { CY([i * 0.17, hand(1)[1] + 0.065, zf * 0.85], 0.06, 0.065, 0.13, 0x6a4428, null, { top: true }); LU([i * 0.17, hand(1)[1] + 0.18, zf * 0.85], [0.06, 0.04, 0.06], 0xf6eedc, 120 + i); } BX(K, [g * 0.85, shY - 0.35, -0.02], [0.08, 0.36, 0.16], 0xa84e36); }
+    if (o.prop === 'staff') { const p = hand(1); CY([p[0] + 0.02, 0, p[2]], 0.028, 0.022, H + 0.25, 0x5a3a22); for (let i = 0; i < 3; i++) LU([p[0] + 0.02, H + 0.02 + i * 0.05, p[2]], [0.04, 0.03, 0.04], 0x6a4428, 130 + i); LU([p[0] + 0.02, H + 0.2, p[2]], [0.06, 0.18, 0.06], 0x4fe0c8, 133); CY([0, hipY - 0.1, g * 0.9], 0.04, 0.045, 0.1, 0xc09040, null, { top: true }); for (let i = 0; i < 2; i++) CY([-g * 0.6 + i * 0.06, hipY - 0.25, g * 0.95], 0.025, 0.025, 0.22, 0xe8dcc0, null, { top: true }); }
+  }
+  const ST = { built: false, list: [], dlg: null, talk: null };
+  function build() { if (ST.built || !TW.ST || !TW.ST.built || !TW.ST.g) return; ST.built = true; const mat = new THREE.MeshLambertMaterial({ map: Town.art.tex('cloth'), vertexColors: true }); mat.name = 'town_folk';
+    for (const B of TW.BLD) { const o = P[B.npc]; if (!o) continue; const sp = TW.npcSpot(B); gb.reset(); gb.frame(0, 0, 0, 0); figure(o); const grp = new THREE.Group(); grp.name = 'townNpc_' + B.npc; const ms = gb.flush(grp, 'townNpc_' + B.npc, {}); for (const m of ms) { m.material = mat; m.castShadow = true; }
+      grp.position.set(sp.at[0], sp.h, sp.at[1]); grp.rotation.y = sp.yaw; TW.ST.g.add(grp); ST.list.push({ id: B.npc, B, o, sp, grp, yaw: sp.yaw, ph: B.px * 0.013, x: sp.at[0], y: sp.at[1], h: sp.h, hgt: o.h * WS }); }
+    gb.reset(); }
+  // idle: breathing, a slow weight shift and a little nod; they turn to face her when she is close, back to the street when she leaves
+  let t0 = 0;
+  function tick() { if (!ST.built) { build(); if (!ST.built) return; } const t = performance.now() / 1000, cam = M3.camera, far = cam && Math.hypot(cam.position.x - TW.T.cx, cam.position.z - TW.T.cy) > 2600, hr = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.on ? Explore.here() : null; const dt = Math.min(0.1, t - (t0 || t)); t0 = t;
+    for (const n of ST.list) { n.grp.visible = !far; if (far) continue; const tk = ST.talk === n, br = Math.sin(t * (tk ? 3.2 : 2.0) + n.ph);
+      let want = n.sp.yaw; if (hr) { const dx = hr[0] - n.x, dy = hr[1] - n.y; if (Math.hypot(dx, dy) < WS * 7) want = Math.atan2(dx, dy); }
+      let d = want - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 3);
+      n.grp.rotation.set(Math.sin(t * 0.7 + n.ph) * 0.012 + (tk ? Math.max(0, br) * 0.025 : 0), n.yaw, Math.sin(t * 0.45 + n.ph) * 0.02); n.grp.scale.set(1 - br * 0.006, 1 + br * 0.012, 1 - br * 0.006); n.grp.position.y = n.h + (tk ? Math.abs(br) * 0.004 * WS : 0); }
+    if (ST.talk && hr && Math.hypot(hr[0] - ST.talk.x, hr[1] - ST.talk.y) > WS * 6 && !ST.walking) close(); }
+  // tap: the figure's base-to-top segment on screen
+  function hitAt(sx, sy) { let best = null, bd = 1e9; for (const n of ST.list) { if (!n.grp.visible) continue; const a = M3.project(n.x, n.y, 0), b = M3.project(n.x, n.y, n.hgt); if (a[0] < -999 || b[0] < -999) continue; const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, u = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)), dd = Math.hypot(a[0] + vx * u - sx, a[1] + vy * u - sy), rad = Math.max(22, Math.sqrt(l2) * 0.4); if (dd < rad && dd - rad < bd) { bd = dd - rad; best = n; } } return best; }
+  function tap(sx, sy) { if (!ST.built) return null; const n = hitAt(sx, sy); if (!n) return null; const hr = Explore.here(), [tx, ty] = n.sp.talk;
+    if (hr && Math.hypot(hr[0] - tx, hr[1] - ty) < WS * 1.5) { talk(n); return 'npc'; } ST.walking = true; const r = Explore.goTo(tx, ty, () => { ST.walking = false; talk(n); }); if (!r) { ST.walking = false; talk(n); } return 'npc'; }
+  // ---- the dialogue box: leather-and-canvas bar, brass corners, cream stitched well, brass porthole portrait popping out above the bar
+  const CSS = `#townDlg{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 92px);transform:translateX(-50%);width:min(540px,calc(100% - 16px));z-index:60;font:16px Georgia,"Iowan Old Style",serif;color:#33200f;pointer-events:auto;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+#townDlg.hidden{display:none}#townDlg .tdBar{position:relative;margin-top:46px;border:18px solid transparent;border-image:url(assets/ui/kit_leather.webp) 62 fill / 18px stretch;border-radius:10px}
+#townDlg .tdBar:before,#townDlg .tdBar:after,#townDlg .tdC1,#townDlg .tdC2{content:'';position:absolute;width:22px;height:22px;border:5px solid #c99a45;filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
+#townDlg .tdBar:before{left:-14px;top:-14px;border-right:0;border-bottom:0;border-radius:6px 0 0 0}#townDlg .tdBar:after{right:-14px;top:-14px;border-left:0;border-bottom:0;border-radius:0 6px 0 0}
+#townDlg .tdC1{left:-14px;bottom:-14px;border-right:0;border-top:0;border-radius:0 0 0 6px}#townDlg .tdC2{right:-14px;bottom:-14px;border-left:0;border-top:0;border-radius:0 0 6px 0}
+#townDlg .tdWell{position:relative;min-height:74px;padding:12px 44px 12px 84px;border-radius:8px;background:linear-gradient(#f8ecd0,#ecd9b0);box-shadow:inset 0 2px 5px rgba(90,50,20,.35);outline:1.5px dashed rgba(140,96,48,.7);outline-offset:-6px}
+#townDlg .tdWell p{margin:0;line-height:1.38;min-height:44px}#townDlg .tdName{position:absolute;left:96px;top:-34px;padding:3px 14px;border-radius:8px;background:linear-gradient(#e7c27a,#b9863e);color:#3a2412;font:700 14px Georgia,serif;box-shadow:0 0 0 2px #6e4a1c,0 2px 4px rgba(0,0,0,.4)}
+#townDlg .tdName small{font:italic 400 12px Georgia,serif;margin-left:6px;opacity:.8}
+#townDlg .tdPort{position:absolute;left:-4px;top:-2px;width:88px;height:88px;border-radius:50%;z-index:2;background:#f6efe0 center/cover no-repeat;box-shadow:0 0 0 5px #b07a34,0 0 0 7px #e6bb68,0 0 0 9px #6e4a1c,inset 0 2px 6px rgba(0,0,0,.35)}
+#townDlg .tdPort i{position:absolute;width:5px;height:5px;border-radius:50%;background:#f3d28a;box-shadow:0 0 0 1px #6e4a1c}
+#townDlg .tdPip{position:absolute;right:10px;bottom:10px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 50% 40%,#e6bb68,#9a6a2a);box-shadow:0 0 0 2px #6e4a1c;animation:tdBob 1s ease-in-out infinite}
+#townDlg .tdPip:after{content:'';position:absolute;left:7px;top:6px;width:7px;height:7px;border-right:2.5px solid #3a2412;border-bottom:2.5px solid #3a2412;transform:rotate(45deg)}
+@keyframes tdBob{50%{transform:translateY(3px)}}#townDlg .tdBtns{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end;margin-top:10px}#townDlg .tdBtns button{min-height:44px;padding:4px 18px}
+#townDlg .kGreen{background:radial-gradient(120% 95% at 50% 22%,#8fcf7a,#3f8a3a 55%,#245a22)}
+.tdShop{padding:6px 4px}.tdShop h2{margin:0 0 8px}.tdShop .row{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:6px 0;border-radius:8px;background:rgba(110,62,24,.12);box-shadow:inset 0 0 0 1px rgba(110,62,24,.3)}.tdShop .row b{flex:1}.tdShop .row button{min-height:40px;padding:2px 14px;opacity:.55}`;
+  function el() { if (ST.dlg) return ST.dlg; const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st); const d = document.createElement('div'); d.id = 'townDlg'; d.className = 'kKit hidden'; d.setAttribute('role', 'dialog');
+    d.innerHTML = '<div class="tdPort"></div><div class="tdBar"><span class="tdC1"></span><span class="tdC2"></span><div class="tdName"></div><div class="tdWell"><p></p><i class="tdPip"></i><div class="tdBtns"></div></div></div>';
+    const port = d.querySelector('.tdPort'); for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283, r = 48.5; const b = document.createElement('i'); b.style.left = 44 + Math.cos(a) * r - 2.5 + 'px'; b.style.top = 44 + Math.sin(a) * r - 2.5 + 'px'; port.appendChild(b); }
+    d.addEventListener('pointerdown', (e) => e.stopPropagation()); d.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (b) return act(b.dataset.a); if (ST.page < ST.talk.o.say.length - 1) { ST.page++; show(); } });
+    (document.getElementById('cityWrap') || document.body).appendChild(d); return (ST.dlg = d); }
+  function talk(n) { ST.talk = n; ST.page = 0; const d = el(); d.querySelector('.tdPort').style.backgroundImage = `url(assets/ui/npc/${n.id}.webp)`; d.querySelector('.tdName').innerHTML = `${n.o.name}<small>${n.o.role}</small>`; d.classList.remove('hidden'); show(); }
+  function show() { const d = ST.dlg, n = ST.talk, last = ST.page >= n.o.say.length - 1; d.querySelector('.tdWell p').textContent = n.o.say[ST.page]; d.querySelector('.tdPip').style.display = last ? 'none' : '';
+    d.querySelector('.tdBtns').innerHTML = last ? (n.o.acts || []).map(([t, a]) => `<button class="kBtn kGreen" data-a="${a}">${t}</button>`).join('') + '<button class="kBtn kCream" data-a="bye">Goodbye</button>' : ''; }
+  function close() { ST.talk = null; if (ST.dlg) ST.dlg.classList.add('hidden'); }
+  function act(a) { const n = ST.talk; if (a === 'bye') return close(); if (a === 'vault') { close(); if (typeof CharView !== 'undefined' && CharView.openVault) CharView.openVault(); return; }
+    if (a === 'buy' || a === 'sell') { close(); const rows = a === 'buy' ? [['Climbing chalk', 5], ['Trail biscuits', 3], ['Spare rope (10 m)', 12], ['Lumenite lamp oil', 8]] : [['Ore from your backpack', null], ['Crystals', null]];
+      openModal(`<div class="kKit tdShop"><div class="kLeather"><h2>${n.o.name}'s ${a === 'buy' ? 'shelves' : 'counter'}</h2>${rows.map(([t, p]) => `<div class="row"><b>${t}</b>${p ? `<span>${p} gold</span>` : ''}<button class="kBtn kCream" disabled>${a === 'buy' ? 'Buy' : 'Sell'}</button></div>`).join('')}<div class="kFoot">Trading opens soon - the store is still being stocked.</div><div style="text-align:right;margin-top:8px"><button class="kBtn kCream" data-shopx style="min-height:44px;padding:4px 18px">Close</button></div></div></div>`, 'town-shop');
+      const x = document.querySelector('#modalBody [data-shopx]'); if (x) x.addEventListener('click', () => closeModal()); } }
+  return { P, ST, build, tick, tap, talk, close, act, figure, hitAt };
+})();
+Town.npcTick = () => Town.folk.tick();
+Town.tap = (sx, sy) => Town.folk.tap(sx, sy);
