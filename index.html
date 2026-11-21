@@ -441,9 +441,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='81ca4ab9';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 81ca4ab9</div>
-<script src="assets/vendor/three.min.js?v=81ca4ab9"></script>
+<script>window.HD_BUILD='60e4d3ce';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 60e4d3ce</div>
+<script src="assets/vendor/three.min.js?v=60e4d3ce"></script>
 <script>
 'use strict';
 
@@ -4317,7 +4317,7 @@ const Town = (() => {
   const BLD = [
     {id:'general_store',name:'General Store',px:8.4*14,py:18.2*14,face:1,t:1,w:8.1,d:6.5,npc:'goldie'},
     {id:'smithy',name:'Smithy',px:18.35*14,py:18.2*14,face:1,t:1,w:8.6,d:6.5,npc:'brannick'},
-    {id:'rope_maker',name:'Rope Maker',px:9*14,py:34.5*14,face:-1,t:1,w:4.6,d:13.8,npc:'tess'},
+    {id:'rope_maker',name:'Rope Maker',px:8.8*14,py:34.5*14,face:-1,t:1,w:5.6,d:15,npc:'tess'},
     {id:'inn',name:'Inn',px:18.5*14,py:30.9*14,face:-1,t:1,w:9.4,d:5.6,npc:'hattie'},
     {id:'guide_hut',name:"Guide's Hut",px:39*14,py:31.4*14,face:-1,t:1,w:5.8,d:5.8,round:1,npc:'fennick'}
   ];
@@ -4473,15 +4473,25 @@ Town.gb = (() => {
     if (o.layer !== false) { const L = Math.hypot(dz, yr + up0(th) - yE), sx = (X1 - X0), nseg = Math.max(4, Math.round(sx / 0.55)), NC = Math.max(3, Math.round(L / 0.62)), tl = Town.art.MAT[k] ? Town.art.MAT[k][0] : 2, hsh = (a, b) => { const v = Math.sin(a * 91.7 + b * 47.3 + sd) * 43758.5; return v - Math.floor(v); };
       for (const sg of [1, -1]) { const zE = zm + sg * dz, ny0 = sg * (zE - zm), nz0 = sg * (yr - yE), nl = Math.hypot(ny0, nz0), ny = ny0 / nl, nz = nz0 / nl;
         const S = (x, t, lift) => [x, yE + (yr - yE) * t + ny * lift, zE + (zm - zE) * t + nz * lift], X = (j) => X0 + sx * j / nseg;
-        for (let i = 0; i < NC; i++) { const t0 = i / NC, t1 = Math.min(1, (i + 1) / NC + 0.08), base = th + 0.02 + i * 0.004, cv = 0.86 + 0.16 * hsh(i, sg);
-          for (let j = 0; j < nseg; j++) { const xa = X(j), xb = X(j + 1), ja = (hsh(i * 7 + j, sg) - 0.5) * 0.12 / L, jb = (hsh(i * 7 + j + 1, sg) - 0.5) * 0.12 / L, ta = Math.max(0, t0 + ja), tb = Math.max(0, t0 + jb), dropA = 0.11 + hsh(j, i) * 0.06, dropB = 0.11 + hsh(j + 1, i) * 0.06;
-            const ua = xa / tl, ub = xb / tl, v0 = ta * L / tl, v1 = t1 * L / tl, P = sg > 0 ? [S(xa, ta, base + dropA), S(xb, tb, base + dropB), S(xb, t1, base), S(xa, t1, base)] : [S(xb, tb, base + dropB), S(xa, ta, base + dropA), S(xa, t1, base), S(xb, t1, base)];
-            const U = sg > 0 ? [[ua, v0], [ub, v0], [ub, v1], [ua, v1]] : [[ub, v0], [ua, v0], [ua, v1], [ub, v1]]; quad(k, P[0], P[1], P[2], P[3], [[cv * 1.06, cv * 1.06, cv], [cv * 1.06, cv * 1.06, cv], [cv * 0.8, cv * 0.82, cv * 0.78], [cv * 0.8, cv * 0.82, cv * 0.78]], U);
-            const F = sg > 0 ? [S(xa, ta, base - 0.06), S(xb, tb, base - 0.06), S(xb, tb, base + dropB), S(xa, ta, base + dropA)] : [S(xb, tb, base - 0.06), S(xa, ta, base - 0.06), S(xa, ta, base + dropA), S(xb, tb, base + dropB)]; quad(k, F[0], F[1], F[2], F[3], 0.62 * cv, [[U[0][0], v0 - 0.06], [U[1][0], v0 - 0.06], [U[1][0], v0], [U[0][0], v0]]); } }
+        // extras4 moss_blanket_closeup: one displaced blanket per roof plane (no courses, no stripes). Cushions of three sizes (0.45-0.60 / 0.25-0.40 /
+        // 0.10-0.20 m, up to 0.13 proud), vertex colour = AO in the valleys and under the lip, sunlit crowns, 10-15% dry patches, +-8% macro value;
+        // UVs rotated per plane; a 0.30 m lip rolling 0.10 past the eave, and drips every 0.4-0.9 m.
+        const vn = (x, y, q) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy), r = (a, b) => hsh(a * 1.3 + q * 17, b * 0.7 - q * 5); return (r(xi, yi) * (1 - u) + r(xi + 1, yi) * u) * (1 - v) + (r(xi, yi + 1) * (1 - u) + r(xi + 1, yi + 1) * u) * v; };
+        const cush = (x, s) => { const a = vn(x / 0.52, s / 0.52, 1), m = vn(x / 0.31, s / 0.31, 2), sm2 = vn(x / 0.15, s / 0.15, 3); return Math.pow(a, 1.6) * 0.085 + Math.pow(m, 1.8) * 0.05 + sm2 * 0.02; };
+        const MT = o.mossTint || [1, 1, 1], th0 = Math.atan2(1, 1) * (1 + hsh(sg, 3) * 6), cr0 = Math.cos(th0), sr0 = Math.sin(th0);
+        const NX = Math.max(4, Math.round(sx / 0.36)), NT = Math.max(4, Math.round(L / 0.36)), lipT = Math.min(0.3, 0.35 / L);
+        const lift = (x, t) => 0.2 + cush(x, t * L) + 0.1 * Math.max(0, 1 - t / lipT), col = (x, t) => { const c0 = cush(x, t * L) / 0.155, ao = 0.8 + 0.3 * c0, dry = Math.max(0, Math.min(1, (vn(x / 1.4, t * L / 1.4, 5) - 0.62) * 4)) * (0.6 + 0.4 * t), mac = 1 + 0.12 * (vn(x / 4.5, t * L / 4.5, 6) - 0.5), lip = t < lipT * 0.5 ? 0.82 : 1;
+          const v = ao * mac * lip; return [v * MT[0] * (1 + 0.32 * dry), v * MT[1] * (1 + 0.08 * dry), v * MT[2] * (1 + 0.18 * dry)]; };
+        const UVp = (x, t) => { const s2 = t * L; return [(x * cr0 - s2 * sr0) / tl, (x * sr0 + s2 * cr0) / tl]; };
+        const ts = [-0.12, -0.04]; for (let i = 0; i <= NT; i++) ts.push(i / NT);
+        const dd = Math.hypot(yr - yE, zm - zE), dY = (yE - yr) / dd, dZ = (zE - zm) / dd, PT = (x, t) => { if (t >= 0) return S(x, t, lift(x, t)); const a = Math.min(1, -t / 0.12) * Math.PI, p0 = S(x, 0, 0.15), cn = Math.cos(a) * 0.15, sd2 = Math.sin(a) * 0.1; return [p0[0], p0[1] + ny * cn + dY * sd2, p0[2] + nz * cn + dZ * sd2]; };
+        for (let i = 0; i + 1 < ts.length; i++) for (let j = 0; j < NX; j++) { const xa = X0 + sx * j / NX, xb = X0 + sx * (j + 1) / NX, ta = ts[i], tb = ts[i + 1], ca = Math.max(0, ta), cb = Math.max(0, tb);
+          const P = [PT(xa, ta), PT(xb, ta), PT(xb, tb), PT(xa, tb)], Cc = [col(xa, ca), col(xb, ca), col(xb, cb), col(xa, cb)].map((c, q) => (q < 2 && ta < 0) || (q >= 2 && tb < 0) ? c.map((v) => v * 0.62) : c), U = [UVp(xa, ta), UVp(xb, ta), UVp(xb, tb), UVp(xa, tb)];
+          if (sg > 0) quad(k, P[0], P[1], P[2], P[3], Cc, U); else quad(k, P[1], P[0], P[3], P[2], [Cc[1], Cc[0], Cc[3], Cc[2]], [U[1], U[0], U[3], U[2]]); }
+        for (let x = X0 + 0.2 + hsh(sg, 9) * 0.4; x < X1 - 0.15; x += 0.4 + hsh(x * 3, sg) * 0.5) { const p = PT(x, -0.12), Ln = 0.1 + hsh(x, 2) * 0.25; tri(k, [x - 0.07, p[1] + 0.02, p[2]], [x + 0.07, p[1] + 0.02, p[2]], [x + (hsh(x, 4) - 0.5) * 0.06, p[1] - Ln, p[2]], [0.5 * MT[0], 0.52 * MT[1], 0.42 * MT[2]]); }
         // plank bargeboards up both gable edges
         for (const [xx, s2] of [[X0 - 0.03, -1], [X1 + 0.03, 1]]) { const a0 = S(xx, 0, -0.12), a1 = S(xx, 1, -0.12), b1 = S(xx, 1, th + 0.26), b0 = S(xx, 0, th + 0.26); if (s2 * sg > 0) quad('wood', a0, a1, b1, b0, 0.8); else quad('wood', b0, b1, a1, a0, 0.8); } }
       const ry = o.r ? o.r[1] : 0, cr = Math.cos(ry), sr = Math.sin(ry), RP = (p) => [c[0] + p[0] * cr + p[2] * sr, c[1] + p[1], c[2] - p[0] * sr + p[2] * cr];
-      for (const sg of [1, -1]) cyl(k, RP([X0 - 0.05, yE + 0.02, zm + sg * (dz + 0.02)]), 0.2, 0.2, sx + 0.1, 7, [0.78, 0.82, 0.72], [0, ry, -Math.PI / 2]); // rounded eave edge
       if (o.cap !== false) cyl(k, RP([X0 - 0.02, yr + th * 0.9, zm]), 0.26, 0.26, sx + 0.04, 8, [0.95, 1, 0.9], [0, ry, -Math.PI / 2]); // moss ridge cap
       at(c, o.r); }
     else if (o.lumps !== false) { const n = Math.max(3, Math.round((X1 - X0) / 0.9)); for (let i = 0; i <= n; i++) { const x = X0 + (X1 - X0) * i / n; const ry = o.r ? o.r[1] : 0, cr = Math.cos(ry), sr = Math.sin(ry), RP = (p) => [c[0] + p[0] * cr + p[2] * sr, c[1] + p[1], c[2] - p[0] * sr + p[2] * cr]; for (const sg of [1, -1]) lump(k, RP([x, yE - 0.12, zm + sg * (dz - 0.05)]), [0.42, 0.42 + 0.12 * Math.sin(i * 2.1 + sg), 0.34], [0.95, 1, 0.9], sd + i * 13 + (sg > 0 ? 3 : 0), [0, ry, 0]); if (i % 2 === 0) lump(k, RP([x, yr + th * 0.6, zm]), [0.36, 0.3, 0.42], [1.05, 1.08, 0.95], sd + i * 7, [0, ry, 0]); } at(c, o.r); }
@@ -4570,7 +4580,7 @@ Town.kit = (() => {
   function corners(w, d, h, hp, o) { o = o || {}; for (const sx of [-1, 1]) for (const sz of [-1, 1]) { box('wood', [sx * (w / 2 - 0.05), hp, sz * (d / 2 - 0.05)], [0.25, h - hp, 0.25], 0.9); for (const yy of [hp + 0.15, h - 0.4]) cyl('rope', [sx * (w / 2 - 0.05), yy, sz * (d / 2 - 0.05)], 0.2, 0.2, 0.17, 8, 1); } }
   function trussFront(w, z, ye, yr, x) { x = x || 0; log([x - w / 2 - 0.2, ye - 0.15, z], [x, yr + 0.12, z], 0.17, 0.9, true); log([x, yr + 0.12, z], [x + w / 2 + 0.2, ye - 0.15, z], 0.17, 0.9, true); beam([x - w / 2, ye, z], [x + w / 2, ye, z], 0.22, 'wood', 0.85); beam([x, ye, z], [x, yr - 0.15, z], 0.2, 'wood', 0.85); }
   // front-gable roof (ridge along z, front at +z): achieved by a yawed cross-gable
-  function frontRoof(x, z, w, d, ye, yr, o) { o = o || {}; const ov = o.ov == null ? 0.42 : o.ov; B.gable([x, 0, z], -d / 2, d / 2, -w / 2, w / 2, ye, yr, ov, 0.18, { r: [0, Math.PI / 2, 0], wall: o.wall || 'plaster', wallCol: o.wallCol || 0.8, sd: o.sd || 19, lumps: o.lumps });
+  function frontRoof(x, z, w, d, ye, yr, o) { o = o || {}; const ov = o.ov == null ? 0.42 : o.ov; B.gable([x, 0, z], -d / 2, d / 2, -w / 2, w / 2, ye, yr, ov, 0.18, { r: [0, Math.PI / 2, 0], wall: o.wall || 'plaster', wallCol: o.wallCol || 0.8, sd: o.sd || 19, lumps: o.lumps, mossTint: o.mossTint });
     // ridge log + barge boards (warped / hooked at ends)
     const zy = yr + 0.2; log([x, zy + 0.1, z - d / 2 - 0.5], [x, zy, z + d / 2 + 0.55], 0.19, 1, true); for (const sg of [-1, 1]) { const zz = z + sg * (d / 2 + ov + 0.02); trussFront(w + ov * 1.4, zz, ye - 0.25, yr + 0.05, x); } }
   function chimney(x, z, y0, h, w, d, soot) { box(soot ? 'brick' : 'stone', [x, y0, z], [w, h - y0, d], 0.85); box('stone', [x, h - 0.18, z], [w + 0.22, 0.2, d + 0.22], 0.7); box('iron', [x, h + 0.03, z], [w * 0.7, 0.02, d * 0.7], 0.25); }
@@ -4629,25 +4639,31 @@ Town.houses = (() => {
     // a coil of rope and the drill's spot (the established gold spiral drill model is placed by Town.build)
     k.torus('rope', [-0.35, 0.06, 3.5], 0.35, 0.07, [Math.PI / 2, 0, 0], 14); k.torus('rope', [-0.35, 0.16, 3.5], 0.26, 0.07, [Math.PI / 2, 0, 0], 14);
     return { foot: [[x0, z0, x1, z1], [-4.3, -2.1, x0, 1.45], [0.4, 1.5, 4.0, 3.2]], drill: [-2.9, 2.7, 0.55] }; }
-  function rope_maker() { // 3.5 x 1 SU rope-walk hall, open-sided, plus a 0.75 SU drying tower with ropes hanging; giant spoked twisting wheel on the front gable
-    const w = 4.6, zF = 6.9, zB = -6.9, L = zF - zB, cz = (zF + zB) / 2;
-    box('stone', [0, 0, cz], [w, 0.55, L], ST); box('wood', [0, 0.55, cz], [w - 0.4, 0.08, L - 0.3], 0.75);
-    for (let z = zB + 0.15; z <= zF - 0.1; z += L / 6) for (const sg of [-1, 1]) { k.log([sg * (w / 2 - 0.15), 0.5, z], [sg * (w / 2 - 0.15), 2.45, z], 0.14, 0.85); k.beam([sg * (w / 2 - 0.15), 2.0, z], [sg * (w / 2 - 0.15), 2.4, z + (z < zF - 1 ? 0.6 : -0.6)], 0.08); }
-    for (const sg of [-1, 1]) { k.beam([sg * (w / 2 - 0.15), 2.4, zB], [sg * (w / 2 - 0.15), 2.4, zF], 0.2); k.beam([sg * (w / 2 - 0.15), 1.25, zB], [sg * (w / 2 - 0.15), 1.25, zF], 0.08, 'rope'); }
-    k.frontRoof(0, cz, w, L, 2.45, 4.5, { wall: 'woodV', wallCol: 0.78, sd: 51 }); box('woodV', [0, 0.55, zF - 0.05], [w - 0.3, 1.9, 0.12], 0.8); box('woodV', [0, 0.55, zB + 0.05], [w - 0.3, 1.9, 0.12], 0.8);
-    // the giant spoked wheel on the front gable
-    const wc = [0, 2.15, zF + 0.35], R = 1.5; k.torus('wood', wc, R, 0.14, null, 26, 0.95); k.torus('wood', wc, R - 0.32, 0.07, null, 22, 0.85); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; k.beam(wc, [wc[0] + Math.cos(a) * (R - 0.05), wc[1] + Math.sin(a) * (R - 0.05), wc[2]], 0.09); }
-    cyl('brass', [0, 2.15, zF + 0.1], 0.32, 0.32, 0.5, 10, 1, [Math.PI / 2, 0, 0], { top: true, bot: true }); k.torus('rope', [0, 2.15, zF + 0.62], 0.2, 0.06, null, 10); k.beam([-0.5, 0.0, zF + 0.4], [0, 2.15, zF + 0.4], 0.14); k.beam([0.5, 0.0, zF + 0.4], [0, 2.15, zF + 0.4], 0.14); k.prop(0, zF + 0.4, 0.5);
-    // rope walk inside: strands stretched the hall's length, spools of pale-blue glowing tether cord
-    for (const x of [-0.8, -0.25, 0.3, 0.85]) k.beam([x, 1.05, zB + 0.4], [x, 1.1, zF - 0.6], 0.035, 'rope');
-    for (let i = 0; i < 4; i++) { const z = zB + 1.6 + i * 2.6, x = i % 2 ? 1.25 : -1.25; for (const s of [-0.32, 0.32]) cyl('wood', [x + s, 0.63, z], 0.45, 0.45, 0.06, 12, 0.85, [0, 0, Math.PI / 2], { top: true, bot: true }); cyl('glowTeal', [x - 0.3, 0.63, z], 0.36, 0.36, 0.6, 12, [0.55, 0.8, 1.15], [0, 0, -Math.PI / 2]); }
-    // drying tower at the back end: four posts, braces, two platforms, a small roof, ropes hanging down
-    const tz = zB - 1.75, tw = 3.0, th = 4.0; for (const sx of [-1, 1]) for (const sz of [-1, 1]) { k.log([sx * tw / 2, 0, tz + sz * tw / 2], [sx * tw / 2 * 0.9, th, tz + sz * tw / 2 * 0.9], 0.15, 0.85, true); }
-    for (const y of [2.6, 5.4]) { box('wood', [0, y, tz], [tw + 0.2, 0.14, tw + 0.2], 0.85); for (const sg of [-1, 1]) { k.beam([sg * tw / 2, y - 2.3, tz - tw / 2], [-sg * tw / 2, y, tz - tw / 2], 0.1); k.beam([tw / 2, y - 2.3, tz + sg * tw / 2], [tw / 2, y, tz - sg * tw / 2], 0.1); k.beam([-tw / 2, y - 2.3, tz + sg * tw / 2], [-tw / 2, y, tz - sg * tw / 2], 0.1); } }
-    cyl('moss', [0, th, tz], 2.7, 0.15, 1.6, 4, 0.95, [0, Math.PI / 4, 0], { bot: true }); box('wood', [0, th - 0.1, tz], [tw, 0.2, tw], 0.8); for (let i = 0; i < 7; i++) { const x = -1.2 + i * 0.4; k.beam([x, th - 0.2, tz + 0.3 * (i % 3 - 1)], [x + 0.05, 1.0 + (i % 3) * 0.6, tz + 0.3 * (i % 3 - 1)], 0.05, 'rope'); }
-    k.beam([0, th - 0.4, tz + tw / 2], [0, 1.0, zB + 0.3], 0.04, 'rope'); k.lamp(-w / 2 - 0.1, 1.5, zF - 0.3); k.lamp(w / 2 + 0.1, 1.5, zF - 0.3); k.sign('rope_maker', -w / 2 - 0.6, 1.5, zF - 0.6);
-    k.barrel(w / 2 + 0.55, 0, zF - 1.6, 0.32, 0.75, { rope: 1 }); k.crate(w / 2 + 0.6, 0, zF - 2.6, 0.6); k.lump('moss', [-w / 2 - 0.2, 0, 2], [0.5, 0.3, 0.9], 0.9, 66);
-    return { foot: [[-w / 2 - 0.2, zB, w / 2 + 0.2, zF + 0.6], [-tw / 2 - 0.2, tz - tw / 2 - 0.2, tw / 2 + 0.2, zB]] }; }
+  function rope_maker() { // extras4: north street-facing 5.6 x 4 gable with Ø4.2 wheel, low 8 m hall, short stone tower. Local +z faces the street.
+    const zF = 7.5, gz = 5.5, hz = -.5, tz = -6, w = 4.2, zB = -4.5;
+    box('stone', [0, 0, gz], [5.8, .4, 4.2], ST); box('woodV', [0, .4, gz], [5.6, 2.8, 4], .82);
+    for (const x of [-2.65, 2.65]) for (const z of [3.6, 7.4]) k.log([x, .3, z], [x, 3.2, z], .18, .82, true);
+    k.frontRoof(0, gz, 5.6, 4, 3.2, 6.6, { wall: 'woodV', wallCol: .8, sd: 51 });
+    // The wheel is deliberately large and proud; ropes are physical wraps on the rim, not floating rings.
+    const wc = [-.38, 2.4, zF + .3], R = 2.1;
+    k.torus('wood', wc, R, .15, null, 28, .85); k.torus('rope', [wc[0], wc[1], wc[2]+.05], R-.14, .08, null, 28, .85);
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; k.beam(wc, [wc[0]+Math.cos(a)*(R-.07),wc[1]+Math.sin(a)*(R-.07),wc[2]], .18, 'wood', .78); }
+    cyl('wood', [wc[0],wc[1],wc[2]-.15], .3,.3,.6,12,.8,[Math.PI/2,0,0],{top:true,bot:true}); k.torus('rope',[wc[0],wc[1],wc[2]+.22],.22,.06,null,12);
+    k.prop(wc[0],wc[2],.6); // wheel hub and lower rim are solid, as are the gable walls
+    k.door(1.65,.4,zF+.07,1.3,2.2); for(let i=0;i<2;i++)box('stone',[1.65,0,zF+.3+i*.35],[1.65,.4-i*.2,.35],.9);
+    k.sign('rope_maker',-3.1,2.7,zF-.2); box('wood',[0,3.05,zF+.1],[5.6,.24,.24],.8); k.trussFront(5.6,zF+.15,3.2,6.6);
+    // three open bays: shorter and lower so the high street gable wins the screen silhouette
+    box('stone',[0,0,hz],[w,.4,8],ST);box('wood',[0,.4,hz],[w-.2,.08,7.9],.8);
+    for(let i=0;i<=3;i++){const z=zB+i*8/3;for(const sg of [-1,1]){k.log([sg*1.95,.4,z],[sg*1.95,2.2,z],.14,.82);k.beam([sg*1.95,1.6,z],[sg*1.95,2.2,z+(i<3?.5:-.5)],.12,'wood',.8);}}
+    for(const sg of [-1,1]) k.beam([sg*1.95,2.2,zB],[sg*1.95,2.2,3.5],.22,'wood',.75);
+    k.frontRoof(0,hz,4.2,8,2.2,3.2,{wall:'woodV',sd:53,mossTint:[.71,.72,.65]});
+    for(let i=0;i<3;i++){const z=zB+1.33+i*8/3,x=1.3;for(const sg of [-1,1])cyl('wood',[x+sg*.5,.8,z],.5,.5,.08,12,.8,[0,0,Math.PI/2],{top:true,bot:true});cyl('glowTeal',[x-.45,.8,z],.4,.4,.9,12,[.4,.65,.7],[0,0,-Math.PI/2]);}
+    for(const x of [-.7,0,.7])k.beam([x,1,zB+.3],[x,1,3.2],.035,'rope',.8);
+    // Stone lower tower, open timber top; 4.8 m overall, never a tall roof at the far end.
+    box('stone',[0,0,tz],[3,3.4,3],.8);for(const x of [-1.4,1.4])for(const z of [tz-1.4,tz+1.4])k.log([x,3.25,z],[x,4.7,z],.14,.8,true);
+    box('wood',[0,3.35,tz],[3.1,.15,3.1],.8);box('wood',[0,4.65,tz],[3.2,.15,3.2],.75);
+    for(const sg of [-1,1]){k.beam([-1.4,3.4,tz+sg*1.4],[1.4,4.6,tz+sg*1.4],.12,'wood',.8);k.beam([-1.4,4.6,tz+sg*1.4],[1.4,3.4,tz+sg*1.4],.12,'wood',.8);}
+    return {foot:[[-2.8,3.5,2.8,7.5],[-2.1,-4.5,2.1,3.5],[-1.5,-7.5,1.5,-4.5]]}; }
   function bank() { // a round squat fieldstone drum (1.5 SU across), riveted brass dome with a teal crystal finial, a giant round vault door as the entrance, front steps; no lettering
     const R = 3.05; cyl('stone', [0, 0, 0], R + 0.25, R + 0.2, 0.45, 24, 0.85, null, { top: true }); cyl('stone', [0, 0.45, 0], R, R, 2.9, 24, ST, null, {}); cyl('stone', [0, 3.35, 0], R + 0.22, R + 0.22, 0.28, 24, 0.75, null, { top: true });
     // radially laid individual capstones and tapered load-bearing buttresses
