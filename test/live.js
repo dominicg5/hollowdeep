@@ -72,9 +72,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await shot('live-city-far.png', 0, 0, 0.1, 4000);
   const r = await p.evaluate(() => { const m = W.markets[4]; return [m.x, m.y]; }); await shot('live-city-mid.png', r[0], r[1], 0.45);
   const ph = await p.evaluate(() => [W.player.x + 40, W.player.y - 60]); await shot('live-city-close.png', ph[0], ph[1], 1.6);
-  // night + festival
-  await p.evaluate(() => { CityMap.onAct('season', { id: 'deep' }); closeModalQuiet(); }); await p.waitForTimeout(400);
-  await shot('live-city-night.png', 0, -300, 0.22, 3000); await shot('live-city-night-close.png', ph[0], ph[1], 0.9, 2000);
+  // festival (no night shots: always daylight)
   await p.evaluate(() => { CityMap.onAct('season', { id: 'fest' }); closeModalQuiet(); }); await p.waitForTimeout(400);
   const fest = await p.evaluate(() => festival()); console.log('festival:', fest);
   await shot('live-city-festival.png', 0, 600, 0.3, 3000);

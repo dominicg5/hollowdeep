@@ -1,4 +1,4 @@
-// quick art review shots: node shots.js [night]
+// quick art review shots: node shots.js (day only - the day/night cycle is gone)
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/hollowdeep-prototype.html';
 (async () => {

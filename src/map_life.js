@@ -48,9 +48,13 @@ const RUMORS = [
 
 /* ---------- time helpers ---------- */
 function gTime() { return S ? S.gameTime : 0; }
-function hourOfDay() { return ((gTime() / HOUR) + 8) % 24; }
-function nightFactor() { const h = hourOfDay(); if (h >= 20 || h < 5) return 1; if (h >= 17) return (h - 17) / 3; if (h < 7) return 1 - (h - 5) / 2; return 0; }
-function isDusk() { const h = hourOfDay(); return h >= 17.5 && h < 20.5; }
+/* (Dominic: "remove the nighttime routine") no day/night cycle: the world is locked to its daytime lighting (sun, sky, fog, ambient, water, lanterns and
+   emissives all at their day values). gameTime still runs every timer (builds, trips, events); it no longer drives the light. The renderers still take a
+   night term, which is now always 0. */
+const DAY_HOUR = 12;
+function hourOfDay() { return DAY_HOUR; }
+function nightFactor() { return 0; }
+function isDusk() { return false; }
 function seasonLen() { return (S && S.testMode ? CITY.testSeasonDays : CITY.seasonDays) * DAY; }
 function seasonInfo() {
   if (S && S.seasonOverride != null) return { idx: S.seasonOverride, prog: S.festivalOverride ? 0.8 : 0.5, forced: true };
@@ -118,7 +122,7 @@ function npcPos(n, t) {
   if (n.mover === 'kip') { const rd = W.roads[n.road]; const s = ((t * n.v) % rd.len + rd.len) % rd.len; const [x, y, a] = roadPos(rd, s); return [x, y, a]; }
   return [n.x, n.y, 0];
 }
-function pellProgress() { const h = hourOfDay(); if (h >= 17.5 && h < 20.5) return (h - 17.5) / 3; return (h / 24) * 0.15 + 0.02 * Math.sin(h); }
+function pellProgress() { const h = (gTime() / HOUR) % 24; return (h / 24) * 0.15 + 0.02 * Math.sin(h); } // Pell's slow daytime round (no dusk lamp-lighting walk any more)
 function lampLit() { return 0; }
 
 function walkerPos(w, t) {

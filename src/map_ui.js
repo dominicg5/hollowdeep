@@ -234,7 +234,7 @@ const CityMap = (() => {
     glow(c, h.x, h.y, h.size * 1.8 + pulse * 10, 'rgba(255,212,107,.9)', 0.45);
     c.strokeStyle = `rgba(255,212,107,${0.5 + pulse * 0.4})`; c.lineWidth = 3 / Math.max(0.3, z); c.beginPath(); c.arc(h.x, h.y, h.size + 14 + pulse * 4, 0, TAU); c.stroke();
     drawHome(c, h, Math.max(0.3, z));
-    const pets = equippedPets(); pets.forEach((p, i) => { const sl = !heroHome() || nightFactor() > 0.5; const a = h.ang + Math.PI / 2; const kind = p.id;
+    const pets = equippedPets(); pets.forEach((p, i) => { const sl = !heroHome(); const a = h.ang + Math.PI / 2; const kind = p.id;
       const x = h.x + Math.cos(a) * (h.size * 0.55 + 6) + Math.cos(h.ang) * (i * 11 - 5), y = h.y + Math.sin(a) * (h.size * 0.55 + 6) + Math.sin(h.ang) * (i * 11 - 5);
       drawPet(c, kind, x, y, h.ang, t, i, sl); });
   }
@@ -262,15 +262,11 @@ const CityMap = (() => {
         for (let i = 0; i < n; i++) { const px = sx + (hash1(i) * 2 - 1) * R * 0.85, py0 = sy + (hash1(i + 999) * 2 - 1) * R * 0.85, fall = ((t * 600 * dpr + i * 37) % (90 * dpr)); const py = py0 + fall; if (Math.hypot(px - sx, py - sy) > R * 0.9) continue; c.moveTo(px, py); c.lineTo(px - 3 * dpr, py + 10 * dpr); } c.globalAlpha = wx.fade; c.stroke(); c.globalAlpha = 1; }
       if (wx.type === 'storm' && Math.sin(t * 1.7) > 0.985) { c.fillStyle = 'rgba(230,240,255,.35)'; c.fillRect(0, 0, Wc, Hc); }
     }
-    // night
-    if (night > 0) { c.fillStyle = `rgba(14,20,50,${(ART.ok ? 0.52 : 0.6) * night})`; c.fillRect(0, 0, Wc, Hc); }
     // glows (additive)
     c.globalCompositeOperation = 'lighter';
     const G = (x, y, r, col, a) => { if (!inV(x, y, r)) return; const [sx, sy] = S2(x, y); glow(c, sx, sy, r * k, col, a); };
     const pulse = 0.75 + 0.25 * Math.sin(t * 0.9);
     G(0, 40, CITY.hollowR * 0.7, 'rgba(255,205,110,.8)', (0.25 + night * 0.5) * pulse);
-    if (night > 0.05) { // at night the Hollow is the great light of the city: a bloom rises out of the chasm, washing its walls and the nearest rooftops
-      G(0, 20, CITY.hollowR * 1.25, 'rgba(255,214,130,.9)', night * 0.42 * pulse); G(0, 0, CITY.hollowR * 2.1, 'rgba(255,190,110,.85)', night * 0.22 * pulse); G(0, 30, CITY.hollowR * 0.35, 'rgba(255,246,210,1)', night * 0.35 * pulse); }
     // lightning deep below
     { const P = 9, seg = Math.floor(t / P), h = hash1(seg + 3); const t0 = seg * P + hash1(seg + 77) * 6; if (h < 0.55 && t > t0 && t < t0 + 0.55) { const fl = (Math.sin((t - t0) * 60) > 0 ? 1 : 0.4) * (1 - (t - t0) / 0.55); const a = hash1(seg) * TAU, rr = CITY.hollowR * 0.35 * hash1(seg + 5);
       G(Math.cos(a) * rr, Math.sin(a) * rr, 380, 'rgba(180,210,255,.9)', 0.7 * fl); if (inV(0, 0, 800)) { c.strokeStyle = `rgba(220,235,255,${0.9 * fl})`; c.lineWidth = 2.5 * dpr; c.beginPath(); let [bx, by] = [Math.cos(a) * rr, Math.sin(a) * rr]; let [sx, sy] = S2(bx, by); c.moveTo(sx, sy);
@@ -292,16 +288,6 @@ const CityMap = (() => {
       for (let fi = 0; fi < W.lavaFlows.length; fi++) { const f = W.lavaFlows[fi]; if ((z < 0.06 && fi % 4) || !vb(f.bbox)) continue; for (let i = 0; i < f.pts.length; i += stp) { const p = f.pts[i]; G(p[0], p[1], Math.max(stp * 18, f.ws[i] * 2), 'rgba(255,120,40,.9)', (0.14 + night * 0.5) * (0.8 + 0.2 * Math.sin(t * 2 + f.ph + i * 0.4))); } }
       if (z > 0.06) { for (const v of W.vents) G(v.x, v.y - v.r, v.r * 2.2, 'rgba(255,120,40,.95)', (0.2 + night * 0.5) * (0.75 + 0.25 * Math.sin(t * 3 + v.seed * 20))); for (const o of W.lavaPools) G(o.x, o.y, o.r * 1.8, 'rgba(255,130,40,.9)', (0.18 + night * 0.5) * fl); }
       }
-    if (night > 0.15 && z <= 0.2) { if (!W.glowCells) { const C = 900, m = new Map(); for (const h of W.homes) { const k = Math.floor(h.x / C) + ',' + Math.floor(h.y / C); let e = m.get(k); if (!e) { e = { x: 0, y: 0, n: 0 }; m.set(k, e); } e.x += h.x; e.y += h.y; e.n++; } W.glowCells = [...m.values()].map((e) => ({ x: e.x / e.n, y: e.y / e.n, n: e.n })); }
-      for (const g of W.glowCells) G(g.x, g.y, 650, 'rgba(255,190,100,.95)', night * Math.min(0.05, 0.004 + g.n * 0.0005)); }
-    if (z > 0.2 && night > 0.15) for (const h of queryObjs(view.x0, view.y0, view.x1, view.y1, 40)) if (h.type === 'home') { if ((h.lanternPhase * 10 | 0) % 3) continue; /* only a few windows lit: small dim points */ if (ART.ok && z <= 0.35) { G(h.x, h.y - 8, homeW(h) * 0.22, 'rgba(255,190,100,.95)', night * 0.3); continue; } if (ART.ok) { const w = homeW(h), fl = 0.75 + 0.25 * Math.sin(t * 2.5 + h.lanternPhase); const sd = h.lanternPhase || 0; for (let i = 0; i < 1; i++) { const wx = h.x + (((sd * 7.3 + i * 0.37) % 1) - 0.5) * w * 0.55, wy = h.y - w * (0.12 + ((sd * 3.1 + i * 0.29) % 1) * 0.25); G(wx, wy, w * 0.07, 'rgba(255,200,110,.95)', night * 0.35 * fl); G(wx, wy, 1.4, 'rgba(255,245,200,1)', night * 0.55); } } else G(h.x + Math.cos(h.ang + 1.57) * h.size * 0.45, h.y + Math.sin(h.ang + 1.57) * h.size * 0.45, 16, 'rgba(255,200,110,.95)', night * (0.6 + 0.4 * Math.sin(t * 2.5 + h.lanternPhase))); }
-    // sky-fish at night: the nightfall school surges out of the chasm, then a few roam
-    if (night > 0.05) { const h = hourOfDay(); const surge = h >= 17.5 && h < 21 ? clamp((h - 17.5) / 3.5, 0, 1) : -1;
-      W.nightFish.forEach((f, i) => { let x, y, a, al;
-        if (surge >= 0) { const rr = CITY.hollowR * (0.08 + surge * (0.6 + f.r * 1.4)), ang = f.a + t * f.sp * 0.8; x = Math.cos(ang) * rr; y = Math.sin(ang) * rr; a = ang + Math.PI / 2 + 0.4; al = Math.min(1, surge * 4) * (surge > 0.85 && i >= 10 ? (1 - surge) / 0.15 : 1); }
-        else { if (i >= 10) return; const u = ((t * 0.01 * (1 + f.sp)) + f.ph) % 1, rr = 300 + Math.sin(u * TAU * 2) * 1100 + 1200, ang = f.a + u * TAU; x = Math.cos(ang) * rr; y = Math.sin(ang) * rr; a = ang + Math.PI / 2; al = night; }
-        if (!inV(x, y, 30)) return; const [sx, sy] = S2(x, y); glow(c, sx, sy, f.size * 4 * k, f.hue < 0.5 ? 'rgba(120,255,220,.9)' : 'rgba(150,200,255,.9)', 0.5 * al);
-        c.globalCompositeOperation = 'source-over'; c.save(); c.setTransform(k, 0, 0, k, Wc / 2 - cam.x * k, Hc / 2 - cam.y * k); drawSkyFish(c, i % 7 === 0 ? 'eel' : 'school', x, y, a, f.size * (i % 7 === 0 ? 3 : 1), t, f.ph, true, al); c.restore(); c.globalCompositeOperation = 'lighter'; }); }
     // Lumen Festival: lanterns float from the rim into the Hollow
     if (fest === 'lumen') for (const L of W.lanterns) { const u = (t * L.sp + L.ph) % 1, rr = (hollowR(L.a) + 60) * (1 - u * 0.75); G(Math.cos(L.a + u * 0.6) * rr, Math.sin(L.a + u * 0.6) * rr - Math.sin(u * Math.PI) * 30, 18, L.c === '#ffd46b' ? 'rgba(255,212,107,.95)' : 'rgba(255,170,100,.95)', Math.sin(u * Math.PI) * 0.9); }
     if (fest === 'harvest') { const m = W.markets.find((mm) => REGIONS[mm.region].key === 'farms'); if (m) for (let i = 0; i < 6; i++) { const u = (t * 0.5 + i / 6) % 1, a = i * 1.1 + Math.floor(t * 0.5 + i / 6) * 2; G(m.x + Math.cos(a) * (40 + u * 60), m.y + Math.sin(a) * (40 + u * 60), 12 * (1 - u) + 4, ['rgba(255,200,90,.9)', 'rgba(255,120,90,.9)', 'rgba(150,255,150,.9)'][i % 3], 1 - u); } }
@@ -359,7 +345,6 @@ const CityMap = (() => {
     const b = bubbles.get(n.npc.id); if (b && b.until > t) return b.text;
     if (n.npc.id === 'greta') { const k = Math.floor(t / 9); if (t % 9 < 3.5) { const docks = W.markets.findIndex((m) => m.region === 0); return marketSpike(docks) ? 'Lumen oil is DEAR today! Get it while it lasts!' : n.npc.lines[k % 3]; } }
     if (n.npc.id === 'kip' && t % 11 < 4) return '📯 ' + (currentRumor || 'News from the Rim!').slice(0, 60);
-    if (n.npc.id === 'pell' && isDusk() && t % 7 < 3) return 'Lamps, lamps! Lighting the way down!';
     if (n.npc.id === 'maddox' && t % 13 < 2.5) return '♪ hmm-hmm, the rope sings… ♪';
     if (n.npc.id === 'juniper' && festival() === 'harvest' && t % 10 < 3.5) return 'Harvest Fair! Pies, pumpkins and mole races!';
     return null;
@@ -380,7 +365,6 @@ const CityMap = (() => {
     if (frostLevel() > 0) out.push({ w: 2, s: '❄️ Frost is creeping down from the mountains. Quarry crews are wrapping their hands.' });
     const tk = S.hero.task; if (tk && tk.type === 'expedition' && tk.end - S.gameTime < 1.5 * HOUR) out.push({ w: 3, s: `🧗 Word on the Promenade: ${CONFIG.hero.name} is climbing back up the Tether.` });
     const nw = weatherNow(t + CITY.weatherSeconds); if (nw.type !== 'clear') out.push({ w: 1, s: `🌦️ Weather-watchers say: ${weatherLabel(nw).replace(/^\S+\s/, '')} soon.` });
-    if (isDusk()) out.push({ w: 1, s: '🕯️ Pell is lighting the Promenade lamps. The lamps are coming on all over the plateau.' });
     RUMORS.forEach((r) => out.push({ w: 1, s: '💬 ' + r }));
     return out;
   }
@@ -389,10 +373,9 @@ const CityMap = (() => {
     const el = $('#ticker span'); if (el) { el.classList.remove('slide'); void el.offsetWidth; el.textContent = currentRumor; el.classList.add('slide'); }
   }
   function updateInfo(t) {
-    const si = seasonInfo(), s = SEASONS[si.idx], h = hourOfDay(), f = festival(), wx = weatherNow(t);
-    const hh = Math.floor(h), mm = Math.floor((h % 1) * 60);
-    if (CITY.base) { const t2 = `${h >= 6 && h < 18 ? '☀️' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · Ledgeville rank #${rimRank(W.player)} of ${W.homes.length}`; const e2 = $('#cityInfo'); if (e2 && e2.textContent !== t2) e2.textContent = t2; return; }
-    const txt = `${s.icon} ${s.name}${f ? (f === 'lumen' ? ' · 🏮 Lumen Festival' : ' · 🌾 Harvest Fair') : ''} · ${h >= 6 && h < 18 ? '☀️' : '🌙'} ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · ${weatherLabel(wx)}`;
+    const si = seasonInfo(), s = SEASONS[si.idx], f = festival(), wx = weatherNow(t); // no time-of-day clock: the world is always in daylight
+    if (CITY.base) { const t2 = `Ledgeville rank #${rimRank(W.player)} of ${W.homes.length}`; const e2 = $('#cityInfo'); if (e2 && e2.textContent !== t2) e2.textContent = t2; return; }
+    const txt = `${s.icon} ${s.name}${f ? (f === 'lumen' ? ' · 🏮 Lumen Festival' : ' · 🌾 Harvest Fair') : ''} · ${weatherLabel(wx)}`;
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
   function buildLegend() {
@@ -480,7 +463,7 @@ const CityMap = (() => {
     if (h.trophies) L.push(`🦴 ${h.trophies} Rim Mole trophy${h.trophies > 1 ? ' skulls' : ' skull'} over the door`);
     if (h.battered) L.push(real ? '🧱 Your wall is still cracked from the last raid' : '🧱 The wall is battered from a recent raid');
     if (!real && h.pet) L.push(`${{ pup: '🐶', wisp: '👻', moth: '🦋', ferret: '🦦', tortoise: '🐢', kit: '🐱' }[h.pet]} A ${PET_NAMES[h.pet]} ${h.petSleep ? 'sleeps on the porch' : 'patrols the yard'}`);
-    if (real) equippedPets().forEach((p) => L.push(`${CONFIG.pets[p.id].icon} ${CONFIG.pets[p.id].name} ${!heroHome() || nightFactor() > 0.5 ? 'sleeps on the porch' : 'plays in the yard'}`));
+    if (real) equippedPets().forEach((p) => L.push(`${CONFIG.pets[p.id].icon} ${CONFIG.pets[p.id].name} ${!heroHome() ? 'sleeps on the porch' : 'plays in the yard'}`));
     return L.length ? `<div class="small" style="margin-top:6px">${L.join('<br>')}</div>` : '<div class="dim" style="margin-top:6px">No trophies yet. A fresh start.</div>';
   }
   function rimLines(h) { const rk = rimRank(h), N = W.homes.length;
@@ -595,7 +578,7 @@ const CityMap = (() => {
     openModal(`<h2>${SEASONS[si.idx].icon} Seasons & festivals</h2><p class="small">Now: <b>${SEASONS[si.idx].name}</b>${festival() ? ` · ${festival() === 'lumen' ? '🏮 Lumen Festival' : '🌾 Harvest Fair'}` : ''}. ${si.forced ? 'Debug override is ON.' : `Next season in ${realLeft(S.gameTime + si.nextIn)} real.`}</p>
       <div class="dim">The cycle: 🌸 Bloomtide → ☀️ Lumen Summer (Lumen Festival late in the season) → 🍂 Ambertide (Harvest Fair mid-season) → ❄️ Frostfall (frost creeps over the Bluffs). Each season lasts ${S.testMode ? CITY.testSeasonDays : CITY.seasonDays} game day(s)${S.testMode ? ' in test mode' : ''}.</div>
       <div class="small" style="margin-top:8px"><b>Debug</b></div>
-      ${btnRow(`<button class="btn ghost sm" data-act="season" data-id="next">Next season ⏭</button><button class="btn ghost sm" data-act="season" data-id="fest">${S.festivalOverride ? 'Festival OFF' : 'Force festival 🎉'}</button><button class="btn ghost sm" data-act="season" data-id="night">Skip to dusk 🌆</button><button class="btn ghost sm" data-act="season" data-id="deep">Nightfall 🌙</button><button class="btn ghost sm" data-act="season" data-id="auto">Follow clock ↺</button>`)}
+      ${btnRow(`<button class="btn ghost sm" data-act="season" data-id="next">Next season ⏭</button><button class="btn ghost sm" data-act="season" data-id="fest">${S.festivalOverride ? 'Festival OFF' : 'Force festival 🎉'}</button><button class="btn ghost sm" data-act="season" data-id="auto">Reset season ↺</button>`)}
       ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function onAct(act, ds) {
@@ -614,8 +597,6 @@ const CityMap = (() => {
       case 'molefight': { const m = currentMole(); if (!m) return toast('The mole has gone back down.'); closeModalQuiet(); return startMoleFight(m); }
       case 'season': { if (ds.id === 'next') { const si = seasonInfo(); S.seasonOverride = (si.idx + 1) % 4; }
         else if (ds.id === 'fest') { S.festivalOverride = !S.festivalOverride; if (S.seasonOverride == null) S.seasonOverride = seasonInfo().idx; if (S.festivalOverride && S.seasonOverride !== 1 && S.seasonOverride !== 2) S.seasonOverride = 1; }
-        else if (ds.id === 'deep') { const h = hourOfDay(); simulate(((19.4 - h + 24) % 24) * HOUR); toast('🌙 Skipped ahead to nightfall'); }
-        else if (ds.id === 'night') { const h = hourOfDay(); const d = ((17.6 - h + 24) % 24) * HOUR; simulate(d); toast('🌆 Skipped ahead to dusk'); }
         else { S.seasonOverride = null; S.festivalOverride = false; }
         save(); return seasonModal(); }
     }

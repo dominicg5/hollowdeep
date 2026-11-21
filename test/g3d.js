@@ -17,8 +17,7 @@ const URL = process.env.URL || 'http://localhost:8765/hollowdeep-prototype.html'
   const S = [['g-tree.png', hw.x, hw.y, 0.022, hw.rot, 35], ['g-tree2.png', hw.x, hw.y, 0.03, hw.rot + 1.2, 35], ['g-pulley.png', hw.px, hw.py, 0.06, hw.rot - 0.6, 35], ['g-notch.png', hw.nx, hw.ny, 0.12, hw.nrot, 45], ['g-home.png', ...pl, 1.0, 0, 55], ['g-home-rot.png', ...pl, 1.0, 2.2, 40], ['g-lip.png', 0, 3700, 0.32, 0, 45], ['g-rimclose.png', 400, 3300, 0.75, 0.2, 42], ['g-hollow.png', 0, 900, 0.07, 0, 60], ['g-over.png', 0, 1350, 0.025, 0, 60], ['g-mid.png', 0, 4200, 0.12, 0, 48], ['g-cliff.png', 900, 5700, 0.35, 0.4, 38], ['g-mtn.png', 0, -9000, 0.09, 0, 38], ['g-crack.png', 7600, 1500, 0.3, 1.2, 50], ['g-rim.png', ...(await p.evaluate(() => { const h = rimBoard()[0]; return [h.x, h.y]; })), 0.9, 0.8, 50], ['g-ex.png', ...(await p.evaluate(() => [W.exchange.x, W.exchange.y])), 0.7, 0.3, 45]];
   for (const s of S) if (!only || s[0].includes(only)) await shot(...s);
   if (only === 'over-day') { await b.close(); return; }
-  await p.evaluate(() => { window.nightFactor = () => 1; }); await p.waitForTimeout(400);
-  for (const s of [['g-n-hollow.png', 0, 3900, 0.1, 0, 50], ['g-n-over.png', 0, 1350, 0.03, 0, 58], ['g-n-rim.png', 300, 3400, 0.6, 0.3, 42], ['g-n-home.png', ...pl, 0.9, 0.5, 50], ['g-n-tree.png', hw.x, hw.y, 0.022, hw.rot, 35], ['g-n-seats.png', ...hw.s4, 0.07, hw.r4, 35], ['g-n-seat1.png', ...hw.s0, 0.35, hw.r0 + 0.4, 35]]) if (!only || s[0].includes(only)) await shot(...s);
+  // (no night pass: the day/night cycle is gone)
   console.log('stats', await p.evaluate(() => JSON.stringify({ fps: CityMap.fps.toFixed(1), calls: M3.st.calls, tris: M3.st.tris })));
   console.log('errors', errs.length, errs.slice(0, 5).join(' | '));
   await b.close();

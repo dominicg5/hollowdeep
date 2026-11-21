@@ -1,4 +1,4 @@
-// node test/studio.js out.png "keys=..&night=1"  -> screenshot of the art studio grid
+// node test/studio.js out.png "keys=.."  -> screenshot of the art studio grid (no night mode any more)
 const { chromium } = require('playwright-core');
 (async () => { const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const p = await (await b.newContext({ viewport: { width: 1600, height: 1600 } })).newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });

@@ -353,9 +353,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await shot('city-mid.png', 0, 2600, 0.25, 3000);
   const ph = await p.evaluate(() => [W.player.x, W.player.y]); await shot('city-close.png', ph[0], ph[1], 1.0);
   const mq = await p.evaluate(() => { const m = W.mountains.filter((m) => m.type === 'mountain' && m.y < -6000)[0]; return [m.x, m.y + 1800]; }); await shot('city-mountain.png', mq[0], mq[1], 0.15, 3000);
-  await p.evaluate(() => { window.__nf = nightFactor; window.nightFactor = () => 1; });
-  await shot('city-night.png', 0, 2800, 0.13, 3000); await shot('city-night-close.png', ph[0], ph[1], 0.8, 2000);
-  await p.evaluate(() => { window.nightFactor = window.__nf; });
+  // (no night shots: the day/night cycle is gone - the world is always in daylight)
+  const day = await p.evaluate(() => ({ nf: nightFactor(), info: (document.getElementById('cityInfo') || {}).textContent || '' })); if (day.nf !== 0 || /\d\d:\d\d|🌙/.test(day.info)) { console.log('FAIL day lock', JSON.stringify(day)); process.exitCode = 1; } else console.log('PASS always daylight (nightFactor 0, no clock in the info line)');
   const fps = await p.evaluate(() => CityMap.fps); console.log('fps (SwiftShader software GL, not a phone GPU): ' + fps.toFixed(1));
   { const f = await p.evaluate(() => { if (!CityMap.is3d() || !M3.focusView) return null; const T = W.heartwood; let blocked = 0, under = 0;
       for (const h of W.homes) { if (Math.hypot(h.x - T.x, h.y - T.y) < HW_CLEAR) under++; const z = 230 / (homeW(h) * 1.25), r0 = (h._rot || 0) + 0.75, v = M3.focusView(h.x, h.y, z, r0, 34);
