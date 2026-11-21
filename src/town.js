@@ -887,7 +887,14 @@ Town.folk = (() => {
     for (const [, a] of weld) for (const i of a[3]) { const n = ST.list[Math.floor(SI.getX(i) / 5)], H = n.face, M = n.M || (n.M = n.inv.clone().invert()), nm = n.nm || (n.nm = new THREE.Matrix3().getNormalMatrix(M)); v.fromBufferAttribute(P, i).applyMatrix4(n.inv); const rx = 0.095 * H.hs * H.w, ry = 0.12 * H.hs, rz = 0.1 * H.hs;
       nn.set((v.x - H.c[0]) / (rx * rx), (v.y - H.c[1]) / (ry * ry), (v.z - H.c[2] + 0.01 * H.hs) / (rz * rz)).applyMatrix3(nm).normalize(); const m = new THREE.Vector3(a[0], a[1], a[2]).normalize(); m.multiplyScalar(0.2).addScaledVector(nn, 0.8).normalize(); N.setXYZ(i, m.x, m.y, m.z); }
     N.needsUpdate = true; }
-  function build() { if (ST.built || !TW.ST || !TW.ST.built || !TW.ST.g) return; ST.built = true; const S = Town.sculpt, FM = Town.folkModel, bones = [], NK = TW.BLD.filter((B) => P[B.npc] && FM.NPC[B.npc]).length; Town.folkBase = Town.folkBraidBase = NK * 5; let braidAt = null; S.begin();
+  // the NPC kit (src/npc_kit.js, CC0 rigged base + library animations) builds every keeper it has; the hand-built sculpt is only the fallback
+  function kitBuild() { if (typeof NpcKit === 'undefined') return 'none'; if (NpcKit.ST.state === 'idle') NpcKit.load().catch(() => {}); if (NpcKit.ST.state === 'loading') return 'wait'; if (!NpcKit.ready() || !TW.BLD.every((B) => !P[B.npc] || NpcKit.has(B.npc))) return 'none'; // all or nothing
+    const ids = new Set(); for (const B of TW.BLD) { const sp = TW.npcSpot(B), id = B.npc, o = P[id]; if (!o || !NpcKit.has(id)) continue;
+      const k = NpcKit.create(id, { scale: WS, yaw: sp.yaw, pos: new THREE.Vector3(sp.at[0], sp.h, sp.at[1]) }); if (!k) continue; TW.ST.g.add(k.root); ids.add(id);
+      ST.list.push({ id, B, o, sp, kit: k, yaw: sp.yaw, look: 0, ph: B.px * 0.013, x: sp.at[0], y: sp.at[1], h: sp.h, hgt: k.h * WS, tris: k.tris[0], lodTris: k.tris }); }
+    ST.kit = ids; return ids; }
+  function build() { if (ST.built || !TW.ST || !TW.ST.built || !TW.ST.g) return; const kb = kitBuild(); if (kb === 'wait') return; ST.built = true; if (kb instanceof Set) return;
+    const S = Town.sculpt, FM = Town.folkModel, bones = [], NK = TW.BLD.filter((B) => P[B.npc] && FM.NPC[B.npc]).length; Town.folkBase = Town.folkBraidBase = NK * 5; let braidAt = null; S.begin();
     for (const B of TW.BLD) { const sp = TW.npcSpot(B), id = B.npc, o = P[id]; if (!o || !FM.NPC[id]) continue; const q = ST.list.length, M = new THREE.Matrix4().compose(new THREE.Vector3(sp.at[0], sp.h, sp.at[1]), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), sp.yaw), new THREE.Vector3(WS, WS, WS)), t0 = S.tris();
       FM.NPC[id](M, q * 5); const face=FM.DBG.H, inv=M.clone().invert(); const J = FM.joints(id), bn = [0, 1, 2, 3, 4].map(() => new THREE.Bone()); bn[0].position.set(sp.at[0], sp.h, sp.at[1]); bn[0].rotation.y = sp.yaw; bn[0].scale.setScalar(WS);
       bn[1].position.set(...J.hip); bn[0].add(bn[1]); bn[2].position.set(J.neck[0] - J.hip[0], J.neck[1] - J.hip[1], J.neck[2] - J.hip[2]); bn[1].add(bn[2]); bn[3].position.set(J.shL[0], J.shL[1] - J.hip[1], J.shL[2]); bn[4].position.set(J.shR[0], J.shR[1] - J.hip[1], J.shR[2]); bn[1].add(bn[3], bn[4]);
@@ -905,6 +912,10 @@ Town.folk = (() => {
   // a keeper under the finger wins over the pet mole (its tap wrapper sits on Explore.tap): keep ours outermost
   function wrapTap() { if (typeof Explore === 'undefined' || !Explore.tap || Explore.tap.__town) return; const t0 = Explore.tap, f = function (sx, sy, ...r) { if (Explore.EX && Explore.EX.on && ST.built && hitAt(sx, sy)) return tap(sx, sy); return t0.call(this, sx, sy, ...r); }; f.__town = true; Explore.tap = f; }
   function tick() { wrapTap(); if (!ST.built) { build(); if (!ST.built) return; } const t = performance.now() / 1000, cam = M3.camera, far = cam && Math.hypot(cam.position.x - TW.T.cx, cam.position.z - TW.T.cy) > 2600, hr = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.on ? Explore.here() : null; const dt = Math.min(0.1, t - (t0 || t)); t0 = t;
+    if (ST.kit) { for (const n of ST.list) n.kit.root.visible = !far; if (far) return;
+      for (const n of ST.list) { let want = null; if (hr) { const dx = hr[0] - n.x, dy = hr[1] - n.y; if (Math.hypot(dx, dy) < WS * 7) want = Math.atan2(dx, dy); }
+        NpcKit.update(n.kit, dt, { talking: ST.talk === n, face: want, camDist: cam ? Math.hypot(cam.position.x - n.x, cam.position.y - n.h, cam.position.z - n.y) / WS : 10 }); }
+      ST.lod = ST.list[0] ? ST.list[0].kit.lod : 0; if (ST.talk && hr && Math.hypot(hr[0] - ST.talk.x, hr[1] - ST.talk.y) > WS * 6 && !ST.walking) close(); return; }
     if (ST.mesh) ST.mesh.visible = ST.ink.visible = !far; if (far) return;
     if (cam && ST.lods) { let d=Infinity; for(const n of ST.list)d=Math.min(d,Math.hypot(cam.position.x-n.x,cam.position.y-n.h,cam.position.z-n.y)/WS);const level=d>30?2:d>15?1:0;ST.lod=level;ST.mesh.geometry=ST.ink.geometry=ST.lods[level]; }
     for (const n of ST.list) { const tk = ST.talk === n, br = Math.sin(t * (tk ? 3.2 : 2.0) + n.ph), [R0, CH, HD, AL, AR] = n.bones;
@@ -916,7 +927,7 @@ Town.folk = (() => {
       AL.rotation.set(Math.sin(t * 1.0 + n.ph) * 0.03, 0, -br * 0.02); AR.rotation.set(Math.sin(t * 1.0 + n.ph + 1.3) * 0.03, 0, br * 0.02); }
     if (ST.talk && hr && Math.hypot(hr[0] - ST.talk.x, hr[1] - ST.talk.y) > WS * 6 && !ST.walking) close(); }
   // tap: the figure's base-to-top segment on screen
-  function hitAt(sx, sy) { let best = null, bd = 1e9; for (const n of ST.list) { if (!ST.mesh || !ST.mesh.visible) continue; const a = M3.project(n.x, n.y, 0), b = M3.project(n.x, n.y, n.hgt); if (a[0] < -999 || b[0] < -999) continue; const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, u = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)), dd = Math.hypot(a[0] + vx * u - sx, a[1] + vy * u - sy), rad = Math.max(22, Math.sqrt(l2) * 0.4); if (dd < rad && dd - rad < bd) { bd = dd - rad; best = n; } } return best; }
+  function hitAt(sx, sy) { let best = null, bd = 1e9; for (const n of ST.list) { if (n.kit ? !n.kit.root.visible : (!ST.mesh || !ST.mesh.visible)) continue; const a = M3.project(n.x, n.y, 0), b = M3.project(n.x, n.y, n.hgt); if (a[0] < -999 || b[0] < -999) continue; const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, u = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)), dd = Math.hypot(a[0] + vx * u - sx, a[1] + vy * u - sy), rad = Math.max(22, Math.sqrt(l2) * 0.4); if (dd < rad && dd - rad < bd) { bd = dd - rad; best = n; } } return best; }
   function tap(sx, sy) { if (!ST.built) return null; const n = hitAt(sx, sy); if (!n) return null; const hr = Explore.here(), [tx, ty] = n.sp.talk;
     if (hr && Math.hypot(hr[0] - tx, hr[1] - ty) < WS * 1.5) { talk(n); return 'npc'; } ST.walking = true; const r = Explore.goTo(tx, ty, () => { ST.walking = false; talk(n); }); if (!r) { ST.walking = false; talk(n); } return 'npc'; }
   // ---- the dialogue box: leather-and-canvas bar, brass corners, cream stitched well, brass porthole portrait popping out above the bar
