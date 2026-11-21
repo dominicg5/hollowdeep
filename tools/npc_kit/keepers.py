@@ -276,8 +276,8 @@ def brannick_gen(arm, J):
     apron = make_sheet(arm, J, ap, 25, lambda co: mix_w(('spine_03', smooth01((co.z - J['spine_01'].z) / 0.25)), ('pelvis', 1 - smooth01((co.z - J['spine_01'].z) / 0.25)), ('thigh_' + ('l' if co.x > 0 else 'r'), 0.4 * smooth01((J['pelvis'].z - co.z) / 0.3))), 'apron')
     orient_obj(apron, (0, J['spine_01'].y))
     # beard: a full mass under the jaw with two braids hanging to the chest
-    bm = bmesh.new(); bc = Vector((c.x, c.y - r.y * 0.55, c.z - r.z * 0.62))
-    ellipsoid(bm, bc, (r.x * 0.82, r.y * 0.55, r.z * 0.45), seg=10, rings=5)
+    bm = bmesh.new(); bc = Vector((c.x, c.y - r.y * 0.5, c.z - r.z * 0.62))
+    ellipsoid(bm, Vector((c.x, c.y - r.y * 0.42, c.z - r.z * 1.02)), (r.x * 0.86, r.y * 0.58, r.z * 0.62), seg=10, rings=6)
     for s in (1, -1):
         p0 = bc + Vector((s * 0.05, -0.02, -0.06)); pts = [p0 + Vector((0, -0.005 * i, -0.045 * i)) for i in range(6)]
         tube(bm, pts, [0.024, 0.022, 0.02, 0.019, 0.018, 0.02], sides=5, twist=0.9)
@@ -309,7 +309,7 @@ CFG['brannick'].update(shape=[brannick_shape], gen=brannick_gen, grips=brannick_
     skin_pal(0xDDA078, 0xC98A62, 0xAE7050, 0x8E5838, socket=0x7E4A2C, cheek=0xD9785A, brow=0x6E6A66, lid=0x3A2014, iris=0x3E2C1C, nostril=0x5E3220, lip_u=0x9A5444, lip_l=0xB0644E, mouth=0x4E2418, scalp=0xC98A62, cheek_a=0.6),
     outfit={0: hx(0x8A3226), 1: hx(0x6A4428), 2: hx(0x3E2A1A), 3: hx(0x5A3A22), 4: hx(0x5A3A22), 5: hx(0x8A7A5A), ('arms', 4): hx(0x6A4428), ('arms', 2): 'skin', ('legs', 0): hx(0x464A32), ('legs', 4): hx(0x464A32), ('legs', 2): hx(0x3A3E28), ('legs', 1): hx(0x464A32),
             ('feet', 0): hx(0x5A3A22), ('feet', 1): hx(0x5A3A22), ('feet', 2): hx(0x3E2616), ('feet', 3): hx(0x5A3A22), ('body', 4): hx(0x8A3226), ('body', 1): hx(0x8A3226)},
-    regions={25: hx(0x6A4428), 14: hair_fn(0x8C8A86, 0x6A6864, 0x4A4846, 0x5E5C58, 0xB8B4AE, period=8), 30: hx(0x9A7A3A), 18: hx(0x5A3A22), 19: iron_fn}))
+    regions={25: hx(0x6A4428), 14: hair_fn(0x8A7A68, 0x6E604F, 0x4E4438, 0x5E5246, 0xB0A28E, period=8), 30: hx(0x9A7A3A), 18: hx(0x5A3A22), 19: iron_fn}))
 
 # ======================= Fennick (Guide's Hut) =======================
 CFG['fennick'] = dict(g='M', h=1.22, curl={'l': 30, 'r': 52},
@@ -376,7 +376,7 @@ def fennick_grips(J, hc, hr): s0 = staff_line(J); return {'staff': ('root', s0 +
 def beard_fn(P, N, UV):
     c = np.tile(hx(0xE1C8AD), (len(P), 1)); u = UV[:, 0]; st = np.abs(((u * 26) % 1) - 0.5) < 0.1; c[st] = hx(0xA48B72)
     c = c + (hx(0xB9A085) - c) * sstep(0.0, -0.6, N[:, 2])[:, None]; c = c + (hx(0xF4E8D6) - c) * (sstep(0.5, 0.9, N[:, 2]) * 0.7)[:, None]; return c
-def knit_fn(P, N, UV): c = np.tile(hx(0x8A6438), (len(P), 1)); st = np.abs(((UV[:, 0] * 28) % 1) - 0.5) < 0.18; c[st] = hx(0x6E4C28); return c
+def knit_fn(P, N, UV): c = np.tile(hx(0x6E4A2C), (len(P), 1)); st = np.abs(((UV[:, 0] * 28) % 1) - 0.5) < 0.18; c[st] = hx(0x553820); return c
 CFG['fennick'].update(gen=fennick_gen, grips=fennick_grips, pal=dict(
     skin_pal(0xA06A44, 0x8A5A3A, 0x704628, 0x5A361C, socket=0x5E3016, cheek=0xB87040, brow=0xE1C8AD, lid=0x2A140A, iris=0x2E1C10, nostril=0x4A2614, lip_u=0x7A4430, lip_l=0x8E5038, mouth=0x3A1A0E, scalp=0x8A5A3A, cheek_a=0.5),
     outfit={0: hx(0xB09A72), 1: hx(0x8A6A44), 2: hx(0x5A4024), 3: hx(0x7A5434), 4: hx(0x7A5434), 5: hx(0x8A7A5A), ('arms', 0): hx(0x56603A), ('arms', 4): hx(0x56603A), ('arms', 2): 'skin', ('arms', 1): hx(0x56603A), ('legs', 0): hx(0x6A5030), ('legs', 4): hx(0x6A5030),

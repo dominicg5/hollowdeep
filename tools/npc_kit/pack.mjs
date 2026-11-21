@@ -45,7 +45,9 @@ for (const id of ids) {
   const mat = doc.createMaterial(id).setBaseColorTexture(tex).setRoughnessFactor(1).setMetallicFactor(0).setDoubleSided(true);
   const lodTris = []; const idx0 = A.idx;
   [1, 0.5, 0.2].forEach((f, li) => {
-    let ix = idx0; if (f < 1) { const tgt = Math.floor(idx0.length * f / 3) * 3; [ix] = MeshoptSimplifier.simplify(idx0, A.pos, 3, tgt, 0.08, ['LockBorder'].filter(() => false)); if (ix.length > tgt * 1.05) [ix] = MeshoptSimplifier.simplifySloppy ? MeshoptSimplifier.simplifySloppy(idx0, A.pos, 3, tgt, 0.2) : [ix]; }
+    // LOD1 / LOD2 as index sets over the shared vertex buffer. The far LOD bottoms out near 35%: the smart-project UV
+    // islands make every seam a border and permissive collapses smear the painted atlas, so we keep it clean instead.
+    let ix = idx0; if (f < 1) { const tgt = Math.floor(idx0.length * f / 3) * 3; [ix] = MeshoptSimplifier.simplify(idx0, A.pos, 3, tgt, f < 0.3 ? 0.3 : 0.08, []); }
     const I16 = new Uint16Array(ix); lodTris.push(I16.length / 3);
     const prim = doc.createPrimitive().setIndices(acc(I16, 'SCALAR')).setAttribute('POSITION', aP).setAttribute('NORMAL', aN).setAttribute('TEXCOORD_0', aU).setAttribute('JOINTS_0', aJ).setAttribute('WEIGHTS_0', aW).setAttribute('_INKW', aI).setMaterial(mat);
     const node = doc.createNode(id + '_lod' + li).setMesh(doc.createMesh(id + '_lod' + li).addPrimitive(prim)).setSkin(skin); keeper.addChild(node); });
@@ -68,3 +70,4 @@ for (const [key, name] of Object.entries(CLIPS)) {
 }
 scene.setExtras({ ualPelvisY, source: 'Quaternius CC0: Universal Base Characters, Modular Character Outfits - Fantasy, Universal Animation Library' });
 await io.write(outPath, doc); console.log(JSON.stringify(report), fs.statSync(outPath).size);
+
