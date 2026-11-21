@@ -432,9 +432,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='e9843479';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build e9843479</div>
-<script src="assets/vendor/three.min.js?v=e9843479"></script>
+<script>window.HD_BUILD='b91039ba';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build b91039ba</div>
+<script src="assets/vendor/three.min.js?v=b91039ba"></script>
 <script>
 'use strict';
 
@@ -10522,7 +10522,7 @@ const Mole = (() => {
         const lb = xf(new THREE.SphereGeometry(0.0205, 12, 10), kx, ky, kz, 0.35, 0, f * 0.05, 1, 1.9 - o * 0.2, 1.05); a.push(vcol(lb, solid(SKN.map((c) => c * 0.97)))); /* finger lobe */
         const L = 0.036 - o * 0.006, cl = fatClaw(L, 0.0135 - o * 0.0012); cl.rotateX(Math.PI - 0.6); xf(cl, kx * 1.04, ky - 0.03 - L * 0.36, kz + 0.016 + L * 0.24, 0, 0, f * 0.07); a.push(vcol(cl, (x, y) => { const t = Math.min(1, Math.max(0, (ky - 0.03 - y) / L)); return HORN.map((c, q) => c * (0.9 + 0.1 * t) - (q === 2 ? 0.05 * (1 - t) : 0)); })); } /* long cream digging claw */
       { const pd = xf(new THREE.SphereGeometry(0.026, 12, 8), 0, -0.205, -0.024, 0, 0, 0, 1.1, 1.2, 0.35); a.push(vcol(pd, solid(PAD))); } /* palm pad on the inside face */
-      const m = meshes(a, MF, MP); m.position.y = -0.05; /* (turnaround) longer arms: the paws hang at the hips */ const pv = new THREE.Group(); pv.position.set(s * 0.258 * SLIM, 0.6, 0.05) /* tucked against the side, no shoulder humps past the head */; pv.rotation.z = s * 0.07; pv.rotation.x = -0.28; /* the arm swings from the shoulder; at rest the paw sits forward at belly height, over the satchel (mole_detail_arm_side) */ pv.add(m); return pv; };
+      const m = meshes(a, MF, MP); m.position.y = -0.05; /* (turnaround) longer arms: the paws hang at the hips */ const pv = new THREE.Group(); pv.position.set(s * 0.3 * SLIM, 0.45, 0.05) /* (Dominic, turnaround) shoulders sit low on the pear, about half way up the whole mole, so the arms hang from the body's sides and the paws rest at the hips */; pv.rotation.z = s * 0.07; pv.rotation.x = -0.28; /* the arm swings from the shoulder; at rest the paw sits forward at belly height, over the satchel (mole_detail_arm_side) */ pv.add(m); return pv; };
     // feet: wide pink foot under a fur cuff, three cream claws on the toes, a round sole pad and toe beans underneath
     const foot = (s) => { const a = []; const pd = xf(new THREE.SphereGeometry(0.095, 16, 10), 0, 0.035, 0.05, 0, 0, 0, 1, 0.45, 1.35); a.push(vcol(pd, solid(PINK)));
       const cu = xf(new THREE.SphereGeometry(0.1, 16, 10), 0, 0.07, 0.0, 0, 0, 0, 1, 0.55, 1.0); clump(cu, 0.01); a.push(vcol(cu, fur, true));
