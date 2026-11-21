@@ -440,9 +440,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='a535210a';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a535210a</div>
-<script src="assets/vendor/three.min.js?v=a535210a"></script>
+<script>window.HD_BUILD='d94bda3f';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build d94bda3f</div>
+<script src="assets/vendor/three.min.js?v=d94bda3f"></script>
 <script>
 'use strict';
 
@@ -2303,7 +2303,13 @@ function rimRank(h) { if (!W.rankOf || W.rankStamp !== W.player.deepest) { W.ran
 function rimRing(h) { return h.ring || 0; }
 function ringLabel(h) { return 'Ring ' + h.ring; }
 // move the player's home to the ring that matches their record (called on load and whenever the record improves)
-function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P || (!force && P.deepest === d)) return false;
+function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P) return false;
+  /* a home moved by Mosby (S.home, saved) stays where he set it down; while a paid move is under way the house rides on his back (P.away: the plot stands empty) */
+  const HS = typeof S !== 'undefined' && S && S.homeAt, away = !!(typeof S !== 'undefined' && S && S.mosbyTrip && !S.mosbyTrip.done && S.mosbyTrip.home);
+  if (HS && isFinite(HS.x) && isFinite(HS.y)) { const mv = P.x !== HS.x || P.y !== HS.y || !!P.away !== away || (P.elev == null ? null : P.elev) !== (HS.elev == null ? null : HS.elev); P.deepest = d; if (!mv && !force) return false;
+    if (typeof HomeMove !== 'undefined') HomeMove.clearPlot(HS.x, HS.y, 70); moveHome(P, HS.x, HS.y); P.elev = HS.elev == null ? null : HS.elev; P.away = away; P.region = regionAt(P.x, P.y); W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }
+  if (!!P.away !== away) { P.away = away; if (!force && P.deepest === d) { W.playerMoves = (W.playerMoves || 0) + 1; return true; } }
+  if (!force && P.deepest === d) return false;
   const others = W.homes.filter((h) => !h.isPlayer), total = others.length + 1, rank0 = others.filter((h) => h.deepest > d).length, ring = ringForRank(rank0, total), rr = mulberry32(d * 7919 + 13);
   P.deepest = d;
   let spot = null;
@@ -5891,7 +5897,7 @@ diffuseColor *= sdc;
   function buildColliders(byKey) { COLL.list = []; const skip = /(reed|cattail|lily|flower|tuft|fern|grass|pebble|lantern|smoke|leaf|leaves|field|patch|shroom)/i;
     for (const key in byKey) { if (skip.test(key)) continue; const pr = colProf(key); if (!pr) continue; for (const o of byKey[key]) { if (o.wet) continue; /* streambed stones sit in the water (never walked to); as colliders they bent ropes and routes over the bridges */ const sxz = Math.max(o.sx || 1, o.sz || 1), r = o.s * pr.r * sxz, h = o.s * pr.h * (o.sy || 1), top = o.y + o.s * pr.top * (o.sy || 1); if (top - meshH(o.x, o.z) < WAIST || r < MINR) continue; COLL.list.push({ x: o.x, y: o.z, r, h, key }); } }
     if (M3LM && M3LM.list) for (const q of M3LM.list) COLL.list.push({ x: q.x, y: q.y, r: 3.2 * 6.35, h: 30, key: 'landmark' }); /* signature trees: the root flare and the boulder they grip */ }
-  function solids() { const out = []; if (!MD) return out; for (const h of W.homes) { if (!h._key || !MD[h._key]) continue; const m = MD[h._key]; if (!m.bb) { const bb = new THREE.Box3(); for (const g of m.geos || []) { if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox); } m.bb = bb; }
+  function solids() { const out = []; if (!MD) return out; for (const h of W.homes) { if (!h._key || !MD[h._key] || h.away) continue; const m = MD[h._key]; if (!m.bb) { const bb = new THREE.Box3(); for (const g of m.geos || []) { if (!g.boundingBox) g.computeBoundingBox(); bb.union(g.boundingBox); } m.bb = bb; }
       out.push({ x: h.x, y: h.y, w: h._w, cs: Math.cos(h._rot), sn: Math.sin(h._rot), b: [m.bb.min.x * 0.94, m.bb.max.x * 0.94, m.bb.min.z * 0.94, m.bb.max.z * 0.94], player: !!h.isPlayer, key: h._key, doorH: m.doors && m.doors[0] ? m.doors[0].h * h._w : 0, doorW: m.doors && m.doors[0] ? m.doors[0].w * h._w : 0 }); } return out; }
   function buildModelScene() { if (!MD || !scene) return;
     for (const s2 of IM.all) for (const m of s2.meshes.concat(s2.ns ? [s2.ns] : [])) { scene.remove(m); m.geometry.dispose(); } IM.all = []; IM.homes = []; IM.trees = []; for (const G of MG.values()) if (G.mesh) { scene.remove(G.mesh); G.mesh.geometry.dispose(); } MG.clear();
@@ -5899,7 +5905,7 @@ diffuseColor *= sdc;
     const byKey = {}; const onR = typeof GRAND !== 'undefined' && GRAND.onRamp; const cvH = typeof Explore !== 'undefined' && Explore.caveHit; const push = (k, o) => { if (onR && !o.edge && !/^(h\d|h_|home)|P\d+$/.test(k) && GRAND.onRamp(o.x, o.z, k.startsWith('t_') ? 150 : 70)) return; if (cvH && !/^(h\d|h_|home)|P\d+$/.test(k) && cvH(o.x, o.z, k.startsWith('t_') ? 40 : 12)) return; if (typeof Town !== 'undefined' && !/^(h\d|h_|home)|P\d+$/.test(k) && Town.hit(o.x, o.z, k.startsWith('t_') ? 30 : 8)) return; /* nor the beginner town's */ /* the walk-in caves keep their footprint clear */ (byKey[k] || (byKey[k] = [])).push(o); }; // option B ramps stay clear of trees, rocks and props
     W.homes.forEach((h, i) => { const tier = tierOf(h); let key = HOUSE_KIT.keyFor(tier, hash1(i * 3.71 + 0.3)), w = homeW(h, tier) * 0.95 * (1 + 0.06 * (tier % 2)), rot = (h.isPlayer ? 0.4 : hash1(i * 7.13 + 1) * TAU);
       if (h.isPlayer && /^h\d/.test(key) && HOUSE_KIT.variant) { const pk = key + 'P' + Math.round(w * 10); if (!MD[pk]) { const raw = HOUSE_KIT.variant(key, 1), d0 = raw.doors[0]; MD[pk] = d0 ? HOUSE_KIT.variant(key, HOUSE_KIT.DOOR_H / (d0.h * w), true) : raw; } key = pk; } // the player's larger home: its door still the one world size
-      h._rot = rot; h._key = key; h._w = w; const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9, h }); yardProps(h, i, key, w); });
+      h._rot = rot; h._key = key; h._w = w; if (h.away) return; /* on Mosby's back: the plot stands empty */ const y = homeElev(h); push(key, { x: h.x, y: y - (h.elev != null ? 0 : 2), z: h.y, rot, s: w, c: h.isPlayer ? [1.05, 1, 0.95] : tintFor(i + 1, 1 + (tier % 2)), lum: lumAt(h.x, h.y) * 0.9, h }); yardProps(h, i, key, w); });
     for (const k of HOUSE_KIT.KEYS.concat(Object.keys(byKey).filter((q) => /P\d+$/.test(q)))) if (byKey[k]) IM.homes.push(makeSet(k, byKey[k], { near: 2600, minZ: 0.05, shadow: true, mg: 'homes' }));
     /* landmark trees (a tree gripping a mossy boulder): rare - a greedy, seeded pick keeps any two at least a 5-minute run apart (run speed x her map body scale) */
     const LMD = 300 * 3.7 * ((typeof CharView !== 'undefined' && CharView.EXK) || 1.18) * ((typeof Explore !== 'undefined' && Explore.WS) || 6.35), LM = new Set(), lmk = [];
@@ -6755,7 +6761,7 @@ const CityMap = (() => {
     }
     return false;
   }
-  return { mapView, mapViewSave, setView, autoView, climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
+  return { minimapBase: () => buildMinimapBase(), mapView, mapViewSave, setView, autoView, climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
 })();
 /* ============================================================
    CHARACTER TAB: the player's delver on a warm little stage.
@@ -9956,7 +9962,7 @@ const Explore = (() => {
   // nearby ground taps are just moves. Doors further than ~225 m are ignored.
   function doorHit(sx, sy, o) { const m = WS * 1.0, tx = o.nz || 0, tz = -(o.nx || 0), hw = (o.w || 7) / 2 + m, y0 = o.up - WS * 0.3, y1 = o.up + (o.dh || o.hgt) + m, Q = [[-hw, y0], [hw, y0], [hw, y1], [-hw, y1]].map(([u, yy]) => M3.project(o.dx + tx * u, o.dy + tz * u, yy - mH(o.dx + tx * u, o.dy + tz * u)));
     if (Q.some((q) => q[0] < -999)) return false; let sgn = 0; for (let i = 0; i < 4; i++) { const a = Q[i], b = Q[(i + 1) % 4], c = (b[0] - a[0]) * (sy - a[1]) - (b[1] - a[1]) * (sx - a[0]); if (c === 0) continue; if (!sgn) sgn = Math.sign(c); else if (Math.sign(c) !== sgn) return false; } return true; }
-  function tapDoor(sx, sy) { const [hx, hy] = here(), ds = doorSpots().filter((o) => Math.hypot(o.x - hx, o.y - hy) < 1400); let best = null, bd = 1e18; const cam = M3.st.camOv && M3.st.camOv.P;
+  function tapDoor(sx, sy) { const [hx, hy] = here(), ds = doorSpots().filter((o) => Math.hypot(o.x - hx, o.y - hy) < 1400 && !(o.type === 'ledge' && W.player && W.player.away)); let best = null, bd = 1e18; const cam = M3.st.camOv && M3.st.camOv.P;
     for (const o of ds) if (doorHit(sx, sy, o)) { const d = cam ? Math.hypot(cam.x - o.dx, cam.z - o.dy) : 0; if (d < bd) { bd = d; best = o; } } if (best) return best;
     const q = M3.unproject(sx, sy); if (q) for (const o of ds) if (Math.hypot(q[0] - o.x, q[1] - o.y) < WS * 1.2) return o; return null; }
   function tap(sx, sy) { if (!EX.on) return false;
@@ -10513,6 +10519,13 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   // a door port's laid length in metres (what an upgrade / swap of one strand needs): drill and drop tethers by their route, the main line to the camp, else a short stub
   function tetherLen(port) { const D = drillState(), d = D && D.list.find((q) => q.port === port && !q.camp); if (d) return d.len || (drillRouteC(d) || { len: 0 }).len; const dp = dropState().list.find((q) => q.port === port); if (dp) return dp.len; if (port === 'c') { const H = doorSpots().find((q) => q.type === 'ledge'), r = H ? tetherDest('c', H) : null; return r ? r.len : 0; } return 0; }
   function tetherRename(key, name) { name = String(name || '').trim().slice(0, 40); if (!name) return false; const DS = dropState(), dp = DS.list.find((q) => q.id === key); if (dp) dp.name = name; else (S.tnames = S.tnames || {})[key] = name; NV.tdest = {}; if (typeof save === 'function') save(); return true; }
+  // (Mosby moved her house) everything that hangs off the home is rebuilt from the house where it now stands: the nav grid (its solid footprint), the path
+  // spur to its door, the door + frame + ports and their tether ropes, every tether route (re-planned from the new door; a drop's laid length follows its
+  // new route so no strand is left short), the Hanging Camp line, the collider hash
+  function homeMoved() { if (DR.grp && DR.grp.parent) DR.grp.parent.remove(DR.grp); DR.list = null; DR.grp = null; DR.ledgeDoor = null; NV.built = false; NV.spur = null; NV.tidy = null; NV.tdest = {}; NV.tether = null; COLH.map = null;
+    build(); if (M3.setPaths) { M3.setPaths(allPaths()); NV.spurLaid = true; } doorsBuild(); if (!DR.grp.parent) M3.scene.add(DR.grp);
+    const DS = dropState(); if (DS) for (const dp of DS.list) { const r = tetherDest(dp.port, W.playerDoor); if (r && r.pts) { let L = 0; for (let i = 1; i < r.pts.length; i++) L += Math.hypot(r.pts[i][0] - r.pts[i - 1][0], r.pts[i][1] - r.pts[i - 1][1]); dp.len = Math.max(1, Math.round(L / WS)); } }
+    if (CharView.syncDoors) try { CharView.syncDoors(); } catch (e) {} if (typeof save === 'function') save(); return true; }
   // her own laid tethers as ropes on the ground with both ends (tap-a-tether bubble): the main Ledge line door -> Hanging Camp, every drill and drop tether door -> its end.
   // Only the owner's tethers are listed (tetherList is her own save); another player's ropes never get a bubble.
   function tetherRoutes() { const L = tetherList(), F = ledgeFront(), H = W.playerDoor, nm = S.tnames || {}, door = { key: 'door', name: nm.door || 'Ledge door', x: F.x, y: F.y }, out = [];
@@ -10557,9 +10570,9 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   // where each Ledge Tether on the map door really goes: the main line runs over the ground (on the nav route, bridges included) to the cliff above
   // the Silverseam portaledge - the Hanging Camp - and down the cliff toward it. Other ports have no destination until drills exist.
   function tetherDest(id, H) { if (id !== 'c') { const D = drillState(), d = D && D.list.find((q) => q.port === id && !q.camp); if (!d) { const DS = dropState(), dp = DS && DS.list.find((q) => q.port === id); if (!dp) return null; NV.tdest = NV.tdest || {}; return NV.tdest['drop:' + dp.id] || (NV.tdest['drop:' + dp.id] = dropRoute(dp)); } NV.tdest = NV.tdest || {}; return drillRouteC(d); } if (!M3.SSR) return null; if (NV.tether) return NV.tether; const sx = H.x + H.nx * 12, sy = H.y + H.nz * 12, [bx, by] = M3.SSR.b, [ax, ay] = M3.SSR.a, r = plan(sx, sy, bx, by); if (!r) return null; const L = Math.hypot(ax - bx, ay - by), pts = smoothRoute(r.pts.map((p) => [p[0], p[1]]), WS * 7); pts.push([bx + (ax - bx) / L * 260, by + (ay - by) / L * 260]); return (NV.tether = { name: 'Hanging Camp (Silverseam portaledge)', pts, len: Math.round(r.len / WS) }); }
-  function doorsTick(dt) { if (!DR.list) doorsBuild(); if (EX.on && CharView.mapDoorTick) CharView.mapDoorTick(dt); if (!DR.grp.parent) M3.scene.add(DR.grp); DR.grp.visible = EX.on; if (EX.doorUI) { const H = W.playerDoor, [hx, hy] = EX.on ? here() : [1e9, 1e9]; if (!EX.on || !H || Math.hypot(hx - H.x, hy - H.y) > 110) doorPanel(false); else doorPanelPin(); } if (!EX.on) return; const [x, y] = here(), t = performance.now() / 1000; EX.nearDoor = null;
+  function doorsTick(dt) { if (!DR.list) doorsBuild(); if (EX.on && CharView.mapDoorTick) CharView.mapDoorTick(dt); if (!DR.grp.parent) M3.scene.add(DR.grp); DR.grp.visible = EX.on; { const aw = !!(W.player && W.player.away); if (DR.ledgeDoor) DR.ledgeDoor.visible = !aw; for (const o of DR.list) if (o.type === 'ledge') { o.ring.visible = !aw; if (aw) o.lab.visible = false; } } if (EX.doorUI) { const H = W.playerDoor, [hx, hy] = EX.on ? here() : [1e9, 1e9]; if (!EX.on || !H || Math.hypot(hx - H.x, hy - H.y) > 110) doorPanel(false); else doorPanelPin(); } if (!EX.on) return; const [x, y] = here(), t = performance.now() / 1000; EX.nearDoor = null;
     for (const o of DR.list) { const d = Math.hypot(x - o.x, y - o.y), nr = d < 70 || EX.pend === o.type ? 1 : 0; if (nr && d < 70) EX.nearDoor = o.type; o.nf = (o.nf || 0) + (nr - (o.nf || 0)) * (1 - Math.exp(-dt * 6)); const pu = 0.5 + 0.5 * Math.sin(t * 3.2 + o.rr);
-      o.ring.material.opacity = 0.3 * o.nf * (0.6 + 0.4 * pu); /* a subtle cue only once she is near (like every other interactable) */ o.ring.scale.setScalar(1 + 0.05 * pu * o.nf); o.lab.visible = o.nf > 0.02; o.lab.material.opacity = o.nf * 0.85; o.lab.position.y = o.up + (o.lh || o.hgt + 8) + Math.sin(t * 1.4) * 0.25; } }
+      o.ring.material.opacity = 0.3 * o.nf * (0.6 + 0.4 * pu); /* a subtle cue only once she is near (like every other interactable) */ o.ring.scale.setScalar(1 + 0.05 * pu * o.nf); o.lab.visible = o.nf > 0.02 && !(o.type === 'ledge' && W.player && W.player.away); o.lab.material.opacity = o.nf * 0.85; o.lab.position.y = o.up + (o.lh || o.hgt + 8) + Math.sin(t * 1.4) * 0.25; } }
   // the in-world front-door menu on the map house (same rows as the Ledge tab's door menu), pinned above the door on screen
   // Enter from the map door goes straight inside the Ledge (no stop at the old door scene); coming out lands her just in front of this door on the map
   function ledgeFront() { const o = doorSpots()[0]; return { x: o.x, y: o.y, face: Math.atan2(o.nx || 0, o.nz || 0), az: EX.az }; }
@@ -10642,7 +10655,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     let mb = document.getElementById('exMapBtn'); if (!mb && on) { mb = document.createElement('button'); mb.id = 'exMapBtn'; mb.innerHTML = '🗺️<span>Map</span>'; mb.setAttribute('aria-label', 'Open the map'); mb.addEventListener('click', () => typeof ExMap !== 'undefined' && ExMap.open()); (document.getElementById('cityWrap') || document.body).appendChild(mb); } if (mb) mb.classList.toggle('on', !!on);
     let bb = document.getElementById('exBagBtn'); if (!bb && on) { bb = document.createElement('button'); bb.id = 'exBagBtn'; bb.innerHTML = '🎒<span>Bag</span>'; bb.setAttribute('aria-label', 'Open the backpack'); bb.addEventListener('click', () => typeof Craft !== 'undefined' && Craft.sheet(!Craft.sheetOn())); (document.getElementById('cityWrap') || document.body).appendChild(bb); } if (bb) bb.classList.toggle('on', !!on); if (!on && typeof Craft !== 'undefined' && Craft.sheetOn && Craft.sheetOn()) Craft.sheet(false);
     const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); drillHud(); if (!on && DRILL.sel) drillPanel(null); }
-  return { onBridge, orePrune, drillFix, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, longPress, drillNear, drillSetup, drillHud, drillUI, DRILL_ITEM, runSpeed, TETHER_ITEM, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
+  return { onBridge, orePrune, drillFix, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, longPress, drillNear, drillSetup, drillHud, drillUI, DRILL_ITEM, runSpeed, TETHER_ITEM, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
 })();
 /* ---------- Explore: the Map screen - a full-screen stylized 2D map drawn from the nav grid / heightfield (toon hypsometric tint + hillshade, cliffs, water,
    crevices, the footpath network, every bridge marked), labelled places and Wren's marker; tap anywhere -> A* travel (snapped to the nearest reachable spot)
@@ -11282,7 +11295,8 @@ const Mosby = (() => {
   function tick(dtSim) { if (typeof M3 === 'undefined' || !M3.scene || !M3.st || !M3.st.ok || typeof Explore === 'undefined' || !Explore.ledgeFront) return; const now = performance.now(), dt = dtSim || Math.min(0.1, MS.last ? (now - MS.last) / 1000 : 0.016); MS.last = now;
     const T = tripState(); if (!T) { MS.trip = null; if (MS.g) MS.g.visible = false; if (MS.col) for (const c of MS.col) { c.x = 1e9; c.y = 1e9; } return; } MS.trip = T.src;
     if (!MS.g) { try { MS.g = build(); } catch (e) { console.error(e); MS.g = 0; return; } } if (!MS.g) return; if (!MS.g.parent) M3.scene.add(MS.g); const WS = Explore.WS; MS.g.scale.setScalar(WS * B.K); houseSync(); MS.t += dt;
-    let d = ((MS.tNow != null ? MS.tNow : Date.now()) - T.t0) / 1000 * tSpeed(); const moving = d < T.L; if (!moving) { d = T.L; if (!T.src.done) { T.src.done = true; T.src.at = Date.now(); try { save(); } catch (e) {} } }
+    let d = ((MS.tNow != null ? MS.tNow : Date.now()) - T.t0) / 1000 * tSpeed(); const moving = d < T.L; if (!moving) { d = T.L; if (!T.src.done) { T.src.done = true; T.src.at = Date.now(); if (typeof HomeMove !== 'undefined') HomeMove.arrive(T.src); try { save(); } catch (e) {} } }
+    /* he has set the house down (the real one now stands on its plot): he is gone, nothing rides on his back */ if (T.src.done && T.src.home) { MS.g.visible = false; if (MS.col) for (const c of MS.col) { c.x = 1e9; c.y = 1e9; } return; }
     const p = tAt(d), a = tAt(d + WS * 6), b = tAt(Math.max(0, d - WS * 2)), want = Math.hypot(a[0] - b[0], a[1] - b[1]) > 1 ? Math.atan2(a[0] - b[0], a[1] - b[1]) : MS.g.rotation.y; if (!MS.at) MS.g.rotation.y = want; MS.at = { x: p[0], y: p[1] };
     let dy = want - MS.g.rotation.y; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); MS.g.rotation.y += dy * Math.min(1, dt * 1.5); MS.g.position.set(p[0], M3.meshH(p[0], p[1]) - WS * 0.05, p[1]); stepAnim(dt, moving); dustTick(dt); cols(); lod(); }
   // ================= the giant: Mosby at 10x, plodding a fixed loop through the south-west lowlands =================
@@ -11436,19 +11450,20 @@ const MosbyTalk = (() => {
     pick: { face: 'pleased', say: 'Lovely. Show me on the map where you\u2019d like to live.', next: '@map' },
     sent: { face: 'pleased', say: 'He\u2019s on his way. Your house rides on his back \u2014 he\u2019ll go gently.', end: true },
     poor: { face: 'sleepy', say: 'Ah\u2026 not quite enough gold for that walk. A nearer spot, perhaps?', next: '@map' },
+    badspot: { face: 'sleepy', say: () => `Hmm\u2026 not there, little one \u2014 ${ST.bad}. Somewhere flat and dry, with room around it?`, next: '@map' },
     busy: { face: 'sleepy', say: 'He\u2019s still carrying your house, little one. Let him finish first\u2026', end: true } };
-  function go(id) { if (id === '@map') return pickMap(); const s = STEPS[id]; if (!s) return close(); ST.step = Object.assign({ id }, s); const d = el(); d.classList.remove('hidden'); d.querySelector('.mdPort').style.backgroundImage = `url(assets/ui/mosby/${s.face}.webp)`; d.querySelector('.mdWell p').textContent = s.say;
+  function go(id) { if (id === '@map') return pickMap(); const s = STEPS[id]; if (!s) return close(); ST.step = Object.assign({ id }, s); const d = el(); d.classList.remove('hidden'); d.querySelector('.mdPort').style.backgroundImage = `url(assets/ui/mosby/${s.face}.webp)`; d.querySelector('.mdWell p').textContent = typeof s.say === 'function' ? s.say() : s.say;
     d.querySelector('.mdPip').style.display = s.next || s.end ? '' : 'none'; d.querySelector('.mdBtns').innerHTML = (s.btn || []).map(([t, a, c]) => `<button class="mdB ${c}" data-a="${a}">${t}</button>`).join(''); if (s.end) ST.step.next = '@close'; }
   function act(a) { if (a === '@close') return close(); if (a === 'confirm') return confirm(); if (a === 'cancel') return closeCard(); go(a); }
   function open() { if (Mosby.GM) Mosby.GM.hold = true; if (S.mosbyTrip && !S.mosbyTrip.done) return go('busy'); go('hello'); return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.step = null; if (Mosby.GM) Mosby.GM.hold = false; }
   // map: pick the spot, then the trip card
   function pickMap() { if (ST.el) ST.el.classList.add('hidden'); if (typeof ExMap === 'undefined' || !ExMap.pick) return close(); ExMap.pick((x, y) => card(x, y), () => close()); }
-  function card(x, y) { const R = route(x, y); if (!R) { go('poor'); return null; } ST.trip = R; let c = document.getElementById('mosCard'); if (!c) { c = document.createElement('div'); c.id = 'mosCard'; c.className = 'hidden'; (document.getElementById('cityWrap') || document.body).appendChild(c); c.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (b) act(b.dataset.a); }); for (const e of ['pointerdown', 'pointerup', 'touchstart']) c.addEventListener(e, (ev) => ev.stopPropagation()); }
+  function card(x, y) { const H = typeof HomeMove !== 'undefined' ? HomeMove.check(x, y) : { ok: true }; if (!H.ok) { ST.bad = HomeMove.WHY[H.why] || 'no good for a house'; go('badspot'); return null; } const R = route(x, y); if (!R) { go('poor'); return null; } R.home = { x: Math.round(x), y: Math.round(y), elev: H.elev, lo: H.lo, R: H.R }; ST.trip = R; let c = document.getElementById('mosCard'); if (!c) { c = document.createElement('div'); c.id = 'mosCard'; c.className = 'hidden'; (document.getElementById('cityWrap') || document.body).appendChild(c); c.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (b) act(b.dataset.a); }); for (const e of ['pointerdown', 'pointerup', 'touchstart']) c.addEventListener(e, (ev) => ev.stopPropagation()); }
     const g = gold(), ok = g >= R.fee; c.innerHTML = `<div class="mcBox"><span class="mcC1"></span><span class="mcC2"></span><h3>Trip</h3><div class="mcRow"><span>Distance</span><b data-v="dist">${R.metres} m</b></div><div class="mcRow"><span>Cost</span><b data-v="cost">${R.fee}<img src="assets/ui/mosby/coin.webp" alt="gold"></b></div><div class="mcRow"><span>Time</span><b data-v="time">${fmtT(R.eta)}</b></div>
       <div class="mcFoot"><button class="mdB blue" data-a="confirm"${ok ? '' : ' disabled'}>Confirm</button><button class="mdB cream" data-a="cancel">Cancel</button></div><div class="mcNote">${ok ? `You have ${g} gold` : `Not enough gold \u2014 you have ${g}`}</div></div>`; c.classList.remove('hidden'); return R; }
   function closeCard() { const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; close(); }
-  function confirm() { const R = ST.trip; if (!R || gold() < R.fee) return; S.gold -= R.fee; S.mosbyTrip = { pts: R.pts.map(([x, y]) => [Math.round(x), Math.round(y)]), len: R.len, fee: R.fee, eta: R.eta, t0: Date.now(), done: false }; try { save(); } catch (e) {} const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; go('sent'); return S.mosbyTrip; }
+  function confirm() { const R = ST.trip; if (!R || gold() < R.fee) return; S.gold -= R.fee; S.mosbyTrip = { pts: R.pts.map(([x, y]) => [Math.round(x), Math.round(y)]), len: R.len, fee: R.fee, eta: R.eta, t0: Date.now(), done: false, home: R.home }; if (typeof HomeMove !== 'undefined') HomeMove.depart(); try { save(); } catch (e) {} const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; go('sent'); return S.mosbyTrip; }
   return { TP, tpBuild, route, gold, open, close, go, card, confirm, closeCard, fmtT, crackW, get step() { return ST.step && ST.step.id; }, STEP_W, WADE_D };
 })();
 // ---- tap-a-tether: tap one of her own laid tethers (the Ledge line, a drop or a drill tether) on the map -> a small field-kit bubble (Art's B_* skin:
@@ -11482,6 +11497,51 @@ const TetherTap = (() => {
   // Explore.tap calls this after ore / town folk / doors and before a plain walk: a tap on her rope opens the bubble, any other tap closes it
   function tap(sx, sy) { const was = !!ST.T; close(); const H = hitAt(sx, sy); if (!H) return was ? 'tetherClose' : null; open(H.T, sx, sy); return 'tether'; }
   return { HIT, NEAR_M, hitAt, routes, options, open, close, tap, go, get T() { return ST.T; }, get el() { return ST.el; } };
+})();
+// ---- Mosby moves her real home (no copy): on Confirm the house is lifted onto the transport tortoise (its plot stands empty, its door and ports with it);
+// when he arrives the house itself is set down on the spot she picked (S.homeAt, saved - it stays there on every reload). If the ground there is not dead
+// level the house sits on the high side on its own small packed-earth apron (a plinth filling down to the lowest ground under it). Everything that hangs
+// off the home follows it: door + ports + interior entry (the door spot), the Tether Orb's teleport targets, the tether start points and their routes.
+const HomeMove = (() => {
+  const ST = { apron: null };
+  const WSf = () => Explore.WS;
+  function playerSolid() { return M3.solids ? M3.solids().find((q) => q.player) : null; }
+  // the house's footprint radius (its model's bounding box, the player's larger house)
+  function footR() { const P = playerSolid(); if (P) return Math.hypot(Math.max(-P.b[0], P.b[1]), Math.max(-P.b[2], P.b[3])) * P.w; const H = W.player; return typeof homeW === 'function' ? homeW(H) * 0.6 : 60; }
+  function loopD(x, y) { if (typeof Mosby === 'undefined' || !Mosby.GLOOP) return 1e9; const L = Mosby.GLOOP; let m = 1e9; for (let i = 0; i < L.length; i++) { const a = L[i], b = L[(i + 1) % L.length], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)); m = Math.min(m, Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t)); } return m; }
+  function ground(x, y, R) { let lo = 1e9, hi = -1e9; for (let a = 0; a < 12; a++) for (const f of [0.45, 1]) { const g = M3.meshH(x + Math.cos(a * 0.5236) * R * f, y + Math.sin(a * 0.5236) * R * f); lo = Math.min(lo, g); hi = Math.max(hi, g); } const c = M3.meshH(x, y); return { lo: Math.min(lo, c), hi: Math.max(hi, c) }; }
+  // can a house be set down here? flat enough (<= 2.5 m of apron), dry, solid ground clear of crevices, other houses, the town, ore fields, the Lumen Tree,
+  // and the giant's own loop (his feet), and somewhere she can walk
+  function check(x, y) { const WS = WSf(), R = footR() + WS * 2, why = (t) => ({ ok: false, why: t });
+    if (Math.hypot(x, y) > CITY.R - 1600 || (typeof hollowDist === 'function' && hollowDist(x, y) < 150)) return why('edge');
+    if (loopD(x, y) < WS * 50 + R) return why('giant');
+    for (const h of M3.solids()) { if (h.player) continue; const r = Math.hypot(Math.max(-h.b[0], h.b[1]), Math.max(-h.b[2], h.b[3])) * h.w; if (Math.hypot(h.x - x, h.y - y) < R + r + WS * 3) return why('house'); }
+    if ((typeof underHeartwood === 'function' && underHeartwood(x, y)) || (typeof nearHeartwood === 'function' && nearHeartwood(x, y))) return why('tree');
+    if (typeof chasmDist === 'function' && chasmDist(x, y) < R + 8) return why('chasm');
+    if ((typeof isWet === 'function' && isWet(x, y, R + WS * 4)) || (typeof GRAND !== 'undefined' && GRAND.wet && GRAND.wet(x, y, R + WS * 4))) return why('water');
+    for (let a = 0; a < 12; a++) for (const f of [0, 0.5, 1]) { const px = x + Math.cos(a * 0.5236) * R * f, py = y + Math.sin(a * 0.5236) * R * f; if (typeof MosbyTalk !== 'undefined' && MosbyTalk.crackW(px, py) > 0) return why('crevice'); if (!Explore.clsAt(px, py) && !(W.player && Math.hypot(px - W.player.x, py - W.player.y) < R + WS * 2)) return why('ground'); }
+    const g = ground(x, y, R); if (g.hi - g.lo > WS * 2.5) return why('slope');
+    if (typeof Town !== 'undefined' && Town.hit && Town.hit(x, y, R + WS * 4)) return why('town');
+    for (const s of (Explore.ORE && Explore.ORE.spots) || []) if (Math.hypot(s.x - x, s.y - y) < (s.r || WS * 20) + R) return why('ore');
+    if (typeof GRAND !== 'undefined' && GRAND.door && Math.hypot(GRAND.door.x - x, GRAND.door.y - y) < WS * 160) return why('tree');
+    return { ok: true, elev: g.hi, lo: g.lo, R }; }
+  const WHY = { edge: 'too near the edge of things', tree: 'too close to the Lumen Tree', chasm: 'too near the drop', water: 'too wet for a house', crevice: 'cracked ground \u2014 it would split', ground: 'no ground to stand it on', slope: 'too steep for a house', house: 'too close to a neighbour', town: 'inside the town', ore: 'on an ore field', giant: 'right on the big fellow\u2019s walk' };
+  // the trees, bushes and rocks standing on the new plot are cleared (the old plot keeps its bare clearing)
+  function clearPlot(x, y, R) { const keep = (o) => Math.hypot(o.x - x, o.y - y) > R + 10 || o.type === 'home' || o.isPlayer; if (W.objs) { const drop = W.objs.filter((o) => !keep(o)); if (drop.length) { W.objs = W.objs.filter(keep); W.birchXT = null; if (W.buckets) for (const L of W.buckets.values()) for (let i = L.length - 1; i >= 0; i--) if (drop.includes(L[i])) L.splice(i, 1); } }
+    if (W.birchXT && W.birchXT.list) W.birchXT.list = W.birchXT.list.filter(keep); }
+  // the apron: a low packed-earth plinth under the footprint, its top at the house's sill line, its skirt down past the lowest ground
+  function apron() { if (ST.apron) { ST.apron.parent && ST.apron.parent.remove(ST.apron); ST.apron.geometry.dispose(); ST.apron = null; } const P = W.player, HS = S.homeAt; if (!P || P.away || !HS || HS.elev == null) return null;
+    const sol = playerSolid(); if (!sol) return null; const WS = WSf(), lo = HS.lo != null ? HS.lo : HS.elev, hgt = HS.elev - lo + WS * 0.8, sx = (sol.b[1] - sol.b[0]) * sol.w * 1.1, sz = (sol.b[3] - sol.b[2]) * sol.w * 1.1;
+    const geo = new THREE.BoxGeometry(sx, hgt, sz), m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0x7c6446 })); const cx = (sol.b[0] + sol.b[1]) / 2 * sol.w, cz = (sol.b[2] + sol.b[3]) / 2 * sol.w;
+    m.position.set(P.x + cx * sol.cs + cz * sol.sn, HS.elev - hgt / 2 + WS * 0.05, P.y - cx * sol.sn + cz * sol.cs); m.rotation.y = Math.atan2(sol.sn, sol.cs); m.name = 'homeApron'; m.receiveShadow = true; M3.scene.add(m); return (ST.apron = m); }
+  function refreshAll() { if (typeof relocatePlayer === 'function') relocatePlayer(true); if (M3.refresh) M3.refresh(); if (typeof CityMap !== 'undefined' && CityMap.minimapBase) try { CityMap.minimapBase(); } catch (e) {} if (Explore.homeMoved) Explore.homeMoved(); apron(); }
+  // Confirm: the house goes up onto his back (the plot empties, the door and its ports go with it)
+  function depart() { if (W.player) W.player.away = true; refreshAll(); return true; }
+  // arrival: the house itself is set down where she picked; saved
+  function arrive(T) { if (!T || !T.home) return false; const c = T.home; S.homeAt = { x: c.x, y: c.y, elev: c.elev, lo: c.lo, t: Date.now() }; clearPlot(c.x, c.y, (c.R || footR()) + WSf() * 2); if (W.player) W.player.away = false; refreshAll(); if (typeof MosbyTalk !== 'undefined' && MosbyTalk.step === 'sent') MosbyTalk.close(); try { save(); } catch (e) {} return true; }
+  /* on load: the apron goes back under a moved house once the models are in */
+  { const iv = setInterval(() => { if (typeof M3 === 'undefined' || M3.models !== 'ready' || !M3.scene) return; clearInterval(iv); if (typeof S !== 'undefined' && S && S.homeAt) apron(); }, 1000); }
+  return { check, WHY, footR, loopD, depart, arrive, apron, clearPlot, refreshAll, get apronMesh() { return ST.apron; } };
 })();
 </script>
 </body></html>

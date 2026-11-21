@@ -547,7 +547,13 @@ function rimRank(h) { if (!W.rankOf || W.rankStamp !== W.player.deepest) { W.ran
 function rimRing(h) { return h.ring || 0; }
 function ringLabel(h) { return 'Ring ' + h.ring; }
 // move the player's home to the ring that matches their record (called on load and whenever the record improves)
-function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P || (!force && P.deepest === d)) return false;
+function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P) return false;
+  /* a home moved by Mosby (S.home, saved) stays where he set it down; while a paid move is under way the house rides on his back (P.away: the plot stands empty) */
+  const HS = typeof S !== 'undefined' && S && S.homeAt, away = !!(typeof S !== 'undefined' && S && S.mosbyTrip && !S.mosbyTrip.done && S.mosbyTrip.home);
+  if (HS && isFinite(HS.x) && isFinite(HS.y)) { const mv = P.x !== HS.x || P.y !== HS.y || !!P.away !== away || (P.elev == null ? null : P.elev) !== (HS.elev == null ? null : HS.elev); P.deepest = d; if (!mv && !force) return false;
+    if (typeof HomeMove !== 'undefined') HomeMove.clearPlot(HS.x, HS.y, 70); moveHome(P, HS.x, HS.y); P.elev = HS.elev == null ? null : HS.elev; P.away = away; P.region = regionAt(P.x, P.y); W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }
+  if (!!P.away !== away) { P.away = away; if (!force && P.deepest === d) { W.playerMoves = (W.playerMoves || 0) + 1; return true; } }
+  if (!force && P.deepest === d) return false;
   const others = W.homes.filter((h) => !h.isPlayer), total = others.length + 1, rank0 = others.filter((h) => h.deepest > d).length, ring = ringForRank(rank0, total), rr = mulberry32(d * 7919 + 13);
   P.deepest = d;
   let spot = null;

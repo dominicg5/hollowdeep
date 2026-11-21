@@ -621,5 +621,5 @@ const CityMap = (() => {
     }
     return false;
   }
-  return { mapView, mapViewSave, setView, autoView, climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
+  return { minimapBase: () => buildMinimapBase(), mapView, mapViewSave, setView, autoView, climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
 })();
