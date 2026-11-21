@@ -422,6 +422,39 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #drillHud .dh.idle,#drillHud .dh.full{background-image:url(assets/ui/icons/drill_marker_idle.webp)}
 #drillHud .dh.off{background-image:url(assets/ui/icons/drill_marker_off.webp)}
 .drow .seti{display:inline-block;width:22px;height:22px;vertical-align:-6px;margin-right:4px;background:center/contain no-repeat}
+#drillHud .dh:active{filter:brightness(.86)}#drillHud .dh small{font:700 10px Georgia,serif;color:#2a160a;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+#drillCtl,#drillUse{display:none;position:absolute;left:8px;right:8px;bottom:64px;z-index:30;max-height:min(72vh,620px);overflow:auto;padding:4px 6px 8px;font:12px Georgia,"Iowan Old Style",serif;color:#2b1a10;-webkit-overflow-scrolling:touch}
+#drillCtl.on,#drillUse.on{display:block}#drillCtl.kLeather,#drillUse.kLeather{border-width:22px}
+#drillCtl .dhead,#drillUse .dhead{display:flex;align-items:center;gap:8px;margin:0 2px 6px}
+#drillCtl .dhead b,#drillUse .dhead b{font:600 18px Georgia,serif;color:#2b1a10;flex:none}
+#drillCtl .badge{display:inline-block;padding:1px 8px;border-radius:8px;background:#3d5a2c;color:#e8f0d8;font:600 9px system-ui,sans-serif;letter-spacing:.02em;text-transform:lowercase}
+#drillCtl .dfoot{text-align:center;margin:8px 4px 2px;padding:4px 8px;border-radius:8px;background:rgba(60,40,20,.08);color:#5a3c20;font:600 10.5px Georgia,serif}
+#drillCtl .dcard{margin:8px 2px 10px;padding:2px 2px 6px;border-top:1px solid rgba(60,40,16,.18)}#drillCtl .dcard:first-of-type{border-top:0}
+#drillCtl .dch{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:4px 2px 2px}#drillCtl .dch b{font:600 15px Georgia,serif}#drillCtl .dch small{font:500 11px Georgia,serif;color:#5a3c20}
+#drillCtl .srow,#drillUse .srow{display:flex;align-items:center;gap:8px;margin:0 2px;padding:7px 2px;border-bottom:1px solid rgba(60,40,16,.16);font:500 13px Georgia,serif}
+#drillCtl .srow .seti,#drillUse .srow .seti{width:28px;height:28px;flex:0 0 28px;margin:0;vertical-align:middle}
+#drillCtl .slab{flex:1;color:#2b1a10}#drillCtl .sval,#drillUse .sval{text-align:right;color:#3a2414;max-width:58%;line-height:1.3}
+#drillCtl .tbadge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:7px;background:#3d5a2c;color:#e8f0d8;font:600 10px system-ui,sans-serif;font-style:normal;vertical-align:1px}
+#drillCtl .dk button,#drillUse .dk button{margin-left:auto}
+#drillUse .prows{display:flex;flex-direction:column;gap:3px;margin:2px 0 8px}
+#drillUse .prow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid transparent;background:transparent;border-radius:12px;padding:5px 8px;min-height:44px;font:600 14px Georgia,serif;color:#2b1a10;cursor:pointer;flex-direction:row}
+#drillUse .prow:active,#drillUse .prow:focus{outline:2px solid #7ad7e6;outline-offset:-2px;background:rgba(122,215,230,.12)}
+#drillUse .prow.dis{opacity:.4;pointer-events:none}
+#drillUse .pico{width:36px;height:36px;flex:0 0 36px;background:center/contain no-repeat;display:inline-block}
+#drillUse .wells{display:flex;justify-content:center;gap:22px;margin:8px 4px 12px}
+#drillUse .well{position:relative;width:96px;display:flex;flex-direction:column;align-items:center;gap:4px}
+#drillUse .well .wellbg{width:84px;height:84px;background:url(assets/ui/icons/set_bit_well.webp) center/contain no-repeat;display:block}
+#drillUse .well.stand .wellbg{background-image:url(assets/ui/icons/set_stand_well.webp)}
+#drillUse .well .cxico{position:absolute;top:14px;left:50%;width:56px;height:56px;margin-left:-28px;pointer-events:none}
+#drillUse .well .wlab{text-align:center;font:600 13px Georgia,serif;color:#2b1a10;line-height:1.2}#drillUse .well .wlab small{display:block;font:500 10.5px Georgia,serif;color:#5a3c20}
+#drillUse .blab{margin:4px 6px;font:600 13px Georgia,serif;color:#2b1a10}
+#drillUse .bagbits{flex-wrap:wrap;overflow:visible;margin:0 4px 8px}
+#drillUse .bagbits button{flex-direction:column;min-width:56px;padding:4px}
+#drillUse .extras{flex-wrap:wrap;gap:8px;margin:8px 4px 2px;align-items:center}
+#drillUse .extras .chips{flex:none}#drillUse button{flex:0 0 auto;border:1px solid rgba(74,46,26,.25);background:rgba(255,255,255,.45);border-radius:10px;padding:4px 9px;font:600 11px system-ui;color:#4a2e1a;cursor:pointer}
+#drillUse .dst{font-weight:700}#drillUse .dst.run{color:#1f8a46}#drillUse .dst.coal{color:#c0341f}#drillUse .dst.full{color:#b87400}
+#drillCtl .dst{font-weight:700}#drillCtl .dst.run{color:#1f8a46}#drillCtl .dst.coal{color:#c0341f}#drillCtl .dst.full{color:#b87400}
+
 .chips[data-k=bit] button{position:relative;padding-left:36px}
 .chips[data-k=bit] button .cxico{position:absolute;left:4px;top:50%;width:26px;height:26px;margin-top:-13px;inset:auto;transform:none;aspect-ratio:1/1}
 .vaultp .vic .cxico{position:static;width:32px;height:32px;margin-top:-10px;inset:auto;transform:none;aspect-ratio:1/1}
@@ -509,3 +542,33 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
+
+#drillHud .dh{width:64px;height:64px;flex:0 0 64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;background-image:url(assets/ui/icons/btn_drills_badge_idle.webp)}
+#drillHud .dh.run,#drillHud .dh.coal,#drillHud .dh.idle,#drillHud .dh.full,#drillHud .dh.off{background-image:url(assets/ui/icons/btn_drills_badge_idle.webp)}
+#drillHud .dh:active,#drillHud .dh.sel{background-image:url(assets/ui/icons/btn_drills_badge_pressed.webp);filter:none;background-color:transparent;border:0}
+#drillHud .dh .di,#drillHud .dh .dot,#drillHud .dh .tw,#drillHud .dh small{display:none}
+#drillHud .dh .n{position:absolute;left:40px;top:2px;width:21px;height:21px;display:flex;align-items:center;justify-content:center;margin:0;padding:0;font:700 11px Georgia,"Iowan Old Style",serif;color:#3a2414;line-height:1;pointer-events:none;text-shadow:none;max-width:none;overflow:visible}
+#drillHud .dh.many .n{font-size:9px}
+#drillCtl,#drillUse{position:fixed}
+#drillCtl .srow.sthumb .th{width:36px;height:36px;flex:0 0 36px;background:url(assets/ui/icons/set_bit_well.webp) center/contain no-repeat;position:relative;display:inline-block}
+#drillCtl .srow.sthumb .th.stand{background-image:url(assets/ui/icons/set_stand_well.webp)}
+#drillCtl .srow.sthumb .th .cxico{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px}
+#drillUse .prow[data-v=swap] .pico{background-image:url(assets/ui/icons/prompt_swap_bit_idle.webp)}
+#drillUse .prow[data-v=swap]:active .pico{background-image:url(assets/ui/icons/prompt_swap_bit_pressed.webp)}
+#drillUse .prow[data-v=takebit] .pico{background-image:url(assets/ui/icons/prompt_pickup_bit_idle.webp)}
+#drillUse .prow[data-v=takebit]:active .pico{background-image:url(assets/ui/icons/prompt_pickup_bit_pressed.webp)}
+#drillUse .prow[data-v=collect] .pico{background-image:url(assets/ui/icons/prompt_collect_ore_idle.webp)}
+#drillUse .prow[data-v=collect]:active .pico{background-image:url(assets/ui/icons/prompt_collect_ore_pressed.webp)}
+#drillUse .prow[data-v=tset] .pico{background-image:url(assets/ui/icons/prompt_tether_settings_idle.webp)}
+#drillUse .prow[data-v=tset]:active .pico{background-image:url(assets/ui/icons/prompt_tether_settings_pressed.webp)}
+#drillUse .prow[data-v=wire] .pico{background-image:url(assets/ui/icons/prompt_tether_to_ledge_idle.webp)}
+#drillUse .prow[data-v=wire]:active .pico{background-image:url(assets/ui/icons/prompt_tether_to_ledge_pressed.webp)}
+#drillUse .prow[data-v=up] .pico{background-image:url(assets/ui/icons/prompt_pickup_drill_idle.webp)}
+#drillUse .prow[data-v=up]:active .pico{background-image:url(assets/ui/icons/prompt_pickup_drill_pressed.webp)}
+
+#drillUse .prows .prow{border:1px solid transparent;background:transparent;box-shadow:none;border-radius:12px;font:600 14px Georgia,serif;color:#2b1a10;padding:5px 8px;min-height:44px;width:100%;flex-direction:row;justify-content:flex-start;align-items:center}
+#drillUse .prows .prow:active{outline:2px solid #7ad7e6;outline-offset:-2px;background:rgba(122,215,230,.12)}
+
+#drillCtl,#drillUse{overflow:hidden;background:#6b4322;z-index:40;bottom:72px}
+#drillCtl .dlist,#drillUse .dlist{overflow:auto;max-height:min(60vh,520px);-webkit-overflow-scrolling:touch}
+#drillCtl.kLeather,#drillUse.kLeather{background-color:#6b4322}

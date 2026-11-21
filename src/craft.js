@@ -122,9 +122,9 @@ const Craft = (() => {
   }
   function itemBlurb(id, w) {
     const it = ITEMS[id] || {};
-    if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then fit a bit from the drill\'s settings.';
+    if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then swap or pick up the bit at the drill itself.';
     if (it.kind === 'teth') return 'The same braid as the door tethers. Lay a drop tether from the backpack on the map, or use the coil to upgrade a strand.';
-    if (it.kind === 'bit') return 'Fits any placed stand. Swap it from the drill\'s settings.';
+    if (it.kind === 'bit') return 'Fits any placed stand. Swap or pick it up at the drill itself.';
     if (it.kind === 'tool' && it.tool === 'pick') return 'Equip it to mine ore out on the map.';
     if (it.kind === 'tool' && it.tool === 'climb') return 'Equip it to climb pitches on the map.';
     if (it.kind === 'tool' && it.tool === 'tlink') return 'Equip it as the line you travel on.';
@@ -147,11 +147,11 @@ const Craft = (() => {
       (st.menu.x ? `${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}` +
       `<input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button>` : '') +
       `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
-  // a drill stand's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up (needs a stand; a bit is equipped from the drill's settings)
+  // a drill stand's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up (needs a stand; a bit can be swapped at the drill itself)
   function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0, it = ITEMS[id];
     const near = X.err === 'explore' ? `<div class="cxnear dim">Set it up out on the map: open 🧭 Explore, then pick a stand from 🎒 Bag.</div>` : X.err ? `<div class="cxnear none">⛔ No ore within 5 s walk <small>(${X.R} m at your run speed)</small></div>`
       : `<div class="cxnear">${pic('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
-    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}">${infoHead(id, c, 'Place the stand, then fit a bit from the drill\'s settings.')}${near}` +
+    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}">${infoHead(id, c, 'Place the stand, then swap or pick up the bit at the drill itself.')}${near}` +
       `<div class="cxacts"><button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
   // the Mithril Ledge Tether coil: 'Create a drop Ledge tether here?' - the length the rope needs from the Ledge door to her spot vs what is left on the coil
   function dropMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.dropNeed ? Explore.dropNeed(id) : { err: 'explore' }, ok = !X.err && X.ok;
