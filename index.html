@@ -441,9 +441,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='284bb304';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 284bb304</div>
-<script src="assets/vendor/three.min.js?v=284bb304"></script>
+<script>window.HD_BUILD='cd40824b';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build cd40824b</div>
+<script src="assets/vendor/three.min.js?v=cd40824b"></script>
 <script>
 'use strict';
 
@@ -8370,6 +8370,7 @@ const CharView = (() => {
     pitchMin: -60 * DEG, pitchMax: 15 * DEG, step: 15 * DEG, pitchDef: -30 * DEG, yawStep: 15 * DEG,
     pitches: [-60, -45, -30, -15, 0, 15].map((d) => d * DEG),
     portY: 0.17, socketZ: -0.15, hubY: 0.82, hubR: 0.15, collarH: 0.035, bitL: 0.88,
+    portSeatY: 0.045, // visual bore (dark collar) in tetherPort-local space
   };
   DRILL_ANG.bitLen = Math.abs(DRILL_ANG.socketZ) + DRILL_ANG.collarH + DRILL_ANG.bitL; // hub centre → tip (level)
   const STAND_LOOK = {
@@ -8387,8 +8388,24 @@ const CharView = (() => {
     return { yaw, pitch, elev, inRange }; }
   function drillTipOffset(pitch, yaw, sc = 1) { const L = DRILL_ANG.bitLen, cp = Math.cos(pitch), sp = Math.sin(pitch);
     return { x: -L * cp * Math.sin(yaw) * sc, y: (DRILL_ANG.hubY + L * sp) * sc, z: -L * cp * Math.cos(yaw) * sc }; }
+  function drillSockLocal(g) {
+    const sock = V(0, DRILL_ANG.portSeatY, 0);
+    const p = g && (g.userData.tetherPort || (g.userData.stand && g.userData.stand.userData.tetherPort));
+    if (p) { g.updateMatrixWorld(true); p.localToWorld(sock); g.worldToLocal(sock); }
+    else sock.set(0, DRILL_ANG.hubY + DRILL_ANG.portY + DRILL_ANG.portSeatY, 0);
+    return sock;
+  }
+  function drillPortWorld(g, out) {
+    const v = out || V(0, 0, 0), p = g && (g.userData.tetherPort || (g.userData.stand && g.userData.stand.userData.tetherPort));
+    v.set(0, DRILL_ANG.portSeatY, 0);
+    if (p) { g.updateMatrixWorld(true); return p.localToWorld(v); }
+    if (g && g.userData.sock) { g.updateMatrixWorld(true); return g.localToWorld(g.userData.sock.clone()); }
+    return null;
+  }
   function setDrillPose(g, yaw, pitch) { const u = g.userData; if (!u || !u.yawNode) return g;
-    u.yaw = yaw; u.pitch = pitch; u.yawNode.rotation.y = yaw; u.hubPivot.rotation.x = pitch; return g; }
+    u.yaw = yaw; u.pitch = pitch; u.yawNode.rotation.y = yaw; u.hubPivot.rotation.x = pitch;
+    if (u.sock) u.sock.copy(drillSockLocal(g));
+    return g; }
   function matte(col, o) { return toon(col, null, o || {}); }
   function brassMat(col) { // modest highlight only (the rest of the drill stays matte / metallic 0)
     return new THREE.MeshPhongMaterial({ color: col == null ? 0xb8893a : col, specular: 0x3a2710, shininess: 18 }); }
@@ -8563,7 +8580,7 @@ const CharView = (() => {
     ledgeLook(g); g.updateMatrixWorld(true);
     const u = stand.userData, tip = V(0, 0, 0);
     g.updateMatrixWorld(true);
-    const sock = V(0, DRILL_ANG.hubY + DRILL_ANG.portY + 0.045, 0);
+    const sock = V(0, DRILL_ANG.portSeatY, 0);
     if (u.tetherPort) { u.tetherPort.localToWorld(sock); g.worldToLocal(sock); }
     Object.assign(g.userData, u, { stand, sp, N, p: new Float32Array(N * 3), v: new Float32Array(N * 3), life: new Float32Array(N), col: new Float32Array(N * 3), r: prng(7), spin: 0, oreCol: oc, bitCol: bc, tip, sock, sockDir: V(0, 1, 0) });
     return g; }
@@ -9821,7 +9838,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
     const G = st.gnd; if (!G) return false; let x = q.x, z = q.z; const L = Math.hypot(x, z); if (L > TR.RW) { x *= TR.RW / L; z *= TR.RW / L; } navTo(G, x, z, () => { st.pg = null; }); pgMark({ x: G.goal.x, z: G.goal.z, y: trHeight(G.goal.x, G.goal.z) }); st.pg = { home: true, tree: true }; return true; }
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
-  return { flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, vaultState, VAULT_SECTIONS, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
+  return { flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, vaultState, VAULT_SECTIONS, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */
 const Explore = (() => {
@@ -10832,7 +10849,22 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   const pathLen = (pts) => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; };
   // a drill's tether: from the Ledge door over the ground (smoothed walked route) to just behind the drill, then up into the socket on its hub
   function drillRoute(d) { const H = doorSpots().find((q) => q.type === 'ledge'), n = drillNode(d); if (!H || !n) return null; const m = drillMesh(d), sx = H.x + H.nx * 12, sy = H.y + H.nz * 12;
-    let end3 = null, endDir = null, gx, gy; if (m && m.userData.sock) { const S3 = m.localToWorld(m.userData.sock.clone()), D3 = m.userData.sockDir.clone().transformDirection(m.matrixWorld); end3 = [S3.x, S3.y, S3.z]; endDir = [D3.x, D3.y, D3.z]; const hl = Math.hypot(D3.x, D3.z) || 1; gx = S3.x + D3.x / hl * WS * 2.2; gy = S3.z + D3.z / hl * WS * 2.2; }
+    let end3 = null, endDir = null, gx, gy;
+    const port = m && (m.userData.tetherPort || (m.userData.stand && m.userData.stand.userData.tetherPort));
+    if (m && (port || m.userData.sock)) {
+      m.updateMatrixWorld(true);
+      let S3, D3;
+      if (port) {
+        const seatY = (CharView.DRILL_ANG && CharView.DRILL_ANG.portSeatY) || 0.045;
+        S3 = port.localToWorld(new THREE.Vector3(0, seatY, 0));
+        D3 = new THREE.Vector3(0, 1, 0).transformDirection(port.matrixWorld).normalize();
+      } else {
+        S3 = m.localToWorld(m.userData.sock.clone());
+        D3 = (m.userData.sockDir || new THREE.Vector3(0, 1, 0)).clone().transformDirection(m.matrixWorld);
+      }
+      end3 = [S3.x, S3.y, S3.z]; endDir = [D3.x, D3.y, D3.z];
+      const hl = Math.hypot(D3.x, D3.z) || 1; gx = S3.x + D3.x / hl * WS * 2.2; gy = S3.z + D3.z / hl * WS * 2.2;
+    }
     else { const st2 = oreStand(n) || [n.x, n.y]; gx = st2[0]; gy = st2[1]; }
     const r = plan(sx, sy, gx, gy); let pts = r ? r.pts.map((p) => [p[0], p[1]]) : [[sx, sy], [gx, gy]]; if (r) pts[pts.length - 1] = [gx, gy]; pts = ropeRoute(pts);
     return { pts, len: Math.round((pathLen(pts) + WS * 3) / WS), name: d.name, end3, endDir, endLen: WS * 0.9 }; }

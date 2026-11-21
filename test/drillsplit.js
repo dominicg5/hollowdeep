@@ -121,6 +121,96 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(play.nudged.ok, `pitch nudge stays on a 15° notch (${play.nudged.p0} → ${play.nudged.p1} → ${play.nudged.p2})`);
   ok(play.min.mithril === 3 && play.min.onyx === 6 && play.min.copper === 0, 'ore minimum bit tiers: copper any, mithril needs gold+, onyx needs lumen+');
 
+  // Ledge Tether strand must end in the yoke port (within 2 cm), at every pitch, yaw, stand tier, and on a far drill
+  const seat = await p.evaluate(() => {
+    const WS = Explore.WS, A = CharView.DRILL_ANG, DEG = 180 / Math.PI, lim = WS * 0.02, seatY = A.portSeatY;
+    Explore.build();
+    for (const st of ['timber', 'iron', 'brass', 'lumenite']) {
+      if (Craft.get('bag', 'stand:' + st) < 2) Craft.add('bag', 'stand:' + st, 2);
+    }
+    if (Craft.get('bag', 'bit:bronze') < 4) Craft.add('bag', 'bit:bronze', 4);
+    for (const id of Object.keys(Craft.ITEMS)) if (Craft.ITEMS[id].kind === 'teth') {
+      const have = Craft.have(id); if (have < 8000) Craft.add('bag', id, 8000 - (Craft.get('bag', id) || 0));
+    }
+    const door = Explore.doorSpots().find((q) => q.type === 'ledge'), N = Explore.ORE.nodes;
+    const near = N.filter((n) => !n.cliff && Explore.oreStand(n))
+      .sort((a, b) => Math.hypot(a.x - door.x, a.y - door.y) - Math.hypot(b.x - door.x, b.y - door.y))[0];
+    const ni = N.indexOf(near);
+    let d = Explore.drillState().list.find((q) => !q.camp && q.node === ni) || Explore.drillDeploy(near, { bit: 'bronze', stand: 'stand:iron' });
+    if (!d) return { ok: false, err: 'no-near-deploy' };
+    const st = Explore.oreStand(near);
+    Explore.enter(st[0], st[1]);
+    for (let i = 0; i < 8; i++) Explore.tick(1 / 30);
+    if (!d.port) Explore.drillWire(d, true);
+    const measure = (mesh, drill) => {
+      mesh.updateMatrixWorld(true);
+      const port = mesh.userData.tetherPort;
+      if (!port) return { err: 'no-port', dist: 99, cm: 99 };
+      const bore = port.localToWorld(new THREE.Vector3(0, seatY, 0));
+      const r = Explore.drillRoute(drill);
+      if (!r || !r.end3) return { err: 'no-end3', dist: 99, cm: 99 };
+      const end = new THREE.Vector3(r.end3[0], r.end3[1], r.end3[2]);
+      const dist = end.distanceTo(bore);
+      return { dist, cm: dist / WS * 100 };
+    };
+    const mesh0 = Explore.DRILL.meshes.get(d.id);
+    if (!mesh0) return { ok: false, err: 'no-mesh' };
+    const yaw0 = d.yaw || 0, pitch0 = d.pitch != null ? d.pitch : A.pitchDef;
+    const pitches = [], yaws = [], stands = [];
+    for (const p of A.pitches) {
+      CharView.setDrillPose(mesh0, yaw0, p); d.pitch = p;
+      const m = measure(mesh0, d);
+      pitches.push({ deg: Math.round(p * DEG), cm: +m.cm.toFixed(3), ok: m.dist <= lim });
+    }
+    for (let i = 0; i < 24; i++) {
+      const yaw = i * A.yawStep;
+      CharView.setDrillPose(mesh0, yaw, A.pitchDef); d.yaw = yaw; d.pitch = A.pitchDef;
+      const m = measure(mesh0, d);
+      yaws.push({ deg: Math.round(yaw * DEG), cm: +m.cm.toFixed(3), ok: m.dist <= lim });
+    }
+    CharView.setDrillPose(mesh0, yaw0, pitch0); d.yaw = yaw0; d.pitch = pitch0;
+    const parent = mesh0.parent, pos = mesh0.position.clone(), sc = mesh0.scale.x;
+    for (const stand of ['timber', 'iron', 'brass', 'lumenite']) {
+      const m = CharView.mapDrill('bronze', 'copper', stand, { pitch: A.pitchDef, yaw: yaw0 });
+      m.position.copy(pos); m.scale.setScalar(sc); if (parent) parent.add(m); m.updateMatrixWorld(true);
+      const prev = Explore.DRILL.meshes.get(d.id);
+      Explore.DRILL.meshes.set(d.id, m);
+      const q = measure(m, d);
+      stands.push({ stand, cm: +q.cm.toFixed(3), ok: q.dist <= lim });
+      Explore.DRILL.meshes.set(d.id, prev);
+      if (m.parent) m.parent.remove(m);
+    }
+    const farN = N.filter((n) => !n.cliff && Explore.oreStand(n) && n !== near)
+      .map((n) => ({ n, d: Math.hypot(n.x - door.x, n.y - door.y) / WS }))
+      .filter((q) => q.d >= 200)
+      .sort((a, b) => a.d - b.d);
+    let far = { ok: false };
+    for (const c of farN) {
+      const fd = Explore.drillDeploy(c.n, { bit: 'bronze', stand: 'stand:iron' });
+      if (!fd) continue;
+      for (let i = 0; i < 4; i++) Explore.tick(1 / 30);
+      const fm = Explore.DRILL.meshes.get(fd.id);
+      if (!fm) { Explore.drillPickUp(fd); continue; }
+      const r = Explore.drillRoute(fd); if (!r) { Explore.drillPickUp(fd); continue; }
+      if (!fd.port) Explore.drillWire(fd, true);
+      const q = measure(fm, fd);
+      far = { ok: q.dist <= lim, cm: +q.cm.toFixed(3), m: Math.round(c.d), len: r.len, wired: !!fd.port };
+      break;
+    }
+    const all = pitches.concat(yaws, stands);
+    return {
+      wired: !!d.port, sockY: mesh0.userData.sock && +mesh0.userData.sock.y.toFixed(4),
+      pitches, yaws, stands, far,
+      pitchOk: pitches.every((q) => q.ok), yawOk: yaws.every((q) => q.ok), standOk: stands.every((q) => q.ok),
+      maxCm: Math.max(...all.map((q) => q.cm), far.cm || 0)
+    };
+  }, { timeout: 120000 });
+  console.log(JSON.stringify({ seat: { wired: seat.wired, sockY: seat.sockY, pitchOk: seat.pitchOk, yawOk: seat.yawOk, standOk: seat.standOk, far: seat.far, maxCm: seat.maxCm } }));
+  ok(seat.wired && seat.pitchOk, `strand end is within 2 cm of the port at every pitch notch (max ${seat.maxCm} cm)`);
+  ok(seat.yawOk, 'strand end stays in the port at every 15° yaw');
+  ok(seat.standOk, `strand end seats on every stand tier (${(seat.stands || []).map((q) => q.stand).join(', ')})`);
+  ok(seat.far && seat.far.ok && seat.far.m >= 200, `far drill (${seat.far.m} m, route ${seat.far.len} m) also seats within 2 cm (${seat.far.cm} cm)`);
+
   ok(!errs.length, 'no page errors ' + errs.slice(0, 2).join(' | '));
   console.log(fails ? 'SOME FAILED' : 'ALL PASS');
   await b.close();

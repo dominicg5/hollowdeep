@@ -1007,7 +1007,22 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   const pathLen = (pts) => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; };
   // a drill's tether: from the Ledge door over the ground (smoothed walked route) to just behind the drill, then up into the socket on its hub
   function drillRoute(d) { const H = doorSpots().find((q) => q.type === 'ledge'), n = drillNode(d); if (!H || !n) return null; const m = drillMesh(d), sx = H.x + H.nx * 12, sy = H.y + H.nz * 12;
-    let end3 = null, endDir = null, gx, gy; if (m && m.userData.sock) { const S3 = m.localToWorld(m.userData.sock.clone()), D3 = m.userData.sockDir.clone().transformDirection(m.matrixWorld); end3 = [S3.x, S3.y, S3.z]; endDir = [D3.x, D3.y, D3.z]; const hl = Math.hypot(D3.x, D3.z) || 1; gx = S3.x + D3.x / hl * WS * 2.2; gy = S3.z + D3.z / hl * WS * 2.2; }
+    let end3 = null, endDir = null, gx, gy;
+    const port = m && (m.userData.tetherPort || (m.userData.stand && m.userData.stand.userData.tetherPort));
+    if (m && (port || m.userData.sock)) {
+      m.updateMatrixWorld(true);
+      let S3, D3;
+      if (port) {
+        const seatY = (CharView.DRILL_ANG && CharView.DRILL_ANG.portSeatY) || 0.045;
+        S3 = port.localToWorld(new THREE.Vector3(0, seatY, 0));
+        D3 = new THREE.Vector3(0, 1, 0).transformDirection(port.matrixWorld).normalize();
+      } else {
+        S3 = m.localToWorld(m.userData.sock.clone());
+        D3 = (m.userData.sockDir || new THREE.Vector3(0, 1, 0)).clone().transformDirection(m.matrixWorld);
+      }
+      end3 = [S3.x, S3.y, S3.z]; endDir = [D3.x, D3.y, D3.z];
+      const hl = Math.hypot(D3.x, D3.z) || 1; gx = S3.x + D3.x / hl * WS * 2.2; gy = S3.z + D3.z / hl * WS * 2.2;
+    }
     else { const st2 = oreStand(n) || [n.x, n.y]; gx = st2[0]; gy = st2[1]; }
     const r = plan(sx, sy, gx, gy); let pts = r ? r.pts.map((p) => [p[0], p[1]]) : [[sx, sy], [gx, gy]]; if (r) pts[pts.length - 1] = [gx, gy]; pts = ropeRoute(pts);
     return { pts, len: Math.round((pathLen(pts) + WS * 3) / WS), name: d.name, end3, endDir, endLen: WS * 0.9 }; }
