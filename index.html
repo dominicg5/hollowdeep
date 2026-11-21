@@ -440,9 +440,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='cf8d14eb';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build cf8d14eb</div>
-<script src="assets/vendor/three.min.js?v=cf8d14eb"></script>
+<script>window.HD_BUILD='9f7019aa';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 9f7019aa</div>
+<script src="assets/vendor/three.min.js?v=9f7019aa"></script>
 <script>
 'use strict';
 
@@ -11331,21 +11331,14 @@ const Mosby = (() => {
     GM.legs.forEach((L, i) => { L.foot.getWorldPosition(v); const c = out[i]; c.x = v.x; c.y = v.z; c.r = 1.2 * s; }); GM.head.getWorldPosition(v); out[4].x = v.x; out[4].y = v.z; out[4].r = 1.25 * s;
     if (!GM.colOn) { Explore.addSolid(out); GM.colOn = true; } return out; } // only his feet and head are solid: she can walk right under his shell
   // LOD for mobile: full rig close, greenery off past ~1.2 km, and past the impostor distance a camera-facing card cut from 8 pre-rendered views
-  const IMP = { tex: null, spr: null, n: 8 };
-  function gImpostor() { if (IMP.spr || !M3.renderer) return IMP.spr; const R = M3.renderer, N = IMP.n, S = 256, rt = new THREE.WebGLRenderTarget(S * N, S), sc = new THREE.Scene(), cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
-    sc.add(new THREE.HemisphereLight(0xfff6e8, 0x6a5a3a, 0.9)); const D = new THREE.DirectionalLight(0xfff0d8, 1.4); D.position.set(3, 6, 4); sc.add(D);
-    const par = GM.g.parent, p0 = GM.g.position.clone(), r0 = GM.g.rotation.y, s0 = GM.g.scale.x, vis = GM.g.visible; GM.g.position.set(0, 0, 0); GM.g.rotation.y = 0; GM.g.scale.setScalar(1); GM.g.visible = true; sc.add(GM.g);
-    const H = (B.by + B.ry) * 1.15, Wd = 6.2; cam.left = -Wd; cam.right = Wd; cam.top = Wd - H * 0.1; cam.bottom = -Wd - H * 0.1; cam.updateProjectionMatrix(); IMP.half = Wd; IMP.cy = -H * 0.1;
-    const oldRT = R.getRenderTarget(), oldClr = R.getClearAlpha(), oldC = new THREE.Color(); R.getClearColor(oldC); R.setClearColor(0x000000, 0); R.setRenderTarget(rt); R.setScissorTest(true);
-    for (let k = 0; k < N; k++) { const a = (k / N) * 6.283; cam.position.set(Math.sin(a) * 30, 4.5 + 3.2, Math.cos(a) * 30); cam.lookAt(0, IMP.cy + 3.2 * 0.0 + 3.0, 0); R.setViewport(k * S, 0, S, S); R.setScissor(k * S, 0, S, S); R.clear(); R.render(sc, cam); }
-    R.setScissorTest(false); R.setRenderTarget(oldRT); R.setClearColor(oldC, oldClr); R.setViewport(0, 0, R.domElement.width / R.getPixelRatio(), R.domElement.height / R.getPixelRatio());
-    sc.remove(GM.g); if (par) par.add(GM.g); GM.g.position.copy(p0); GM.g.rotation.y = r0; GM.g.scale.setScalar(s0); GM.g.visible = vis;
-    IMP.tex = rt.texture; IMP.tex.encoding = THREE.sRGBEncoding; IMP.tex.repeat.set(1 / N, 1); const m = new THREE.SpriteMaterial({ map: IMP.tex, transparent: true, alphaTest: 0.3, fog: true }); IMP.spr = new THREE.Sprite(m); IMP.spr.name = 'mosbyImpostor'; IMP.spr.visible = false; M3.scene.add(IMP.spr); return IMP.spr; }
-  function gLod() { const cam = M3.camera; if (!cam || !GM.g) return; const WS = Explore.WS, s = GM.g.scale.x, c = new THREE.Vector3(GM.g.position.x, GM.g.position.y + s * 3, GM.g.position.z), d = cam.position.distanceTo(c), fogF = M3.scene && M3.scene.fog ? M3.scene.fog.far : 1e9;
-    const mob = typeof QUALITY !== 'undefined' && QUALITY.name === 'mobile', impD = WS * (mob ? 700 : 1300), seen = d - s * 7 < fogF; GM.lodD = d;
-    const useImp = seen && d > impD && gImpostor(); GM.g.visible = seen && !useImp; if (IMP.spr) { IMP.spr.visible = !!useImp; if (useImp) { const rel = Math.atan2(cam.position.x - c.x, cam.position.z - c.z) - GM.g.rotation.y, k = ((Math.round((rel / 6.283) * IMP.n) % IMP.n) + IMP.n) % IMP.n; IMP.tex.offset.set(k / IMP.n, 0);
-        const sz = IMP.half * 2 * s; IMP.spr.scale.set(sz, sz, 1); IMP.spr.position.set(GM.g.position.x, GM.g.position.y + (3.0 - IMP.cy * 0) * s, GM.g.position.z); } }
-    const near = d < WS * (mob ? 160 : 260); if (near !== GM.detOn) { GM.detOn = near; for (const o of GM.detList || []) o.visible = near; } }
+  /* (Dominic) no far view at all: no impostor card, no distant rig. He is drawn only inside a close range where the full model looks right, and fades in
+     over the last 100 m (opacity on his own cloned materials, opaque again once fully in), so he never pops. The map icons still show where he is. */
+  const G_SHOW = 380, G_GONE = 480; // metres from the camera to his middle: fully drawn inside SHOW, gone beyond GONE
+  function gFade(f) { if (!GM.mats) { GM.mats = []; GM.g.traverse((o) => { if (!o.isMesh || !o.material) return; const one = (m) => { const c = m.clone(); GM.mats.push({ m: c, op: m.opacity, tr: m.transparent, dw: m.depthWrite }); return c; }; o.material = Array.isArray(o.material) ? o.material.map(one) : one(o.material); }); }
+    const fading = f < 0.999; if (GM.fadeOn === fading && !fading) return; GM.fadeOn = fading; for (const q of GM.mats) { const on = fading || q.tr; if (q.m.transparent !== on) { q.m.transparent = on; q.m.needsUpdate = true; } q.m.opacity = q.op * (fading ? f : 1); } }
+  function gLod() { const cam = M3.camera; if (!cam || !GM.g) return; const WS = Explore.WS, s = GM.g.scale.x, c = new THREE.Vector3(GM.g.position.x, GM.g.position.y + s * 3, GM.g.position.z), d = cam.position.distanceTo(c); GM.lodD = d;
+    const f = Math.max(0, Math.min(1, (WS * G_GONE - d) / (WS * (G_GONE - G_SHOW)))), sm = f * f * (3 - 2 * f); GM.fade = sm; GM.g.visible = sm > 0.003; if (GM.g.visible) gFade(sm);
+    const mob = typeof QUALITY !== 'undefined' && QUALITY.name === 'mobile', near = d < WS * (mob ? 160 : 260); if (near !== GM.detOn) { GM.detOn = near; for (const o of GM.detList || []) o.visible = near; } }
   function gTick(dt) { if (!GM.g) { GM.g = build({ giant: true, st: GM }); GM.g.scale.setScalar(gScale()); GM.s = gClockS(); GM.yaw = gYaw(GM.s); GM.at = { x: 0, y: 0 }; } if (!GM.g.parent) M3.scene.add(GM.g);
     const WS = Explore.WS; GM.t += dt; const moving = !GM.hold; if (moving) GM.s = (GM.s + gSpeed() * dt) % gLoop().L; const p = gAt(GM.s); GM.at.x = p[0]; GM.at.y = p[1];
     let d = gYaw(GM.s) - GM.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); GM.yaw += d * Math.min(1, dt * 0.8); GM.g.rotation.y = GM.yaw;
@@ -11389,7 +11382,7 @@ const Mosby = (() => {
     const cv = M3.renderer && M3.renderer.domElement, hb = e.parentElement.getBoundingClientRect(), cb = cv ? cv.getBoundingClientRect() : hb; e.style.display = ''; e.style.left = (cb.left - hb.left + p[0]) + 'px'; e.style.top = (cb.top - hb.top + p[1]) + 'px'; }
   function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__mos) return; const R0 = M3.render; M3.render = function () { try { tick(); } catch (e) { if (!MS.err) console.error(MS.err = e); } try { if (M3.st && M3.st.ok && typeof Explore !== 'undefined' && Explore.ledgeFront) { const now = performance.now(), dt = Math.min(0.1, GM.last ? (now - GM.last) / 1000 : 0.016); GM.last = now; gTick(dt); } pillSync(); } catch (e) { if (!GM.err) console.error(GM.err = e); } return R0.apply(this, arguments); }; M3.render.__mos = true; }
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 500); }
-  return { MS, B, newMS, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, release, meet, talkTap, GM, GLOOP, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, gImpostor, IMP, get giant() { return GM.g; }, tick, build, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
+  return { MS, B, newMS, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, release, meet, talkTap, GM, GLOOP, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, G_SHOW, G_GONE, get giant() { return GM.g; }, tick, build, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
 })();
 /* ===== Mosby's dialogue and the transport tortoise (Art: /workspace/mia/ui/v3/mosby_dialog, Direction B field kit) =====
    In person only (she is beside the giant and taps him): a wide leather-and-canvas bar low in the view, the brass porthole portrait over its top-left edge
