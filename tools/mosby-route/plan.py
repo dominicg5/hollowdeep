@@ -22,6 +22,11 @@ from scipy import ndimage as nd
 args = [a for a in sys.argv[1:] if not a.startswith('--')]; WRITE = '--write' in sys.argv
 d = json.load(open(args[0])); n, G, X0 = d['n'], d['G'], d['X0']
 AVOID = json.load(open(args[1])) if len(args) > 1 else []
+# Art's valley routes R1-R4 (grid.json 'vr', from M3.VR): every tread point, densified to ~60 u, as a 60 u site - his strip keeps >= 10 m off the treads
+for _id, _k, _pts in d.get('vr', []):
+    for (ax, ay), (bx, by) in zip(_pts, _pts[1:]):
+        _m = max(1, int(np.hypot(bx - ax, by - ay) // 60))
+        for _t in range(_m + 1): AVOID.append([ax + (bx - ax) * _t / _m, ay + (by - ay) * _t / _m, 60])
 h = np.array(d['h'], float).reshape(n, n); f = np.array(d['f']).reshape(n, n)
 gy, gx = np.gradient(h, G); sl = np.degrees(np.arctan(np.hypot(gx, gy)))
 slf = nd.maximum_filter(sl, size=3)
