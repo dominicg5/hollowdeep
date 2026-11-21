@@ -440,9 +440,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='d94bda3f';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build d94bda3f</div>
-<script src="assets/vendor/three.min.js?v=d94bda3f"></script>
+<script>window.HD_BUILD='0192fc89';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 0192fc89</div>
+<script src="assets/vendor/three.min.js?v=0192fc89"></script>
 <script>
 'use strict';
 
@@ -10528,8 +10528,8 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (CharView.syncDoors) try { CharView.syncDoors(); } catch (e) {} if (typeof save === 'function') save(); return true; }
   // her own laid tethers as ropes on the ground with both ends (tap-a-tether bubble): the main Ledge line door -> Hanging Camp, every drill and drop tether door -> its end.
   // Only the owner's tethers are listed (tetherList is her own save); another player's ropes never get a bubble.
-  function tetherRoutes() { const L = tetherList(), F = ledgeFront(), H = W.playerDoor, nm = S.tnames || {}, door = { key: 'door', name: nm.door || 'Ledge door', x: F.x, y: F.y }, out = [];
-    const C = L.find((q) => q.key === 'camp'), m = H ? tetherDest('c', H) : null; if (C && m && m.pts && m.pts.length > 1) { const e = m.pts[m.pts.length - 1]; out.push({ key: 'camp', kind: 'main', name: 'Ledge Tether', pts: m.pts, a: door, b: { key: 'camp', name: C.name, x: e[0], y: e[1] } }); }
+  function tetherRoutes() { const L = tetherList(), F = ledgeFront(), H = W.playerDoor, nm = S.tnames || {}, door = { key: 'door', name: nm.door || 'Ledge door', sub: 'at your house', x: F.x, y: F.y }, out = [];
+    const C = L.find((q) => q.key === 'camp'), m = H ? tetherDest('c', H) : null; if (C && m && m.pts && m.pts.length > 1) { const e = m.pts[m.pts.length - 1]; /* (checked) the main line's far end is the Hanging Camp: the rope runs over the ground to the Silverseam cliff top and down to the portaledge; teleportTo('camp') opens that camp (the Portaledges tab), so 'end' = Hanging Camp */ out.push({ key: 'camp', kind: 'main', name: 'Ledge Tether (main line)', pts: m.pts, a: door, b: { key: 'camp', name: nm.camp || 'Hanging Camp', sub: 'Silverseam portaledge \u00b7 opens Portaledges', x: e[0], y: e[1] } }); }
     for (const T of L) if ((T.kind === 'drill' || T.kind === 'drop') && T.pts && T.pts.length > 1) out.push({ key: T.key, kind: T.kind, name: T.name, pts: T.pts, a: door, b: { key: T.key, name: T.name, x: T.x, y: T.y } }); return out; }
   // teleport (the Tether Orb): out onto the map at that tether's end (the Hanging Camp end opens its portaledge)
   function teleportTo(key) { const T = tetherList().find((q) => q.key === key); if (!T) return false; if (T.camp) { if (CharView.st) CharView.st.exRet = null; if (typeof setTab === 'function') setTab('ledge'); return true; }
@@ -11488,8 +11488,8 @@ const TetherTap = (() => {
     for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) d.addEventListener(e, (ev) => ev.stopPropagation());
     d.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (!b) return; if (b.dataset.k === 'close') return close(); go(b.dataset.k); }); return (ST.el = d); }
   function open(T, sx, sy) { ST.T = T; const d = el(), O = options(T), lbl = (o) => (o === T.a ? 'Start' : 'End');
-    d.innerHTML = `<div class="tbTop"><span class="tbI">${KI[T.kind] || '🪢'}</span><span class="tbN"><b>${esc(T.name)}</b><small>${KN[T.kind] || 'Tether'}</small></span><button class="kX tbX" data-k="close" aria-label="Close">✕</button></div>` +
-      O.map((o) => `<button class="tbGo kBlue" data-k="${o.key}" data-side="${lbl(o).toLowerCase()}"><span>✨</span><b>Teleport to ${lbl(o).toLowerCase()}</b><small>${esc(o.name)}</small></button>`).join('') + '<i class="tbTail"></i>';
+    d.innerHTML = `<div class="tbTop"><span class="tbI">${KI[T.kind] || '🪢'}</span><span class="tbN"><b>${esc(T.name)}</b><small>${T.kind === 'main' ? 'Your house door \u2192 the Hanging Camp' : KN[T.kind] || 'Tether'}</small></span><button class="kX tbX" data-k="close" aria-label="Close">✕</button></div>` +
+      O.map((o) => `<button class="tbGo kBlue" data-k="${o.key}" data-side="${lbl(o).toLowerCase()}"><span>✨</span><b>Teleport to ${lbl(o).toLowerCase()}</b><small>${esc(o.name)}${o.sub ? ' \u00b7 ' + esc(o.sub) : ''}</small></button>`).join('') + '<i class="tbTail"></i>';
     d.classList.remove('hidden'); const P = d.parentElement.getBoundingClientRect(), w = d.offsetWidth, hgt = d.offsetHeight; let x = sx - w / 2, y = sy - hgt - 22, up = true; if (y < 8) { y = sy + 22; up = false; }
     x = Math.max(8, Math.min(P.width - w - 8, x)); d.style.left = x + 'px'; d.style.top = y + 'px'; d.classList.toggle('below', !up); d.style.setProperty('--tx', Math.max(18, Math.min(w - 18, sx - x)) + 'px'); return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.T = null; }

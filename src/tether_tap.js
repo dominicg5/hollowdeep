@@ -20,8 +20,8 @@ const TetherTap = (() => {
     for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) d.addEventListener(e, (ev) => ev.stopPropagation());
     d.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (!b) return; if (b.dataset.k === 'close') return close(); go(b.dataset.k); }); return (ST.el = d); }
   function open(T, sx, sy) { ST.T = T; const d = el(), O = options(T), lbl = (o) => (o === T.a ? 'Start' : 'End');
-    d.innerHTML = `<div class="tbTop"><span class="tbI">${KI[T.kind] || '🪢'}</span><span class="tbN"><b>${esc(T.name)}</b><small>${KN[T.kind] || 'Tether'}</small></span><button class="kX tbX" data-k="close" aria-label="Close">✕</button></div>` +
-      O.map((o) => `<button class="tbGo kBlue" data-k="${o.key}" data-side="${lbl(o).toLowerCase()}"><span>✨</span><b>Teleport to ${lbl(o).toLowerCase()}</b><small>${esc(o.name)}</small></button>`).join('') + '<i class="tbTail"></i>';
+    d.innerHTML = `<div class="tbTop"><span class="tbI">${KI[T.kind] || '🪢'}</span><span class="tbN"><b>${esc(T.name)}</b><small>${T.kind === 'main' ? 'Your house door \u2192 the Hanging Camp' : KN[T.kind] || 'Tether'}</small></span><button class="kX tbX" data-k="close" aria-label="Close">✕</button></div>` +
+      O.map((o) => `<button class="tbGo kBlue" data-k="${o.key}" data-side="${lbl(o).toLowerCase()}"><span>✨</span><b>Teleport to ${lbl(o).toLowerCase()}</b><small>${esc(o.name)}${o.sub ? ' \u00b7 ' + esc(o.sub) : ''}</small></button>`).join('') + '<i class="tbTail"></i>';
     d.classList.remove('hidden'); const P = d.parentElement.getBoundingClientRect(), w = d.offsetWidth, hgt = d.offsetHeight; let x = sx - w / 2, y = sy - hgt - 22, up = true; if (y < 8) { y = sy + 22; up = false; }
     x = Math.max(8, Math.min(P.width - w - 8, x)); d.style.left = x + 'px'; d.style.top = y + 'px'; d.classList.toggle('below', !up); d.style.setProperty('--tx', Math.max(18, Math.min(w - 18, sx - x)) + 'px'); return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.T = null; }
