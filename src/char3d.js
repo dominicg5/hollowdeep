@@ -1413,25 +1413,17 @@ const CharView = (() => {
   function matte(col, o) { return toon(col, null, o || {}); }
   function brassMat(col) { // modest highlight only (the rest of the drill stays matte / metallic 0)
     return new THREE.MeshPhongMaterial({ color: col == null ? 0xb8893a : col, specular: 0x3a2710, shininess: 18 }); }
-  function augerFlightsGeo(o) { // triangular-crest helical flight: 3 verts/slice, two flanks (4 tris/seg). Outer silhouette is one smooth helix, not a faceted ribbon.
-    const nF = o.nF, turns = o.turns, R0 = o.R0, tipR = o.tipR, z0 = o.z0, z1 = o.z1, h0 = o.h0, h1 = o.h1, th0 = o.th0, th1 = o.th1, segs = o.segs;
-    const pos = [], idx = [];
-    for (let f = 0; f < nF; f++) {
-      const ph = f * TAU / nF, base = pos.length / 3;
-      for (let i = 0; i <= segs; i++) {
-        const u = i / segs, fade = u < 0.05 ? u / 0.05 : (u > 0.92 ? Math.max(0.2, 1 - (u - 0.92) / 0.08) : 1);
-        const z = z0 + (z1 - z0) * u, r = R0 + (tipR - R0) * u, h = (h0 + (h1 - h0) * u) * fade, th = (th0 + (th1 - th0) * u) * Math.max(0.45, fade);
-        const a = ph + u * turns * TAU, ca = Math.cos(a), sa = Math.sin(a), rx = ca, ry = sa, tx = -sa, ty = ca, ht = th * 0.5;
-        const ri = Math.max(0.002, r - 0.002), ro = r + h;
-        pos.push(rx * ri + tx * ht, ry * ri + ty * ht, z, rx * ri - tx * ht, ry * ri - ty * ht, z, rx * ro, ry * ro, z);
-      }
-      for (let i = 0; i < segs; i++) {
-        const a = base + i * 3, b = a + 3;
-        idx.push(a, a + 2, b, a + 2, b + 2, b); // lead flank
-        idx.push(a + 1, b + 1, a + 2, a + 2, b + 1, b + 2); // trail flank
-      }
+  // v1 grooved-bit helper, from b89d017 / 5f8823d: a Catmull-Rom helix on the cone, then a rounded TubeGeometry flange.
+  function helixC(R0, tipR, zTip, Lb, rOff, turns, ph = 0, n = 80) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const u = i / n, rr = tipR * 0.6 + (R0 - tipR * 0.6) * u + rOff, a = u * turns * TAU + ph;
+      pts.push(V(Math.cos(a) * rr, Math.sin(a) * rr, zTip + 0.012 + u * (Lb - 0.03)));
     }
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g; }
+    return new THREE.CatmullRomCurve3(pts);
+  }
+  function metalRamp(hex) { return cv(64, 8, (x, w, h) => { const c = new THREE.Color(hex), dk = c.clone().multiplyScalar(0.58), hx = (q) => '#' + q.getHexString();
+    const gr = x.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, hx(dk)); gr.addColorStop(0.5, hx(c)); gr.addColorStop(1, hx(dk)); x.fillStyle = gr; x.fillRect(0, 0, w, h); }); }
   function quadrantPlate(r0, r1, th, a0, a1, segs) { const pos = [], idx = [];
     for (let i = 0; i <= segs; i++) { const t = i / segs, a = a0 + (a1 - a0) * t, ca = Math.cos(a), sa = Math.sin(a);
       for (const [rr, sx] of [[r0, -th / 2], [r0, th / 2], [r1, -th / 2], [r1, th / 2]]) pos.push(sx, sa * rr, -ca * rr); }
@@ -1470,7 +1462,7 @@ const CharView = (() => {
   function makeDrillBit(key) { const G = GRADES[key] || GRADES.bronze, T = Math.max(0, G.tier), D = LG.drill, Lb = D.L, R0 = D.R, bit = new THREE.Group(); bit.name = 'drillbit'; bit.userData.grade = key; bit.userData.fx = [];
     // sheet-matched body colours, all matte (toon). steel/mithril used to wash out under a Phong shine.
     const BODY = [0xb07f45, 0x6a6f76, 0x6b7580, 0xe6b640, 0x6f97c6, 0x3b424c, 0x7ff4ff, 0x16131a][T];
-    const body = T === 6 ? matte(0x7ff4ff, { emissive: 0x1d93ad, transparent: true, opacity: 0.9 }) : matte(BODY, G.emissive && T !== 5 ? { emissive: G.emissive } : {});
+    const body = T === 6 ? matte(0x7ff4ff, { emissive: 0x1d93ad }) : toon(0xffffff, metalRamp(BODY), G.emissive && T !== 5 ? { emissive: G.emissive } : {});
     const ironM = matte(0x6a6d72), brassM = brassMat(0xb8893a), zCol = -DRILL_ANG.collarH, zTip = zCol - Lb;
     const tipR = T === 0 ? 0.018 : T === 1 ? 0.028 : T === 3 ? 0.012 : T === 4 ? 0.008 : T === 7 ? 0.018 : T === 6 ? 0.016 : 0.01;
     part(bit, cyl(0.04, 0.04, 0.10, 8).rotateX(Math.PI / 2), ironM, [0, 0, 0.05]);
@@ -1478,26 +1470,31 @@ const CharView = (() => {
     part(bit, new THREE.BoxGeometry(0.022, 0.008, 0.028), matte(0x2a2c30), [0.038, 0, 0.05], null, null, { ink: false });
     const colM = T === 5 || T === 6 || T === 7 ? brassM : T >= 3 ? matte(G.bind) : body;
     part(bit, cyl(0.11, 0.11, 0.035, 12).rotateX(Math.PI / 2), colM, [0, 0, zCol / 2]);
-    if (T === 1) { for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; part(bit, new THREE.BoxGeometry(0.012, 0.012, 0.01), matte(0x4a4d52), [Math.cos(a) * 0.11, Math.sin(a) * 0.11, zCol / 2], null, null, { ink: false }); } }
-    if (T === 2) { part(bit, cyl(0.116, 0.1, 0.02, 12).rotateX(Math.PI / 2), colM, [0, 0, zCol / 2], null, null, { ink: false }); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; part(bit, new THREE.ConeGeometry(0.007, 0.014, 4), matte(0x9aa4ae), [Math.cos(a) * 0.112, Math.sin(a) * 0.112, zCol / 2], [Math.PI / 2, 0, a], null, { ink: false }); } }
+    
+    if (T === 2) { part(bit, cyl(0.116, 0.1, 0.02, 12).rotateX(Math.PI / 2), colM, [0, 0, zCol / 2], null, null, { ink: false }); }
     if (T === 3) { part(bit, cyl(0.125, 0.11, 0.03, 8).rotateX(Math.PI / 2), colM, [0, 0, zCol / 2], null, null, { ink: false }); }
     if (T === 4) { part(bit, cyl(0.115, 0.115, 0.008, 10).rotateX(Math.PI / 2), matte(0x9cc0e6), [0, 0, zCol / 2], null, null, { ink: false }); }
     if (T === 7) { for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; const c = part(bit, new THREE.BoxGeometry(0.02, 0.012, 0.05), brassM, [Math.cos(a) * 0.12, Math.sin(a) * 0.12, zCol * 0.3], null, null, { ink: false }); c.lookAt(0, 0, zCol); } }
-    // core cone (open, no caps) + raised helical flights as one swept ribbon mesh per the sheet's flange count / pitch
-    part(bit, cyl(tipR, R0, Lb, 10, true).rotateX(Math.PI / 2), body, [0, 0, zCol - Lb / 2]);
+    // solid tapered core + thick rounded TubeGeometry flanges (the v1 grooved construction)
+    part(bit, cyl(tipR, R0, Lb, 12, true).rotateX(Math.PI / 2), body, [0, 0, zCol - Lb / 2]);
+    // Art sheet flange counts; pitch stays open so the core reads as deep grooves, not a pinecone of fins
     const spec = [
-      { nF: 2, turns: 3.15, h0: 0.042, h1: 0.016, th0: 0.026, th1: 0.012, segs: 40 }, // bronze: 2 broad, coarse
-      { nF: 2, turns: 4.1, h0: 0.034, h1: 0.014, th0: 0.020, th1: 0.010, segs: 44 }, // iron: 2, medium
-      { nF: 3, turns: 6.0, h0: 0.024, h1: 0.010, th0: 0.011, th1: 0.006, segs: 24 }, // steel: 3 thin, fine
-      { nF: 3, turns: 4.2, h0: 0.034, h1: 0.014, th0: 0.018, th1: 0.010, segs: 32 }, // gold: 3, medium
-      { nF: 4, turns: 7.0, h0: 0.022, h1: 0.010, th0: 0.011, th1: 0.006, segs: 24 }, // mithril: 4 fine, tight
-      { nF: 3, turns: 6.0, h0: 0.024, h1: 0.010, th0: 0.011, th1: 0.006, segs: 32 }, // rune: steel shape
-      { nF: 2, turns: 4.0, h0: 0.044, h1: 0.016, th0: 0.026, th1: 0.012, segs: 40 }, // lumen: 2 broad, crystal
-      { nF: 3, turns: 4.2, h0: 0.034, h1: 0.014, th0: 0.018, th1: 0.010, segs: 32 }, // onyx: 3, medium
+      { nF: 2, turns: 3.3, fr: 0.022, segs: 22, radial: 4 }, // bronze: 2 broad, coarse
+      { nF: 2, turns: 4.0, fr: 0.018, segs: 22, radial: 4 }, // iron: 2, medium
+      { nF: 3, turns: 4.4, fr: 0.012, segs: 16, radial: 4 }, // steel: 3 thin, fine
+      { nF: 3, turns: 3.8, fr: 0.016, segs: 16, radial: 4 }, // gold: 3, medium
+      { nF: 4, turns: 3.6, fr: 0.010, segs: 12, radial: 4 }, // mithril: 4 fine, tight
+      { nF: 3, turns: 4.4, fr: 0.012, segs: 16, radial: 4 }, // rune: steel shape
+      { nF: 2, turns: 3.8, fr: 0.022, segs: 22, radial: 4 }, // lumen: 2 broad, crystal
+      { nF: 3, turns: 3.8, fr: 0.016, segs: 16, radial: 4 }, // onyx: 3, medium
     ][T];
-    const fM = T === 6 ? body : matte(new THREE.Color(BODY).multiplyScalar(T >= 2 && T <= 5 ? 0.55 : 0.62).getHex(), { side: THREE.DoubleSide });
+    const fCol = T === 7 ? 0x3a3338 : T === 6 ? BODY : new THREE.Color(BODY).multiplyScalar(0.82).getHex();
+    const fM = T === 6 ? body : matte(fCol);
     const flights = new THREE.Group(); flights.name = 'flights';
-    part(flights, augerFlightsGeo({ nF: spec.nF, turns: spec.turns, R0, tipR, z0: zCol - 0.02, z1: zTip + 0.04, h0: spec.h0, h1: spec.h1, th0: spec.th0, th1: spec.th1, segs: spec.segs }), fM);
+    for (let f = 0; f < spec.nF; f++) {
+      const curve = helixC(R0, tipR, zTip, Lb, 0.004, spec.turns, f / spec.nF * TAU, Math.max(36, spec.segs * 2));
+      part(flights, new THREE.TubeGeometry(curve, spec.segs, spec.fr, spec.radial, false), fM, null, null, null, { ink: T !== 6 });
+    }
     bit.add(flights); bit.userData.flights = flights;
     // tips: needle / stubby 4-sided pyramid / spear / slim / faceted crystal / ruby gem
     if (T === 1) { const pyr = matte(BODY, { flatShading: true }); part(bit, cyl(0.032, 0.032, 0.024, 4).rotateX(Math.PI / 2), pyr, [0, 0, zTip + 0.008], null, null, { ink: false }); part(bit, new THREE.ConeGeometry(0.056, 0.052, 4).rotateX(-Math.PI / 2), pyr, [0, 0, zTip - 0.022]); }
