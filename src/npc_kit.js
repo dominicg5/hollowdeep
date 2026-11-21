@@ -32,9 +32,9 @@ const NpcKit = (() => {
   const ready = () => ST.state === 'ready';
   const has = (id) => ready() && !!ST.keepers[id];
   let inkMat = null; const mats = {};
-  function material(mi) { if (mats[mi]) return mats[mi]; const g = ST.gl, m = g.materials[mi], ti = m.pbrMetallicRoughness.baseColorTexture.index, tx = g.textures[ti], src = tx.extensions && tx.extensions.EXT_texture_webp ? tx.extensions.EXT_texture_webp.source : tx.source;
+  function material(mi, vcol) { if (mats[mi]) return mats[mi]; const g = ST.gl, m = g.materials[mi], ti = m.pbrMetallicRoughness.baseColorTexture.index, tx = g.textures[ti], src = tx.extensions && tx.extensions.EXT_texture_webp ? tx.extensions.EXT_texture_webp.source : tx.source;
     const t = new THREE.Texture(ST.images[src]); t.flipY = false; t.needsUpdate = true; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4;
-    const mat = new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide }); mat.name = 'npc_' + m.name; return (mats[mi] = mat); }
+    const mat = new THREE.MeshLambertMaterial({ map: t, side: THREE.DoubleSide, vertexColors: !!vcol }); /* vertex colour = baked face AO */ mat.name = 'npc_' + m.name; return (mats[mi] = mat); }
   function ink() { if (inkMat) return inkMat; inkMat = new THREE.MeshBasicMaterial({ color: 0x2a1a10, side: THREE.BackSide }); inkMat.name = 'npc_ink';
     inkMat.onBeforeCompile = (sh) => { sh.vertexShader = 'attribute float inkw;\n' + sh.vertexShader.replace('#include <skinning_vertex>', '#include <skinning_vertex>\n\ttransformed += normalize(objectNormal) * 0.0075 * inkw;'); }; return inkMat; }
   // per-keeper behaviour: which clip is her idle, her work loop, and which hands lock to which prop grip
@@ -53,9 +53,9 @@ const NpcKit = (() => {
     const sk = g.skins[skinIdx], ibm = accessor(sk.inverseBindMatrices).arr, jl = sk.joints.map((j) => byIdx[j]), inv = jl.map((_, i) => new THREE.Matrix4().fromArray(ibm, i * 16));
     const rootBone = bones.root; root.remove(rootBone);
     const prim0 = g.meshes[lodNodes[0].mesh].primitives[0], A = prim0.attributes, attr = {};
-    for (const [k, nm] of [['POSITION', 'position'], ['NORMAL', 'normal'], ['TEXCOORD_0', 'uv'], ['JOINTS_0', 'skinIndex'], ['WEIGHTS_0', 'skinWeight'], ['_INKW', 'inkw']]) { if (A[k] == null) continue; const a = accessor(A[k]); attr[nm] = new THREE.BufferAttribute(a.arr, a.n, a.norm); }
+    for (const [k, nm] of [['POSITION', 'position'], ['NORMAL', 'normal'], ['TEXCOORD_0', 'uv'], ['JOINTS_0', 'skinIndex'], ['WEIGHTS_0', 'skinWeight'], ['_INKW', 'inkw'], ['COLOR_0', 'color']]) { if (A[k] == null) continue; const a = accessor(A[k]); attr[nm] = new THREE.BufferAttribute(a.arr, a.n, a.norm); }
     const lods = lodNodes.sort((a, b) => a.name.localeCompare(b.name)).map((ln) => { const ge = new THREE.BufferGeometry(); for (const k in attr) ge.setAttribute(k, attr[k]); const ix = accessor(g.meshes[ln.mesh].primitives[0].indices).arr; ge.setIndex(new THREE.BufferAttribute(ix, 1)); ge.computeBoundingSphere(); ge.boundingSphere.radius *= 1.6; return ge; });
-    const mesh = new THREE.SkinnedMesh(lods[0], material(prim0.material)); mesh.name = 'npc_' + id + '_body'; mesh.add(rootBone); mesh.castShadow = true; mesh.frustumCulled = false;
+    const mesh = new THREE.SkinnedMesh(lods[0], material(prim0.material, !!attr.color)); mesh.name = 'npc_' + id + '_body'; mesh.add(rootBone); mesh.castShadow = true; mesh.frustumCulled = false;
     root.add(mesh); root.updateMatrixWorld(true); const skel = new THREE.Skeleton(jl, inv); mesh.bind(skel, mesh.matrixWorld);
     const outline = new THREE.SkinnedMesh(lods[0], ink()); outline.name = 'npc_' + id + '_ink'; outline.frustumCulled = false; root.add(outline); outline.bind(skel, mesh.matrixWorld);
     // clips: the pelvis translation track rescaled to her hip height
@@ -64,7 +64,10 @@ const NpcKit = (() => {
       acts[nm] = mixer.clipAction(c); }
     const role = ROLE[id] || ROLE.goldie, idle = acts[role.idle] || acts.idle; idle.play(); idle.time = Math.random() * idle.getClip().duration; idle.timeScale = 0.85 + Math.random() * 0.2;
     // grips: prop points in the bind pose -> offsets in their parent bone's rest frame
-    const grips = {}; for (const [hand, gn] of Object.entries(role.grips)) { const gp = (ex.grips || {})[gn]; if (!gp) continue; const b = bones[gp.bone]; if (!b) continue; const bi = jl.indexOf(b); grips[hand] = { bone: b, local: new THREE.Vector3().fromArray(gp.pos).applyMatrix4(skel.boneInverses[bi]), pole: new THREE.Vector3().fromArray(gp.pole || [0, -1, -0.5]) }; }
+    const grips = {}; for (const [hand, gn] of Object.entries(role.grips)) { const gp = (ex.grips || {})[gn]; if (!gp) continue; const b = bones[gp.bone]; if (!b) continue; const bi = jl.indexOf(b); grips[hand] = { bone: b, local: new THREE.Vector3().fromArray(gp.pos).applyMatrix4(skel.boneInverses[bi]), pole: new THREE.Vector3().fromArray(gp.pole || [0, -1, -0.5]) };
+      // a carried prop (weighted to the hand): the hand keeps its rest orientation relative to the torso bone, turned by the carry yaw
+      if (gp.carry && bones[gp.carry.bone] && bones[hand]) { const rq = (bn) => { const m = skel.boneInverses[jl.indexOf(bones[bn])].clone().invert(), q = new THREE.Quaternion(); m.decompose(new THREE.Vector3(), q, new THREE.Vector3()); return q; };
+        grips[hand].carry = { bone: bones[gp.carry.bone], off: rq(gp.carry.bone).invert().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), gp.carry.yaw || 0)).multiply(rq(hand)) }; } }
     const k = { id, root, mesh, outline, lods, bones, skel, mixer, acts, role, grips, lod: 0, tris: ex.tris || [], h: ex.h || 1.6, talking: false, look: 0, yaw: 0, workT: 4 + Math.random() * 6, cur: idle, ph: Math.random() * 6.28, bv: [0, 0, 0, 0] };
     if (opt.scale) root.scale.setScalar(opt.scale); if (opt.pos) root.position.copy(opt.pos); if (opt.yaw != null) root.rotation.y = k.yaw = opt.yaw;
     return k; }
@@ -99,7 +102,8 @@ const NpcKit = (() => {
     if (k.role.stance) { const fw = new THREE.Vector3(0, 0, 1).transformDirection(k.root.matrixWorld); for (const s of ['l', 'r']) { const th = k.bones['thigh_' + s], ft = k.bones['foot_' + s]; if (!th) continue; const q0 = ft && ft.getWorldQuaternion(new THREE.Quaternion()); rotWorld(th, fw, (s === 'l' ? -1 : 1) * k.role.stance); if (ft) { ft.parent.getWorldQuaternion(_q2); ft.quaternion.copy(_q2.invert().multiply(q0)); ft.updateMatrixWorld(true); } } }
     if (Math.abs(k.look) > 1e-3) { if (k.bones.neck_01) rotWorld(k.bones.neck_01, UP, k.look * 0.4); rotWorld(k.bones.Head, UP, k.look * 0.6); }
     // hands locked on their props (hammer haft, tray rim, staff, ledger)
-    for (const [hand, gp] of Object.entries(k.grips)) { if (k.working && hand === 'hand_r' && k.id !== 'hattie') continue; const T = gp.local.clone().applyMatrix4(gp.bone.matrixWorld); const pole = gp.pole.clone().transformDirection(k.root.matrixWorld); ik(k, hand.slice(-1), T, pole); }
+    for (const [hand, gp] of Object.entries(k.grips)) { if (k.working && hand === 'hand_r' && k.id !== 'hattie') continue; const T = gp.local.clone().applyMatrix4(gp.bone.matrixWorld); const pole = gp.pole.clone().transformDirection(k.root.matrixWorld); ik(k, hand.slice(-1), T, pole);
+      if (gp.carry) { const hb = k.bones[hand]; gp.carry.bone.getWorldQuaternion(_q).multiply(gp.carry.off); hb.parent.getWorldQuaternion(_q2); hb.quaternion.copy(_q2.invert().multiply(_q)); hb.updateMatrixWorld(true); } }
     // Tess's braid: spring-ish lag on turns + a 4 deg sway over 2.2 s, limits 20/30/35 deg
     if (k.bones.braid_01) { const yv = step / Math.max(dt, 1e-3), lim = [0, 0.35, 0.52, 0.61], fwd = new THREE.Vector3(0, 0, 1).transformDirection(k.root.matrixWorld), side = new THREE.Vector3(1, 0, 0).transformDirection(k.root.matrixWorld);
       for (let i = 1; i < 4; i++) { const w = -yv * 0.12 * i; k.bv[i] += (w - k.bv[i]) * Math.min(1, dt * (6 - i * 1.2)); const sw = 0.07 * Math.sin(t * 6.2832 / 2.2 - i * 0.6 + k.ph); const b = k.bones['braid_0' + i];

@@ -40,7 +40,7 @@ for (const id of ids) {
     let s = 0; const w = [0, 1, 2, 3].map((k) => Math.round(A.sw[i * 4 + k] * 255)); s = w.reduce((a, b) => a + b, 0); w[0] += 255 - s; sw.set(w, i * 4); }
   const nrm3 = new Int8Array(nv * 3); for (let i = 0; i < nv; i++) for (let k = 0; k < 3; k++) nrm3[i * 3 + k] = nrm[i * 4 + k];
   const iw = new Uint8Array(nv); for (let i = 0; i < nv; i++) iw[i] = Math.round(A.inkw[i] * 255); const aI = acc(iw, 'SCALAR', true);
-  const aP = acc(A.pos, 'VEC3'), aN = acc(nrm3, 'VEC3', true), aU = acc(uv, 'VEC2', true), aJ = acc(A.si, 'VEC4'), aW = acc(sw, 'VEC4', true);
+  const aC = A.col ? acc(new Uint8Array(A.col), 'VEC4', true) : null; const aP = acc(A.pos, 'VEC3'), aN = acc(nrm3, 'VEC3', true), aU = acc(uv, 'VEC2', true), aJ = acc(A.si, 'VEC4'), aW = acc(sw, 'VEC4', true);
   const tex = doc.createTexture(id + '_atlas').setImage(fs.readFileSync(path.join(DIR, id + '_atlas.webp'))).setMimeType('image/webp');
   const mat = doc.createMaterial(id).setBaseColorTexture(tex).setRoughnessFactor(1).setMetallicFactor(0).setDoubleSided(true);
   const lodTris = []; const idx0 = A.idx;
@@ -49,7 +49,7 @@ for (const id of ids) {
     // islands make every seam a border and permissive collapses smear the painted atlas, so we keep it clean instead.
     let ix = idx0; if (f < 1) { const tgt = Math.floor(idx0.length * f / 3) * 3; [ix] = MeshoptSimplifier.simplify(idx0, A.pos, 3, tgt, f < 0.3 ? 0.3 : 0.08, []); }
     const I16 = new Uint16Array(ix); lodTris.push(I16.length / 3);
-    const prim = doc.createPrimitive().setIndices(acc(I16, 'SCALAR')).setAttribute('POSITION', aP).setAttribute('NORMAL', aN).setAttribute('TEXCOORD_0', aU).setAttribute('JOINTS_0', aJ).setAttribute('WEIGHTS_0', aW).setAttribute('_INKW', aI).setMaterial(mat);
+    const prim = doc.createPrimitive().setIndices(acc(I16, 'SCALAR')).setAttribute('POSITION', aP).setAttribute('NORMAL', aN).setAttribute('TEXCOORD_0', aU).setAttribute('JOINTS_0', aJ).setAttribute('WEIGHTS_0', aW).setAttribute('_INKW', aI); if (aC) prim.setAttribute('COLOR_0', aC); prim.setMaterial(mat);
     const node = doc.createNode(id + '_lod' + li).setMesh(doc.createMesh(id + '_lod' + li).addPrimitive(prim)).setSkin(skin); keeper.addChild(node); });
   keeper.setExtras({ h: meta.h, grips: meta.grips, pelvisY: heads[bones.indexOf('pelvis')][1], tris: lodTris, bones: bones.length });
   report[id] = { verts: nv, tris: lodTris, bones: bones.length };

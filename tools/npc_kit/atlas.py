@@ -31,6 +31,7 @@ def extract(ob, bones):
     me = ob.data; me.calc_loop_triangles(); cn = me.corner_normals
     uvA = me.uv_layers['UVatlas'].data; uvO = me.uv_layers['UVorig'].data
     src = me.attributes['src'].data; rg = me.attributes['rg'].data
+    aoa = me.attributes.get('ao'); AO = []
     gname = {g.index: g.name for g in ob.vertex_groups}; bidx = {b: i for i, b in enumerate(bones)}
     vskin = []
     for v in me.vertices:
@@ -49,11 +50,13 @@ def extract(ob, bones):
             if j is None:
                 j = key[k] = len(P); co = me.vertices[vi].co; P.append((co.x, co.z, -co.y)); N.append((n.x, n.z, -n.y)); UV.append((a[0], 1 - a[1]))
                 sk = vskin[vi]; SI.append([b for _, b in sk]); SW.append([w for w, _ in sk]); IW.append(inkw(src[t.polygon_index].value, rg[t.polygon_index].value))
+                if aoa is not None: g8 = int(round(max(0.0, min(1.0, aoa.data[vi].value)) * 255)); AO.append((g8, g8, g8, 255))
             tri.append(j)
         IDX.append(tri)
         T['pa'].append([tuple(me.vertices[v].co) for v in t.vertices]); T['na'].append([tuple(cn[l].vector) for l in t.loops])
         T['uva'].append([(uvA[l].uv[0] * 1024, (1 - uvA[l].uv[1]) * 1024) for l in t.loops]); T['uvo'].append([tuple(uvO[l].uv) for l in t.loops])
         T['src'].append(src[t.polygon_index].value); T['rg'].append(rg[t.polygon_index].value)
     mesh = dict(pos=np.array(P, np.float32), nrm=np.array(N, np.float32), uv=np.array(UV, np.float32), si=np.array(SI, np.uint8), sw=np.array(SW, np.float32), idx=np.array(IDX, np.uint32).reshape(-1), inkw=np.array(IW, np.float32))
+    if AO: mesh['col'] = np.array(AO, np.uint8)
     tris = {k: np.array(v, np.float32 if k not in ('src', 'rg') else np.int32) for k, v in T.items()}
     return mesh, tris
