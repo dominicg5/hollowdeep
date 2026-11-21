@@ -432,9 +432,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='70d1c635';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 70d1c635</div>
-<script src="assets/vendor/three.min.js?v=70d1c635"></script>
+<script>window.HD_BUILD='cba4942d';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build cba4942d</div>
+<script src="assets/vendor/three.min.js?v=cba4942d"></script>
 <script>
 'use strict';
 
@@ -4760,7 +4760,9 @@ Town.folk = (() => {
     gb.reset(); }
   // idle: breathing, a slow weight shift and a little nod; they turn to face her when she is close, back to the street when she leaves
   let t0 = 0;
-  function tick() { if (!ST.built) { build(); if (!ST.built) return; } const t = performance.now() / 1000, cam = M3.camera, far = cam && Math.hypot(cam.position.x - TW.T.cx, cam.position.z - TW.T.cy) > 2600, hr = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.on ? Explore.here() : null; const dt = Math.min(0.1, t - (t0 || t)); t0 = t;
+  // a keeper under the finger wins over the pet mole (its tap wrapper sits on Explore.tap): keep ours outermost
+  function wrapTap() { if (typeof Explore === 'undefined' || !Explore.tap || Explore.tap.__town) return; const t0 = Explore.tap, f = function (sx, sy, ...r) { if (Explore.EX && Explore.EX.on && ST.built && hitAt(sx, sy)) return tap(sx, sy); return t0.call(this, sx, sy, ...r); }; f.__town = true; Explore.tap = f; }
+  function tick() { wrapTap(); if (!ST.built) { build(); if (!ST.built) return; } const t = performance.now() / 1000, cam = M3.camera, far = cam && Math.hypot(cam.position.x - TW.T.cx, cam.position.z - TW.T.cy) > 2600, hr = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.on ? Explore.here() : null; const dt = Math.min(0.1, t - (t0 || t)); t0 = t;
     for (const n of ST.list) { n.grp.visible = !far; if (far) continue; const tk = ST.talk === n, br = Math.sin(t * (tk ? 3.2 : 2.0) + n.ph);
       let want = n.sp.yaw; if (hr) { const dx = hr[0] - n.x, dy = hr[1] - n.y; if (Math.hypot(dx, dy) < WS * 7) want = Math.atan2(dx, dy); }
       let d = want - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 3);

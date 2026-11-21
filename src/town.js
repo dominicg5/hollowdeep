@@ -523,7 +523,9 @@ Town.folk = (() => {
     gb.reset(); }
   // idle: breathing, a slow weight shift and a little nod; they turn to face her when she is close, back to the street when she leaves
   let t0 = 0;
-  function tick() { if (!ST.built) { build(); if (!ST.built) return; } const t = performance.now() / 1000, cam = M3.camera, far = cam && Math.hypot(cam.position.x - TW.T.cx, cam.position.z - TW.T.cy) > 2600, hr = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.on ? Explore.here() : null; const dt = Math.min(0.1, t - (t0 || t)); t0 = t;
+  // a keeper under the finger wins over the pet mole (its tap wrapper sits on Explore.tap): keep ours outermost
+  function wrapTap() { if (typeof Explore === 'undefined' || !Explore.tap || Explore.tap.__town) return; const t0 = Explore.tap, f = function (sx, sy, ...r) { if (Explore.EX && Explore.EX.on && ST.built && hitAt(sx, sy)) return tap(sx, sy); return t0.call(this, sx, sy, ...r); }; f.__town = true; Explore.tap = f; }
+  function tick() { wrapTap(); if (!ST.built) { build(); if (!ST.built) return; } const t = performance.now() / 1000, cam = M3.camera, far = cam && Math.hypot(cam.position.x - TW.T.cx, cam.position.z - TW.T.cy) > 2600, hr = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.on ? Explore.here() : null; const dt = Math.min(0.1, t - (t0 || t)); t0 = t;
     for (const n of ST.list) { n.grp.visible = !far; if (far) continue; const tk = ST.talk === n, br = Math.sin(t * (tk ? 3.2 : 2.0) + n.ph);
       let want = n.sp.yaw; if (hr) { const dx = hr[0] - n.x, dy = hr[1] - n.y; if (Math.hypot(dx, dy) < WS * 7) want = Math.atan2(dx, dy); }
       let d = want - n.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); n.yaw += d * Math.min(1, dt * 3);
