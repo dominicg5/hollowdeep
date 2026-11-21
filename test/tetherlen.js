@@ -10,6 +10,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.goto(URL); await p.waitForTimeout(1000); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 200000 }).catch(() => {});
   await p.waitForFunction(() => typeof Explore !== 'undefined' && Explore.on, null, { timeout: 60000 }).catch(() => {});
+  await p.evaluate(() => { Skills.migrate(); S.skills.mining = Math.max(S.skills.mining || 0, Skills.xpToReach(90)); }); // existing tests predate drill-slot unlocks; give all 9 slots so deploy checks stay about stands, bits and tethers
 
   const far = await p.evaluate(() => {
     Explore.build();

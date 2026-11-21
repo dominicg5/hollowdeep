@@ -10,6 +10,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 200000 }).catch(() => {});
   await p.waitForTimeout(500);
+  await p.evaluate(() => { Skills.migrate(); S.skills.mining = Math.max(S.skills.mining || 0, Skills.xpToReach(90)); }); // existing tests predate drill-slot unlocks; give all 9 slots so deploy checks stay about stands, bits and tethers
 
   // 1. save migration: an old Mithril Drill stack and a placed drill become a Riveted Iron stand + Mithril bit (placed bit is kept)
   const mig = await p.evaluate(() => {
