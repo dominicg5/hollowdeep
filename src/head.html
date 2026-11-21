@@ -388,6 +388,16 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherBub .tbGo{display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;gap:0 10px;width:calc(100% - 12px);margin:6px 6px 10px;min-height:58px;padding:8px 12px;border:0;border-radius:18px;color:#f8ecd2;text-shadow:0 1px 2px rgba(0,0,0,.5);background:radial-gradient(120% 95% at 50% 20%,#5ea8d8,#20649a 55%,#153f66);box-shadow:0 0 0 3px #e6bb68,0 0 0 4px #7a4f1c,0 0 0 6px #c8954a,0 4px 8px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.3);cursor:pointer}
 #tetherBub .tbGo span{grid-row:1/3;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-size:17px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}#tetherBub .tbGo b{font:700 15px Georgia,serif}#tetherBub .tbGo small{font:12px Georgia,serif;color:#f1e3c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#tetherBub .tbGo.dis,#tetherBub .tbGo:disabled{opacity:.55;filter:grayscale(.35);cursor:default}
 #tetherBub .tbTail{position:absolute;left:calc(var(--tx,50%) - 11px);bottom:-27px;width:0;height:0;border:11px solid transparent;border-top:12px solid #c8954a}#tetherBub.below .tbTail{bottom:auto;top:-27px;border-top-color:transparent;border-bottom:12px solid #c8954a}
+
+/* Art's inventory atlas (backpack + vault) */
+.cxsv.cxico{display:block;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / 8) calc(var(--iy)*100% / 7);filter:none}
+.kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:3px;transform:translateX(-50%);padding:0 5px;border-radius:6px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
+.kKit .cxct.m,#bagSheet .cxct.m{background:linear-gradient(#e7f3c8,#c5d98a);box-shadow:0 0 0 1px #5a7a32,0 1px 2px rgba(0,0,0,.5)}
+.vaultp .vic .cxico{position:static;width:32px;height:32px;margin-top:-10px;inset:auto}
+.vaultp.kKit .vs-ingots .vic .cxico{width:32px;height:32px;margin-top:0}
+.vaultp.kKit .vs-lines .vic .cxico{width:46px;height:46px;margin-top:0}
+.vaultp .vitem.zero{opacity:.4}
+
 </style>
 </head>
 <body>

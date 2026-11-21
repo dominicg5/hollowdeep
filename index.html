@@ -388,6 +388,16 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherBub .tbGo{display:grid;grid-template-columns:38px 1fr;grid-template-rows:auto auto;align-items:center;text-align:left;gap:0 10px;width:calc(100% - 12px);margin:6px 6px 10px;min-height:58px;padding:8px 12px;border:0;border-radius:18px;color:#f8ecd2;text-shadow:0 1px 2px rgba(0,0,0,.5);background:radial-gradient(120% 95% at 50% 20%,#5ea8d8,#20649a 55%,#153f66);box-shadow:0 0 0 3px #e6bb68,0 0 0 4px #7a4f1c,0 0 0 6px #c8954a,0 4px 8px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.3);cursor:pointer}
 #tetherBub .tbGo span{grid-row:1/3;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-size:17px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}#tetherBub .tbGo b{font:700 15px Georgia,serif}#tetherBub .tbGo small{font:12px Georgia,serif;color:#f1e3c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#tetherBub .tbGo.dis,#tetherBub .tbGo:disabled{opacity:.55;filter:grayscale(.35);cursor:default}
 #tetherBub .tbTail{position:absolute;left:calc(var(--tx,50%) - 11px);bottom:-27px;width:0;height:0;border:11px solid transparent;border-top:12px solid #c8954a}#tetherBub.below .tbTail{bottom:auto;top:-27px;border-top-color:transparent;border-bottom:12px solid #c8954a}
+
+/* Art's inventory atlas (backpack + vault) */
+.cxsv.cxico{display:block;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / 8) calc(var(--iy)*100% / 7);filter:none}
+.kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:3px;transform:translateX(-50%);padding:0 5px;border-radius:6px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
+.kKit .cxct.m,#bagSheet .cxct.m{background:linear-gradient(#e7f3c8,#c5d98a);box-shadow:0 0 0 1px #5a7a32,0 1px 2px rgba(0,0,0,.5)}
+.vaultp .vic .cxico{position:static;width:32px;height:32px;margin-top:-10px;inset:auto}
+.vaultp.kKit .vs-ingots .vic .cxico{width:32px;height:32px;margin-top:0}
+.vaultp.kKit .vs-lines .vic .cxico{width:46px;height:46px;margin-top:0}
+.vaultp .vitem.zero{opacity:.4}
+
 </style>
 </head>
 <body>
@@ -441,9 +451,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='713d44e9';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 713d44e9</div>
-<script src="assets/vendor/three.min.js?v=713d44e9"></script>
+<script>window.HD_BUILD='dfa5b9a1';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build dfa5b9a1</div>
+<script src="assets/vendor/three.min.js?v=dfa5b9a1"></script>
 <script>
 'use strict';
 
@@ -1585,6 +1595,79 @@ function init() {
 }
 window.HD = { get S() { return S; }, CONFIG, simulate, simulateAway, startExpedition, startBuild, doTap, save, load, boostPct, weekTaps, aiRaid, shipAll, startMove, installModule, setTab, attackPower, defensePower };
 document.addEventListener('DOMContentLoaded', init);
+/* Art's inventory icon atlas (128 px cells). Generated — do not hand-edit the map. */
+const ICONS = {
+  src: 'assets/ui/icons/items.webp',
+  cell: 128,
+  cols: 9,
+  rows: 8,
+  map: {
+    'currency:gold':0,
+    'ingot:bronze':1,
+    'ingot:gold':2,
+    'ingot:iron':3,
+    'ingot:lumen':4,
+    'ingot:mithril':5,
+    'ingot:onyx':6,
+    'ingot:rune':7,
+    'ingot:steel':8,
+    'ore:coal':9,
+    'ore:copper':10,
+    'ore:gold':11,
+    'ore:iron':12,
+    'ore:lumenite':13,
+    'ore:mithril':14,
+    'ore:onyx':15,
+    'ore:runite':16,
+    'ore:tin':17,
+    'tether:bronze':18,
+    'tether:gold':19,
+    'tether:iron':20,
+    'tether:lumen':21,
+    'tether:mithril':22,
+    'tether:onyx':23,
+    'tether:rune':24,
+    'tether:steel':25,
+    'tool:climb_bronze':26,
+    'tool:climb_gold':27,
+    'tool:climb_iron':28,
+    'tool:climb_lumen':29,
+    'tool:climb_mithril':30,
+    'tool:climb_onyx':31,
+    'tool:climb_rune':32,
+    'tool:climb_steel':33,
+    'tool:tlink_bronze':34,
+    'tool:tlink_gold':35,
+    'tool:tlink_iron':36,
+    'tool:tlink_lumen':37,
+    'tool:tlink_mithril':38,
+    'tool:tlink_onyx':39,
+    'tool:tlink_rune':40,
+    'tool:tlink_steel':41,
+    'tool:pick_bronze':42,
+    'tool:pick_gold':43,
+    'tool:pick_iron':44,
+    'tool:pick_lumen':45,
+    'tool:pick_mithril':46,
+    'tool:pick_onyx':47,
+    'tool:pick_rune':48,
+    'tool:pick_steel':49,
+    'tool:lifeline_bronze':50,
+    'tool:lifeline_gold':51,
+    'tool:lifeline_iron':52,
+    'tool:lifeline_lumen':53,
+    'tool:lifeline_mithril':54,
+    'tool:lifeline_onyx':55,
+    'tool:lifeline_rune':56,
+    'tool:lifeline_steel':57,
+  }
+};
+function itemIco(id) {
+  const i = ICONS.map[id];
+  if (i == null) return null;
+  const ix = i % ICONS.cols, iy = (i / ICONS.cols) | 0;
+  return '<i class="cxsv cxico" style="--ix:' + ix + ';--iy:' + iy + '" aria-hidden="true"></i>';
+}
 /* ---------- Backpack, Vault transfer, Furnace, Anvil, Lumen exchange (data-driven placeholders) ---------- */
 const Craft = (() => {
   // ---- item catalogue: id -> {name, emoji, col}; ids are kind:key
@@ -1677,12 +1760,14 @@ const Craft = (() => {
     else if (it.kind === 'bit') b = `<path d="${P([[18, 36], [30, 36], [24, 8]])}" fill="${c}" ${st}/><rect x="${j(20)}" y="${j(34)}" width="8" height="5" rx="1" fill="#8a8d92" ${st}/><rect x="${j(22)}" y="${j(38)}" width="4" height="5" fill="#6a6d72" ${st}/>`;
     else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
     return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
+  const pic = (id) => (typeof itemIco === 'function' && itemIco(id)) || svgIco(id);
+  const badge = (id, c) => { const it = ITEMS[id], m = it && it.unit === 'm'; return `<b class="cxct${m ? ' m' : ''}">${m ? fmtN(c) + ' m' : '×' + fmtN(c)}</b>`; };
   const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
   const EQUIP = { pick: ['pickGrade', 'setPick', 'Pickaxe'], climb: ['climbGrade', 'setClimb', 'Climbing picks'], tlink: ['tetherGrade', 'setTether', 'Tether'] };
   const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; return !!E && S[E[0]] === TIERS[it.tier][0]; };
   function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
-    for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? svgIco(id) + `<b class="cxct">${fmtN(c)}${ITEMS[id] && ITEMS[id].unit === 'm' ? ' m' : ''}</b>` : ''}</div>`; }
+    for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + badge(id, c) : ''}</div>`; }
     return h + '</div>'; }
   const used = (w) => order(w).filter(Boolean).length;
   // the Backpack shows only what she carries; the Ledge Vault sits beside it only on the vault's own Backpack ⇄ Vault screen (xfer)
@@ -1697,7 +1782,7 @@ const Craft = (() => {
     if (it && (it.kind === 'stand' || it.kind === 'drill')) return drillMenuHTML(id, c);
     if (it && it.kind === 'teth' && !st.menu.x) return dropMenuHTML(id, c); // drop-tether confirm only in the backpack; the vault transfer screen needs Move (length / all)
     const u = it && it.unit === 'm' ? ' m' : '';
-    return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)}${u} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
+    return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)}${u} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
       (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
       (st.menu.x ? `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}</div>` +
       `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` : `<div class="dim">${w === 'bag' ? 'Carried in the backpack. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : ''}</div>`) +
@@ -1705,13 +1790,13 @@ const Craft = (() => {
   // a drill stand's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up (needs a stand; a bit is equipped from the drill's settings)
   function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0, it = ITEMS[id];
     const near = X.err === 'explore' ? `<div class="cxnear dim">Set it up out on the map: open 🧭 Explore, then pick a stand from 🎒 Bag.</div>` : X.err ? `<div class="cxnear none">⛔ No ore within 5 s walk <small>(${X.R} m at your run speed)</small></div>`
-      : `<div class="cxnear">${svgIco('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
-    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${st.menu && st.menu.w === 'vault' ? 'Vault' : 'Backpack'} · place the stand, then fit a bit from the drill's settings</small></span></div>${near}` +
+      : `<div class="cxnear">${pic('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
+    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${st.menu && st.menu.w === 'vault' ? 'Vault' : 'Backpack'} · place the stand, then fit a bit from the drill's settings</small></span></div>${near}` +
       `<button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
   // the Mithril Ledge Tether coil: 'Create a drop Ledge tether here?' - the length the rope needs from the Ledge door to her spot vs what is left on the coil
   function dropMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.dropNeed ? Explore.dropNeed(id) : { err: 'explore' }, ok = !X.err && X.ok;
     const info = X.err ? `<div class="cxnear dim">Lay a drop tether out on the map: open the map in Character view, then pick the coil from 🎒 Bag.</div>` : `<div class="cxnear${X.ok ? '' : ' none'}">🪢<span><b>Create a drop Ledge tether here?</b><small>${esc(X.name)} · needs ${X.need} m from the Ledge door · ${X.have} m on the coil</small></span></div>${X.ok ? '' : '<div class="cxnear none">⛔ Not enough tether</div>'}`;
-    return `<div class="cxmenu cxdrop" data-w="bag" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} m in Backpack · same braid as the door tethers</small></span></div>${info}` +
+    return `<div class="cxmenu cxdrop" data-w="bag" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} m in Backpack · same braid as the door tethers</small></span></div>${info}` +
       `<button class="btn alt cxdset" data-cx="dropok" data-id="${id}" ${ok ? '' : 'disabled'}>🪢 Create drop tether</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
   function bagHTML(inModal) { if (st.menu && st.menu.w !== 'bag') st.menu = null; return gridsHTML(inModal, false); } // the Backpack (tab, modal, map sheet): carried items only, never the vault
   function xferHTML() { return gridsHTML(true, true); }
@@ -9308,17 +9393,18 @@ function exploreOn(par, x, z, face, hy) { if (!R && !initGL()) return null; setC
     else { x.lineWidth = 7; x.lineCap = 'round'; for (const [c, ph] of [[c1, 0], [c2, Math.PI]]) { x.strokeStyle = hx(c); x.beginPath(); for (let i = 0; i <= 30; i++) { const u = i / 30, px = 10 + u * 44, py = 32 + Math.sin(u * TAU * 1.5 + ph) * 9; i ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke(); } }
     return (_vIcon[key] = cvs.toDataURL()); }
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const artIco = (id) => (typeof itemIco === 'function' && itemIco(id)) || '';
   const VAULT_SECTIONS = [
-    { id: 'ores', title: '⛏️ Ores', items: () => Object.keys(ORES).map((k) => ({ k, name: ORES[k].name, sub: 'feeds ' + ORES[k].feeds, icon: vIcon('ore', k, ORES[k].vein, ORES[k].crys), n: k === 'iron' ? (S.res && S.res.iron) || 0 : k === 'coal' ? (S.res && S.res.coal) || 0 : vaultState().ores[k] || 0 })) },
-    { id: 'ingots', title: '🧱 Ingots', items: () => ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'].map((k) => ({ k, name: (k === 'onyx' ? 'Ember Onyx' : cap(k)) + ' ingot', icon: vIcon('ingot', k, (LGRADES[k] || {}).col || 0x9aa3ab), n: k === 'steel' ? (S.res && S.res.steel) || 0 : vaultState().ingots[k] || 0 })) },
-    { id: 'gear', title: '🎒 Gear', items: () => { const o = [['pick', '⛏️', 'Pickaxe', GRADES[S.pickGrade || 'stick']], ['climb', '🧗', 'Climbing picks', CGRADES[S.climbGrade || 'stone']], ['tether', '🪢', 'Tether', TGRADES[S.tetherGrade || 'regular']]].map(([k, e, nm, G]) => ({ k, emoji: e, name: G && /axe$/i.test(G.name) ? G.name : (G ? G.name + ' ' : '') + nm, sub: 'equipped', n: 1 })); for (const k in vaultState().gear) if (vaultState().gear[k] > 0) { const it = typeof Craft !== 'undefined' && Craft.ITEMS['tool:' + k]; o.push({ k, emoji: it ? it.emoji : '📦', name: it ? it.name : cap(k), n: vaultState().gear[k] }); } return o; } },
-    { id: 'lines', title: '🔗 Tethers & Ledge Tethers', items: () => { const hs = homeState(), o = []; for (const id of PORTS) { const P2 = hs.ports && hs.ports[id]; if (!P2) continue; const tw = twinOf(P2); o.push({ k: id, name: (id === 'c' ? 'Main' : 'Port ' + id.slice(1)) + ' Ledge Tether', sub: cap(tw.a.grade) + ' + ' + cap(tw.b.grade) + ' · plugged in', icon: vIcon('line', tw.a.grade + tw.b.grade, (LGRADES[tw.a.grade] || {}).col || 0x888888, (LGRADES[tw.b.grade] || {}).col || 0x888888), n: 1 }); } for (const k in vaultState().lines) if (vaultState().lines[k] > 0) o.push({ k, emoji: '🪢', name: cap(k) + ' Ledge Tether (spare)', n: vaultState().lines[k] }); return o; } },
+    { id: 'ores', title: '⛏️ Ores', items: () => Object.keys(ORES).map((k) => ({ k, name: ORES[k].name, sub: 'feeds ' + ORES[k].feeds, ico: artIco('ore:' + k), icon: vIcon('ore', k, ORES[k].vein, ORES[k].crys), n: k === 'iron' ? (S.res && S.res.iron) || 0 : k === 'coal' ? (S.res && S.res.coal) || 0 : vaultState().ores[k] || 0 })) },
+    { id: 'ingots', title: '🧱 Ingots', items: () => ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'].map((k) => ({ k, name: (k === 'onyx' ? 'Ember Onyx' : cap(k)) + ' ingot', ico: artIco('ingot:' + k), icon: vIcon('ingot', k, (LGRADES[k] || {}).col || 0x9aa3ab), n: k === 'steel' ? (S.res && S.res.steel) || 0 : vaultState().ingots[k] || 0 })) },
+    { id: 'gear', title: '🎒 Gear', items: () => { const o = [['pick', '⛏️', 'Pickaxe', GRADES[S.pickGrade || 'stick']], ['climb', '🧗', 'Climbing picks', CGRADES[S.climbGrade || 'stone']], ['tether', '🪢', 'Tether', TGRADES[S.tetherGrade || 'regular']]].map(([k, e, nm, G]) => ({ k, emoji: e, name: G && /axe$/i.test(G.name) ? G.name : (G ? G.name + ' ' : '') + nm, sub: 'equipped', n: 1 })); for (const k in vaultState().gear) if (vaultState().gear[k] > 0) { const it = typeof Craft !== 'undefined' && Craft.ITEMS['tool:' + k]; o.push({ k, ico: artIco('tool:' + k), emoji: it ? it.emoji : '📦', name: it ? it.name : cap(k), n: vaultState().gear[k] }); } return o; } },
+    { id: 'lines', title: '🔗 Tethers & Ledge Tethers', items: () => { const hs = homeState(), o = []; for (const id of PORTS) { const P2 = hs.ports && hs.ports[id]; if (!P2) continue; const tw = twinOf(P2); o.push({ k: id, name: (id === 'c' ? 'Main' : 'Port ' + id.slice(1)) + ' Ledge Tether', sub: cap(tw.a.grade) + ' + ' + cap(tw.b.grade) + ' · plugged in', ico: artIco('tether:' + tw.a.grade), icon: vIcon('line', tw.a.grade + tw.b.grade, (LGRADES[tw.a.grade] || {}).col || 0x888888, (LGRADES[tw.b.grade] || {}).col || 0x888888), n: 1 }); } for (const k in vaultState().lines) if (vaultState().lines[k] > 0) o.push({ k, ico: artIco('tether:' + k), emoji: '🪢', name: cap(k) + ' Ledge Tether (spare)', n: vaultState().lines[k] }); return o; } },
   ];
   function vaultHTML() { const esc2 = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])), fmt = (n) => (n >= 1000 ? (n / 1000).toFixed(n >= 1e4 ? 0 : 1) + 'k' : String(Math.floor(n)));
     // (Dominic: field-kit skin, Art's B_vault) a brass vault-door medallion instead of a VAULT title, brass plaques for section names and totals; counts are live
     let h = '<div class="vaultp kKit"><div class="kVHead"><img class="kDoor" src="assets/ui/kit_door.webp" alt="Vault"><span class="kTag">Ledge safe</span></div>';
     for (const sec of VAULT_SECTIONS) { const it = sec.items(), tot = it.reduce((a, b) => a + b.n, 0); h += `<div class="card vsec vs-${sec.id}" data-sec="${sec.id}"><div class="row between"><h3 class="kTag">${sec.title.replace(/^\S+\s/, '').replace(' & Ledge Tethers', '')}</h3><span class="tag kTag">${fmt(tot)}</span></div>`;
-      h += it.length ? `<div class="vgrid">${it.map((q) => `<div class="vitem${q.n ? '' : ' zero'}${/equipped|plugged in/.test(q.sub || '') ? ' eq' : ''}" data-k="${esc2(q.k)}" title="${esc2(q.name)}"><span class="vic">${q.icon ? `<img src="${q.icon}" alt="">` : `<span class="ve">${q.emoji || '📦'}</span>`}</span><div class="vn">${esc2(q.name)}${q.sub ? `<small>${esc2(q.sub)}</small>` : ''}</div><b class="vc">${fmt(q.n)}</b></div>`).join('')}</div>` : '<div class="dim">Nothing stored here yet.</div>';
+      h += it.length ? `<div class="vgrid">${it.map((q) => `<div class="vitem${q.n ? '' : ' zero'}${/equipped|plugged in/.test(q.sub || '') ? ' eq' : ''}" data-k="${esc2(q.k)}" title="${esc2(q.name)}"><span class="vic">${q.ico || (q.icon ? `<img src="${q.icon}" alt="">` : `<span class="ve">${q.emoji || '📦'}</span>`)}</span><div class="vn">${esc2(q.name)}${q.sub ? `<small>${esc2(q.sub)}</small>` : ''}</div><b class="vc">${fmt(q.n)}</b></div>`).join('')}</div>` : '<div class="dim">Nothing stored here yet.</div>';
       h += '</div>'; }
     return h + '<div class="kVBtns">' + (typeof Craft !== 'undefined' ? '<button class="btn alt kBtn kBlue" data-cx="xfer"><span class="kBag">🎒</span>Backpack ⇄ Vault</button>' : '') + '<button class="btn kBtn kCream" data-vclose>Close</button></div></div>'; }
   function openVault() { if (typeof openModal !== 'function') return false; vaultState(); openModal(vaultHTML(), 'vault'); const b = document.querySelector('#modalBody [data-vclose]'); if (b) b.addEventListener('click', () => (typeof closeModal === 'function' ? closeModal() : null)); HM.vaultOpen = (HM.vaultOpen || 0) + 1; st.lastInput = clk; return true; }

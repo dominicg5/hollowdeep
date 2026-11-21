@@ -90,12 +90,14 @@ const Craft = (() => {
     else if (it.kind === 'bit') b = `<path d="${P([[18, 36], [30, 36], [24, 8]])}" fill="${c}" ${st}/><rect x="${j(20)}" y="${j(34)}" width="8" height="5" rx="1" fill="#8a8d92" ${st}/><rect x="${j(22)}" y="${j(38)}" width="4" height="5" fill="#6a6d72" ${st}/>`;
     else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
     return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
+  const pic = (id) => (typeof itemIco === 'function' && itemIco(id)) || svgIco(id);
+  const badge = (id, c) => { const it = ITEMS[id], m = it && it.unit === 'm'; return `<b class="cxct${m ? ' m' : ''}">${m ? fmtN(c) + ' m' : '×' + fmtN(c)}</b>`; };
   const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
   const EQUIP = { pick: ['pickGrade', 'setPick', 'Pickaxe'], climb: ['climbGrade', 'setClimb', 'Climbing picks'], tlink: ['tetherGrade', 'setTether', 'Tether'] };
   const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; return !!E && S[E[0]] === TIERS[it.tier][0]; };
   function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
-    for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? svgIco(id) + `<b class="cxct">${fmtN(c)}${ITEMS[id] && ITEMS[id].unit === 'm' ? ' m' : ''}</b>` : ''}</div>`; }
+    for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + badge(id, c) : ''}</div>`; }
     return h + '</div>'; }
   const used = (w) => order(w).filter(Boolean).length;
   // the Backpack shows only what she carries; the Ledge Vault sits beside it only on the vault's own Backpack ⇄ Vault screen (xfer)
@@ -110,7 +112,7 @@ const Craft = (() => {
     if (it && (it.kind === 'stand' || it.kind === 'drill')) return drillMenuHTML(id, c);
     if (it && it.kind === 'teth' && !st.menu.x) return dropMenuHTML(id, c); // drop-tether confirm only in the backpack; the vault transfer screen needs Move (length / all)
     const u = it && it.unit === 'm' ? ' m' : '';
-    return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)}${u} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
+    return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)}${u} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
       (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
       (st.menu.x ? `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}</div>` +
       `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` : `<div class="dim">${w === 'bag' ? 'Carried in the backpack. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : ''}</div>`) +
@@ -118,13 +120,13 @@ const Craft = (() => {
   // a drill stand's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up (needs a stand; a bit is equipped from the drill's settings)
   function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0, it = ITEMS[id];
     const near = X.err === 'explore' ? `<div class="cxnear dim">Set it up out on the map: open 🧭 Explore, then pick a stand from 🎒 Bag.</div>` : X.err ? `<div class="cxnear none">⛔ No ore within 5 s walk <small>(${X.R} m at your run speed)</small></div>`
-      : `<div class="cxnear">${svgIco('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
-    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${st.menu && st.menu.w === 'vault' ? 'Vault' : 'Backpack'} · place the stand, then fit a bit from the drill's settings</small></span></div>${near}` +
+      : `<div class="cxnear">${pic('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
+    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${st.menu && st.menu.w === 'vault' ? 'Vault' : 'Backpack'} · place the stand, then fit a bit from the drill's settings</small></span></div>${near}` +
       `<button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
   // the Mithril Ledge Tether coil: 'Create a drop Ledge tether here?' - the length the rope needs from the Ledge door to her spot vs what is left on the coil
   function dropMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.dropNeed ? Explore.dropNeed(id) : { err: 'explore' }, ok = !X.err && X.ok;
     const info = X.err ? `<div class="cxnear dim">Lay a drop tether out on the map: open the map in Character view, then pick the coil from 🎒 Bag.</div>` : `<div class="cxnear${X.ok ? '' : ' none'}">🪢<span><b>Create a drop Ledge tether here?</b><small>${esc(X.name)} · needs ${X.need} m from the Ledge door · ${X.have} m on the coil</small></span></div>${X.ok ? '' : '<div class="cxnear none">⛔ Not enough tether</div>'}`;
-    return `<div class="cxmenu cxdrop" data-w="bag" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} m in Backpack · same braid as the door tethers</small></span></div>${info}` +
+    return `<div class="cxmenu cxdrop" data-w="bag" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} m in Backpack · same braid as the door tethers</small></span></div>${info}` +
       `<button class="btn alt cxdset" data-cx="dropok" data-id="${id}" ${ok ? '' : 'disabled'}>🪢 Create drop tether</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
   function bagHTML(inModal) { if (st.menu && st.menu.w !== 'bag') st.menu = null; return gridsHTML(inModal, false); } // the Backpack (tab, modal, map sheet): carried items only, never the vault
   function xferHTML() { return gridsHTML(true, true); }
