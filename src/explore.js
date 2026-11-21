@@ -966,18 +966,22 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     let near = null, nd = WS * 25; if (!ORE.mining) for (const n of ORE.nodes) { const d = Math.hypot(n.x - x, n.y - y); if (d < nd && oreStand(n)) { nd = d; near = n; } }
     if (near !== ORE.near) { ORE.near = near; if (ORE.lab) { ORE.grp.remove(ORE.lab); ORE.lab.material.map.dispose(); ORE.lab = null; } if (near) { ORE.lab = doorLabel('⛏ Mine ' + ORE_LOOK[near.type].name); ORE.grp.add(ORE.lab); } }
     if (ORE.lab && near) ORE.lab.position.set(near.x, near.top + WS * 1.2 + Math.sin(t * 1.4) * 0.25, near.y);
-    // mining: each strike (the swing's contact frame) chips the node; every second strike drops one ore into the backpack
+    // mining: each strike (the swing's contact frame) chips the node; yield = the ore's base + 2% per pick tier, then the level speed bonus is applied to swing speed
     const G = CharView.st.gnd, n = ORE.mining; if (!n || !G) return; if (!G.mine || G.goal) { ORE.mining = null; return; } const ph = CharView.st.minePh || 0, act = CharView.an && CharView.an.act === 'mine';
-    if (act && ORE.ph0 !== undefined && ORE.ph0 < 0.53 && ph >= 0.53) { n.hits++; ORE.strikes++; if (ORE.strikes % 2 === 0) { const id = 'ore:' + n.type, got = typeof Craft !== 'undefined' ? Craft.add('bag', id, 1) : 0; if (!got) { if (typeof toast === 'function') toast('Backpack full'); mineStop(); } else { ORE.mined = (ORE.mined || 0) + 1; if (typeof save === 'function') save(); if (typeof toast === 'function' && ORE.strikes % 6 === 0) toast('+' + ORE.strikes / 2 + ' ' + ORE_LOOK[n.type].name + ' ore'); } } }
+    if (act && ORE.ph0 !== undefined && ORE.ph0 < 0.53 && ph >= 0.53) { n.hits++; ORE.strikes++; const y = typeof Skills !== 'undefined' ? Skills.yieldChance(n.type, Skills.equippedPickTier()) : 0.5; if (Math.random() < y) { const id = 'ore:' + n.type, got = typeof Craft !== 'undefined' ? Craft.add('bag', id, 1) : 0; if (!got) { if (typeof toast === 'function') toast('Backpack full'); mineStop(); } else { ORE.mined = (ORE.mined || 0) + 1; if (typeof Skills !== 'undefined') Skills.awardMine(n.type, 1); if (typeof save === 'function') save(); if (typeof toast === 'function' && ORE.mined % 3 === 0) toast('+' + ORE.mined + ' ' + ORE_LOOK[n.type].name + ' ore'); } } }
     ORE.ph0 = act ? ph : undefined; }
   // ---- drills: long-press any ore node cluster (or the Hanging Camp vein) to deploy a Drill there. It burns coal from its own tank and mines at its
   // bit's rate; with no coal it stops. A drill can be strung to the Ledge door with a Ledge Tether if she owns enough length (the real route length in metres);
   // a strung drill feeds the vault (and so the forge) directly and refuels from the vault's coal; a loose one fills its hopper for her to collect.
-  const BITS = [{ k: 'bronze', name: 'Bronze', rate: 6, burn: 2, min: 0 }, { k: 'iron', name: 'Iron', rate: 10, burn: 3, min: 1 }, { k: 'steel', name: 'Steel', rate: 16, burn: 5, min: 2 }, { k: 'gold', name: 'Gold', rate: 20, burn: 6, min: 3 }, { k: 'mithril', name: 'Mithril', rate: 26, burn: 8, min: 4 }, { k: 'rune', name: 'Rune', rate: 32, burn: 10, min: 5 }, { k: 'lumen', name: 'Lumen', rate: 36, burn: 11, min: 6 }, { k: 'onyx', name: 'Ember Onyx', rate: 42, burn: 13, min: 7 }]; // ore / coal per game hour
+  const BITS = [{ k: 'bronze', name: 'Bronze', tier: 0, burn: 2, min: 0 }, { k: 'iron', name: 'Iron', tier: 1, burn: 3, min: 1 }, { k: 'steel', name: 'Steel', tier: 2, burn: 5, min: 2 }, { k: 'gold', name: 'Gold', tier: 3, burn: 6, min: 3 }, { k: 'mithril', name: 'Mithril', tier: 4, burn: 8, min: 4 }, { k: 'rune', name: 'Rune', tier: 5, burn: 10, min: 5 }, { k: 'lumen', name: 'Lumen', tier: 6, burn: 11, min: 6 }, { k: 'onyx', name: 'Ember Onyx', tier: 7, burn: 13, min: 7 }]; // burn is coal per game hour; ore/h is character ore/h on that ore with a pick of the bit's tier, ÷ 3
   const ORE_MIN = { copper: 0, tin: 0, coal: 0, iron: 1, gold: 2, mithril: 3, runite: 4, lumenite: 5, onyx: 6 }; // minimum bit tier that can cut that ore
 
   const DRILL = { N0: 20, TANK: 200, FILL: 100, HOP: 300, TETHER_M: 3000, NEAR: WS * 4, meshes: new Map(), sel: null, prompts: new Map(), listOn: false, view: '', near: null, pgrp: null };
   const bitOf = (k) => BITS.find((b) => b.k === k) || BITS[0];
+  // drill ore/h = the character's ore/h on that ore with a pick of the bit's tier, divided by 3 (replaces the old fixed BITS.rate table)
+  function drillRate(d) { if (!d || !d.tier || drillSoft(d)) return 0; const b = bitOf(d.tier), t = b.tier != null ? b.tier : b.min; if (typeof Skills !== 'undefined' && Skills.drillOrePerHour) return Skills.drillOrePerHour(d.type, t, Skills.level('mining')); return 0; }
+  const fmtOreH = (r) => { const n = Math.round(r); return String(n); };
+
   function drillState() { if (typeof S === 'undefined' || !S) return null; if (typeof Craft !== 'undefined') { Craft.bag(); if (Craft.migrateDrillSplit) Craft.migrateDrillSplit(); }
     if (!S.drills) { S.drills = { left: 0, tetherM: DRILL.TETHER_M, list: [], nid: 1, bit: 'mithril' }; if (S.res) S.res.coal = Math.max(S.res.coal || 0, 5000); } // first run: stands + bits are seeded in the backpack (Craft.bag); Ledge Tether metres come from the backpack and vault coils, 5000 coal in the vault
     const D = S.drills; if (!D.list.some((d) => d.camp)) D.list.push({ id: 'camp', camp: true, name: 'Hanging Camp drill', type: (CharView.LG && CharView.LG.ore) || 'mithril', tier: (CharView.LG && CharView.LG.dg) || 'mithril', stand: 'iron', coal: DRILL.FILL, hop: 0, acc: 0, port: 'c', len: 0, pitch: 0, yaw: 0 });
@@ -1036,20 +1040,23 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function drillStep(dt) { const D = drillState(); if (!D) return; const h = dt / 3600e3, hs = CharView.homeState ? CharView.homeState() : null;
     for (const d of D.list) { if (d.camp) d.tier = (CharView.LG && CharView.LG.dg) || d.tier; if (d.port && hs && !hs.ports[d.port]) d.port = null; /* unplugged at the door */ const b = bitOf(d.tier), wired = !!d.port;
       if (wired && d.coal < DRILL.TANK * 0.5 && S.res.coal > 0) { const f = Math.min(DRILL.TANK - d.coal, S.res.coal); S.res.coal -= f; d.coal += f; }
-      const okBit = d.tier && b && b.min >= (ORE_MIN[d.type] || 0), run = okBit ? Math.min(h, d.coal / b.burn) : 0; d.on = run > 0 && (wired || d.hop < DRILL.HOP); if (!d.on) continue; d.coal = Math.max(0, d.coal - b.burn * run); if (d.coal < 1e-6) d.on = false; d.acc += b.rate * run; const n = Math.floor(d.acc); if (!n) continue; d.acc -= n; d.mined = (d.mined || 0) + n;
-      const id = 'ore:' + d.type; if (wired && typeof Craft !== 'undefined' && Craft.add('vault', id, n)) { try { CharView.flowLog(d.port, 'to', n); } catch (e) {} continue; } d.hop = Math.min(DRILL.HOP, d.hop + n); } }
+      const okBit = d.tier && b && b.min >= (ORE_MIN[d.type] || 0), run = okBit ? Math.min(h, d.coal / b.burn) : 0; d.on = run > 0 && (wired || d.hop < DRILL.HOP); if (!d.on) continue; d.coal = Math.max(0, d.coal - b.burn * run); if (d.coal < 1e-6) d.on = false; d.acc += drillRate(d) * run; const n = Math.floor(d.acc); if (!n) continue; d.acc -= n; d.mined = (d.mined || 0) + n;
+      const id = 'ore:' + d.type; if (wired && typeof Craft !== 'undefined' && Craft.add('vault', id, n)) { if (typeof Skills !== 'undefined') Skills.awardMine(d.type, n); try { CharView.flowLog(d.port, 'to', n); } catch (e) {} continue; } d.hop = Math.min(DRILL.HOP, d.hop + n); } }
   function drillPlace(n) { const tip = drillPos(n), A = CharView.DRILL_ANG, SC = DRILL_SC; let yaw = CharView.drillAim(n.x - tip[0], 0, n.y - tip[1]).yaw, pitch = A.pitchDef, sx, sy, aim = null;
     for (let k = 0; k < 4; k++) { const off = CharView.drillTipOffset(pitch, yaw, SC); sx = tip[0] - off.x; sy = tip[1] - off.z; const hubH = mH(sx, sy) + A.hubY * SC, ty = mH(n.x, n.y) + n.s * 0.35; aim = CharView.drillAim(n.x - sx, ty - hubH, n.y - sy); yaw = aim.yaw; pitch = aim.pitch; if (!aim.inRange) return { err: 'range', elev: aim.elev }; }
     return { yaw, pitch, x: sx, y: sy, elev: aim && aim.elev }; }
+  function drillSlotFull(D) { const used = fieldDrills(D).length, cap = typeof Skills !== 'undefined' ? Skills.slotsUnlocked() : 99; return used >= cap; }
+  function drillSlotToast() { const nxt = typeof Skills !== 'undefined' ? Skills.nextSlotLevel() : null; if (typeof toast === 'function') toast(nxt ? 'Need Mining ' + nxt + ' for another drill slot' : 'All drill slots are in use'); }
   function drillDeploy(n, opt) { const D = drillState(); if (!D) return null; const i = ORE.nodes.indexOf(n), ex = D.list.find((d) => d.node === i); if (ex) return ex;
     opt = typeof opt === 'string' ? { bit: opt } : (opt || {});
+    if (drillSlotFull(D)) { drillSlotToast(); return null; }
     const pl = drillPlace(n); if (pl.err === 'range') { if (typeof toast === 'function') toast('Move the stand — that vein is outside the drill\'s pitch range (−60° to +15°)'); return null; }
     const standId = takeStandPref(opt.stand); if (!standId) { if (typeof toast === 'function') toast('Need a drill stand'); return null; }
     const bit = takeBitPref(opt.bit || D.bit || 'mithril'); if (!bit) { giveBack(standId); if (typeof toast === 'function') toast('Need a drill bit'); return null; }
     const fill = Math.min(DRILL.FILL, Math.floor(S.res.coal || 0)); S.res.coal -= fill;
     const d = { id: 'd' + D.nid++, node: i, spot: n.spot.id, type: n.type, name: ORE_LOOK[n.type].name + ' drill #' + (D.nid - 1), tier: bit, stand: standId.slice(6), coal: fill, hop: 0, acc: 0, port: null, len: 0, t: S.gameTime, yaw: pl.yaw, pitch: pl.pitch, sx: pl.x, sy: pl.y };
     D.bit = bit; D.list.push(d); syncLeft(D); drillHud(); if (typeof save === 'function') save(); return d; }
-  function drillPickUp(d) { const D = drillState(); if (d.camp) return; if (d.port) drillWire(d, false); const b = Craft && Craft.add ? Craft.add('bag', 'ore:' + d.type, d.hop) : 0; S.res.coal += Math.floor(d.coal);
+  function drillPickUp(d) { const D = drillState(); if (d.camp) return; if (d.port) drillWire(d, false); const hop = d.hop || 0, b = Craft && Craft.add ? Craft.add('bag', 'ore:' + d.type, hop) : 0; if (b && typeof Skills !== 'undefined') Skills.awardMine(d.type, b); S.res.coal += Math.floor(d.coal);
     if (d.stand) giveBack('stand:' + d.stand); if (d.tier) giveBack('bit:' + d.tier);
     D.list.splice(D.list.indexOf(d), 1); syncLeft(D); if (DRILL.sel === d) DRILL.sel = null; const m = DRILL.meshes.get(d.id); if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); } if (typeof save === 'function') save(); }
   function drillWire(d, on) { const D = drillState(), hs = CharView.homeState(); if (!on) { if (d.port && !d.camp) { CharView.unplugPort(d.port); d.port = null; } NV.tdest = {}; if (typeof save === 'function') save(); return true; }
@@ -1099,13 +1106,13 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (v === 'swap') DRILL.view = 'swap'; else if (v === 'tset') DRILL.view = 'tether'; else if (v === 'back') DRILL.view = '';
     else if (k === 'bit') drillSwapBit(d, v); else if (k === 'pitch') drillPitch(d, v === '+' || v === '1' ? 1 : -1);
     else if (v === 'fuel') { const f = Math.min(DRILL.TANK - d.coal, Math.floor(S.res.coal || 0), DRILL.FILL); S.res.coal -= f; d.coal += f; }
-    else if (v === 'collect') { const got = Craft.add('bag', 'ore:' + d.type, d.hop); if (got) d.hop = 0; else if (typeof toast === 'function') toast('Backpack full'); }
+    else if (v === 'collect') { const got = Craft.add('bag', 'ore:' + d.type, d.hop); if (got) { if (typeof Skills !== 'undefined') Skills.awardMine(d.type, got); d.hop = 0; } else if (typeof toast === 'function') toast('Backpack full'); }
     else if (v === 'wire') drillWire(d, !d.port); else if (v === 'takebit') drillTakeBit(d);
     else if (v === 'up') { drillPickUp(d); return drillClose(); }
     if (typeof save === 'function') save(); drillRefresh(); }
 
   function drillCard(d, D) { const b = bitOf(d.tier), soft = drillSoft(d), nobit = !d.tier, ore = ORE_LOOK[d.type] ? ORE_LOOK[d.type].name : d.type;
-    const rate = (soft || nobit) ? 0 : b.rate, thru = d.on ? rate : 0, need = drillNeed(d), owned = tetherOwned(), free = tetherFree(D);
+    const rate = (soft || nobit) ? 0 : drillRate(d), thru = d.on ? rate : 0, need = drillNeed(d), owned = tetherOwned(), free = tetherFree(D);
     const tet = d.camp ? 'wired' : d.port ? 'wired' : 'unwired';
     const tetVal = d.camp ? 'Strung to the Ledge door: main port (feeds the vault)' : d.port ? `wired · ${d.len} m on door port ${CharView.PORTS.indexOf(d.port)}` : `unwired · needs <b>${need} m</b> · available <b>${free} m</b> of ${owned} m${need > free ? ' · <span class="dst coal">not enough</span>' : ''}`;
     const tetM = d.port || d.camp ? (d.len || 0) : need;
@@ -1115,8 +1122,8 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
       + thumb('stand', d.stand ? 'stand:' + d.stand : '', 'Stand', standName(d) || '—')
       + thumb('bit', d.tier ? 'bit:' + d.tier : '', 'Bit', nobit ? 'None' : b.name)
       + row('stat_angle', 'Angle', drillAngDeg(d) + '°')
-      + row('set_speed', 'Speed', rate + ' ore/h')
-      + row('set_throughput', 'Throughput', thru + ' ore/h')
+      + row('set_speed', 'Speed', fmtOreH(rate) + ' ore/h')
+      + row('set_throughput', 'Throughput', fmtOreH(thru) + ' ore/h')
       + row(hopIco(d), 'Hopper', (d.port || d.camp) ? `sent to the vault · mined ${d.mined || 0}` : `${d.hop}/${DRILL.HOP} · mined ${d.mined || 0}`)
       + `<div class="srow">${seti(d.port || d.camp ? 'set_ledge_tether_wired' : 'set_ledge_tether_unwired')}<span class="slab">Ledge Tether${tetM ? ` <em class="tbadge">${tetM} m</em>` : ''}</span><span class="sval">${tetVal}</span></div>`
       + row(drillStatusIco(d), 'Status', `<span class="dst ${drillStat(d)}">${drillStatusText(d)}</span>`)
@@ -1124,7 +1131,10 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
 
   function drillUI() { const box = document.getElementById('drillCtl'), D = drillState(); if (!box || !D || !DRILL.listOn) return;
     const L = fieldDrills(D);
+    const slots = typeof Skills !== 'undefined' ? Skills.slotsUnlocked() : 0, nxt = typeof Skills !== 'undefined' ? Skills.nextSlotLevel() : null;
+    const slotLine = typeof Skills !== 'undefined' ? `${L.length}/${slots} slot${slots === 1 ? '' : 's'}${nxt ? ' · next at Mining ' + nxt : L.length >= 9 ? ' · all unlocked' : ''}` : '';
     box.innerHTML = `<div class="dhead"><b>Drill</b><span class="badge">read-only stats</span><span class="dk" data-k="x"><button data-v="x" class="kX" title="Close">✕</button></span></div>`
+      + (slotLine ? `<div class="drow">${slotLine}</div>` : '')
       + `<div class="dlist">` + (L.length ? L.map((d) => drillCard(d, D)).join('') : `<div class="drow">No drills placed on the map.</div>`) + `</div>`
       + `<div class="dfoot">Actions live on the drill prompt, not here.</div>`; }
 
@@ -1214,7 +1224,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (!best) return { err: 'none', R: Math.round(R / WS) }; const look = ORE_LOOK[best.n.type];
     return { n: best.n, node: best.i, type: best.n.type, name: look ? look.name : best.n.type, m: Math.max(1, Math.round(best.L / WS)), s: +(best.L / WS / runSpeed()).toFixed(1), stand: best.s2, R: Math.round(R / WS), left: D.left }; }
   function drillSetup(standId) { const r = drillNear(), D = drillState(), T = (m) => typeof toast === 'function' && toast(m); if (r.err) { T(r.err === 'explore' ? 'Set the drill up out on the map (Explore)' : 'No ore within 5 s walk'); return r; }
-    if (!D || countStands() <= 0) { T('Need a drill stand'); return { err: 'left' }; } mineStop(); EX.pend = 'drill';
+    if (!D || countStands() <= 0) { T('Need a drill stand'); return { err: 'left' }; } if (drillSlotFull(D)) { drillSlotToast(); return { err: 'slots' }; } mineStop(); EX.pend = 'drill';
     const fin = () => { EX.pend = null; const d = drillDeploy(r.n, { stand: standId, bit: 'mithril' }); if (d) { const G = CharView.st.gnd, h = here(); if (G && h) G.face = Math.atan2(r.n.x - h[0], r.n.y - h[1]); T('🛠️ Drill set up on ' + r.name + ' ore'); tapDrill(d); } DRILL.setup = d ? d.id : null; };
     const h = here(); if (Math.hypot(r.stand[0] - h[0], r.stand[1] - h[1]) < WS * 0.6 || !goTo(r.stand[0], r.stand[1], fin)) fin(); return r; }
   /* ---- tether registry: every Ledge Tether end point - the Ledge door (its main line runs to the Hanging Camp), each wired drill's tether and each drop
@@ -1392,5 +1402,5 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     let mb = document.getElementById('exMapBtn'); if (!mb && on) { mb = document.createElement('button'); mb.id = 'exMapBtn'; mb.innerHTML = '🗺️<span>Map</span>'; mb.setAttribute('aria-label', 'Open the map'); mb.addEventListener('click', () => typeof ExMap !== 'undefined' && ExMap.open()); (document.getElementById('cityWrap') || document.body).appendChild(mb); } if (mb) mb.classList.toggle('on', !!on);
     let bb = document.getElementById('exBagBtn'); if (!bb && on) { bb = document.createElement('button'); bb.id = 'exBagBtn'; bb.innerHTML = '🎒<span>Bag</span>'; bb.setAttribute('aria-label', 'Open the backpack'); bb.addEventListener('click', () => typeof Craft !== 'undefined' && Craft.sheet(!Craft.sheetOn())); (document.getElementById('cityWrap') || document.body).appendChild(bb); } if (bb) bb.classList.toggle('on', !!on); if (!on && typeof Craft !== 'undefined' && Craft.sheetOn && Craft.sheetOn()) Craft.sheet(false);
     const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); drillHud(); if (!on && DRILL.sel) drillPanel(null); }
-  return { onBridge, orePrune, drillFix, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, longPress, drillNear, drillSetup, drillHud, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
+  return { onBridge, orePrune, drillFix, drillRate, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, longPress, drillNear, drillSetup, drillHud, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
 })();

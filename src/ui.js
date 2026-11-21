@@ -105,6 +105,7 @@ function heroStatusCard() {
   const t = S.hero.task;
   let s = `<div class="card herocard">${pic('wren', 'portrait', CONFIG.hero.name)}<div class="row between"><h2>${CONFIG.hero.name}, Lv ${S.hero.level}</h2><span class="tag">⚔️ ${Math.round(attackPower())}</span></div>`;
   s += `<div class="bar xp"><i style="width:${(S.hero.xp / xpToNext()) * 100}%"></i></div><div class="dim">${fmt(S.hero.xp)} / ${fmt(xpToNext())} XP · training boost <b>+${fmt1(boostPct())}%</b> XP</div>`;
+  if (typeof Skills !== 'undefined') s += `<div class="dim skLine">${Skills.uiLine()}</div>`;
   if (!t) s += `<div class="small" style="margin-top:6px">Home at the Rim, sparring for idle XP. Ready to descend.</div>`;
   else if (t.type === 'expedition') s += `<div class="small" style="margin-top:6px">Exploring <b>${layerById(t.layer).name}</b> · back in ${countdown(t.end)}</div>${pbar(t.start, t.end)}`;
   else if (t.type === 'stranded') s += `<div class="small" style="margin-top:6px">🕯️ Stranded in <b>${layerById(t.layer).name}</b>. Rescue line arrives in ${countdown(t.end)}</div>${pbar(t.start, t.end)}

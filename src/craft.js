@@ -61,7 +61,7 @@ const Craft = (() => {
   function move(from, to, id, n) { n = Math.min(Math.floor(n), get(from, id)); if (n <= 0 || !fits(to, id)) return 0; add(from, id, -n); add(to, id, n); return n; }
   function canMake(r, x) { return Object.keys(r.in).every((k) => have(k) >= r.in[k] * x); }
   function maxMake(r) { let m = Infinity; for (const k in r.in) m = Math.min(m, Math.floor(have(k) / r.in[k])); return m; }
-  function make(r, x, dest) { if (x <= 0 || !canMake(r, x) || !fits(dest === 'vault' ? 'vault' : 'bag', r.out)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); return x; }
+  function make(r, x, dest) { if (x <= 0 || !canMake(r, x) || !fits(dest === 'vault' ? 'vault' : 'bag', r.out)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
   const lum = () => Math.floor((S.res && S.res.lumen) || 0);
   function sell(id, n) { n = Math.min(n, have(id)); if (n <= 0) return 0; take(id, n); S.res.lumen = (S.res.lumen || 0) + sellP(id) * n; return n; }
   function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); if (n <= 0 || !fits('bag', id)) return 0; S.res.lumen -= buyP(id) * n; add('bag', id, n); return n; }
@@ -105,7 +105,7 @@ const Craft = (() => {
   const gauge = (n, N) => `<span class="kGauge" style="--g:${Math.min(1, n / N).toFixed(3)}" role="img" aria-label="${n} of ${N} slots used"><i></i><b>${n} / ${N}</b></span>`;
   function gridsHTML(inModal, xfer) {
     let h = `<div class="cxp cxgrid kKit" data-cxv="${xfer ? 'xfer' : 'bag'}"><div class="kPanel kLeather"><div class="row between kHead"><h2>Backpack</h2>${gauge(used('bag'), BAG_N)}${inModal && !xfer ? '<button class="kX" data-cx="close" aria-label="Close">✕</button>' : ''}</div>`;
-    h += (xfer ? '' : `<div class="dim kSub">What Wren carries. Tap an item for its options.</div>`) + gridHTML('bag') + (xfer ? '' : '<div class="kFoot">Stacks have no limit and no weight.</div>') + '</div>';
+    h += (xfer ? '' : `<div class="dim kSub">What Wren carries. Tap an item for its options.${typeof Skills !== 'undefined' ? ' · ' + Skills.uiLine() : ''}</div>`) + gridHTML('bag') + (xfer ? '' : '<div class="kFoot">Stacks have no limit and no weight.</div>') + '</div>';
     if (xfer) h += `<div class="kSwap"><span class="kPlate">⇄</span><small>Tap to move a stack · hold for more (equip, move some). Stacks have no limit and no weight.</small></div><div class="kPanel kLeather"><div class="row between kHead"><h2>Ledge Vault</h2>${gauge(used('vault'), VAULT_N)}</div>` + gridHTML('vault') + '</div>';
     h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal && xfer ? '<button class="btn ghost kBtn kCream" data-cx="close">Close</button>' : '') + '</div>'; }
   const TIER_N = (it) => { if (!it) return ''; if (it.tier != null && TIERS[it.tier]) return TIERS[it.tier][1]; const g = it.grade || it.stand; const T = g && TIERS.find((q) => q[0] === g); return T ? T[1] : (it.short || g || ''); };
@@ -117,7 +117,7 @@ const Craft = (() => {
     const tn = TIER_N(it); if (tn) o.push(['Tier', tn]);
     if (it.kind && KIND_N[it.kind]) o.push(['Kind', KIND_N[it.kind]]);
     if (it.kind === 'tool' && EQUIP[it.tool]) o.push(['Slot', EQUIP[it.tool][2]]);
-    if (it.kind === 'bit' && typeof Explore !== 'undefined' && Explore.BITS) { const b = Explore.BITS.find((q) => q.k === it.grade); if (b) { o.push(['Rate', b.rate + ' ore/h']); o.push(['Burn', b.burn + ' coal/h']); } }
+    if (it.kind === 'bit' && typeof Explore !== 'undefined' && Explore.BITS) { const b = Explore.BITS.find((q) => q.k === it.grade); if (b) { o.push(['Rate', '1/3 of your ore/h on that ore']); o.push(['Burn', b.burn + ' coal/h']); } }
     return o;
   }
   function itemBlurb(id, w) {
