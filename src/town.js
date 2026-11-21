@@ -353,7 +353,7 @@ Town.houses = (() => {
     for (const x of [x0 - 0.03, x1 + 0.03]) { k.beam([x, 3.9, z0], [x, 3.9, z1], 0.28); k.beam([x, 3.9, z0 + 0.3], [x, 6.9, cz], 0.26); k.beam([x, 3.9, z1 - 0.3], [x, 6.9, cz], 0.26); k.beam([x, 3.9, cz], [x, 6.95, cz], 0.26); }
     B.gable([0, 0, 0], x0, x1, z0, z1, 3.9, 7.0, 0.55, 0.22, { wall: 'plaster', wallCol: 0.9, sd: 11 }); k.log([x0 - 0.75, 7.2, cz], [x1 + 0.75, 7.25, cz], 0.175, 1, true);
     k.dormer(cx - 0.9, 4.0, 1.0, 1.3, 1.4); k.chimney(x0 + 0.7, z0 + 0.8, 4.0, 7.2, 0.8, 0.8);
-    k.plankDoor(0.35, 0.4, z1 + 0.03, { stone: 1 }); k.win4(-1.9, 1.3, z1 + 0.05); k.win4(1.95, 1.3, z1 + 0.05); k.win4(-1.4, 2.62, z1 + 0.06, { w: 0.8, h: 0.95 });
+    k.plankDoor(0.35, 0.4, z1 + 0.15, { stone: 1 }); k.win4(-1.9, 1.3, z1 + 0.13); k.win4(1.95, 1.3, z1 + 0.13); k.win4(-1.4, 2.62, z1 + 0.13, { w: 0.8, h: 0.95 });
     k.awning(0, 2.95, z1 + 0.05, 7.5, 1.35); k.porch(cx, z1 + 0.6, w + 0.3, 1.15, 0.32, 2); k.lamp(-0.55, 1.6, z1 + 0.18, 1);
     // goods: ore barrels and a crystal crate on the porch, sacks
     k.barrel(-3.0, 0.3, z1 + 0.65, 0.33, 0.75); k.barrel(-2.35, 0.3, z1 + 0.7, 0.3, 0.7); for (const [x, z] of [[-3.0, z1 + 0.65], [-2.35, z1 + 0.7]]) for (let i = 0; i < 4; i++) k.crystal(x + (i % 2 - 0.5) * 0.25, 1.0, z + (i > 1 ? 0.1 : -0.1), 0.06, 0.2 + i * 0.03);
