@@ -12,13 +12,13 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
     const L = F.ST.list, door = W.playerDoor || W.player; const r = { n: L.length, people: [] };
     for (const n of L) { const route = Explore.plan(door.x, door.y, n.sp.talk[0], n.sp.talk[1]), pts = route && route.pts, end = pts && pts.length ? Math.hypot(pts[pts.length - 1][0] - n.sp.talk[0], pts[pts.length - 1][1] - n.sp.talk[1]) / T.WS : 99;
       const tris = n.tris; const t1 = performance.now(); while (performance.now() - t1 < 300); F.tick();
-      r.people.push({ id: n.id, solid: !!Explore.solidAt(n.x, n.y), end: +end.toFixed(1), climb: route ? route.climb : -1, tris: Math.round(tris), h: +(n.hgt / T.WS).toFixed(2) }); }
+      r.people.push({ id: n.id, solid: !!Explore.solidAt(n.x, n.y), end: +end.toFixed(1), climb: route ? route.climb : -1, tris: Math.round(tris), lods:n.lodTris, h: +(n.hgt / T.WS).toFixed(2) }); }
     // idle: the figure's transform changes over time
     const n0 = L[0], s0 = n0.bones[1].scale.y, h0 = n0.bones[2].rotation.y; const t2 = performance.now(); while (performance.now() - t2 < 400); F.tick(); r.idle = Math.abs(n0.bones[1].scale.y - s0) + Math.abs(n0.bones[2].rotation.y - h0); r.folkMeshes = [F.ST.mesh, F.ST.ink].filter((m) => m && m.isSkinnedMesh).length; r.bones = F.ST.mesh.skeleton.bones.length;
-    return r; });
+    r.atlas=[F.ST.atlas.image.width,F.ST.atlas.image.height]; r.noBank=!T.BLD.some(b=>b.id==='bank')&&!L.some(n=>n.id==='ambrose'); return r; });
   console.log(JSON.stringify(o));
-  ok(o.n === 5, `five townsfolk, no Ambrose (${o.n})`); ok(o.folkMeshes === 2 && o.bones === 25, `all five share one skinned mesh + one ink outline (${o.folkMeshes} meshes, ${o.bones} bones)`); ok(o.idle > 1e-5, `idle animation moves (breath ${o.idle.toFixed(4)})`);
-  for (const q of o.people) { ok(q.solid, `${q.id}: solid`); ok(q.end < 3 && q.climb === 0, `${q.id}: reachable from the Ledge (talk spot ${q.end} m off, climb ${q.climb})`); ok(q.tris > 2500 && q.tris < 7000, `${q.id}: sculpted model ${q.tris} tris (${q.h} m tall)`); }
+  ok(o.noBank, 'no bank or Ambrose'); ok(o.atlas[0]===1024 && o.atlas[1]===1024, 'one 1024 atlas shared by five keepers'); ok(o.n === 5, `five townsfolk, no Ambrose (${o.n})`); ok(o.folkMeshes === 2 && o.bones === 25, `all five share one skinned mesh + one ink outline (${o.folkMeshes} meshes, ${o.bones} bones)`); ok(o.idle > 1e-5, `idle animation moves (breath ${o.idle.toFixed(4)})`);
+  for (const q of o.people) { const budget={goldie:4500,brannick:5100,tess:4000,hattie:4500,fennick:4500}[q.id]; ok(q.lods[1]<=budget*.5 && q.lods[2]<=budget*.2, `${q.id}: real LOD topology ${q.lods.join('/')} tris`); ok(q.solid, `${q.id}: solid`); ok(q.end < 3 && q.climb === 0, `${q.id}: reachable from the Ledge (talk spot ${q.end} m off, climb ${q.climb})`); ok(q.tris > 2500 && q.tris <= ({goldie:4500,brannick:5100,tess:4000,hattie:4500,fennick:4500}[q.id]), `${q.id}: sculpted model ${q.tris} tris (${q.h} m tall)`); }
   for (const id of ['goldie', 'fennick']) {
     const s = await p.evaluate((id) => { const n = Town.folk.ST.list.find((q) => q.id === id), [x, y] = n.sp.talk, dx = x - n.x, dy = y - n.y, l = Math.hypot(dx, dy); Explore.enter(x + dx / l * Town.WS * 4, y + dy / l * Town.WS * 4); const E = Explore.EX; E.d = 70; E.tilt = 0.6; E.az = Math.atan2(dx, dy); for (let k = 0; k < 30; k++) Explore.tick(1 / 30); return id; }, id);
     await p.waitForTimeout(1200);
