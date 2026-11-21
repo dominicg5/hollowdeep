@@ -498,6 +498,7 @@ function generateCity() {
     for (let t = 0; t < 90; t++) { const a = t * 2.39996, d = 40 + t * 14, x = h.x + Math.cos(a) * d, y = h.y + Math.sin(a) * d; if (M3.ground(x, y).slope > 0.3 || hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < h.size + 8 || isWet(x, y, 8)) continue;
       if (W.homes.some((o) => o !== h && Math.hypot(o.x - x, o.y - y) < (o.size + h.size) * 1.15)) continue; h.x = x; h.y = y; break; } }
   // Spatial index for drawing & hit tests
+  if (typeof Mosby !== 'undefined' && Mosby.trailHit) W.objs = W.objs.filter((o) => o.type !== 'tree' || !Mosby.trailHit(o.x, o.y, o.r || 20)); // no tree in the giant's trail (his legs / shell never meet one)
   W.bucket = 256; W.buckets = new Map();
   const put = (o) => { const k = Math.floor(o.x / W.bucket) + ',' + Math.floor(o.y / W.bucket); (W.buckets.get(k) || W.buckets.set(k, []).get(k)).push(o); };
   W.homes.forEach((h) => { h.type = 'home'; h.layer = 1; h.r = h.size * 0.75; put(h); }); W.put = put;

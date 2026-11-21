@@ -333,7 +333,7 @@ const CityMap = (() => {
     // player label always
     { const h = W.player, [sx, sy] = S2(h.x, h.y, h.size, homeW(h) * 1.05 + hUp(h)); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · Deepest Lv ${W.player.deepest} · Rank #${rimRank(W.player)}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
     // Mosby the giant tortoise: an icon over him wherever he is on screen (tap it: she walks to him)
-    if (typeof Mosby !== 'undefined' && Mosby.iconAt && is3d()) { const p = Mosby.iconAt(); if (p) rects.push(pill(c, p[0] * dpr, p[1] * dpr, '🐢 Mosby', { bg: 'rgba(52,96,60,.94)', color: '#f4f0dc', bold: true, fs: 12, border: '#c99a45' })); }
+    // (Dominic) no '🐢 Mosby' tag over him in the 3D view; he keeps his icon on the pull-out map and the minimap
     // mole
     const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y, 40, 110); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
     // region names at far zoom
