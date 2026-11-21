@@ -279,14 +279,15 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .kGauge b{position:absolute;left:0;right:0;bottom:17%;text-align:center;font:700 8.5px Georgia,serif;color:#2a160a;white-space:nowrap}
 .kX,#bagSheet .bsx.kX,#tetherOrb .toBack.kX{flex:none;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;border:0;background:radial-gradient(circle at 50% 46%,#f7ead0 0 50%,#6e4a1c 53%,#f0cd82 60%,#b07a34 76%,#5e3c14 100%);color:#3a2412;font:700 19px Georgia,serif;line-height:44px;box-shadow:0 2px 4px rgba(0,0,0,.45);cursor:pointer}
 /* the backpack sheet over the map: all 20 slots visible, no title / gauge / footer, no scrolling */
-#bagSheet{left:4px;right:4px;bottom:4px;height:38%;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk);overflow:hidden;touch-action:manipulation}
+#bagSheet{left:4px;right:4px;bottom:4px;height:38%;min-height:260px;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk);overflow:hidden;touch-action:manipulation}#bagSheet:has(.cxmenu){height:60%;max-height:calc(100% - 8px)}
 #bagSheet .bsh{display:flex;justify-content:flex-end;align-items:center;margin:0;padding:0 0 2px;min-height:0;flex:none}
 #bagSheet .bsx.kX{position:relative;top:auto;right:auto;width:36px;height:36px;min-width:36px;min-height:36px;line-height:36px;font-size:16px;z-index:3;margin:0;flex:none}
 #bagSheet .bsb{display:flex;flex-direction:column;padding:0 2px 2px;overflow:hidden;flex:1;min-height:0;position:relative}#bagSheet .cxg{flex:1;min-height:0;overflow:hidden;grid-auto-rows:1fr}#bagSheet .cxs{aspect-ratio:auto;min-height:0}#bagSheet .cxmenu{position:absolute;left:4px;right:4px;bottom:4px;z-index:4;margin-top:0}
 .kKit .cxg,#bagSheet .cxg{background:none;box-shadow:none;padding:3px;gap:8px;margin-top:4px}
 .kKit .cxs,.kKit .cxs.full,#bagSheet .cxs,#bagSheet .cxs.full{border-radius:7px;background:radial-gradient(110% 95% at 50% 38%,#3f2716,#22130a);box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 1px 0 3px rgba(255,222,170,.28)}
 .kKit .cxs.eq,#bagSheet .cxs.eq{box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #ffd36a,0 0 0 3px #4e2d12,0 0 9px 3px rgba(255,211,106,.55)}
-.kKit .cxsv,#bagSheet .cxsv{inset:4% 14% auto;width:72%;height:66%}
+.cxs{container-type:size}
+.kKit .cxs>.cxsv,#bagSheet .cxs>.cxsv{position:absolute;inset:auto;left:50%;top:calc(50% - 7px);width:min(76cqmin,calc(100cqh - 16px));height:min(76cqmin,calc(100cqh - 16px));transform:translate(-50%,-50%);box-sizing:border-box}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:4px;transform:translateX(-50%);padding:0 5px;border-radius:5px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
 .kFoot{margin:8px auto 2px;padding:5px 14px;text-align:center;font:italic 12.5px Georgia,serif;color:var(--kInk);border-radius:8px;background:rgba(110,62,24,.22);box-shadow:inset 0 0 0 1px rgba(60,30,10,.35);outline:1px dashed rgba(255,226,180,.45);outline-offset:-4px}
 .kKit .cxmenu,#bagSheet .cxmenu{background:linear-gradient(#f8eed6,#e8d4aa);color:var(--kInk);box-shadow:0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 6px 16px rgba(0,0,0,.5);outline:1px dashed rgba(140,100,50,.55);outline-offset:-5px}
@@ -373,12 +374,12 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherOrb .kv-set .toChips button{min-height:46px;border:0;border-radius:8px;color:#2a160a;font:600 12px Georgia,serif;background:linear-gradient(#fbf3df,#e8d4a8);box-shadow:0 0 0 1px #a8783c,0 2px 3px rgba(0,0,0,.3)}#tetherOrb .kv-set .toChips button small{font:11px Georgia,serif;opacity:.85}
 #tetherOrb .kv-set .toChips button i{width:30px;height:7px;box-shadow:0 0 0 1px rgba(0,0,0,.4)}#tetherOrb .kv-set .toChips button.dis{opacity:.45}
 .kBtn.kBlue{background:radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66)}.kBtn.kBlue:disabled{filter:grayscale(.7)}
-.kKit .cxsv,#bagSheet .cxsv{inset:3% 9% auto;width:82%;height:74%}
+
 .vaultp.kKit .vs-lines .vitem{justify-content:flex-start;gap:12px;padding:8px 12px}.vaultp.kKit .vs-lines .vic{width:auto;height:auto;background:none;box-shadow:none}.vaultp.kKit .vs-lines .vic img{width:46px;height:46px;margin:0}.vaultp.kKit .vs-lines .vn small{display:block;background:none;box-shadow:none;padding:0;font-size:12px}
 .vaultp.kKit .vs-gear .vn small{display:table;margin:3px auto 0}
 #tetherOrb .kv-set .toCard .toDim{color:#5a4026;text-shadow:none;text-align:center}
 #tetherOrb .kv-set .toSeg button{width:52px;padding:2px 3px;white-space:normal}#tetherOrb .kv-set .toIn.sm{min-width:80px}#tetherOrb .kv-set .toSw{flex-basis:52px;width:52px}
-.kKit .cxsv,#bagSheet .cxsv{transform:scale(1.35);transform-origin:50% 40%}
+
 #bagSheet .cxg{gap:6px;margin-top:0}
 /* tap-a-tether bubble (Art's B_* field kit: moss canvas, brass close, blue enamel teleport buttons) */
 #tetherBub{position:absolute;z-index:60;box-sizing:border-box;width:min(300px,calc(100% - 16px));padding:4px 2px 6px;border:16px solid transparent;border-image:url(assets/ui/kit_moss.webp) 52 fill / 16px stretch;color:var(--kCream);font:13px Georgia,serif;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}#tetherBub.hidden{display:none}
@@ -390,7 +391,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherBub .tbTail{position:absolute;left:calc(var(--tx,50%) - 11px);bottom:-27px;width:0;height:0;border:11px solid transparent;border-top:12px solid #c8954a}#tetherBub.below .tbTail{bottom:auto;top:-27px;border-top-color:transparent;border-bottom:12px solid #c8954a}
 
 /* Art's inventory atlas + HUD / map / drill icons */
-.cxsv.cxico{display:block;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / 8) calc(var(--iy)*100% / 7);filter:none}
+.cxsv.cxico{display:block;aspect-ratio:1/1;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / (var(--icols,9) - 1)) calc(var(--iy)*100% / (var(--irows,8) - 1));filter:none}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:3px;transform:translateX(-50%);padding:0 5px;border-radius:6px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
 .kKit .cxct.m,#bagSheet .cxct.m{background:linear-gradient(#e7f3c8,#c5d98a);box-shadow:0 0 0 1px #5a7a32,0 1px 2px rgba(0,0,0,.5)}
 #exBagBtn,#exMapBtn{width:64px;height:64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;font-size:0;padding:0}
@@ -422,10 +423,36 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #drillHud .dh.off{background-image:url(assets/ui/icons/drill_marker_off.webp)}
 .drow .seti{display:inline-block;width:22px;height:22px;vertical-align:-6px;margin-right:4px;background:center/contain no-repeat}
 .chips[data-k=bit] button{position:relative;padding-left:36px}
-.chips[data-k=bit] button .cxico{position:absolute;left:4px;top:50%;width:26px;height:26px;margin-top:-13px;inset:auto}
-.vaultp .vic .cxico{position:static;width:32px;height:32px;margin-top:-10px;inset:auto}
+.chips[data-k=bit] button .cxico{position:absolute;left:4px;top:50%;width:26px;height:26px;margin-top:-13px;inset:auto;transform:none;aspect-ratio:1/1}
+.vaultp .vic .cxico{position:static;width:32px;height:32px;margin-top:-10px;inset:auto;transform:none;aspect-ratio:1/1}
 .vaultp.kKit .vs-ingots .vic .cxico{width:32px;height:32px;margin-top:0}
 .vaultp.kKit .vs-lines .vic .cxico{width:46px;height:46px;margin-top:0}
+.cxmh .cxsv,.cxnear .cxsv,.moleScr .mit .cxsv{position:static;inset:auto;width:36px;height:36px;flex:0 0 36px;transform:none;aspect-ratio:1/1}
+.cxmenu{max-height:100%;overflow:hidden;gap:4px;padding:6px 8px}
+.cxmenu .cxmh{display:grid;grid-template-columns:36px 1fr;gap:4px 8px;align-items:start}
+.cxmenu .cxmd{min-width:0;display:flex;flex-direction:column;gap:2px}
+.cxmenu .cxmd>b{font:700 13.5px Georgia,serif;line-height:1.2;overflow-wrap:anywhere}
+.cxmenu .cxsts{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;align-items:baseline;font:11px Georgia,serif}
+.cxmenu .cxsts small{color:#6a4a28;font:11px Georgia,serif}
+.cxmenu .cxsts b{font:600 11.5px Georgia,serif;color:#2a160a}
+.cxmenu .cxds{margin:2px 0 0;font:11.5px/1.3 Georgia,serif;color:#4a3420;overflow-wrap:anywhere;white-space:normal}
+.cxmenu .cxacts{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.cxmenu .cxacts .btn{flex:1 1 auto;min-height:34px;margin:0;padding:4px 8px;font-size:13px}
+.kKit .cxmenu .cxmh span,#bagSheet .cxmh span{color:var(--kInk)}
+#bagSheet .cxmenu{max-height:100%;overflow:hidden}
+#bagSheet .cxnear{padding:5px 7px;font-size:12px;gap:6px}
+#bagSheet .cxnear small{font-size:10.5px;white-space:normal}
+#bagSheet .cxdset{min-height:34px;font-size:13.5px;padding:4px 8px}
+@media (max-height:680px){
+  #bagSheet:has(.cxmenu){height:64%}
+  #bagSheet .cxmenu{padding:5px 6px;gap:3px}
+  #bagSheet .cxmenu .cxmd>b{font-size:13px}
+  #bagSheet .cxmenu .cxsts{gap:0 6px;font-size:10.5px}
+  #bagSheet .cxmenu .cxds{margin:1px 0 0;font-size:11px;line-height:1.25}
+  #bagSheet .cxnear{padding:4px 6px;font-size:11.5px}
+  #bagSheet .cxmenu .cxacts .btn,#bagSheet .cxdset{min-height:30px;font-size:12.5px;padding:3px 7px}
+}
+
 .vaultp .vitem.zero{opacity:.4}
 img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
@@ -482,9 +509,9 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='68737fd5';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 68737fd5</div>
-<script src="assets/vendor/three.min.js?v=68737fd5"></script>
+<script>window.HD_BUILD='4de46f4e';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 4de46f4e</div>
+<script src="assets/vendor/three.min.js?v=4de46f4e"></script>
 <script>
 'use strict';
 
@@ -1822,26 +1849,56 @@ const Craft = (() => {
     h += (xfer ? '' : `<div class="dim kSub">What Wren carries. Tap an item for its options.</div>`) + gridHTML('bag') + (xfer ? '' : '<div class="kFoot">Stacks have no limit and no weight.</div>') + '</div>';
     if (xfer) h += `<div class="kSwap"><span class="kPlate">⇄</span><small>Tap to move a stack · hold for more (equip, move some). Stacks have no limit and no weight.</small></div><div class="kPanel kLeather"><div class="row between kHead"><h2>Ledge Vault</h2>${gauge(used('vault'), VAULT_N)}</div>` + gridHTML('vault') + '</div>';
     h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal && xfer ? '<button class="btn ghost kBtn kCream" data-cx="close">Close</button>' : '') + '</div>'; }
+  const TIER_N = (it) => { if (!it) return ''; if (it.tier != null && TIERS[it.tier]) return TIERS[it.tier][1]; const g = it.grade || it.stand; const T = g && TIERS.find((q) => q[0] === g); return T ? T[1] : (it.short || g || ''); };
+  const KIND_N = { ore: 'Ore', ingot: 'Ingot', tool: 'Tool', teth: 'Ledge Tether', stand: 'Drill stand', bit: 'Drill bit', drill: 'Drill' };
+  function itemStats(id, c) {
+    const it = ITEMS[id] || {}, o = [];
+    const where = (st.menu && st.menu.w) === 'vault' ? 'Vault' : 'Backpack';
+    o.push(['Held', (it.unit === 'm' ? fmtN(c) + ' m' : '×' + fmtN(c)) + ' in ' + where]);
+    const tn = TIER_N(it); if (tn) o.push(['Tier', tn]);
+    if (it.kind && KIND_N[it.kind]) o.push(['Kind', KIND_N[it.kind]]);
+    if (it.kind === 'tool' && EQUIP[it.tool]) o.push(['Slot', EQUIP[it.tool][2]]);
+    if (it.kind === 'bit' && typeof Explore !== 'undefined' && Explore.BITS) { const b = Explore.BITS.find((q) => q.k === it.grade); if (b) { o.push(['Rate', b.rate + ' ore/h']); o.push(['Burn', b.burn + ' coal/h']); } }
+    return o;
+  }
+  function itemBlurb(id, w) {
+    const it = ITEMS[id] || {};
+    if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then fit a bit from the drill\'s settings.';
+    if (it.kind === 'teth') return 'The same braid as the door tethers. Lay a drop tether from the backpack on the map, or use the coil to upgrade a strand.';
+    if (it.kind === 'bit') return 'Fits any placed stand. Swap it from the drill\'s settings.';
+    if (it.kind === 'tool' && it.tool === 'pick') return 'Equip it to mine ore out on the map.';
+    if (it.kind === 'tool' && it.tool === 'climb') return 'Equip it to climb pitches on the map.';
+    if (it.kind === 'tool' && it.tool === 'tlink') return 'Equip it as the line you travel on.';
+    if (it.kind === 'tool' && it.tool === 'lifeline') return 'A winch and hook for a Ledge Tether line.';
+    if (it.kind === 'ore') return w === 'bag' ? 'Carried in the backpack. Smelt it at the Ledge, or move it to the vault (Backpack ⇄ Vault).' : 'Stored in the Ledge vault.';
+    if (it.kind === 'ingot') return w === 'bag' ? 'Smelted metal, ready to smith. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : 'Stored in the Ledge vault.';
+    return w === 'bag' ? 'Carried in the backpack. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : 'Stored in the Ledge vault.';
+  }
+  function infoHead(id, c, blurb) {
+    const stats = itemStats(id, c).map(([k, v]) => `<small>${esc(k)}</small><b>${esc(v)}</b>`).join('');
+    return `<div class="cxmh">${pic(id)}<div class="cxmd"><b>${esc(nm(id))}</b><div class="cxsts">${stats}</div>${blurb ? `<p class="cxds">${blurb}</p>` : ''}</div></div>`;
+  }
   function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
     if (it && (it.kind === 'stand' || it.kind === 'drill')) return drillMenuHTML(id, c);
     if (it && it.kind === 'teth' && !st.menu.x) return dropMenuHTML(id, c); // drop-tether confirm only in the backpack; the vault transfer screen needs Move (length / all)
     const u = it && it.unit === 'm' ? ' m' : '';
-    return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)}${u} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
+    return `<div class="cxmenu" data-w="${w}" data-id="${id}">${infoHead(id, c, st.menu.x ? '' : itemBlurb(id, w))}` +
+      `<div class="cxacts">` +
       (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
-      (st.menu.x ? `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}</div>` +
-      `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` : `<div class="dim">${w === 'bag' ? 'Carried in the backpack. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : ''}</div>`) +
-      `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
+      (st.menu.x ? `${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}` +
+      `<input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button>` : '') +
+      `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
   // a drill stand's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up (needs a stand; a bit is equipped from the drill's settings)
   function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0, it = ITEMS[id];
     const near = X.err === 'explore' ? `<div class="cxnear dim">Set it up out on the map: open 🧭 Explore, then pick a stand from 🎒 Bag.</div>` : X.err ? `<div class="cxnear none">⛔ No ore within 5 s walk <small>(${X.R} m at your run speed)</small></div>`
       : `<div class="cxnear">${pic('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
-    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${st.menu && st.menu.w === 'vault' ? 'Vault' : 'Backpack'} · place the stand, then fit a bit from the drill's settings</small></span></div>${near}` +
-      `<button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
+    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}">${infoHead(id, c, 'Place the stand, then fit a bit from the drill\'s settings.')}${near}` +
+      `<div class="cxacts"><button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
   // the Mithril Ledge Tether coil: 'Create a drop Ledge tether here?' - the length the rope needs from the Ledge door to her spot vs what is left on the coil
   function dropMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.dropNeed ? Explore.dropNeed(id) : { err: 'explore' }, ok = !X.err && X.ok;
     const info = X.err ? `<div class="cxnear dim">Lay a drop tether out on the map: open the map in Character view, then pick the coil from 🎒 Bag.</div>` : `<div class="cxnear${X.ok ? '' : ' none'}">🪢<span><b>Create a drop Ledge tether here?</b><small>${esc(X.name)} · needs ${X.need} m from the Ledge door · ${X.have} m on the coil</small></span></div>${X.ok ? '' : '<div class="cxnear none">⛔ Not enough tether</div>'}`;
-    return `<div class="cxmenu cxdrop" data-w="bag" data-id="${id}"><div class="cxmh">${pic(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} m in Backpack · same braid as the door tethers</small></span></div>${info}` +
-      `<button class="btn alt cxdset" data-cx="dropok" data-id="${id}" ${ok ? '' : 'disabled'}>🪢 Create drop tether</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
+    return `<div class="cxmenu cxdrop" data-w="bag" data-id="${id}">${infoHead(id, c, 'The same braid as the door tethers.')}${info}` +
+      `<div class="cxacts"><button class="btn alt cxdset" data-cx="dropok" data-id="${id}" ${ok ? '' : 'disabled'}>🪢 Create drop tether</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
   function bagHTML(inModal) { if (st.menu && st.menu.w !== 'bag') st.menu = null; return gridsHTML(inModal, false); } // the Backpack (tab, modal, map sheet): carried items only, never the vault
   function xferHTML() { return gridsHTML(true, true); }
   // the Backpack as a bottom sheet over the map's Character view (about a third of the screen) until closed

@@ -279,14 +279,15 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .kGauge b{position:absolute;left:0;right:0;bottom:17%;text-align:center;font:700 8.5px Georgia,serif;color:#2a160a;white-space:nowrap}
 .kX,#bagSheet .bsx.kX,#tetherOrb .toBack.kX{flex:none;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;border:0;background:radial-gradient(circle at 50% 46%,#f7ead0 0 50%,#6e4a1c 53%,#f0cd82 60%,#b07a34 76%,#5e3c14 100%);color:#3a2412;font:700 19px Georgia,serif;line-height:44px;box-shadow:0 2px 4px rgba(0,0,0,.45);cursor:pointer}
 /* the backpack sheet over the map: all 20 slots visible, no title / gauge / footer, no scrolling */
-#bagSheet{left:4px;right:4px;bottom:4px;height:38%;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk);overflow:hidden;touch-action:manipulation}
+#bagSheet{left:4px;right:4px;bottom:4px;height:38%;min-height:260px;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk);overflow:hidden;touch-action:manipulation}#bagSheet:has(.cxmenu){height:60%;max-height:calc(100% - 8px)}
 #bagSheet .bsh{display:flex;justify-content:flex-end;align-items:center;margin:0;padding:0 0 2px;min-height:0;flex:none}
 #bagSheet .bsx.kX{position:relative;top:auto;right:auto;width:36px;height:36px;min-width:36px;min-height:36px;line-height:36px;font-size:16px;z-index:3;margin:0;flex:none}
 #bagSheet .bsb{display:flex;flex-direction:column;padding:0 2px 2px;overflow:hidden;flex:1;min-height:0;position:relative}#bagSheet .cxg{flex:1;min-height:0;overflow:hidden;grid-auto-rows:1fr}#bagSheet .cxs{aspect-ratio:auto;min-height:0}#bagSheet .cxmenu{position:absolute;left:4px;right:4px;bottom:4px;z-index:4;margin-top:0}
 .kKit .cxg,#bagSheet .cxg{background:none;box-shadow:none;padding:3px;gap:8px;margin-top:4px}
 .kKit .cxs,.kKit .cxs.full,#bagSheet .cxs,#bagSheet .cxs.full{border-radius:7px;background:radial-gradient(110% 95% at 50% 38%,#3f2716,#22130a);box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 1px 0 3px rgba(255,222,170,.28)}
 .kKit .cxs.eq,#bagSheet .cxs.eq{box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #ffd36a,0 0 0 3px #4e2d12,0 0 9px 3px rgba(255,211,106,.55)}
-.kKit .cxsv,#bagSheet .cxsv{inset:4% 14% auto;width:72%;height:66%}
+.cxs{container-type:size}
+.kKit .cxs>.cxsv,#bagSheet .cxs>.cxsv{position:absolute;inset:auto;left:50%;top:calc(50% - 7px);width:min(76cqmin,calc(100cqh - 16px));height:min(76cqmin,calc(100cqh - 16px));transform:translate(-50%,-50%);box-sizing:border-box}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:4px;transform:translateX(-50%);padding:0 5px;border-radius:5px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
 .kFoot{margin:8px auto 2px;padding:5px 14px;text-align:center;font:italic 12.5px Georgia,serif;color:var(--kInk);border-radius:8px;background:rgba(110,62,24,.22);box-shadow:inset 0 0 0 1px rgba(60,30,10,.35);outline:1px dashed rgba(255,226,180,.45);outline-offset:-4px}
 .kKit .cxmenu,#bagSheet .cxmenu{background:linear-gradient(#f8eed6,#e8d4aa);color:var(--kInk);box-shadow:0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 6px 16px rgba(0,0,0,.5);outline:1px dashed rgba(140,100,50,.55);outline-offset:-5px}
@@ -373,12 +374,12 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherOrb .kv-set .toChips button{min-height:46px;border:0;border-radius:8px;color:#2a160a;font:600 12px Georgia,serif;background:linear-gradient(#fbf3df,#e8d4a8);box-shadow:0 0 0 1px #a8783c,0 2px 3px rgba(0,0,0,.3)}#tetherOrb .kv-set .toChips button small{font:11px Georgia,serif;opacity:.85}
 #tetherOrb .kv-set .toChips button i{width:30px;height:7px;box-shadow:0 0 0 1px rgba(0,0,0,.4)}#tetherOrb .kv-set .toChips button.dis{opacity:.45}
 .kBtn.kBlue{background:radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66)}.kBtn.kBlue:disabled{filter:grayscale(.7)}
-.kKit .cxsv,#bagSheet .cxsv{inset:3% 9% auto;width:82%;height:74%}
+
 .vaultp.kKit .vs-lines .vitem{justify-content:flex-start;gap:12px;padding:8px 12px}.vaultp.kKit .vs-lines .vic{width:auto;height:auto;background:none;box-shadow:none}.vaultp.kKit .vs-lines .vic img{width:46px;height:46px;margin:0}.vaultp.kKit .vs-lines .vn small{display:block;background:none;box-shadow:none;padding:0;font-size:12px}
 .vaultp.kKit .vs-gear .vn small{display:table;margin:3px auto 0}
 #tetherOrb .kv-set .toCard .toDim{color:#5a4026;text-shadow:none;text-align:center}
 #tetherOrb .kv-set .toSeg button{width:52px;padding:2px 3px;white-space:normal}#tetherOrb .kv-set .toIn.sm{min-width:80px}#tetherOrb .kv-set .toSw{flex-basis:52px;width:52px}
-.kKit .cxsv,#bagSheet .cxsv{transform:scale(1.35);transform-origin:50% 40%}
+
 #bagSheet .cxg{gap:6px;margin-top:0}
 /* tap-a-tether bubble (Art's B_* field kit: moss canvas, brass close, blue enamel teleport buttons) */
 #tetherBub{position:absolute;z-index:60;box-sizing:border-box;width:min(300px,calc(100% - 16px));padding:4px 2px 6px;border:16px solid transparent;border-image:url(assets/ui/kit_moss.webp) 52 fill / 16px stretch;color:var(--kCream);font:13px Georgia,serif;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}#tetherBub.hidden{display:none}
@@ -390,7 +391,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherBub .tbTail{position:absolute;left:calc(var(--tx,50%) - 11px);bottom:-27px;width:0;height:0;border:11px solid transparent;border-top:12px solid #c8954a}#tetherBub.below .tbTail{bottom:auto;top:-27px;border-top-color:transparent;border-bottom:12px solid #c8954a}
 
 /* Art's inventory atlas + HUD / map / drill icons */
-.cxsv.cxico{display:block;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / 8) calc(var(--iy)*100% / 7);filter:none}
+.cxsv.cxico{display:block;aspect-ratio:1/1;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / (var(--icols,9) - 1)) calc(var(--iy)*100% / (var(--irows,8) - 1));filter:none}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:3px;transform:translateX(-50%);padding:0 5px;border-radius:6px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
 .kKit .cxct.m,#bagSheet .cxct.m{background:linear-gradient(#e7f3c8,#c5d98a);box-shadow:0 0 0 1px #5a7a32,0 1px 2px rgba(0,0,0,.5)}
 #exBagBtn,#exMapBtn{width:64px;height:64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;font-size:0;padding:0}
@@ -422,10 +423,36 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #drillHud .dh.off{background-image:url(assets/ui/icons/drill_marker_off.webp)}
 .drow .seti{display:inline-block;width:22px;height:22px;vertical-align:-6px;margin-right:4px;background:center/contain no-repeat}
 .chips[data-k=bit] button{position:relative;padding-left:36px}
-.chips[data-k=bit] button .cxico{position:absolute;left:4px;top:50%;width:26px;height:26px;margin-top:-13px;inset:auto}
-.vaultp .vic .cxico{position:static;width:32px;height:32px;margin-top:-10px;inset:auto}
+.chips[data-k=bit] button .cxico{position:absolute;left:4px;top:50%;width:26px;height:26px;margin-top:-13px;inset:auto;transform:none;aspect-ratio:1/1}
+.vaultp .vic .cxico{position:static;width:32px;height:32px;margin-top:-10px;inset:auto;transform:none;aspect-ratio:1/1}
 .vaultp.kKit .vs-ingots .vic .cxico{width:32px;height:32px;margin-top:0}
 .vaultp.kKit .vs-lines .vic .cxico{width:46px;height:46px;margin-top:0}
+.cxmh .cxsv,.cxnear .cxsv,.moleScr .mit .cxsv{position:static;inset:auto;width:36px;height:36px;flex:0 0 36px;transform:none;aspect-ratio:1/1}
+.cxmenu{max-height:100%;overflow:hidden;gap:4px;padding:6px 8px}
+.cxmenu .cxmh{display:grid;grid-template-columns:36px 1fr;gap:4px 8px;align-items:start}
+.cxmenu .cxmd{min-width:0;display:flex;flex-direction:column;gap:2px}
+.cxmenu .cxmd>b{font:700 13.5px Georgia,serif;line-height:1.2;overflow-wrap:anywhere}
+.cxmenu .cxsts{display:grid;grid-template-columns:auto 1fr;gap:1px 8px;align-items:baseline;font:11px Georgia,serif}
+.cxmenu .cxsts small{color:#6a4a28;font:11px Georgia,serif}
+.cxmenu .cxsts b{font:600 11.5px Georgia,serif;color:#2a160a}
+.cxmenu .cxds{margin:2px 0 0;font:11.5px/1.3 Georgia,serif;color:#4a3420;overflow-wrap:anywhere;white-space:normal}
+.cxmenu .cxacts{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.cxmenu .cxacts .btn{flex:1 1 auto;min-height:34px;margin:0;padding:4px 8px;font-size:13px}
+.kKit .cxmenu .cxmh span,#bagSheet .cxmh span{color:var(--kInk)}
+#bagSheet .cxmenu{max-height:100%;overflow:hidden}
+#bagSheet .cxnear{padding:5px 7px;font-size:12px;gap:6px}
+#bagSheet .cxnear small{font-size:10.5px;white-space:normal}
+#bagSheet .cxdset{min-height:34px;font-size:13.5px;padding:4px 8px}
+@media (max-height:680px){
+  #bagSheet:has(.cxmenu){height:64%}
+  #bagSheet .cxmenu{padding:5px 6px;gap:3px}
+  #bagSheet .cxmenu .cxmd>b{font-size:13px}
+  #bagSheet .cxmenu .cxsts{gap:0 6px;font-size:10.5px}
+  #bagSheet .cxmenu .cxds{margin:1px 0 0;font-size:11px;line-height:1.25}
+  #bagSheet .cxnear{padding:4px 6px;font-size:11.5px}
+  #bagSheet .cxmenu .cxacts .btn,#bagSheet .cxdset{min-height:30px;font-size:12.5px;padding:3px 7px}
+}
+
 .vaultp .vitem.zero{opacity:.4}
 img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
