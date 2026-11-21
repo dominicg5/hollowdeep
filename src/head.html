@@ -389,14 +389,45 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherBub .tbGo span{grid-row:1/3;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-size:17px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}#tetherBub .tbGo b{font:700 15px Georgia,serif}#tetherBub .tbGo small{font:12px Georgia,serif;color:#f1e3c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#tetherBub .tbGo.dis,#tetherBub .tbGo:disabled{opacity:.55;filter:grayscale(.35);cursor:default}
 #tetherBub .tbTail{position:absolute;left:calc(var(--tx,50%) - 11px);bottom:-27px;width:0;height:0;border:11px solid transparent;border-top:12px solid #c8954a}#tetherBub.below .tbTail{bottom:auto;top:-27px;border-top-color:transparent;border-bottom:12px solid #c8954a}
 
-/* Art's inventory atlas (backpack + vault) */
+/* Art's inventory atlas + HUD / map / drill icons */
 .cxsv.cxico{display:block;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / 8) calc(var(--iy)*100% / 7);filter:none}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:3px;transform:translateX(-50%);padding:0 5px;border-radius:6px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
 .kKit .cxct.m,#bagSheet .cxct.m{background:linear-gradient(#e7f3c8,#c5d98a);box-shadow:0 0 0 1px #5a7a32,0 1px 2px rgba(0,0,0,.5)}
+#exBagBtn,#exMapBtn{width:64px;height:64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;font-size:0;padding:0}
+#exBagBtn{background-image:url(assets/ui/icons/btn_backpack_idle.webp)}
+#exBagBtn:active,#exBagBtn.sel{background-image:url(assets/ui/icons/btn_backpack_pressed.webp)}
+#exBagBtn span,#exMapBtn span{display:none}
+#exMapBtn{background-image:url(assets/ui/icons/btn_map_idle.webp);bottom:88px}
+#exMapBtn:active,#exMapBtn.sel{background-image:url(assets/ui/icons/btn_map_pressed.webp)}
+.kX,.bsx.kX,#tetherOrb .toBack.kX,#drillCtl .dk button{background:url(assets/ui/icons/btn_close_idle.webp) center/contain no-repeat;background-color:transparent;border:0;box-shadow:none;color:transparent;text-shadow:none}
+.kX:active,.bsx.kX:active,#tetherOrb .toBack.kX:active,#drillCtl .dk button:active{background-image:url(assets/ui/icons/btn_close_pressed.webp)}
+#tetherOrb .toBack.kX.back{background-image:url(assets/ui/icons/btn_back_idle.webp)}
+#tetherOrb .toBack.kX.back:active{background-image:url(assets/ui/icons/btn_back_pressed.webp)}
+#exMap .exmTop button[data-exm=close]{width:40px;height:40px;border:0;border-radius:0;background:url(assets/ui/icons/btn_close_idle.webp) center/contain no-repeat;color:transparent;box-shadow:none}
+#exMap .exmTop button[data-exm=close]:active{background-image:url(assets/ui/icons/btn_close_pressed.webp)}
+.kKit .kVBtns [data-cx=xfer],.kKit [data-cx=xfer].kBtn{background:url(assets/ui/icons/btn_transfer_idle.webp) 8px center/36px 36px no-repeat,radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66);padding-left:46px}
+.kKit .kVBtns [data-cx=xfer]:active{background-image:url(assets/ui/icons/btn_transfer_pressed.webp),radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66)}
+.kKit .kVBtns [data-vclose]{background:url(assets/ui/icons/btn_close_idle.webp) 8px center/32px 32px no-repeat,linear-gradient(#f8eed6,#e8d4aa);color:#2a160a;padding-left:42px}
+#tetherOrb .kTp{background:url(assets/ui/icons/btn_teleport_idle.webp) 6px center/30px 30px no-repeat,radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66);padding-left:38px}
+#tetherOrb button.toBig[data-v=tp] span{display:inline-block;width:36px;height:36px;background:url(assets/ui/icons/btn_teleport_idle.webp) center/contain no-repeat;font-size:0}
+#tetherOrb button.toBig[data-v=set] span{display:inline-block;width:36px;height:36px;background:url(assets/ui/icons/btn_tether_settings_idle.webp) center/contain no-repeat;font-size:0}
+.cxmenu [data-cx=equip]{background-image:url(assets/ui/icons/btn_equip_idle.webp),radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66);background-size:28px 28px,auto;background-position:8px center,0 0;background-repeat:no-repeat;padding-left:40px}
+.cxmenu [data-cx=mclose]{background-image:url(assets/ui/icons/btn_cancel_idle.webp);background-size:28px 28px;background-position:8px center;background-repeat:no-repeat;padding-left:40px}
+#drillHud .dh{width:52px;height:52px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none}
+#drillHud .dh .di,#drillHud .dh .dot,#drillHud .dh .tw{display:none}
+#drillHud .dh small{position:absolute;bottom:2px;left:0;right:0;text-align:center;font:700 8px Georgia,serif;color:#2a160a;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+#drillHud .dh.run{background-image:url(assets/ui/icons/drill_marker_run.webp)}
+#drillHud .dh.coal{background-image:url(assets/ui/icons/drill_marker_stall.webp)}
+#drillHud .dh.idle,#drillHud .dh.full{background-image:url(assets/ui/icons/drill_marker_idle.webp)}
+#drillHud .dh.off{background-image:url(assets/ui/icons/drill_marker_off.webp)}
+.drow .seti{display:inline-block;width:22px;height:22px;vertical-align:-6px;margin-right:4px;background:center/contain no-repeat}
+.chips[data-k=bit] button{position:relative;padding-left:36px}
+.chips[data-k=bit] button .cxico{position:absolute;left:4px;top:50%;width:26px;height:26px;margin-top:-13px;inset:auto}
 .vaultp .vic .cxico{position:static;width:32px;height:32px;margin-top:-10px;inset:auto}
 .vaultp.kKit .vs-ingots .vic .cxico{width:32px;height:32px;margin-top:0}
 .vaultp.kKit .vs-lines .vic .cxico{width:46px;height:46px;margin-top:0}
 .vaultp .vitem.zero{opacity:.4}
+img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
 </style>
 </head>
