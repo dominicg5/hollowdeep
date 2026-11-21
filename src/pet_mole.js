@@ -134,7 +134,7 @@ const Mole = (() => {
     const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow.material.map, color: 0x9ff6ff, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); sp2.visible = false; g.userData.spark = sp2;
     return g; }
   // ---- what it hauls: everything in the backpack that is not a tool
-  const haulIds = () => Object.keys(S.backpack || {}).filter((id) => !/^tool:|^drill:|^tether:/.test(id) && Craft.get('bag', id) > 0 && (!M.task || M.task.kind !== 'haul' || !M.task.ids || M.task.ids.includes(id)));
+  const haulIds = () => Object.keys(S.backpack || {}).filter((id) => !/^tool:|^drill:|^tether:|^stand:|^bit:/.test(id) && Craft.get('bag', id) > 0 && (!M.task || M.task.kind !== 'haul' || !M.task.ids || M.task.ids.includes(id)));
   const haulN = () => haulIds().reduce((n, id) => n + Craft.get('bag', id), 0);
   // ---- the tethers it can hand a load to: every wired drill's Ledge Tether line (door -> drill), plus the Ledge door hub itself
   function routes() { if (M.routes && M.t - M.routesT < 20) return M.routes; const out = []; try { const F = Explore.ledgeFront(); out.push([[F.x, F.y]]); const D = Explore.drillState(); if (D) for (const d of D.list) if (d.port && !d.camp) { const r = (Explore.drillRouteC || Explore.drillRoute)(d); if (r && r.pts && r.pts.length > 1) out.push(r.pts); } } catch (e) {} M.routes = out; M.routesT = M.t; return out; }
@@ -199,7 +199,7 @@ const Mole = (() => {
   function bubbleTick() { const el = document.getElementById('moleBubble'); if (!el || M.bub == null) return; if (!Explore.on || !M.g || !M.g.visible || M.t - M.bub > 8) { M.bub = null; el.classList.remove('on'); return; } const p = M3.project(M.pos[0], M.pos[1], WS() * H * 1.15); el.style.left = Math.round(Math.max(70, Math.min((el.parentNode ? el.parentNode.clientWidth : innerWidth) - 70, p[0]))) + 'px'; el.style.top = Math.round(p[1] - 6) + 'px'; }
   // ---- the Mole screen: a turntable 3D preview (drag to turn it, like the Character screen) + the task picker
   const SC = { kind: 'haul', ids: [], tether: null, amt: {}, msg: null, pv: null };
-  function itemsFor(kind) { return kind === 'haul' ? Object.keys(S.backpack || {}).filter((id) => Craft.get('bag', id) > 0 && !/^tool:|^drill:|^tether:/.test(id)) : Object.keys(Craft.ITEMS).filter((id) => Craft.get('vault', id) > 0 && !/^drill:|^tether:/.test(id)); }
+  function itemsFor(kind) { return kind === 'haul' ? Object.keys(S.backpack || {}).filter((id) => Craft.get('bag', id) > 0 && !/^tool:|^drill:|^tether:|^stand:|^bit:/.test(id)) : Object.keys(Craft.ITEMS).filter((id) => Craft.get('vault', id) > 0 && !/^drill:|^tether:|^stand:|^bit:/.test(id)); }
   function screenHTML() { const T = tethers(); if (SC.tether && !T.find((q) => q.key === SC.tether)) SC.tether = null; const L = itemsFor(SC.kind); SC.ids = SC.ids.filter((id) => L.includes(id)); const ready = SC.ids.length && SC.tether;
     const cur = M.task ? `${M.task.kind === 'haul' ? 'Hauling' : 'Fetching'} ${M.task.ids.map(NM).join(', ') || 'everything'} via ${(T.find((q) => q.key === M.task.tether) || { name: 'a tether' }).name}` : M.on ? 'Following you' : 'Resting';
     return `<div class="cxp moleScr" data-cxv="mole"><div class="row between"><h2>🐾 Mole</h2><span class="tag">${M.trips} trips · ${(S.mole && S.mole.delivered) || 0} sent</span></div><div class="mprev" id="molePrev"><small>Drag to turn him</small></div>
