@@ -332,6 +332,8 @@ const CityMap = (() => {
     const free = (r) => { for (const q of rects) if (r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1]) return false; rects.push(r); return true; };
     // player label always
     { const h = W.player, [sx, sy] = S2(h.x, h.y, h.size, homeW(h) * 1.05 + hUp(h)); rects.push(pill(c, sx, sy - 4 * dpr, `★ You · Deepest Lv ${W.player.deepest} · Rank #${rimRank(W.player)}`, { bg: 'rgba(255,212,107,.95)', bold: true, fs: 12, border: '#7a4a1c' })); }
+    // Mosby the giant tortoise: an icon over him wherever he is on screen (tap it: she walks to him)
+    if (typeof Mosby !== 'undefined' && Mosby.iconAt && is3d()) { const p = Mosby.iconAt(); if (p) rects.push(pill(c, p[0] * dpr, p[1] * dpr, '🐢 Mosby', { bg: 'rgba(52,96,60,.94)', color: '#f4f0dc', bold: true, fs: 12, border: '#c99a45' })); }
     // mole
     const mole = currentMole(); if (mole && inV(mole.x, mole.y, 80)) { const [sx, sy] = S2(mole.x, mole.y, 40, 110); rects.push(pill(c, sx, sy, '⚠️ A Rim Mole surfaced! Tap to fight', { bg: 'rgba(200,99,76,.95)', color: '#fff', bold: true })); }
     // region names at far zoom
@@ -414,6 +416,7 @@ const CityMap = (() => {
     if (view3 && view3.pts) { const P = view3.pts; mctx.beginPath(); [P[0], P[1], P[3], P[2]].forEach(([x, y], i) => (i ? mctx.lineTo : mctx.moveTo).call(mctx, (x + CITY.R) * sc, (y + CITY.R) * sc)); mctx.closePath(); mctx.stroke(); }
     else mctx.strokeRect((cam.x - vw / 2 + CITY.R) * sc, (cam.y - vh / 2 + CITY.R) * sc, vw * sc, vh * sc);
     const p = W.player; mctx.fillStyle = '#ffd46b'; mctx.strokeStyle = '#7a4a1c'; mctx.beginPath(); mctx.arc((p.x + CITY.R) * sc, (p.y + CITY.R) * sc, 5, 0, TAU); mctx.fill(); mctx.stroke();
+    if (typeof Mosby !== 'undefined' && Mosby.GM && Mosby.GM.at) { const g = Mosby.GM.at; mctx.fillStyle = '#4f9a5a'; mctx.strokeStyle = '#f4e6b8'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc((g.x + CITY.R) * sc, (g.y + CITY.R) * sc, 6, 0, TAU); mctx.fill(); mctx.stroke(); }
     const m = currentMole(); if (m) { mctx.fillStyle = '#c8634c'; mctx.beginPath(); mctx.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, 4.5, 0, TAU); mctx.fill(); }
     mctx.restore(); void s;
   }
