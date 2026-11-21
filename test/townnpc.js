@@ -11,14 +11,14 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
   const o = await p.evaluate(() => { Explore.build(); const T = Town, F = T.folk; for (let i = 0; i < 5 && !F.ST.built; i++) { T.tick(); F.tick(); }
     const L = F.ST.list, door = W.playerDoor || W.player; const r = { n: L.length, people: [] };
     for (const n of L) { const route = Explore.plan(door.x, door.y, n.sp.talk[0], n.sp.talk[1]), pts = route && route.pts, end = pts && pts.length ? Math.hypot(pts[pts.length - 1][0] - n.sp.talk[0], pts[pts.length - 1][1] - n.sp.talk[1]) / T.WS : 99;
-      const g = n.grp, tris = g.children.reduce((s, m) => s + (m.geometry.attributes.position.count / 3), 0), y0 = g.scale.y; const t1 = performance.now(); while (performance.now() - t1 < 300); F.tick();
-      r.people.push({ id: n.id, solid: !!Explore.solidAt(n.x, n.y), end: +end.toFixed(1), climb: route ? route.climb : -1, tris: Math.round(tris), meshes: g.children.length, anim: Math.abs(g.scale.y - y0) > 1e-5 || true, h: +(n.hgt / T.WS).toFixed(2) }); }
+      const tris = n.tris; const t1 = performance.now(); while (performance.now() - t1 < 300); F.tick();
+      r.people.push({ id: n.id, solid: !!Explore.solidAt(n.x, n.y), end: +end.toFixed(1), climb: route ? route.climb : -1, tris: Math.round(tris), h: +(n.hgt / T.WS).toFixed(2) }); }
     // idle: the figure's transform changes over time
-    const n0 = L[0], s0 = n0.grp.scale.y; const t2 = performance.now(); while (performance.now() - t2 < 400); F.tick(); r.idle = Math.abs(n0.grp.scale.y - s0);
+    const n0 = L[0], s0 = n0.bones[1].scale.y, h0 = n0.bones[2].rotation.y; const t2 = performance.now(); while (performance.now() - t2 < 400); F.tick(); r.idle = Math.abs(n0.bones[1].scale.y - s0) + Math.abs(n0.bones[2].rotation.y - h0); r.folkMeshes = [F.ST.mesh, F.ST.ink].filter((m) => m && m.isSkinnedMesh).length; r.bones = F.ST.mesh.skeleton.bones.length;
     return r; });
   console.log(JSON.stringify(o));
-  ok(o.n === 6, `six townsfolk (${o.n})`); ok(o.idle > 1e-5, `idle animation moves (breath ${o.idle.toFixed(4)})`);
-  for (const q of o.people) { ok(q.solid, `${q.id}: solid`); ok(q.end < 3 && q.climb === 0, `${q.id}: reachable from the Ledge (talk spot ${q.end} m off, climb ${q.climb})`); ok(q.meshes === 1 && q.tris < 4000, `${q.id}: one merged mesh (${q.tris} tris, ${q.h} m tall)`); }
+  ok(o.n === 6, `six townsfolk (${o.n})`); ok(o.folkMeshes === 2 && o.bones === 30, `all six share one skinned mesh + one ink outline (${o.folkMeshes} meshes, ${o.bones} bones)`); ok(o.idle > 1e-5, `idle animation moves (breath ${o.idle.toFixed(4)})`);
+  for (const q of o.people) { ok(q.solid, `${q.id}: solid`); ok(q.end < 3 && q.climb === 0, `${q.id}: reachable from the Ledge (talk spot ${q.end} m off, climb ${q.climb})`); ok(q.tris > 2500 && q.tris < 7000, `${q.id}: sculpted model ${q.tris} tris (${q.h} m tall)`); }
   for (const id of ['goldie', 'ambrose', 'fennick']) {
     const s = await p.evaluate((id) => { const n = Town.folk.ST.list.find((q) => q.id === id), [x, y] = n.sp.talk, dx = x - n.x, dy = y - n.y, l = Math.hypot(dx, dy); Explore.enter(x + dx / l * Town.WS * 4, y + dy / l * Town.WS * 4); const E = Explore.EX; E.d = 70; E.tilt = 0.6; E.az = Math.atan2(dx, dy); for (let k = 0; k < 30; k++) Explore.tick(1 / 30); return id; }, id);
     await p.waitForTimeout(1200);
@@ -33,5 +33,5 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
     if (id === 'ambrose') { await p.click('#townDlg [data-a=vault]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'vault', `the bank's keeper opens the vault (${k})`); await snap(`town-bank-vault`); await p.evaluate(() => closeModal()); }
     else if (id === 'goldie') { await snap(`town-dlg-goldie-choice`); await p.click('#townDlg [data-a=buy]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'town-shop', `the store's Buy opens the placeholder shop (${k})`); await snap(`town-shop-buy`); await p.evaluate(() => closeModal()); }
     else { await p.click('#townDlg [data-a=bye]'); const h = await p.evaluate(() => document.getElementById('townDlg').classList.contains('hidden')); ok(h, 'Goodbye closes the dialogue'); } }
-  const dc = await p.evaluate(() => Town.ST.g.children.filter((m) => m.isMesh).length + Town.folk.ST.list.length); ok(dc <= 30, `town + folk draw calls ${dc}`);
+  const dc = await p.evaluate(() => Town.ST.g.children.filter((m) => m.isMesh).length); ok(dc <= 30, `town + folk draw calls ${dc}`);
   ok(!errs.length, 'no page errors ' + errs.join(' | ')); console.log(fails ? fails + ' FAIL' : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0); })();
