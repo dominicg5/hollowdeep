@@ -170,6 +170,7 @@ function newState() {
     v: 1, testMode: CONFIG.testMode.defaultOn, gameTime: 0, lastReal: Date.now(), created: Date.now(),
     res: Object.assign({}, CONFIG.start), buildings, build: null,
     hero: { level: 1, xp: 0, task: null },
+    skills: { mining: 0, smithing: 0 },
     taps: { days: {}, total: 0, marks: 0 },
     pets: [{ uid: 1, id: 'pup', level: 1 }], slots: [1, null],
     outposts: [{ uid: 2, type: 'strider', name: 'Longstep', layer: 1, vein: 'l1gold', state: 'anchored', anchoredSince: 0, stock: {}, module: null, ship: 'all', move: null, dark: false }],
@@ -659,6 +660,6 @@ function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.sav
 function clearRaids(s) { if (CONFIG.raidsEnabled) return s; s.pendingReveal = null; s.lastRaid = null; s.nextRaidAt = 1e15; s.shieldUntil = 0;
   if (s.hero && s.hero.task && s.hero.task.type === 'raid') s.hero.task = null; return s; }
 function load() {
-  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); if (s.home && (s.home.tv || 0) < 2) { s.home.ports = {}; s.home.tv = 2; } /* migration: clear the old test Ledge Tethers on the door (only real, routed tethers stay) */ return clearRaids(Object.assign(d, s)); } catch (e) { return null; }
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); if (s.home && (s.home.tv || 0) < 2) { s.home.ports = {}; s.home.tv = 2; } /* migration: clear the old test Ledge Tethers on the door (only real, routed tethers stay) */ const out = clearRaids(Object.assign(d, s)); if (typeof Skills !== 'undefined') Skills.migrate(out); else if (!out.skills) out.skills = { mining: 0, smithing: 0 }; return out; } catch (e) { return null; }
 }
 function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }
