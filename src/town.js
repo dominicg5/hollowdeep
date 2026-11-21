@@ -287,7 +287,7 @@ Town.ground = (G) => {
     const PAL={dirt:['74644A','8A7656','9C8A6A','6F6A48'],cinder:['4E463C','5A5044','463F37','5E5648'],cobble:['6E6252']};
     for(const Bd of T.BLD){const q=T.SITE_PLAN[Bd.id];if(!q)continue;const P0=T.place(Bd),cs=Math.cos(P0.yaw),sn=Math.sin(P0.yaw);B.frame(P0.x,P0.y,P0.h,P0.yaw);B.at();
       const gy=(lx,lz)=>(M3.meshH(P0.x+(lx*cs+lz*sn)*W,P0.y+(-lx*sn+lz*cs)*W)-P0.h)/W+.05;
-      const col=(m,lx,lz)=>{const wx=P0.x/W+lx*cs+lz*sn,wz=P0.y/W-lx*sn+lz*cs;if(m==='cobble')return CB0.map(v=>v*(1+.14*(hs(Math.floor(wx/.6),Math.floor(wz/.6))-.5)));const pl=PAL[m]||PAL.dirt,t=hs(Math.floor(wx/2.5),Math.floor(wz/2.5)),u=hs(Math.floor(wx/.9)+.5,Math.floor(wz/.9)),a=lin(pl[Math.floor(t*3)%3]),c=lin(pl[3]);return a.map((v,i)=>(v*.6+c[i]*.4)*(.92+.16*u)/TXG[i]);};
+      const col=(m,lx,lz)=>{const wx=P0.x/W+lx*cs+lz*sn,wz=P0.y/W-lx*sn+lz*cs;if(m==='cobble')return CB0.map(v=>v*(1+.14*(hs(Math.floor(wx/.6),Math.floor(wz/.6))-.5)));const pl=PAL[m]||PAL.dirt,t=hs(Math.floor(wx/2.5),Math.floor(wz/2.5)),u=hs(Math.floor(wx/.9)+.5,Math.floor(wz/.9)),a=lin(pl[Math.floor(t*3)%3]),c=lin(pl[3]);return a.map((v,i)=>(v*.6+c[i]*.4)*(.92+.16*u)/TXG[i]*[.47,.53,.49][i]);}; // (x lit calibration: the raw key read #C29D77 lit at zoom 18; Art's dirt is #74644A-#9C8A6A)
       const CB0=lin('6E6252').map((v,i)=>v*[.478,.637,1.157][i]/TXC[i]);
       for(const Y of q.yard){const m=Y.material==='cobble'?'cobble':'dirt',km=Y.material,st=m==='cobble'?.5:1;
         if(Y.rect_local_m){let [x0,z0,x1,z1]=Y.rect_local_m;const nx=Math.ceil((x1-x0)/st),nz=Math.ceil((z1-z0)/st);for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){const a=x0+(x1-x0)*i/nx,b=x0+(x1-x0)*(i+1)/nx,c=z0+(z1-z0)*j/nz,d=z0+(z1-z0)*(j+1)/nz,V=(x,z)=>[x,gy(x,z),z];
