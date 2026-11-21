@@ -103,7 +103,7 @@ const NpcKit = (() => {
     // Tess's braid: spring-ish lag on turns + a 4 deg sway over 2.2 s, limits 20/30/35 deg
     if (k.bones.braid_01) { const yv = step / Math.max(dt, 1e-3), lim = [0, 0.35, 0.52, 0.61], fwd = new THREE.Vector3(0, 0, 1).transformDirection(k.root.matrixWorld), side = new THREE.Vector3(1, 0, 0).transformDirection(k.root.matrixWorld);
       for (let i = 1; i < 4; i++) { const w = -yv * 0.12 * i; k.bv[i] += (w - k.bv[i]) * Math.min(1, dt * (6 - i * 1.2)); const sw = 0.07 * Math.sin(t * 6.2832 / 2.2 - i * 0.6 + k.ph); const b = k.bones['braid_0' + i];
-        if (b) { rotWorld(b, fwd, Math.max(-lim[i], Math.min(lim[i], sw + k.bv[i]))); rotWorld(b, side, 0.035 * Math.sin(t * 3.1416 / 2.2 - i * 0.5)); } } } }
+        if (b) { if (!b.userData.q0) b.userData.q0 = b.quaternion.clone(); b.quaternion.copy(b.userData.q0); b.updateMatrixWorld(true); rotWorld(b, fwd, Math.max(-lim[i], Math.min(lim[i], sw + k.bv[i]))); rotWorld(b, side, 0.035 * Math.sin(t * 3.1416 / 2.2 - i * 0.5)); } } } }
   return { ST, load, ready, has, create, update, ROLE };
 })();
 if (typeof window !== 'undefined') window.NpcKit = NpcKit;

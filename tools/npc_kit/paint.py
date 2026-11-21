@@ -99,6 +99,7 @@ def paint(T, pal, face_canvas, texs, head, eyes_c, scalp_fn=None, extra=None):
             if isinstance(tgt, str): tgt = pal['skin'][1]
             d = np.clip(ol[m] / (np.median(ol[m]) + 1e-4), 0.72, 1.25) ** 0.6
             col[m] = tgt[None] * d[:, None]
+        if part == 'arms' and pal.get('arm_fn'): col = pal['arm_fn'](P[sel], col, ol)
         out[sel] = flat(col, sel)
     # --- generated parts by region ---
     gs = SRC == 9
