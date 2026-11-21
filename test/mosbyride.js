@@ -69,7 +69,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     if (sky) { Explore.tap(sky[0], sky[1]); o.afterSky = MosbyRide.on; }
     ExMap.open(); const far = Explore.reach(Mosby.GM.at.x + Explore.WS * 400, Mosby.GM.at.y + Explore.WS * 300); ExMap.tapAt(far[0], far[1]); for (let i = 0; i < 60; i++) __frame(1); o.afterMap = MosbyRide.on; o.mapPath = !!G.path; if (ExMap.close) ExMap.close(); ExMap.cancel && ExMap.cancel();
     o.goTo = Explore.goTo(far[0], far[1]); o.tele = Explore.teleportTo('door'); o.afterTele = MosbyRide.on;
-    if (body) { Explore.tap(body[0], body[1]); o.bodyDlg = MosbyTalk.step; o.bodyBtns = [...document.querySelectorAll('#mosDlg .mdB')].map((x) => x.textContent); MosbyTalk.close(); }
+    if (body) { MosbyTalk.close(); Explore.tap(body[0], body[1]); /* from a closed menu, as she would */ o.bodyDlg = MosbyTalk.step; o.bodyBtns = [...document.querySelectorAll('#mosDlg .mdB')].map((x) => x.textContent); MosbyTalk.close(); }
     document.getElementById('exHopBtn').click(); o.btnDlg = MosbyTalk.step; o.stillOn = MosbyRide.on; return o; });
   console.log(JSON.stringify(r4));
   ok(r4.found.ground && r4.afterGround && r4.afterGround.on && !r4.afterGround.trip && r4.groundStill, 'a tap on the ground does not take her off (no walk, no trip)');
