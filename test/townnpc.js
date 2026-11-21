@@ -17,9 +17,9 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
     const n0 = L[0], s0 = n0.bones[1].scale.y, h0 = n0.bones[2].rotation.y; const t2 = performance.now(); while (performance.now() - t2 < 400); F.tick(); r.idle = Math.abs(n0.bones[1].scale.y - s0) + Math.abs(n0.bones[2].rotation.y - h0); r.folkMeshes = [F.ST.mesh, F.ST.ink].filter((m) => m && m.isSkinnedMesh).length; r.bones = F.ST.mesh.skeleton.bones.length;
     return r; });
   console.log(JSON.stringify(o));
-  ok(o.n === 6, `six townsfolk (${o.n})`); ok(o.folkMeshes === 2 && o.bones === 30, `all six share one skinned mesh + one ink outline (${o.folkMeshes} meshes, ${o.bones} bones)`); ok(o.idle > 1e-5, `idle animation moves (breath ${o.idle.toFixed(4)})`);
+  ok(o.n === 5, `five townsfolk, no Ambrose (${o.n})`); ok(o.folkMeshes === 2 && o.bones === 25, `all five share one skinned mesh + one ink outline (${o.folkMeshes} meshes, ${o.bones} bones)`); ok(o.idle > 1e-5, `idle animation moves (breath ${o.idle.toFixed(4)})`);
   for (const q of o.people) { ok(q.solid, `${q.id}: solid`); ok(q.end < 3 && q.climb === 0, `${q.id}: reachable from the Ledge (talk spot ${q.end} m off, climb ${q.climb})`); ok(q.tris > 2500 && q.tris < 7000, `${q.id}: sculpted model ${q.tris} tris (${q.h} m tall)`); }
-  for (const id of ['goldie', 'ambrose', 'fennick']) {
+  for (const id of ['goldie', 'fennick']) {
     const s = await p.evaluate((id) => { const n = Town.folk.ST.list.find((q) => q.id === id), [x, y] = n.sp.talk, dx = x - n.x, dy = y - n.y, l = Math.hypot(dx, dy); Explore.enter(x + dx / l * Town.WS * 4, y + dy / l * Town.WS * 4); const E = Explore.EX; E.d = 70; E.tilt = 0.6; E.az = Math.atan2(dx, dy); for (let k = 0; k < 30; k++) Explore.tick(1 / 30); return id; }, id);
     await p.waitForTimeout(1200);
     const r = await p.evaluate((id) => { const n = Town.folk.ST.list.find((q) => q.id === id), a = M3.project(n.x, n.y, n.hgt * 0.85); return { a, r: Explore.tap(a[0], a[1]) }; }, id);
@@ -30,8 +30,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
     if (!d || !d.on) continue;
     await p.click('#townDlg .tdWell p'); const last = await p.evaluate(() => [...document.querySelectorAll('#townDlg .tdBtns button')].map((b) => b.dataset.a));
     ok(last.includes('bye'), `${id}: tapping advances to the last page with its choices (${last.join(', ')})`);
-    if (id === 'ambrose') { await p.click('#townDlg [data-a=vault]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'vault', `the bank's keeper opens the vault (${k})`); await snap(`town-bank-vault`); await p.evaluate(() => closeModal()); }
-    else if (id === 'goldie') { await snap(`town-dlg-goldie-choice`); await p.click('#townDlg [data-a=buy]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'town-shop', `the store's Buy opens the placeholder shop (${k})`); await snap(`town-shop-buy`); await p.evaluate(() => closeModal()); }
+    if (id === 'goldie') { await snap(`town-dlg-goldie-choice`); await p.click('#townDlg [data-a=buy]'); await p.waitForTimeout(400); const k = await p.evaluate(() => ui.modal); ok(k === 'town-shop', `the store's Buy opens the placeholder shop (${k})`); await snap(`town-shop-buy`); await p.evaluate(() => closeModal()); }
     else { await p.click('#townDlg [data-a=bye]'); const h = await p.evaluate(() => document.getElementById('townDlg').classList.contains('hidden')); ok(h, 'Goodbye closes the dialogue'); } }
   const dc = await p.evaluate(() => Town.ST.g.children.filter((m) => m.isMesh).length); ok(dc <= 30, `town + folk draw calls ${dc}`);
   ok(!errs.length, 'no page errors ' + errs.join(' | ')); console.log(fails ? fails + ' FAIL' : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0); })();

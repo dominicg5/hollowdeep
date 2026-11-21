@@ -55,7 +55,6 @@ const Town = (() => {
   const BLD = [
     { id: 'general_store', name: 'General Store', px: 88, py: 160, face: 1, t: 0, w: 7.1, d: 5.9, npc: 'goldie' },
     { id: 'smithy', name: 'Smithy', px: 240, py: 150, face: 1, t: 1, w: 8.3, d: 5.9, npc: 'brannick' },
-    { id: 'bank', name: 'Bank', px: 478, py: 140, face: 1, t: 2, w: 7.1, d: 7.1, round: 1, npc: 'ambrose' },
     { id: 'rope_maker', name: 'Rope Maker', px: 95, py: 405, face: -1, t: 0, w: 4.7, d: 16.5, npc: 'tess' },
     { id: 'inn', name: 'Inn', px: 245, py: 352, face: -1, t: 1, w: 9.4, d: 8.3, npc: 'hattie' },
     { id: 'guide_hut', name: "Guide's Hut", px: 470, py: 362, face: -1, t: 2, w: 4.7, d: 4.7, round: 1, npc: 'fennick' },
