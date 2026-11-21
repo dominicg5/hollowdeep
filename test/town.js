@@ -37,6 +37,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const hh = E.here(); o.walks.push({ id: q.id, end: +(Math.hypot(hh[0] - q.front[0], hh[1] - q.front[1]) / WS).toFixed(1), off: +(off / WS).toFixed(2), maxStep: +(maxStep / WS).toFixed(2), solid, body: +E.bodyInside().toFixed(2) }); }
     // mobile cost + no text
     let n = 0, tris = 0, text = 0; T.ST.g.traverse((m) => { if (m.isMesh) { n++; tris += m.geometry.attributes.position.count / 3; } if (m.isSprite) text++; }); o.draws = n; o.tris = Math.round(tris); o.text = text; o.names = /delver/i.test(JSON.stringify(T.BLD) + JSON.stringify(T.LOTS)) ? 1 : 0;
+    // placeable module: move one site 25 m along the field and back - its solids, keeper and talk spot follow (Town.setSite), nothing is left at the old spot
+    { const B = T.BLD.find((q) => q.id === 'guide_hut'), P0 = T.place(B), k0 = T.npcSpot(B), nx = P0.x - 25 * WS, ny = P0.y; T.setSite('guide_hut', nx, ny, P0.yaw + 0.6); E.build(); const k1 = T.npcSpot(B);
+      o.move = { newSolid: !!E.solidAt(nx, ny, 0), oldClear: !E.solidAt(P0.x, P0.y, 0), keeper: +(Math.hypot(k1.at[0] - k0.at[0] + 25 * WS, k1.at[1] - k0.at[1]) / WS).toFixed(1), built: !!(T.ST && T.ST.built) };
+      T.setSite('guide_hut', P0.x, P0.y, P0.yaw); E.build(); o.move.back = !!E.solidAt(P0.x, P0.y, 0); }
     return o; });
   console.log(JSON.stringify(R));
   ok(R.lowland, `on the lower playing field (lowlands), ${R.fromLedge} m from the starter Ledge`);
@@ -52,5 +56,6 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.draws <= 30 && R.tris < 70000, `light for mobile: ${R.draws} draw calls, ${R.tris} triangles`); ok(R.text === 0 && R.names === 0, 'no text sprites, no Made in Abyss names');
   if (SHOT) { const fs = require('fs'); fs.mkdirSync(SHOT, { recursive: true }); const V = JSON.parse(process.env.VIEWS || '[["town-est",385,265,1.05,60,0.75]]');
     for (const [name, px, py, az, d, tilt] of V) { await p.evaluate(([px, py, az, d, tilt]) => { const [x, y] = Town.W2(px, py); Explore.enter(x, y); const E = Explore.EX; E.az = az; E.d = d; E.tilt = tilt; for (let k = 0; k < 20; k++) Explore.tick(1 / 30); }, [px, py, az, d, tilt]); await p.waitForTimeout(2500); await p.screenshot({ path: `${SHOT}/${name}.jpg`, type: 'jpeg', quality: 86 }); } }
+  ok(R.move.newSolid && R.move.oldClear && R.move.back && R.move.built && R.move.keeper < 5, `placeable module: guide_hut moved 25 m and back - solid at the new spot ${R.move.newSolid}, old spot clear ${R.move.oldClear}, keeper followed (within ${R.move.keeper} m incl. the turn), rebuilt ${R.move.built}, back ${R.move.back}`);
   ok(!errs.length, 'no page errors ' + errs.slice(0, 2).join(' | '));
   console.log(fails ? 'SOME FAILED' : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0); })();

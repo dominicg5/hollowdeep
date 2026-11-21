@@ -572,9 +572,9 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 #drillCtl,#drillUse{overflow:hidden;background:#6b4322;z-index:40;bottom:72px}
 #drillCtl .dlist,#drillUse .dlist{overflow:auto;max-height:min(60vh,520px);-webkit-overflow-scrolling:touch}
 #drillCtl.kLeather,#drillUse.kLeather{background-color:#6b4322}
-<script>window.HD_BUILD='78acc576';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 78acc576</div>
-<script src="assets/vendor/three.min.js?v=78acc576"></script>
+<script>window.HD_BUILD='b63f5e69';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build b63f5e69</div>
+<script src="assets/vendor/three.min.js?v=b63f5e69"></script>
 <script>
 'use strict';
 
@@ -4690,13 +4690,18 @@ const Town = (() => {
     {id:'inn',name:'Inn',px:18.5*14,py:30.9*14,face:-1,t:1,w:9.4,d:5.6,npc:'hattie'},
     {id:'guide_hut',name:"Guide's Hut",px:39*14,py:31.4*14,face:-1,t:1,w:5.8,d:5.8,round:1,npc:'fennick'}
   ];
+  // standalone sites: drop Art's placement here (world x, y and yaw; yaw 0 = the door faces +y). Applied at load, before the terrain is carved, so each
+  // site's pad, plinth, solids, walk grid, keeper spot and talk spot follow it. Empty = the buildings stay where they are. (Live moves: Town.setSite(id, x, y, yaw); the walk grid follows at once, the terrain mesh under a moved pad only on the next load.)
+  const SITE_AT = {}; // e.g. { general_store: [x, y, yaw], smithy: [x, y, yaw], rope_maker: [...], inn: [...], guide_hut: [...] }
+  for (const B of BLD) { const q = SITE_AT[B.id]; if (q) { B.wx = q[0]; B.wy = q[1]; if (q[2] != null) B.wyaw = q[2]; } }
   const LOTS=[['H1',8.5*14,8.6*14,8*14,6*14],['H2',18.1*14,8.6*14,8*14,6*14],['H3',42.5*14,17.5*14,8*14,6*14],['H4',49*14,32.5*14,8*14,6*14],['H5',18*14,40.2*14,8*14,6*14],['H6',49*14,40.5*14,8*14,6*14],['L1',30*14,24.5*14,0,0,2*14],['L2',52*14,23.5*14,6*14,10*14],['L3',55*14,30*14,0,0,1*14]];
   const SQ={px:30*14,py:24.5*14,r:7*14};
   // world placement of a building: origin at its centre on its terrace, yaw so local +z (the front) points the right way
   // site module: the floor sits at the highest natural ground under the footprint; a stone plinth (Town.ground) runs down below the lowest point so it conforms
   // each site grades a pad round itself (footprint + 1 m flat at the floor, easing back to the natural ground over 4 m) so it can stand on any slope and be walked round
   let PADS = null; function pads() { if (!PADS) { PADS = []; for (const B of BLD) { const P = place(B); PADS.push({ x: P.x, y: P.y, h: P.h - 0.03 * WS, r: (Math.hypot(B.w, B.round ? B.w : B.d) / 2 + 1) * WS }); } } return PADS; }
-  function sitePad(x, y, hm) { if (SKIP || !near(x, y, WS * 40)) return hm; pads();
+  function sitePad(x, y, hm) { if (SKIP) return hm; pads(); if (!PADS.some((q) => Math.abs(x - q.x) < q.r + WS * 5 && Math.abs(y - q.y) < q.r + WS * 5)) return hm; // pads go wherever the sites are placed (not tied to the old town box)
+   
     let h = hm[0], s2 = hm[1]; for (const q of PADS) { const d = Math.hypot(x - q.x, y - q.y) - q.r; if (d > WS * 4) continue; const w = d <= 0 ? 1 : 1 - sm(0, WS * 4, d); h = h + (q.h - h) * w; s2 = s2 * (1 - w); } return [h, s2]; }
   const SH = {}; function siteH(B, x, y, yaw) { if (SH[B.id]) return SH[B.id]; const cs = Math.cos(yaw), sn = Math.sin(yaw), hw = (B.round ? B.w / 2 : B.w / 2) + 0.3, hd = (B.round ? B.w / 2 : B.d / 2) + 0.3; let lo = 1e9, hi = -1e9;
     for (let a = -1; a <= 1; a += 0.25) for (let b = -1; b <= 1; b += 0.25) { const lx = a * hw, lz = b * hd, h = nat(x + (lx * cs + lz * sn) * WS, y + (-lx * sn + lz * cs) * WS); lo = Math.min(lo, h); hi = Math.max(hi, h); }
@@ -4727,7 +4732,9 @@ const Town = (() => {
   const NPCX = { general_store: [-1.9, 1.5], smithy: [1.6, 1.4], bank: [1.9, 1.2], rope_maker: [1.5, 1.2], inn: [-2.0, 1.3], guide_hut: [1.6, 1.3] };
   const PCOL = []; // prop circles (world x, y, r), filled as the meshes are built
   // ---- keep-out for the map's trees, rocks, tufts and focal boulders
-  function hit(x, y, pad) { if (!near(x, y, (pad || 0) + 40)) return false; const [px, py] = P2(x, y); if (inPoly(OUT, px, py)) return true; return edgeD(px, py) * K < (pad || 0) + WS * 3; }
+  const moved = () => BLD.some((B) => B.wx != null);
+  function hit(x, y, pad) { if (SITE) { for (const q of pads()) if (Math.hypot(x - q.x, y - q.y) < q.r + (pad || 0) + WS * 3) return true; if (moved()) return false; } // a site keeps trees, rocks and ore off its pad; until a site is moved the old town ground stays clear too
+    if (!near(x, y, (pad || 0) + 40)) return false; const [px, py] = P2(x, y); if (inPoly(OUT, px, py)) return true; return edgeD(px, py) * K < (pad || 0) + WS * 3; }
   // ---- the connecting footpath: out of the main street's land end, round the town's south-east corner, onto the nearest worn path
   let PTH = null;
   function paths(base) { if (PTH) return PTH; const mid = W2(-5*14,24.5*14); let best = null, bd = 1e9; for (const P of base || []) for (let i = 1; i + 1 < P.length; i += 2) { const d = Math.hypot(P[i] - mid[0], P[i + 1] - mid[1]); if (d >= bd || hit(P[i], P[i + 1], 60)) continue; let clear = true; for (let s = 1; s < 16 && clear; s++) { const t = s / 16; if (hit(mid[0] + (P[i] - mid[0]) * t, mid[1] + (P[i + 1] - mid[1]) * t, 30)) clear = false; } if (clear) { bd = d; best = [P[i], P[i + 1]]; } }
