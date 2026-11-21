@@ -89,6 +89,19 @@ for m in list(head.modifiers): head.modifiers.remove(m)
 dt = head.modifiers.new('dt', 'DATA_TRANSFER'); dt.object = cp; dt.use_loop_data = True; dt.data_types_loops = {'CUSTOM_NORMAL'}; dt.loop_mapping = 'POLYINTERP_NEAREST'
 set_active(head); bpy.ops.object.modifier_apply(modifier='dt'); delete([cp])
 for nm, ob in arm_mods: mm = head.modifiers.new(nm, 'ARMATURE'); mm.object = ob
+# ---- bandana tails sway with the braid (Tess): the tails behind/below the knot go Head -> braid_00 -> braid_01 down their length
+if 'braid_00' in arm.data.bones:
+    for n in [n for n in M if kw(n, 'bandana')]:
+        o = M[n]; g0 = o.vertex_groups.get('braid_00') or o.vertex_groups.new(name='braid_00'); g1 = o.vertex_groups.get('braid_01') or o.vertex_groups.new(name='braid_01'); gh = o.vertex_groups.get('Head') or o.vertex_groups.new(name='Head')
+        nt = 0
+        for v in o.data.vertices:
+            if v.co.y < 0.125 or v.co.z > 1.625: continue   # band + knot stay on Head
+            t = min(1.0, (1.625 - v.co.z) / 0.12); nt += 1
+            for gg in list(o.vertex_groups): gg.remove([v.index])
+            w = {'Head': max(0.0, 1 - 2 * t), 'braid_00': 1 - abs(2 * t - 1), 'braid_01': max(0.0, 2 * t - 1)}
+            for gn, ww in w.items():
+                if ww > 1e-3: o.vertex_groups[gn].add([v.index], ww, 'REPLACE')
+        print('TAILS', n, nt, 'verts -> braid_00/01')
 # ---- per-vertex face AO (extras6: sockets / under the nose / under the jaw), ray-cast against the head + eyes only (no glasses rings)
 bm = bmesh.new(); bm.from_mesh(head.data); bm2 = bmesh.new(); bm2.from_mesh(eyes.data); 
 for v in bm2.verts: bm.verts.new(v.co)
@@ -109,6 +122,20 @@ def set_ao(o, vals):
 set_ao(head, ao)
 for o in M.values():
     if o is not head: set_ao(o, np.ones(len(o.data.vertices), np.float32))
+# ---- skin exposure per keeper: the game's ACES + 1.25 exposure lifts a tan mid tone pale on the lit side, so scale skin texels down
+# through the same vertex-colour channel (only vertices whose atlas texel is skin-hued, on the head and the bare-skin base parts)
+SKIN_GAIN = {}.get(K)   # e.g. {'hattie': 0.84}; off: Hattie's v1.1 tan already renders at or below #E09B63 mid under ACES (lit-side median #BD7C48)
+if SKIN_GAIN:
+    from PIL import Image as _I
+    atl = np.asarray(_I.open(os.path.join(ART, K + '_atlas_1024.png')).convert('RGB')).astype(int); nsk = 0
+    for o in [head] + [M[n] for n in M if kw(n, 'peasant_arms', 'peasant_body', 'peasant_legs')]:
+        uvl = o.data.uv_layers.active.data; at = o.data.attributes['ao']; hit = set()
+        for l in o.data.loops:
+            u, v = uvl[l.index].uv; px = atl[min(1023, max(0, int((1 - v) * 1024))), min(1023, max(0, int(u * 1024)))]
+            if px[0] > px[1] + 25 and px[1] > px[2] + 12 and px[0] > 140: hit.add(l.vertex_index)
+        for i in hit: at.data[i].value *= SKIN_GAIN
+        nsk += len(hit)
+    print('SKIN_GAIN', K, SKIN_GAIN, nsk, 'verts')
 # ---- softer curl lobes: blend each lobe's normals toward the radial direction from the lobe centre (no 6-sided zig-zag bands)
 def soften(o, k=0.55):
     bm = bmesh.new(); bm.from_mesh(o.data); bm.verts.ensure_lookup_table(); seen = set(); nrm = [Vector(v.normal) for v in bm.verts]
