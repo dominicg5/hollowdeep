@@ -1,11 +1,13 @@
 // Drill stand setup UI: the backpack stand (seeded, one per drill left, plus a Mithril bit), its "Set up at nearest ore" menu (ore within a 5 s walk at her run speed, type + distance,
-// or "No ore within 5 s walk"), confirm walks her there and deploys; one lower-left HUD icon per active drill (stacked, clear of the minimap / Walk-Run bar / Map
-// button, touch-sized); tapping it opens the drill panel (ore + location, bit, rate, mined, coal + burn, status, tether need vs available, pick up); long-press still deploys
+// or "No ore within 5 s walk"), confirm walks her there and deploys; one lower-left HUD button for all placed drills (clear of the minimap / Walk-Run bar / Map
+// button, touch-sized); tapping it opens a read-only stats list (stand, bit, angle, speed, throughput, hopper, Ledge Tether metres, status — no bit slots or pick-up / swap actions);
+// those actions live on a proximity prompt at the drill itself; long-press still deploys
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  try {
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 })).newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.goto(URL); await p.waitForTimeout(1000); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 200000 }).catch(() => {}); await p.waitForTimeout(800);
@@ -30,30 +32,50 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   console.log(JSON.stringify(n1.X)); ok(!n1.X.err && n1.txt && n1.txt.includes(n1.X.name + ' ore') && /\d+ m away · [\d.]+ s walk/.test(n1.txt) && !n1.dis, `near ore the menu shows the ore type and distance (${n1.txt && n1.txt.replace(/\s+/g, ' ').slice(0, 90)})`); ok(n1.X.s <= 5, `nearest ore within 5 s walk (${n1.X.s} s)`);
   await shot('menu.png');
   const n2 = await p.evaluate(async () => { const D = Explore.drillState(), c0 = D.list.length, l0 = D.left; document.querySelector('.cxdrill [data-cx=dset]').click(); await new Promise((r) => setTimeout(r, 100)); const pend = Explore.EX.pend, modal = !!document.querySelector('.cxdrill');
-    let t = 0; while (Explore.EX.pend === 'drill' && t < 900) { Explore.tick(1 / 30); t++; } const d = D.list[D.list.length - 1], h = Explore.here(), n = Explore.ORE.nodes[d.node];
-    return { pend, modal, t: +(t / 30).toFixed(1), added: D.list.length - c0, left: l0 - D.left, item: Craft.get('bag', 'stand:iron') === D.left, tier: d.tier, stand: d.stand, node: d.node, dist: Math.hypot(n.x - h[0], n.y - h[1]) / Explore.WS, mesh: !!Explore.DRILL.meshes.get(d.id), panel: document.getElementById('drillCtl').classList.contains('on') }; });
+    let t = 0; while (Explore.EX.pend && t < 900) { Explore.tick(1 / 30); t++; } const d = D.list[D.list.length - 1], h = Explore.here(), n = Explore.ORE.nodes[d.node];
+    return { pend, modal, t: +(t / 30).toFixed(1), added: D.list.length - c0, left: l0 - D.left, item: Craft.get('bag', 'stand:iron') === D.left, tier: d.tier, stand: d.stand, node: d.node, dist: Math.hypot(n.x - h[0], n.y - h[1]) / Explore.WS, mesh: !!Explore.DRILL.meshes.get(d.id), panel: !!(document.getElementById('drillUse') && document.getElementById('drillUse').classList.contains('on')) }; });
   console.log(JSON.stringify(n2)); ok(n2.pend === 'drill' && !n2.modal, 'confirm closes the backpack and she sets off'); ok(n2.added === 1 && n2.left === 1 && n2.item && n2.node === n1.X.node, `she walks there (${n2.t} s) and the drill is deployed on that ore; one stand and one Mithril bit used`); ok(n2.tier === 'mithril' && n2.stand === 'iron' && n2.mesh, 'mithril bit on a Riveted Iron stand, drill model on the map (same deploy as long-press)');
   await p.evaluate(() => Explore.drillPanel(null));
-  // second drill -> two stacked HUD icons
-  const h2 = await p.evaluate(async () => { const r = Explore.drillSetup(); let t = 0; while (Explore.EX.pend === 'drill' && t < 900) { Explore.tick(1 / 30); t++; } Explore.drillPanel(null); for (let i = 0; i < 20; i++) Explore.tick(1 / 30); Explore.drillHud();
+  // second drill -> still one HUD button for every placed drill
+  const h2 = await p.evaluate(async () => { const r = Explore.drillSetup(); let t = 0; while (Explore.EX.pend && t < 900) { Explore.tick(1 / 30); t++; } Explore.drillPanel(null); for (let i = 0; i < 20; i++) Explore.tick(1 / 30); Explore.drillHud();
     const R = (q) => { const e = document.querySelector(q); if (!e || e.offsetParent === null) return null; const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; }, B = [...document.querySelectorAll('#drillHud .dh')].map((e) => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; });
     const hit = (a, c) => a && c && a[0] < c[2] && c[0] < a[2] && a[1] < c[3] && c[1] < a[3]; const others = ['#miniMap', '#exploreBar', '#exMapBtn', '#exBagBtn', '#cityHint', '.cityBtns', '#cityInfo', '.cityTitle', '#ticker'].map((q) => [q, R(q)]).filter((x) => x[1]);
     return { err: r.err || null, n: B.length, B, over: others.filter(([q, o]) => B.some((bb) => hit(bb, o))).map((x) => x[0]), stack: B.length < 2 || B.every((bb, i) => i === 0 || bb[3] <= B[i - 1][1] + 0.5 || B[i - 1][3] <= bb[1] + 0.5), min: Math.min(...B.map((bb) => Math.min(bb[2] - bb[0], bb[3] - bb[1]))), lowLeft: B.every((bb) => bb[0] < 80 && bb[1] > innerHeight * 0.35) }; });
-  console.log(JSON.stringify(h2)); ok(h2.n === 2 && h2.stack, `one HUD icon per active drill, stacked (${h2.n})`); ok(!h2.over.length, `HUD icons clear of the other buttons (${h2.over.join(',') || 'none'})`); ok(h2.min >= 44 && h2.lowLeft, `touch-sized (${h2.min}px) in the lower left`);
+  console.log(JSON.stringify(h2)); ok(h2.n === 1, `one HUD button for all placed drills (${h2.n})`); ok(!h2.over.length, `HUD button clear of the other buttons (${h2.over.join(',') || 'none'})`); ok(h2.min >= 44 && h2.lowLeft, `touch-sized (${h2.min}px) in the lower left`);
   await shot('hud.png');
   // tap the icon: the panel
   const pn = await p.evaluate(async () => { document.querySelector('#drillHud .dh').click(); await new Promise((r) => setTimeout(r, 100)); const c = document.getElementById('drillCtl'), t = c.textContent;
-    return { on: c.classList.contains('on'), t, sel: !!document.querySelector('#drillHud .dh.sel'), acts: [...c.querySelectorAll('[data-k=act] button')].map((b) => b.textContent), bit: !!c.querySelector('[data-k=bit] button.on') }; });
-  const T = pn.t; ok(pn.on && pn.sel, 'tapping the icon opens its drill panel');
-  ok(/ore/.test(T) && /📍 \d+ m from the Ledge door/.test(T), 'panel: ore type and location'); ok(pn.bit && /mines \d+ ore\/h/.test(T), 'panel: bit tier and mining rate'); ok(/Mined so far \d+ ore/.test(T) && /hopper \d+\/\d+/.test(T), 'panel: ore mined / in storage');
-  ok(/coal \d+\/\d+/.test(T) && /burns \d+ coal\/h/.test(T), 'panel: coal level and burn rate'); ok(/Running|Out of coal|Full|Idle/.test(T), 'panel: status'); ok(/needs \d+ m · available \d+ m/.test(T) && pn.acts.some((a) => /Tether to Ledge/.test(a)), 'panel: tether need vs available, Tether to Ledge'); ok(pn.acts.includes('Pick up drill'), 'panel: pick up');
+    return { on: c.classList.contains('on'), t, sel: !!document.querySelector('#drillHud .dh.sel'), acts: [...c.querySelectorAll('[data-k=act] button, .prow')].map((b) => b.textContent.trim()), bit: !!c.querySelector('[data-k=bit] button'), cards: c.querySelectorAll('.dcard').length, foot: /Actions live on the drill prompt/.test(t) }; });
+  const T = pn.t; ok(pn.on && pn.sel, 'tapping the HUD button opens the drill stats menu');
+  ok(pn.cards === 2 && pn.foot && !pn.bit && !pn.acts.length, 'stats menu lists every placed drill and has no bit slots or action buttons');
+  ok(/ore/.test(T) && /📍 \d+ m from the Ledge door/.test(T), 'panel: ore type and location');
+  ok(/Stand/.test(T) && /Riveted Iron/.test(T) && /Bit/.test(T) && /Mithril/.test(T), 'panel: stand and bit tier');
+  ok(/Angle/.test(T) && /-?\d+°/.test(T), 'panel: angle');
+  ok(/Speed/.test(T) && /\d+ ore\/h/.test(T) && /Throughput/.test(T), 'panel: speed and throughput');
+  ok(/Hopper/.test(T) && /\d+\/\d+/.test(T), 'panel: hopper');
+  ok(/Running|Out of coal|Hopper full|Idle|No bit|too soft/.test(T), 'panel: status');
+  ok(/Ledge Tether/.test(T) && /needs \d+ m · available \d+ m/.test(T), 'panel: Ledge Tether need vs available (read-only)');
   await shot('panel.png');
   // tether it, then untether; pick up removes the icon and returns the drill to the backpack
-  const pu = await p.evaluate(async () => { const D = Explore.drillState(); D.tetherM = 1e6; const c = document.getElementById('drillCtl'), btn = (re) => [...c.querySelectorAll('[data-k=act] button')].find((b) => re.test(b.textContent)); btn(/Tether to Ledge/).click(); const d = Explore.DRILL.sel, wired = !!d.port, lab = btn(/Untether/) ? 'Untether' : '';
-    btn(/Untether/).click(); const unw = !d.port; const n0 = D.list.length, i0 = Craft.get('bag', 'stand:iron'), b0 = Craft.get('bag', 'bit:mithril'); btn(/Pick up drill/).click(); Explore.drillHud(); return { wired, lab, unw, gone: n0 - D.list.length, item: Craft.get('bag', 'stand:iron') - i0, bit: Craft.get('bag', 'bit:mithril') - b0, icons: document.querySelectorAll('#drillHud .dh').length, panel: c.classList.contains('on') }; });
-  console.log(JSON.stringify(pu)); ok(pu.wired && pu.lab && pu.unw, 'Tether to Ledge strings it, Untether frees it'); ok(pu.gone === 1 && pu.item === 1 && pu.bit === 1 && pu.icons === 1 && !pu.panel, 'Pick up removes the drill and its icon, the stand and bit go back in the backpack');
+  const pu = await p.evaluate(async () => { const D = Explore.drillState(); D.tetherM = 1e6; Explore.drillPanel(null);
+    const d = D.list.filter((q) => !q.camp).slice(-1)[0], xy = [d.sx, d.sy];
+    const at = Explore.reach(xy[0], xy[1]); Explore.enter(at[0], at[1]);
+    for (let i = 0; i < 20; i++) Explore.tick(1 / 30);
+    Explore.drillInteract(d);
+    const near = Explore.drillNearMe(d), pr = Explore.DRILL.prompts && Explore.DRILL.prompts.get(d.id), prompt = !!(Explore.DRILL.near === d && pr && pr.lab && pr.lab.visible);
+    const u = document.getElementById('drillUse'), btn = (re) => [...u.querySelectorAll('button')].find((b) => re.test(b.textContent));
+    btn(/Tether to Ledge/).click(); const wired = !!d.port, lab = btn(/Untether/) ? 'Untether' : '';
+    btn(/Untether/).click(); const unw = !d.port; const n0 = D.list.length, i0 = Craft.get('bag', 'stand:iron'), b0 = Craft.get('bag', 'bit:mithril');
+    btn(/Pick up drill/).click(); Explore.drillHud();
+    return { near, prompt, use: u.classList.contains('on') === false, wired, lab, unw, gone: n0 - D.list.length, item: Craft.get('bag', 'stand:iron') - i0, bit: Craft.get('bag', 'bit:mithril') - b0, icons: document.querySelectorAll('#drillHud .dh').length, stats: document.getElementById('drillCtl').classList.contains('on') }; });
+  console.log(JSON.stringify(pu)); ok(pu.near && pu.prompt, 'walking up to the drill shows the in-world prompt (within 3–4 m)');
+  ok(pu.wired && pu.lab && pu.unw, 'Tether to Ledge from the drill prompt strings it, Untether frees it');
+  ok(pu.gone === 1 && pu.item === 1 && pu.bit === 1 && pu.icons === 1 && !pu.stats && pu.use, 'Pick up at the drill removes it, the HUD button remains for the other drill, and the stand and bit go back in the backpack');
   // the old long-press deploy still works (and also spends one stand and one bit)
   const lp = await p.evaluate(async () => { const D = Explore.drillState(), WS = Explore.WS, h = Explore.here(), used = new Set(D.list.map((d) => d.node)); const N = Explore.ORE.nodes; const n = N.filter((q) => !used.has(N.indexOf(q)) && !q.cliff).sort((a, b) => Math.hypot(a.x - h[0], a.y - h[1]) - Math.hypot(b.x - h[0], b.y - h[1]))[0];
     for (let i = 0; i < 5; i++) Explore.tick(1 / 30); const s = M3.project(n.x, n.y, n.s * 0.5), c0 = D.list.length, i0 = Craft.get('bag', 'stand:iron'), r = Explore.longPress(s[0], s[1]); Explore.drillPanel(null); return { r, added: D.list.length - c0, item: i0 - Craft.get('bag', 'stand:iron') }; });
   console.log(JSON.stringify(lp)); ok(lp.r && lp.added === 1 && lp.item === 1, 'long-press on an ore node still deploys a drill (and spends a stand and a bit)');
-  ok(!errs.length, 'no page errors ' + errs.slice(0, 2).join(' | ')); console.log(fails ? 'SOME FAILED' : 'ALL PASS'); await b.close(); })();
+  ok(!errs.length, 'no page errors ' + errs.slice(0, 2).join(' | ')); console.log(fails ? 'SOME FAILED' : 'ALL PASS');
+  if (fails) process.exitCode = 1;
+  } finally { await b.close().catch(() => {}); }
+})().catch((e) => { console.error(e); process.exit(1); });

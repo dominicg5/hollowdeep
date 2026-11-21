@@ -36,12 +36,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const wired = Explore.drillWire(hit, true);
     Explore.drillPanel(hit);
     const box = document.getElementById('drillCtl'), T = box ? box.textContent : '';
-    const btn = box && [...box.querySelectorAll('[data-k=act] button')].find((b) => /Tether to Ledge|Untether/.test(b.textContent));
+    Explore.drillInteract(hit);
+    const use = document.getElementById('drillUse');
+    const btn = use && [...use.querySelectorAll('button')].find((b) => /Tether to Ledge|Untether/.test(b.textContent));
     return {
       found: true, id: hit.id, type: hit.type, need, cap, used, capFree: cap - used, owned, bag, vault,
       bagM: Craft.get('bag', 'tether:mithril'), vaultM: Craft.get('vault', 'tether:mithril'),
       wired, port: hit.port || null, toasts, panel: T.replace(/\s+/g, ' ').trim(),
-      notEnough: /not enough/i.test(T), btn: btn && btn.textContent, dis: !!(btn && btn.classList.contains('dis'))
+      notEnough: /not enough/i.test(T), btn: btn && btn.textContent.trim(), dis: !!(btn && btn.classList.contains('dis'))
     };
   });
   console.log(JSON.stringify(far));
