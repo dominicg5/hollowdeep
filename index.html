@@ -441,9 +441,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='60e4d3ce';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 60e4d3ce</div>
-<script src="assets/vendor/three.min.js?v=60e4d3ce"></script>
+<script>window.HD_BUILD='2e694d8d';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 2e694d8d</div>
+<script src="assets/vendor/three.min.js?v=2e694d8d"></script>
 <script>
 'use strict';
 
@@ -4564,6 +4564,18 @@ Town.kit = (() => {
   function door(x, y, z, w, h, o) { o = o || {}; arch('woodV', x, y, z, w, h, o.col || 0.85); archFrame(x, y, z + 0.015, w, h, o.stone ? 0.22 : 0.15, o.stone ? 'stone' : 'wood', o.stone);
     for (const yy of [0.45, 1.15]) { box('iron', [x - w * 0.31, y + yy, z + 0.03], [w * 0.5, 0.075, 0.055], 0.8); cyl('brass', [x + w * 0.23, y + yy, z + 0.06], 0.04, 0.04, 0.035, 6, 1, [Math.PI / 2, 0, 0], { top: true }); }
     torus('brass', [x + w * 0.23, y + 0.9, z + 0.09], 0.085, 0.025, null, 10, 1); }
+  // extras4 store_door_window_fix: arched plank door 1.20 x 2.20 (r 0.60 springing at 1.60) set 0.08 back in a 0.20 frame 0.05 proud, 5 planks,
+  // iron straps at 0.45 / 1.75 with 4 rivets, hinge pins on the left, ring pull at 1.00 (~260 tris)
+  function plankDoor(x, y, z, o) { o = o || {}; const w = 1.2, h = 2.2, r = 0.6, zd = z - 0.08; arch('woodV', x, y, zd, w, h, 0.78);
+    for (let i = 1; i < 5; i++) { const gx = x - w / 2 + i * 0.24, top = (h - r) + Math.sqrt(Math.max(0, r * r - (gx - x) * (gx - x))) - 0.03; box('wood', [gx, y, zd + 0.006], [0.018, top, 0.01], 0.42); }
+    archFrame(x, y, z + 0.05, w, h, 0.2, o.stone ? 'stone' : 'wood', o.stone);
+    for (const yy of [0.45, 1.75]) { box('iron', [x - 0.1, y + yy - 0.04, zd + 0.02], [0.95, 0.08, 0.025], 0.55); for (let i = 0; i < 4; i++) cyl('iron', [x - 0.5 + 0.13 + i * 0.23, y + yy, zd + 0.035], 0.018, 0.018, 0.02, 5, 0.75, [Math.PI / 2, 0, 0], { top: true }); cyl('iron', [x - w / 2 + 0.03, y + yy - 0.07, zd + 0.04], 0.025, 0.025, 0.14, 6, 0.6); }
+    torus('brass', [x + 0.4, y + 1.0, zd + 0.06], 0.05, 0.012, null, 10, 1); cyl('brass', [x + 0.4, y + 1.05, zd + 0.02], 0.022, 0.022, 0.04, 6, 1, [Math.PI / 2, 0, 0], { top: true }); }
+  // 4-pane window 1.00 x 1.20: frame 0.10, cross bar 0.05, glass 0.06 back (day #3A4A48), lintel 1.20 x 0.15, sill 1.20 x 0.08 0.15 proud (~120 tris)
+  function win4(x, y, z, o) { o = o || {}; const w = o.w || 1.0, h = o.h || 1.2, f = 0.1; B.at([x, y, z - 0.06]); B.quad('glowWin', [-w / 2 + f, f, 0], [w / 2 - f, f, 0], [w / 2 - f, h - f, 0], [-w / 2 + f, h - f, 0], [0.26, 0.33, 0.32]);
+    for (const sg of [-1, 1]) box('wood', [x + sg * (w / 2 - f / 2), y, z], [f, h, 0.1], 0.72); box('wood', [x, y, z], [w, f, 0.1], 0.72); box('wood', [x, y + h - f, z], [w, f, 0.1], 0.72);
+    box('wood', [x, y + f, z - 0.03], [0.05, h - 2 * f, 0.06], 0.7); box('wood', [x, y + h / 2 - 0.025, z - 0.03], [w - 2 * f, 0.05, 0.06], 0.7);
+    box('wood', [x, y + h, z + 0.02], [w + 0.2, 0.15, 0.16], 0.62); box('stone', [x, y - 0.08, z + 0.07], [w + 0.2, 0.08, 0.3], 0.85); }
   function win(x, y, z, w, h, o) { o = o || {}; arch('glowWin', x, y, z, w, h, [0.95, 0.9, 0.78]); archFrame(x, y, z + 0.02, w, h, 0.11, 'wood'); box('wood', [x, y - 0.08, z + 0.02], [w + 0.3, 0.13, 0.24], 0.9);
     if (o.shutters) for (const sg of [-1, 1]) { box('woodV', [x + sg * (w * 0.65 + 0.08), y + 0.05, z - 0.04], [w * 0.32, h * 0.72, 0.09], [0.75, 0.8, 0.62]); box('iron', [x + sg * (w * 0.65 + 0.08), y + h * 0.25, z + 0.02], [w * 0.32, 0.035, 0.03], 0.6); } }
   function lamp(x, y, z, scale) { const s = scale || 1; box('brass', [x, y + 0.1 * s, z], [0.25 * s, 0.06 * s, 0.25 * s], 0.85); cyl('glowTeal', [x, y + 0.16 * s, z], 0.1 * s, 0.1 * s, 0.38 * s, 8, [0.75, 0.95, 0.9]); cyl('brass', [x, y + 0.52 * s, z], 0.17 * s, 0.06 * s, 0.13 * s, 8, 0.9, null, { top: true });
@@ -4594,7 +4606,7 @@ Town.kit = (() => {
     const tilt = [0.0, ry, -0.75]; B.at([x, 1.55, z], tilt); const T = new THREE.Matrix4().compose(new THREE.Vector3(x, 1.55, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, -0.75)), new THREE.Vector3(1, 1, 1)), P = (a, b, c) => new THREE.Vector3(a, b, c).applyMatrix4(T).toArray();
     cyl('brass', P(0, 0, 0), 0.24, 0.24, 0.55, 10, 1, tilt, { top: true, bot: true }); cyl('iron', P(0, 0.55, 0), 0.16, 0.16, 0.12, 8, 0.8, tilt, { top: true }); cyl('brass', P(0, -0.55, 0), 0.2, 0.02, 0.0001, 8, 1, tilt);
     cyl('brass', P(0, 0, 0), 0.19, 0.03, -1.0, 10, [1.15, 1.0, 0.6], tilt); for (let i = 0; i < 14; i++) { const t = i / 14, r = 0.21 * (1 - t) + 0.03, a = t * Math.PI * 6; box('brass', P(Math.cos(a) * r, -t * 1.0, Math.sin(a) * r), [0.07, 0.05, 0.16], [1.2, 1.05, 0.55], [tilt[0], tilt[1] - a, tilt[2]]); } }
-  return { drill, set, prop, box, cyl, lump, beam, log, torus, arch, archFrame, door, win, lamp, crystal, crate, barrel, sack, sign, porch, corners, trussFront, frontRoof, chimney, dormer, awning };
+  return { drill, set, prop, box, cyl, lump, beam, log, torus, arch, archFrame, door, plankDoor, win4, win, lamp, crystal, crate, barrel, sack, sign, porch, corners, trussFront, frontRoof, chimney, dormer, awning };
 })();
 /* ---- the six buildings (per-building folders are the design source): local metres, ground at the terrace top, front toward +z ---- */
 Town.houses = (() => {
@@ -4602,19 +4614,19 @@ Town.houses = (() => {
   const ST = [0.96, 0.94, 0.9], WD = 0.92;
   function general_store() { // 1.5 x 1.25 SU, 1.5 storeys: fieldstone ground floor, timber-framed upper floor, moss roof + dormer, striped awning, porch with goods, crate lean-to on the right
     const x0 = -4.05, x1 = 4.05, cx = (x0 + x1) / 2, z0 = -3.25, z1 = 3.25, w = x1 - x0, d = z1 - z0, cz = (z0 + z1) / 2;
-    box('stone', [cx, 0, cz], [w, 1.2, d], ST); box('plaster', [cx, 1.2, cz], [w - 0.1, 2.7, d - 0.1], 0.95); k.corners(w, d, 3.9, 0, {}); B.at();
-    for (const z of [z1 + 0.02]) { k.beam([x0, 2.5, z], [x1, 2.5, z], 0.2, 'wood'); k.beam([x0, 3.9, z], [x1, 3.9, z], 0.18, 'wood'); for (let i = 1; i < 5; i++) k.beam([x0 + w * i / 5, 2.5, z], [x0 + w * i / 5, 3.9, z], 0.14, 'wood'); k.beam([x0 + 0.3, 2.6, z], [x0 + w * 0.2, 3.45, z], 0.11, 'wood'); k.beam([x1 - 0.3, 2.6, z], [x1 - w * 0.2, 3.45, z], 0.11, 'wood'); }
-    for (const x of [x0 - 0.03, x1 + 0.03]) { k.beam([x, 3.9, z0], [x, 3.9, z1], 0.18); k.beam([x, 3.9, z0 + 0.3], [x, 6.9, cz], 0.14); k.beam([x, 3.9, z1 - 0.3], [x, 6.9, cz], 0.14); k.beam([x, 3.9, cz], [x, 6.95, cz], 0.14); }
+    box('stone', [cx, 0, cz], [w, 1.2, d], ST); box('plaster', [cx, 1.2, cz], [w - 0.1, 2.7, d - 0.1], 0.95); k.corners(w, d, 3.9, 0, {}); for (const xx of [x0, x1]) for (const zz of [z0, z1]) k.beam([xx, .5, zz], [xx, 3.9, zz], .34, 'wood', .8); B.at();
+    for (const z of [z1 + 0.02]) { k.beam([x0, 2.5, z], [x1, 2.5, z], 0.28, 'wood'); k.beam([x0, 3.9, z], [x1, 3.9, z], 0.26, 'wood'); for (let i = 1; i < 5; i++) k.beam([x0 + w * i / 5, 2.5, z], [x0 + w * i / 5, 3.9, z], 0.24, 'wood'); k.beam([x0 + 0.3, 2.6, z], [x0 + w * 0.2, 3.45, z], 0.20, 'wood'); k.beam([x1 - 0.3, 2.6, z], [x1 - w * 0.2, 3.45, z], 0.20, 'wood'); }
+    for (const x of [x0 - 0.03, x1 + 0.03]) { k.beam([x, 3.9, z0], [x, 3.9, z1], 0.28); k.beam([x, 3.9, z0 + 0.3], [x, 6.9, cz], 0.26); k.beam([x, 3.9, z1 - 0.3], [x, 6.9, cz], 0.26); k.beam([x, 3.9, cz], [x, 6.95, cz], 0.26); }
     B.gable([0, 0, 0], x0, x1, z0, z1, 3.9, 7.0, 0.55, 0.22, { wall: 'plaster', wallCol: 0.9, sd: 11 }); k.log([x0 - 0.75, 7.2, cz], [x1 + 0.75, 7.25, cz], 0.175, 1, true);
     k.dormer(cx - 0.9, 4.0, 1.0, 1.3, 1.4); k.chimney(x0 + 0.7, z0 + 0.8, 4.0, 7.2, 0.8, 0.8);
-    k.door(0.35, 0.4, z1 + 0.03, 1.2, 2.2); k.win(-1.9, 0.9, z1 + 0.03, 0.85, 1.15, { shutters: 1 }); k.win(-1.4, 2.65, z1 + 0.04, 0.6, 0.7); k.win(1.25, 0.95, z1 + 0.03, 0.55, 0.85);
+    k.plankDoor(0.35, 0.4, z1 + 0.03, { stone: 1 }); k.win4(-1.9, 1.3, z1 + 0.05); k.win4(1.95, 1.3, z1 + 0.05); k.win4(-1.4, 2.62, z1 + 0.06, { w: 0.8, h: 0.95 });
     k.awning(0, 2.95, z1 + 0.05, 7.5, 1.35); k.porch(cx, z1 + 0.6, w + 0.3, 1.15, 0.32, 2); k.lamp(-0.55, 1.6, z1 + 0.18, 1);
     // goods: ore barrels and a crystal crate on the porch, sacks
     k.barrel(-3.0, 0.3, z1 + 0.65, 0.33, 0.75); k.barrel(-2.35, 0.3, z1 + 0.7, 0.3, 0.7); for (const [x, z] of [[-3.0, z1 + 0.65], [-2.35, z1 + 0.7]]) for (let i = 0; i < 4; i++) k.crystal(x + (i % 2 - 0.5) * 0.25, 1.0, z + (i > 1 ? 0.1 : -0.1), 0.06, 0.2 + i * 0.03);
     k.crate(1.35, 0.32, z1 + 0.6, 0.6, { crystal: 1 }); k.sack(-1.1, 0.32, z1 + 0.85, 0.26, 0.5); k.sack(2.35, 0, z1 + 1.15, 0.3, 0.55);
     // Reuse the established crate dressing on the street-side left, outside the wall; no new filler props.
     for (const [x,y,z,sz] of [[-4.7,0,2.5,.9],[-4.7,.9,2.5,.8],[-4.7,0,1.5,.9]]) k.crate(x,y,z,sz);
-    k.sign('general_store', 2.4, 1.85, z1 + 0.2); for (let i = 0; i < 6; i++) lump('moss', [x0 + 0.2 + i * 0.9, 0, z1 + 0.05 + (i % 2) * 0.1], [0.35, 0.22, 0.25], [0.9, 1, 0.85], 5 + i);
+    k.sign('general_store', 3.35, 2.0, z1 + 0.2); for (let i = 0; i < 6; i++) lump('moss', [x0 + 0.2 + i * 0.9, 0, z1 + 0.05 + (i % 2) * 0.1], [0.35, 0.22, 0.25], [0.9, 1, 0.85], 5 + i);
     return { foot: [[x0, z0, x1, z1 + 1.2]] }; }
   function smithy() { // 1.75 x 1.25 SU: fat stone chimney / forge tower on the left with a glowing mouth, timber crane arm with pulley and hook, open-sided work shed, the gold spiral drill on its tripod out front
     const x0 = -1.4, x1 = 3.9, z0 = -2.6, z1 = 1.5, w = x1 - x0, d = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
