@@ -25,7 +25,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
     const r = await p.evaluate((id) => { const n = Town.folk.ST.list.find((q) => q.id === id), a = M3.project(n.x, n.y, n.hgt * 0.85); return { a, r: Explore.tap(a[0], a[1]) }; }, id);
     await p.evaluate(() => { for (let k = 0; k < 600 && Town.folk.ST.walking; k++) Explore.tick(1 / 30); }); await p.waitForTimeout(1500);
     const d = await p.evaluate(() => { const e = document.getElementById('townDlg'); return e && { on: !e.classList.contains('hidden'), txt: e.querySelector('.tdWell p').textContent, img: e.querySelector('.tdPort').style.backgroundImage, name: e.querySelector('.tdName').textContent, who: Town.folk.ST.talk && Town.folk.ST.talk.id }; });
-    ok(r.r === 'npc' && d && d.on && d.who === id && d.img.includes(id), `tap ${id} (${r.r}): walks up, dialogue opens with the portrait (${d && d.name}: "${d && d.txt.slice(0, 40)}...")`);
+    ok(r.r === 'npc' && d && d.on && d.who === id && d.img.includes(id + '_'), `tap ${id} (${r.r}): walks up, dialogue opens with the expression portrait (${d && d.name}: "${d && d.txt.slice(0, 40)}...")`);
     await snap(`town-dlg-${id}`);
     if (!d || !d.on) continue;
     await p.click('#townDlg .tdWell p'); const last = await p.evaluate(() => [...document.querySelectorAll('#townDlg .tdBtns button')].map((b) => b.dataset.a));
