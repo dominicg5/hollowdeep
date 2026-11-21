@@ -9,7 +9,12 @@ const Craft = (() => {
   TIERS.forEach(([k, n, c], i) => { ITEMS['ingot:' + k] = { name: n + ' ingot', short: n, emoji: '🧱', col: c, kind: 'ingot', tier: i };
     for (const [t, tn, e] of TOOLS) ITEMS['tool:' + t + '_' + k] = { name: n + ' ' + tn.toLowerCase(), short: n, emoji: e, col: c, kind: 'tool', tool: t, tier: i }; });
   for (const [k, n, c] of TIERS) ITEMS['tether:' + k] = { name: n + ' Ledge Tether', short: n + ' Tether', emoji: '🪢', col: c, kind: 'teth', tool: 'lifeline', unit: 'm', grade: k }; // coils measured in metres: lay drop tethers, upgrade / swap strands (Tether Orb)
-  ITEMS['drill:mithril'] = { name: 'Mithril Drill', short: 'Mithril Drill', emoji: '🛠️', col: '#9cc0e6', kind: 'drill' }; // one per drill she has left to set up (S.drills.left); not traded or stored
+  // drill split: a stand (4 tiers) plus a swappable bit (8 tiers). The old 'drill:mithril' id is kept only so a leftover count still migrates; it is not seeded or shown once empty.
+  const STAND_T = [['timber', 'Lashed Timber', '#7A5230'], ['iron', 'Riveted Iron', '#4E5258'], ['brass', 'Brass-Banded', '#D2A04A'], ['lumenite', 'Lumenite Inlay', '#5FE8F0']];
+  const BIT_T = [['bronze', 'Bronze', '#B07F45'], ['iron', 'Iron', '#80858D'], ['steel', 'Steel', '#6B7580'], ['gold', 'Gold', '#E6B640'], ['mithril', 'Mithril', '#6F97C6'], ['rune', 'Rune', '#3B424C'], ['lumen', 'Lumen', '#7FF4FF'], ['onyx', 'Ember Onyx', '#16131A']];
+  for (const [k, n, c] of STAND_T) ITEMS['stand:' + k] = { name: n + ' Stand', short: n, emoji: '🛠️', col: c, kind: 'stand', stand: k };
+  for (const [k, n, c] of BIT_T) ITEMS['bit:' + k] = { name: n + ' Bit', short: n, emoji: '🔩', col: c, kind: 'bit', grade: k };
+  ITEMS['drill:mithril'] = { name: 'Mithril Drill', short: 'Mithril Drill', emoji: '🛠️', col: '#9cc0e6', kind: 'drill', legacy: true };
   // ---- recipes (placeholders; cost climbs steeply per tier)
   const coal = (i) => Math.round(1.6 ** i);
   const SMELT = [
@@ -30,8 +35,15 @@ const Craft = (() => {
   const sellP = (id) => Math.max(1, Math.floor(value(id) * 0.8)), buyP = (id) => Math.max(1, Math.ceil(value(id) * 1.15));
   // ---- storage: backpack = S.backpack {id:n}; vault = S.ledgeVault (ores/ingots/gear) with iron, coal, steel living in S.res
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
-  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) S.backpack['drill:mithril'] = n; } if (!S.tetherSeed) { S.tetherSeed = 1; S.backpack['tether:mithril'] = (S.backpack['tether:mithril'] || 0) + 4000; } return S.backpack; } // first run: the Mithril Drills are seeded into the backpack
-  function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines', 'coils']) v[k] = v[k] || {}; if (!S.coilSeed) { S.coilSeed = 1; for (const [k] of TIERS) v.coils[k] = (v.coils[k] || 0) + 5000; } return v; } // first run: 5000 m of every Ledge Tether grade in the vault (to try swaps)
+  function migrateDrillSplit() { if (typeof S === 'undefined' || !S || S.drillSplit) return;
+    S.drillSplit = 1;
+    const conv = (obj, key) => { if (!obj) return 0; const n = Math.floor(obj[key] || 0); if (n > 0) { delete obj[key]; obj['stand:iron'] = (obj['stand:iron'] || 0) + n; obj['bit:mithril'] = (obj['bit:mithril'] || 0) + n; } return n; };
+    conv(S.backpack, 'drill:mithril');
+    const g = S.ledgeVault && S.ledgeVault.gear; if (g) { const n = Math.floor(g.mithril || 0); if (n > 0) { delete g.mithril; g.iron = (g.iron || 0) + n; g.mithril = (g.mithril || 0) + n; } }
+    for (const key of ['bagOrder', 'vaultOrder']) { const O = S[key]; if (!Array.isArray(O)) continue; let bit = false; for (let i = 0; i < O.length; i++) if (O[i] === 'drill:mithril') { O[i] = 'stand:iron'; if (!bit) { const j = O.indexOf(null); if (j >= 0) O[j] = 'bit:mithril'; else O.push('bit:mithril'); bit = true; } } }
+    if (S.drills && S.drills.list) for (const d of S.drills.list) { if (!d.stand) d.stand = 'iron'; if (!d.tier) d.tier = 'mithril'; } }
+  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) { S.backpack['stand:iron'] = (S.backpack['stand:iron'] || 0) + n; S.backpack['bit:mithril'] = (S.backpack['bit:mithril'] || 0) + n; } } migrateDrillSplit(); if (!S.tetherSeed) { S.tetherSeed = 1; S.backpack['tether:mithril'] = (S.backpack['tether:mithril'] || 0) + 4000; } return S.backpack; } // first run: Riveted Iron stands + Mithril bits, one pair per drill left
+  function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines', 'coils']) v[k] = v[k] || {}; migrateDrillSplit(); if (!S.coilSeed) { S.coilSeed = 1; for (const [k] of TIERS) v.coils[k] = (v.coils[k] || 0) + 5000; } return v; } // first run: 5000 m of every Ledge Tether grade in the vault (to try swaps)
   function vSlot(id) { const [kind, key] = id.split(':'), v = vault(); return kind === 'ore' ? [v.ores, key] : kind === 'ingot' ? [v.ingots, key] : kind === 'tether' ? [v.coils, key] : [v.gear, key]; }
   function get(where, id) { if (where === 'bag') return Math.floor(bag()[id] || 0); if (RES[id]) return Math.floor((S.res && S.res[RES[id]]) || 0); const [o, k] = vSlot(id); return Math.floor(o[k] || 0); }
   // ---- slot grids: the backpack has BAG_N slots, the vault VAULT_N; one item kind per slot, stacks are unlimited (no weight). S.bagOrder / S.vaultOrder keep which kind
@@ -62,7 +74,7 @@ const Craft = (() => {
   const nm = (id) => (ITEMS[id] ? ITEMS[id].name : id);
   const qtyBar = () => `<div class="cxq">${[1, 10, 100, 'all'].map((q) => `<button class="btn sm ${st.qty === q ? 'alt' : 'ghost'}" data-cx="qty" data-v="${q}">${q === 'all' ? 'All' : '×' + q}</button>`).join('')}</div>`;
   const destBar = () => `<div class="cxq"><span class="dim">Output to</span>${[['bag', '🎒 Backpack'], ['vault', '🔒 Vault']].map(([k, l]) => `<button class="btn sm ${st.dest === k ? 'alt' : 'ghost'}" data-cx="dest" data-v="${k}">${l}</button>`).join('')}</div>`;
-  const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && ITEMS[id].kind !== 'drill' && ITEMS[id].kind !== 'teth');
+  const SKIP_SHOP = { drill: 1, teth: 1, stand: 1, bit: 1 }; const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && !SKIP_SHOP[ITEMS[id].kind]);
   // ---- hand-drawn item icons (inline SVG): a wobbly inked outline over the item's colour, a highlight, per-kind drawings; jitter seeded by the id so each looks inked once
   const ICO = {};
   function svgIco(id) { if (ICO[id]) return ICO[id]; const it = ITEMS[id] || { kind: '?', col: '#888' }; let sd = 7; for (const ch of id) sd = (sd * 31 + ch.charCodeAt(0)) % 2147483647; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, j = (v) => (v + (R() - 0.5) * 1.6).toFixed(1);
@@ -74,7 +86,8 @@ const Craft = (() => {
     else if (it.tool === 'climb') b = `<path d="M${j(18)} ${j(41)} L${j(26)} ${j(12)}" stroke="#7a5230" stroke-width="4.5" stroke-linecap="round"/><path d="M${j(25)} ${j(10)} Q${j(36)} ${j(9)} ${j(40)} ${j(19)} L${j(36)} ${j(17)} Q${j(32)} ${j(13)} ${j(26)} ${j(15)} Z" fill="${c}" ${st}/><path d="M${j(24)} ${j(12)} L${j(17)} ${j(8)}" stroke="${c}" stroke-width="3.5" stroke-linecap="round"/><path d="M${j(13)} ${j(33)} Q${j(18)} ${j(37)} ${j(23)} ${j(33)}" stroke="#b89a62" stroke-width="3" fill="none"/>`;
     else if (it.tool === 'tlink') b = [0, 1, 2].map((k) => `<ellipse cx="${j(14 + k * 10)}" cy="${j(30 - k * 6)}" rx="7" ry="4.6" transform="rotate(-32 ${14 + k * 10} ${30 - k * 6})" fill="none" stroke="${ink}" stroke-width="5"/><ellipse cx="${14 + k * 10}" cy="${30 - k * 6}" rx="7" ry="4.6" transform="rotate(-32 ${14 + k * 10} ${30 - k * 6})" fill="none" stroke="${c}" stroke-width="2.6"/>`).join('');
     else if (it.tool === 'lifeline') { b = ''; for (let k = 0; k < 4; k++) b += `<ellipse cx="${j(24)}" cy="${j(25 + k * 1.2)}" rx="${15 - k * 3}" ry="${10 - k * 2}" fill="none" stroke="${ink}" stroke-width="5"/><ellipse cx="24" cy="${25 + k * 1.2}" rx="${15 - k * 3}" ry="${10 - k * 2}" fill="none" stroke="${c}" stroke-width="2.8"/>`; b += `<path d="M${j(36)} ${j(31)} Q${j(42)} ${j(38)} ${j(38)} ${j(43)}" stroke="${c}" stroke-width="3" fill="none"/>`; }
-    else if (it.kind === 'drill') b = `<path d="M${j(8)} ${j(40)} L${j(17)} ${j(24)} M${j(17)} ${j(24)} L${j(22)} ${j(41)}" stroke="#5a5048" stroke-width="2.6" stroke-linecap="round" fill="none"/><path d="${P([[12, 25], [22, 18], [30, 23], [20, 31]])}" fill="#d8a440" ${st}/><path d="${P([[26, 20], [42, 9], [31, 25]])}" fill="${c}" ${st}/><path d="M29 17 L36 14 M31 21 L38 17" stroke="rgba(255,255,255,.6)" stroke-width="1.6"/><circle cx="${j(15)}" cy="${j(26)}" r="2.6" fill="#3a2a18"/>`;
+    else if (it.kind === 'stand' || it.kind === 'drill') b = `<path d="M${j(16)} ${j(18)} L${j(10)} ${j(40)} M${j(16)} ${j(18)} L${j(22)} ${j(40)} M${j(16)} ${j(18)} L${j(28)} ${j(40)}" stroke="#5a5048" stroke-width="2.8" stroke-linecap="round" fill="none"/><path d="M${j(16)} ${j(18)} L${j(10)} ${j(40)} M${j(16)} ${j(18)} L${j(22)} ${j(40)} M${j(16)} ${j(18)} L${j(28)} ${j(40)}" stroke="${c}" stroke-width="1.6" fill="none"/><circle cx="${j(16)}" cy="${j(16)}" r="5.2" fill="#d8a440" ${st}/><circle cx="${j(16)}" cy="${j(11)}" r="2.1" fill="#5fe8f0"/>`;
+    else if (it.kind === 'bit') b = `<path d="${P([[18, 36], [30, 36], [24, 8]])}" fill="${c}" ${st}/><rect x="${j(20)}" y="${j(34)}" width="8" height="5" rx="1" fill="#8a8d92" ${st}/><rect x="${j(22)}" y="${j(38)}" width="4" height="5" fill="#6a6d72" ${st}/>`;
     else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
     return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
   const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
@@ -94,7 +107,7 @@ const Craft = (() => {
     if (xfer) h += `<div class="kSwap"><span class="kPlate">⇄</span><small>Tap to move a stack · hold for more (equip, move some). Stacks have no limit and no weight.</small></div><div class="kPanel kLeather"><div class="row between kHead"><h2>Ledge Vault</h2>${gauge(used('vault'), VAULT_N)}</div>` + gridHTML('vault') + '</div>';
     h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal && xfer ? '<button class="btn ghost kBtn kCream" data-cx="close">Close</button>' : '') + '</div>'; }
   function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
-    if (it && it.kind === 'drill') return drillMenuHTML(id, c);
+    if (it && (it.kind === 'stand' || it.kind === 'drill')) return drillMenuHTML(id, c);
     if (it && it.kind === 'teth' && !st.menu.x) return dropMenuHTML(id, c); // drop-tether confirm only in the backpack; the vault transfer screen needs Move (length / all)
     const u = it && it.unit === 'm' ? ' m' : '';
     return `<div class="cxmenu" data-w="${w}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)}${u} in ${w === 'bag' ? 'Backpack' : 'Vault'}</small></span></div>` +
@@ -102,11 +115,11 @@ const Craft = (() => {
       (st.menu.x ? `<div class="cxq">${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}</div>` +
       `<div class="cxq"><input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button></div>` : `<div class="dim">${w === 'bag' ? 'Carried in the backpack. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : ''}</div>`) +
       `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
-  // the Mithril Drill's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up
-  function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0;
-    const near = X.err === 'explore' ? `<div class="cxnear dim">Set it up out on the map: open 🧭 Explore, then pick the drill from 🎒 Bag.</div>` : X.err ? `<div class="cxnear none">⛔ No ore within 5 s walk <small>(${X.R} m at your run speed)</small></div>`
+  // a drill stand's menu: the nearest drill-free ore within a 5 s walk at her run speed (type + walked distance), or why not; confirm walks her there and sets it up (needs a stand; a bit is equipped from the drill's settings)
+  function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0, it = ITEMS[id];
+    const near = X.err === 'explore' ? `<div class="cxnear dim">Set it up out on the map: open 🧭 Explore, then pick a stand from 🎒 Bag.</div>` : X.err ? `<div class="cxnear none">⛔ No ore within 5 s walk <small>(${X.R} m at your run speed)</small></div>`
       : `<div class="cxnear">${svgIco('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
-    return `<div class="cxmenu cxdrill" data-w="bag" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>Mithril Drill</b><small>${fmtN(c)} in Backpack · Mithril bit, burns coal from its tank</small></span></div>${near}` +
+    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}"><div class="cxmh">${svgIco(id)}<span><b>${esc(nm(id))}</b><small>${fmtN(c)} in ${st.menu && st.menu.w === 'vault' ? 'Vault' : 'Backpack'} · place the stand, then fit a bit from the drill's settings</small></span></div>${near}` +
       `<button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div>`; }
   // the Mithril Ledge Tether coil: 'Create a drop Ledge tether here?' - the length the rope needs from the Ledge door to her spot vs what is left on the coil
   function dropMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.dropNeed ? Explore.dropNeed(id) : { err: 'explore' }, ok = !X.err && X.ok;
@@ -126,7 +139,7 @@ const Craft = (() => {
   document.addEventListener('pointermove', (e) => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) { clearTimeout(lp.tm); lp = null; } });
   document.addEventListener('pointerup', () => { if (lp && !lp.fired) clearTimeout(lp.tm); });
   document.addEventListener('contextmenu', (e) => { if (e.target.closest('.cxs')) e.preventDefault(); });
-  document.addEventListener('click', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; if (lp && lp.fired) { lp = null; return; } lp = null; const w = t.dataset.w, id = t.dataset.id, to = w === 'bag' ? 'vault' : 'bag', cv = t.closest('[data-cxv]'); if ((ITEMS[id] && (ITEMS[id].kind === 'drill' || ITEMS[id].kind === 'teth')) || !cv || cv.dataset.cxv !== 'xfer') { st.menu = { w, id, x: !!cv && cv.dataset.cxv === 'xfer' }; return refresh(); }
+  document.addEventListener('click', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; if (lp && lp.fired) { lp = null; return; } lp = null; const w = t.dataset.w, id = t.dataset.id, to = w === 'bag' ? 'vault' : 'bag', cv = t.closest('[data-cxv]'); if ((ITEMS[id] && ITEMS[id].kind === 'teth') || !cv || cv.dataset.cxv !== 'xfer') { st.menu = { w, id, x: !!cv && cv.dataset.cxv === 'xfer' }; return refresh(); }
     const n = move(w, to, id, get(w, id)); if (!n && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); refresh(); });
   const cost = (r, x) => Object.keys(r.in).map((k) => `<span class="cxc${have(k) >= r.in[k] * x ? '' : ' short'}">${ico(k)}${r.in[k] * x} ${esc(ITEMS[k].short)}<small>/${fmt(have(k))}</small></span>`).join('');
   function recipeHTML(kind) { const F = kind === 'furnace', list = F ? SMELT : SMITH;
@@ -142,7 +155,7 @@ const Craft = (() => {
   function exHTML() { const S2 = st.tab === 'sell';
     let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 Lumen Crystal</h2><span class="tag">✦ ${fmt(lum())} Lumen</span></div><div class="dim">The crystal trades with the Hollow. Placeholder local market prices.</div>`;
     h += `<div class="cxq">${[['sell', 'Sell'], ['buy', 'Buy']].map(([k, l]) => `<button class="btn sm ${st.tab === k ? 'alt' : 'ghost'}" data-cx="tab" data-v="${k}">${l}</button>`).join('')}</div>${qtyBar()}`;
-    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => ITEMS[id].kind !== 'drill' && ITEMS[id].kind !== 'teth');
+    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => !SKIP_SHOP[ITEMS[id].kind]);
     h += ids.length ? `<div class="card cxl">${ids.map((id) => { const p = S2 ? sellP(id) : buyP(id), n = st.qty === 'all' ? (S2 ? have(id) : Math.floor(lum() / p)) : st.qty, ok = S2 ? have(id) >= Math.max(1, n) : lum() >= p * Math.max(1, n);
       return `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}<small>✦ ${p} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
     return h + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
@@ -157,7 +170,7 @@ const Craft = (() => {
     else if (a === 'xfer') return open('xfer');
     else if (a === 'mclose') st.menu = null;
     else if (a === 'dropok') { st.menu = null; const r = typeof Explore !== 'undefined' && Explore.dropCreate ? Explore.dropCreate(id) : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
-    else if (a === 'dset') { st.menu = null; const r = typeof Explore !== 'undefined' && Explore.drillSetup ? Explore.drillSetup() : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
+    else if (a === 'dset') { const sid = id; st.menu = null; const r = typeof Explore !== 'undefined' && Explore.drillSetup ? Explore.drillSetup(sid) : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
     else if (a === 'equip') { if (equip(id) && typeof toast === 'function') toast(`✅ Equipped ${nm(id)}`); st.menu = null; }
     else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); } st.menu = null; }
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
@@ -165,5 +178,5 @@ const Craft = (() => {
     else if (a === 'sell') { const n = sell(id, nOf(have(id))); if (n && typeof toast === 'function') toast(`💠 Sold ${n}× ${nm(id)}`); }
     else if (a === 'buy') { const n = buy(id, nOf(Math.floor(lum() / buyP(id)))); if (n && typeof toast === 'function') toast(`💠 Bought ${n}× ${nm(id)}`); }
     refresh(); });
-  return { BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, TIERS, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm };
+  return { BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, TIERS, STAND_T, BIT_T, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit };
 })();
