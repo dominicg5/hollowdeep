@@ -58,8 +58,11 @@ const Town = (() => {
   ];
   // standalone sites: drop Art's placement here (world x, y and yaw; yaw 0 = the door faces +y). Applied at load, before the terrain is carved, so each
   // site's pad, plinth, solids, walk grid, keeper spot and talk spot follow it. Empty = the buildings stay where they are. (Live moves: Town.setSite(id, x, y, yaw); the walk grid follows at once, the terrain mesh under a moved pad only on the next load.)
-  const SITE_AT = {}; // e.g. { general_store: [x, y, yaw], smithy: [x, y, yaw], rope_maker: [...], inn: [...], guide_hut: [...] }
+  // (guide_hut moved 24 m NE of Art's centre: its lesson ring and approach then clear Mosby's strip by >= 10 m on the new valley circuit)
+  const SITE_AT = {"guide_hut":[-5217,8498,-0.6981],"general_store":[-5517,7915,-1.1345],"rope_maker":[-5765,7225,-1.309],"smithy":[-6118,6582,-0.9599],"inn":[-6587,6020,-0.6981]}; // e.g. { general_store: [x, y, yaw], smithy: [x, y, yaw], rope_maker: [...], inn: [...], guide_hut: [...] }
   for (const B of BLD) { const q = SITE_AT[B.id]; if (q) { B.wx = q[0]; B.wy = q[1]; if (q[2] != null) B.wyaw = q[2]; } }
+  const SITE_PLAN = {"guide_hut":{"yard":[{"name":"lesson ring, tamped dirt \u00d8 10 m","material":"dirt","circle_local_m":[0,7.0,5.0],"centre_world":[-5347,8646],"r_u":32}],"approach":[[0,12.0],[0,20.0]],"keeper":[-2.0,4.8],"door":[0,2.9],"rope":null,"remove":[]},"general_store":{"yard":[{"name":"cobble apron 10 x 4 m","material":"cobble","rect_local_m":[-5.0,4.75,5.0,8.75],"corners_world":[[-5558,7899],[-5531,7957],[-5554,7967],[-5581,7910]]}],"approach":[[0,8.75],[0,16.75]],"keeper":[1.5,5.4],"door":[0,3.25],"rope":null,"remove":[]},"rope_maker":{"yard":[{"name":"cobble forecourt 2.3 m (extras5), run across to the lane","material":"cobble","rect_local_m":[-3.5,6.85,6.7,9.15],"corners_world":[[-5813,7215],[-5796,7277],[-5810,7281],[-5827,7219]]},{"name":"rope walk lane 2.5 x 30 m","material":"dirt","rect_local_m":[4.2,-20.85,6.7,9.15],"corners_world":[[-5630,7216],[-5626,7232],[-5810,7281],[-5814,7266]]}],"approach":[[0,9.15],[0,17.15]],"keeper":[-1.9,8.1],"door":[0,6.85],"rope":{"local_m":[[5.45,8.0],[5.45,-20.0]],"world":[[-5805,7272],[-5633,7226]],"lane_width_m":2.5,"length_m":30},"remove":[]},"smithy":{"yard":[{"name":"forge yard, packed cinder dirt 12 x 8 m","material":"cinder","rect_local_m":[-6.0,3.25,6.0,11.25],"corners_world":[[-6157,6563],[-6113,6625],[-6155,6654],[-6198,6592]]}],"approach":[[0,11.25],[0,19.25]],"keeper":[0.8,5.6],"door":[1.9,3.25],"rope":null,"remove":[[-11.8,1.9,"t_birch2"],[-10.8,8.1,"t_birch3"]]},"inn":{"yard":[{"name":"dirt forecourt","material":"dirt","rect_local_m":[-6.0,2.8,6.5,11.0],"corners_world":[[-6628,6009],[-6567,6060],[-6600,6100],[-6661,6049]]}],"approach":[[-2.2,11.0],[-2.2,19.0]],"keeper":[-0.7,4.6],"door":[-2.2,2.8],"rope":null,"remove":[]}};
+  const VALLEY = [[-5635,9039],[-5275,8633],[-5299,8595],[-5613,7960],[-5870,7253],[-6087,6843],[-6218,6652],[-6289,6557],[-6675,6103]]; // Ledge door -> straight across Mosby's strip (unavoidable: the door is inside it) -> each approach end in quest order, held >= 59 m from his line (strip edge 47 m + 10 m + half the path)
   const LOTS=[['H1',8.5*14,8.6*14,8*14,6*14],['H2',18.1*14,8.6*14,8*14,6*14],['H3',42.5*14,17.5*14,8*14,6*14],['H4',49*14,32.5*14,8*14,6*14],['H5',18*14,40.2*14,8*14,6*14],['H6',49*14,40.5*14,8*14,6*14],['L1',30*14,24.5*14,0,0,2*14],['L2',52*14,23.5*14,6*14,10*14],['L3',55*14,30*14,0,0,1*14]];
   const SQ={px:30*14,py:24.5*14,r:7*14};
   // world placement of a building: origin at its centre on its terrace, yaw so local +z (the front) points the right way
@@ -71,7 +74,7 @@ const Town = (() => {
     let h = hm[0], s2 = hm[1]; for (const q of PADS) { const d = Math.hypot(x - q.x, y - q.y) - q.r; if (d > WS * 4) continue; const w = d <= 0 ? 1 : 1 - sm(0, WS * 4, d); h = h + (q.h - h) * w; s2 = s2 * (1 - w); } return [h, s2]; }
   const SH = {}; function siteH(B, x, y, yaw) { if (SH[B.id]) return SH[B.id]; const cs = Math.cos(yaw), sn = Math.sin(yaw), hw = (B.round ? B.w / 2 : B.w / 2) + 0.3, hd = (B.round ? B.w / 2 : B.d / 2) + 0.3; let lo = 1e9, hi = -1e9;
     for (let a = -1; a <= 1; a += 0.25) for (let b = -1; b <= 1; b += 0.25) { const lx = a * hw, lz = b * hd, h = nat(x + (lx * cs + lz * sn) * WS, y + (-lx * sn + lz * cs) * WS); lo = Math.min(lo, h); hi = Math.max(hi, h); }
-    return (SH[B.id] = { h: hi + 0.04 * WS, lo }); }
+    return (SH[B.id] = { h: (hi + lo) * 0.5 + 0.03 * WS, lo }); }
   function place(B) { const [x, y] = B.wx != null ? [B.wx, B.wy] : W2(B.px, B.py), dir = W2(B.px, B.py + B.face), fx = dir[0] - W2(B.px, B.py)[0], fy = dir[1] - W2(B.px, B.py)[1], yaw = B.wyaw != null ? B.wyaw : Math.atan2(fx, fy); return { x, y, h: SITE ? siteH(B, x, y, yaw).h : lvlPx(B.px,B.py), lo: SITE ? siteH(B, x, y, yaw).lo : null, yaw }; }
   // ---- solids (Explore.colList): every wall, prop and the drop edges are circles
   let COLS = null;
@@ -93,23 +96,25 @@ const Town = (() => {
     if (SITE) for (const q of pads()) { const R = q.r + WS * 4, a0 = Math.max(0, Math.floor((q.x - R - REG.X0) / C)), a1 = Math.min(nx - 1, Math.ceil((q.x + R - REG.X0) / C)), b0 = Math.max(0, Math.floor((q.y - R - REG.Y0) / C)), b1 = Math.min(ny - 1, Math.ceil((q.y + R - REG.Y0) / C)); for (let j = b0; j <= b1; j++) for (let i = a0; i <= a1; i++) if (Math.hypot(REG.X0 + i * C - q.x, REG.Y0 + j * C - q.y) < R) cls[j * nx + i] = 1; } // the S1-S5 flights walk (0.20 m rises), never a climb
     for (const c of L) { const R = c.r + C * (c.key === 'townStair' || c.key === 'townWall' ? 0.08 : 0.15), a0 = Math.max(0, Math.floor((c.x - R - REG.X0) / C)), a1 = Math.min(nx - 1, Math.ceil((c.x + R - REG.X0) / C)), b0 = Math.max(0, Math.floor((c.y - R - REG.Y0) / C)), b1 = Math.min(ny - 1, Math.ceil((c.y + R - REG.Y0) / C)); for (let j = b0; j <= b1; j++) for (let i = a0; i <= a1; i++) if (Math.hypot(REG.X0 + i * C - c.x, REG.Y0 + j * C - c.y) < R) cls[j * nx + i] = 0; } }
   // where each building's keeper stands (beside the door, facing the street) and where she stops to talk (in front of them)
-  function npcSpot(B) { const P = place(B), cs = Math.cos(P.yaw), sn = Math.sin(P.yaw), L = (lx, lz) => [P.x + (lx * cs + lz * sn) * WS, P.y + (-lx * sn + lz * cs) * WS], D = B.round ? B.w / 2 : B.d / 2, o = NPCX[B.id] || [1.8, 1.4];
-    return { at: L(o[0], D + o[1]), talk: L(o[0], D + o[1] + 1.5), yaw: P.yaw, h: SITE ? nat(...L(o[0], D + o[1])) : lvlPx(B.px,B.py) }; }
+  function local(B, lx, lz) { const P = place(B), cs = Math.cos(P.yaw), sn = Math.sin(P.yaw); return [P.x + (lx * cs + lz * sn) * WS, P.y + (-lx * sn + lz * cs) * WS]; }
+  function npcSpot(B) { const P = place(B), q = SITE_PLAN[B.id], D = B.round ? B.w / 2 : B.d / 2, o = q ? q.keeper : [1.8,D+1.4], at = local(B,...o), talk = local(B,o[0],o[1]+1.5); return { at, talk, yaw:P.yaw, h: SITE ? sitePad(at[0],at[1],[nat(...at),0])[0] : lvlPx(B.px,B.py) }; }
   const NPCX = { general_store: [-1.9, 1.5], smithy: [1.6, 1.4], bank: [1.9, 1.2], rope_maker: [1.5, 1.2], inn: [-2.0, 1.3], guide_hut: [1.6, 1.3] };
   const PCOL = []; // prop circles (world x, y, r), filled as the meshes are built
   // ---- keep-out for the map's trees, rocks, tufts and focal boulders
   const moved = () => BLD.some((B) => B.wx != null);
-  function hit(x, y, pad) { if (SITE) { for (const q of pads()) if (Math.hypot(x - q.x, y - q.y) < q.r + (pad || 0) + WS * 3) return true; if (moved()) return false; } // a site keeps trees, rocks and ore off its pad; until a site is moved the old town ground stays clear too
-    if (!near(x, y, (pad || 0) + 40)) return false; const [px, py] = P2(x, y); if (inPoly(OUT, px, py)) return true; return edgeD(px, py) * K < (pad || 0) + WS * 3; }
+  function hit(x, y, pad) { if (SITE) { const m = pad || 0; for (const B of BLD) { const P=place(B), cs=Math.cos(P.yaw),sn=Math.sin(P.yaw),dx=(x-P.x)/WS,dy=(y-P.y)/WS,lx=dx*cs-dy*sn,lz=dx*sn+dy*cs,q=SITE_PLAN[B.id], p=m/WS;
+      if(Math.abs(lx)<B.w/2+p+.5 && Math.abs(lz)<(B.round?B.w:B.d)/2+p+.5)return true;
+      for(const Y of q.yard){const a=Y.rect_local_m,c=Y.circle_local_m;if(a&&lx>a[0]-p&&lx<a[2]+p&&lz>a[1]-p&&lz<a[3]+p)return true;if(c&&Math.hypot(lx-c[0],lz-c[1])<c[2]+p)return true;}
+      for(const a of q.remove)if(Math.hypot(lx-a[0],lz-a[1])<p+1.2)return true;
+    } return false; } if (!near(x,y,(pad||0)+40))return false;const [px,py]=P2(x,y);return inPoly(OUT,px,py)||edgeD(px,py)*K<(pad||0)+WS*3; }
+
   // ---- the connecting footpath: out of the main street's land end, round the town's south-east corner, onto the nearest worn path
   let PTH = null;
-  function paths(base) { if (PTH) return PTH; const mid = W2(-5*14,24.5*14); let best = null, bd = 1e9; for (const P of base || []) for (let i = 1; i + 1 < P.length; i += 2) { const d = Math.hypot(P[i] - mid[0], P[i + 1] - mid[1]); if (d >= bd || hit(P[i], P[i + 1], 60)) continue; let clear = true; for (let s = 1; s < 16 && clear; s++) { const t = s / 16; if (hit(mid[0] + (P[i] - mid[0]) * t, mid[1] + (P[i + 1] - mid[1]) * t, 30)) clear = false; } if (clear) { bd = d; best = [P[i], P[i + 1]]; } }
-    if (!best) return []; const pts = [GATE, mid], v = [mid[0] - best[0], mid[1] - best[1]], L = Math.hypot(v[0], v[1]), n = Math.max(1, Math.round(L / 60));
-    for (let k = 1; k <= n; k++) pts.push([mid[0] - v[0] * k / n, mid[1] - v[1] * k / n]);
-    PTH = [[0, ...pts.flat().map((q) => Math.round(q))]]; return PTH; }
+  function anchors() { const o = []; if (SITE) for (const B of BLD) { const q = SITE_PLAN[B.id]; o.push(local(B, ...q.door), local(B, ...q.approach[0])); } return o; }
+  function paths(base) { if(SITE){const out=[[0,...VALLEY.flat()]];for(const B of BLD){const q=SITE_PLAN[B.id],a=q.approach.map(p=>local(B,...p));out.push([0,...a.flat()]); const edge=q.approach[0],stop=q.yard.some(y=>y.material==='cobble')?edge:q.door; if(stop!==edge)out.push([0,...local(B,...edge),...local(B,...stop)]);}return out;}return []; }
   // site modules: move one building (with its plinth, solids, props and keeper spot) to any world point and facing; the town rebuilds on the next frame
   function setSite(id, x, y, yaw) { const B = BLD.find((q) => q.id === id); if (!B) return false; B.wx = x; B.wy = y; if (yaw != null) B.wyaw = yaw; delete SH[id]; PADS = null; COLS = null; if (Town.rebuild) Town.rebuild(); if (typeof Explore !== 'undefined' && Explore.NV) { Explore.NV.built = false; Explore.NV.tidy = null; } return true; } // (the walk grid is rebuilt on the next plan; the terrain mesh under a moved pad is re-carved when its chunk is next rebuilt)
-  return { setSite, SITE, siteH, WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
+  return { setSite, SITE, SITE_PLAN, VALLEY, local, anchors, siteH, WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
     nav, resetCols: () => { COLS = null; }, get skip() { return SKIP; }, set skip(v) { SKIP = v; } };
 })();
 /* ---- the town's meshes: painted canvas textures (one per material), geometry merged per material ---- */
@@ -277,6 +282,19 @@ Town.ground = (G) => {
   const T=Town,B=Town.gb,W=T.WS,F=T.FIELD;
   if(T.SITE){ // standalone sites: a dressed-stone plinth under each footprint, from the floor down past the lowest ground point (no rim, terraces, stairs or streets)
     for(const Bd of T.BLD){const P0=T.place(Bd),dep=(P0.h-P0.lo)/W+.35,w=(Bd.round?Bd.w:Bd.w)+.24,d=(Bd.round?Bd.w:Bd.d)+.24;B.frame(P0.x,P0.y,P0.h,P0.yaw);if(Bd.round)B.cyl('stone',[0,-dep,0],w/2,w/2,dep+.02,14,.85);else B.box('stone',[0,-dep,0],[w,dep+.02,d],.85);}
+    // Art's keeper-valley yards (sites.json): painted dirt / cinder / cobble draped on the ground, in each site's own frame; the rope walk's rope lies along its lane
+    const lin=(h)=>[0,2,4].map(i=>Math.pow(parseInt(h.slice(i,i+2),16)/255,2.2)),TXG=lin('8D8049'),TXC=lin('6E6252'),hs=(x,y)=>{const q=Math.sin(x*91.7+y*47.3)*43758.545;return q-Math.floor(q);};
+    const PAL={dirt:['74644A','8A7656','9C8A6A','6F6A48'],cinder:['4E463C','5A5044','463F37','5E5648'],cobble:['6E6252']};
+    for(const Bd of T.BLD){const q=T.SITE_PLAN[Bd.id];if(!q)continue;const P0=T.place(Bd),cs=Math.cos(P0.yaw),sn=Math.sin(P0.yaw);B.frame(P0.x,P0.y,P0.h,P0.yaw);B.at();
+      const gy=(lx,lz)=>(M3.meshH(P0.x+(lx*cs+lz*sn)*W,P0.y+(-lx*sn+lz*cs)*W)-P0.h)/W+.05;
+      const col=(m,lx,lz)=>{const wx=P0.x/W+lx*cs+lz*sn,wz=P0.y/W-lx*sn+lz*cs;if(m==='cobble')return CB0.map(v=>v*(1+.14*(hs(Math.floor(wx/.6),Math.floor(wz/.6))-.5)));const pl=PAL[m]||PAL.dirt,t=hs(Math.floor(wx/2.5),Math.floor(wz/2.5)),u=hs(Math.floor(wx/.9)+.5,Math.floor(wz/.9)),a=lin(pl[Math.floor(t*3)%3]),c=lin(pl[3]);return a.map((v,i)=>(v*.6+c[i]*.4)*(.92+.16*u)/TXG[i]);};
+      const CB0=lin('6E6252').map((v,i)=>v*[.478,.637,1.157][i]/TXC[i]);
+      for(const Y of q.yard){const m=Y.material==='cobble'?'cobble':'dirt',km=Y.material,st=m==='cobble'?.5:1;
+        if(Y.rect_local_m){let [x0,z0,x1,z1]=Y.rect_local_m;const nx=Math.ceil((x1-x0)/st),nz=Math.ceil((z1-z0)/st);for(let i=0;i<nx;i++)for(let j=0;j<nz;j++){const a=x0+(x1-x0)*i/nx,b=x0+(x1-x0)*(i+1)/nx,c=z0+(z1-z0)*j/nz,d=z0+(z1-z0)*(j+1)/nz,V=(x,z)=>[x,gy(x,z),z];
+          B.quad(m,V(a,d),V(b,d),V(b,c),V(a,c),[col(km,a,d),col(km,b,d),col(km,b,c),col(km,a,c)]);}}
+        if(Y.circle_local_m){const [cx,cz,r]=Y.circle_local_m,NR=Math.ceil(r/st),NA=28;for(let i=0;i<NR;i++)for(let k=0;k<NA;k++){const r0=r*i/NR,r1=r*(i+1)/NR,a0=k/NA*6.2832,a1=(k+1)/NA*6.2832,V=(rr,aa)=>{const x=cx+Math.cos(aa)*rr,z=cz+Math.sin(aa)*rr;return [x,gy(x,z),z];},C=(rr,aa)=>col(km,cx+Math.cos(aa)*rr,cz+Math.sin(aa)*rr);
+          B.quad(m,V(r0,a0),V(r0,a1),V(r1,a1),V(r1,a0),[C(r0,a0),C(r0,a1),C(r1,a1),C(r1,a0)]);}}}
+      if(q.rope){const [a,b]=q.rope.local_m,n=15;for(let i=0;i<n;i++){const t0=i/n,t1=(i+1)/n,p=(t)=>{const x=a[0]+(b[0]-a[0])*t,z=a[1]+(b[1]-a[1])*t;return [x,gy(x,z)+.0,z];},A=p(t0),Bq=p(t1);Town.kit.beam(A,Bq,.045,'rope',.85);}}}
     return B.flush(G,'townGround',{noShadow:true}); }
   B.frame(0,0,0,0);B.at();
   const P=(x,y,h)=>{const p=T.W2(x*14,y*14);return [p[0]/W,h/W,p[1]/W];};
@@ -517,7 +535,7 @@ Town.houses = (() => {
     for (let i = 0; i < 3; i++) cyl('brass', [3.1 + i * 0.35, 0.8, wz1 + 1.55], 0.07, 0.08, 0.17, 8, 1, null, { top: true }); k.prop(3.5, wz1 + 1.6, 1.0); k.barrel(x0 + 0.1, 0, z1 + 0.6, 0.33, 0.8); k.barrel(x0 + 0.7, 0, z1 + 0.75, 0.3, 0.75);
     return { foot: [[x0, z0, x1, z1 + 0.9], [wx0, wz0, wx1, wz1]] }; }
   function guide_hut() { // the smallest: a tiny round hut (1 SU across), a very tall pointed conical moss-and-bark roof with a teal crystal finial, a big boulder hugging the back, a rope-wrapped guide post with crystal and bell, lesson easel, brass telescope
-    const R = 2.2; cyl('stone', [0, 0, 0], R + 0.2, R + 0.12, 0.65, 18, ST, null, { top: true }); cyl('woodV', [0, 0.65, 0], R, R - 0.05, 1.7, 18, 0.85); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + 0.2; k.log([Math.cos(a) * R, 0.6, Math.sin(a) * R], [Math.cos(a) * (R - 0.05), 2.4, Math.sin(a) * (R - 0.05)], 0.1, 0.8); }
+    const R = 2.2; cyl('stone', [0, 0, 0], R + 0.2, R + 0.12, 0.65, 18, ST, null, { top: true }); cyl('woodV', [0, 0.65, 0], R, R - 0.05, 2.3, 18, 0.85); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + 0.2; k.log([Math.cos(a) * R, 0.6, Math.sin(a) * R], [Math.cos(a) * (R - 0.05), 2.4, Math.sin(a) * (R - 0.05)], 0.1, 0.8); }
     k.torus('rope', [0, 2.3, 0], R + 0.02, 0.06, [Math.PI / 2, 0, 0], 22);
     const RT = 4.2, R0 = 3.0, NL = 5; let y = 2.9; for (let i = 0; i < NL; i++) { const f0 = i / NL, f1 = (i + 1) / NL, r0 = R0 * (1 - f0) + 0.1, r1 = R0 * (1 - f1) * 0.97, km = 'moss'; cyl(km, [0, 2.9 + RT * f0 - (i ? 0.12 : 0), 0], r0 + (i ? 0.16 : 0), r1, RT / NL + (i ? 0.12 : 0), 16, i % 2 ? [0.78, 0.8, 0.7] : [0.98, 1, 0.9], null, { bot: true }); { const yb = 2.9 + RT * f0 - (i ? 0.12 : 0), rb = r0 + (i ? 0.16 : 0), sl = (rb - r1) / (RT / NL + (i ? 0.12 : 0)); cyl('rope', [0, yb + 0.01, 0], rb - sl * 0.01 + 0.03, rb - sl * 0.09 + 0.03, 0.08, 16, 0.85); } } // (the rope band hugs its tier's lip - it stood proud of the moss and showed sky through the ring) y = 2.9 + RT; // layered moss tiers with a rope band at each lip (Art's guide_hut: no bark checker)
     cyl('brass', [0, y - 0.15, 0], 0.18, 0.1, 0.3, 8, 1, null, { top: true }); k.crystal(0, y + 0.1, 0, 0.17, 0.7); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; lump('moss', [Math.cos(a) * 2.85, 2.05, Math.sin(a) * 2.85], [0.45, 0.28, 0.38], [0.95, 1, 0.9], 91 + i); }
