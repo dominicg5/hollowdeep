@@ -47,10 +47,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.trees === 0, `no trees, rocks or map props inside the town (${R.trees})`); ok(!R.mosby, 'Mosby is not standing in town');
   for (const q of R.bld) ok(q.s === q.n, `${q.id}: solid (${q.s}/${q.n} footprint samples blocked)`);
   ok(R.props > 20 && R.propSolid === R.props, `every town prop is solid (${R.propSolid}/${R.props})`); ok(R.edgePush > 0.3, `the drop edge is solid (pushed ${R.edgePush} m back, ${R.edgeDrop} m drop)`);
-  ok(R.steps.every((s) => s > 1.5 && s < 3), `three terraces stepping down (${R.steps.join(' m, ')} m)`);
+  ok(R.steps[0] > 0.9 && R.steps[0] < 1.1 && R.steps[1] > 0.4 && R.steps[1] < 0.6, `three terraces at Art's lowland levels +1.0 / 0 / -0.5 m (${R.steps.join(' m, ')} m drops)`);
   ok(R.path && R.join < 3 && R.pathInTown <= 1, `a footpath leaves the main street's land end and joins the path network (${R.join} m from it, ${R.pathInTown} points inside town, ${R.pathLen} pts)`);
   for (const r of R.routes) ok(r.ok && r.end < 3 && r.climb === 0, `route Ledge -> ${r.id}: ${r.ok ? r.len + ' m, ends ' + r.end + ' m off, climb ' + r.climb : 'none'}`);
-  ok(R.walk.end < 2 && R.walk.maxStep < 0.6 && R.walk.drop > 3 && R.walk.body < 0.3, `walks gate -> stairs -> square (${R.walk.end} m off, max step ${R.walk.maxStep} m, down ${R.walk.drop} m, body in ground ${R.walk.body} m)`);
+  ok(R.walk.end < 2 && R.walk.maxStep < 0.6 && R.walk.drop > 1.2 && R.walk.body < 0.3, `walks gate -> stairs -> square (${R.walk.end} m off, max step ${R.walk.maxStep} m, down ${R.walk.drop} m, body in ground ${R.walk.body} m)`);
   ok(R.draws <= 30 && R.tris < 70000, `light for mobile: ${R.draws} draw calls, ${R.tris} triangles`); ok(R.text === 0 && R.names === 0, 'no text sprites, no Made in Abyss names');
   if (SHOT) { const fs = require('fs'); fs.mkdirSync(SHOT, { recursive: true }); const V = JSON.parse(process.env.VIEWS || '[["town-est",385,265,1.05,60,0.75]]');
     for (const [name, px, py, az, d, tilt] of V) { await p.evaluate(([px, py, az, d, tilt]) => { const [x, y] = Town.W2(px, py); Explore.enter(x, y); const E = Explore.EX; E.az = az; E.d = d; E.tilt = tilt; for (let k = 0; k < 20; k++) Explore.tick(1 / 30); }, [px, py, az, d, tilt]); await p.waitForTimeout(2500); await p.screenshot({ path: `${SHOT}/${name}.jpg`, type: 'jpeg', quality: 86 }); } }
