@@ -347,7 +347,7 @@ const Mosby = (() => {
   // LOD for mobile: full rig close, greenery off past ~1.2 km, and past the impostor distance a camera-facing card cut from 8 pre-rendered views
   /* (Dominic) no far view at all: no impostor card, no distant rig. He is drawn only inside a close range where the full model looks right, and fades in
      over the last 100 m (opacity on his own cloned materials, opaque again once fully in), so he never pops. The map icons still show where he is. */
-  const G_SHOW = 380, G_GONE = 480; // metres from the camera to his middle: fully drawn inside SHOW, gone beyond GONE
+  const G_SHOW = 860, G_GONE = 1000; // metres from the camera to his middle: fully drawn inside SHOW, gone beyond GONE (Dominic: ~2x the first 480 m - he reads from far off; mobile cost checked: see PASSLOG pass 25)
   function gFade(f) { if (!GM.mats) { GM.mats = []; GM.g.traverse((o) => { if (!o.isMesh || !o.material) return; const one = (m) => { const c = m.clone(); GM.mats.push({ m: c, op: m.opacity, tr: m.transparent, dw: m.depthWrite }); return c; }; o.material = Array.isArray(o.material) ? o.material.map(one) : one(o.material); }); }
     const fading = f < 0.999; if (GM.fadeOn === fading && !fading) return; GM.fadeOn = fading; for (const q of GM.mats) { const on = fading || q.tr; if (q.m.transparent !== on) { q.m.transparent = on; q.m.needsUpdate = true; } q.m.opacity = q.op * (fading ? f : 1); } }
   function gLod() { const cam = M3.camera; if (!cam || !GM.g) return; const WS = Explore.WS, s = GM.g.scale.x, c = new THREE.Vector3(GM.g.position.x, GM.g.position.y + s * 3, GM.g.position.z), d = cam.position.distanceTo(c); GM.lodD = d;
