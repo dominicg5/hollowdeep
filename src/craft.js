@@ -162,8 +162,9 @@ const Craft = (() => {
   function xferHTML() { return gridsHTML(true, true); }
   // the Backpack as a bottom sheet over the map's Character view (about a third of the screen) until closed
   function sheetHTML() { return `<div class="bsh"><button class="bsx kX" data-cx="sclose" aria-label="Close the backpack">✕</button></div><div class="bsb cxgrid" data-cxv="sheet">${gridHTML('bag')}${st.menu && st.menu.w === 'bag' ? menuHTML() : ''}</div>`; } // map sheet: all 20 slots, no title / gauge / footer, no scroll
+  function pinBagScroll(on) { document.documentElement.classList.toggle('bag-open', !!on); const pin = () => { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); }; if (st._pin) { window.removeEventListener('scroll', st._pin); st._pin = null; } pin(); if (on) window.addEventListener('scroll', st._pin = pin, { passive: true }); }
   function sheet(on) { let el = document.getElementById('bagSheet'); if (!el && on) { el = document.createElement('div'); el.id = 'bagSheet'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Backpack'); (document.getElementById('cityWrap') || document.body).appendChild(el); }
-    st.sheet = !!on; st.menu = null; if (!el) return false; el.classList.toggle('on', !!on); el.innerHTML = on ? sheetHTML() : ''; const b = document.getElementById('exBagBtn'); if (b) b.classList.toggle('sel', !!on); return !!on; }
+    st.sheet = !!on; st.menu = null; pinBagScroll(!!on); if (!el) return false; el.classList.toggle('on', !!on); el.innerHTML = on ? sheetHTML() : ''; const b = document.getElementById('exBagBtn'); if (b) b.classList.toggle('sel', !!on); return !!on; }
   const sheetOn = () => !!st.sheet;
   // long-press opens the stack menu; a plain tap moves the whole stack
   let lp = null; const LP_MS = 450;
