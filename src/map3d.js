@@ -300,7 +300,7 @@ float h31(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x 
 float vn3(vec3 p) { vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(mix(h31(i), h31(i + vec3(1.0, 0.0, 0.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 0.0)), h31(i + vec3(1.0, 1.0, 0.0)), f.x), f.y), mix(mix(h31(i + vec3(0.0, 0.0, 1.0)), h31(i + vec3(1.0, 0.0, 1.0)), f.x), mix(h31(i + vec3(0.0, 1.0, 1.0)), h31(i + vec3(1.0, 1.0, 1.0)), f.x), f.y), f.z); }
 float fbm3(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn3(p); p = p * 2.01 + vec3(5.3, 1.7, 9.1); a *= 0.5; } return s; }`)
         .replace('#include <map_fragment>', `
-vec2 wp = vWP.xz; { vec2 uk = (wp - uK.xy) / uK.zw; if (uk.x > 0.0 && uk.x < 1.0 && uk.y > 0.0 && uk.y < 1.0 && texture2D(tK, uk).r > 0.5) discard; } // the ground is cut away over every crevice (its rock walls are a mesh below)
+vec2 wp = vWP.xz; { vec2 uk = (wp - uK.xy) / uK.zw; vec2 fgq = vec2((uFg.x - vWP.x) / uFg.z + 100.0, (vWP.z - uFg.y) / uFg.z); bool fgCone = uFg.w > 0.5 && length(fgq) < 360.0 && (vWP.y - 90.0) / uFg.z > 2.0; if (!fgCone && uk.x > 0.0 && uk.x < 1.0 && uk.y > 0.0 && uk.y < 1.0 && texture2D(tK, uk).r > 0.5) discard; } // (the Volcanic Forge's cone is built over old crevices: its rock covers them, no cut-through seams) // the ground is cut away over every crevice (its rock walls are a mesh below)
 vec4 tc = texture2D(tA, (wp - uA.xy) / uA.zw);
 vec2 ub = (wp - uB.xy) / uB.zw; if (ub.x > 0.0 && ub.x < 1.0 && ub.y > 0.0 && ub.y < 1.0) tc = mix(tc, texture2D(tB, ub), edgeF(ub, 0.02));
 if (uCOn > 0.5) { vec2 uc = (wp - uC.xy) / uC.zw; if (uc.x > 0.0 && uc.x < 1.0 && uc.y > 0.0 && uc.y < 1.0) { vec4 cN = texture2D(tC, uc);
