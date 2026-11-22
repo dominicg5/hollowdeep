@@ -991,7 +991,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function tetherOwned() { if (typeof Craft === 'undefined' || !Craft.have || !Craft.ITEMS) return 0; let n = 0; for (const id in Craft.ITEMS) if (Craft.ITEMS[id].kind === 'teth') n += Craft.have(id); return n; }
   const tetherFree = (D) => Math.max(0, tetherOwned() - tetherUsed(D));
   function drillPos(n) { const a = (Math.atan2(n.y - n.spot.y, n.x - n.spot.x) || n.rot) + 1.7; return [n.x + Math.cos(a) * (n.s * 0.24 + WS * 0.2), n.y + Math.sin(a) * (n.s * 0.24 + WS * 0.2)]; } // the bit's tip sits at the drill's origin: right on the cluster's flank, the frame behind // beside the node, off her mining stand
-  function drillNode(d) { return d.camp ? null : ORE.nodes[d.node]; }
+  function drillNode(d) { return !d || d.camp ? null : ORE.nodes[d.node]; }
   /* a laid tether never turns a hard corner: every bend of the walked route is eased into a curve of up to ~7 m radius (a quadratic fillet), shrunk at a bend
      until the whole curve stays on walkable or climbable ground or bridge decks (so it never cuts over a crevice, water or a house), then used as is */
   function smoothRoute(pts, R0) { if (pts.length < 3) return pts.slice(); const ok = (x, y) => clsAt(x, y) !== 0, out = [pts[0]];
@@ -1013,7 +1013,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     return smoothRoute(Q, WS * 14); }
   const pathLen = (pts) => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; };
   // a drill's tether: from the Ledge door over the ground (smoothed walked route) to just behind the drill, then up into the socket on its hub
-  function drillRoute(d) { const H = doorSpots().find((q) => q.type === 'ledge'), n = drillNode(d); if (!H || !n) return null; const m = drillMesh(d), sx = H.x + H.nx * 12, sy = H.y + H.nz * 12;
+  function drillRoute(d) { if (!d) return null; const H = doorSpots().find((q) => q.type === 'ledge'), n = drillNode(d); if (!H || !n) return null; const m = drillMesh(d), sx = H.x + H.nx * 12, sy = H.y + H.nz * 12;
     let end3 = null, endDir = null, gx, gy;
     const port = m && (m.userData.tetherPort || (m.userData.stand && m.userData.stand.userData.tetherPort));
     if (m && (port || m.userData.sock)) {
@@ -1036,7 +1036,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   /* (Dominic: the map froze / lagged after a 2nd far tether) a drill tether's route is a long A* plan + rope smoothing: cached per drill (the same NV.tdest
      cache the map cords use; cleared whenever a tether is wired, unwired or laid) instead of re-planned on every tetherList() - the pull-out map redraws on
      every drag / zoom, the Mole re-reads routes, the Tether Orb lists them */
-  function drillRouteC(d) { NV.tdest = NV.tdest || {}; return NV.tdest[d.id] || (NV.tdest[d.id] = drillRoute(d)); }
+  function drillRouteC(d) { if (!d) return null; NV.tdest = NV.tdest || {}; return NV.tdest[d.id] || (NV.tdest[d.id] = drillRoute(d)); }
   function drillStep(dt) { const D = drillState(); if (!D) return; const h = dt / 3600e3, hs = CharView.homeState ? CharView.homeState() : null;
     for (const d of D.list) { if (d.camp) d.tier = (CharView.LG && CharView.LG.dg) || d.tier; if (d.port && hs && !hs.ports[d.port]) d.port = null; /* unplugged at the door */ const b = bitOf(d.tier), wired = !!d.port;
       if (wired && d.coal < DRILL.TANK * 0.5 && S.res.coal > 0) { const f = Math.min(DRILL.TANK - d.coal, S.res.coal); S.res.coal -= f; d.coal += f; }
@@ -1046,8 +1046,8 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     for (let k = 0; k < 4; k++) { const off = CharView.drillTipOffset(pitch, yaw, SC); sx = tip[0] - off.x; sy = tip[1] - off.z; const hubH = mH(sx, sy) + A.hubY * SC, ty = mH(n.x, n.y) + n.s * 0.35; aim = CharView.drillAim(n.x - sx, ty - hubH, n.y - sy); yaw = aim.yaw; pitch = aim.pitch; if (!aim.inRange) return { err: 'range', elev: aim.elev }; }
     return { yaw, pitch, x: sx, y: sy, elev: aim && aim.elev }; }
   function drillSlotFull(D) { const used = fieldDrills(D).length, cap = typeof Skills !== 'undefined' ? Skills.slotsUnlocked() : 99; return used >= cap; }
-  function drillSlotToast() { const nxt = typeof Skills !== 'undefined' ? Skills.nextSlotLevel() : null; if (typeof toast === 'function') toast(nxt ? 'Need Mining ' + nxt + ' for another drill slot' : 'All drill slots are in use'); }
-  function drillDeploy(n, opt) { const D = drillState(); if (!D) return null; const i = ORE.nodes.indexOf(n), ex = D.list.find((d) => d.node === i); if (ex) return ex;
+  function drillSlotToast() { const nxt = typeof Skills !== 'undefined' ? Skills.nextSlotLevel() : null; if (typeof toast === 'function') toast(nxt ? 'Next drill slot unlocks at Mining ' + nxt : 'All drill slots are in use'); }
+  function drillDeploy(n, opt) { const D = drillState(); if (!D || !n) return null; const i = ORE.nodes.indexOf(n), ex = D.list.find((d) => d.node === i); if (ex) return ex;
     opt = typeof opt === 'string' ? { bit: opt } : (opt || {});
     if (drillSlotFull(D)) { drillSlotToast(); return null; }
     const pl = drillPlace(n); if (pl.err === 'range') { if (typeof toast === 'function') toast('Move the stand — that vein is outside the drill\'s pitch range (−60° to +15°)'); return null; }
@@ -1056,10 +1056,10 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     const fill = Math.min(DRILL.FILL, Math.floor(S.res.coal || 0)); S.res.coal -= fill;
     const d = { id: 'd' + D.nid++, node: i, spot: n.spot.id, type: n.type, name: ORE_LOOK[n.type].name + ' drill #' + (D.nid - 1), tier: bit, stand: standId.slice(6), coal: fill, hop: 0, acc: 0, port: null, len: 0, t: S.gameTime, yaw: pl.yaw, pitch: pl.pitch, sx: pl.x, sy: pl.y };
     D.bit = bit; D.list.push(d); syncLeft(D); drillHud(); if (typeof save === 'function') save(); return d; }
-  function drillPickUp(d) { const D = drillState(); if (d.camp) return; if (d.port) drillWire(d, false); const hop = d.hop || 0, b = Craft && Craft.add ? Craft.add('bag', 'ore:' + d.type, hop) : 0; if (b && typeof Skills !== 'undefined') Skills.awardMine(d.type, b); S.res.coal += Math.floor(d.coal);
+  function drillPickUp(d) { if (!d) return; const D = drillState(); if (d.camp) return; if (d.port) drillWire(d, false); const hop = d.hop || 0, b = Craft && Craft.add ? Craft.add('bag', 'ore:' + d.type, hop) : 0; if (b && typeof Skills !== 'undefined') Skills.awardMine(d.type, b); S.res.coal += Math.floor(d.coal);
     if (d.stand) giveBack('stand:' + d.stand); if (d.tier) giveBack('bit:' + d.tier);
     D.list.splice(D.list.indexOf(d), 1); syncLeft(D); if (DRILL.sel === d) DRILL.sel = null; const m = DRILL.meshes.get(d.id); if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); } if (typeof save === 'function') save(); }
-  function drillWire(d, on) { const D = drillState(), hs = CharView.homeState(); if (!on) { if (d.port && !d.camp) { CharView.unplugPort(d.port); d.port = null; } NV.tdest = {}; if (typeof save === 'function') save(); return true; }
+  function drillWire(d, on) { if (!d) return false; const D = drillState(), hs = CharView.homeState(); if (!on) { if (d.port && !d.camp) { CharView.unplugPort(d.port); d.port = null; } NV.tdest = {}; if (typeof save === 'function') save(); return true; }
     if (d.port) return true; const r = drillRoute(d); if (!r) return false; d.len = r.len; const owned = tetherOwned(), free = tetherFree(D); if (r.len > free) { if (typeof toast === 'function') toast(`Needs ${r.len} m of Ledge Tether, you have ${owned} m`); return false; }
     let id = CharView.PORTS.slice(1).find((p, i) => i < hs.open && !hs.ports[p]); if (!id && hs.open < 8) { CharView.unlockPort(); id = CharView.PORTS[hs.open]; } if (!id) { if (typeof toast === 'function') toast('Every door port is in use'); return false; }
     NV.tdest = {}; if (!CharView.plugPort(id, d.tier === 'onyx' ? 'lumen' : d.tier, 'to')) return false; d.port = id; if (typeof save === 'function') save(); CharView.refreshPorts(); return true; }
@@ -1076,7 +1076,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function drillStatusText(d) { const soft = drillSoft(d); return d.on ? 'Running' : !d.tier ? 'No bit' : soft ? 'Bit too soft for this ore' : d.coal <= 0 ? 'Out of coal' : d.hop >= DRILL.HOP ? 'Hopper full' : 'Idle'; }
   function drillStatusIco(d) { return d.on ? 'stat_status_running' : d.hop >= DRILL.HOP ? 'stat_status_hopper_full' : (!d.tier || drillSoft(d) || d.coal <= 0) ? 'stat_status_stalled' : 'stat_status_off'; }
   function hopIco(d) { return d.hop <= 0 ? 'stat_hopper_empty' : d.hop >= DRILL.HOP * 0.8 ? 'stat_hopper_full' : 'stat_hopper_half'; }
-  function drillNeed(d) { return d.port || d.camp ? d.len : (d.need != null ? d.need : (d.need = (drillRoute(d) || { len: 0 }).len)); }
+  function drillNeed(d) { if (!d) return 0; return d.port || d.camp ? d.len : (d.need != null ? d.need : (d.need = (drillRoute(d) || { len: 0 }).len)); }
   function drillBox(id, cls, onClick) { let box = document.getElementById(id); if (!box) { box = document.createElement('div'); box.id = id; box.className = cls; (document.getElementById('cityWrap') || document.body).appendChild(box); box.addEventListener('click', onClick); } return box; }
   function drillClose() { DRILL.listOn = false; DRILL.sel = null; DRILL.view = ''; DRILL.prox = false; const a = document.getElementById('drillCtl'), b = document.getElementById('drillUse'); if (a) a.classList.remove('on'); if (b) b.classList.remove('on'); drillHud(); }
   function drillRefresh() { if (DRILL.listOn) drillUI(); if (DRILL.sel && document.getElementById('drillUse') && document.getElementById('drillUse').classList.contains('on')) drillUseUI(); drillHud(); }
@@ -1092,7 +1092,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (d.camp && CharView.setDrillGrade) CharView.setDrillGrade(v);
     const m = DRILL.meshes.get(d.id); if (m && CharView.swapDrillBit) { CharView.swapDrillBit(m, v); if (m.userData.bitCol && CharView.BIT_SPARK) m.userData.bitCol.setHex(CharView.BIT_SPARK[v] || 0xffb35c); } else if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); }
     if (typeof save === 'function') save(); return true; }
-  function drillPitch(d, dir) { const A = CharView.DRILL_ANG, cur = d.pitch != null ? d.pitch : (d.camp ? 0 : A.pitchDef);
+  function drillPitch(d, dir) { if (!d) return null; const A = CharView.DRILL_ANG, cur = d.pitch != null ? d.pitch : (d.camp ? 0 : A.pitchDef);
     const i = A.pitches.reduce((b, p, j) => Math.abs(p - cur) < Math.abs(A.pitches[b] - cur) ? j : b, 0), j = Math.max(0, Math.min(A.pitches.length - 1, i + (dir > 0 ? 1 : -1)));
     d.pitch = A.pitches[j]; const m = DRILL.meshes.get(d.id); if (m && CharView.setDrillAngle) CharView.setDrillAngle(m, d.pitch, d.yaw == null ? 0 : d.yaw);
     if (d.camp && CharView.LG && CharView.LG.standG && CharView.setDrillAngle) CharView.setDrillAngle(CharView.LG.standG, d.pitch, d.yaw || 0);
@@ -1102,7 +1102,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     d.tier = null; const m = DRILL.meshes.get(d.id); if (m && CharView.swapDrillBit) CharView.swapDrillBit(m, null);
     if (d.camp && CharView.setDrillGrade) CharView.setDrillGrade('bronze');
     if (typeof save === 'function') save(); return true; }
-  function drillAct(d, k, v) { if (k === 'x' || v === 'x') { if (DRILL.view) { DRILL.view = ''; drillUseUI(); return; } return drillClose(); }
+  function drillAct(d, k, v) { if (!d) return; if (k === 'x' || v === 'x') { if (DRILL.view) { DRILL.view = ''; drillUseUI(); return; } return drillClose(); }
     if (v === 'swap') DRILL.view = 'swap'; else if (v === 'tset') DRILL.view = 'tether'; else if (v === 'back') DRILL.view = '';
     else if (k === 'bit') drillSwapBit(d, v); else if (k === 'pitch') drillPitch(d, v === '+' || v === '1' ? 1 : -1);
     else if (v === 'fuel') { const f = Math.min(DRILL.TANK - d.coal, Math.floor(S.res.coal || 0), DRILL.FILL); S.res.coal -= f; d.coal += f; }
