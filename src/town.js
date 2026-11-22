@@ -49,21 +49,16 @@ const Town = (() => {
   function hOver(x,y){if(SITE||SKIP||!near(x,y,WS*.2))return null;const [px,py]=P2(x,y);if(!inPoly(OUT,px,py)&&!entryAt(px,py))return null;return lvlPx(px,py);}
   const nat = (x, y) => { SKIP = true; const h = M3.heightAt(x, y)[0]; SKIP = false; return h; };
   // ---- buildings: concept-map centre (px), facing (+1: toward +py, -1: toward -py), footprint (local metres, x across the front, z depth)
-  const BLD = [
-    {id:'general_store',name:'General Store',px:8.4*14,py:18.2*14,face:1,t:1,w:8.1,d:6.5,npc:'goldie'},
-    {id:'smithy',name:'Smithy',px:18.35*14,py:18.2*14,face:1,t:1,w:8.6,d:6.5}, /* (Dominic t438u) Brannick now keeps the Tether Mill: spawned by src/tether_mill.js, not here; his P entry and NPC kit stay */
-    {id:'rope_maker',name:'Rope Maker',px:8.8*14,py:34.5*14,face:-1,t:1,w:5.6,d:15,npc:'tess'},
-    {id:'inn',name:'Inn',px:18.5*14,py:30.9*14,face:-1,t:1,w:9.4,d:5.6,npc:'hattie'},
-    {id:'guide_hut',name:"Guide's Hut",px:39*14,py:31.4*14,face:-1,t:1,w:5.8,d:5.8,round:1,npc:'fennick'}
-  ];
+  // t438u (Dominic): the beginner village is retired. Building / NPC kits below stay available for later, but nothing is placed on the map. Brannick keeps the Tether Mill (spawned by src/tether_mill.js from the NPC kit).
+  const BLD = [];
   // standalone sites: drop Art's placement here (world x, y and yaw; yaw 0 = the door faces +y). Applied at load, before the terrain is carved, so each
   // site's pad, plinth, solids, walk grid, keeper spot and talk spot follow it. Empty = the buildings stay where they are. (Live moves: Town.setSite(id, x, y, yaw); the walk grid follows at once, the terrain mesh under a moved pad only on the next load.)
   // (guide_hut moved 24 m NE of Art's centre: its lesson ring and approach then clear Mosby's strip by >= 10 m on the new valley circuit)
-  const SITE_AT = {"guide_hut":[-5217,8498,-0.6981],"general_store":[-5517,7915,-1.1345],"rope_maker":[-5765,7225,-1.309],"smithy":[-6118,6582,-0.9599],"inn":[-6587,6020,-0.6981]}; // e.g. { general_store: [x, y, yaw], smithy: [x, y, yaw], rope_maker: [...], inn: [...], guide_hut: [...] }
+  const SITE_AT = {};
   for (const B of BLD) { const q = SITE_AT[B.id]; if (q) { B.wx = q[0]; B.wy = q[1]; if (q[2] != null) B.wyaw = q[2]; } }
-  const SITE_PLAN = {"guide_hut":{"yard":[{"name":"lesson ring, tamped dirt \u00d8 10 m","material":"dirt","circle_local_m":[0,7.0,5.0],"centre_world":[-5347,8646],"r_u":32}],"approach":[[0,12.0],[0,20.0]],"keeper":[-2.0,4.8],"door":[0,2.9],"rope":null,"remove":[]},"general_store":{"yard":[{"name":"cobble apron 10 x 4 m","material":"cobble","rect_local_m":[-5.0,4.75,5.0,8.75],"corners_world":[[-5558,7899],[-5531,7957],[-5554,7967],[-5581,7910]]}],"approach":[[0,8.75],[0,16.75]],"keeper":[1.5,5.4],"door":[0,3.25],"rope":null,"remove":[]},"rope_maker":{"yard":[{"name":"cobble forecourt 2.3 m (extras5), run across to the lane","material":"cobble","rect_local_m":[-3.5,6.85,6.7,9.15],"corners_world":[[-5813,7215],[-5796,7277],[-5810,7281],[-5827,7219]]},{"name":"rope walk lane 2.5 x 30 m","material":"dirt","rect_local_m":[4.2,-20.85,6.7,9.15],"corners_world":[[-5630,7216],[-5626,7232],[-5810,7281],[-5814,7266]]}],"approach":[[0,9.15],[0,17.15]],"keeper":[-1.9,8.1],"door":[0,6.85],"rope":{"local_m":[[5.45,8.0],[5.45,-20.0]],"world":[[-5805,7272],[-5633,7226]],"lane_width_m":2.5,"length_m":30},"remove":[]},"smithy":{"yard":[{"name":"forge yard, packed cinder dirt 12 x 8 m","material":"cinder","rect_local_m":[-6.0,3.25,6.0,11.25],"corners_world":[[-6157,6563],[-6113,6625],[-6155,6654],[-6198,6592]]}],"approach":[[0,11.25],[0,19.25]],"keeper":[0.8,5.6],"door":[1.9,3.25],"rope":null,"remove":[[-11.8,1.9,"t_birch2"],[-10.8,8.1,"t_birch3"]]},"inn":{"yard":[{"name":"dirt forecourt","material":"dirt","rect_local_m":[-6.0,2.8,6.5,11.0],"corners_world":[[-6628,6009],[-6567,6060],[-6600,6100],[-6661,6049]]}],"approach":[[-2.2,11.0],[-2.2,19.0]],"keeper":[-0.7,4.6],"door":[-2.2,2.8],"rope":null,"remove":[]}};
-  const VALLEY = [[-5635,9039],[-5275,8633],[-5299,8595],[-5613,7960],[-5870,7253],[-6087,6843],[-6218,6652],[-6289,6557],[-6675,6103]]; // Ledge door -> straight across Mosby's strip (unavoidable: the door is inside it) -> each approach end in quest order, held >= 59 m from his line (strip edge 47 m + 10 m + half the path)
-  const LOTS=[['H1',8.5*14,8.6*14,8*14,6*14],['H2',18.1*14,8.6*14,8*14,6*14],['H3',42.5*14,17.5*14,8*14,6*14],['H4',49*14,32.5*14,8*14,6*14],['H5',18*14,40.2*14,8*14,6*14],['H6',49*14,40.5*14,8*14,6*14],['L1',30*14,24.5*14,0,0,2*14],['L2',52*14,23.5*14,6*14,10*14],['L3',55*14,30*14,0,0,1*14]];
+  const SITE_PLAN = {};
+  const VALLEY = []; // t438u: the Ledge-to-inn village trunk served only the removed doors; no real destination remains at its north end
+  const LOTS = []; // t438u: village home lots removed
   const SQ={px:30*14,py:24.5*14,r:7*14};
   // world placement of a building: origin at its centre on its terrace, yaw so local +z (the front) points the right way
   // site module: the floor sits at the highest natural ground under the footprint; a stone plinth (Town.ground) runs down below the lowest point so it conforms
@@ -111,7 +106,8 @@ const Town = (() => {
   // ---- the connecting footpath: out of the main street's land end, round the town's south-east corner, onto the nearest worn path
   let PTH = null;
   function anchors() { const o = []; if (SITE) for (const B of BLD) { const q = SITE_PLAN[B.id]; o.push(local(B, ...q.door), local(B, ...q.approach[0])); } return o; }
-  function paths(base) { if(SITE){const out=[[-2.5,...VALLEY.flat()]];for(const B of BLD){const q=SITE_PLAN[B.id],a=q.approach.map(p=>local(B,...p));out.push([-2,...a.flat()],[-2,...local(B,...q.approach[0]),...local(B,...q.door)]);} /* (Dominic: grass, no stone, in front of the buildings) the 2.5 m valley path, 2 m branches run on to every door */ return out;}return []; }
+  function paths(base) { return []; } // t438u: no village trunk, door branches, yards or forecourts
+
   // site modules: move one building (with its plinth, solids, props and keeper spot) to any world point and facing; the town rebuilds on the next frame
   function setSite(id, x, y, yaw) { const B = BLD.find((q) => q.id === id); if (!B) return false; B.wx = x; B.wy = y; if (yaw != null) B.wyaw = yaw; delete SH[id]; PADS = null; COLS = null; if (Town.rebuild) Town.rebuild(); if (typeof Explore !== 'undefined' && Explore.NV) { Explore.NV.built = false; Explore.NV.tidy = null; } return true; } // (the walk grid is rebuilt on the next plan; the terrain mesh under a moved pad is re-carved when its chunk is next rebuilt)
   return { setSite, SITE, SITE_PLAN, VALLEY, local, anchors, siteH, WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
@@ -927,7 +923,7 @@ Town.folk = (() => {
       const k = NpcKit.create(id, { scale: WS, yaw: sp.yaw, pos: new THREE.Vector3(sp.at[0], sp.h, sp.at[1]) }); if (!k) continue; TW.ST.g.add(k.root); ids.add(id);
       ST.list.push({ id, B, o, sp, kit: k, yaw: sp.yaw, look: 0, ph: B.px * 0.013, x: sp.at[0], y: sp.at[1], h: sp.h, hgt: k.h * WS, tris: k.tris[0], lodTris: k.tris }); }
     ST.kit = ids; return ids; }
-  function build() { if (ST.built || !TW.ST || !TW.ST.built || !TW.ST.g) return; const kb = kitBuild(); if (kb === 'wait') return; ST.built = true; if (kb instanceof Set) return;
+  function build() { if (ST.built || !TW.ST || !TW.ST.built || !TW.ST.g) return; if (!TW.BLD.length) { ST.built = true; return; } const kb = kitBuild(); if (kb === 'wait') return; ST.built = true; if (kb instanceof Set) return;
     const S = Town.sculpt, FM = Town.folkModel, bones = [], NK = TW.BLD.filter((B) => P[B.npc] && FM.NPC[B.npc]).length; Town.folkBase = Town.folkBraidBase = NK * 5; let braidAt = null; S.begin();
     for (const B of TW.BLD) { const sp = TW.npcSpot(B), id = B.npc, o = P[id]; if (!o || !FM.NPC[id]) continue; const q = ST.list.length, M = new THREE.Matrix4().compose(new THREE.Vector3(sp.at[0], sp.h, sp.at[1]), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), sp.yaw), new THREE.Vector3(WS, WS, WS)), t0 = S.tris();
       FM.NPC[id](M, q * 5); const face=FM.DBG.H, inv=M.clone().invert(); const J = FM.joints(id), bn = [0, 1, 2, 3, 4].map(() => new THREE.Bone()); bn[0].position.set(sp.at[0], sp.h, sp.at[1]); bn[0].rotation.y = sp.yaw; bn[0].scale.setScalar(WS);
@@ -991,11 +987,11 @@ Town.folk = (() => {
   function show() { const d = ST.dlg, n = ST.talk, last = ST.page >= n.o.say.length - 1; d.querySelector('.tdWell p').textContent = n.o.say[ST.page]; face(n, 'talk'); clearTimeout(ST.faceT); ST.faceT = setTimeout(() => ST.talk === n && face(n, /!/.test(n.o.say[ST.page]) ? 'pleased' : 'neutral'), 1400); d.querySelector('.tdPip').style.display = last ? 'none' : '';
     d.querySelector('.tdBtns').innerHTML = last ? (n.o.acts || []).map(([t, a]) => `<button class="kBtn kGreen" data-a="${a}">${t}</button>`).join('') + '<button class="kBtn kCream" data-a="bye">Goodbye</button>' : ''; }
   function close() { ST.talk = null; if (ST.dlg) ST.dlg.classList.add('hidden'); }
-  function act(a) { const n = ST.talk; if (a === 'bye') return close(); if (a === 'vault') { close(); if (typeof CharView !== 'undefined' && CharView.openVault) CharView.openVault(); return; }
+  function act(a) { const n = ST.talk || { o: { name: 'General Store' } }; if (a === 'bye') return close(); if (a === 'vault') { close(); if (typeof CharView !== 'undefined' && CharView.openVault) CharView.openVault(); return; }
     if (a === 'buy' || a === 'sell') { close(); const rows = a === 'buy' ? [['Climbing chalk', 5], ['Trail biscuits', 3], ['Spare rope (10 m)', 12], ['Lumenite lamp oil', 8]] : [['Ore from your backpack', null], ['Crystals', null]];
       openModal(`<div class="kKit tdShop"><div class="kLeather"><h2>${n.o.name}'s ${a === 'buy' ? 'shelves' : 'counter'}</h2>${rows.map(([t, p]) => `<div class="row"><b>${t}</b>${p ? `<span>${p} gold</span>` : ''}<button class="kBtn kCream" disabled>${a === 'buy' ? 'Buy' : 'Sell'}</button></div>`).join('')}<div class="kFoot">Trading opens soon - the store is still being stocked.</div><div style="text-align:right;margin-top:8px"><button class="kBtn kCream" data-shopx style="min-height:44px;padding:4px 18px">Close</button></div></div></div>`, 'town-shop');
       const x = document.querySelector('#modalBody [data-shopx]'); if (x) x.addEventListener('click', () => closeModal()); } }
-  return { P, ST, build, tick, tap, talk, close, act, figure, hitAt };
+  return { P, ST, build, tick, tap, talk, close, act, figure, hitAt, shop: (a) => { el(); act(a === 'sell' ? 'sell' : 'buy'); } };
 })();
 Town.npcTick = () => Town.folk.tick();
 Town.tap = (sx, sy) => Town.folk.tap(sx, sy);
