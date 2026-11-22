@@ -1,7 +1,7 @@
 // Tether Mill (Art's stations/roller_mill handoff, Dominic: "exactly right ... I want it huge"): the open-air water mill at the stream bend above the west lake.
 // Checks: site + 3x scale (36 m wheel, 4 roll stands 18 m apart, spool), the straight mill race carrying the whole stream, the ~36 m drop at the ledge lip
 // tailrace back into the same stream; the floor is flat, dry and reachable on foot; the works are solid; gear directions (wheel CW, top roll CCW, bottom CW, spool CW
-// from the front) and speed ratios agree; the bar thins stand to stand; the look-at chip shows near the mill; tris / draw calls at the mill view.
+// from the front) and speed ratios agree; the bar thins stand to stand; no floating chip shows near the mill; tris / draw calls at the mill view.
 // SHOT=1 also renders Brannick in front of the mill, a close 3/4 and a map-zoom view to /tmp/tethermill-*.png, and the pull-out map round the mill to /tmp/tethermill-map.png.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
@@ -26,7 +26,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await new Promise((r) => setTimeout(r, 300)); MILL.anim(0, 0); M.rolls.getMatrixAt(0, m0); M.rolls.getMatrixAt(1, m1); const e1 = new THREE.Euler().setFromRotationMatrix(m0), f1 = new THREE.Euler().setFromRotationMatrix(m1);
     const dA = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a)); o.dir = { wheel: Math.sign(M.wheel.rotation.z - w0), spool: Math.sign(M.spoolG.rotation.z - s0), top: Math.sign(dA(e0.z, e1.z)), bot: Math.sign(dA(f0.z, f1.z)) };
     o.thin = MILL.T.every((t, i) => !i || t < MILL.T[i - 1]); const Kx = MILL.K; o.scale = { K: Kx, wheel: L.wheel.R * 2 * Kx, wheelW: L.wheel.W * Kx, streamW: +(GRAND.streamLines()[1].w * 2 / WS).toFixed(1), pitch: L.stands[1] * Kx - L.stands[0] * Kx, stands: L.stands.length, standH: +(4.6 * Kx).toFixed(1), roll: L.rollR * 2 * Kx, rollW: 2.5 * Kx, spool: 4 * Kx, foot: +((L.spool + 2 - (L.lip - 3)) * Kx).toFixed(1), deep: +((L.pad[3] - L.pitD[0]) * Kx).toFixed(1) };
-    await new Promise((r) => setTimeout(r, 600)); MILL.anim(0, 0); o.chip = !!document.querySelector('#millChip.on');
+    await new Promise((r) => setTimeout(r, 600)); MILL.anim(0, 0); o.chip = !document.querySelector('#millChip, #millBub');
     return o; });
   console.log(JSON.stringify(R));
   ok(R.built && R.site, `the mill is built at world ${R.site} (map px ${R.mapPx})`);
@@ -40,7 +40,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.ratio, 'one chain of ratios: pit gear 40:11 pinion, each stand sprocket sized to its roll speed, the spool to the braid speed');
   ok(R.thin, 'the bar is thinner after every stand');
   ok(R.scale.wheel >= 34 && R.scale.wheelW >= Math.max(8.5, R.scale.streamW) && R.scale.foot > 95, `3x scale: wheel ${R.scale.wheel} x ${R.scale.wheelW} m (stream ${R.scale.streamW} m wide, all of it over the wheel), rolls ${R.scale.roll} x ${R.scale.rollW} m, spool ${R.scale.spool} m, footprint ${R.scale.foot} x ${R.scale.deep} m`);
-  ok(R.chip, 'the Tether Mill chip shows near the mill');
+  ok(R.chip, 'no floating chip or icon over the mill when Wren is there (Dominic t448u)');
   // Brannick (Art's NPC kit, hammer on his shoulder) keeps the mill: on the apron in front, facing the approach, solid, not in the village; tap -> the Tether Mill card
   await p.waitForFunction(() => { MILL.anim(0, 0); return !!MILL.BR.k; }, null, { timeout: 90000, polling: 500 });
   const K = await p.evaluate(async () => { const B = MILL.BR, k = B.k, [s, d] = MILL.loc(B.x, B.y), [fx, fy] = MILL.wld(-1.5, 5.9), [ox, oy] = MILL.wld(-1.5, 9.6), yaw = k.baseYaw != null ? k.baseYaw : k.root.rotation.y, f = [Math.sin(yaw), Math.cos(yaw)], u = [fx - ox, fy - oy], ul = Math.hypot(u[0], u[1]);
@@ -49,12 +49,12 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.icon = await fetch('assets/ui/icons/map_tether_mill.webp').then((r) => r.ok).catch(() => false);
     const [wx, wy] = MILL.wld(-1.5, 9.6 + 9 / MILL.K), q = Explore.reach(wx, wy); Explore.enter(q[0], q[1]); const E = Explore.EX; E.az = Math.atan2(wx - ox, wy - oy); for (let i = 0; i < 40; i++) Explore.tick(1 / 30); MILL.close(); MILL.anim(0, 0); M3.render(0, CityMap.cam); await new Promise((r) => setTimeout(r, 300)); MILL.anim(0, 0);
     const a = M3.project(B.x, B.y, B.hgt * 0.6); o.tapAt = a.map(Math.round); o.tap = Explore.tap(a[0], a[1]); for (let i = 0; i < 1500 && B.walking; i++) Explore.tick(1 / 30); await new Promise((r) => setTimeout(r, 300));
-    const bub = document.getElementById('millBub'); o.card = !!bub && !bub.classList.contains('hidden') && /Brannick/.test(bub.textContent) && /Tether Mill/.test(bub.textContent); o.walked = !B.walking; return o; });
+    const dl = document.getElementById('millDlg'); o.card = !!dl && !dl.classList.contains('hidden') && /Brannick/.test(dl.textContent) && /hanging lines off the Ledge/.test(dl.textContent); o.walked = !B.walking; o.noBub = !document.getElementById('millBub'); MILL.close(); return o; });
   console.log('KEEPER ' + JSON.stringify(K));
   ok(K.kit === 'millKeeper' && Math.abs(K.at[0] + 1.5) < 0.3 && Math.abs(K.at[1] - 9.6) < 0.3 && Math.abs(K.floor - K.kpy) < 0.05, `Brannick (NPC kit, ${K.h} m) stands on Art's flag in the apron bay at s ${K.at[0]}, d ${K.at[1]} (feet ${K.floor} m, ground ${K.ground} m)`);
   ok(K.facing > 0.9 && !K.solid, `he faces the works toward (-1.5, 5.9) (${K.facing}), feed table on his left, stand 1 on his right; no solid on the pad`);
   ok(!K.town, 'he is no longer spawned in the village');
-  ok(K.tap === 'npc' && K.walked && K.card, `tapping him walks her up and opens the Tether Mill card with his intro (tap ${K.tap})`);
+  ok(K.tap === 'npc' && K.walked && K.card && K.noBub, `tapping him walks her up and opens his dialogue with the first-visit intro; the old card is gone (tap ${K.tap})`);
   ok(K.label && K.icon, 'the Tether Mill has its label and map icon on the map');
   const perf = await p.evaluate(async () => { const out = {}, r = M3.renderer, g = MILL.M.grp; const V = (x, y, z) => g.localToWorld(new THREE.Vector3(x, y, z));
     const view = (P, Lk) => { M3.st.camOv = { P, L: Lk, near: 1.5, far: 40000 }; MILL.anim(0, 0); r.info.autoReset = false; r.info.reset(); M3.render(0, CityMap.cam); const i = { tris: r.info.render.triangles, calls: r.info.render.calls }; r.info.autoReset = true; return i; };

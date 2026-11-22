@@ -95,7 +95,7 @@ const near = (a, b, e) => Math.abs(a - b) <= e;
   ok(r.u41 && r.u41.next && r.u41.next.name === 'Mithril bar' && r.u41.next.level === 55 && !r.u41.then, 'Smithing 41 next unlock is Mithril bar at 55');
   ok(r.u1 && r.u1.next && r.u1.next.name === 'Drill slot 1' && r.u1.next.level === 5 && r.u1.then && r.u1.then.name === 'Coal ore', 'Mining 1 next unlock is Drill slot 1 at 5, then Coal ore');
   ok(r.nMine === 26 && r.kinds.mining && r.kinds.mining.every((k) => k === 'ore' || k === 'slot' || k === 'use'), `Mining detail lists ${r.nMine} live ore / drill-slot / tool-use entries`);
-  ok(r.nSmith === 48 && r.kinds.smithing && r.kinds.smithing.every((k) => k === 'bar' || k === 'make'), `Smithing detail lists ${r.nSmith} live bar / tool-make entries`);
+  ok(r.nSmith === 40 && r.kinds.smithing && r.kinds.smithing.every((k) => k === 'bar' || k === 'make'), `Smithing detail lists ${r.nSmith} live bar / tool-make entries (no tether links: the Tether Mill rolls them)`);
   ok(!r.invented, 'detail entries do not invent stand gates or proposed perks');
 
   // skills HUD + screen

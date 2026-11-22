@@ -8,7 +8,7 @@
    Cold-rolled metal (no glow, coloured by the ingot: Craft.BIT_T) shows only between the stands, thinner after each one, and leaves stand 4 as
    rope-coloured braid with a teal thread. Every speed comes from one chain of ratios (wheel -> pit gear 40 : pinion 11 -> shaft -> per-stand sprockets
    sized so each stand runs faster as the bar thins), so the gears, chains, rolls, bar and braid all read as one machine.
-   Scope: structure, water, terrain, animation and a look-at prompt. It does not craft anything yet (anvil tether recipes are unchanged).
+   Scope: structure, water, terrain, animation and Brannick; the rolling queue, his dialogue and the mill panel live in tether_mill_ui.js (MillUI).
    Local frame (metres, then x WS): x = s along the line (strip travel, downstream), y = up from the mill floor, z = d toward the front (viewer side).
    ===================================================================== */
 const MILL = (() => {
@@ -23,7 +23,7 @@ const MILL = (() => {
     for (let k = 1; k <= 4; k++) om[k] = v[k] / L.rollR; const wheel = 0.4, pin = wheel * 40 / 11, shaft = pin, rS = 0.45, spoolR = 1.5, spool = v[4] / spoolR;
     return { v, om, wheel, pin, shaft, rS, stubR: [0, ...[1, 2, 3, 4].map((k) => rS * om[k] / shaft)], spool, spSpr: 0.6, spStub: 0.6 * spool / shaft }; })();
   const rollY0 = (k) => [L.nip + TG[k] + L.rollR, L.nip - L.rollR];
-  const M = { F: null, built: false, grp: null, t0: 0, metal: null, chip: null, bub: null, near: false, lastUI: 0 };
+  const M = { F: null, built: false, grp: null, t0: 0, metal: null, near: false, lastUI: 0, ph: 0, rate: 0.25, rateT: 0.25, run: false, lastA: 0 };
 
   /* ---------- the site frame: the stream's own line at the bend (computed from GRAND's stream polyline, before any resampling) ---------- */
   function frame(P) { if (M.F) return M.F; let best = null; const A = [0]; for (let i = 1; i < P.length; i++) A.push(A[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
@@ -291,6 +291,8 @@ const MILL = (() => {
   function pickMetal() { const B = (typeof Craft !== 'undefined' && Craft.BIT_T) || []; let best = 'steel'; try { for (const [k] of B) if (Craft.have && Craft.have('ingot:' + k) > 0) best = k; } catch (e) {} return best; }
   function setMetal(k) { const B = (typeof Craft !== 'undefined' && Craft.BIT_T) || [['steel', 'Steel', '#6B7580']], t = B.find((q) => q[0] === k) || B.find((q) => q[0] === 'steel') || B[0]; M.metal = t[0]; if (!M.mats) return;
     const m = M.mats.mMetal; m.color.set(t[2]); m.emissive.set(t[0] === 'lumen' ? 0x0a2a2c : t[0] === 'onyx' ? 0x1a0408 : 0x000000); m.needsUpdate = true; }
+  // the rolling queue (MillUI) drives the works: full speed while a job runs, a 25% idle turn otherwise (eased over ~1.5 s); bar + ingots only while rolling, in the job's grade colour
+  function setRate(running, grade) { M.run = !!running; M.rateT = running ? 1 : 0.25; if (running && grade && grade !== M.metal) setMetal(grade); }
 
   /* ---------- animation ---------- */
   let D = null;
@@ -312,18 +314,20 @@ const MILL = (() => {
       Object.assign(BR, { k, x, y, hgt: k.h * WS, t: now }); }
     wrapTap(); const k = BR.k, cam = M3.camera, dt = Math.min(0.1, Math.max(0, now - BR.t)); BR.t = now; const dc = cam ? Math.hypot(cam.position.x - BR.x, cam.position.y - HF, cam.position.z - BR.y) / WS : 10;
     k.root.visible = visOn && dc < 260; if (!k.root.visible) return; let face = null; const h = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.on ? Explore.here() : null; if (h && Math.hypot(h[0] - BR.x, h[1] - BR.y) < WS * 7) face = Math.atan2(h[0] - BR.x, h[1] - BR.y);
-    NpcKit.update(k, dt, { talking: !!(M.bub && !M.bub.classList.contains('hidden')), face, camDist: dc }); }
+    if (k.mlRun !== M.run) { k.mlRun = M.run; k.role = Object.assign({}, k.role, M.run ? { work: 'interact', workEvery: [6, 11] } : { work: null }); if (M.run) k.workT = 1.5; }
+    NpcKit.update(k, dt, { talking: typeof MillUI !== 'undefined' && MillUI.talking, face, camDist: dc }); }
   function keeperAt(sx, sy) { if (!BR.k || !BR.k.root.visible || !M3.project) return false; const a = M3.project(BR.x, BR.y, KP.y * WS), b = M3.project(BR.x, BR.y, KP.y * WS + BR.hgt); if (a[0] < -999 || b[0] < -999) return false; // his base-to-top segment on screen (as the town keepers)
     const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, u = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)); return Math.hypot(a[0] + vx * u - sx, a[1] + vy * u - sy) < Math.max(22, Math.sqrt(l2) * 0.4); }
   function talkTo() { const [tx, ty] = wld(KP.talk[0], KP.talk[1]), h = Explore.here(); if (h && Math.hypot(h[0] - tx, h[1] - ty) < WS * 1.5) { open(); return 'npc'; }
     BR.walking = true; const r = Explore.goTo(tx, ty, () => { BR.walking = false; open(); }); if (!r) { BR.walking = false; open(); } return 'npc'; }
   function wrapTap() { if (M.tapW || typeof Explore === 'undefined' || !Explore.tap) return; M.tapW = true; const t0 = Explore.tap; Explore.tap = function (sx, sy, ...r) { if (Explore.EX && Explore.EX.on && keeperAt(sx, sy)) return talkTo(); return t0.call(this, sx, sy, ...r); }; }
-  function anim(t, night) { if (!M.grp) return; const now = performance.now() / 1000, tt = now - M.t0, cam = typeof M3 !== 'undefined' ? M3.camera : null;
+  function anim(t, night) { if (!M.grp) return; const now = performance.now() / 1000, cam = typeof M3 !== 'undefined' ? M3.camera : null, adt = Math.min(0.1, Math.max(0, now - (M.lastA || now))); M.lastA = now;
+    M.rate += (M.rateT - M.rate) * Math.min(1, adt * 2.2); M.ph += adt * M.rate; const tt = M.ph, tw = now - M.t0; // tt: the works' phase (wheel, rolls, gears); tw: water time
     if (cam && now - lastVis > 0.25) { lastVis = now; const c = wld(9, 2), dist = Math.hypot(cam.position.x - c[0], cam.position.z - c[1], cam.position.y - HF); const fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
-      visOn = fr.intersectsSphere(new THREE.Sphere(new THREE.Vector3(c[0], HF + 4 * WK, c[1]), 26 * WK)); M.grp.visible = visOn; detOn = dist < 600 * WS; for (const o of [M.links, M.bev, M.spr, M.pins, M.ingots]) if (o) o.visible = detOn; uiTick(); }
+      visOn = fr.intersectsSphere(new THREE.Sphere(new THREE.Vector3(c[0], HF + 4 * WK, c[1]), 26 * WK)); M.grp.visible = visOn; detOn = dist < 600 * WS; for (const o of [M.links, M.bev, M.spr, M.pins]) if (o) o.visible = detOn; if (M.ingots) M.ingots.visible = detOn && M.run; if (M.bar) M.bar.visible = M.run; uiTick(); }
     keeper(now);
     if (!visOn) return; const wa = -SP.wheel * tt; M.wheel.rotation.z = wa; M.pit.rotation.z = wa; M.pin.rotation.z = SP.pin * tt; M.shaft.rotation.x = SP.shaft * tt; M.spoolG.rotation.z = -SP.spool * tt;
-    if (M.water) { const u = M.water.material.uniforms; u.uT.value = tt; u.uN.value = night || 0; }
+    if (M.water) { const u = M.water.material.uniforms; u.uT.value = tw; u.uN.value = night || 0; }
     M.mats.metT.offset.x = -(SP.v[1] * tt) % 1; M.mats.ropeT.offset.y = (SP.v[4] * tt / 0.6) % 1;
     const d = dummy(), zS = L.stZ; let n = 0;
     // rolls: top CCW (+z), bottom CW (-z) seen from the front; stand k turns at om[k]
@@ -343,31 +347,13 @@ const MILL = (() => {
     n = 0; const gap = 1.45, x0 = -5.2, xe = L.stands[0] - 0.4, off = (SP.v[0] * tt) % gap; for (let i = 0; i < 4; i++) { const xc = x0 + off + i * gap, xa = xc - 0.6, xb = Math.min(xc + 0.6, xe); if (xb <= xa + 0.02 || xa < x0 - 0.62) continue; d.position.set((xa + xb) / 2, L.nip + T[0] / 2, zS); d.rotation.set(0, 0, 0); d.scale.set((xb - xa) / 1.2, 1, 1); d.updateMatrix(); M.ingots.setMatrixAt(n++, d.matrix); }
     for (const [x, y] of [[-4.75, L.nip + T[0] * 1.5 + 0.01], [-4.0, L.nip + T[0] * 1.5 + 0.01]]) { d.position.set(x, y, zS - 0.6); d.rotation.set(0, 0, 0); d.scale.set(0.55, 1, 0.45); d.updateMatrix(); M.ingots.setMatrixAt(n++, d.matrix); } M.ingots.count = n; M.ingots.instanceMatrix.needsUpdate = true; }
 
-  /* ---------- the look-at prompt: near the mill a chip appears; tap it for a card (which metal it is rolling: a preview only, nothing is crafted) ---------- */
-  const CSS = `#millChip{position:absolute;z-index:8;transform:translate(-50%,-100%);display:none;align-items:center;gap:6px;padding:6px 12px 6px 6px;border-radius:20px;border:0;font:600 13px Georgia,serif;color:#33200f;background:rgba(246,236,212,.96);box-shadow:0 0 0 2px #c8954a,0 3px 8px rgba(0,0,0,.35);cursor:pointer;touch-action:manipulation;white-space:nowrap}
-#millChip.on{display:flex}#millChip i{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;font-style:normal;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}
-#millBub{position:absolute;z-index:60;left:50%;bottom:96px;transform:translateX(-50%);box-sizing:border-box;width:min(320px,calc(100% - 16px));padding:4px 2px 8px;border:16px solid transparent;border-image:url(assets/ui/kit_moss.webp) 52 fill / 16px stretch;color:#f3e4c2;font:13px Georgia,serif;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
-#millBub.hidden{display:none}#millBub .mbTop{display:flex;align-items:center;gap:8px;margin:-6px -4px 6px}#millBub .mbI{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-size:18px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}
-#millBub .mbN{flex:1;display:flex;flex-direction:column;min-width:0}#millBub .mbN b{font:700 16px Georgia,serif;color:#f8ecd2}#millBub .mbN small{color:#e3d3b0;font-size:12px}#millBub p{margin:2px 6px 8px;line-height:1.35;color:#f1e3c4}
-#millBub .mbK{display:flex;align-items:flex-start;gap:8px;margin:0 6px 8px;padding:6px 8px;border-radius:10px;background:rgba(20,30,22,.45)}#millBub .mbK p{margin:0;font-style:italic;font-size:12.5px}#millBub .mbK b{font-style:normal}#millBub .mbK small{font-style:normal;color:#d8c69e}#millBub .mbP{flex:none;width:46px;height:46px;border-radius:50%;background:#2b3b2b url(assets/ui/npc/brannick.webp) center/cover;box-shadow:0 0 0 2px #c8954a}
-#millBub .mbX{width:34px;height:34px;min-width:34px;border-radius:50%;border:0;background:#2b3b2b;color:#f3e4c2;box-shadow:0 0 0 2px #c8954a;cursor:pointer}#millBub .mbM{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 6px}
-#millBub .mbM button{display:flex;align-items:center;gap:5px;min-height:34px;padding:4px 6px;border:0;border-radius:10px;font:12px Georgia,serif;color:#f3e4c2;background:rgba(20,30,22,.55);box-shadow:0 0 0 1px rgba(200,149,74,.6);cursor:pointer}#millBub .mbM button.on{box-shadow:0 0 0 2px #ffd36a;background:rgba(60,48,20,.7)}#millBub .mbM s{display:block;width:12px;height:12px;border-radius:3px;flex:0 0 12px;text-decoration:none;box-shadow:0 0 0 1px rgba(0,0,0,.5)}`;
-  function uiEls() { if (M.chip) return true; if (typeof document === 'undefined') return false; const wrap = document.getElementById('cityWrap') || document.body, st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
-    const c = document.createElement('button'); c.id = 'millChip'; c.innerHTML = '<i>⚙️</i><span>Tether Mill</span>'; wrap.appendChild(c); const b = document.createElement('div'); b.id = 'millBub'; b.className = 'kKit hidden'; b.setAttribute('role', 'dialog'); wrap.appendChild(b);
-    for (const el of [c, b]) for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) el.addEventListener(e, (ev) => ev.stopPropagation());
-    c.addEventListener('click', (e) => { e.stopPropagation(); open(); }); b.addEventListener('click', (e) => { e.stopPropagation(); const t = e.target.closest('button'); if (!t) return; if (t.dataset.k === 'x') return close(); if (t.dataset.m) { setMetal(t.dataset.m); open(); } });
-    M.chip = c; M.bub = b; return true; }
-  function open() { if (!uiEls()) return; const B = (typeof Craft !== 'undefined' && Craft.BIT_T) || [], cur = B.find((q) => q[0] === M.metal) || ['steel', 'Steel', '#6B7580'];
-    M.bub.innerHTML = `<div class="mbTop"><span class="mbI">⚙️</span><span class="mbN"><b>Tether Mill</b><small>Water-powered · cold-rolls ingots into Ledge Tether braid</small></span><button class="mbX" data-k="x" aria-label="Close">✕</button></div>` +
-      `<div class="mbK"><span class="mbP"></span><p><b>Brannick</b> <small>keeper of the Tether Mill</small><br>"Every Ledge Tether starts here. Bring me good ingots and the river does the heavy work: four stands, thinner every pass, and out comes braid you can hang your life on."</p></div>` +
-      `<p>The stream turns the wheel, the lumenite gears turn four roll stands, and the bar thins at every stand before it leaves as braid on the spool. Rolling <b>${cur[1]}</b> now.</p><div class="mbM">${B.map(([k, n, col]) => `<button data-m="${k}" class="${k === M.metal ? 'on' : ''}"><s style="background:${col}"></s>${n === 'Ember Onyx' ? 'Onyx' : n}</button>`).join('')}</div>`;
-    M.bub.classList.remove('hidden'); }
-  function close() { if (M.bub) M.bub.classList.add('hidden'); }
-  function blocked() { const r = document.documentElement, m = document.getElementById('modal'); return !!(r.classList.contains('bag-open') || r.classList.contains('skills-open') || r.classList.contains('drill-open') || (m && !m.classList.contains('hidden')) || document.querySelector('#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#tetherBub:not(.hidden)')); }
+  /* ---------- Brannick's dialogue: tap him (no floating chip or icon in the world, Dominic t448u); walking away from the mill closes it ---------- */
+  function open() { if (typeof MillUI !== 'undefined') MillUI.talk(); }
+  function close() { if (typeof MillUI !== 'undefined') MillUI.close(); }
+  function blocked() { const r = document.documentElement, m = document.getElementById('modal'); return !!(r.classList.contains('bag-open') || r.classList.contains('skills-open') || r.classList.contains('drill-open') || (m && !m.classList.contains('hidden')) || document.querySelector('#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden)')); }
   function uiTick() { if (typeof Explore === 'undefined' || typeof document === 'undefined') return; const on = Explore.on && (typeof ui === 'undefined' || ui.tab === 'city') && (typeof CityMap === 'undefined' || !CityMap.mapView || CityMap.mapView().mode !== 'dev'); let near = false, h = null;
     if (on && Explore.here) { h = Explore.here(); if (h) { const [s, d] = loc(h[0], h[1]); near = s > -16 && s < 36 && d > -10 && d < 24; } }
-    if (!near || blocked()) { if (M.chip) M.chip.classList.remove('on'); if (!near) close(); return; } if (!uiEls()) return; const [x, y] = wld(10, L.stZ), p = M3.project ? M3.project(x, y, 6.2 * WK) : [-9999, -9999], wrap = M.chip.parentElement.getBoundingClientRect();
-    const px = p[0] < -999 ? wrap.width / 2 : Math.max(70, Math.min(wrap.width - 70, p[0])), py = p[0] < -999 ? wrap.height * 0.3 : Math.max(60, Math.min(wrap.height - 140, p[1])); M.chip.style.left = px + 'px'; M.chip.style.top = py + 'px'; M.chip.classList.add('on'); }
+    if (!near) close(); } // Dominic t448u: no floating chip or icon over the mill or over Brannick - tap Brannick himself to talk
 
-  return { WS, K, WK, RACE, L, SP, T, M, BR, KP, keeperAt, frame, resample, levels, pre, post, inside, prune, build, anim, setMetal, open, close, loc, wld, get F() { return M.F; } };
+  return { WS, K, WK, RACE, L, SP, T, M, BR, KP, keeperAt, frame, resample, levels, pre, post, inside, prune, build, anim, setMetal, setRate, open, close, loc, wld, get F() { return M.F; } };
 })();
