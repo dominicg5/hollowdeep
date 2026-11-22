@@ -36,6 +36,7 @@ const ExMap = (() => {
     g.lineCap = g.lineJoin = 'round';
     for (const c of W.cracks || []) line(c.pts, Math.max(1.2, 30 * v.s), 'rgba(12,8,16,.85)'); // crevices
     const PW = Math.max(1.4, Math.min(4, 22 * v.s)); for (const f of Explore.allPaths()) { const pts = []; for (let i = 1; i + 1 < f.length; i += 2) pts.push([f[i], f[i + 1]]); line(pts, PW + 1.6, 'rgba(70,48,24,.55)'); line(pts, PW, f[0] === 1 ? '#efe2c0' : '#e2c890'); } // footpaths (the cobbled way paler)
+    if (M3.VR) for (const [, , Pv] of M3.VR.list) { line(Pv, PW + 1.6, 'rgba(70,48,24,.55)'); line(Pv, PW, '#e2c890'); } // Art's valley routes R1-R4 (their switchback treads), part of the footpath network
     for (const Bq of Explore.BRIDGES) { if (!Bq.a || Bq.a[0] > 1e6) continue; line([Bq.a, Bq.b], PW + 2.4, 'rgba(70,48,24,.75)'); line([Bq.a, Bq.b], PW + 0.6, '#c9a46a'); } // bridges: just a plank-toned stretch of the path network
     const strokeTether = (t) => {
       const pts = t.pts; if (!pts || pts.length < 2) return;
