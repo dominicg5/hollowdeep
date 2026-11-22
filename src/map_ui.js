@@ -31,7 +31,7 @@ const CityMap = (() => {
     mm.addEventListener('pointerdown', (e) => { e.stopPropagation(); const r = mm.getBoundingClientRect(); const s = (CITY.R * 2) / r.width; flyTo((e.clientX - r.left) * s - CITY.R, (e.clientY - r.top) * s - CITY.R, Math.max(cam.z, 0.35)); });
     wrap.addEventListener('click', (e) => { const b = e.target.closest('[data-city]'); if (b) cityButton(b.dataset.city); });
     window.addEventListener('resize', resize);
-    $('#cityCount').textContent = `· ${W.homes.length.toLocaleString()} ${CITY.homeTerm}s`;
+    if ($('#cityCount')) $('#cityCount').textContent = `· ${W.homes.length.toLocaleString()} ${CITY.homeTerm}s`;
     buildLegend(); buildMinimapBase(); resize();
     mount.done = true; const V0 = mapView(); if (V0.mode === 'dev' && V0.dev) Object.assign(cam, V0.dev, { vx: 0, vy: 0, fly: null }); viewMark();
     if (typeof M3 !== 'undefined') M3.init(wrap, (p) => { showLoader(p == null ? null : p); if (p == null) { resize(); M3.place(cam, true); autoView(); } });
@@ -307,7 +307,7 @@ const CityMap = (() => {
   }
   // HUD rectangles (device px) that world labels must not draw under
   let hudRects = [], hudAt = 0;
-  function updateHud() { const now = performance.now(); if (now - hudAt < 400) return; hudAt = now; const base = wrap.getBoundingClientRect(); hudRects = ['.cityTitle', '#cityInfo', '#ticker', '.cityBtns', '#miniMap'].map((q) => wrap.querySelector(q)).filter((e) => e && e.offsetParent !== null).map((e) => { const r = e.getBoundingClientRect(); return [(r.left - base.left - 4) * dpr, (r.top - base.top - 4) * dpr, (r.width + 8) * dpr, (r.height + 8) * dpr]; }); }
+  function updateHud() { const now = performance.now(); if (now - hudAt < 400) return; hudAt = now; const base = wrap.getBoundingClientRect(); hudRects = ['#cityInfo', '#ticker', '.cityBtns', '#miniMap'].map((q) => wrap.querySelector(q)).filter((e) => e && e.offsetParent !== null).map((e) => { const r = e.getBoundingClientRect(); return [(r.left - base.left - 4) * dpr, (r.top - base.top - 4) * dpr, (r.width + 8) * dpr, (r.height + 8) * dpr]; }); }
   const ovl = (r, q) => r[0] < q[0] + q[2] && r[0] + r[2] > q[0] && r[1] < q[1] + q[3] && r[1] + r[3] > q[1];
   function hudHit(r) { for (const q of hudRects) if (ovl(r, q)) return true; return false; }
   let lblShown = new Set();
