@@ -85,7 +85,7 @@ const HOUSE_KIT = (() => {
     clip('sign', (x0, y0, w, h) => { g.fillStyle = '#7a5230'; g.fillRect(x0, y0, w, h); g.strokeStyle = '#3a2414'; g.lineWidth = 8; g.strokeRect(x0 + 4, y0 + 4, w - 8, h - 8); g.fillStyle = '#e8c060'; g.beginPath(); g.moveTo(x0 + w / 2, y0 + 26); g.lineTo(x0 + w / 2 + 20, y0 + h / 2); g.lineTo(x0 + w / 2, y0 + h - 26); g.lineTo(x0 + w / 2 - 20, y0 + h / 2); g.fill(); });
     clip('bark', (x0, y0, w, h) => { g.fillStyle = '#6a5442'; g.fillRect(x0, y0, w, h); for (let k = 0; k < 60; k++) { g.strokeStyle = `rgba(${r() < 0.5 ? '30,22,14' : '150,126,100'},.45)`; g.lineWidth = 1 + r() * 3; const x = x0 + r() * w; g.beginPath(); g.moveTo(x, y0); g.lineTo(x + (r() - 0.5) * 10, y0 + h); g.stroke(); } });
     clip('hay', (x0, y0, w, h) => { g.fillStyle = '#c9a85a'; g.fillRect(x0, y0, w, h); for (let k = 0; k < 120; k++) { g.strokeStyle = r() < 0.5 ? 'rgba(120,90,40,.5)' : 'rgba(240,220,150,.5)'; g.lineWidth = 1.5; const x = x0 + r() * w, y = y0 + r() * h; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (r() - 0.5) * 20, y + (r() - 0.5) * 8); g.stroke(); } });
-    const T = new THREE.CanvasTexture(cv), TE = new THREE.CanvasTexture(em); for (const t of [T, TE]) { t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; }
+    const T = hdFreeAfterUpload(new THREE.CanvasTexture(cv)), TE = hdFreeAfterUpload(new THREE.CanvasTexture(em)); for (const t of [T, TE]) { t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; }
     return { T, TE }; }
   /* ---------- geometry builder ---------- */
   const V = (a) => new THREE.Vector3(a[0], a[1], a[2]), lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -386,7 +386,7 @@ const HOUSE_KIT = (() => {
             g.fillStyle = `rgb(${108 + 50 * lit | 0},${138 + 40 * lit | 0},${44 + 20 * lit | 0})`; g.beginPath(); g.ellipse(cxl, cyl, L * 0.47, wd * 0.82, a, 0, 6.3); g.fill();
             if (lit > 0.55) { g.strokeStyle = `rgba(222,228,150,${0.35 + 0.3 * lit})`; g.lineWidth = 0.6; g.beginPath(); g.moveTo(x, y); g.lineTo(cxl + Math.cos(a) * L * 0.4, cyl + Math.sin(a) * L * 0.4); g.stroke(); } } } }
       g.restore(); } }
-    const T = new THREE.CanvasTexture(cv); T.encoding = THREE.sRGBEncoding; T.anisotropy = 8; T.generateMipmaps = true; T.minFilter = THREE.LinearMipmapLinearFilter; T.magFilter = THREE.LinearFilter; return T; }
+    const T = hdFreeAfterUpload(new THREE.CanvasTexture(cv)); T.encoding = THREE.sRGBEncoding; T.anisotropy = 8; T.generateMipmaps = true; T.minFilter = THREE.LinearMipmapLinearFilter; T.magFilter = THREE.LinearFilter; return T; }
   function TBuilder() { const B = { p: [], n: [], uv: [], c: [], i: [] }; B.v = (x, y, z, nx, ny, nz, u, v, c) => { B.p.push(x, y, z); B.n.push(nx, ny, nz); B.uv.push(u, v); B.c.push(c[0], c[1], c[2]); return B.p.length / 3 - 1; };
     B.geo = () => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(B.p, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(B.n, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(B.uv, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(B.c, 3)); g.setIndex(B.i); g.computeBoundingSphere(); return g; }; return B; }
   let BKS = 0, BT = [1, 1, 1]; /* bark strip (0 brown, 1 white birch) and bark tint for the species being built */

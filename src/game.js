@@ -8,6 +8,11 @@ const QUALITY = (() => { const P = { high: { name: 'high', dpr: 2, shadowMap: 20
   let pick = null; try { pick = new URLSearchParams(location.search).get('quality') || localStorage.getItem('hdQuality'); } catch (e) {}
   const Q = Object.assign({}, P[pick] || P[auto()]); Q.auto = auto(); Q.override = P[pick] ? pick : null;
   Q.set = (k) => { try { if (k === 'auto') localStorage.removeItem('hdQuality'); else localStorage.setItem('hdQuality', k); } catch (e) {} if (window.hdReloadTo) window.hdReloadTo(location.href); else location.reload(); }; return Q; })();
+/* (t421u/t422u) iOS memory at boot: a texture painted once on a canvas keeps that full-size canvas in RAM after the GPU has its copy (2048^2 = 16 MB each).
+   For textures that are never repainted, drop the canvas pixels as soon as three.js has uploaded them (the GPU copy is what's drawn). Not for live canvases. */
+const HD_MEM = { freedMB: 0 };
+function hdFreeAfterUpload(t) { if (!t || !t.isTexture) return t; const prev = t.onUpdate; t.onUpdate = function (tx) { if (prev) prev.call(this, tx); tx.onUpdate = prev || null; const im = tx.image;
+  if (im && typeof HTMLCanvasElement !== 'undefined' && im instanceof HTMLCanvasElement && im.width > 1) { HD_MEM.freedMB += im.width * im.height * 4 / 1048576; im.width = im.height = 1; } }; return t; }
 /* =====================================================================
    HOLLOWDEEP — playable prototype
    All tunable numbers live in CONFIG. Times are in GAME hours/minutes;

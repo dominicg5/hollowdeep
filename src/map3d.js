@@ -819,7 +819,7 @@ diffuseColor *= sdc;
       { const top = ax(0.8); floret(v3().copy(top).add(v3().set(0, 560, 0)), 1500, 99); floret(v3().copy(top).add(v3().set(0, 150, 0)).addScaledVector(dirAt(OUT), 1000), 1100, 98); }
       const keep = clumps; HWX.clumps = keep;
       const big = keep.filter((c) => c[3] >= 520), small = keep.filter((c) => c[3] < 520);
-      const lm = new THREE.MeshLambertMaterial({ map: canopyLeafTex(), vertexColors: true }), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+      const lm = new THREE.MeshLambertMaterial({ map: hdFreeAfterUpload(canopyLeafTex()), vertexColors: true }), mt = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
       const PAL = [[1.42, 1.36, 0.7], [1.26, 1.3, 0.66], [1.5, 1.38, 0.64], [1.16, 1.22, 0.64]]; /* (critique) heartwood.jpg tops are light olive / yellow-green in the sun */ /* (critique) lush, sunlit yellow-green crowns (heartwood.jpg), not dark pads */
       /* (critique: pads all one shape) four lobe-shape variants per size, so neighbouring pads never repeat a silhouette */ const VAR = []; for (const [L0, det] of [[big, 3], [small, 2]]) for (let v = 0; v < 4; v++) VAR.push([L0.filter((c, j) => j % 4 === v), det, det * 3.7 + v * 5.3]);
       for (const [L2, det, gs] of VAR) { if (!L2.length) continue; const im = new THREE.InstancedMesh(puffGeo(det, gs), lm, L2.length); im.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(L2.length * 3), 3);
@@ -1021,8 +1021,8 @@ diffuseColor *= sdc;
     const steps = [
       () => { buildMtGrid(); grids[0] = buildGrid(CITY.R + 1500, mob ? 170 : 220, FIN(mob).half); },
       () => { const F = FIN(mob); grids[1] = buildGrid(F.half, F.N, 0); edgeBlend(grids[1], grids[0]); },
-      () => { const a = document.createElement('canvas'); a.width = a.height = 2048; paint(a, -(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2048); texA = canvasTex(a); },
-      () => { const b = document.createElement('canvas'); b.width = b.height = 2048; paint(b, -IN(), -IN(), 2 * IN(), 2048); texB = canvasTex(b); },
+      () => { const TS = QUALITY.name === 'mobile' ? 1024 : 2048, a = document.createElement('canvas'); a.width = a.height = TS; paint(a, -(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), TS); texA = hdFreeAfterUpload(canvasTex(a)); }, /* (t422u) 1024 on phones: the far overview paint; the close-up detail (texC) stays 2048 */
+      () => { const TS = QUALITY.name === 'mobile' ? 1024 : 2048, b = document.createElement('canvas'); b.width = b.height = TS; paint(b, -IN(), -IN(), 2 * IN(), TS); texB = hdFreeAfterUpload(canvasTex(b)); },
       () => { cCanvas = document.createElement('canvas'); cCanvas.width = cCanvas.height = 2048; texC = canvasTex(cCanvas);
         const U = { tZ: { value: biomeTex(-(CITY.R + 1500), 2 * (CITY.R + 1500)) }, tZ2: { value: biomeTex(-(CITY.R + 1500), 2 * (CITY.R + 1500), 1) }, tA: { value: texA }, tB: { value: texB }, tC: { value: texC }, tRock: { value: imgTex(ART.tex.cliff, true, 8) }, uA: { value: new THREE.Vector4(-(CITY.R + 1500), -(CITY.R + 1500), 2 * (CITY.R + 1500), 2 * (CITY.R + 1500)) }, uB: { value: new THREE.Vector4(-IN(), -IN(), 2 * IN(), 2 * IN()) }, tGrass: { value: imgTex(ART.tex.grass, true, 8) }, uC: { value: new THREE.Vector4(0, 0, 1, 1) }, uCOn: { value: 0 }, uExOn: EXU, tK: { value: null }, uK: { value: new THREE.Vector4(0, 0, 1, 1) }, uPH: { value: P_H }, uHR: { value: CITY.hollowR }, uSnowR: { value: CITY.plateauR + 2600 }, uHaze: { value: 0.4 }, uLumen: { value: new THREE.Color(0, 0, 0) } };
         terrainMat = makeTerrainMat(U); terrainMat.userData.U = U; scene.add(makeTerrain(grids[0])); for (const m of makeTerrainTiles(grids[1], 8)) scene.add(m); buildCrevices(); },
