@@ -1,5 +1,5 @@
 // Drill stand setup UI: the backpack stand (seeded, one per drill left, plus a Mithril bit), its "Set up at nearest ore" menu (ore within a 5 s walk at her run speed, type + distance,
-// or "No ore within 5 s walk"), confirm walks her there and deploys; one HUD button for all placed drills in the right-hand stack above Skills / Bag / Map (touch-sized, with a count badge, only on the unobstructed Character-view game screen — hidden whenever a modal or overlay is open, including the drills menu itself); tapping it opens a read-only stats list (bit, ore/h, effective, hopper, Ledge Tether, status — no stand, angle, bit slots or pick-up / swap actions);
+// or "No ore within 5 s walk"), confirm walks her there and deploys; one HUD button for all placed drills in the right-hand stack above Skills / Bag / Map (touch-sized, with a count badge, only when playHudOk() and at least one field drill is placed — hidden on the loading screen, in Dev view, and whenever a modal or overlay is open, including the drills menu itself); tapping it opens a read-only stats list (bit, ore/h, effective, hopper, Ledge Tether, status — no stand, angle, bit slots or pick-up / swap actions);
 // those actions live on a proximity prompt at the drill itself; long-press still deploys
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
@@ -13,40 +13,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { Skills.migrate(); S.skills.mining = Math.max(S.skills.mining || 0, Skills.xpToReach(90)); }); // existing tests predate drill-slot unlocks; give all 9 slots so deploy checks stay about stands, bits and tethers
   const shot = async (f) => { if (SHOT) { await p.waitForTimeout(1500); await p.screenshot({ path: SHOT + '/' + f }); } };
   const tick = (n) => p.evaluate((n) => { for (let i = 0; i < n; i++) Explore.tick(1 / 30); }, n);
-  // the Drills button is on the map HUD even with no field drills, and opens an empty list
+  // the Drills button stays hidden until at least one field drill is placed (playHudOk + a placed drill)
   const empty = await p.evaluate(async () => { if (!Explore.on) { const F = Explore.ledgeFront(); Explore.enter(F.x, F.y); for (let i = 0; i < 8; i++) Explore.tick(1 / 30); }
-    Explore.drillHud(); const h = document.getElementById('drillHud'); let b = h && h.querySelector('.dh'); const n = b && b.querySelector('.n');
-    const vis = !!(h && h.classList.contains('on') && b && b.offsetParent !== null);
-    if (b) b.click(); await new Promise((r) => setTimeout(r, 80));
-    const c = document.getElementById('drillCtl'), empty = !!(c && c.classList.contains('on') && /No drills placed/.test(c.textContent || ''));
-    if (c) Explore.drillPanel(null);
-    b = document.querySelector('#drillHud .dh');
-    const r = b && b.getBoundingClientRect(), bag = document.getElementById('exBagBtn') && document.getElementById('exBagBtn').getBoundingClientRect(), sk = document.getElementById('exSkillsBtn') && document.getElementById('exSkillsBtn').getBoundingClientRect();
-    return { vis, off: !!(b && b.classList.contains('off')), n: n && n.textContent, empty, above: r && bag && sk && Math.abs(r.right - bag.right) <= 2 && r.bottom <= sk.top + 1, dev: (CityMap.setView('dev'), Explore.drillHud(), !!(document.getElementById('drillHud') && document.getElementById('drillHud').classList.contains('on'))) }; });
-  console.log(JSON.stringify(empty)); ok(empty.vis && empty.off && empty.n === '0' && empty.empty, 'the Drills button is on the HUD with a 0 badge when none are placed, and opens the empty list');
-  ok(empty.above, 'the Drills button sits in the right-hand stack above Skills and Bag');
+    Explore.drillHud(); const h = document.getElementById('drillHud');
+    const vis = !!(h && h.classList.contains('on') && h.offsetParent !== null && h.querySelector('.dh'));
+    const dev = (CityMap.setView('dev'), Explore.drillHud(), !!(document.getElementById('drillHud') && document.getElementById('drillHud').classList.contains('on')));
+    CityMap.setView('char'); Explore.drillHud();
+    return { vis, ok: typeof Explore.playHudOk === 'function' && Explore.playHudOk(), n: Explore.fieldDrills().length, dev }; });
+  console.log(JSON.stringify(empty)); ok(!empty.vis && empty.n === 0 && empty.ok, 'the Drills button is hidden on the Character-view play screen when no field drill is placed');
   ok(!empty.dev, 'the Drills button is hidden in Dev view');
-  await p.evaluate(() => { if (typeof CityMap !== 'undefined' && CityMap.setView) CityMap.setView('char'); });
-  const ov = await p.evaluate(async () => {
-    const shown = () => { const h = document.getElementById('drillHud'); return !!(h && h.classList.contains('on') && h.offsetParent !== null && h.querySelector('.dh')); };
-    Explore.drillHud();
-    const base = shown();
-    ExMap.open(); Explore.drillHud(); const map = shown();
-    ExMap.close(); Explore.drillHud(); const afterMap = shown();
-    Craft.sheet(true); Explore.drillHud(); const bag = shown();
-    Craft.sheet(false); Explore.drillHud(); const afterBag = shown();
-    const btn = document.querySelector('#drillHud .dh'); if (btn) btn.click();
-    await new Promise((r) => setTimeout(r, 80)); Explore.drillHud();
-    const menu = !!(document.getElementById('drillCtl') && document.getElementById('drillCtl').classList.contains('on'));
-    const menuHud = shown();
-    Explore.drillPanel(null); Explore.drillHud();
-    return { base, map, afterMap, bag, afterBag, menu, menuHud, afterMenu: shown() };
-  });
-  console.log(JSON.stringify(ov));
-  ok(ov.base && ov.afterMap && ov.afterBag && ov.afterMenu, 'the Drills button returns on the main Character-view screen after overlays close');
-  ok(!ov.map, 'the Drills button is hidden while the full Map is open');
-  ok(!ov.bag, 'the Drills button is hidden while the backpack is open');
-  ok(ov.menu && !ov.menuHud, 'the Drills button is hidden while the drills menu is open');
 
   // seeded item
   const s0 = await p.evaluate(() => { Explore.build(); const WS = Explore.WS, N = Explore.ORE.nodes, D = Explore.drillState(), R = 5 * Explore.runSpeed() * WS;

@@ -240,6 +240,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 
 .cxnear{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(159,246,255,.08);box-shadow:inset 0 0 0 1px rgba(159,246,255,.15);color:#eaffff;font-size:13px}.cxnear .cxsv{position:static;width:34px;height:34px;flex:0 0 34px}.cxnear span{display:flex;flex-direction:column}.cxnear small{opacity:.75;font-size:11.5px}.cxnear.none{color:#ffc2b0}.cxnear.dim{color:#cfe6ea}.cxdset{min-height:46px;font-size:15px}
 #exBagBtn{position:absolute;right:12px;bottom:152px;z-index:7;display:none;flex-direction:column;align-items:center;justify-content:center;width:58px;height:58px;border-radius:16px;border:1px solid rgba(110,80,40,.35);background:rgba(246,236,212,.96);font-size:24px;box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer;padding:0}#exBagBtn span{font:700 11px system-ui,sans-serif;color:#3a2a18}#exBagBtn.on{display:flex}
+/* #drillHud stays display:none until .on; playHudOk() is the only thing that may show it. */
 #drillHud{position:absolute;right:12px;left:auto;bottom:280px;z-index:7;display:none;width:64px;height:64px;flex-direction:column;gap:0;max-height:none;overflow:visible;padding:0}#drillHud.on{display:flex}
 #drillHud .dh{position:relative;width:50px;height:50px;flex:0 0 50px;border-radius:14px;border:1px solid rgba(110,80,40,.35);background:rgba(246,236,212,.96);box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;cursor:pointer;padding:0;touch-action:manipulation}
 #drillHud .dh .di{font-size:21px;line-height:1}#drillHud .dh small{font:700 9.5px system-ui,sans-serif;color:#3a2a18;max-width:46px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -757,7 +758,7 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
 
 /* Drills HUD: only the unobstructed Character-view game screen. Hidden whenever any modal or overlay is open. */
-html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden),#city.devv) #drillHud,
+html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden),#city.devv,#cityLoader:not(.hidden),#areaLoader.on) #drillHud,
 html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{display:none!important}
 
 #drillCtl{top:8px;bottom:72px;left:8px;right:8px;max-height:none;padding:4px 6px 8px;font:400 13px/1.2 "Bree Serif",Georgia,serif;color:#2b1a10}
@@ -902,7 +903,7 @@ html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{dis
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='4ad1caa1';
+<script>window.HD_BUILD='900601a0';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -924,8 +925,8 @@ html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{dis
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 4ad1caa1</div>
-<script src="assets/vendor/three.min.js?v=4ad1caa1"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 900601a0</div>
+<script src="assets/vendor/three.min.js?v=900601a0"></script>
 <script>
 'use strict';
 
@@ -13218,14 +13219,22 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (key === 'door') { const F = ledgeFront(), k = reach(F.x, F.y); EX.ret = { x: k[0], y: k[1], az: EX.az }; EX.tp = (EX.tp || 0) + 1; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); if (EX.on) { const r = EX.ret; EX.ret = null; enter(r.x, r.y); return true; } if (typeof setTab === 'function') setTab('city'); return true; }
     const T = tetherList().find((q) => q.key === key); if (!T) return false; if (T.camp) { if (CharView.st) CharView.st.exRet = null; if (typeof setTab === 'function') setTab('ledge'); return true; }
     const k = reach(T.x, T.y); EX.ret = { x: k[0], y: k[1], az: EX.az }; EX.tp = (EX.tp || 0) + 1; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); if (EX.on) { const r = EX.ret; EX.ret = null; enter(r.x, r.y); return true; } if (typeof setTab === 'function') setTab('city'); return true; }
-  // HUD: one Drills button in the right-hand stack (above Skills / Bag / Map), always in Character view on the city map, with a count badge (hidden in Dev view)
+  // HUD: #drillHud is hidden by default. playHudOk() is the shared gate for field HUD buttons
+  // (Drills now, Mill next): show only on the unobstructed Character-view play screen after boot,
+  // with the loading / boot screen gone and no overlay, modal or menu open. The Drills button also
+  // needs at least one field drill placed.
   const drillStat = (d) => (d.on ? 'run' : d.coal <= 0 ? 'coal' : d.hop >= DRILL.HOP ? 'full' : 'idle');
   function overlayOpen() { const r = document.documentElement, m = document.getElementById('modal');
     return !!(r.classList.contains('bag-open') || r.classList.contains('skills-open') || r.classList.contains('drill-open') || (m && !m.classList.contains('hidden')) || document.querySelector('#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden)')); }
   function onCityMap() { return (typeof ui === 'undefined' || ui.tab === 'city') && (typeof CityMap === 'undefined' || !CityMap.mapView || CityMap.mapView().mode !== 'dev'); }
+  function hudBooted() { return typeof M3 !== 'undefined' && M3.st && !!M3.st.ok; }
+  function hudLoading() { const L = document.getElementById('cityLoader'); if (L && !L.classList.contains('hidden')) return true;
+    if (typeof AreaLoader !== 'undefined' && AreaLoader.st && AreaLoader.st.on) return true;
+    const A = document.getElementById('areaLoader'); return !!(A && A.classList.contains('on') && !A.classList.contains('out')); }
+  function playHudOk() { return hudBooted() && !hudLoading() && onCityMap() && !overlayOpen(); }
   function drillLoc(d) { const n = drillNode(d), H = doorSpots().find((q) => q.type === 'ledge'), h = EX.on ? here() : null; if (!n) return '';
     return `<div class="drow" data-k="loc">📍 ${Math.round(Math.hypot(n.x - H.x, n.y - H.y) / WS)} m from the Ledge door${h ? ` · ${Math.round(Math.hypot(n.x - h[0], n.y - h[1]) / WS)} m from you` : ''} · map ${Math.round(n.x / WS)}, ${Math.round(n.y / WS)}</div>`; }
-  function drillHud() { let h = document.getElementById('drillHud'); const show = onCityMap() && !overlayOpen(), D = show ? drillState() : null, L = D ? fieldDrills(D) : [];
+  function drillHud() { let h = document.getElementById('drillHud'); const D = drillState(), L = D ? fieldDrills(D) : [], show = playHudOk() && L.length > 0;
     if (!h) { if (!show) return; h = document.createElement('div'); h.id = 'drillHud'; h.setAttribute('aria-label', 'Your drills'); (document.getElementById('cityWrap') || document.body).appendChild(h);
       h.addEventListener('click', (e) => { if (!e.target.closest('button.dh')) return; drillPanel(true); }); }
     const agg = L.some((d) => drillStat(d) === 'run') ? 'run' : L.some((d) => drillStat(d) === 'coal') ? 'coal' : L.some((d) => drillStat(d) === 'full') ? 'full' : L.length ? 'idle' : 'off';
@@ -13279,6 +13288,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (o.type === 'ledge') { enterLedgeFromMap(); } /* tapping the Ledge front door simply goes in: every tether option lives in the Tether Orb's settings */
     else if (o.type === 'door') { exit(); if (typeof GRAND !== 'undefined') GRAND.enterTree(); } }
   // coming back out of the Ledge or the Lumen Tree onto the map (city tab) after entering from Explore: back in Explore just outside that door
+  if (typeof AreaLoader !== 'undefined' && AreaLoader.hide && !AreaLoader.hide._playHud) { const h0 = AreaLoader.hide; AreaLoader.hide = function () { const r = h0.apply(this, arguments); drillHud(); return r; }; AreaLoader.hide._playHud = true; }
   if (typeof setTab === 'function' && !setTab._ex) { const o0 = setTab; setTab = function (t) { const r0 = t === 'city' ? EX.ret : null; o0(t); if (r0) EX.ret = r0; /* (the map's Character view may already have put her back at her last spot: a door exit wins) */ if (t === 'city' && EX.ret) { const r = EX.ret; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); EX.ret = null; if (CharView.st) CharView.st.exRet = null; setTimeout(() => { if (enter(r.x, r.y)) { const G = CharView.st.gnd; if (G && isFinite(r.face)) G.face = r.face; if (isFinite(r.az)) EX.az = r.az; EX.back = r; } }, 40); } else if (t !== 'home' && t !== 'tree' && t !== 'city') EX.ret = null; drillHud(); }; setTab._ex = true; }
   function reach(x, y) { build(); const k = nearest(x, y, NV.size.indexOf(Math.max(...NV.size))); return cxy(k); } // the nearest spot she can stand on, in the connected world
   function aim(x, y, up) { let best = null; for (let k = 0; k < 16; k++) { EX.az = k * Math.PI / 8; tick(0); M3.render(0, CityMap.cam); const s = M3.project(x, y, up == null ? 20 : up); if (s[0] < 0 || s[1] < 0 || s[0] > innerWidth || s[1] > innerHeight) continue; const d = Math.hypot(s[0] - innerWidth / 2, s[1] - innerHeight / 2); if (!best || d < best[1]) best = [k, d, s]; } if (best) { EX.az = best[0] * Math.PI / 8; tick(0); M3.render(0, CityMap.cam); } return best && best[2]; } // swing the follow camera until a spot is in view
@@ -13351,7 +13361,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     let sb = document.getElementById('exSkillsBtn'); if (!sb && on) { sb = document.createElement('button'); sb.id = 'exSkillsBtn'; sb.innerHTML = '<span>Skills</span>'; sb.setAttribute('aria-label', 'Open skills'); sb.addEventListener('click', () => typeof Skills !== 'undefined' && Skills.screen(!Skills.screenOn())); (document.getElementById('cityWrap') || document.body).appendChild(sb); } if (sb) sb.classList.toggle('on', !!on); if (!on && typeof Skills !== 'undefined' && Skills.screenOn && Skills.screenOn()) Skills.screen(false);
     let bb = document.getElementById('exBagBtn'); if (!bb && on) { bb = document.createElement('button'); bb.id = 'exBagBtn'; bb.innerHTML = '🎒<span>Bag</span>'; bb.setAttribute('aria-label', 'Open the backpack'); bb.addEventListener('click', () => typeof Craft !== 'undefined' && Craft.sheet(!Craft.sheetOn())); (document.getElementById('cityWrap') || document.body).appendChild(bb); } if (bb) bb.classList.toggle('on', !!on); if (!on && typeof Craft !== 'undefined' && Craft.sheetOn && Craft.sheetOn()) Craft.sheet(false);
     const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); if (typeof CityMap !== 'undefined' && CityMap.setView && !CityMap.setView._drillHud) { const sv = CityMap.setView; CityMap.setView = function (m) { const r = sv.apply(this, arguments); drillHud(); return r; }; CityMap.setView._drillHud = true; } drillHud(); if (!on && DRILL.sel) drillPanel(null); }
-  return { tetherPlan, tetherLength, tetherOK, onBridge, orePrune, drillFix, drillRate, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, drillCaps, drillFlow, drillStrandText, bitPushNeed, drillIsBestOre, longPress, drillNear, drillSetup, drillHud, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
+  return { tetherPlan, tetherLength, tetherOK, onBridge, orePrune, drillFix, drillRate, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, drillCaps, drillFlow, drillStrandText, bitPushNeed, drillIsBestOre, longPress, drillNear, drillSetup, drillHud, playHudOk, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
 })();
 /* ---------- Explore: the Map screen - a full-screen stylized 2D map drawn from the nav grid / heightfield (toon hypsometric tint + hillshade, cliffs, water,
    crevices, the footpath network, every bridge marked), labelled places and Wren's marker; tap anywhere -> A* travel (snapped to the nearest reachable spot)

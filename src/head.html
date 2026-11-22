@@ -240,6 +240,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 
 .cxnear{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(159,246,255,.08);box-shadow:inset 0 0 0 1px rgba(159,246,255,.15);color:#eaffff;font-size:13px}.cxnear .cxsv{position:static;width:34px;height:34px;flex:0 0 34px}.cxnear span{display:flex;flex-direction:column}.cxnear small{opacity:.75;font-size:11.5px}.cxnear.none{color:#ffc2b0}.cxnear.dim{color:#cfe6ea}.cxdset{min-height:46px;font-size:15px}
 #exBagBtn{position:absolute;right:12px;bottom:152px;z-index:7;display:none;flex-direction:column;align-items:center;justify-content:center;width:58px;height:58px;border-radius:16px;border:1px solid rgba(110,80,40,.35);background:rgba(246,236,212,.96);font-size:24px;box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer;padding:0}#exBagBtn span{font:700 11px system-ui,sans-serif;color:#3a2a18}#exBagBtn.on{display:flex}
+/* #drillHud stays display:none until .on; playHudOk() is the only thing that may show it. */
 #drillHud{position:absolute;right:12px;left:auto;bottom:280px;z-index:7;display:none;width:64px;height:64px;flex-direction:column;gap:0;max-height:none;overflow:visible;padding:0}#drillHud.on{display:flex}
 #drillHud .dh{position:relative;width:50px;height:50px;flex:0 0 50px;border-radius:14px;border:1px solid rgba(110,80,40,.35);background:rgba(246,236,212,.96);box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;cursor:pointer;padding:0;touch-action:manipulation}
 #drillHud .dh .di{font-size:21px;line-height:1}#drillHud .dh small{font:700 9.5px system-ui,sans-serif;color:#3a2a18;max-width:46px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -757,7 +758,7 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
 
 /* Drills HUD: only the unobstructed Character-view game screen. Hidden whenever any modal or overlay is open. */
-html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden),#city.devv) #drillHud,
+html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden),#city.devv,#cityLoader:not(.hidden),#areaLoader.on) #drillHud,
 html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{display:none!important}
 
 #drillCtl{top:8px;bottom:72px;left:8px;right:8px;max-height:none;padding:4px 6px 8px;font:400 13px/1.2 "Bree Serif",Georgia,serif;color:#2b1a10}

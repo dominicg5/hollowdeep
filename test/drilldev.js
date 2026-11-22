@@ -17,6 +17,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const shown = () => { const h = document.getElementById('drillHud'); return !!(h && h.classList.contains('on') && h.offsetParent !== null && h.querySelector('.dh')); };
       if (typeof CityMap !== 'undefined' && CityMap.setView) CityMap.setView('char');
       if (!Explore.on) { const F = Explore.ledgeFront(); Explore.enter(F.x, F.y); for (let i = 0; i < 8; i++) Explore.tick(1 / 30); }
+      const D = Explore.drillState(); if (D && !Explore.fieldDrills(D).length) D.list.push({ id: 'hud1', node: 0, type: 'tin', tier: 'bronze', stand: 'drill', coal: 10, hop: 0 });
       Explore.drillHud();
       const char1 = shown();
       const devBtn = document.querySelector('[data-city=vdev]');
