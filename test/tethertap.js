@@ -1,6 +1,6 @@
 // Tap-a-tether: tap her own rope (Ledge line / drop / drill) -> a field-kit bubble with Teleport to start / end (names); near one end only the other end is
 // offered; teleport is only enabled within 8 m of the nearest point on the strand (otherwise the menu stays up with a disabled row and
-// "Walk closer to the tether to teleport"); the buttons teleport (Explore.teleportTo); a generous hit band; another player's rope
+// "Walk closer to the tether to teleport"); the buttons teleport (Explore.teleportTo); a tight screen-space hit (finger pad, not a generous band); another player's rope
 // (not in her save) never opens one; a tap elsewhere closes it. The Tether Orb is unchanged.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
@@ -25,10 +25,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       E.az = best[0] * Math.PI / 8; for (let i = 0; i < 3; i++) Explore.tick(1 / 30); M3.render(0, CityMap.cam); const q = M3.project(m[0], m[1], WS * 0.3), q2 = M3.project(m2[0], m2[1], WS * 0.3), vx = q2[0] - q[0], vy = q2[1] - q[1], vl = Math.hypot(vx, vy) || 1, sx = q[0] - vy / vl * off, sy = q[1] + vx / vl * off;
       const hit = TetherTap.hitAt(sx, sy), res = Explore.tap(sx, sy), el = TetherTap.el, btn = el ? [...el.querySelectorAll('.tbGo')].map((b) => b.dataset.side + ':' + b.querySelector('small').textContent) : [];
       return { res, hitD: hit && hit.d, shown: !!(el && !el.classList.contains('hidden')), btn, title: el && el.querySelector('.tbN b') && el.querySelector('.tbN b').textContent, sx, sy, box: el && (() => { const r = el.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; })() }; }, [frac, off]);
-  const r2 = await tapNear(0.5, 22); console.log(JSON.stringify(r2));
-  ok(r2.res === 'tether' && r2.shown, `a tap ${22} px off the rope opens the bubble (generous hit band, ${r2.hitD && r2.hitD.toFixed(0)} px)`); ok(r2.btn.length === 2 && r2.btn[0].startsWith('start:') && r2.btn[1].startsWith('end:') && r2.title === r1.d.b, `mid-rope it offers both ends with names (${r2.btn.join(' | ')})`);
+  const hitPx = await p.evaluate(() => TetherTap.HIT);
+  ok(hitPx === 22 && hitPx <= 28, `the rope hit radius is a ${hitPx} px screen-space finger pad (not a world radius)`);
+  const r2 = await tapNear(0.5, 8); console.log(JSON.stringify(r2));
+  ok(r2.res === 'tether' && r2.shown, `a tap on the rope opens the bubble (${r2.hitD != null ? r2.hitD.toFixed(0) : '?'} px off)`); ok(r2.btn.length === 2 && r2.btn[0].startsWith('start:') && r2.btn[1].startsWith('end:') && r2.title === r1.d.b, `mid-rope it offers both ends with names (${r2.btn.join(' | ')})`);
   ok(r2.box && r2.box[0] >= 0 && r2.box[2] <= 390 && r2.box[1] >= 0 && r2.box[3] <= 844, 'the bubble stays on screen');
   await shot('tether-bubble.png');
+  const miss = await tapNear(0.5, 32); console.log(JSON.stringify(miss));
+  ok(!miss.shown && miss.res !== 'tether' && !miss.hitD, `a tap ${32} px off the rope is a move, not the teleport menu (${miss.res})`);
   const r3 = await p.evaluate(() => { let pt = null; for (let y = 120; y < 760 && !pt; y += 40) for (let x = 20; x < 380 && !pt; x += 40) if (!TetherTap.hitAt(x, y) && (y < 218 || y > 440)) pt = [x, y]; const res = Explore.tap(pt[0], pt[1]); return { res, open: !!TetherTap.T }; }); ok(!r3.open, `a tap elsewhere closes it (${r3.res})`);
   // teleport only when she is within 8 m of the nearest point on the tapped strand
   const far = await p.evaluate(() => {
