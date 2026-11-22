@@ -23,13 +23,18 @@ const FORGE = (() => {
   /* ---------- the land (design metres) ---------- */
   const DEG = Math.PI / 180;
   const Hr = (th) => L.lip + 70 * sm(8 * DEG, 45 * DEG, th) + 150 * Math.pow((1 - Math.cos(th)) / 2, 1.4); // rim height: the notched lip (40) facing the platform, the summit (260) opposite
-  const Rb = (th) => 108 + 242 * sm(5 * DEG, 80 * DEG, th); // cone foot: a steep 40 m wall under the lip (foot at x 8), ~700 across the rest
-  function cone(X, Y) { const dx = X - L.crater[0], r = Math.hypot(dx, Y), th = Math.abs(Math.atan2(Y, dx)), rb = Rb(th); if (r >= rb) return null; const hr = Hr(th);
-    if (r < L.rimR) return { z: 20 + (hr - 20) * sm(L.rimR - 16, L.rimR, r), inner: true, r, th };
-    const u = (rb - r) / (rb - L.rimR); return { z: hr * Math.pow(u, 1.5) * (1 + 0.02 * Math.sin(th * 23) * Math.min(1, u * 3)), inner: false, r, th, u }; }
+  const Rb = (th) => L.rimR + lerp(8, 1.8 * Hr(th), sm(10 * DEG, 70 * DEG, th)); // cone foot: a 40 m wall under the notch, a long concave run elsewhere (summit 260 over a ~570 base radius: ~0.45)
+  function cone(X, Y) { const dx = X - L.crater[0], r = Math.hypot(dx, Y), ths = Math.atan2(Y, dx), th = Math.abs(ths), rb = Rb(th); if (r >= rb) return null; const hr = Hr(th);
+    if (r < L.rimR) return { z: 20 + (hr - 20) * sm(L.rimR - 30, L.rimR, r), inner: true, r, th, u: 1 };
+    // concave profile: ~40 deg under the rim flaring to ~15 deg at the foot; 16 radial ridges (gullies between) fading out in the lower third, none at the notch; the rim itself stays smooth
+    const t = (r - L.rimR) / (rb - L.rimR), s = 1 - t, rid = Math.pow(Math.abs(Math.cos(8 * ths)), 0.5), fade = sm(0.33, 0.7, s) * sm(0, 0.12, t) * sm(18 * DEG, 38 * DEG, th);
+    return { z: Math.max(0, hr * (0.513 * s * s + 0.487 * s) + 5 * (rid - 0.6) * fade), inner: false, r, th, u: s, rid }; }
   function platD(X, Y) { const [x0, x1, hy] = L.plat, k = L.skirt, dx = Math.max(x0 + k - X, X - x1 + k, 0), dy = Math.max(Math.abs(Y) - hy + k, 0); return Math.hypot(dx, dy); } // distance from the flat top (the 90 x 70 block's foot is at x 60: 12 m clear of his shins at S)
-  function platZ(X, Y) { const d = platD(X, Y); if (d > L.skirt + 0.5) return -1; const w = 0.9 * Math.sin(X * 0.21 + Y * 0.13) + 0.6 * Math.sin(X * 0.47 - Y * 0.31); // rough rock faces (monotonic: no overhang)
-    return d <= 0 ? L.plat[3] + 0.12 * Math.sin(X * 0.3) * Math.sin(Y * 0.27) : Math.max(0, L.plat[3] - Math.max(0, d + 0.4 * w * sm(0, 2, d) * (1 - sm(L.skirt - 2, L.skirt, d))) * 2.0); }
+  function platSD(X, Y) { const [x0, x1, hy] = L.plat, k = L.skirt, dx = Math.max(x0 + k - X, X - x1 + k), dy = Math.abs(Y) - hy + k; return dx <= 0 && dy <= 0 ? Math.max(dx, dy) : Math.hypot(Math.max(dx, 0), Math.max(dy, 0)); }
+  function platZ(X, Y) { const n1 = Math.sin(X * 0.11 + Y * 0.07 + 1.3) * Math.sin(Y * 0.09 - X * 0.05), n2 = Math.sin(X * 0.23 - Y * 0.19 + 0.4); const d = platSD(X, Y) + 0.9 * n1 + 0.35 * n2; if (d > L.skirt + 1.5) return -1; // a rough mesa: wobbly outline, chipped bevelled rim, fractured sides (slope <= ~2.5: climbable)
+    const top = L.plat[3] + 0.12 * Math.sin(X * 0.3) * Math.sin(Y * 0.27); if (d <= -2) return top; const chip = 0.8 * sm(0.4, 0.9, n2 * 0.5 + 0.5 + 0.3 * n1);
+    if (d <= 0) return top - chip * sm(-2, 0, d) - 0.25 * sm(-2, 0, d); const w = 0.9 * Math.sin(X * 0.21 + Y * 0.13) + 0.6 * Math.sin(X * 0.47 - Y * 0.31);
+    return Math.max(0, top - chip - 0.25 - Math.max(0, d + 0.4 * w * sm(0, 2, d) * (1 - sm(L.skirt - 2, L.skirt, d))) * 2.0); }
   // the switchback up the neighbouring hill to the talk ledge: from path 21 on the green side, legs across the hill's outer flank, hairpins rounded (no turn over 120 deg)
   const SWB = (() => { const [lx, ly, lz] = L.ledge, pol = (r, a) => [lx + r * Math.cos(a * DEG), ly + r * Math.sin(a * DEG)];
     const key = [[175, 255], pol(80, 125), pol(60, 55), pol(40, 125), pol(L.ledgeR + 4, 70)], P = [key[0]]; // the foot south of the hill (clear of the crevice that runs north-south east of it), four legs up its south flank
@@ -40,7 +45,7 @@ const FORGE = (() => {
     const tot = s[P.length - 2]; return { P, s, tot, z0: 0, z1: lz }; })();
   function swbNear(X, Y) { const P = SWB.P; let best = 1e9, bz = 0; for (let i = 0; i + 1 < P.length; i++) { const a = P[i], b = P[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = clamp(((X - a[0]) * dx + (Y - a[1]) * dy) / l2, 0, 1), d = Math.hypot(X - a[0] - dx * t, Y - a[1] - dy * t);
       if (d < best) { best = d; const s = SWB.s[i] + Math.sqrt(l2) * t; bz = lerp(SWB.z0, SWB.z1, clamp(s / SWB.tot, 0, 1)); } } return [best, bz]; }
-  const inBox = (X, Y) => X > -470 && X < 430 && Y > -450 && Y < 330;
+  const inBox = (X, Y) => X > -700 && X < 430 && Y > -470 && Y < 470;
   // the terrain: a smooth valley floor under the scorched oval (blended back over the ash band), the neighbouring hill + talk ledge + switchback benches, the cone, the platform
   function carve(x, y, hm) { if (!on()) return hm; const [X, Y] = loc(x, y); if (!inBox(X, Y)) return hm; let [h, mh] = hm;
     const e = Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]), dE = (e - 1) * L.scorch[3], wF = 1 - sm(0, L.ash, dE);
@@ -121,81 +126,127 @@ const FORGE = (() => {
   // key poses: X (along the loop line), yaw (deg, 90 = facing the volcano / +x world), hip height, lean (deg), tongs hand-mid [y, z] + pitch (deg down), bar attached
   function pose(t) { t = ((t % LOOP) + LOOP) % LOOP; const P = {}; const k = (a, b, t0, t1) => lerp(a, b, sm(t0, t1, t));
     const dip = { y: 45, z: 15, p: 56 }, lift = { y: 52, z: 14, p: 12 }, lay = { y: 39, z: 13, p: 20 };
-    if (t < 2) { P.X = L.D; P.yaw = 90; P.lean = k(26, 32, 0, 2); P.tg = { y: k(52, dip.y, 0, 1.6), z: k(14, dip.z, 0, 1.6), p: k(18, dip.p, 0, 1.8) }; }
-    else if (t < 4) { P.X = L.D; P.yaw = 90; P.lean = 32; P.tg = { ...dip, p: dip.p + 2 * Math.sin((t - 2) * 3) }; }
-    else if (t < 6) { P.X = L.D; P.yaw = 90; P.lean = k(32, 20, 4, 6); P.tg = { y: k(dip.y, lift.y, 4, 5.8), z: k(dip.z, lift.z, 4, 5.8), p: k(dip.p, lift.p, 4, 5.6) }; }
-    else if (t < 10) { const u = sm(6.2, 9.8, t); P.X = lerp(L.D, L.S, u); P.yaw = lerp(90, -90, sm(6, 9.6, t)); P.lean = 20 + 3 * Math.sin(u * Math.PI); P.tg = { ...lift }; P.walk = u; }
-    else if (t < 12) { P.X = L.S; P.yaw = -90; P.lean = k(20, 40, 10, 11.6); P.tg = { y: k(lift.y, lay.y, 10, 11.8), z: k(lift.z, lay.z, 10, 11.8), p: k(lift.p, lay.p, 10, 11.8) }; P.lay = sm(10.2, 11.9, t); }
-    else if (t < 23) { P.X = L.S; P.yaw = -90; P.lean = 40; P.tg = { ...lay }; P.lay = 1; }
-    else { const u = sm(24, 26.6, t); P.X = lerp(L.S, L.D, u); P.yaw = lerp(-90, 90, sm(23.8, 26.4, t)); P.lean = t < 24 ? k(40, 22, 23, 24) : k(22, 26, 26, 27); P.tg = t < 26 ? { y: k(lay.y, lift.y, 23, 24), z: k(lay.z, lift.z, 23, 24), p: k(lay.p, lift.p, 23, 24) } : { y: k(lift.y, 52, 26, 27), z: k(lift.z, 14, 26, 27), p: k(lift.p, 18, 26, 27) }; P.lay = 1 - sm(23, 23.9, t); P.walk = u; P.back = true; }
-    P.hipY = BP.hip - 4.5 - 1.5 * Math.sin(Math.PI * (P.walk || 0)) * 0 - (P.lean > 30 ? 1 : 0);
-    // hammers: sigma 1 = raised overhead, 0 = head down on the bar; L strikes hits 1 3 5 7, R hits 2 4 6; at rest they hang at his sides
-    const H = hitTimes(), sw = (side) => { if (t < 11 || t > 23.6) return null; const mine = H.filter((_, i) => i % 2 === side); let s = 1;
-        for (const th of mine) { if (t >= th - 0.42 && t <= th) return 1 - sm(th - 0.42, th, t) ** 1.6; if (t > th && t < th + 1.3) s = sm(th + 0.1, th + 1.25, t); }
-        if (t < mine[0] - 0.42) s = sm(11, 12.4 + side * 0.8, t); if (t > mine[mine.length - 1] + 1.3) s = 1 - sm(22.6, 23.6, t); return s; };
-    P.ham = [sw(0), sw(1)]; return P; }
+    if (t < 2) { P.X = L.D; P.yaw = 90; P.lean = k(14, 20, 0, 2); P.tg = { y: k(52, dip.y, 0, 1.6), z: k(14, dip.z, 0, 1.6), p: k(18, dip.p, 0, 1.8) }; }
+    else if (t < 4) { P.X = L.D; P.yaw = 90; P.lean = 20; P.tg = { ...dip, p: dip.p + 2 * Math.sin((t - 2) * 3) }; }
+    else if (t < 6) { P.X = L.D; P.yaw = 90; P.lean = k(20, 12, 4, 6); P.tg = { y: k(dip.y, lift.y, 4, 5.8), z: k(dip.z, lift.z, 4, 5.8), p: k(dip.p, lift.p, 4, 5.6) }; }
+    else if (t < 10) { const u = sm(6.2, 9.8, t); P.X = lerp(L.D, L.S, u); P.yaw = lerp(90, -90, sm(6, 9.6, t)); P.lean = 12 + 2 * Math.sin(u * Math.PI); P.tg = { ...lift }; P.walk = u; }
+    else if (t < 12) { P.X = L.S; P.yaw = -90; P.lean = k(12, 18, 10, 11.6); P.tg = { y: k(lift.y, lay.y, 10, 11.8), z: k(lift.z, lay.z, 10, 11.8), p: k(lift.p, lay.p, 10, 11.8) }; P.lay = sm(10.2, 11.9, t); }
+    else if (t < 23) { P.X = L.S; P.yaw = -90; P.lean = 18; P.tg = { ...lay }; P.lay = 1; }
+    else { const u = sm(24, 26.6, t); P.X = lerp(L.S, L.D, u); P.yaw = lerp(-90, 90, sm(23.8, 26.4, t)); P.lean = t < 24 ? k(18, 12, 23, 24) : k(12, 14, 26, 27); P.tg = t < 26 ? { y: k(lay.y, lift.y, 23, 24), z: k(lay.z, lift.z, 23, 24), p: k(lay.p, lift.p, 23, 24) } : { y: k(lift.y, 52, 26, 27), z: k(lift.z, 14, 26, 27), p: k(lift.p, 18, 26, 27) }; P.lay = 1 - sm(23, 23.9, t); P.walk = u; P.back = true; }
+    P.hipY = BP.hip - 2.6; // upright, legs planted
+    // the hammer (upper right hand) strikes all 7 hits: sigma 1 = raised overhead, 0 = head down on the bar; the upper left hand braces the tongs; at rest it hangs at his side
+    const H = hitTimes(), sw = () => { if (t < 11 || t > 23.6) return null; let s = 1;
+        for (const th of H) { if (t >= th - 0.42 && t <= th) return 1 - sm(th - 0.42, th, t) ** 1.6; if (t > th && t < th + 1.18) s = sm(th + 0.08, th + 1.1, t); }
+        if (t < H[0] - 0.42) s = sm(11, 12.2, t); if (t > H[H.length - 1] + 1.18) s = 1 - sm(22.6, 23.6, t); return s; };
+    P.ham = [null, sw()]; return P; }
 
   /* ---------- 3D ---------- */
   let THREEok = false;
-  function apeGeo(mob) { const parts = [], q = mob ? 0.55 : 1, sg = (n) => Math.max(6, Math.round(n * q));
-    const FUR = [0.3, 0.3, 0.3], SOOT = [0.1, 0.095, 0.095], SKIN = [0.16, 0.15, 0.15], LEATH = [0.3, 0.16, 0.075], LEATH2 = [0.22, 0.11, 0.05], BRASS = [0.8, 0.6, 0.24], IRON = [0.17, 0.17, 0.18], WOOD = [0.33, 0.22, 0.13];
-    const add = (g, bone, col, fur, at, rot, scl) => { if (scl) g.scale(...scl); if (rot) { if (rot[0]) g.rotateX(rot[0]); if (rot[1]) g.rotateY(rot[1]); if (rot[2]) g.rotateZ(rot[2]); } if (at) g.translate(...at); parts.push({ g, bone, col, fur }); };
-    const sph = (r, w, h) => new THREE.SphereGeometry(r, sg(w || 20), sg(h || 14)), cap = (r, l, s) => new THREE.CapsuleGeometry(r, l, 3, sg(s || 12)), box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
-    // bones: 0 hips, 1 chest, 2 head, 3/4 thighL/shinL, 5/6 thighR/shinR, 7/8 armA L up/fore, 9/10 armA R, 11/12 armB L, 13/14 armB R, 15 tongs, 16 hammer L, 17 hammer R
+  function apeGeo(mob) { const parts = [], q = mob ? 0.8 : 1.15, sg = (n) => Math.max(6, Math.round(n * q));
+    const lin = (h) => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map((v) => Math.pow(v / 255, 2.2)); // (sRGB hex -> linear vertex colour)
+    const FK = 0.72, FL = lin(0x9c958a).map((v) => v * FK), FM = lin(0x6f6961).map((v) => v * FK), FS = lin(0x3f3a35).map((v) => v * FK), // (fur hexes x0.72: under ACES at exposure 1.25 the spec hexes read near-white)
+      SKIN = lin(0x8a6a52), LEATH = lin(0x5a3418), LEDGE = lin(0x321b0a), BRASS = lin(0xb8862b), BRD = lin(0x6b4a1c), HEADC = lin(0x3a3632), WRAP = lin(0x4a2c16), WOOD = lin(0x4f3420), IRON = lin(0x2e2b28), EYE = [0.008, 0.007, 0.006];
+    // kind: 0 plain, 1 fur, 2 fur with clumped tufts; col: an rgb or f(local x, y, z, ny) evaluated before the part is placed
+    const add = (g, bone, col, kind, at, rot, scl) => { if (typeof col === 'function') { const p = g.attributes.position, n = g.attributes.normal, c = []; for (let i = 0; i < p.count; i++) c.push(col(p.getX(i), p.getY(i), p.getZ(i), n.getY(i))); g.userData.c = c; }
+      if (scl) g.scale(...scl); if (rot) { if (rot[0]) g.rotateX(rot[0]); if (rot[1]) g.rotateY(rot[1]); if (rot[2]) g.rotateZ(rot[2]); } if (at) g.translate(...at); parts.push({ g, bone, col: typeof col === 'function' ? null : col, kind: kind || 0 }); };
+    const sph = (r, w, h) => new THREE.SphereGeometry(r, sg(w || 20), sg(h || 14)), cap = (r, l, s) => new THREE.CapsuleGeometry(r, l, 4, sg(s || 14)), box = (x, y, z, a, b, c) => new THREE.BoxGeometry(x, y, z, a || 1, b || 1, c || 1);
+    const taper = (r0, r1, l, s) => new THREE.CylinderGeometry(r0, r1, l, sg(s || 14), 3, false); // (+y end radius r0)
+    // a flat band through points (model space, on one bone): boxes w x 0.7 between consecutive points, the face toward 'out'; leather with dark edges
+    const band = (pts, w, bone, out) => { for (let i = 0; i + 1 < pts.length; i++) { const A = new THREE.Vector3(...pts[i]), B = new THREE.Vector3(...pts[i + 1]), ya = B.clone().sub(A), l = ya.length(); ya.normalize(); const za = new THREE.Vector3(...out).sub(ya.clone().multiplyScalar(ya.dot(new THREE.Vector3(...out)))).normalize(), xa = ya.clone().cross(za);
+        const g = box(w, l + 0.6, 0.7, 4, 1, 1); g.userData.c = []; const p = g.attributes.position; for (let k = 0; k < p.count; k++) g.userData.c.push(Math.abs(p.getX(k)) > w / 2 - 0.05 ? LEDGE : LEATH);
+        g.applyMatrix4(new THREE.Matrix4().makeBasis(xa, ya, za)); g.translate(...A.clone().add(B).multiplyScalar(0.5).toArray()); parts.push({ g, bone, col: null, kind: 0 }); } };
+    // bones: 0 hips, 1 chest, 2 head, 3/4 thighL/shinL, 5/6 thighR/shinR, 7/8 armA L up/fore, 9/10 armA R, 11/12 armB L, 13/14 armB R, 15 tongs, 16 (spare: the left upper hand braces the tongs), 17 hammer R
     const hy = BP.hip, cy = hy + BP.chestUp;
-    add(sph(1, 20, 14), 0, FUR, 1, [0, hy + 1, -0.5], null, [11, 7.5, 8.5]);
-    add(sph(1, 24, 16), 1, FUR, 1, [0, cy + 13, 0], null, [13.5, 15.5, 11]); add(sph(1, 20, 12), 1, FUR, 1, [0, cy + 21, -2.5], null, [16.5, 6.5, 9.5]); add(sph(1, 16, 12), 1, SKIN, 0, [0, cy + 15, 7.6], null, [8.5, 9, 3.4]);
-    // the leather smith's apron (v3): a bib over the chest (chest bone) with neck straps and brass rivets, a belt with a brass buckle, and a long skirt from the waist to the knees (hips bone)
-    const curve = (g, k, z0) => { const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i); p.setZ(i, p.getZ(i) - k * x * x); } return g; };
-    add(curve(new THREE.BoxGeometry(16, 19, 0.9, 8, 2, 1), 0.035), 1, LEATH, 0, [0, cy + 9.5, 12.0]); add(curve(new THREE.BoxGeometry(17, 1.0, 1.1, 8, 1, 1), 0.035), 1, LEATH2, 0, [0, cy + 18.6, 12.3]);
-    for (const s of [1, -1]) { add(box(1.6, 15, 0.9), 1, LEATH2, 0, [s * 6.2, cy + 24.5, 7.6], [-0.62, 0, s * 0.18]); add(sph(0.8, 8, 6), 1, BRASS, 0, [s * 6.4, cy + 18, 12.6]); add(sph(0.8, 8, 6), 1, BRASS, 0, [s * 6.4, cy + 2, 12.4]); }
-    add(curve(new THREE.BoxGeometry(23, 2.6, 1.2, 8, 1, 1), 0.03), 0, LEATH2, 0, [0, hy + 3.5, 10.4]); add(box(3, 3, 1), 0, BRASS, 0, [0, hy + 3.5, 11.3]);
-    add(curve(new THREE.BoxGeometry(21, 24, 0.9, 8, 4, 1), 0.03), 0, LEATH, 0, [0, hy - 9, 10.9], [-0.16, 0, 0]); add(curve(new THREE.BoxGeometry(21.5, 1.0, 1.1, 8, 1, 1), 0.03), 0, LEATH2, 0, [0, hy - 20.8, 12.8], [-0.16, 0, 0]);
-    const hc = [0, cy + BP.head[1] + 4, BP.head[2] + 1]; add(sph(5.4, 20, 14), 2, FUR, 1, hc); add(sph(1, 16, 12), 2, SKIN, 0, [0, hc[1] - 1.6, hc[2] + 3.6], null, [3.6, 3, 2.8]); add(box(8.4, 1.6, 2.6), 2, SKIN, 0, [0, hc[1] + 1.6, hc[2] + 3.9]);
-    add(sph(0.62, 10, 8), 2, [0.05, 0.04, 0.04], 0, [1.9, hc[1] + 0.4, hc[2] + 4.9]); add(sph(0.62, 10, 8), 2, [0.05, 0.04, 0.04], 0, [-1.9, hc[1] + 0.4, hc[2] + 4.9]); add(sph(1.5, 10, 8), 2, SKIN, 0, [5.2, hc[1] + 0.3, hc[2] - 0.5]); add(sph(1.5, 10, 8), 2, SKIN, 0, [-5.2, hc[1] + 0.3, hc[2] - 0.5]);
-    add(sph(1, 14, 10), 2, FUR, 1, [0, hc[1] + 4.3, hc[2] - 1.5], null, [3.4, 2.6, 4.6]);
-    for (const [s, b0] of [[1, 3], [-1, 5]]) { const x = s * BP.hipW; add(cap(4.4, BP.thigh - 4), b0, FUR, 1, [x, hy - BP.thigh / 2, 0]); add(cap(3.7, BP.shin - 3), b0 + 1, FUR, 1, [x, hy - BP.thigh - BP.shin / 2 + 1, 0]); add(box(6.4, 2.8, 10.5), b0 + 1, SKIN, 0, [x, 1.4, 2.6]); }
-    const arm = (sx, sy, sz, L1, L2, r1, r2, b0, side) => { const x = side * sx; add(cap(r1, L1 - 2 * r1 + 1.5), b0, FUR, 1, [x, cy + sy - L1 / 2, sz]); add(cap(r2, L2 - 2 * r2 + 1.5), b0 + 1, FUR, 1, [x, cy + sy - L1 - L2 / 2, sz]);
-      add(new THREE.TorusGeometry(r2 + 0.35, 0.55, sg(6), sg(18)), b0 + 1, BRASS, 0, [x, cy + sy - L1 - L2 * 0.55, sz], [Math.PI / 2, 0, 0]); add(new THREE.TorusGeometry(r2 + 0.25, 0.45, sg(6), sg(18)), b0 + 1, BRASS, 0, [x, cy + sy - L1 - L2 * 0.78, sz], [Math.PI / 2, 0, 0]);
-      add(sph(1, 12, 10), b0 + 1, SKIN, 0, [x, cy + sy - L1 - L2 - 1.6, sz + 0.4], null, [r2 * 0.95, 2.6, r2 * 1.1]); };
-    arm(BP.shA[0], BP.shA[1], BP.shA[2], BP.armA[0], BP.armA[1], 3.5, 3.1, 7, 1); arm(BP.shA[0], BP.shA[1], BP.shA[2], BP.armA[0], BP.armA[1], 3.5, 3.1, 9, -1);
-    arm(BP.shB[0], BP.shB[1], BP.shB[2], BP.armB[0], BP.armB[1], 3.0, 2.7, 11, 1); arm(BP.shB[0], BP.shB[1], BP.shB[2], BP.armB[0], BP.armB[1], 3.0, 2.7, 13, -1);
-    // the tongs (bone 15: rest at the model origin, +z along the reins to the jaws), the two hammers (bones 16/17: rest at the origin, +z along the handle, head at the end)
-    add(box(0.8, 0.8, L.tongs), 15, IRON, 0, [1.0, 0, L.tongs / 2]); add(box(0.8, 0.8, L.tongs), 15, IRON, 0, [-1.0, 0, L.tongs / 2]); add(box(3.2, 1.6, 1.6), 15, IRON, 0, [0, 0, L.tongs * 0.62]);
+    add(sph(1, 22, 16), 0, FM, 1, [0, hy + 1, -0.5], null, [11.5, 8, 9]);
+    add(sph(1, 26, 18), 1, FM, 1, [0, cy + 13, 0.5], null, [13.5, 15.5, 11]); add(sph(1, 24, 14), 1, FM, 1, [0, cy + 19, 1.5], null, [15.5, 9, 10.5]);
+    add(sph(1, 24, 14), 1, FM, 2, [0, cy + 23, -4], null, [17, 9.5, 10]); add(sph(1, 18, 12), 1, FM, 2, [0, cy + 26.5, -5.5], null, [10, 7, 8]); // the heavy shoulder hump
+    add(sph(1, 16, 12), 1, SKIN, 0, [0, cy + 16, 9.2], null, [8, 8, 3]); add(sph(1, 16, 12), 1, FM, 1, [0, cy + 23.5, 2.5], null, [6.8, 4.5, 6.2]); // chest skin, a short thick neck
+    const hc = [0, cy + BP.head[1] + 1.5, BP.head[2] + 1.5]; add(sph(1, 22, 16), 2, FM, 1, hc, null, [6, 5.6, 6]); add(sph(1, 14, 10), 2, FM, 2, [0, hc[1] + 4.6, hc[2] - 1.8], null, [3.6, 2.8, 4.8]);
+    add(sph(1, 18, 10), 2, SKIN.map((v) => v * 0.62), 0, [0, hc[1] + 2.0, hc[2] + 4.4], null, [7.4, 1.9, 2.7]); // the broad brow ridge
+    add(sph(1, 16, 12), 2, SKIN, 0, [0, hc[1] + 0.1, hc[2] + 3.9], null, [4.9, 4.4, 2.5]); add(sph(1, 16, 12), 2, SKIN, 0, [0, hc[1] - 2.2, hc[2] + 4.7], null, [4.2, 3.2, 3.0]);
+    for (const s of [1, -1]) { add(sph(0.62, 10, 8), 2, EYE, 0, [s * 2.1, hc[1] + 0.7, hc[2] + 5.7]); add(sph(1.4, 10, 8), 2, SKIN, 0, [s * 5.9, hc[1] + 0.2, hc[2] - 0.6]); }
+    // legs: planted, thick thighs, tufted shins, feet with skin soles
+    for (const [s, b0] of [[1, 3], [-1, 5]]) { const x = s * BP.hipW; add(cap(5.3, BP.thigh - 5), b0, FM, 1, [x, hy - BP.thigh / 2, 0]); add(taper(4.6, 3.6, BP.shin - 2), b0 + 1, FM, 2, [x, hy - BP.thigh - BP.shin / 2 + 0.5, 0.3]); add(sph(4.2, 14, 10), b0 + 1, FM, 1, [x, hy - BP.thigh, 0.3]);
+      add(sph(1, 16, 10), b0 + 1, (px, py, pz, ny) => ny < -0.3 ? SKIN : FM, 0, [x, 1.7, 2.6], null, [4.0, 1.8, 6.4]); }
+    // arms: deltoid caps, thick tapered forearms (tufted), brass bracers, big hands with skin palms
+    const arm = (sx, sy, sz, L1, L2, r1, rE, rW, b0, side) => { const x = side * sx, ys = cy + sy, ye = ys - L1, yw = ye - L2;
+      add(sph(1, 16, 12), b0, FM, 2, [x * 1.04, ys + 0.6, sz - 0.5], null, [r1 * 1.3, r1 * 1.15, r1 * 1.25]); add(cap(r1, L1 - 2 * r1 + 1.5), b0, FM, 1, [x, ys - L1 / 2, sz]);
+      add(sph(rE * 0.98, 14, 10), b0 + 1, FM, 1, [x, ye, sz]); add(taper(rE, rW, L2 - 1.5), b0 + 1, FM, 2, [x, ye - (L2 - 1.5) / 2, sz]);
+      for (const [f, w] of [[0.55, 0.62], [0.8, 0.5]]) { const r = lerp(rE, rW, f) + 0.25; add(new THREE.TorusGeometry(r, w, sg(6), sg(18)), b0 + 1, f < 0.6 ? BRASS : BRD, 0, [x, ye - L2 * f, sz], [Math.PI / 2, 0, 0]); }
+      add(sph(1, 14, 10), b0 + 1, (px, py, pz, ny) => ny > 0.55 ? FM : SKIN, 0, [x, yw - 1.8, sz + 0.4], null, [rW * 1.25, 3.2, rW * 1.4]); };
+    arm(BP.shA[0], BP.shA[1], BP.shA[2], BP.armA[0], BP.armA[1], 4.6, 5.0, 3.4, 7, 1); arm(BP.shA[0], BP.shA[1], BP.shA[2], BP.armA[0], BP.armA[1], 4.6, 5.0, 3.4, 9, -1);
+    arm(BP.shB[0], BP.shB[1], BP.shB[2], BP.armB[0], BP.armB[1], 3.8, 4.2, 2.9, 11, 1); arm(BP.shB[0], BP.shB[1], BP.shB[2], BP.armB[0], BP.armB[1], 3.8, 4.2, 2.9, 13, -1);
+    // the leather apron (#5a3418, edges #321b0a): a bib from mid-chest to above the knees following the body (chest bone above the navel seam, hips bone below), a neck loop, a navel belt, an X of back straps clipped at the hips, 3 brass rivets
+    const ell = (x, y, c, r) => { const k = 1 - (x / r[0]) ** 2 - ((y - c[1]) / r[1]) ** 2; return k > 0 ? c[2] + r[2] * Math.sqrt(k) : -1e9; };
+    const front = (x, y) => Math.max(ell(x, y, [0, cy + 13, 0.5], [13.5, 15.5, 11]), ell(x, y, [0, cy + 19, 1.5], [15.5, 9, 10.5]), ell(x, y, [0, hy + 1, -0.5], [11.5, 8, 9]), y < hy ? 5.3 * Math.sqrt(Math.max(0, 1 - ((Math.abs(x) - BP.hipW) / 5.3) ** 2)) : -1e9);
+    const back = (x, y) => -Math.max(ell(x, y, [0, cy + 13, -0.5], [13.5, 15.5, 11]), ell(x, y, [0, cy + 23, 4], [17, 9.5, 10]));
+    const yT = cy + 18, yB = 21, wAt = (y) => lerp(14.5, 18, (yT - y) / (yT - yB)); let zPrev = null;
+    for (const [y0, y1, rows, bone] of [[yT, cy, 7, 1], [cy, yB, 9, 0]]) { const P = [], C = [], I = [], cols = 9; for (let j = 0; j <= rows; j++) { const y = lerp(y0, y1, j / rows), w = wAt(y), zr = [];
+        for (let i = 0; i <= cols; i++) { const x = (i / cols - 0.5) * w; let z = front(x, y) + 0.8; if (zPrev) z = Math.max(z, zPrev[i] - 0.45); zr.push(z); P.push(x, y, z); const ed = i === 0 || i === cols || (j === 0 && y0 === yT) || (j === rows && y1 === yB); C.push(ed ? LEDGE : LEATH.map((v) => v * (0.9 + 0.2 * Math.sin(x * 1.3 + y * 0.7)))); } zPrev = zr; }
+      for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) { const a = j * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1; I.push(a, c, b, b, c, d); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setIndex(I); g.computeVertexNormals(); g.userData.c = C; parts.push({ g, bone, col: null, kind: 0 }); }
+    const ring = (rx, rz, w, at, rot) => { const g = new THREE.CylinderGeometry(1, 1, w, sg(26), 1, true); g.userData.c = []; const p = g.attributes.position; for (let k = 0; k < p.count; k++) g.userData.c.push(LEDGE); // (1 height segment: its two rims are the dark edges, the middle shades to leather)
+      const g2 = new THREE.CylinderGeometry(1, 1, w * 0.7, sg(26), 1, true); g2.userData.c = []; for (let k = 0; k < g2.attributes.position.count; k++) g2.userData.c.push(LEATH); for (const G of [g, g2]) { const k = G === g2 ? 0.25 : 0; G.scale(rx + k, 1, rz + k); if (rot) G.rotateX(rot); G.translate(...at); } return [g, g2]; };
+    for (const G of ring(11.4, 10.4, 5.6, [0, cy + 3, 0.6])) parts.push({ g: G, bone: 1, col: null, kind: 0 }); // the belt at the navel (its centre strip slightly proud: lit leather between dark edges)
+    for (const G of ring(7.6, 6.8, 3.4, [0, cy + 24.2, 1.8], 0.42)) parts.push({ g: G, bone: 1, col: null, kind: 0 }); // the neck loop, dipping at the front
+    for (const s of [1, -1]) { band([[s * 5.0, cy + 22.6, 7.3], [s * 6.4, cy + 20.4, 10.4], [s * 6.8, yT - 0.3, front(s * 6.8, yT) + 1.0]], 3.0, 1, [s * 0.2, 0.3, 1]); // neck loop -> bib corners
+      const pts = []; for (let k = 0; k <= 5; k++) { const u = k / 5, x = lerp(s * 9.5, -s * 8.2, u), y = lerp(cy + 21, cy + 3.5, u); pts.push([x, y, back(x, y) - 0.9 - (k === 5 ? 1.2 : 0)]); } band(pts, 4.4, 1, [0, 0.2, -1]); // the X across his back
+      add(box(2.6, 3.2, 0.9), 1, BRASS, 0, [-s * 8.2, cy + 3.3, back(-s * 8.2, cy + 3.3) - 2.6]); add(sph(0.85, 8, 6), 1, BRASS, 0, [s * 6.8, yT - 1.4, front(s * 6.8, yT - 1.4) + 1.3]); }
+    add(sph(0.85, 8, 6), 1, BRASS, 0, [0, cy + 9, front(0, cy + 9) + 1.3]); add(box(3.2, 3.6, 0.9), 1, BRASS, 0, [0, cy + 3, 11.4]); // rivet, buckle
+    // the tongs (bone 15: rest at the model origin, +z along the reins to the jaws), the hammer (bone 17: +z along the handle, head at the end)
+    add(box(0.9, 0.9, L.tongs), 15, IRON, 0, [1.0, 0, L.tongs / 2]); add(box(0.9, 0.9, L.tongs), 15, IRON, 0, [-1.0, 0, L.tongs / 2]); add(box(3.2, 1.6, 1.6), 15, IRON, 0, [0, 0, L.tongs * 0.62]);
     add(box(1.2, 3.4, 4.5), 15, IRON, 0, [0, 1.6, L.tongs - 1.4]); add(box(1.2, 3.4, 4.5), 15, IRON, 0, [0, -1.6, L.tongs - 1.4]);
-    for (const b of [16, 17]) { add(new THREE.CylinderGeometry(0.75, 0.9, L.handle, sg(8)), b, WOOD, 0, [0, 0, L.handle / 2], [Math.PI / 2, 0, 0]); add(box(L.head[0], L.head[1], L.head[2]), b, IRON, 0, [0, 0, L.handle]); add(box(L.head[0] + 0.5, 1.2, L.head[2] + 0.5), b, BRASS, 0, [0, L.head[1] * 0.38, L.handle]); add(box(L.head[0] + 0.5, 1.2, L.head[2] + 0.5), b, BRASS, 0, [0, -L.head[1] * 0.38, L.handle]); }
-    // merge: rigid skinning (one bone per part), vertex colour with soot noise on the fur (sootier low down and on the forearms)
-    const P = [], N = [], C = [], SI = [], SW = [], I = []; let base = 0; const nz = (x, y, z) => 0.5 + 0.25 * Math.sin(x * 1.7 + y * 0.9) * Math.sin(z * 1.3 - y * 0.7) + 0.25 * Math.sin(x * 4.1 - z * 3.3 + y * 2.9);
-    for (const { g, bone, col, fur } of parts) { const gi = g.index ? g : null, p = g.attributes.position, n = g.attributes.normal, oy = bone >= 15 ? cy : 0; /* tongs + hammers: modelled at their bone's origin, which rests at the chest (bind pose) */ for (let i = 0; i < p.count; i++) { let x = p.getX(i), y = p.getY(i) + oy, z = p.getZ(i); const nn = nz(x, y, z);
-        if (fur) { const sh = (nn - 0.5) * 0.9; x += n.getX(i) * sh; y += n.getY(i) * sh; z += n.getZ(i) * sh; }
-        P.push(x, y, z); N.push(n.getX(i), n.getY(i), n.getZ(i)); const so = fur ? clamp(0.32 + 0.5 * (1 - y / 60) + (nn - 0.5) * 0.9, 0, 0.95) : 0; const v = fur ? 0.9 + 0.2 * nn : 1; C.push(...col.map((c, k) => lerp(c, SOOT[k], so) * v)); SI.push(bone, 0, 0, 0); SW.push(1, 0, 0, 0); }
+    { const b = 17; add(new THREE.CylinderGeometry(0.75, 0.9, L.handle, sg(8)), b, WOOD, 0, [0, 0, L.handle / 2], [Math.PI / 2, 0, 0]); add(new THREE.CylinderGeometry(1.05, 1.05, 7, sg(8)), b, WRAP, 0, [0, 0, 3.5], [Math.PI / 2, 0, 0]);
+      add(box(L.head[0], L.head[1], L.head[2]), b, HEADC, 0, [0, 0, L.handle]); add(box(L.head[0] + 0.5, 1.2, L.head[2] + 0.5), b, BRASS, 0, [0, L.head[1] * 0.38, L.handle]); add(box(L.head[0] + 0.5, 1.2, L.head[2] + 0.5), b, BRD, 0, [0, -L.head[1] * 0.38, L.handle]); }
+    // merge: rigid skinning (one bone per part). Fur: lit / mid / shadow by facing (up lit, under dark), darker at the joints, clumped tufts (shoulders, forearms, shins) + a noise normal
+    const J = [[0, cy + 24], [BP.shA[0], cy + BP.shA[1]], [BP.shA[0], cy + BP.shA[1] - BP.armA[0]], [BP.shB[0], cy + BP.shB[1]], [BP.shB[0], cy + BP.shB[1] - BP.armB[0]], [BP.hipW, hy], [BP.hipW, hy - BP.thigh], [0, hy - 4]];
+    const P = [], N = [], C = [], SI = [], SW = [], I = [], FU = []; let base = 0; const nz = (x, y, z) => 0.5 + 0.25 * Math.sin(x * 1.7 + y * 0.9) * Math.sin(z * 1.3 - y * 0.7) + 0.25 * Math.sin(x * 4.1 - z * 3.3 + y * 2.9);
+    for (const { g, bone, col, kind } of parts) { const gi = g.index ? g : null, p = g.attributes.position, n = g.attributes.normal, oy = bone >= 15 ? cy : 0; /* tongs + hammer: modelled at their bone's origin, which rests at the chest (bind pose) */
+      for (let i = 0; i < p.count; i++) { let x = p.getX(i), y = p.getY(i) + oy, z = p.getZ(i); const nn = nz(x, y, z), ny = n.getY(i); let c = g.userData.c ? g.userData.c[i] : col;
+        if (kind) { const tf = kind === 2 ? Math.pow(Math.max(0, Math.sin(x * 1.9 + z * 1.3 + y * 0.4) * Math.sin(y * 2.3 - x * 0.7 + z * 0.9)), 2) : 0, sh = (nn - 0.5) * 0.6 + tf * 0.7; x += n.getX(i) * sh; y += n.getY(i) * sh; z += n.getZ(i) * sh;
+          let jd = 1e9; for (const [jx, jy] of J) jd = Math.min(jd, Math.hypot(Math.abs(x) - jx, y - jy)); const ao = (1 - 0.42 * (1 - sm(1, 6, jd))) * (0.86 + 0.28 * nn) * (y < 6 ? 0.8 : 1);
+          const lit = ny >= 0 ? FM.map((v, k) => lerp(v, FL[k], Math.pow(ny, 0.8))) : FM.map((v, k) => lerp(v, FS[k], Math.min(1, -ny * 1.15))); c = lit.map((v, k) => lerp(v, FL[k], tf * 0.35) * ao); }
+        P.push(x, y, z); N.push(n.getX(i), ny, n.getZ(i)); C.push(...c); SI.push(bone, 0, 0, 0); SW.push(1, 0, 0, 0); FU.push(kind ? nn : -1); }
       if (gi) for (let i = 0; i < gi.index.count; i++) I.push(base + gi.index.getX(i)); else for (let i = 0; i < p.count; i++) I.push(base + i); base += p.count; g.dispose(); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
-    geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(SI, 4)); geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(SW, 4)); geo.setIndex(I); geo.computeVertexNormals(); geo.computeBoundingSphere(); return geo; }
+    geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(SI, 4)); geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(SW, 4)); geo.setIndex(I); geo.computeVertexNormals();
+    { const nr = geo.attributes.normal, ps = geo.attributes.position; for (let i = 0; i < nr.count; i++) { if (FU[i] < 0) continue; const x = ps.getX(i), y = ps.getY(i), z = ps.getZ(i), v = new THREE.Vector3(nr.getX(i) + 0.22 * Math.sin(x * 3.1 + y * 1.7), nr.getY(i) + 0.22 * Math.sin(y * 2.9 - z * 2.3), nr.getZ(i) + 0.22 * Math.sin(z * 3.3 + x * 2.1)).normalize(); nr.setXYZ(i, v.x, v.y, v.z); } }
+    geo.computeBoundingSphere(); return geo; }
   function bones() { const B = [], mk = (p, par) => { const b = new THREE.Bone(); b.position.set(...p); if (par != null) B[par].add(b); B.push(b); return b; };
     const hy = BP.hip; mk([0, hy, 0]); mk([0, BP.chestUp, 0], 0); mk([BP.head[0], BP.torso - 1 + 0, BP.head[2]], 1);
     for (const s of [1, -1]) { mk([s * BP.hipW, 0, 0], 0); mk([0, -BP.thigh, 0], B.length - 1); }
     for (const s of [1, -1]) { mk([s * BP.shA[0], BP.shA[1], BP.shA[2]], 1); mk([0, -BP.armA[0], 0], B.length - 1); }
     for (const s of [1, -1]) { mk([s * BP.shB[0], BP.shB[1], BP.shB[2]], 1); mk([0, -BP.armB[0], 0], B.length - 1); }
     mk([0, 0, 0], 1); mk([0, 0, 0], 1); mk([0, 0, 0], 1); return B; }
-  function lavaTex() { const N = 128, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d'), im = g.createImageData(N, N); for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = i / N * 2 * Math.PI, b = j / N * 2 * Math.PI;
+  function lavaTex() { const N = 128, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d'), im = g.createImageData(N, N); // lava #fb6b1c with a hot #ffd24a core and hot veins, a little dark crust
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = i / N * 2 * Math.PI, b = j / N * 2 * Math.PI, rc = Math.hypot(i / N - 0.5, j / N - 0.5) * 2;
       const v = 0.5 + 0.22 * Math.sin(a * 3 + Math.sin(b * 2) * 2) * Math.cos(b * 3 + Math.sin(a * 2)) + 0.18 * Math.sin(a * 7 + b * 5) * Math.sin(b * 6 - a * 2) + 0.1 * Math.sin(a * 13 - b * 11), c = clamp(v, 0, 1), o = (j * N + i) * 4;
-      const crust = sm(0.28, 0.12, c); im.data[o] = lerp(255, 70, crust); im.data[o + 1] = lerp(90 + 150 * c * c, 25, crust); im.data[o + 2] = lerp(20 + 60 * c * c * c, 15, crust); im.data[o + 3] = 255; } g.putImageData(im, 0, 0);
-    const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 3); t.encoding = THREE.sRGBEncoding; return t; }
+      const hot = clamp(Math.max(sm(0.62, 0.85, c), 1 - sm(0.05, 0.55, rc)), 0, 1), crust = sm(0.26, 0.12, c) * sm(0.3, 0.7, rc) * 0.7;
+      im.data[o] = lerp(lerp(251, 255, hot), 74, crust); im.data[o + 1] = lerp(lerp(107, 210, hot), 30, crust); im.data[o + 2] = lerp(lerp(28, 74, hot), 14, crust); im.data[o + 3] = 255; } g.putImageData(im, 0, 0);
+    const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; return t; }
+  function smokeTex() { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const g = cv.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv); }
   function dotTex() { const cv = document.createElement('canvas'); cv.width = cv.height = 32; const g = cv.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,220,150,.8)'); gr.addColorStop(1, 'rgba(255,120,20,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(cv); }
   function build(C) { if (M.built || typeof THREE === 'undefined' || !C || !C.scene) return; M.built = true; THREEok = true; const mob = typeof QUALITY !== 'undefined' && QUALITY.name === 'mobile'; M.mob = mob;
     const g = new THREE.Group(); g.name = 'volcanicForge'; C.scene.add(g); M.grp = g;
-    // lava lake: one unlit disc at z 28 (12 m under the lip), its noise texture drifting
-    { const [cx, cz] = wld(L.crater[0], L.crater[1]); const lg = new THREE.CircleGeometry(92 * U, mob ? 28 : 48); lg.rotateX(-Math.PI / 2); M.lavaT = lavaTex(); const lm = new THREE.MeshBasicMaterial({ map: M.lavaT, color: 0xffffff });
+    // lava lake: one unlit disc at z 28 (12 m under the lip), slowly turning (its hot core stays centred), not tone-mapped
+    { const [cx, cz] = wld(L.crater[0], L.crater[1]); const lg = new THREE.CircleGeometry(84 * U, mob ? 28 : 48); lg.rotateX(-Math.PI / 2); M.lavaT = lavaTex(); const lm = new THREE.MeshBasicMaterial({ map: M.lavaT, color: 0xffffff }); lm.toneMapped = false;
       const lava = new THREE.Mesh(lg, lm); lava.position.set(cx, HB + L.lava * U, cz); lava.name = 'forgeLava'; g.add(lava); M.lava = lava; }
+    // a light, low-alpha smoke plume (#6e6258): 8 camera-facing quads in one draw
+    { const n = 8, pg = new THREE.BufferGeometry(), I = []; for (let k = 0; k < n; k++) { const b = k * 4; I.push(b, b + 1, b + 2, b, b + 2, b + 3); } const uv = []; for (let k = 0; k < n; k++) uv.push(0, 0, 1, 0, 1, 1, 0, 1);
+      pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 12), 3)); pg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 16), 4)); pg.setIndex(I);
+      const sm2 = new THREE.MeshBasicMaterial({ color: 0x6e6258, map: smokeTex(), transparent: true, depthWrite: false, vertexColors: true, fog: true }); const pl = new THREE.Mesh(pg, sm2); pl.frustumCulled = false; pl.name = 'forgeSmoke'; pl.renderOrder = 2; g.add(pl); M.smoke = pl; }
     // the ape: one skinned mesh (rigid parts, vertex colours) = one draw call
-    { const geo = apeGeo(mob), B = bones(), mat = new THREE.MeshLambertMaterial({ vertexColors: true }); const ape = new THREE.SkinnedMesh(geo, mat); ape.add(B[0]); ape.updateMatrixWorld(true); ape.bind(new THREE.Skeleton(B));
+    { const geo = apeGeo(mob), B = bones(), mat = new THREE.MeshLambertMaterial({ vertexColors: true }); rimLight(mat); const ape = new THREE.SkinnedMesh(geo, mat); ape.add(B[0]); ape.updateMatrixWorld(true); ape.bind(new THREE.Skeleton(B));
       ape.frustumCulled = false; ape.castShadow = !mob; ape.scale.setScalar(U); ape.name = 'forgeApe'; g.add(ape); M.ape = ape; M.B = B; M.apeTris = geo.index.count / 3; }
-    // the bar (30 x 4 x 4), its colour and glow from the diagram's keyframes
-    { const bg = new THREE.BoxGeometry(L.bar[2], L.bar[1], L.bar[0]); bg.translate(0, 0, L.bar[0] / 2 - L.grip); M.barM = new THREE.MeshLambertMaterial({ color: 0x5a3a2c, emissive: 0x000000 }); M.barM.toneMapped = false; const bar = new THREE.Mesh(bg, M.barM); bar.scale.setScalar(U); bar.name = 'forgeBar'; g.add(bar); M.bar = bar; }
+    // the bar (30 x 4 x 4): an emissive gradient, core -> edges (aE: 0 at the face centres, 1 at the box edges and ends), colours from the diagram's keyframes
+    { const bg = new THREE.BoxGeometry(L.bar[2], L.bar[1], L.bar[0], 4, 4, 12); const p = bg.attributes.position, e = []; for (let k = 0; k < p.count; k++) { const ax = Math.abs(p.getX(k)) / (L.bar[2] / 2), ay = Math.abs(p.getY(k)) / (L.bar[1] / 2), az = Math.abs(p.getZ(k)) / (L.bar[0] / 2); e.push(Math.max(clamp(ax + ay - 1, 0, 1), sm(0.7, 1, az))); }
+      bg.setAttribute('aE', new THREE.Float32BufferAttribute(e, 1)); bg.translate(0, 0, L.bar[0] / 2 - L.grip); M.barM = new THREE.MeshLambertMaterial({ color: 0x5a3a2c }); M.barM.toneMapped = false; M.barU = { uCore: { value: new THREE.Color() }, uEdge: { value: new THREE.Color() }, uI: { value: 0 } };
+      M.barM.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, M.barU); sh.vertexShader = 'attribute float aE; varying float vE;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvE = aE;');
+        sh.fragmentShader = 'uniform vec3 uCore; uniform vec3 uEdge; uniform float uI; varying float vE;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance = mix(uCore, uEdge, smoothstep(0.0, 1.0, vE)) * uI;'); };
+      const bar = new THREE.Mesh(bg, M.barM); bar.scale.setScalar(U); bar.name = 'forgeBar'; g.add(bar); M.bar = bar; }
     // sparks: one Points cloud (additive), bursts on each hit sized by the bar's glow, settling as embers
-    { const n = mob ? 220 : 480; M.spN = n; M.sp = []; const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setDrawRange(0, 0);
-      const pm = new THREE.PointsMaterial({ size: 1.6 * U, map: dotTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); const pts = new THREE.Points(pg, pm); pts.frustumCulled = false; pts.name = 'forgeSparks'; g.add(pts); M.pts = pts; }
+    { const n = mob ? 320 : 480; M.spN = n; M.sp = []; const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setDrawRange(0, 0);
+      const pm = new THREE.PointsMaterial({ size: 1.5 * U, map: dotTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); const pts = new THREE.Points(pg, pm); pts.frustumCulled = false; pts.name = 'forgeSparks'; g.add(pts); M.pts = pts; }
     M.t0 = performance.now() / 1000; M.lastT = null; M.barRest = null; anim(0, 0); }
   const V3 = () => new THREE.Vector3(), DOWN = () => new THREE.Vector3(0, -1, 0), ZAX = () => new THREE.Vector3(0, 0, 1);
   function ik2(S, T, L1, L2, pole) { const d = T.clone().sub(S); let dist = d.length(); const dn = d.clone().normalize(); dist = clamp(dist, Math.abs(L1 - L2) + 0.01, L1 + L2 - 0.01);
@@ -216,7 +267,8 @@ const FORGE = (() => {
     for (const [s, b0] of [[1, 11], [-1, 13]]) { const S = new THREE.Vector3(s * BP.shB[0], BP.shB[1], BP.shB[2]), T = hmC.clone().add(tdC.clone().multiplyScalar(s > 0 ? 1.5 : 4.5)).add(new THREE.Vector3(s * 1.2, 0, 0)); const [E, H] = ik2(S, T, BP.armB[0], BP.armB[1], new THREE.Vector3(s, -0.4, -0.6)); aimLimb(B[b0], B[b0 + 1], S, E, H); }
     // hammers: sigma between the raised pose and the head on the bar; at rest they hang beside him, heads down
     const barC = M.barRest ? M.barRest.local : new THREE.Vector3(0, 30, 50);
-    for (const [side, s, b0, hb] of [[0, 1, 7, 16], [1, -1, 9, 17]]) { const sg = P.ham[side]; let hand, hdir;
+    { const S = new THREE.Vector3(BP.shA[0], BP.shA[1], BP.shA[2]), T = hmC.clone().add(tdC.clone().multiplyScalar(9)).add(new THREE.Vector3(2.4, 1.6, 0)); const [E, H] = ik2(S, T, BP.armA[0], BP.armA[1], new THREE.Vector3(1, 0.3, -0.6)); aimLimb(B[7], B[8], S, E, H); B[16].position.set(0, 0, 0); } // the upper left hand braced on the reins
+    for (const [side, s, b0, hb] of [[1, -1, 9, 17]]) { const sg = P.ham[side]; let hand, hdir;
       if (sg == null) { hand = new THREE.Vector3(s * 13, P.hipY - 2, 6); hdir = new THREE.Vector3(s * 0.15, -0.55, 0.82).normalize(); }
       else { const strikeHead = new THREE.Vector3(s * 3.5, barC.y + L.bar[1] / 2 + L.head[1] / 2, barC.z + (s > 0 ? 6 : -3)), dS = new THREE.Vector3(0, -0.55, 0.84).normalize(), handS = strikeHead.clone().sub(dS.clone().multiplyScalar(L.handle));
         const handR = new THREE.Vector3(s * 9, 74, 12), dR = new THREE.Vector3(s * 0.1, 0.78, -0.62).normalize(); hand = handS.clone().lerp(handR, sg); hdir = dS.clone().lerp(dR, sg).normalize(); }
@@ -224,22 +276,35 @@ const FORGE = (() => {
       const [E, H] = ik2(S, hC, BP.armA[0], BP.armA[1], new THREE.Vector3(s, 0.2, -0.8)); aimLimb(B[b0], B[b0 + 1], S, E, H); }
     ape.updateMatrixWorld(true); return P; }
   function jawWorld() { const b = M.B[15]; return { p: new THREE.Vector3(0, 0, L.tongs - 1.2).applyMatrix4(b.matrixWorld), q: b.getWorldQuaternion(new THREE.Quaternion()) }; }
-  function headWorld(i) { return new THREE.Vector3(0, -L.head[1] / 2, L.handle).applyMatrix4(M.B[16 + i].matrixWorld); }
+  function headWorld() { return new THREE.Vector3(0, -L.head[1] / 2, L.handle).applyMatrix4(M.B[17].matrixWorld); } // (the one hammer, upper right hand)
   function restBar() { if (M.barRest) return M.barRest; setPose(12.0); const j = jawWorld(), flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2); // laid flat along the loop line (world -x), resting on the striking surface
     const top = HB + (L.plat[3] + L.bar[1] / 2) * U, p = new THREE.Vector3(j.p.x, top, LIP[1]); const local = new THREE.Vector3(0, L.plat[3] + L.bar[1] / 2, (LIP[0] - j.p.x) / U - L.S); M.barRest = { p, q: flat, local }; return M.barRest; }
-  function anim(t, night) { if (!M.built) return; const now = M.tOv != null ? M.tOv : performance.now() / 1000, T = M.tOv != null ? ((M.tOv % LOOP) + LOOP) % LOOP : ((now - M.t0) % LOOP + LOOP) % LOOP; // (tOv: a test / shot pins the loop time) void t; void night; M.T = T; M.lavaT.offset.set((now * 0.004) % 1, (now * 0.0027) % 1);
-    restBar(); const P = setPose(T), bc = barAt(T); const gl = clamp(bc.em / 0.9, 0, 1); M.barM.color.setRGB(...bc.c.map((v) => v * (1 - 0.85 * gl))); M.barM.emissive.setRGB(...bc.c); M.barM.emissiveIntensity = gl * (0.75 + 0.08 * bc.em); // the keyframe colour drives the glow; not tone-mapped, so it stays saturated M.phase = phase(T);
-    const j = jawWorld(), R = M.barRest; if ((P.lay || 0) >= 0.999) { M.bar.position.copy(R.p); M.bar.quaternion.copy(R.q); M.bar.position.addScaledVector(new THREE.Vector3(1, 0, 0), L.grip * U * 0); }
+  const lin = (c) => c.map((v) => Math.pow(v, 2.2)), CORE = lin([1, 0xde / 255, 0x48 / 255]);
+  function anim(t, night) { if (!M.built) return; void t; void night; const now = M.tOv != null ? M.tOv : performance.now() / 1000, T = M.tOv != null ? ((M.tOv % LOOP) + LOOP) % LOOP : ((now - M.t0) % LOOP + LOOP) % LOOP; // (tOv: a test / shot pins the loop time)
+    M.T = T; M.phase = phase(T); M.lava.rotation.y = (now * 0.01) % (2 * Math.PI);
+    restBar(); const P = setPose(T), bc = barAt(T), gl = clamp(bc.em / 0.9, 0, 1), ce = lin(bc.c), heat = sm(0.4, 1.9, bc.em); // edges = the keyframe colour (#ff6a1a -> #b23a12 -> #4a2416 over the strikes), core -> #ffde48 while hot
+    M.barM.color.setRGB(...lin(bc.c).map((v) => v * (1 - 0.85 * gl))); M.barU.uEdge.value.setRGB(...ce); M.barU.uCore.value.setRGB(...ce.map((v, k) => lerp(v, CORE[k], heat))); M.barU.uI.value = gl * (0.85 + 0.1 * bc.em);
+    const j = jawWorld(), R = M.barRest; if ((P.lay || 0) >= 0.999) { M.bar.position.copy(R.p); M.bar.quaternion.copy(R.q); }
     else { const lay = P.lay || 0; M.bar.position.copy(j.p).lerp(R.p, lay); M.bar.quaternion.copy(j.q).slerp(R.q, lay); }
-    // sparks: a burst at each hit (count ~ the bar's glow); flying 60-150 m out, gravity, embers on the ground
+    // the rim light: from the lava, in view space
+    if (M.rimU && typeof M3 !== 'undefined' && M3.camera) { const c = M3.camera; c.updateMatrixWorld(); const d = M.lava.position.clone().sub(M.ape.position).setY(30 * U).normalize(); M.rimU.uRimDir.value.copy(d.transformDirection(c.matrixWorldInverse)); }
+    stepSmoke(now);
+    // sparks: a burst of 30-60 at each hit (more while the bar is hot), arcing down into the valley; embers on the ground
     const H = hitTimes(), last = M.lastT; if (last != null) for (let i = 0; i < H.length; i++) { const th = H[i]; if ((last < th && T >= th) || (last > T && th <= T)) burst(i, barAt(th).em); } M.lastT = T; stepSparks(now); }
-  function burst(i, em) { const n = Math.round((M.mob ? 26 : 56) * em), p0 = headWorld(i % 2); M.hits = (M.hits || 0) + 1; M.lastBurst = n;
-    for (let k = 0; k < n; k++) { const a = (Math.random() - 0.5) * 2.6 + (Math.random() < 0.5 ? 0 : Math.PI) * 0, el = 0.25 + Math.random() * 0.75, sp = (14 + Math.random() * 20) * U; // fan out off the bar, mostly away from him (world -x, down the loop line) and across the valley
-      const dir = new THREE.Vector3(-Math.cos(a), 0, Math.sin(a) * 1.2); M.sp.push({ p: p0.clone(), v: dir.multiplyScalar(sp * Math.cos(el)).add(new THREE.Vector3(0, sp * Math.sin(el), 0)), age: 0, life: 6 + Math.random() * 4, ground: false });
+  function rimLight(mat) { M.rimU = { uRimDir: { value: new THREE.Vector3(1, 0, 0) }, uRimC: { value: new THREE.Color(0xff7a2a).convertSRGBToLinear().multiplyScalar(0.55) } }; // a low orange rim from the lava side, faked in the shader (no extra light: mobile)
+    mat.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, M.rimU); sh.fragmentShader = 'uniform vec3 uRimDir; uniform vec3 uRimC;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n{ float rf = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 2.2) * clamp(dot(normal, uRimDir) * 0.8 + 0.25, 0.0, 1.0); totalEmissiveRadiance += uRimC * rf * (0.6 + 0.4 * diffuseColor.r * 3.0); }'); }; }
+  function stepSmoke(now) { const c = typeof M3 !== 'undefined' && M3.camera; if (!c || !M.smoke) return; const ps = M.smoke.geometry.attributes.position, cl = M.smoke.geometry.attributes.color, rt = new THREE.Vector3().setFromMatrixColumn(c.matrixWorld, 0), up = new THREE.Vector3().setFromMatrixColumn(c.matrixWorld, 1);
+    const n = 8, o = M.lava.position; for (let k = 0; k < n; k++) { const u = ((k / n + now * 0.012) % 1), h = (30 + u * 280) * U, sz = (35 + u * 110) * U, a = 0.16 * sm(0, 0.12, u) * (1 - sm(0.55, 1, u)), cx = o.x + (Math.sin(k * 2.3 + now * 0.05) * 12 - u * 70) * U, cz = o.z + Math.cos(k * 1.7) * 14 * U * u, cyy = HB + h;
+      const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]]; pts.forEach(([sx, sy], m) => { ps.setXYZ(k * 4 + m, cx + (rt.x * sx + up.x * sy) * sz, cyy + (rt.y * sx + up.y * sy) * sz, cz + (rt.z * sx + up.z * sy) * sz); cl.setXYZW(k * 4 + m, 1, 1, 1, a); }); }
+    ps.needsUpdate = true; cl.needsUpdate = true; }
+  const SPA = lin([1, 0xd2 / 255, 0x4a / 255]), SPB = lin([1, 0x6a / 255, 0x1a / 255]);
+  function burst(i, em) { const n = Math.round(30 + 30 * clamp(em / 1.9, 0, 1)), p0 = headWorld(); M.hits = (M.hits || 0) + 1; M.lastBurst = n;
+    for (let k = 0; k < n; k++) { const a = (Math.random() - 0.5) * 2.2, el = 0.15 + Math.random() * 0.6, sp = (12 + Math.random() * 18) * U, mix = Math.random(); // fan out off the bar, away from him (world -x) and over the edge into the valley
+      const dir = new THREE.Vector3(-Math.cos(a), 0, Math.sin(a) * 1.2); M.sp.push({ p: p0.clone(), v: dir.multiplyScalar(sp * Math.cos(el)).add(new THREE.Vector3(0, sp * Math.sin(el), 0)), age: 0, life: 4 + Math.random() * 3, ground: false, c: SPA.map((v, q) => lerp(v, SPB[q], mix)) });
       if (M.sp.length > M.spN) M.sp.shift(); } }
-  function stepSparks(now) { const dt = clamp(M.spPrev ? now - M.spPrev : 0.016, 0, 0.1); M.spPrev = now; const g = 7.5 * U, pos = M.pts.geometry.attributes.position, col = M.pts.geometry.attributes.color; let n = 0;
-    for (let i = M.sp.length - 1; i >= 0; i--) { const s = M.sp[i]; s.age += dt; if (s.age > s.life) { M.sp.splice(i, 1); continue; } if (!s.ground) { s.v.y -= g * dt; s.p.addScaledVector(s.v, dt); const gz = HB + 0.5 * U; if (s.p.y < gz) { s.p.y = gz; s.ground = true; s.tg = s.age; } } }
-    for (const s of M.sp) { if (n >= M.spN) break; pos.setXYZ(n, s.p.x, s.p.y, s.p.z); const f = s.ground ? Math.max(0, 1 - (s.age - s.tg) / 4) * 0.55 : 1; col.setXYZ(n, 1 * f, (s.ground ? 0.35 : 0.75) * f, (s.ground ? 0.08 : 0.3) * f); n++; }
+  function stepSparks(now) { const dt = clamp(M.spPrev ? now - M.spPrev : 0.016, 0, 0.1); M.spPrev = now; const g = 9.8 * U, pos = M.pts.geometry.attributes.position, col = M.pts.geometry.attributes.color; let n = 0;
+    for (let i = M.sp.length - 1; i >= 0; i--) { const s = M.sp[i]; s.age += dt; if (s.age > s.life) { M.sp.splice(i, 1); continue; } if (!s.ground) { s.v.y -= g * dt; s.p.addScaledVector(s.v, dt); const gz = (s.p.y < HB + 40 * U && typeof M3 !== 'undefined' && M3.heightAt ? M3.heightAt(s.p.x, s.p.z)[0] : HB) + 0.4 * U; if (s.p.y < gz) { s.p.y = gz; s.ground = true; s.tg = s.age; } } }
+    for (const s of M.sp) { if (n >= M.spN) break; pos.setXYZ(n, s.p.x, s.p.y, s.p.z); const f = s.ground ? Math.max(0, 1 - (s.age - s.tg) / 2.5) * 0.5 : 1 - 0.4 * sm(0, s.life, s.age); col.setXYZ(n, s.c[0] * f, s.c[1] * f * (s.ground ? 0.5 : 1), s.c[2] * f); n++; }
     M.pts.geometry.setDrawRange(0, n); pos.needsUpdate = true; col.needsUpdate = true; }
   const shaderU = () => new THREE.Vector4(LIP[0], LIP[1], U, 1);
   return { WS, F, U, LIP, HB, LOOP, HITS, L, M, wld, loc, carve, keepOut, scorched, clear, afterGen, orePrune, anchors, build, anim, barAt, hitTimes, phase, pose, platZ, platD, cone, Hr, Rb, shaderU, pathKeepW: (x, y) => { const [X, Y] = loc(x, y); return inBox(X, Y) && pathKeep(X, Y); }, BP, SWB, swbNear, setPose, restBar, jawWorld, headWorld, on };
