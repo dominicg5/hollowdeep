@@ -909,7 +909,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='07a03e35';
+<script>window.HD_BUILD='7f5f52b3';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -931,8 +931,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 07a03e35</div>
-<script src="assets/vendor/three.min.js?v=07a03e35"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7f5f52b3</div>
+<script src="assets/vendor/three.min.js?v=7f5f52b3"></script>
 <script>
 'use strict';
 
@@ -5416,8 +5416,8 @@ const GRAND = (() => {
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
 float fb(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.03 + 7.1; a *= 0.5; } return s; }`;
   function animW(t, night) { if (!GX.wmats) return; for (const m of GX.wmats) { m.uniforms.uT.value = t; m.uniforms.uN.value = night || 0; } }
-  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); } buildLakes(C); if (typeof MILL !== 'undefined' && WT.built) MILL.build(C); }
-  function anim(t, night) { animDoor(t, night); animW(t, night); if (typeof MILL !== 'undefined') MILL.anim(t, night); }
+  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); } buildLakes(C); if (typeof MILL !== 'undefined' && WT.built) MILL.build(C); if (typeof FORGE !== 'undefined') FORGE.build(C); }
+  function anim(t, night) { animDoor(t, night); animW(t, night); if (typeof MILL !== 'undefined') MILL.anim(t, night); if (typeof FORGE !== 'undefined') FORGE.anim(t, night); }
   return { ramps: RAMP, rampsOn, onRamp(x, y, m) { if (!rampsOn() || !RAMP.list.length) return false; for (const R of RAMP.list) { const b = R.bb; if (x < b[0] || y < b[1] || x > b[2] || y > b[3]) continue; for (let q = 0; q < R.P.length; q += 2) if (Math.hypot(R.P[q][0] - x, R.P[q][1] - y) < 90 + m) return true; } return false; }, build, anim, wet, streamBridges, streamLines() { wGeom(); return WT.streams; }, lakeE, water: WT, dodge, doorSpot, carve, fit, doorCard, enterTree, toW, toL, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
 })();
 /* =====================================================================
