@@ -43,13 +43,15 @@ const MILL = (() => {
     const sA = RACE[0] - BL, sB = RACE[1] + BL, a0 = F.a0 + sA * WK, a1 = F.a0 + sB * WK, keys = new Set(); for (let s = sA; s <= sB; s += 2) keys.add(+s.toFixed(2)); for (const s of L.steps) { keys.add(s - 0.15); keys.add(s + 0.15); }
     keys.add(L.lip); keys.add(L.lip + 0.08); keys.add(L.pitE - 0.08); keys.add(L.pitE);
     const pt = (s) => { const o = F.at(F.a0 + s * WK), w = s < RACE[0] ? sm(sA, RACE[0], s) : s > RACE[1] ? 1 - sm(RACE[1], sB, s) : 1, q = wld(s, 0), r = [o[0] + (q[0] - o[0]) * w, o[1] + (q[1] - o[1]) * w]; r.ms = s; return r; };
-    const Kp = [...keys].sort((a, b) => a - b).map(pt);
+    const Kp = [...keys].sort((a, b) => a - b).map(pt); M.race = Kp;
     const out = []; for (let i = 0; i < P.length; i++) { if (A[i] > a0 && A[i] < a1) continue; if (A[i] >= a1 && out.length && !out.done) { for (const k of Kp) out.push(k); out.done = true; } out.push(P[i]); }
     if (!out.done) for (const k of Kp) out.push(k); delete out.done; return out; }
   // levels: after GRAND's own plan; the shelf holds level to the lip, the approach drops in small steps, the pit and tailrace sit 2.3 m under the floor
   function levels(S) { if (S.id !== SI || !M.F) return; const P = S.P, wl = S.wl, s = [0]; for (let i = 1; i < P.length; i++) s.push(s[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1])); let seen = false; for (let i = 0; i < P.length; i++) { if (P[i].ms != null) { s[i] = P[i].ms; seen = true; } else s[i] = seen ? 1e6 : -1e6; } /* design s of the resampled race points (exact keys); the natural course before / after it sits out of range */ const hid = new Array(P.length).fill(false), Hw = HF + (L.Hl - 0.6) * WK, Hp = HF + L.pool * WK;
     const nat = wl.slice(), poolLv = (lo, hi, floor) => { let m = 1e9; for (let i = 0; i < P.length; i++) if (s[i] >= lo - 0.2 && s[i] <= hi + 0.2) m = Math.min(m, nat[i]); return Math.max(m === 1e9 ? floor : m, floor); };
-    const lv = [Hw]; for (let k = 0; k + 1 < L.steps.length; k++) lv.push(poolLv(L.steps[k + 1], L.steps[k], lv[k] + 0.5)); // lv[0] = the shelf (s > steps[0]); lv[k] = the pool between steps[k] and steps[k-1]
+    const lv = [Hw]; for (let k = 0; k + 1 < L.steps.length; k++) lv.push(poolLv(L.steps[k + 1], L.steps[k], lv[k] + 0.5)); /* (no step over CAP: where the ground above the works stands higher the approach runs down as rapids instead) */
+    const CAP = 12 * WS, nS = L.steps.length; for (let k = 1; k < lv.length; k++) lv[k] = Math.min(lv[k], lv[k - 1] + CAP);
+    { const sA = RACE[0] - BL, st = L.steps[nS - 1], top = lv[nS - 1] + CAP; let i0 = -1; for (let i = 0; i < P.length; i++) if (P[i].ms != null) { i0 = i; break; } const na = i0 >= 0 ? nat[i0] : top; if (na > top) for (let i = 0; i < P.length; i++) if (s[i] >= sA && s[i] <= st) wl[i] = Math.min(nat[i], top + (na - top) * (st - s[i]) / (st - sA)); } // lv[0] = the shelf (s > steps[0]); lv[k] = the pool between steps[k] and steps[k-1]
     for (let i = 0; i < P.length; i++) { const x = s[i];
       if (x > L.lip + 0.01 && x < L.pitE - 0.01) { wl[i] = Hp; hid[i] = true; continue; }
       if (x >= L.pitE - 0.01) continue; // tailrace: handled below
@@ -76,7 +78,9 @@ const MILL = (() => {
   // nothing generated grows or lies on the works: trees / rocks / bushes are cleared off the ledge, the floor and the pit
   const PRUNE = new Set(['tree', 'pine', 'palm', 'deadtree', 'rock', 'boulder', 'basalt', 'scree', 'logs', 'leaves', 'mosspatch', 'shrooms', 'reeds', 'crystal', 'obsidian', 'slag', 'hay']);
   function inside(x, y, m) { if (!M.F) return false; const [s, d] = loc(x, y), mm = (m || 0) / WK; return s > -40 - mm && s < 33 + mm && d > -14 - mm && d < 18 + mm; }
-  function prune(objs) { if (!M.F || !objs) return 0; let n = 0; for (let i = objs.length - 1; i >= 0; i--) { const o = objs[i]; if (PRUNE.has(o.type) && inside(o.x, o.y, (o.r || 0) + 20)) { objs.splice(i, 1); n++; } } return n; }
+  function inRace(x, y, r) { const K = M.race, S = typeof GRAND !== 'undefined' && GRAND.water && GRAND.water.streams ? GRAND.water.streams[SI] : null; if (!K || !S) return false; const lim = S.w + r + 6; /* the race's water: generation placed things against the natural course */
+    for (let i = 0; i + 1 < K.length; i++) { const a = K[i], b = K[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)); if (Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t) < lim) return true; } return false; }
+  function prune(objs) { if (!M.F || !objs) return 0; let n = 0; for (let i = objs.length - 1; i >= 0; i--) { const o = objs[i]; if (PRUNE.has(o.type) && (inside(o.x, o.y, (o.r || 0) + 20) || inRace(o.x, o.y, o.r || 0))) { objs.splice(i, 1); n++; } } return n; }
 
   /* ---------- geometry helpers (all in metres, merged per material) ---------- */
   function box(sx, sy, sz, x, y, z, ry, rz) { const g = new THREE.BoxGeometry(sx, sy, sz), uv = g.attributes.uv, D = [[sz, sy], [sz, sy], [sx, sz], [sx, sz], [sx, sy], [sx, sy]]; for (let f = 0; f < 6; f++) for (let k = 0; k < 4; k++) { const i = f * 4 + k; uv.setXY(i, uv.getX(i) * D[f][0], uv.getY(i) * D[f][1]); }
