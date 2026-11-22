@@ -756,7 +756,7 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
 
 /* Drills HUD: only the unobstructed Character-view game screen. Hidden whenever any modal or overlay is open. */
-html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#tetherBub:not(.hidden)) #drillHud,
+html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#tetherBub:not(.hidden),#city.devv) #drillHud,
 html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{display:none!important}
 
 #drillCtl{top:8px;bottom:72px;left:8px;right:8px;max-height:none;padding:4px 6px 8px;font:400 13px/1.2 "Bree Serif",Georgia,serif;color:#2b1a10}
@@ -901,7 +901,7 @@ html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{dis
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='f3e8c430';
+<script>window.HD_BUILD='175a68eb';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -923,8 +923,8 @@ html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{dis
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build f3e8c430</div>
-<script src="assets/vendor/three.min.js?v=f3e8c430"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 175a68eb</div>
+<script src="assets/vendor/three.min.js?v=175a68eb"></script>
 <script>
 'use strict';
 
@@ -8456,10 +8456,10 @@ const CityMap = (() => {
   function mapView() { if (MVc) return MVc; let v = null; try { v = JSON.parse(localStorage.getItem('hdMapView') || 'null'); } catch (e) {} MVc = Object.assign({ mode: 'char' }, v || {}, (typeof S !== 'undefined' && S.mapView) || {}); if (typeof S !== 'undefined') S.mapView = MVc; return MVc; }
   function mapViewSave(ch) { const v = mapView(); if (ch) Object.assign(v, ch); if (typeof S !== 'undefined') S.mapView = v; try { localStorage.setItem('hdMapView', JSON.stringify(v)); } catch (e) {} return v; }
   function devSave() { if (mount.done && !(typeof Explore !== 'undefined' && Explore.on) && mapView().mode === 'dev') mapViewSave({ dev: { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt } }); }
-  function viewMark() { const m = mapView().mode; if (wrap) { wrap.classList.toggle('devv', m === 'dev'); wrap.querySelectorAll('.cityBtns .vb').forEach((b) => b.classList.toggle('on', b.dataset.city === (m === 'dev' ? 'vdev' : 'vchar'))); } }
+  function viewMark() { const m = mapView().mode; if (wrap) { wrap.classList.toggle('devv', m === 'dev'); wrap.querySelectorAll('.cityBtns .vb').forEach((b) => b.classList.toggle('on', b.dataset.city === (m === 'dev' ? 'vdev' : 'vchar'))); } if (typeof Explore !== 'undefined' && Explore.drillHud) Explore.drillHud(); }
   function charEnter() { if (typeof Explore === 'undefined' || !is3d() || !M3.scene || Explore.on) return !!(typeof Explore !== 'undefined' && Explore.on); const c = mapView().char; let ok = false; try { ok = c && isFinite(c.x) ? Explore.enter(c.x, c.y, c) : Explore.enter(); } catch (e) { console.error(e); } return ok; }
   function autoView() { if (typeof ui !== 'undefined' && ui.tab !== 'city') return; viewMark(); if (mapView().mode !== 'dev') charEnter(); }
-  function setView(m) { const v = mapView(); if (m === 'dev') { if (typeof Explore !== 'undefined' && Explore.on) { const h = Explore.here(); Explore.exit(); if (!v.dev && h) { cam.x = h[0]; cam.y = h[1]; cam.z = clamp(2.5 * Math.min(Wc, Hc) / dpr / (CITY.plateauR * 2.9), CITY.zoomMin, CITY.zoomMax); cam.rot = cam.rot || 0; cam.tilt = 55; } /* first Dev view: an overview centred on her */ } v.mode = 'dev'; if (v.dev) Object.assign(cam, v.dev, { vx: 0, vy: 0, fly: null }); if (is3d()) M3.place(cam, true); devSave(); }
+  function setView(m) { const v = mapView(); if (m === 'dev') { v.mode = 'dev'; if (typeof Explore !== 'undefined' && Explore.on) { const h = Explore.here(); Explore.exit(); if (!v.dev && h) { cam.x = h[0]; cam.y = h[1]; cam.z = clamp(2.5 * Math.min(Wc, Hc) / dpr / (CITY.plateauR * 2.9), CITY.zoomMin, CITY.zoomMax); cam.rot = cam.rot || 0; cam.tilt = 55; } /* first Dev view: an overview centred on her */ } if (v.dev) Object.assign(cam, v.dev, { vx: 0, vy: 0, fly: null }); if (is3d()) M3.place(cam, true); devSave(); }
     else { devSave(); v.mode = 'char'; charEnter(); } mapViewSave(); viewMark(); return v.mode; }
   function cityButton(b) {
     if (b === 'vchar' || b === 'vdev') return setView(b === 'vdev' ? 'dev' : 'char');
