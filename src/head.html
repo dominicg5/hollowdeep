@@ -14,7 +14,7 @@
   --good:#4d8a4f; --bad:#b0473a; --accent:#c9822f; --radius:16px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%}html.bag-open,html.bag-open body{overflow:hidden;overscroll-behavior:none}
+html,body{margin:0;height:100%}html.bag-open,html.bag-open body,html.skills-open,html.skills-open body{overflow:hidden;overscroll-behavior:none}
 body{
   font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);
   background:
@@ -394,17 +394,249 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .cxsv.cxico{display:block;aspect-ratio:1/1;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / (var(--icols,9) - 1)) calc(var(--iy)*100% / (var(--irows,8) - 1));filter:none}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:3px;transform:translateX(-50%);padding:0 5px;border-radius:6px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
 .kKit .cxct.m,#bagSheet .cxct.m{background:linear-gradient(#e7f3c8,#c5d98a);box-shadow:0 0 0 1px #5a7a32,0 1px 2px rgba(0,0,0,.5)}
-#exBagBtn,#exMapBtn{width:64px;height:64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;font-size:0;padding:0}
+#exBagBtn,#exMapBtn,#exSkillsBtn{width:64px;height:64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;font-size:0;padding:0}
 #exBagBtn{background-image:url(assets/ui/icons/btn_backpack_idle.webp)}
 .skLine{margin-top:4px;font-size:12px;line-height:1.35;opacity:.9}
 #exBagBtn:active,#exBagBtn.sel{background-image:url(assets/ui/icons/btn_backpack_pressed.webp)}
-#exBagBtn span,#exMapBtn span{display:none}
+#exBagBtn span,#exMapBtn span,#exSkillsBtn span{display:none}
 #exMapBtn{background-image:url(assets/ui/icons/btn_map_idle.webp);bottom:88px}
 #exMapBtn:active,#exMapBtn.sel{background-image:url(assets/ui/icons/btn_map_pressed.webp)}
+@font-face{font-family:"Bree Serif";src:url(assets/ui/fonts/BreeSerif-Regular.ttf) format("truetype");font-weight:400;font-display:swap}
+#exSkillsBtn{position:absolute;right:12px;bottom:216px;z-index:7;display:none;cursor:pointer;background-image:url(assets/ui/icons/btn_skills_idle.webp)}
+#exSkillsBtn.on{display:block}
+#exSkillsBtn:active,#exSkillsBtn.sel{background-image:url(assets/ui/icons/btn_skills_pressed.webp)}
+/* skills screen: leather kit panel, fixed, no page scroll (same pattern as the backpack sheet) */
+#skillsSheet{position:fixed;left:8px;right:8px;top:8px;bottom:216px;z-index:32;display:none;flex-direction:column;overflow:hidden;overscroll-behavior:none;touch-action:none;color:var(--kInk,#33200f);padding:10px 12px 8px;min-height:0}
+#skillsSheet.on{display:flex}
+#skillsSheet .skCap{position:absolute;width:36px;height:36px;border-radius:8px;background:linear-gradient(160deg,#f3d78f,#9a6c2c);box-shadow:0 0 0 2px #2b1a10,inset 0 0 0 1px rgba(255,240,200,.45);pointer-events:none;z-index:2}
+#skillsSheet .skCap:before{content:"";position:absolute;width:8px;height:8px;border-radius:50%;background:#f3d78f;border:2px solid #2b1a10}
+#skillsSheet .skCapTL{top:2px;left:2px}#skillsSheet .skCapTL:before{top:6px;left:6px}
+#skillsSheet .skCapTR{top:2px;right:2px}#skillsSheet .skCapTR:before{top:6px;right:6px;left:auto}
+#skillsSheet .skCapBL{bottom:2px;left:2px}#skillsSheet .skCapBL:before{bottom:6px;left:6px;top:auto}
+#skillsSheet .skCapBR{bottom:2px;right:2px}#skillsSheet .skCapBR:before{bottom:6px;right:6px;top:auto;left:auto}
+#skillsSheet .skHead{display:flex;align-items:center;gap:10px;flex:none;padding:2px 36px 4px 8px;position:relative;z-index:3}
+#skillsSheet .skHead h2{font:400 28px/1 "Bree Serif",Georgia,serif;color:#2b1a10;margin:0;text-shadow:0 1px 0 rgba(255,228,180,.35)}
+#skillsSheet .skTag{display:none;font:700 11px system-ui,sans-serif;letter-spacing:.04em;color:#f6ecd0;background:linear-gradient(#6f8640,#3d4d1f);border-radius:8px;padding:4px 10px;box-shadow:0 0 0 2px #2b1a10}
+#skillsSheet .skClose{position:absolute;top:0;right:0;width:44px;height:44px;min-width:44px;min-height:44px;z-index:4}
+#skillsSheet .skCols{display:none}
+#skillsSheet .skList{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;overflow:hidden;overscroll-behavior:none;padding:2px 4px}
+#skillsSheet .skRow{flex:1 1 0;min-height:0;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"ico id" "prog prog" "chip chip";align-items:center;column-gap:8px;row-gap:4px;padding:8px 10px;border-radius:12px;background:linear-gradient(#f4e8c8,#dcc79a);box-shadow:0 0 0 2px #8c6428;position:relative}
+#skillsSheet .skRow:before{content:"";position:absolute;left:12px;right:12px;top:6px;height:2px;background:repeating-linear-gradient(90deg,#b08a50 0 7px,transparent 7px 14px);opacity:.7;pointer-events:none}
+#skillsSheet .skIco{grid-area:ico;width:56px;height:56px;border:0;padding:0;border-radius:8px;background:radial-gradient(110% 95% at 50% 38%,#3f2716,#22130a);box-shadow:inset 0 3px 6px rgba(0,0,0,.65),0 0 0 2px #a76d33,0 0 0 3px #4e2d12;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+#skillsSheet .skIco img{width:78%;height:78%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45))}
+#skillsSheet .skId{grid-area:id;min-width:0;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;align-items:center;column-gap:8px}
+#skillsSheet .skName{grid-column:1;grid-row:1;font:400 20px/1.15 "Bree Serif",Georgia,serif;color:#2b1a10}
+#skillsSheet .skTotalMob{grid-column:1;grid-row:2;margin:0;font:400 13px/1.2 system-ui,sans-serif;color:#3a2414}
+#skillsSheet .skMedal{grid-column:2;grid-row:1 / span 2;width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#fbf2da,#dcc79a 70%);box-shadow:0 0 0 7px #c48a3a,0 0 0 9px #2b1a10,inset 0 0 0 1px #2b1a10;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+#skillsSheet .skMedal small{font:700 8px system-ui,sans-serif;color:#7a5a3a;letter-spacing:.06em}
+#skillsSheet .skMedal b{font:400 18px/1 "Bree Serif",Georgia,serif;color:#2b1a10}
+#skillsSheet .skTotal{display:none}
+#skillsSheet .skProg{grid-area:prog;display:flex;flex-direction:column;gap:3px;min-width:0}
+#skillsSheet .skBar{height:14px;border-radius:99px;background:linear-gradient(#2a1a10,#140c06);box-shadow:0 0 0 3px #c48a3a,0 0 0 5px #2b1a10;overflow:hidden;position:relative}
+#skillsSheet .skBar i{display:block;height:100%;border-radius:99px;max-width:100%}
+#skillsSheet .skBar-mining i{background:linear-gradient(180deg,#bff9ff,#2a9a9a)}
+#skillsSheet .skBar-smithing i{background:linear-gradient(180deg,#ffc27a,#c0602a)}
+#skillsSheet .skBar-empty{background:linear-gradient(#2a1a10,#140c06)}
+#skillsSheet .skProgMeta{display:flex;justify-content:space-between;align-items:baseline;font:400 12px/1.2 "Bree Serif",Georgia,serif;color:#2b1a10}
+#skillsSheet .skPctDesk{display:none}#skillsSheet .skPctMob{display:inline;color:#5a3a1e;font-family:system-ui,sans-serif}
+#skillsSheet .skChip{grid-area:chip;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;background:linear-gradient(#f7efd8,#e8d4a8);box-shadow:0 0 0 2px #8c6428;min-width:0}
+#skillsSheet .skChipIco{flex:none;width:28px;height:28px;background:center/contain no-repeat}
+#skillsSheet .skChipBody{display:flex;flex-direction:column;min-width:0}
+#skillsSheet .skChipLab{font:700 8px system-ui,sans-serif;letter-spacing:.08em;color:#7a5a3a}
+#skillsSheet .skChipName{font:400 13px/1.2 "Bree Serif",Georgia,serif;color:#2b1a10}
+#skillsSheet .skChipThen{display:flex;align-items:center;gap:6px;font:400 11px/1.2 system-ui,sans-serif;color:#3a2414;margin-top:2px}
+#skillsSheet .skThenIco{width:16px;height:16px}
+#skillsSheet .skRow.skLock{background:linear-gradient(#c9b896,#a8977a);flex:0.55 1 0;grid-template-areas:"ico id"}
+#skillsSheet .skRow.skLock .skName{color:#4a4036}#skillsSheet .skRow.skLock .skSub{grid-column:1 / -1;color:#5a5046;font:400 12px system-ui,sans-serif}
+#skillsSheet .skLockDesk{display:none}#skillsSheet .skLockMob{display:inline}
+#skillsSheet .skLockIco{cursor:default}
+#skillsSheet .skLockIco img{width:185%;height:185%;object-fit:cover;object-position:center;filter:none}
+#skillsSheet .skRow.skLock .skProg,#skillsSheet .skRow.skLock .skTotal,#skillsSheet .skRow.skLock .skMedal,#skillsSheet .skRow.skLock .skChip{display:none}
+#skillsSheet .skFoot{flex:none;align-self:center;margin-top:6px;font:700 11px system-ui,sans-serif;color:#f6ecd0;background:linear-gradient(#c98a48,#8a5426);border-radius:8px;padding:5px 12px;box-shadow:0 0 0 2px #2b1a10;text-align:center}
+#skillsSheet .skFootDesk{display:none}#skillsSheet .skFootMob{display:inline}
+@media (min-width:900px){
+  #skillsSheet{left:50%;top:50%;right:auto;bottom:auto;width:min(1400px,calc(100vw - 160px));height:min(876px,calc(100vh - 140px));transform:translate(-50%,-52%);padding:18px 22px 16px}
+  #skillsSheet .skHead h2{font-size:50px}
+  #skillsSheet .skTag{display:inline-block}
+  #skillsSheet .skClose{width:56px;height:56px;min-width:56px;min-height:56px;top:4px;right:4px}
+  #skillsSheet .skCols,#skillsSheet .skRow{grid-template-columns:80px 140px minmax(160px,1fr) 110px minmax(200px,480px);box-sizing:border-box}
+  #skillsSheet .skCols{display:grid;gap:0 8px;margin:0 8px;padding:4px 14px 8px;font:700 11px system-ui,sans-serif;letter-spacing:.06em;color:#4a2a12;flex:none}
+  #skillsSheet .skCols span:nth-child(1){grid-column:2}
+  #skillsSheet .skCols span:nth-child(2){grid-column:3}
+  #skillsSheet .skCols span:nth-child(3){grid-column:4}
+  #skillsSheet .skCols span:nth-child(4){grid-column:5}
+  #skillsSheet .skList{gap:16px;padding:0 8px;justify-content:flex-start}
+  #skillsSheet .skRow{flex:0 0 170px;height:170px;display:grid;grid-template-areas:none;grid-template-rows:1fr auto;column-gap:8px;row-gap:6px;padding:16px 14px 14px;align-items:center}
+  #skillsSheet .skIco{grid-column:1;grid-row:1 / span 2;width:80px;height:80px;align-self:center}
+  #skillsSheet .skId{display:contents}
+  #skillsSheet .skName{grid-column:2;grid-row:1;align-self:end;font-size:34px;line-height:1}
+  #skillsSheet .skTotalMob{display:none}
+  #skillsSheet .skMedal{grid-column:2;grid-row:2;align-self:start;justify-self:center;width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10;margin:0}
+  #skillsSheet .skMedal small{font-size:9px}#skillsSheet .skMedal b{font-size:22px}
+  #skillsSheet .skProg{display:contents}
+  #skillsSheet .skBar{grid-column:3;grid-row:1;align-self:end;height:22px;width:100%;max-width:340px}
+  #skillsSheet .skProgMeta{grid-column:3;grid-row:2;align-self:start;width:100%;max-width:340px;font-size:16px}
+  #skillsSheet .skPctDesk{display:inline;color:#5a3a1e}#skillsSheet .skPctMob{display:none}
+  #skillsSheet .skTotal{display:contents}
+  #skillsSheet .skTotal b{grid-column:4;grid-row:1;align-self:end;font:400 34px/1 "Bree Serif",Georgia,serif;color:#2b1a10}
+  #skillsSheet .skTotal small{grid-column:4;grid-row:2;align-self:start;font:400 13px system-ui,sans-serif;color:#5a3a1e}
+  #skillsSheet .skChip{grid-column:5;grid-row:1 / span 2;align-self:center;height:auto;min-height:96px;width:100%;padding:10px 12px;gap:12px}
+  #skillsSheet .skChipIco{width:56px;height:56px}
+  #skillsSheet .skChipName{font-size:18px}
+  #skillsSheet .skChipThen{font-size:13px}
+  #skillsSheet .skThenIco{width:30px;height:30px}
+  #skillsSheet .skRow.skLock{flex:0 0 140px;height:140px;grid-template-rows:1fr}
+  #skillsSheet .skRow.skLock .skId{display:flex;flex-direction:column;justify-content:center;grid-column:2;grid-row:1;min-width:0}
+  #skillsSheet .skRow.skLock .skName{white-space:nowrap;font-size:28px;align-self:auto;grid-column:auto;grid-row:auto}
+  #skillsSheet .skRow.skLock .skSub{grid-column:auto;margin-top:4px}
+  #skillsSheet .skRow.skLock .skProg{display:flex;grid-column:3;grid-row:1;align-self:center;width:100%;max-width:340px}
+  #skillsSheet .skRow.skLock .skBar{max-width:340px}
+  #skillsSheet .skRow.skLock .skTotal{display:flex;grid-column:4;grid-row:1;align-self:center}
+  #skillsSheet .skRow.skLock .skTotal b{color:#5a5046;font:400 28px/1 "Bree Serif",Georgia,serif}
+  #skillsSheet .skLockDesk{display:inline}#skillsSheet .skLockMob{display:none}
+  #skillsSheet .skFoot{font-size:13px;padding:7px 16px;margin-top:12px}
+  #skillsSheet .skFootDesk{display:inline}#skillsSheet .skFootMob{display:none}
+  #skillsSheet .skCap{width:48px;height:48px;border-radius:10px}
+}
+@media (max-height:680px){
+  #skillsSheet{top:4px;bottom:200px;padding:6px 8px}
+  #skillsSheet .skHead h2{font-size:22px}
+  #skillsSheet .skIco,#skillsSheet .skMedal{width:44px;height:44px}
+  #skillsSheet .skName{font-size:16px}
+  #skillsSheet .skList{gap:5px}
+  #skillsSheet .skFoot{margin-top:4px;font-size:10px;padding:4px 8px}
+}
+@media (min-width:900px) and (max-height:680px){
+  #skillsSheet{top:50%;bottom:auto;padding:10px 16px}
+  #skillsSheet .skRow{flex:1 1 0;height:auto;min-height:0}
+  #skillsSheet .skRow.skLock{flex:0.75 1 0;height:auto}
+  #skillsSheet .skIco{width:56px;height:56px}
+  #skillsSheet .skMedal{width:48px;height:48px;box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skName{font-size:24px}
+  #skillsSheet .skBar{height:16px}
+  #skillsSheet .skList{gap:8px}
+  #skillsSheet .skChip{min-height:64px}
+  #skillsSheet .skChipIco{width:40px;height:40px}
+}
+#skillsSheet button.skName{appearance:none;-webkit-appearance:none;border:0;background:none;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+#skillsSheet .skDetHead{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;flex:none;padding:0 4px 8px;position:relative;z-index:3}
+#skillsSheet .skDetHead h2{font:400 24px/1.1 "Bree Serif",Georgia,serif;color:#2b1a10;margin:0;flex:1 1 auto;min-width:0;text-shadow:0 1px 0 rgba(255,228,180,.35)}
+#skillsSheet .skBack,#skillsSheet .skClose{flex:none;width:44px;height:44px;min-width:44px;min-height:44px}
+#skillsSheet .skTabs{display:flex;gap:8px;width:100%;order:3}
+#skillsSheet .skTabs button{flex:1;min-height:36px;border:0;border-radius:10px;cursor:pointer;font:400 16px/1 "Bree Serif",Georgia,serif;color:#e8d8b4;background:linear-gradient(#8a6a44,#5a3a1e);box-shadow:0 0 0 2px #2b1a10}
+#skillsSheet .skTabs button.on{color:#2b1a10;background:linear-gradient(#ecc976,#9a6c2c)}
+#skillsSheet .skSum{flex:none;display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:10px;padding:8px 10px;border-radius:12px;background:linear-gradient(#f4e8c8,#dcc79a);box-shadow:0 0 0 2px #8c6428;margin:0 2px 8px}
+#skillsSheet .skSum .skIco{width:56px;height:56px;cursor:default}
+#skillsSheet .skSumId{min-width:0;display:flex;flex-direction:column;gap:3px}
+#skillsSheet .skSum .skName{font:400 22px/1.1 "Bree Serif",Georgia,serif;color:#2b1a10}
+#skillsSheet .skSumMeta{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font:400 12px/1.2 "Bree Serif",Georgia,serif;color:#3a2414}
+#skillsSheet .skSum .skBar{height:14px}
+#skillsSheet .skUnlocks{flex:1;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;position:relative;padding:2px 6px 8px 2px;scrollbar-width:thin;scrollbar-color:#c48a3a #3d2a1c}
+#skillsSheet .skUnlocks::-webkit-scrollbar{width:10px}
+#skillsSheet .skUnlocks::-webkit-scrollbar-track{background:#3d2a1c;border-radius:99px;border:2px solid #2b1a10}
+#skillsSheet .skUnlocks::-webkit-scrollbar-thumb{background:linear-gradient(#ecc976,#7a5524);border-radius:99px;border:2px solid #2b1a10}
+#skillsSheet .skUnlocks:before,#skillsSheet .skUnlocks:after{content:"";position:sticky;left:0;right:0;display:block;height:16px;pointer-events:none;z-index:2}
+#skillsSheet .skUnlocks:before{top:0;background:linear-gradient(to bottom,rgba(90,58,28,.55),transparent);margin-bottom:-16px}
+#skillsSheet .skUnlocks:after{bottom:0;background:linear-gradient(to top,rgba(90,58,28,.55),transparent);margin-top:-16px}
+#skillsSheet .skUnlocks.atTop:before,#skillsSheet .skUnlocks.atBot:after{opacity:0}
+#skillsSheet .skHere{display:flex;align-items:center;gap:8px;margin:8px 0;color:#f6ecd0}
+#skillsSheet .skHere:before,#skillsSheet .skHere:after{content:"";flex:1;border-top:3px dashed #4fb6b6}
+#skillsSheet .skHere span{flex:none;font:700 12px/1.2 system-ui,sans-serif;background:linear-gradient(#4fb6b6,#1f6a6a);border-radius:8px;padding:5px 10px;box-shadow:0 0 0 2px #2b1a10}
+#skillsSheet .skPrize{display:flex;align-items:center;justify-content:center;margin:10px 4px 6px;position:relative}
+#skillsSheet .skPrize:before{content:"";position:absolute;left:0;right:0;top:50%;height:4px;transform:translateY(-50%);background:#c19443;box-shadow:0 0 10px 2px rgba(143,246,255,.55)}
+#skillsSheet .skPrize-ember:before{box-shadow:0 0 10px 2px rgba(255,106,42,.55)}
+#skillsSheet .skPrize span{position:relative;font:700 11px/1.2 system-ui,sans-serif;letter-spacing:.04em;color:#2b1a10;background:linear-gradient(#ecc976,#9a6c2c);border-radius:8px;padding:5px 10px;box-shadow:0 0 0 2px #2b1a10}
+#skillsSheet .skGroup{display:grid;grid-template-columns:56px 1fr;column-gap:8px;align-items:start;margin:6px 0}
+#skillsSheet .skTl{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
+#skillsSheet .skTl .skMedal{width:48px;height:48px;box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+#skillsSheet .skTl .skMedal b{font-size:16px}
+#skillsSheet .skGroup-locked .skTl .skMedal{box-shadow:0 0 0 6px #b8ad98,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+#skillsSheet .skGroup-locked .skTl .skMedal b,#skillsSheet .skGroup-locked .skTl .skMedal small{color:#4e463c}
+#skillsSheet .skGroup-next .skTl .skMedal{box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,0 0 10px 2px rgba(79,182,182,.7)}
+#skillsSheet .skToGo{font:400 10px/1.15 "Bree Serif",Georgia,serif;color:#0f5a5a;text-align:center}
+#skillsSheet .skEntries{display:grid;grid-template-columns:1fr;gap:8px;min-width:0}
+#skillsSheet .skCard{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:linear-gradient(#f4e8c8,#dcc79a);box-shadow:0 0 0 2px #8c6428;min-width:0;position:relative}
+#skillsSheet .skCardIco{grid-row:1 / span 2;width:36px;height:36px;background:center/contain no-repeat}
+#skillsSheet .skCardTag{grid-column:2;justify-self:start;font:700 8px/1 system-ui,sans-serif;letter-spacing:.06em;color:#f6ecd0;background:#b4583a;border-radius:8px;padding:3px 6px}
+#skillsSheet .skCardTag-bar{background:#c07a3c}#skillsSheet .skCardTag-slot{background:#b8893a}
+#skillsSheet .skCardTag-use,#skillsSheet .skCardTag-make{background:#5d7a8c}
+#skillsSheet .skCardName{grid-column:2;font:400 14px/1.2 "Bree Serif",Georgia,serif;color:#2b1a10;min-width:0}
+#skillsSheet .skCardMark{grid-column:3;grid-row:1 / span 2;width:22px;height:22px;align-self:start;justify-self:end}
+#skillsSheet .skCard-done .skCardMark{background:radial-gradient(circle at 50% 45%,#6f8640,#3d4d1f);border-radius:50%;box-shadow:0 0 0 2px #2b1a10;position:relative}
+#skillsSheet .skCard-done .skCardMark:after{content:"";position:absolute;left:6px;top:4px;width:8px;height:12px;border:solid #f6ecd0;border-width:0 3px 3px 0;transform:rotate(45deg)}
+#skillsSheet .skCard-locked{background:linear-gradient(#c9b896,#a8977a)}
+#skillsSheet .skCard-locked .skCardName{color:#4e463c}
+#skillsSheet .skCard-locked .skCardTag{background:#8a8070}
+#skillsSheet .skCard-locked .skCardIco{filter:grayscale(.65) brightness(.9)}
+#skillsSheet .skCard-locked .skCardMark{background:url(assets/ui/icons/btn_locked_idle.webp) center/140% no-repeat}
+#skillsSheet .skCard-next{box-shadow:0 0 0 3px #4fb6b6,0 0 10px 2px rgba(79,182,182,.55);background:linear-gradient(#f7efd8,#e8d4a8)}
+#skillsSheet .skCard-next .skCardMark{display:none}
+#skillsSheet .skCardPrize{box-shadow:0 0 0 3px #c19443,0 0 10px 2px rgba(143,246,255,.4);background:linear-gradient(#f7efd8,#e8d4a8)}
+#skillsSheet .skGroupPrize.skGroup-locked .skCardPrize{box-shadow:0 0 0 3px #c19443,0 0 10px 2px rgba(143,246,255,.35)}
+#skillsSheet .skPrize-ember + .skGroupPrize .skCardPrize,#skillsSheet .skGroupPrize.skGroup-locked .skPrize-ember{box-shadow:0 0 0 3px #c19443,0 0 10px 2px rgba(255,106,42,.4)}
+#skillsSheet .skEndNote{margin:10px 4px 4px;padding:10px 12px;border-radius:12px;background:linear-gradient(#f4e8c8,#dcc79a);box-shadow:0 0 0 2px #8c6428;color:#2b1a10}
+#skillsSheet .skEndNote b{display:block;font:400 16px/1.25 "Bree Serif",Georgia,serif;margin-bottom:4px}
+#skillsSheet .skEndNote span{display:block;font:400 12px/1.35 system-ui,sans-serif;color:#3a2414}
+#skillsSheet .skDetFoot{margin-top:6px}
+@media (min-width:900px){
+  #skillsSheet .skDetHead{flex-wrap:nowrap;padding:0 4px 10px;gap:12px}
+  #skillsSheet .skDetHead h2{font-size:40px;flex:1}
+  #skillsSheet .skBack,#skillsSheet.skView-detail .skClose{width:56px;height:56px;min-width:56px;min-height:56px}
+  #skillsSheet .skTabs{width:auto;order:0;flex:none}
+  #skillsSheet .skTabs button{flex:none;min-width:140px;min-height:40px;font-size:18px;padding:0 16px}
+  #skillsSheet .skSum{grid-template-columns:auto 1fr auto;padding:12px 14px;margin-bottom:12px}
+  #skillsSheet .skSum .skIco{width:72px;height:72px}
+  #skillsSheet .skSum .skName{font-size:32px}
+  #skillsSheet .skSumMeta{font-size:16px}
+  #skillsSheet .skSum .skBar{height:20px}
+  #skillsSheet .skSum .skMedal{width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skGroup{grid-template-columns:76px 1fr;column-gap:12px;margin:8px 0}
+  #skillsSheet .skTl .skMedal{width:60px;height:60px;box-shadow:0 0 0 7px #c48a3a,0 0 0 9px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skTl .skMedal b{font-size:20px}
+  #skillsSheet .skToGo{font-size:13px}
+  #skillsSheet .skEntries{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  #skillsSheet .skCard{padding:8px 10px}
+  #skillsSheet .skCardIco{width:44px;height:44px}
+  #skillsSheet .skCardName{font-size:16px}
+  #skillsSheet .skHere span{font-size:14px;padding:6px 12px}
+  #skillsSheet .skPrize span{font-size:13px}
+  #skillsSheet .skEndNote b{font-size:22px}
+  #skillsSheet .skEndNote span{font-size:15px}
+}
+
+
 .kX,.bsx.kX,#tetherOrb .toBack.kX,#drillCtl .dk button{background:url(assets/ui/icons/btn_close_idle.webp) center/contain no-repeat;background-color:transparent;border:0;box-shadow:none;color:transparent;text-shadow:none}
 .kX:active,.bsx.kX:active,#tetherOrb .toBack.kX:active,#drillCtl .dk button:active{background-image:url(assets/ui/icons/btn_close_pressed.webp)}
 #tetherOrb .toBack.kX.back{background-image:url(assets/ui/icons/btn_back_idle.webp)}
 #tetherOrb .toBack.kX.back:active{background-image:url(assets/ui/icons/btn_back_pressed.webp)}
+#skillsSheet .skBack,#skillsSheet .kX.skBack,#skillsSheet .kX.back{background-image:url(assets/ui/icons/btn_back_idle.webp);background-color:transparent;background-size:contain;background-repeat:no-repeat;background-position:center}
+#skillsSheet .skBack:active,#skillsSheet .kX.skBack:active,#skillsSheet .kX.back:active{background-image:url(assets/ui/icons/btn_back_pressed.webp)}
+#skillsSheet.skView-detail .skClose,#skillsSheet .skDetHead .skClose,#skillsSheet .skDetHead .skBack{position:relative;top:auto;right:auto;left:auto;z-index:4}
+#skillsSheet .skDetHead{padding-right:0}
+#skillsSheet .skFootBar{flex:0 0 auto;display:flex;justify-content:center;align-items:center;padding:8px 44px 2px;position:relative;z-index:4}
+#skillsSheet .skFoot{max-width:calc(100% - 8px);box-sizing:border-box;margin-top:0}
+#skillsSheet .skUnlocks{flex:1 1 0px;min-height:0}
+#skillsSheet .skGroup{grid-template-columns:64px 1fr}
+#skillsSheet .skToGo{max-width:64px;font-size:9px}
+
+#skillsSheet .skSum .skIco,#skillsSheet .skSum .skMedal,#skillsSheet .skSum .skName,#skillsSheet .skSum .skBar,#skillsSheet .skSumId{grid-area:auto;grid-column:auto;grid-row:auto;align-self:auto;justify-self:auto;max-width:none;margin:0}
+#skillsSheet .skSum{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"ico id medal";align-items:center;column-gap:10px}
+#skillsSheet .skSum .skIco{grid-area:ico;width:56px;height:56px;cursor:default}
+#skillsSheet .skSumId{grid-area:id;min-width:0;display:flex;flex-direction:column;gap:3px}
+#skillsSheet .skSum .skName{font:400 22px/1.1 "Bree Serif",Georgia,serif;color:#2b1a10}
+#skillsSheet .skSum .skBar{height:14px;width:100%;max-width:none}
+#skillsSheet .skSum .skMedal{grid-area:medal;width:56px;height:56px}
+#skillsSheet .skHere{position:relative;z-index:1;width:100%;box-sizing:border-box;flex:none}
+#skillsSheet .skGroup{position:relative;width:100%;box-sizing:border-box}
+#skillsSheet .skToGo{display:block;width:100%;max-width:76px;white-space:normal;line-height:1.15}
+#skillsSheet .skUnlocks{background:transparent}
+@media (min-width:900px){
+  #skillsSheet .skSum .skIco{width:72px;height:72px}
+  #skillsSheet .skSum .skName{font-size:32px}
+  #skillsSheet .skSum .skBar{height:20px}
+  #skillsSheet .skSum .skMedal{width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skToGo{max-width:76px;font-size:12px}
+}
 #exMap .exmTop button[data-exm=close]{width:40px;height:40px;border:0;border-radius:0;background:url(assets/ui/icons/btn_close_idle.webp) center/contain no-repeat;color:transparent;box-shadow:none}
 #exMap .exmTop button[data-exm=close]:active{background-image:url(assets/ui/icons/btn_close_pressed.webp)}
 .kKit .kVBtns [data-cx=xfer],.kKit [data-cx=xfer].kBtn{background:url(assets/ui/icons/btn_transfer_idle.webp) 8px center/36px 36px no-repeat,radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66);padding-left:46px}
