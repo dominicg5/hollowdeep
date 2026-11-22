@@ -7,7 +7,7 @@ const QUALITY = (() => { const P = { high: { name: 'high', dpr: 2, shadowMap: 20
   const auto = () => { try { const ua = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent), coarse = matchMedia('(pointer: coarse)').matches, small = Math.min(screen.width, screen.height) < 820; return ua || (coarse && small) ? 'mobile' : 'high'; } catch (e) { return 'high'; } };
   let pick = null; try { pick = new URLSearchParams(location.search).get('quality') || localStorage.getItem('hdQuality'); } catch (e) {}
   const Q = Object.assign({}, P[pick] || P[auto()]); Q.auto = auto(); Q.override = P[pick] ? pick : null;
-  Q.set = (k) => { try { if (k === 'auto') localStorage.removeItem('hdQuality'); else localStorage.setItem('hdQuality', k); } catch (e) {} location.reload(); }; return Q; })();
+  Q.set = (k) => { try { if (k === 'auto') localStorage.removeItem('hdQuality'); else localStorage.setItem('hdQuality', k); } catch (e) {} if (window.hdReloadTo) window.hdReloadTo(location.href); else location.reload(); }; return Q; })();
 /* =====================================================================
    HOLLOWDEEP — playable prototype
    All tunable numbers live in CONFIG. Times are in GAME hours/minutes;

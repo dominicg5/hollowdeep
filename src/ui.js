@@ -474,4 +474,4 @@ function init() {
   setInterval(tick, 250);
 }
 window.HD = { get S() { return S; }, CONFIG, simulate, simulateAway, startExpedition, startBuild, doTap, save, load, boostPct, weekTaps, aiRaid, shipAll, startMove, installModule, setTab, attackPower, defensePower };
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => (window.HD_GATE || Promise.resolve(true)).then((go) => { if (go !== false) init(); })); // boot only once the version check says this build is current (t421u)

@@ -5,8 +5,9 @@ SRC="src/game.js src/skills.js src/ui.js src/icons.js src/craft.js src/art_manif
 # syntax-check every source first (a broken file would ship a blank game)
 if command -v node >/dev/null 2>&1; then for f in $SRC; do cp "$f" /tmp/.hd_chk.js; node --check /tmp/.hd_chk.js 2>/dev/null || { echo "build.sh: syntax error in $f" >&2; node --check /tmp/.hd_chk.js 2>&1 | head -4 >&2; exit 1; }; done; fi
 # build stamp: a hash of the sources (stable across rebuilds of the same code), shown in the corner and used to bust stale caches
-B=$(cat src/head.html $SRC | sha1sum | cut -c1-8)
+B=$(cat src/head.html src/version_gate.html $SRC | sha1sum | cut -c1-8)
+printf '{"b":"%s"}\n' "$B" > version.json
 { cat src/head.html
-  echo "<script>window.HD_BUILD='$B';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>"
+  sed "s/__B__/$B/" src/version_gate.html
   echo "<div id=\"hdBuild\" style=\"position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999\">build $B</div>"
   echo "<script src=\"assets/vendor/three.min.js?v=$B\"></script>"; echo '<script>'; cat $SRC; echo '</script>'; echo '</body></html>'; } > index.html

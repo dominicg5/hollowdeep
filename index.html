@@ -805,9 +805,30 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='db25c50c';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build db25c50c</div>
-<script src="assets/vendor/three.min.js?v=db25c50c"></script>
+<script>window.HD_BUILD='ff47112f';
+/* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
+   2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
+   killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
+   then either boot or switch to the new build - at most once per build per tab (sessionStorage), never in a loop. Mid-session updates don't reload on their
+   own: a small "Update ready" button appears and reloads only when tapped (after saving and freeing the WebGL contexts). */
+(function () {
+  var base = location.href.split('#')[0].split('?')[0].replace(/index\.html$/, '');
+  function latest() { return fetch(base + 'version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return j && /^[0-9a-f]{8}$/.test(j.b) ? j.b : null; }).catch(function () { return null; }); }
+  function tried(b) { try { return sessionStorage.getItem('hdReload') === b; } catch (e) { return true; } }
+  function mark(b) { try { sessionStorage.setItem('hdReload', b); } catch (e) {} }
+  window.hdReloadTo = function (url) { try { if (typeof save === 'function') save(); } catch (e) {} /* free the GPU memory now rather than when iOS gets round to it */
+    try { var cs = document.querySelectorAll('canvas'); for (var i = 0; i < cs.length; i++) { var c = cs[i], g = null; try { g = c.getContext('webgl2') || c.getContext('webgl'); } catch (e) {} var x = g && g.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); } } catch (e) {}
+    setTimeout(function () { location.replace(url || location.href); }, 30); };
+  var url = function (b) { return base + '?v=' + b + location.hash; };
+  window.HD_GATE = new Promise(function (res) { var done = false, fin = function (go) { if (!done) { done = true; res(go); } }; setTimeout(function () { fin(true); }, 2500);
+    latest().then(function (b) { if (b && b !== window.HD_BUILD && !tried(b)) { mark(b); fin(false); location.replace(url(b)); } else fin(true); }); });
+  function later() { latest().then(function (b) { if (!b || b === window.HD_BUILD || document.getElementById('hdUpd')) return; var u = document.createElement('button'); u.id = 'hdUpd'; u.textContent = 'Update ready - tap to reload';
+    u.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 6px);transform:translateX(-50%);z-index:99999;padding:7px 14px;border:0;border-radius:16px;font:600 13px system-ui,sans-serif;background:#2f6f6a;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.35)';
+    u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
+})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build ff47112f</div>
+<script src="assets/vendor/three.min.js?v=ff47112f"></script>
 <script>
 'use strict';
 
@@ -818,7 +839,7 @@ const QUALITY = (() => { const P = { high: { name: 'high', dpr: 2, shadowMap: 20
   const auto = () => { try { const ua = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent), coarse = matchMedia('(pointer: coarse)').matches, small = Math.min(screen.width, screen.height) < 820; return ua || (coarse && small) ? 'mobile' : 'high'; } catch (e) { return 'high'; } };
   let pick = null; try { pick = new URLSearchParams(location.search).get('quality') || localStorage.getItem('hdQuality'); } catch (e) {}
   const Q = Object.assign({}, P[pick] || P[auto()]); Q.auto = auto(); Q.override = P[pick] ? pick : null;
-  Q.set = (k) => { try { if (k === 'auto') localStorage.removeItem('hdQuality'); else localStorage.setItem('hdQuality', k); } catch (e) {} location.reload(); }; return Q; })();
+  Q.set = (k) => { try { if (k === 'auto') localStorage.removeItem('hdQuality'); else localStorage.setItem('hdQuality', k); } catch (e) {} if (window.hdReloadTo) window.hdReloadTo(location.href); else location.reload(); }; return Q; })();
 /* =====================================================================
    HOLLOWDEEP — playable prototype
    All tunable numbers live in CONFIG. Times are in GAME hours/minutes;
@@ -2422,7 +2443,7 @@ function init() {
   setInterval(tick, 250);
 }
 window.HD = { get S() { return S; }, CONFIG, simulate, simulateAway, startExpedition, startBuild, doTap, save, load, boostPct, weekTaps, aiRaid, shipAll, startMove, installModule, setTab, attackPower, defensePower };
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => (window.HD_GATE || Promise.resolve(true)).then((go) => { if (go !== false) init(); })); // boot only once the version check says this build is current (t421u)
 /* Art's inventory icon atlas (128 px cells). Generated — do not hand-edit the map. */
 const ICONS = {
   src: 'assets/ui/icons/items.webp',
