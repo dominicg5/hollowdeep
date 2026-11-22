@@ -12,7 +12,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForTimeout(500);
   await p.evaluate(() => { Skills.migrate(); S.skills.mining = Math.max(S.skills.mining || 0, Skills.xpToReach(90)); }); // existing tests predate drill-slot unlocks; give all 9 slots so deploy checks stay about stands, bits and tethers
 
-  // 1. save migration: an old Mithril Drill stack and a placed drill become a Riveted Iron stand + Mithril bit (placed bit is kept)
+  // 1. save migration: an old Mithril Drill stack and a placed drill become a Drill Stand + Mithril bit (placed bit is kept)
   const mig = await p.evaluate(() => {
     const bag0 = { 'drill:mithril': 4, 'ore:copper': 2 };
     const placed = { id: 'd99', node: 0, type: 'copper', tier: 'bronze', coal: 50, hop: 0, acc: 0, port: null, len: 0 };
@@ -20,14 +20,28 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     S.drills = { left: 4, tetherM: 3000, list: [placed], nid: 2, bit: 'bronze' };
     Craft.migrateDrillSplit();
     const camp = S.drills.list.find((d) => d.id === 'd99');
-    return { flag: S.drillSplit, drillLeft: S.backpack['drill:mithril'] || 0, stand: Craft.get('bag', 'stand:iron'), bit: Craft.get('bag', 'bit:mithril'),
+    return { flag: S.drillSplit, drillLeft: S.backpack['drill:mithril'] || 0, stand: Craft.get('bag', 'stand:drill'), bit: Craft.get('bag', 'bit:mithril'),
       copper: Craft.get('bag', 'ore:copper'), pStand: camp && camp.stand, pTier: camp && camp.tier, order: S.bagOrder.slice() };
   });
   console.log(JSON.stringify(mig));
   ok(mig.flag === 1 && mig.drillLeft === 0, 'migration flag is set and the legacy drill:mithril stack is gone');
   ok(mig.stand === 4 && mig.bit === 4 && mig.copper === 2, `4 stands + 4 Mithril bits in the bag, other items kept (${mig.stand} / ${mig.bit} / ${mig.copper})`);
-  ok(mig.pStand === 'iron' && mig.pTier === 'bronze', 'the already-placed drill gets a Riveted Iron stand and keeps its bronze bit');
-  ok(mig.order.includes('stand:iron') && mig.order.includes('bit:mithril') && !mig.order.includes('drill:mithril'), 'bag slot order replaces the old drill id');
+  ok(mig.pStand === 'drill' && mig.pTier === 'bronze', 'the already-placed drill gets a Drill Stand and keeps its bronze bit');
+  ok(mig.order.includes('stand:drill') && mig.order.includes('bit:mithril') && !mig.order.includes('drill:mithril'), 'bag slot order replaces the old drill id');
+
+  const uni = await p.evaluate(() => {
+    S.standUnify = 0; S.mdSeed = 1;
+    S.backpack = { 'stand:timber': 2, 'stand:iron': 3, 'stand:brass': 1, 'bit:mithril': 1 };
+    S.bagOrder = ['stand:timber', 'stand:iron', 'stand:brass', 'bit:mithril'];
+    S.ledgeVault = { ores: {}, ingots: {}, gear: { lumenite: 4 }, lines: {}, coils: {} };
+    S.drills = { left: 0, list: [{ id: 'd1', stand: 'lumenite', tier: 'gold' }], nid: 2 };
+    Craft.migrateStandUnify();
+    return { flag: S.standUnify, bag: Craft.get('bag', 'stand:drill'), old: ['timber', 'iron', 'brass', 'lumenite'].map((k) => S.backpack['stand:' + k] || 0),
+      vault: Craft.get('vault', 'stand:drill'), pStand: S.drills.list[0].stand, order: S.bagOrder.filter((x) => x), bits: Craft.get('bag', 'bit:mithril') };
+  });
+  console.log(JSON.stringify(uni));
+  ok(uni.flag === 1 && uni.bag === 6 && uni.old.every((n) => n === 0) && uni.bits === 1, `saved stands of every material fold into ${uni.bag} Drill Stands (bits kept)`);
+  ok(uni.vault === 4 && uni.pStand === 'drill' && uni.order.filter((x) => String(x).startsWith('stand:')).length === 1 && uni.order.includes('stand:drill'), 'vault stands and placed drills migrate too, one bag slot');
 
   // 2. angle math, snaps, port stays vertical, iron tip is a 4-sided pyramid, bit tris under 600
   const geo = await p.evaluate(() => {
@@ -44,7 +58,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const up = CharView.drillPortUp(g);
       ups.push({ p: Math.round(p / DEG), y: +up.y.toFixed(3), xz: Math.hypot(up.x, up.z) });
     }
-    for (const k of ['timber', 'iron', 'brass', 'lumenite']) {
+    for (const k of ['drill']) {
       const st = CharView.makeDrillStand(k);
       stands[k] = !!(st && st.userData.yawNode && st.userData.yoke && st.userData.hubPivot && st.userData.bitSocket && st.userData.tetherPort);
       stands[k + 'Cyl'] = false;
@@ -75,8 +89,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(!geo.aSteep.in && !geo.aHigh.in, 'targets steeper than −60° or higher than +15° are out of range');
   ok(geo.def.pitch === -30, `a new stand defaults to −30° pitch (${geo.def.pitch})`);
   ok(geo.ups.every((u) => u.y > 0.98 && u.xz < 0.05), `Ledge Tether port stays vertical at every pitch (ups=${geo.ups.map((u) => u.y).join(',')})`);
-  ok(geo.stands.timber && geo.stands.iron && geo.stands.brass && geo.stands.lumenite, 'all four stand tiers build the yaw/yoke/hubPivot/bitSocket/port rig');
-  ok(geo.stands.timberCyl && geo.stands.ironCyl, 'the hub is a cylinder, not a ball');
+  ok(geo.stands.drill, 'the Drill Stand builds the yaw/yoke/hubPivot/bitSocket/port rig');
+  ok(geo.stands.drillCyl, 'the hub is a cylinder, not a ball');
   ok(geo.ironTip === 4, `the iron bit tip is a 4-sided pyramid (${geo.ironTip})`);
   const over = Object.entries(geo.tris).filter(([, n]) => n > 600);
   ok(!over.length, `every bit is under 600 tris (${JSON.stringify(geo.tris)})`);
@@ -86,26 +100,27 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     Explore.build();
     const D = Explore.drillState();
     // seed a known inventory
-    S.backpack = { 'stand:iron': 2, 'bit:mithril': 2, 'bit:bronze': 1 };
-    S.bagOrder = ['stand:iron', 'bit:mithril', 'bit:bronze'];
-    S.mdSeed = 1; S.drillSplit = 1;
+    S.backpack = { 'stand:drill': 2, 'bit:mithril': 2, 'bit:bronze': 1 };
+    S.bagOrder = ['stand:drill', 'bit:mithril', 'bit:bronze'];
+    S.mdSeed = 1; S.drillSplit = 1; S.standUnify = 1;
+    if (S.ledgeVault && S.ledgeVault.gear) { delete S.ledgeVault.gear.drill; for (const k of ['timber', 'iron', 'brass', 'lumenite']) delete S.ledgeVault.gear[k]; }
     D.list = D.list.filter((d) => d.camp); D.left = 2; D.bit = 'mithril';
     const N = Explore.ORE.nodes, tgt = N.filter((n) => !n.cliff && Explore.oreStand(n)).sort((a, b) => a.x - b.x)[0];
     const st = Explore.oreStand(tgt);
     Explore.enter(st[0], st[1]);
     for (let i = 0; i < 8; i++) Explore.tick(1 / 30);
-    const before = { stand: Craft.get('bag', 'stand:iron'), mith: Craft.get('bag', 'bit:mithril'), bronze: Craft.get('bag', 'bit:bronze') };
+    const before = { stand: Craft.get('bag', 'stand:drill'), mith: Craft.get('bag', 'bit:mithril'), bronze: Craft.get('bag', 'bit:bronze') };
     const d = Explore.drillDeploy(tgt);
-    const after = { stand: Craft.get('bag', 'stand:iron'), mith: Craft.get('bag', 'bit:mithril'), bronze: Craft.get('bag', 'bit:bronze'), ok: !!d, tier: d && d.tier, standK: d && d.stand, pitch: d && Math.round(d.pitch * 180 / Math.PI), inNotch: d && CharView.DRILL_ANG.pitches.some((p) => Math.abs(p - d.pitch) < 1e-6) };
+    const after = { stand: Craft.get('bag', 'stand:drill'), mith: Craft.get('bag', 'bit:mithril'), bronze: Craft.get('bag', 'bit:bronze'), ok: !!d, tier: d && d.tier, standK: d && d.stand, pitch: d && Math.round(d.pitch * 180 / Math.PI), inNotch: d && CharView.DRILL_ANG.pitches.some((p) => Math.abs(p - d.pitch) < 1e-6) };
     const sw = d && Explore.drillSwapBit(d, 'bronze');
     const swapped = { sw, tier: d && d.tier, mith: Craft.get('bag', 'bit:mithril'), bronze: Craft.get('bag', 'bit:bronze') };
     // no stands left after using both? we used 1, try placing without stands
-    Craft.take('stand:iron', Craft.get('bag', 'stand:iron'));
+    Craft.take('stand:drill', Craft.get('bag', 'stand:drill'));
     const other = N.filter((n) => n !== tgt && !n.cliff && Explore.oreStand(n))[0];
     const none = other ? Explore.drillDeploy(other) : 'skip';
-    const noStand = { none: none == null || none === 'skip', stands: Craft.get('bag', 'stand:iron') };
+    const noStand = { none: none == null || none === 'skip', stands: Craft.get('bag', 'stand:drill') };
     // restore a stand, aim math out of range
-    Craft.add('bag', 'stand:iron', 1);
+    Craft.add('bag', 'stand:drill', 1);
     const aim = CharView.drillAim(0, 10, 1); // nearly straight up
     // pitch nudge stays in the 6 notches
     const p0 = d.pitch, p1 = Explore.drillPitch(d, 1), p2 = Explore.drillPitch(d, -1);
@@ -115,20 +130,18 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   });
   console.log(JSON.stringify(play));
   ok(play.after.ok && play.after.stand === play.before.stand - 1 && play.after.mith === play.before.mith - 1, 'placing a drill consumes one stand and one bit');
-  ok(play.after.tier === 'mithril' && play.after.standK === 'iron' && play.after.inNotch, `placed with a mithril bit, iron stand, pitch snapped (${play.after.pitch}°)`);
+  ok(play.after.tier === 'mithril' && play.after.standK === 'drill' && play.after.inNotch, `placed with a mithril bit, a Drill Stand, pitch snapped (${play.after.pitch}°)`);
   ok(play.swapped.sw && play.swapped.tier === 'bronze' && play.swapped.mith === play.before.mith && play.swapped.bronze === play.before.bronze - 1, 'swapping to bronze returns the mithril bit and consumes the bronze bit');
   ok(play.noStand.none && play.noStand.stands === 0, 'placing with no stand left fails and consumes nothing further');
   ok(play.aimOut, 'an elevation above +15° is reported out of range');
   ok(play.nudged.ok, `pitch nudge stays on a 15° notch (${play.nudged.p0} → ${play.nudged.p1} → ${play.nudged.p2})`);
   ok(play.min.mithril === 3 && play.min.onyx === 6 && play.min.copper === 0, 'ore minimum bit tiers: copper any, mithril needs gold+, onyx needs lumen+');
 
-  // Ledge Tether strand must end in the yoke port (within 2 cm), at every pitch, yaw, stand tier, and on a far drill
+  // Ledge Tether strand must end in the yoke port (within 2 cm), at every pitch and yaw, on the Drill Stand, and on a far drill
   const seat = await p.evaluate(() => {
     const WS = Explore.WS, A = CharView.DRILL_ANG, DEG = 180 / Math.PI, lim = WS * 0.02, seatY = A.portSeatY;
     Explore.build();
-    for (const st of ['timber', 'iron', 'brass', 'lumenite']) {
-      if (Craft.get('bag', 'stand:' + st) < 2) Craft.add('bag', 'stand:' + st, 2);
-    }
+    if (Craft.get('bag', 'stand:drill') < 2) Craft.add('bag', 'stand:drill', 2);
     if (Craft.get('bag', 'bit:bronze') < 4) Craft.add('bag', 'bit:bronze', 4);
     for (const id of Object.keys(Craft.ITEMS)) if (Craft.ITEMS[id].kind === 'teth') {
       const have = Craft.have(id); if (have < 8000) Craft.add('bag', id, 8000 - (Craft.get('bag', id) || 0));
@@ -137,7 +150,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const near = N.filter((n) => !n.cliff && Explore.oreStand(n))
       .sort((a, b) => Math.hypot(a.x - door.x, a.y - door.y) - Math.hypot(b.x - door.x, b.y - door.y))[0];
     const ni = N.indexOf(near);
-    let d = Explore.drillState().list.find((q) => !q.camp && q.node === ni) || Explore.drillDeploy(near, { bit: 'bronze', stand: 'stand:iron' });
+    let d = Explore.drillState().list.find((q) => !q.camp && q.node === ni) || Explore.drillDeploy(near, { bit: 'bronze', stand: 'stand:drill' });
     if (!d) return { ok: false, err: 'no-near-deploy' };
     const st = Explore.oreStand(near);
     Explore.enter(st[0], st[1]);
@@ -173,7 +186,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     }
     CharView.setDrillPose(mesh0, yaw0, pitch0); d.yaw = yaw0; d.pitch = pitch0;
     const parent = mesh0.parent, pos = mesh0.position.clone(), sc = mesh0.scale.x;
-    for (const stand of ['timber', 'iron', 'brass', 'lumenite']) {
+    for (const stand of ['drill']) {
       const m = CharView.mapDrill('bronze', 'copper', stand, { pitch: A.pitchDef, yaw: yaw0 });
       m.position.copy(pos); m.scale.setScalar(sc); if (parent) parent.add(m); m.updateMatrixWorld(true);
       const prev = Explore.DRILL.meshes.get(d.id);
@@ -189,7 +202,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       .sort((a, b) => a.d - b.d);
     let far = { ok: false };
     for (const c of farN) {
-      const fd = Explore.drillDeploy(c.n, { bit: 'bronze', stand: 'stand:iron' });
+      const fd = Explore.drillDeploy(c.n, { bit: 'bronze', stand: 'stand:drill' });
       if (!fd) continue;
       for (let i = 0; i < 4; i++) Explore.tick(1 / 30);
       const fm = Explore.DRILL.meshes.get(fd.id);
@@ -213,7 +226,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   console.log(JSON.stringify({ seat: { wired: seat.wired, sockY: seat.sockY, pitchOk: seat.pitchOk, yawOk: seat.yawOk, standOk: seat.standOk, leaveOk: seat.leaveOk, minLeave: seat.minLeave, far: seat.far, maxCm: seat.maxCm } }));
   ok(seat.wired && seat.pitchOk, `strand end is within 2 cm of the port at every pitch notch (max ${seat.maxCm} cm)`);
   ok(seat.yawOk, 'strand end stays in the port at every 15° yaw');
-  ok(seat.standOk, `strand end seats on every stand tier (${(seat.stands || []).map((q) => q.stand).join(', ')})`);
+  ok(seat.standOk, `strand end seats on the Drill Stand (${(seat.stands || []).map((q) => q.stand).join(', ')})`);
   ok(seat.far && seat.far.ok && seat.far.m >= 200, `far drill (${seat.far.m} m, route ${seat.far.len} m) also seats within 2 cm (${seat.far.cm} cm)`);
   ok(seat.leaveOk && seat.far && seat.far.leaveDeg >= 45, `strand leaves the port sideways (≥45° from vertical; tightest ${seat.minLeave}°, far ${seat.far && seat.far.leaveDeg}°)`);
 

@@ -1525,7 +1525,7 @@ const CharView = (() => {
     const tipZ = zTip - (T === 4 ? 0.10 : T === 3 ? 0.085 : T === 1 ? 0.06 : T === 6 || T === 7 ? 0.08 : 0.05);
     const tip = new THREE.Object3D(); tip.name = 'tip'; tip.position.set(0, 0, tipZ); bit.add(tip); bit.userData.tip = tip; bit.userData.spark = BIT_SPARK[key] || 0xffb35c; return bit; }
 
-  function makeDrillStand(tier, o = {}) { const key = STAND_LOOK[tier] ? tier : 'iron', L = STAND_LOOK[key], deck = !!o.deck, g = new THREE.Group(); g.name = 'drillStand';
+  function makeDrillStand(tier, o = {}) { const key = 'iron', L = STAND_LOOK[key], deck = !!o.deck, g = new THREE.Group(); g.name = 'drillStand';
     const brass = brassMat(L.brass), brassDk = brassMat(0x5e3e16), aged = brassMat(0x7d5424), iron = matte(L.iron);
     const legM = key === 'timber' ? toon(0, fabric(L.leg, { seed: 41, weave: 0.04, folds: 8 })) : matte(L.leg);
     const bandM = key === 'brass' ? brassMat(L.band) : matte(L.band), footM = key === 'brass' ? brassMat(L.foot) : (key === 'timber' ? legM : matte(L.foot));

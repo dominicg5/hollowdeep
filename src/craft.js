@@ -9,10 +9,11 @@ const Craft = (() => {
   TIERS.forEach(([k, n, c], i) => { ITEMS['ingot:' + k] = { name: n + ' ingot', short: n, emoji: '🧱', col: c, kind: 'ingot', tier: i };
     for (const [t, tn, e] of TOOLS) ITEMS['tool:' + t + '_' + k] = { name: n + ' ' + tn.toLowerCase(), short: n, emoji: e, col: c, kind: 'tool', tool: t, tier: i }; });
   for (const [k, n, c] of TIERS) ITEMS['tether:' + k] = { name: n + ' Ledge Tether', short: n + ' Tether', emoji: '🪢', col: c, kind: 'teth', tool: 'lifeline', unit: 'm', grade: k }; // coils measured in metres: lay drop tethers, upgrade / swap strands (Tether Orb)
-  // drill split: a stand (4 tiers) plus a swappable bit (8 tiers). The old 'drill:mithril' id is kept only so a leftover count still migrates; it is not seeded or shown once empty.
-  const STAND_T = [['timber', 'Lashed Timber', '#7A5230'], ['iron', 'Riveted Iron', '#4E5258'], ['brass', 'Brass-Banded', '#D2A04A'], ['lumenite', 'Lumenite Inlay', '#5FE8F0']];
+  // drill split: one Drill Stand (no material tiers) plus a swappable bit (8 tiers). The old 'drill:mithril' id is kept only so a leftover count still migrates; it is not seeded or shown once empty.
+  const STAND_ID = 'stand:drill', STAND_OLD = ['stand:timber', 'stand:iron', 'stand:brass', 'stand:lumenite'];
+  const STAND_T = [['drill', 'Drill Stand', '#4E5258']];
   const BIT_T = [['bronze', 'Bronze', '#B07F45'], ['iron', 'Iron', '#80858D'], ['steel', 'Steel', '#6B7580'], ['gold', 'Gold', '#E6B640'], ['mithril', 'Mithril', '#6F97C6'], ['rune', 'Rune', '#3B424C'], ['lumen', 'Lumen', '#7FF4FF'], ['onyx', 'Ember Onyx', '#16131A']];
-  for (const [k, n, c] of STAND_T) ITEMS['stand:' + k] = { name: n + ' Stand', short: n, emoji: '🛠️', col: c, kind: 'stand', stand: k };
+  ITEMS[STAND_ID] = { name: 'Drill Stand', short: 'Drill Stand', emoji: '🛠️', col: '#4E5258', kind: 'stand' };
   for (const [k, n, c] of BIT_T) ITEMS['bit:' + k] = { name: n + ' Bit', short: n, emoji: '🔩', col: c, kind: 'bit', grade: k };
   ITEMS['drill:mithril'] = { name: 'Mithril Drill', short: 'Mithril Drill', emoji: '🛠️', col: '#9cc0e6', kind: 'drill', legacy: true };
   // ---- recipes (placeholders; cost climbs steeply per tier)
@@ -37,13 +38,20 @@ const Craft = (() => {
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
   function migrateDrillSplit() { if (typeof S === 'undefined' || !S || S.drillSplit) return;
     S.drillSplit = 1;
-    const conv = (obj, key) => { if (!obj) return 0; const n = Math.floor(obj[key] || 0); if (n > 0) { delete obj[key]; obj['stand:iron'] = (obj['stand:iron'] || 0) + n; obj['bit:mithril'] = (obj['bit:mithril'] || 0) + n; } return n; };
+    const conv = (obj, key) => { if (!obj) return 0; const n = Math.floor(obj[key] || 0); if (n > 0) { delete obj[key]; obj[STAND_ID] = (obj[STAND_ID] || 0) + n; obj['bit:mithril'] = (obj['bit:mithril'] || 0) + n; } return n; };
     conv(S.backpack, 'drill:mithril');
     const g = S.ledgeVault && S.ledgeVault.gear; if (g) { const n = Math.floor(g.mithril || 0); if (n > 0) { delete g.mithril; g.iron = (g.iron || 0) + n; g.mithril = (g.mithril || 0) + n; } }
-    for (const key of ['bagOrder', 'vaultOrder']) { const O = S[key]; if (!Array.isArray(O)) continue; let bit = false; for (let i = 0; i < O.length; i++) if (O[i] === 'drill:mithril') { O[i] = 'stand:iron'; if (!bit) { const j = O.indexOf(null); if (j >= 0) O[j] = 'bit:mithril'; else O.push('bit:mithril'); bit = true; } } }
-    if (S.drills && S.drills.list) for (const d of S.drills.list) { if (!d.stand) d.stand = 'iron'; if (!d.tier) d.tier = 'mithril'; } }
-  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) { S.backpack['stand:iron'] = (S.backpack['stand:iron'] || 0) + n; S.backpack['bit:mithril'] = (S.backpack['bit:mithril'] || 0) + n; } } migrateDrillSplit(); if (!S.tetherSeed) { S.tetherSeed = 1; S.backpack['tether:mithril'] = (S.backpack['tether:mithril'] || 0) + 4000; } return S.backpack; } // first run: Riveted Iron stands + Mithril bits, one pair per drill left
-  function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines', 'coils']) v[k] = v[k] || {}; migrateDrillSplit(); if (!S.coilSeed) { S.coilSeed = 1; for (const [k] of TIERS) v.coils[k] = (v.coils[k] || 0) + 5000; } return v; } // first run: 5000 m of every Ledge Tether grade in the vault (to try swaps)
+    for (const key of ['bagOrder', 'vaultOrder']) { const O = S[key]; if (!Array.isArray(O)) continue; let bit = false; for (let i = 0; i < O.length; i++) if (O[i] === 'drill:mithril') { O[i] = STAND_ID; if (!bit) { const j = O.indexOf(null); if (j >= 0) O[j] = 'bit:mithril'; else O.push('bit:mithril'); bit = true; } } }
+    if (S.drills && S.drills.list) for (const d of S.drills.list) { if (!d.stand || d.stand !== 'drill') d.stand = 'drill'; if (!d.tier) d.tier = 'mithril'; } }
+  function migrateStandUnify() { if (typeof S === 'undefined' || !S || S.standUnify) return;
+    S.standUnify = 1;
+    const foldBag = (obj) => { if (!obj) return; let n = 0; for (const id of Object.keys(obj)) { if (id === STAND_ID || !String(id).startsWith('stand:')) continue; n += Math.floor(obj[id] || 0); delete obj[id]; } if (n) obj[STAND_ID] = (obj[STAND_ID] || 0) + n; };
+    foldBag(S.backpack);
+    const g = S.ledgeVault && S.ledgeVault.gear; if (g) { let n = 0; for (const k of ['timber', 'iron', 'brass', 'lumenite']) { const v = Math.floor(g[k] || 0); if (v > 0) { n += v; delete g[k]; } } if (n) g.drill = (g.drill || 0) + n; }
+    for (const key of ['bagOrder', 'vaultOrder']) { const O = S[key]; if (!Array.isArray(O)) continue; let put = false; for (let i = 0; i < O.length; i++) { if (O[i] === STAND_ID) put = true; else if (O[i] && String(O[i]).startsWith('stand:')) { if (put) O[i] = null; else { O[i] = STAND_ID; put = true; } } } }
+    if (S.drills && S.drills.list) for (const d of S.drills.list) d.stand = 'drill'; }
+  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) { S.backpack[STAND_ID] = (S.backpack[STAND_ID] || 0) + n; S.backpack['bit:mithril'] = (S.backpack['bit:mithril'] || 0) + n; } } migrateDrillSplit(); migrateStandUnify(); if (!S.tetherSeed) { S.tetherSeed = 1; S.backpack['tether:mithril'] = (S.backpack['tether:mithril'] || 0) + 4000; } return S.backpack; } // first run: Drill Stands + Mithril bits, one pair per drill left
+  function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines', 'coils']) v[k] = v[k] || {}; migrateDrillSplit(); migrateStandUnify(); if (!S.coilSeed) { S.coilSeed = 1; for (const [k] of TIERS) v.coils[k] = (v.coils[k] || 0) + 5000; } return v; } // first run: 5000 m of every Ledge Tether grade in the vault (to try swaps)
   function vSlot(id) { const [kind, key] = id.split(':'), v = vault(); return kind === 'ore' ? [v.ores, key] : kind === 'ingot' ? [v.ingots, key] : kind === 'tether' ? [v.coils, key] : [v.gear, key]; }
   function get(where, id) { if (where === 'bag') return Math.floor(bag()[id] || 0); if (RES[id]) return Math.floor((S.res && S.res[RES[id]]) || 0); const [o, k] = vSlot(id); return Math.floor(o[k] || 0); }
   // ---- slot grids: the backpack has BAG_N slots, the vault VAULT_N; one item kind per slot, stacks are unlimited (no weight). S.bagOrder / S.vaultOrder keep which kind
@@ -212,5 +220,5 @@ const Craft = (() => {
     else if (a === 'sell') { const n = sell(id, nOf(have(id))); if (n && typeof toast === 'function') toast(`💠 Sold ${n}× ${nm(id)}`); }
     else if (a === 'buy') { const n = buy(id, nOf(Math.floor(lum() / buyP(id)))); if (n && typeof toast === 'function') toast(`💠 Bought ${n}× ${nm(id)}`); }
     refresh(); });
-  return { BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, TIERS, STAND_T, BIT_T, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit };
+  return { BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();

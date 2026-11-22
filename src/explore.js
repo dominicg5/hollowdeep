@@ -991,8 +991,8 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
 
   function drillState() { if (typeof S === 'undefined' || !S) return null; if (typeof Craft !== 'undefined') { Craft.bag(); if (Craft.migrateDrillSplit) Craft.migrateDrillSplit(); }
     if (!S.drills) { S.drills = { left: 0, tetherM: DRILL.TETHER_M, list: [], nid: 1, bit: 'mithril' }; if (S.res) S.res.coal = Math.max(S.res.coal || 0, 5000); } // first run: stands + bits are seeded in the backpack (Craft.bag); Ledge Tether metres come from the backpack and vault coils, 5000 coal in the vault
-    const D = S.drills; if (!D.list.some((d) => d.camp)) D.list.push({ id: 'camp', camp: true, name: 'Hanging Camp drill', type: (CharView.LG && CharView.LG.ore) || 'mithril', tier: (CharView.LG && CharView.LG.dg) || 'mithril', stand: 'iron', coal: DRILL.FILL, hop: 0, acc: 0, port: 'c', len: 0, pitch: 0, yaw: 0 });
-    for (const d of D.list) { if (!d.stand) d.stand = 'iron'; } syncLeft(D); dropState(); return D; }
+    const D = S.drills; if (!D.list.some((d) => d.camp)) D.list.push({ id: 'camp', camp: true, name: 'Hanging Camp drill', type: (CharView.LG && CharView.LG.ore) || 'mithril', tier: (CharView.LG && CharView.LG.dg) || 'mithril', stand: 'drill', coal: DRILL.FILL, hop: 0, acc: 0, port: 'c', len: 0, pitch: 0, yaw: 0 });
+    for (const d of D.list) { if (!d.stand) d.stand = 'drill'; } syncLeft(D); dropState(); return D; }
   const tetherUsed = (D) => D.list.reduce((a, d) => a + (d.port && !d.camp ? d.len || 0 : 0), 0);
   // metres she actually owns: every Ledge Tether coil in the backpack and the vault (all grades, all stacks)
   function tetherOwned() { if (typeof Craft === 'undefined' || !Craft.have || !Craft.ITEMS) return 0; let n = 0; for (const id in Craft.ITEMS) if (Craft.ITEMS[id].kind === 'teth') n += Craft.have(id); return n; }
@@ -1061,10 +1061,10 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     const standId = takeStandPref(opt.stand); if (!standId) { if (typeof toast === 'function') toast('Need a drill stand'); return null; }
     const bit = takeBitPref(opt.bit || D.bit || 'mithril'); if (!bit) { giveBack(standId); if (typeof toast === 'function') toast('Need a drill bit'); return null; }
     const fill = Math.min(DRILL.FILL, Math.floor(S.res.coal || 0)); S.res.coal -= fill;
-    const d = { id: 'd' + D.nid++, node: i, spot: n.spot.id, type: n.type, name: ORE_LOOK[n.type].name + ' drill #' + (D.nid - 1), tier: bit, stand: standId.slice(6), coal: fill, hop: 0, acc: 0, port: null, len: 0, t: S.gameTime, yaw: pl.yaw, pitch: pl.pitch, sx: pl.x, sy: pl.y };
+    const d = { id: 'd' + D.nid++, node: i, spot: n.spot.id, type: n.type, name: ORE_LOOK[n.type].name + ' drill #' + (D.nid - 1), tier: bit, stand: 'drill', coal: fill, hop: 0, acc: 0, port: null, len: 0, t: S.gameTime, yaw: pl.yaw, pitch: pl.pitch, sx: pl.x, sy: pl.y };
     D.bit = bit; D.list.push(d); syncLeft(D); drillHud(); if (typeof save === 'function') save(); return d; }
   function drillPickUp(d) { if (!d) return; const D = drillState(); if (d.camp) return; if (d.port) drillWire(d, false); const hop = d.hop || 0, b = Craft && Craft.add ? Craft.add('bag', 'ore:' + d.type, hop) : 0; if (b && typeof Skills !== 'undefined') Skills.awardMine(d.type, b); S.res.coal += Math.floor(d.coal);
-    if (d.stand) giveBack('stand:' + d.stand); if (d.tier) giveBack('bit:' + d.tier);
+    if (d.stand) giveBack(DRILL_ITEM); if (d.tier) giveBack('bit:' + d.tier);
     D.list.splice(D.list.indexOf(d), 1); syncLeft(D); if (DRILL.sel === d) DRILL.sel = null; const m = DRILL.meshes.get(d.id); if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); } if (typeof save === 'function') save(); }
   function drillWire(d, on) { if (!d) return false; const D = drillState(), hs = CharView.homeState(); if (!on) { if (d.port && !d.camp) { CharView.unplugPort(d.port); d.port = null; } NV.tdest = {}; if (typeof save === 'function') save(); return true; }
     if (d.port) return true; const r = drillRoute(d); if (!r) return false; d.len = r.len; const owned = tetherOwned(), free = tetherFree(D); if (r.len > free) { if (typeof toast === 'function') toast(`Needs ${r.len} m of Ledge Tether, you have ${owned} m`); return false; }
@@ -1077,7 +1077,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function drillXY(d) { if (!d || d.camp) return null; if (d.sx != null && d.sy != null) return [d.sx, d.sy]; const n = drillNode(d); return n ? drillPos(n) : null; }
   function drillDist(d) { const h = EX.on && here(), p = drillXY(d); return (h && p) ? Math.hypot(p[0] - h[0], p[1] - h[1]) : 1e18; }
   function drillNearMe(d) { return !!d && (d.camp || drillDist(d) < DRILL.NEAR); }
-  function standName(d) { const id = d && d.stand ? 'stand:' + d.stand : ''; return (typeof Craft !== 'undefined' && Craft.ITEMS[id] && (Craft.ITEMS[id].short || Craft.ITEMS[id].name)) || (d && d.stand) || ''; }
+  function standName(d) { const id = (typeof Craft !== 'undefined' && Craft.STAND_ID) || 'stand:drill'; return (typeof Craft !== 'undefined' && Craft.ITEMS[id] && (Craft.ITEMS[id].short || Craft.ITEMS[id].name)) || 'Drill Stand'; }
   function drillAngDeg(d) { return Math.round(((d.pitch != null ? d.pitch : (d.camp ? 0 : CharView.DRILL_ANG.pitchDef)) / Math.PI) * 180); }
   function drillSoft(d) { const b = bitOf(d.tier); return !!(d.tier && b && b.min < (ORE_MIN[d.type] || 0)); }
   function drillStatusText(d) { const soft = drillSoft(d); return d.on ? 'Running' : !d.tier ? 'No bit' : soft ? 'Bit too soft for this ore' : d.coal <= 0 ? 'Out of coal' : d.hop >= DRILL.HOP ? 'Hopper full' : 'Idle'; }
@@ -1139,7 +1139,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     const row = (icon, lab, val, k) => `<div class="srow" data-k="${k}">${seti(icon)}<span class="slab">${lab}</span><span class="sval">${val}</span></div>`;
     const thumb = (kind, id, lab, val, k) => `<div class="srow sthumb" data-k="${k}"><span class="th ${kind}">${(id && typeof itemIco === 'function' && itemIco(id)) || ''}</span><span class="slab">${lab}</span><span class="sval">${val}</span></div>`;
     return `<div class="dcard" data-id="${d.id}"><div class="dch"><b>${d.name}</b><small>${ore} ore</small></div>`
-      + thumb('stand', d.stand ? 'stand:' + d.stand : '', 'Stand', standName(d) || '—', 'stand')
+      + thumb('stand', (typeof Craft !== 'undefined' && Craft.STAND_ID) || 'stand:drill', 'Stand', standName(d) || '—', 'stand')
       + thumb('bit', d.tier ? 'bit:' + d.tier : '', 'Bit', nobit ? 'None' : b.name, 'bit')
       + row('stat_angle', 'Angle', drillAngDeg(d) + '°', 'angle')
       + row('set_speed', 'Speed', fmtOreH(rate) + ' ore/h', 'speed')
@@ -1189,7 +1189,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
       const have = (k) => typeof Craft !== 'undefined' && Craft.have('bit:' + k) > 0;
       const well = (kind, filled, label, sub) => `<div class="well ${kind}${filled ? ' filled' : ''}"><i class="wellbg"></i>${filled || ''}<span class="wlab"><b>${label}</b><small>${sub}</small></span></div>`;
       const bitFill = d.tier ? (typeof itemIco === 'function' ? itemIco('bit:' + d.tier) : '') : '';
-      const standFill = d.stand ? (typeof itemIco === 'function' ? itemIco('stand:' + d.stand) : '') : '';
+      const standFill = (typeof itemIco === 'function' ? itemIco((typeof Craft !== 'undefined' && Craft.STAND_ID) || 'stand:drill') : '') || '';
       box.innerHTML = `<div class="dhead"><b>Swap</b>${xbtn}</div>`
         + `<div class="wells">${well('bit', bitFill, 'Bit', d.tier ? bitN + ' · fitted' : 'empty')}${well('stand', standFill, 'Stand', (standName(d) || '—') + ' · fitted')}</div>`
         + `<div class="blab">Bits in backpack</div><div class="chips bagbits" data-k="bit">${BITS.filter((q) => have(q.k)).map((q) => `<button data-v="${q.k}" class="${q.k === d.tier ? 'on' : ''}">${typeof itemIco === 'function' && itemIco('bit:' + q.k) || ''}${q.name}</button>`).join('') || '<span class="sval">None</span>'}</div>`
@@ -1244,13 +1244,13 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function longPress(sx, sy) { if (!EX.on) return false; const n = oreHit(sx, sy); if (!n) return false; const d = drillAt(n) || drillDeploy(n); if (d) tapDrill(d); return !!d; }
   /* ---- Drill stand (a backpack item): "Set up at nearest ore" picks the nearest drill-free ore cluster she can reach on foot
      within a 5 s walk at her current run speed (the walked route, not the crow line), walks her there and puts the drill up exactly as a long-press deploy does. A stand is required; a bit is taken from the bag or vault and can be swapped later at the drill itself. */
-  const DRILL_ITEM = 'stand:iron', SETUP_S = 5;
-  function standIds() { return (typeof Craft !== 'undefined' && Craft.STAND_T ? Craft.STAND_T : [['iron']]).map((x) => 'stand:' + x[0]); }
+  const DRILL_ITEM = (typeof Craft !== 'undefined' && Craft.STAND_ID) || 'stand:drill', SETUP_S = 5;
+  function standIds() { const id = DRILL_ITEM, old = (typeof Craft !== 'undefined' && Craft.STAND_OLD) || []; return [id].concat(old.filter((x) => x !== id)); }
   function countStands() { if (typeof Craft === 'undefined') return 0; let n = 0; for (const id of standIds()) n += Craft.have(id); return n; }
   function syncLeft(D) { if (D) D.left = countStands(); }
   function giveBack(id) { if (typeof Craft === 'undefined') return null; if (Craft.fits('bag', id) && Craft.add('bag', id, 1)) return 'bag'; if (Craft.fits('vault', id) && Craft.add('vault', id, 1)) return 'vault'; return null; }
   function takeOne(id) { return typeof Craft !== 'undefined' && Craft.have(id) > 0 && !!Craft.take(id, 1); }
-  function takeStandPref(prefer) { const ids = []; if (prefer && String(prefer).startsWith('stand:')) ids.push(prefer); ids.push('stand:iron'); for (const id of standIds()) ids.push(id); const seen = new Set(); for (const id of ids) { if (seen.has(id)) continue; seen.add(id); if (takeOne(id)) return id; } return null; }
+  function takeStandPref(prefer) { const ids = []; if (prefer && String(prefer).startsWith('stand:')) ids.push(prefer); for (const id of standIds()) ids.push(id); const seen = new Set(); for (const id of ids) { if (seen.has(id)) continue; seen.add(id); if (takeOne(id)) return id; } return null; }
   function takeBitPref(prefer) { const ids = []; if (prefer) ids.push('bit:' + prefer); ids.push('bit:mithril'); if (typeof Craft !== 'undefined' && Craft.BIT_T) for (const x of Craft.BIT_T) ids.push('bit:' + x[0]); const seen = new Set(); for (const id of ids) { if (seen.has(id)) continue; seen.add(id); if (takeOne(id)) return id.slice(4); } return null; }
   function syncItem(D) { syncLeft(D); }
 
