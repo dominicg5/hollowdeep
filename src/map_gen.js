@@ -511,6 +511,7 @@ function generateCity() {
   relocatePlayer(true);
   W.genMs = Math.round(performance.now() - t0);
   W.ready = true;
+  if (typeof FORGE !== 'undefined') FORGE.afterGen(); // the Volcanic Forge: rival homes off the works, paths round the cone, trees off the scorched ground (after generation, never in it)
 }
 // ring radius for a rim-proximity percentile q (0 = deepest delver, on the lip; 1 = shallowest, far out in the lowlands)
 // every home is a Ledge (like a portaledge), named after its owner
@@ -561,7 +562,7 @@ function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P
   let spot = null;
   for (let k = 0; k < 500 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), u = rr(), [x, y] = polar(ringR(ring, a, u), a), rad = P.size * 0.62;
     if (hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
-    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (typeof GRAND !== 'undefined' && GRAND.wet(x, y, rad + 60))) continue; spot = [x, y]; }
+    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (typeof GRAND !== 'undefined' && GRAND.wet(x, y, rad + 60)) || (typeof FORGE !== 'undefined' && FORGE.keepOut(x, y, rad + 20))) continue; spot = [x, y]; }
   if (!spot) { W.rankOf = null; return false; }
   moveHome(P, spot[0], spot[1]); P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.ring = ring;
   W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }

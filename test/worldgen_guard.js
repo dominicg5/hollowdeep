@@ -4,7 +4,7 @@
 // To change the world on purpose: UPDATE=1 node test/worldgen_guard.js (rewrites the JSON; commit it with the change and say why).
 const { chromium } = require('playwright-core'); const fs = require('fs'), path = require('path');
 const URL = process.env.URL || 'http://localhost:8765/index.html', FILE = path.join(__dirname, 'worldgen_guard.json'), TOL = 0.3; // height tolerance, world units (~5 cm)
-const ALLOW = [{ name: 'tether-mill-race', x: -8594, y: 2104, r: 1700 }, { name: 'lumen-regrade-t445u', x: -6656, y: 1792, r: 350 }];
+const ALLOW = [{ name: 'tether-mill-race', x: -8594, y: 2104, r: 1700 }, { name: 'lumen-regrade-t445u', x: -6656, y: 1792, r: 350 }, { name: 'volcanic-forge', x: 9080, y: 6000, r: 4000 }];
 const PTS = [['cross47-a', -7269, -259], ['cross47-b', -7233, -365], ['cross47-bank', -7250, -320], ['cross47-c', -7255, -300], ['cross47-d', -7240, -340]];
 for (let x = -10500; x <= 10500; x += 1500) for (let y = -10500; y <= 10500; y += 1500) PTS.push([`g${x},${y}`, x, y]);
 (async () => { const t0 = Date.now();
