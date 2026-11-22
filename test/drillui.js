@@ -74,6 +74,33 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(/Hopper/.test(T) && /\d+\/\d+/.test(T), 'panel: hopper');
   ok(/Running|Out of coal|Hopper full|Idle|No bit|too soft/.test(T), 'panel: status');
   ok(/Ledge Tether/.test(T) && /needs \d+ m · available \d+ m/.test(T), 'panel: Ledge Tether need vs available (read-only)');
+  const scrollCheck = async (label) => {
+    const sc = await p.evaluate(() => {
+      const box = document.getElementById('drillCtl'), list = box && box.querySelector('.dlist');
+      if (!list) return { ok: false };
+      const cs = getComputedStyle(list), boxCs = getComputedStyle(box);
+      const can = list.scrollHeight > list.clientHeight + 8;
+      const y = can ? Math.min(140, Math.max(48, Math.floor((list.scrollHeight - list.clientHeight) * 0.6))) : 0;
+      list.scrollTop = y; const before = list.scrollTop, el = list;
+      const D = Explore.drillState(), d = D.list.find((q) => !q.camp), mined = (d && (d.mined || 0)) + 7; if (d) d.mined = mined;
+      Explore.drillUI(); for (let i = 0; i < 24; i++) Explore.tick(1 / 30);
+      const list2 = box.querySelector('.dlist');
+      const after = list2 ? list2.scrollTop : -1, same = list2 === el;
+      list2 && list2.dispatchEvent(new WheelEvent('wheel', { deltaY: 80, bubbles: true, cancelable: true }));
+      return { ok: true, can, before, after, same, mined: !!(list2 && list2.textContent.includes('mined ' + mined)),
+        contain: /contain/.test((cs.overscrollBehavior || '') + (cs.overscrollBehaviorY || '')), pan: cs.touchAction === 'pan-y',
+        listScroll: cs.overflowY === 'auto' || cs.overflowY === 'scroll', boxHidden: boxCs.overflow === 'hidden' || boxCs.overflowY === 'hidden',
+        pinned: document.documentElement.classList.contains('drill-open'), page: window.scrollY }; });
+    console.log(label, JSON.stringify(sc));
+    ok(sc.ok && sc.can && sc.same && Math.abs(sc.after - sc.before) <= 2 && sc.mined, label + ': the drill menu keeps its scroll position and updates hopper numbers in place');
+    ok(sc.contain && sc.pan && sc.listScroll && sc.boxHidden && sc.pinned && sc.page === 0, label + ': the list is the contained scroll container and the page stays put');
+  };
+  await scrollCheck('mobile touch');
+  await p.setViewportSize({ width: 1280, height: 800 });
+  await p.waitForTimeout(80);
+  await scrollCheck('desktop');
+  await p.setViewportSize({ width: 390, height: 844 });
+  await p.waitForTimeout(80);
   await shot('panel.png');
   // tether it, then untether; pick up removes the icon and returns the drill to the backpack
   const pu = await p.evaluate(async () => { const D = Explore.drillState(); D.tetherM = 1e6; Explore.drillPanel(null);
