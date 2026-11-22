@@ -2,9 +2,9 @@
 // moss canvas, brass close, enamel buttons) at the rope offering a teleport to its start (the Ledge door) or its end, each with its name. Standing near
 // one end, it only offers the other. Teleport rows are offered only when she is within TAP_M metres of the nearest point on the tapped
 // strand; farther away the bubble still opens but the teleport row is disabled with a walk-closer hint. Reuses Explore.teleportTo (the
-// Tether Orb is unchanged); the rope's hit band is generous (HIT px either side of the drawn line).
+// Tether Orb is unchanged); the rope's hit band is a tight screen-space finger pad (HIT px either side of the drawn line, it does not grow when zoomed).
 const TetherTap = (() => {
-  const HIT = 30, NEAR_M = 30, TAP_M = 8, ST = { el: null, T: null };
+  const HIT = 22, NEAR_M = 30, TAP_M = 8, ST = { el: null, T: null };
   const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const KI = { main: '🪢', drill: '🛠️', drop: '🪝' }, KN = { main: 'Ledge Tether', drill: 'Drill tether', drop: 'Drop tether' };
   function routes() { return typeof Explore !== 'undefined' && Explore.tetherRoutes ? Explore.tetherRoutes() : []; }
@@ -39,7 +39,7 @@ const TetherTap = (() => {
     x = Math.max(8, Math.min(P.width - w - 8, x)); d.style.left = x + 'px'; d.style.top = y + 'px'; d.classList.toggle('below', !up); d.style.setProperty('--tx', Math.max(18, Math.min(w - 18, sx - x)) + 'px'); return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.T = null; }
   function go(key) { close(); if (typeof Explore !== 'undefined' && Explore.teleportTo) Explore.teleportTo(key); }
-  // Explore.tap calls this after ore / town folk / doors and before a plain walk: a tap on her rope opens the bubble, any other tap closes it
-  function tap(sx, sy) { const was = !!ST.T; close(); const H = hitAt(sx, sy); if (!H) return was ? 'tetherClose' : null; open(H.T, sx, sy); return 'tether'; }
+  // Explore.tap calls this after ore / town folk / doors and before a plain walk: only a tap squarely on the rope opens the bubble; a miss closes it and lets the walk through (drags / pans never reach here)
+  function tap(sx, sy) { close(); const H = hitAt(sx, sy); if (!H) return null; open(H.T, sx, sy); return 'tether'; }
   return { HIT, NEAR_M, TAP_M, hitAt, routes, options, distToStrand, canTeleport, open, close, tap, go, get T() { return ST.T; }, get el() { return ST.el; } };
 })();
