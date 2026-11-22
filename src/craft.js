@@ -125,7 +125,7 @@ const Craft = (() => {
     const tn = TIER_N(it); if (tn) o.push(['Tier', tn]);
     if (it.kind && KIND_N[it.kind]) o.push(['Kind', KIND_N[it.kind]]);
     if (it.kind === 'tool' && EQUIP[it.tool]) o.push(['Slot', EQUIP[it.tool][2]]);
-    if (it.kind === 'bit' && typeof Explore !== 'undefined' && Explore.BITS) { const b = Explore.BITS.find((q) => q.k === it.grade); if (b) { o.push(['Rate', '1/3 of your ore/h on that ore']); o.push(['Burn', b.burn + ' coal/h']); } }
+    if (it.kind === 'bit' && typeof Explore !== 'undefined' && Explore.BITS) { const b = Explore.BITS.find((q) => q.k === it.grade); if (b) { o.push(['Rate', '1/3 of your ore/h on that ore']); o.push(['Burn', b.burn + ' coal/h']); const need = Explore.bitPushNeed && Explore.bitPushNeed(it.grade); if (need) o.push(['Push strand', 'Needs ' + need.name + ' Ledge Tether (' + need.burn + ' coal/h)']); } }
     return o;
   }
   function itemBlurb(id, w) {

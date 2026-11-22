@@ -1319,17 +1319,17 @@ const CharView = (() => {
     lumenite: { name: 'Lumenite', feeds: 'Lumen', vein: 0xd8fcff, glow: 0x2fc8f0, gl: 0.45, spark: 0x7ff4ff, crys: 0x8ff6ff, cEm: 0x1d93ad, acc: 0xffffff, style: 'hex', bright: true },
     onyx: { name: 'Ember Onyx', feeds: 'Ember Onyx', vein: 0xff4a1c, glow: 0xe0301a, gl: 0.32, spark: 0xff5a28, crys: 0x16131a, cEm: 0x200404, acc: 0xff3418, style: 'onyx', flames: true },
   };
-  // the Ledge Tether per tier: strands, colours, the energy it carries (also tints the drill's flute thread and lightning) and extras
+  // the Ledge Tether per tier: strands, colours, the energy it carries (also tints the drill's flute thread and lightning), extras, and v8 push/pull strand capacities
   const LGRADES = {
-    bronze: { n: 2, col: 0xc07a3c, core: 0xffa860, co: 0.08, en: 0xffb070, r: 0.011 },
-    iron: { n: 3, col: 0x7d8288, core: 0x9fc0ff, co: 0.08, en: 0xa8c8ff, r: 0.012, bands: 0x55585e },
-    steel: { n: 3, col: 0x9aa4ae, core: 0x8fd0ff, co: 0.14, en: 0x9fd8ff, r: 0.012, bands: 0x7d8792, cable: true },
-    gold: { n: 3, col: 0xe6b640, core: 0xffd070, co: 0.14, en: 0xffe08a, r: 0.013, bands: 0xe6b640, wrap: 0x8a2a1e },
-    mithril: { n: 3, col: 0x9cc0e6, core: 0xbfe6ff, co: 0.2, en: 0xbfe6ff, r: 0.013, bands: 0xe8f6ff, fil: 0xf6fbff },
-    rune: { n: 3, col: 0x3b424c, core: 0xb48cff, co: 0.24, en: 0xc6a2ff, r: 0.014, bands: 0x8f8160, runes: 0xb48cff },
-    lumen: { n: 3, col: 0x2f6fe0, core: 0x5c9dff, co: 0.34, en: 0x9fd0ff, r: 0.014, glowS: true },
-    onyx: { n: 3, col: 0x16131a, core: 0xff5a28, co: 0.16, en: 0xff7a40, r: 0.014, vein: 0xff3418, flames: true },
-  };
+    bronze: { n: 2, col: 0xc07a3c, core: 0xffa860, co: 0.08, en: 0xffb070, r: 0.011, push: 3, pull: 220 },
+    iron: { n: 3, col: 0x7d8288, core: 0x9fc0ff, co: 0.08, en: 0xa8c8ff, r: 0.012, bands: 0x55585e, push: 5, pull: 250 },
+    steel: { n: 3, col: 0x9aa4ae, core: 0x8fd0ff, co: 0.14, en: 0x9fd8ff, r: 0.012, bands: 0x7d8792, cable: true, push: 9, pull: 290 },
+    gold: { n: 3, col: 0xe6b640, core: 0xffd070, co: 0.14, en: 0xffe08a, r: 0.013, bands: 0xe6b640, wrap: 0x8a2a1e, push: 15, pull: 330 },
+    mithril: { n: 3, col: 0x9cc0e6, core: 0xbfe6ff, co: 0.2, en: 0xbfe6ff, r: 0.013, bands: 0xe8f6ff, fil: 0xf6fbff, push: 25, pull: 370 },
+    rune: { n: 3, col: 0x3b424c, core: 0xb48cff, co: 0.24, en: 0xc6a2ff, r: 0.014, bands: 0x8f8160, runes: 0xb48cff, push: 40, pull: 440 },
+    lumen: { n: 3, col: 0x2f6fe0, core: 0x5c9dff, co: 0.34, en: 0x9fd0ff, r: 0.014, glowS: true, push: 63, pull: 510 },
+    onyx: { n: 3, col: 0x16131a, core: 0xff5a28, co: 0.16, en: 0xff7a40, r: 0.014, vein: 0xff3418, flames: true, push: 100, pull: 700 },
+  }; // push = coal/h vault → drill, pull = ore/h drill → vault (v8 Ledge Tether strand capacities)
   const DTIERS = ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'];
   const LG = { S: 1.4, W: 2.9, D: 1.5, cx: 0.4, z0: 0.06, ore: 'mithril', dg: 'bronze', lg: 'bronze', xfer: 'auto', char: V(-0.78, 0.105, 1.1), tgt: V(0.32, 0.95, 0.95), drill: { x: 0.12, y: 0.25, tip: -0.03, L: 0.88, R: 0.13, hub: 0.15, rps: 1.6 }, rocks: [] }; // camp built at 1/S scale, then scaled so the tent stands about her height
   let LEDGE = null;

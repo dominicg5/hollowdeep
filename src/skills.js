@@ -137,9 +137,26 @@ const Skills = (() => {
     const have = slotsUnlocked(miningLevel);
     return have >= DRILL_SLOT_LEVELS.length ? null : DRILL_SLOT_LEVELS[have];
   }
+  // bit coal/h by tier (Bronze→Ember Onyx). Prefer live Explore.BITS so the table cannot drift.
+  const BIT_BURN = [2, 4, 7, 12, 20, 32, 50, 80];
+  function bitBurn(t) {
+    t = Math.max(0, t | 0);
+    if (typeof Explore !== 'undefined' && Explore.BITS && Explore.BITS[t] && Explore.BITS[t].burn != null) return Explore.BITS[t].burn;
+    return BIT_BURN[t] || 0;
+  }
   // v7 hours() on the decided slot table: time from a new character at max rate (character + all unlocked drills).
+  // opt.coal: drills self-fuel (v8) — some drill time is spent on coal. Ember Onyx is then about 96 days at K=5.55.
   function hoursToLevel(target, opt) {
-    const f = (L) => { const a = bestAct(L); return a.xpH * (1 + slotsUnlocked(L) / DRILL_RATE_DIV); };
+    const useCoal = !!(opt && opt.coal);
+    const f = (L) => {
+      const a = bestAct(L), n = slotsUnlocked(L);
+      if (!useCoal || L < 10 || n === 0) return a.xpH * (1 + n / DRILL_RATE_DIV);
+      const t = bestPickTier(L);
+      let bc = 0, bestNet = -Infinity;
+      for (let c = 0; c <= t; c++) { const net = drillOrePerHour('coal', c, L) - bitBurn(c); if (net > bestNet) { bestNet = net; bc = c; } }
+      const net = drillOrePerHour('coal', bc, L) - bitBurn(bc), nc = n * bitBurn(t) / (net + bitBurn(t)), no = n - nc;
+      return a.xpH + no * (a.xpH / DRILL_RATE_DIV) + nc * drillOrePerHour('coal', bc, L) * ORES.coal.xp;
+    };
     let h = 0; const to = Math.max(1, target || 1);
     for (let L = 1; L < to; L++) { const r = f(L); if (r > 0) h += xpForLevel(L) / r; }
     return h;
@@ -461,7 +478,7 @@ const Skills = (() => {
     PICK_USE_LEVELS, INPUT_TIMEOUT_MS: 0, // no 60 s input timeout; character XP is the same active or AFK
     clampXp, xpToReach, xpForLevel, levelFromXp, migrate, xp: xpOf, level, addXp, oreOf, oreUnlock, oreXp,
     yieldChance, levelSpeedBonus, swingBonus, characterOrePerHour, drillOrePerHour, characterXpPerHour, drillXpPerHour,
-    bestPickTier, bestAct, tessDrillQuestDone, slotsUnlocked, nextSlotLevel, hoursToLevel, bitTier, pickTierFromGrade,
+    bestPickTier, bestAct, tessDrillQuestDone, slotsUnlocked, nextSlotLevel, hoursToLevel, bitBurn, BIT_BURN, bitTier, pickTierFromGrade,
     equippedPickTier, awardMine, awardCraft, fmtXp, skillLine, uiLine, hopperHours, NAMES,
     nextUnlock, skillState, itemSrc, unlockEntries, openDetail,
     get onDetail() { return onDetail; }, set onDetail(fn) { onDetail = fn; },
