@@ -13,7 +13,7 @@
    rival homes that stand in the works to the nearest open ground, reroutes the paths round the cone / platform / work area and clears the trees off the scorched ground. */
 const FORGE = (() => {
   const WS = 6.35, F = 1.3, U = WS * F, LIP = [8750, 6000], HB = 90, LOOP = 27, HITS = 7, HIT0 = 12.8, HITDT = 1.6;
-  const L = { crater: [-100, 0], rimR: 100, lava: 28, lip: 40, summit: 260, D: 18, S: 48, plat: [60, 150, 35, 26], skirt: 26 / 2.0, strike: [77, 133, 18], scorch: [60, 0, 280, 175], ash: 70,
+  const L = { crater: [-100, 0], rimR: 100, lava: 28, lip: 40, summit: 260, D: 18, S: 48, plat: [60, 150, 35, 26], skirt: 16.5, strike: [77, 133, 18], scorch: [60, 0, 280, 175], ash: 70,
     ledge: [112, 197, 50], ledgeR: 14, bar: [30, 4, 4], tongs: 30, handle: 25, head: [5, 9, 5], grip: 6 };
   const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
   const wld = (X, Y) => [LIP[0] - X * U, LIP[1] + Y * U], loc = (x, y) => [(LIP[0] - x) / U, (y - LIP[1]) / U];
@@ -22,19 +22,28 @@ const FORGE = (() => {
 
   /* ---------- the land (design metres) ---------- */
   const DEG = Math.PI / 180;
-  const Hr = (th) => L.lip + 70 * sm(8 * DEG, 45 * DEG, th) + 150 * Math.pow((1 - Math.cos(th)) / 2, 1.4); // rim height: the notched lip (40) facing the platform, the summit (260) opposite
-  const Rb = (th) => L.rimR + lerp(8, 1.8 * Hr(th), sm(10 * DEG, 70 * DEG, th)); // cone foot: a 40 m wall under the notch, a long concave run elsewhere (summit 260 over a ~570 base radius: ~0.45)
+  const Hr = (th) => L.lip + 70 * sm(12 * DEG, 58 * DEG, th) + 150 * Math.pow((1 - Math.cos(th)) / 2, 1.4); // rim height: the notched lip (40) facing the platform, the summit (260) opposite
+  const Rr = (th) => L.rimR + 120 * Math.pow((1 - Math.cos(th)) / 2, 1.2); // crater rim radius: 100 at the work-side lip, 220 under the summit (a bowl, not a shaft)
+  const Rb = (th) => Rr(th) + lerp(8, 1.8 * Hr(th), sm(10 * DEG, 70 * DEG, th)); // cone foot: a 40 m wall under the notch, a long concave run elsewhere
   function cone(X, Y) { const dx = X - L.crater[0], r = Math.hypot(dx, Y), ths = Math.atan2(Y, dx), th = Math.abs(ths), rb = Rb(th); if (r >= rb) return null; const hr = Hr(th);
-    if (r < L.rimR) return { z: 20 + (hr - 20) * sm(L.rimR - 30, L.rimR, r), inner: true, r, th, u: 1 };
+    const rr = Rr(th); if (r < rr) return { z: 20 + (hr - 20) * Math.pow(clamp((r - 70) / (rr - 70), 0, 1), 1.6), inner: true, r, th, u: 1 }; // the bowl: floor 20 (lava 28 fills it to r ~86), walls curving up to the rim
     // concave profile: ~40 deg under the rim flaring to ~15 deg at the foot; 16 radial ridges (gullies between) fading out in the lower third, none at the notch; the rim itself stays smooth
-    const t = (r - L.rimR) / (rb - L.rimR), s = 1 - t, rid = Math.pow(Math.abs(Math.cos(8 * ths)), 0.5), fade = sm(0.33, 0.7, s) * sm(0, 0.12, t) * sm(18 * DEG, 38 * DEG, th);
+    const t = (r - rr) / (rb - rr), s = 1 - t, rid = Math.pow(Math.abs(Math.cos(8 * ths)), 0.5), fade = sm(0.33, 0.7, s) * sm(0, 0.12, t) * sm(18 * DEG, 38 * DEG, th);
     return { z: Math.max(0, hr * (0.513 * s * s + 0.487 * s) + 5 * (rid - 0.6) * fade), inner: false, r, th, u: s, rid }; }
-  function platD(X, Y) { const [x0, x1, hy] = L.plat, k = L.skirt, dx = Math.max(x0 + k - X, X - x1 + k, 0), dy = Math.max(Math.abs(Y) - hy + k, 0); return Math.hypot(dx, dy); } // distance from the flat top (the 90 x 70 block's foot is at x 60: 12 m clear of his shins at S)
-  function platSD(X, Y) { const [x0, x1, hy] = L.plat, k = L.skirt, dx = Math.max(x0 + k - X, X - x1 + k), dy = Math.abs(Y) - hy + k; return dx <= 0 && dy <= 0 ? Math.max(dx, dy) : Math.hypot(Math.max(dx, 0), Math.max(dy, 0)); }
-  function platZ(X, Y) { const n1 = Math.sin(X * 0.11 + Y * 0.07 + 1.3) * Math.sin(Y * 0.09 - X * 0.05), n2 = Math.sin(X * 0.23 - Y * 0.19 + 0.4); const d = platSD(X, Y) + 0.9 * n1 + 0.35 * n2; if (d > L.skirt + 1.5) return -1; // a rough mesa: wobbly outline, chipped bevelled rim, fractured sides (slope <= ~2.5: climbable)
-    const top = L.plat[3] + 0.12 * Math.sin(X * 0.3) * Math.sin(Y * 0.27); if (d <= -2) return top; const chip = 0.8 * sm(0.4, 0.9, n2 * 0.5 + 0.5 + 0.3 * n1);
-    if (d <= 0) return top - chip * sm(-2, 0, d) - 0.25 * sm(-2, 0, d); const w = 0.9 * Math.sin(X * 0.21 + Y * 0.13) + 0.6 * Math.sin(X * 0.47 - Y * 0.31);
-    return Math.max(0, top - chip - 0.25 - Math.max(0, d + 0.4 * w * sm(0, 2, d) * (1 - sm(L.skirt - 2, L.skirt, d))) * 2.0); }
+  // the platform: a natural rock outcrop. Lumpy oval top (centre 103, 28.5 x 21) slightly domed, worn flat only at the strike zone; broken stepped sides at ~1.6 (climbable); slumped boulders at its foot
+  const PC = [104, 0], PA = 28.5, PB = 21;
+  function platE(X, Y) { const dx = X - PC[0], dy = Y - PC[1], ph = Math.atan2(dy / PB, dx / PA), wk = 1 - 0.75 * sm(0.55, 0.95, -Math.cos(ph)), lump = 1 + wk * (0.07 * Math.sin(3 * ph + 0.7) + 0.045 * Math.sin(5 * ph + 2.1)) + 0.02 * Math.sin(9 * ph + 1.3);
+    const e = Math.hypot(dx / PA, dy / PB) / lump, rad = Math.hypot(PA * Math.cos(ph), PB * Math.sin(ph)) * lump; return [e, (e - 1) * rad]; }
+  function platSD(X, Y) { return platE(X, Y)[1]; }
+  function platD(X, Y) { return Math.max(0, platSD(X, Y)); } // distance from the top's edge (0 on the top)
+  const BOULD = [[15, 4.2, 7], [55, 3.4, 6], [100, 4.6, 8], [-35, 3.8, 6.5], [-60, 2.8, 5]].map(([a, h, r]) => { const ph = a * DEG; let k = 1; for (let i = 0; i < 30; i++) { const X = PC[0] + Math.cos(ph) * PA * k, Y = Math.sin(ph) * PB * k; if (platSD(X, Y) > L.skirt - 3) break; k += 0.06; } return [PC[0] + Math.cos(ph) * PA * k, Math.sin(ph) * PB * k, h, r]; });
+  function platZ(X, Y) { const [e, d0] = platE(X, Y), n1 = Math.sin(X * 0.11 + Y * 0.07 + 1.3) * Math.sin(Y * 0.09 - X * 0.05), n2 = Math.sin(X * 0.23 - Y * 0.19 + 0.4), d = d0 + 0.5 * n1;
+    let bz = -1; for (const [bx, by, h, r] of BOULD) { const q = Math.hypot(X - bx, Y - by); if (q < r) bz = Math.max(bz, h * (0.5 + 0.5 * Math.cos(Math.PI * q / r)) * (0.85 + 0.15 * n2)); }
+    if (d > L.skirt + 1) return bz;
+    const flat = 1 - sm(0.8, 1.2, Math.hypot((X - 97) / 22, Y / 10)), top = L.plat[3] + (1.4 * Math.max(0, 1 - e * e) + 0.25 * n1 * n2) * (1 - flat);
+    if (d <= 0) return Math.max(bz, top - 1.2 * sm(-2.5, 0, d)); // a worn, rounded rim
+    const v = 1.6 * Math.max(0, d + 0.35 * n2 * sm(0, 2, d)), P = 6, st = v - P / (2 * Math.PI) * 0.45 * Math.sin(2 * Math.PI * v / P); // broken steps (slope 0.9..2.3)
+    return Math.max(bz, 0, top - 1.2 - st); }
   // the switchback up the neighbouring hill to the talk ledge: from path 21 on the green side, legs across the hill's outer flank, hairpins rounded (no turn over 120 deg)
   const SWB = (() => { const [lx, ly, lz] = L.ledge, pol = (r, a) => [lx + r * Math.cos(a * DEG), ly + r * Math.sin(a * DEG)];
     const key = [[175, 255], pol(80, 125), pol(60, 55), pol(40, 125), pol(L.ledgeR + 4, 70)], P = [key[0]]; // the foot south of the hill (clear of the crevice that runs north-south east of it), four legs up its south flank
@@ -45,7 +54,7 @@ const FORGE = (() => {
     const tot = s[P.length - 2]; return { P, s, tot, z0: 0, z1: lz }; })();
   function swbNear(X, Y) { const P = SWB.P; let best = 1e9, bz = 0; for (let i = 0; i + 1 < P.length; i++) { const a = P[i], b = P[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = clamp(((X - a[0]) * dx + (Y - a[1]) * dy) / l2, 0, 1), d = Math.hypot(X - a[0] - dx * t, Y - a[1] - dy * t);
       if (d < best) { best = d; const s = SWB.s[i] + Math.sqrt(l2) * t; bz = lerp(SWB.z0, SWB.z1, clamp(s / SWB.tot, 0, 1)); } } return [best, bz]; }
-  const inBox = (X, Y) => X > -700 && X < 430 && Y > -470 && Y < 470;
+  const inBox = (X, Y) => X > -840 && X < 430 && Y > -470 && Y < 470;
   // the terrain: a smooth valley floor under the scorched oval (blended back over the ash band), the neighbouring hill + talk ledge + switchback benches, the cone, the platform
   function carve(x, y, hm) { if (!on()) return hm; const [X, Y] = loc(x, y); if (!inBox(X, Y)) return hm; let [h, mh] = hm;
     const e = Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]), dE = (e - 1) * L.scorch[3], wF = 1 - sm(0, L.ash, dE);
@@ -121,28 +130,28 @@ const FORGE = (() => {
     return { c: ca.map((v, k) => lerp(v, cb[k], u)), em: lerp(a[2], b[2], u) }; }
   const hitTimes = () => Array.from({ length: HITS }, (_, i) => +(HIT0 + i * HITDT).toFixed(2));
   function phase(t) { t = ((t % LOOP) + LOOP) % LOOP; return t < 4 ? 'dip' : t < 6 ? 'lift' : t < 10 ? 'turn' : t < 12 ? 'lay' : t < 23 ? 'strike' : 'return'; }
-  // body plan (design metres, ape-local: +z forward, +y up, +x his left); 70 standing, ~58 in the working crouch
-  const BP = { hip: 34, hipW: 6, thigh: 17, shin: 15, ankle: 2, chestUp: 2, torso: 26, shA: [11, 24, 0], shB: [10, 14, 1], armA: [17, 15], armB: [15, 14], head: [0, 25, 2] };
-  // key poses: X (along the loop line), yaw (deg, 90 = facing the volcano / +x world), hip height, lean (deg), tongs hand-mid [y, z] + pitch (deg down), bar attached
+  // body plan (design metres, ape-local: +z forward, +y up, +x his left)
+  const BP = { hip: 34, hipW: 6, thigh: 17, shin: 15, ankle: 2, chestUp: 2, torso: 26, shA: [11, 24, 0], shB: [10, 14, 1], armA: [19, 17], armB: [15, 14], head: [0, 25, 2] };
+  // key poses (every key eased): X (along the loop line), yaw (deg, 90 = facing the volcano), lean (deg), hip drop, tongs hand-mid [y, z] + pitch (deg down), bar laid; the arms are solved in setPose
+  const TG = { start: { y: 42, z: 12, p: 26 }, dip: { y: 44, z: 16, p: 58 }, lift: { y: 49, z: 8, p: 14 }, lay: { y: 39, z: 13, p: 20 }, low: { y: 40, z: 11, p: 30 } };
+  const tgMix = (a, b, u) => ({ y: lerp(a.y, b.y, u), z: lerp(a.z, b.z, u), p: lerp(a.p, b.p, u) });
   function pose(t) { t = ((t % LOOP) + LOOP) % LOOP; const P = {}; const k = (a, b, t0, t1) => lerp(a, b, sm(t0, t1, t));
-    const dip = { y: 45, z: 15, p: 56 }, lift = { y: 52, z: 14, p: 12 }, lay = { y: 39, z: 13, p: 20 };
-    if (t < 2) { P.X = L.D; P.yaw = 90; P.lean = k(14, 20, 0, 2); P.tg = { y: k(52, dip.y, 0, 1.6), z: k(14, dip.z, 0, 1.6), p: k(18, dip.p, 0, 1.8) }; }
-    else if (t < 4) { P.X = L.D; P.yaw = 90; P.lean = 20; P.tg = { ...dip, p: dip.p + 2 * Math.sin((t - 2) * 3) }; }
-    else if (t < 6) { P.X = L.D; P.yaw = 90; P.lean = k(20, 12, 4, 6); P.tg = { y: k(dip.y, lift.y, 4, 5.8), z: k(dip.z, lift.z, 4, 5.8), p: k(dip.p, lift.p, 4, 5.6) }; }
-    else if (t < 10) { const u = sm(6.2, 9.8, t); P.X = lerp(L.D, L.S, u); P.yaw = lerp(90, -90, sm(6, 9.6, t)); P.lean = 12 + 2 * Math.sin(u * Math.PI); P.tg = { ...lift }; P.walk = u; }
-    else if (t < 12) { P.X = L.S; P.yaw = -90; P.lean = k(12, 18, 10, 11.6); P.tg = { y: k(lift.y, lay.y, 10, 11.8), z: k(lift.z, lay.z, 10, 11.8), p: k(lift.p, lay.p, 10, 11.8) }; P.lay = sm(10.2, 11.9, t); }
-    else if (t < 23) { P.X = L.S; P.yaw = -90; P.lean = 18; P.tg = { ...lay }; P.lay = 1; }
-    else { const u = sm(24, 26.6, t); P.X = lerp(L.S, L.D, u); P.yaw = lerp(-90, 90, sm(23.8, 26.4, t)); P.lean = t < 24 ? k(18, 12, 23, 24) : k(12, 14, 26, 27); P.tg = t < 26 ? { y: k(lay.y, lift.y, 23, 24), z: k(lay.z, lift.z, 23, 24), p: k(lay.p, lift.p, 23, 24) } : { y: k(lift.y, 52, 26, 27), z: k(lift.z, 14, 26, 27), p: k(lift.p, 18, 26, 27) }; P.lay = 1 - sm(23, 23.9, t); P.walk = u; P.back = true; }
-    P.hipY = BP.hip - 2.6; // upright, legs planted
-    // the hammer (upper right hand) strikes all 7 hits: sigma 1 = raised overhead, 0 = head down on the bar; the upper left hand braces the tongs; at rest it hangs at his side
-    const H = hitTimes(), sw = () => { if (t < 11 || t > 23.6) return null; let s = 1;
-        for (const th of H) { if (t >= th - 0.42 && t <= th) return 1 - sm(th - 0.42, th, t) ** 1.6; if (t > th && t < th + 1.18) s = sm(th + 0.08, th + 1.1, t); }
-        if (t < H[0] - 0.42) s = sm(11, 12.2, t); if (t > H[H.length - 1] + 1.18) s = 1 - sm(22.6, 23.6, t); return s; };
-    P.ham = [null, sw()]; return P; }
+    if (t < 4) { P.X = L.D; P.yaw = 90; P.lean = k(16, 30, 0, 1.4) + 1.5 * Math.sin(Math.max(0, t - 1.4) * 2.4) * sm(1.4, 2, t); P.drop = k(0, 4, 0, 1.4); P.tg = tgMix(TG.start, TG.dip, sm(0, 1.6, t)); if (t > 1.6) P.tg.p += 2 * Math.sin((t - 1.6) * 3) * (1 - sm(3.4, 4, t)); }
+    else if (t < 6) { P.X = L.D; P.yaw = 90; P.lean = k(30, 16, 4, 5.8); P.drop = k(4, 0, 4, 5.6); P.tg = tgMix(TG.dip, TG.lift, sm(4, 5.8, t)); }
+    else if (t < 10) { const u = sm(6.2, 9.8, t); P.X = lerp(L.D, L.S, u); P.yaw = lerp(90, -90, sm(6, 9.6, t)); P.lean = 16 + 2 * Math.sin(u * Math.PI); P.drop = 1.2 * Math.abs(Math.sin(u * 2 * Math.PI)); P.tg = { ...TG.lift }; P.walk = u; }
+    else if (t < 12) { P.X = L.S; P.yaw = -90; P.lean = k(16, 30, 10, 11.6); P.drop = k(0, 1.5, 10, 11.6); P.tg = tgMix(TG.lift, TG.lay, sm(10, 11.8, t)); P.lay = sm(10.2, 11.9, t); }
+    else if (t < 23) { P.X = L.S; P.yaw = -90; P.lean = 30; P.drop = 1.5; P.tg = { ...TG.lay }; P.lay = 1; }
+    else { const u = sm(24, 26.6, t); P.X = lerp(L.S, L.D, u); P.yaw = lerp(-90, 90, sm(23.8, 26.4, t)); P.lean = t < 24 ? k(30, 15, 23, 24) : k(15, 16, 26, 27); P.drop = t < 24 ? k(1.5, 0, 23, 24) : 1.2 * Math.abs(Math.sin(u * 2 * Math.PI));
+      P.tg = t < 26.2 ? tgMix(TG.lay, TG.low, sm(23, 24, t)) : tgMix(TG.low, TG.start, sm(26.2, 27, t)); P.lay = 1 - sm(23, 23.9, t); P.walk = u; P.back = true; }
+    P.hipY = BP.hip - 2.6 - (P.drop || 0);
+    // strikes: per hit th, the hammer's cycle phase (wind-up 0.6 s, swing 0.25, hold 2 frames, rebound, eased recovery 0.75); the bar turns a quarter after hits 3 and 6
+    const H = hitTimes(); P.hit = null; for (let i = 0; i < H.length; i++) { const th = H[i]; if (t >= th - 0.85 && t < th + 0.75) { P.hit = { i, th }; break; } }
+    P.roll = (sm(H[2] + 0.15, H[2] + 0.6, t) + sm(H[5] + 0.15, H[5] + 0.6, t)) * Math.PI / 2 * (t < 23 ? 1 : 0); P.adj = 0; for (const th of H) P.adj += Math.sin(Math.PI * clamp((t - th - 0.25) / 0.5, 0, 1)); // small tong adjustment after each hit
+    P.ham = [null, t >= 11 && t < 23.6 ? 1 : null]; return P; }
 
   /* ---------- 3D ---------- */
   let THREEok = false;
-  function apeGeo(mob) { const parts = [], q = mob ? 0.8 : 1.15, sg = (n) => Math.max(6, Math.round(n * q));
+  function apeGeo(mob) { const parts = [], q = mob ? 0.7 : 1.1, sg = (n) => Math.max(6, Math.round(n * q));
     const lin = (h) => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map((v) => Math.pow(v / 255, 2.2)); // (sRGB hex -> linear vertex colour)
     const FK = 0.72, FL = lin(0x9c958a).map((v) => v * FK), FM = lin(0x6f6961).map((v) => v * FK), FS = lin(0x3f3a35).map((v) => v * FK), // (fur hexes x0.72: under ACES at exposure 1.25 the spec hexes read near-white)
       SKIN = lin(0x8a6a52), LEATH = lin(0x5a3418), LEDGE = lin(0x321b0a), BRASS = lin(0xb8862b), BRD = lin(0x6b4a1c), HEADC = lin(0x3a3632), WRAP = lin(0x4a2c16), WOOD = lin(0x4f3420), IRON = lin(0x2e2b28), EYE = [0.008, 0.007, 0.006];
@@ -155,7 +164,7 @@ const FORGE = (() => {
     const band = (pts, w, bone, out) => { for (let i = 0; i + 1 < pts.length; i++) { const A = new THREE.Vector3(...pts[i]), B = new THREE.Vector3(...pts[i + 1]), ya = B.clone().sub(A), l = ya.length(); ya.normalize(); const za = new THREE.Vector3(...out).sub(ya.clone().multiplyScalar(ya.dot(new THREE.Vector3(...out)))).normalize(), xa = ya.clone().cross(za);
         const g = box(w, l + 0.6, 0.7, 4, 1, 1); g.userData.c = []; const p = g.attributes.position; for (let k = 0; k < p.count; k++) g.userData.c.push(Math.abs(p.getX(k)) > w / 2 - 0.05 ? LEDGE : LEATH);
         g.applyMatrix4(new THREE.Matrix4().makeBasis(xa, ya, za)); g.translate(...A.clone().add(B).multiplyScalar(0.5).toArray()); parts.push({ g, bone, col: null, kind: 0 }); } };
-    // bones: 0 hips, 1 chest, 2 head, 3/4 thighL/shinL, 5/6 thighR/shinR, 7/8 armA L up/fore, 9/10 armA R, 11/12 armB L, 13/14 armB R, 15 tongs, 16 (spare: the left upper hand braces the tongs), 17 hammer R
+    // bones: 0 hips, 1 chest, 2 head, 3/4 thighL/shinL, 5/6 thighR/shinR, 7/8 armA L up/fore, 9/10 armA R, 11/12 armB L, 13/14 armB R, 15 tongs, 16/17 hammers L/R
     const hy = BP.hip, cy = hy + BP.chestUp;
     add(sph(1, 22, 16), 0, FM, 1, [0, hy + 1, -0.5], null, [11.5, 8, 9]);
     add(sph(1, 26, 18), 1, FM, 1, [0, cy + 13, 0.5], null, [13.5, 15.5, 11]); add(sph(1, 24, 14), 1, FM, 1, [0, cy + 19, 1.5], null, [15.5, 9, 10.5]);
@@ -203,14 +212,14 @@ const FORGE = (() => {
     const P = [], N = [], C = [], SI = [], SW = [], I = [], FU = []; let base = 0; const nz = (x, y, z) => 0.5 + 0.25 * Math.sin(x * 1.7 + y * 0.9) * Math.sin(z * 1.3 - y * 0.7) + 0.25 * Math.sin(x * 4.1 - z * 3.3 + y * 2.9);
     for (const { g, bone, col, kind } of parts) { const gi = g.index ? g : null, p = g.attributes.position, n = g.attributes.normal, oy = bone >= 15 ? cy : 0; /* tongs + hammer: modelled at their bone's origin, which rests at the chest (bind pose) */
       for (let i = 0; i < p.count; i++) { let x = p.getX(i), y = p.getY(i) + oy, z = p.getZ(i); const nn = nz(x, y, z), ny = n.getY(i); let c = g.userData.c ? g.userData.c[i] : col;
-        if (kind) { const tf = kind === 2 ? Math.pow(Math.max(0, Math.sin(x * 1.9 + z * 1.3 + y * 0.4) * Math.sin(y * 2.3 - x * 0.7 + z * 0.9)), 2) : 0, sh = (nn - 0.5) * 0.6 + tf * 0.7; x += n.getX(i) * sh; y += n.getY(i) * sh; z += n.getZ(i) * sh;
+        if (kind) { const tf = kind === 2 ? Math.pow(Math.max(0, Math.sin(x * 1.9 + z * 1.3 + y * 0.4) * Math.sin(y * 2.3 - x * 0.7 + z * 0.9)), 2) : 0, sh = (nn - 0.5) * 0.5 + tf * 1.6; x += n.getX(i) * sh; y += n.getY(i) * sh; z += n.getZ(i) * sh;
           let jd = 1e9; for (const [jx, jy] of J) jd = Math.min(jd, Math.hypot(Math.abs(x) - jx, y - jy)); const ao = (1 - 0.42 * (1 - sm(1, 6, jd))) * (0.86 + 0.28 * nn) * (y < 6 ? 0.8 : 1);
-          const lit = ny >= 0 ? FM.map((v, k) => lerp(v, FL[k], Math.pow(ny, 0.8))) : FM.map((v, k) => lerp(v, FS[k], Math.min(1, -ny * 1.15))); c = lit.map((v, k) => lerp(v, FL[k], tf * 0.35) * ao); }
+          const lit = ny >= 0 ? FM.map((v, k) => lerp(v, FL[k], Math.pow(ny, 0.8))) : FM.map((v, k) => lerp(v, FS[k], Math.min(1, -ny * 1.15))); c = lit.map((v, k) => lerp(v * (1 - 0.25 * (kind === 2 ? 1 - tf : 0)), FL[k] * 1.15, tf * 0.6) * ao); }
         P.push(x, y, z); N.push(n.getX(i), ny, n.getZ(i)); C.push(...c); SI.push(bone, 0, 0, 0); SW.push(1, 0, 0, 0); FU.push(kind ? nn : -1); }
       if (gi) for (let i = 0; i < gi.index.count; i++) I.push(base + gi.index.getX(i)); else for (let i = 0; i < p.count; i++) I.push(base + i); base += p.count; g.dispose(); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
     geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(SI, 4)); geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(SW, 4)); geo.setIndex(I); geo.computeVertexNormals();
-    { const nr = geo.attributes.normal, ps = geo.attributes.position; for (let i = 0; i < nr.count; i++) { if (FU[i] < 0) continue; const x = ps.getX(i), y = ps.getY(i), z = ps.getZ(i), v = new THREE.Vector3(nr.getX(i) + 0.22 * Math.sin(x * 3.1 + y * 1.7), nr.getY(i) + 0.22 * Math.sin(y * 2.9 - z * 2.3), nr.getZ(i) + 0.22 * Math.sin(z * 3.3 + x * 2.1)).normalize(); nr.setXYZ(i, v.x, v.y, v.z); } }
+    { const nr = geo.attributes.normal, ps = geo.attributes.position; for (let i = 0; i < nr.count; i++) { if (FU[i] < 0) continue; const x = ps.getX(i), y = ps.getY(i), z = ps.getZ(i), v = new THREE.Vector3(nr.getX(i) + 0.1 * Math.sin(x * 3.1 + y * 1.7), nr.getY(i) + 0.1 * Math.sin(y * 2.9 - z * 2.3), nr.getZ(i) + 0.1 * Math.sin(z * 3.3 + x * 2.1)).normalize(); nr.setXYZ(i, v.x, v.y, v.z); } }
     geo.computeBoundingSphere(); return geo; }
   function bones() { const B = [], mk = (p, par) => { const b = new THREE.Bone(); b.position.set(...p); if (par != null) B[par].add(b); B.push(b); return b; };
     const hy = BP.hip; mk([0, hy, 0]); mk([0, BP.chestUp, 0], 0); mk([BP.head[0], BP.torso - 1 + 0, BP.head[2]], 1);
@@ -232,9 +241,9 @@ const FORGE = (() => {
     { const [cx, cz] = wld(L.crater[0], L.crater[1]); const lg = new THREE.CircleGeometry(84 * U, mob ? 28 : 48); lg.rotateX(-Math.PI / 2); M.lavaT = lavaTex(); const lm = new THREE.MeshBasicMaterial({ map: M.lavaT, color: 0xffffff }); lm.toneMapped = false;
       const lava = new THREE.Mesh(lg, lm); lava.position.set(cx, HB + L.lava * U, cz); lava.name = 'forgeLava'; g.add(lava); M.lava = lava; }
     // a light, low-alpha smoke plume (#6e6258): 8 camera-facing quads in one draw
-    { const n = 8, pg = new THREE.BufferGeometry(), I = []; for (let k = 0; k < n; k++) { const b = k * 4; I.push(b, b + 1, b + 2, b, b + 2, b + 3); } const uv = []; for (let k = 0; k < n; k++) uv.push(0, 0, 1, 0, 1, 1, 0, 1);
+    { M.burn = burnTrees(mob); const n = 8 + 2 * M.burn.length; M.smN = n; const pg = new THREE.BufferGeometry(), I = []; for (let k = 0; k < n; k++) { const b = k * 4; I.push(b, b + 1, b + 2, b, b + 2, b + 3); } const uv = []; for (let k = 0; k < n; k++) uv.push(0, 0, 1, 0, 1, 1, 0, 1);
       pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 12), 3)); pg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 16), 4)); pg.setIndex(I);
-      const sm2 = new THREE.MeshBasicMaterial({ color: 0x6e6258, map: smokeTex(), transparent: true, depthWrite: false, vertexColors: true, fog: true }); const pl = new THREE.Mesh(pg, sm2); pl.frustumCulled = false; pl.name = 'forgeSmoke'; pl.renderOrder = 2; g.add(pl); M.smoke = pl; }
+      const sm2 = new THREE.MeshBasicMaterial({ color: 0x6e6258, map: smokeTex(), transparent: true, depthWrite: false, vertexColors: true, fog: false }); const pl = new THREE.Mesh(pg, sm2); pl.frustumCulled = false; pl.name = 'forgeSmoke'; pl.renderOrder = 2; g.add(pl); M.smoke = pl; }
     // the ape: one skinned mesh (rigid parts, vertex colours) = one draw call
     { const geo = apeGeo(mob), B = bones(), mat = new THREE.MeshLambertMaterial({ vertexColors: true }); rimLight(mat); const ape = new THREE.SkinnedMesh(geo, mat); ape.add(B[0]); ape.updateMatrixWorld(true); ape.bind(new THREE.Skeleton(B));
       ape.frustumCulled = false; ape.castShadow = !mob; ape.scale.setScalar(U); ape.name = 'forgeApe'; g.add(ape); M.ape = ape; M.B = B; M.apeTris = geo.index.count / 3; }
@@ -245,38 +254,62 @@ const FORGE = (() => {
         sh.fragmentShader = 'uniform vec3 uCore; uniform vec3 uEdge; uniform float uI; varying float vE;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance = mix(uCore, uEdge, smoothstep(0.0, 1.0, vE)) * uI;'); };
       const bar = new THREE.Mesh(bg, M.barM); bar.scale.setScalar(U); bar.name = 'forgeBar'; g.add(bar); M.bar = bar; }
     // sparks: one Points cloud (additive), bursts on each hit sized by the bar's glow, settling as embers
-    { const n = mob ? 320 : 480; M.spN = n; M.sp = []; const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setDrawRange(0, 0);
+    { const n = mob ? 420 : 700; M.spN = n; M.sp = []; const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setDrawRange(0, 0);
       const pm = new THREE.PointsMaterial({ size: 1.5 * U, map: dotTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); const pts = new THREE.Points(pg, pm); pts.frustumCulled = false; pts.name = 'forgeSparks'; g.add(pts); M.pts = pts; }
+    buildStumps(g, mob); buildFire(g, mob);
     M.t0 = performance.now() / 1000; M.lastT = null; M.barRest = null; anim(0, 0); }
   const V3 = () => new THREE.Vector3(), DOWN = () => new THREE.Vector3(0, -1, 0), ZAX = () => new THREE.Vector3(0, 0, 1);
   function ik2(S, T, L1, L2, pole) { const d = T.clone().sub(S); let dist = d.length(); const dn = d.clone().normalize(); dist = clamp(dist, Math.abs(L1 - L2) + 0.01, L1 + L2 - 0.01);
     const a = (L1 * L1 + dist * dist - L2 * L2) / (2 * dist), h = Math.sqrt(Math.max(0, L1 * L1 - a * a)), p = pole.clone().sub(dn.clone().multiplyScalar(pole.dot(dn))); if (p.lengthSq() < 1e-6) p.set(0, 0, 1); p.normalize();
     return [S.clone().add(dn.clone().multiplyScalar(a)).add(p.multiplyScalar(h)), S.clone().add(dn.clone().multiplyScalar(dist))]; }
   function aimLimb(up, fore, S, E, H) { up.quaternion.setFromUnitVectors(DOWN(), E.clone().sub(S).normalize()); const dl = H.clone().sub(E).applyQuaternion(up.quaternion.clone().invert()).normalize(); fore.quaternion.setFromUnitVectors(DOWN(), dl); }
+  // the upper right hammer: key hand positions (ape space), handle directions and elbow poles; arcs = quadratic Beziers through a control point
+  const bez = (a, c, b, u) => a.clone().multiplyScalar((1 - u) * (1 - u)).add(c.clone().multiplyScalar(2 * u * (1 - u))).add(b.clone().multiplyScalar(u * u));
+  const v3 = (x, y, z) => new THREE.Vector3(x, y, z), nlerp = (a, b, u) => a.clone().lerp(b, u).normalize();
+  function hammerAt(t, P, barC) { const strikeHead = v3(-3.5, barC.y + L.bar[1] / 2 + L.head[1] / 2, barC.z - 3), dI = v3(0.05, -0.6, 0.8).normalize(), I = strikeHead.clone().sub(dI.clone().multiplyScalar(L.handle));
+    const R = v3(-10, 64, 17), dR = v3(-0.1, 0.92, 0.35).normalize(), W = v3(-9, 82, 3), dW = v3(0.05, -0.3, -0.95).normalize(), pR = v3(-1, -0.3, -0.4), pW = v3(-0.4, 1, 0.2), pI = v3(-0.7, 0.2, -0.6);
+    const hang = { h: v3(-13, P.hipY - 3, 5 + 2 * Math.sin(t * 1.3)), d: v3(-0.1, -0.92, 0.38).normalize(), p: v3(-1, 0, -1) };
+    const tt = ((t % LOOP) + LOOP) % LOOP, Hh = hitTimes(); let h, d, p;
+    const hit = (() => { for (const th of Hh) if (tt >= th - 0.85 && tt < th + 0.75) return th; return null; })();
+    if (hit != null) { const th = hit, x = tt - th;
+      if (x < -0.25) { const u = sm(-0.85, -0.25, x); h = bez(R, v3(-14, 80, 13), W, u); d = nlerp(dR, dW, u); p = nlerp(pR, pW, sm(-0.85, -0.45, x)); } // wind-up: shoulder rolls back, elbow above the head, the hammer drops behind
+      else if (x < 0) { const u = (x + 0.25) / 0.25, ue = u * u * (1.6 - 0.6 * u); h = bez(W, v3(-8, 86, 24), I, ue); d = nlerp(dW, dI, Math.pow(u, 2.2)); p = nlerp(pW, pI, sm(0, 0.6, u)); } // swing: the elbow leads, the forearm whips
+      else if (x < 0.067) { h = I.clone(); d = dI.clone(); p = pI.clone(); } // impact: a 2-frame hold
+      else if (x < 0.2) { const u = Math.sin(Math.PI * (x - 0.067) / 0.133); h = I.clone().add(v3(0, 1.8 * u, -0.6 * u)); d = nlerp(dI, v3(0, -0.3, 0.95), 0.25 * u); p = pI.clone(); } // a slight rebound
+      else { const u = sm(0.2, 0.75, x); h = bez(I, v3(-14, 55, 27), R, u); d = nlerp(dI, dR, u); p = nlerp(pI, pR, u); } } // eased recovery
+    else if (tt >= 10 && tt < 12) { const u = sm(10.6, 11.95, tt); h = hang.h.clone().lerp(R, u); h.z += 6 * Math.sin(Math.PI * u); d = nlerp(hang.d, dR, u); p = nlerp(hang.p, pR, u); } // raise to the ready pose
+    else if (tt >= 12 && tt < 23.6) { h = R.clone(); d = dR.clone(); p = pR.clone(); if (tt > 23.15) { const u = sm(23.15, 23.6, tt); h.lerp(hang.h, u); d = nlerp(dR, hang.d, u); p = nlerp(pR, hang.p, u); } }
+    else { h = hang.h; d = hang.d; p = hang.p; if (P.walk != null) { const sw = Math.sin(P.walk * 2 * Math.PI); h = h.clone().add(v3(0, 1.5 * Math.abs(sw), -6 * sw)); } } // hangs; swings against his steps
+    return { h, d, p }; }
+  // shoulder roll / torso twist / dip lead the hand (evaluated ~3 frames ahead); the elbow pole ~1.5 frames ahead
+  function strikeBody(t) { const Hh = hitTimes(); let tw = 0, dip = 0, sh = v3(0, 0, 0); for (const th of Hh) { const x = t - th; if (x < -0.85 || x > 0.75) continue;
+      const wind = sm(-0.85, -0.3, x) * (1 - sm(-0.3, 0, x)), hitk = sm(-0.25, 0, x) * (1 - sm(0.1, 0.75, x)); tw += 9 * wind - 6 * hitk; dip += 5 * hitk; sh.add(v3(0, 1.2 * wind - 0.4 * hitk, -2 * wind + 1.4 * hitk)); }
+    return { tw, dip, sh }; }
   function setPose(t) { const B = M.B, P = pose(t), ape = M.ape, [wx, wz] = wld(P.X, 0); ape.position.set(wx, HB, wz); ape.rotation.set(0, P.yaw * DEG, 0); ape.updateMatrix(); ape.updateMatrixWorld(true);
-    const hips = B[0], chest = B[1], head = B[2]; hips.position.set(0, P.hipY, 0); hips.quaternion.identity(); chest.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), P.lean * DEG); head.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -P.lean * 0.55 * DEG + 0.12);
+    const sb = strikeBody(((t + 0.1) % LOOP + LOOP) % LOOP), walkTw = P.walk != null ? 6 * Math.sin(P.walk * 2 * Math.PI) : 0;
+    const hips = B[0], chest = B[1], head = B[2]; hips.position.set(0, P.hipY, 0); hips.quaternion.setFromAxisAngle(v3(0, 1, 0), -walkTw * 0.5 * DEG);
+    chest.quaternion.setFromAxisAngle(v3(1, 0, 0), (P.lean + sb.dip) * DEG).multiply(new THREE.Quaternion().setFromAxisAngle(v3(0, 1, 0), (sb.tw + walkTw) * DEG));
+    head.quaternion.setFromAxisAngle(v3(1, 0, 0), -(P.lean + sb.dip) * 0.6 * DEG + 0.12).multiply(new THREE.Quaternion().setFromAxisAngle(v3(0, 1, 0), -(sb.tw + walkTw) * 0.6 * DEG));
     hips.updateMatrix(); chest.updateMatrix(); const chM = hips.matrix.clone().multiply(chest.matrix), chI = chM.clone().invert(), toC = (v) => v.clone().applyMatrix4(chI), dirC = (v) => v.clone().transformDirection(chI);
-    // legs: feet planted (stride while walking: left foot first half, right second), knees forward
-    const wk = P.walk || 0, stepOf = (side) => { const u = side > 0 ? sm(0, 0.55, wk) : sm(0.45, 1, wk); return u; };
-    for (const [s, b0] of [[1, 3], [-1, 5]]) { const u = P.walk != null ? stepOf(s) : 0, lift = Math.sin(Math.PI * u) * 5, fz = 3 + (P.walk != null ? (u - wk) * (L.S - L.D) * (P.back ? -1 : 1) * 0.0 : 0);
-      const T = new THREE.Vector3(s * (BP.hipW + 1), BP.ankle + lift, fz), Sh = new THREE.Vector3(s * BP.hipW, P.hipY, 0); const T2 = T.clone().sub(new THREE.Vector3(0, P.hipY, 0)), S2 = new THREE.Vector3(s * BP.hipW, 0, 0);
-      const [E, H] = ik2(S2, T2, BP.thigh, BP.shin, new THREE.Vector3(0, 0, 1)); aimLimb(B[b0], B[b0 + 1], S2, E, H); void Sh; }
-    // tongs: hand-mid in ape space -> chest space; jaws 30 along the pitch; both lower hands on the reins
-    const tg = P.tg, hm = new THREE.Vector3(0, tg.y, tg.z), td = new THREE.Vector3(0, -Math.sin(tg.p * DEG), Math.cos(tg.p * DEG)); const hmC = toC(hm), tdC = dirC(td);
-    B[15].position.copy(hmC); B[15].quaternion.setFromUnitVectors(ZAX(), tdC);
-    for (const [s, b0] of [[1, 11], [-1, 13]]) { const S = new THREE.Vector3(s * BP.shB[0], BP.shB[1], BP.shB[2]), T = hmC.clone().add(tdC.clone().multiplyScalar(s > 0 ? 1.5 : 4.5)).add(new THREE.Vector3(s * 1.2, 0, 0)); const [E, H] = ik2(S, T, BP.armB[0], BP.armB[1], new THREE.Vector3(s, -0.4, -0.6)); aimLimb(B[b0], B[b0 + 1], S, E, H); }
-    // hammers: sigma between the raised pose and the head on the bar; at rest they hang beside him, heads down
-    const barC = M.barRest ? M.barRest.local : new THREE.Vector3(0, 30, 50);
-    { const S = new THREE.Vector3(BP.shA[0], BP.shA[1], BP.shA[2]), T = hmC.clone().add(tdC.clone().multiplyScalar(9)).add(new THREE.Vector3(2.4, 1.6, 0)); const [E, H] = ik2(S, T, BP.armA[0], BP.armA[1], new THREE.Vector3(1, 0.3, -0.6)); aimLimb(B[7], B[8], S, E, H); B[16].position.set(0, 0, 0); } // the upper left hand braced on the reins
-    for (const [side, s, b0, hb] of [[1, -1, 9, 17]]) { const sg = P.ham[side]; let hand, hdir;
-      if (sg == null) { hand = new THREE.Vector3(s * 13, P.hipY - 2, 6); hdir = new THREE.Vector3(s * 0.15, -0.55, 0.82).normalize(); }
-      else { const strikeHead = new THREE.Vector3(s * 3.5, barC.y + L.bar[1] / 2 + L.head[1] / 2, barC.z + (s > 0 ? 6 : -3)), dS = new THREE.Vector3(0, -0.55, 0.84).normalize(), handS = strikeHead.clone().sub(dS.clone().multiplyScalar(L.handle));
-        const handR = new THREE.Vector3(s * 9, 74, 12), dR = new THREE.Vector3(s * 0.1, 0.78, -0.62).normalize(); hand = handS.clone().lerp(handR, sg); hdir = dS.clone().lerp(dR, sg).normalize(); }
-      const hC = toC(hand), dC = dirC(hdir), S = new THREE.Vector3(s * BP.shA[0], BP.shA[1], BP.shA[2]); B[hb].position.copy(hC); B[hb].quaternion.setFromUnitVectors(ZAX(), dC);
-      const [E, H] = ik2(S, hC, BP.armA[0], BP.armA[1], new THREE.Vector3(s, 0.2, -0.8)); aimLimb(B[b0], B[b0 + 1], S, E, H); }
+    // legs: feet planted; two steps while walking (left first half, right second); knees forward, never straight
+    const wk = P.walk || 0, stepOf = (side) => (side > 0 ? sm(0.05, 0.5, wk) : sm(0.5, 0.95, wk)); let kneeL = null;
+    for (const [s, b0] of [[1, 3], [-1, 5]]) { const u = P.walk != null ? stepOf(s) : 0, lift = Math.sin(Math.PI * u) * 4.5, fz = 3 + (P.walk != null ? 5 * Math.sin(Math.PI * u) * (u < 1 ? 1 : 0) : 0);
+      const T2 = v3(s * (BP.hipW + 1), BP.ankle + lift - P.hipY, fz), S2 = v3(s * BP.hipW, 0, 0); const [E, H] = ik2(S2, T2, BP.thigh, BP.shin, v3(0, 0, 1)); aimLimb(B[b0], B[b0 + 1], S2, E, H); if (s > 0) kneeL = E.clone().add(v3(0, P.hipY, 0)); }
+    // tongs: hand-mid in ape space -> chest space; both lower hands on the reins (elbows ~100 deg); the bar turns on strikes 3 and 6
+    const tg = P.tg, hm = v3(0, tg.y + 0.5 * P.adj, tg.z + 0.4 * P.adj), td = v3(0, -Math.sin(tg.p * DEG), Math.cos(tg.p * DEG)); const hmC = toC(hm), tdC = dirC(td);
+    B[15].position.copy(hmC); B[15].quaternion.setFromUnitVectors(ZAX(), tdC).multiply(new THREE.Quaternion().setFromAxisAngle(ZAX(), P.roll || 0));
+    for (const [s, b0] of [[1, 11], [-1, 13]]) { const S = v3(s * BP.shB[0], BP.shB[1], BP.shB[2]), T = hmC.clone().add(tdC.clone().multiplyScalar(s > 0 ? 1.5 : 4.5)).add(v3(s * 1.2, 0, 0)); const [E, H] = ik2(S, T, BP.armB[0], BP.armB[1], v3(s, -0.5, -0.5)); aimLimb(B[b0], B[b0 + 1], S, E, H); }
+    // upper left: braced on his knee (dip), swinging against his steps (walks), on the platform's edge (lay + strikes: planted)
+    { const tt = ((t % LOOP) + LOOP) % LOOP, knee = kneeL.clone().lerp(v3(BP.hipW, P.hipY, 0), 0.3).add(v3(1, 2.5, 2.5)), sw = P.walk != null ? Math.sin(P.walk * 2 * Math.PI) : 0, free = v3(13, P.hipY - 1 + 1.5 * Math.abs(sw), 5 + 6 * sw);
+      const [eX, eY] = [PC[0] - PA + 3 - L.S, 5], edge = v3(eY, L.plat[3] + 0.6, eX); let T;
+      if (tt < 4) T = free.clone().lerp(knee, sm(0.2, 1.2, tt)); else if (tt < 6) T = knee.clone().lerp(free, sm(4.2, 5.4, tt)); else if (tt < 10) T = free; else if (tt < 23.4) T = free.clone().lerp(edge, sm(10.4, 11.6, tt)); else T = edge.clone().lerp(free, sm(23.4, 24.2, tt));
+      const S = v3(BP.shA[0], BP.shA[1], BP.shA[2]), [E, H] = ik2(S, toC(T), BP.armA[0], BP.armA[1], v3(1, 0.2, -0.7)); aimLimb(B[7], B[8], S, E, H); B[16].position.set(0, 0, 0); }
+    // upper right: the hammer (shoulder rolls with the strike body, elbow pole ~1.5 frames ahead of the hand)
+    { const barC = M.barRest ? M.barRest.local : v3(0, 30, 50), a = hammerAt(t, P, barC), ap = hammerAt(t + 0.05, P, barC), S = v3(-BP.shA[0], BP.shA[1], BP.shA[2]).add(sb.sh); B[9].position.copy(S);
+      const hC = toC(a.h), dC = dirC(a.d); B[17].position.copy(hC); B[17].quaternion.setFromUnitVectors(ZAX(), dC); const [E, H] = ik2(S, hC, BP.armA[0], BP.armA[1], dirC(ap.p)); aimLimb(B[9], B[10], S, E, H); }
     ape.updateMatrixWorld(true); return P; }
   function jawWorld() { const b = M.B[15]; return { p: new THREE.Vector3(0, 0, L.tongs - 1.2).applyMatrix4(b.matrixWorld), q: b.getWorldQuaternion(new THREE.Quaternion()) }; }
-  function headWorld() { return new THREE.Vector3(0, -L.head[1] / 2, L.handle).applyMatrix4(M.B[17].matrixWorld); } // (the one hammer, upper right hand)
+  function headWorld(i) { return new THREE.Vector3(0, -L.head[1] / 2, L.handle).applyMatrix4(M.B[16 + (i || 0)].matrixWorld); }
   function restBar() { if (M.barRest) return M.barRest; setPose(12.0); const j = jawWorld(), flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2); // laid flat along the loop line (world -x), resting on the striking surface
     const top = HB + (L.plat[3] + L.bar[1] / 2) * U, p = new THREE.Vector3(j.p.x, top, LIP[1]); const local = new THREE.Vector3(0, L.plat[3] + L.bar[1] / 2, (LIP[0] - j.p.x) / U - L.S); M.barRest = { p, q: flat, local }; return M.barRest; }
   const lin = (c) => c.map((v) => Math.pow(v, 2.2)), CORE = lin([1, 0xde / 255, 0x48 / 255]);
@@ -284,28 +317,54 @@ const FORGE = (() => {
     M.T = T; M.phase = phase(T); M.lava.rotation.y = (now * 0.01) % (2 * Math.PI);
     restBar(); const P = setPose(T), bc = barAt(T), gl = clamp(bc.em / 0.9, 0, 1), ce = lin(bc.c), heat = sm(0.4, 1.9, bc.em); // edges = the keyframe colour (#ff6a1a -> #b23a12 -> #4a2416 over the strikes), core -> #ffde48 while hot
     M.barM.color.setRGB(...lin(bc.c).map((v) => v * (1 - 0.85 * gl))); M.barU.uEdge.value.setRGB(...ce); M.barU.uCore.value.setRGB(...ce.map((v, k) => lerp(v, CORE[k], heat))); M.barU.uI.value = gl * (0.85 + 0.1 * bc.em);
-    const j = jawWorld(), R = M.barRest; if ((P.lay || 0) >= 0.999) { M.bar.position.copy(R.p); M.bar.quaternion.copy(R.q); }
+    const j = jawWorld(), R = M.barRest; if ((P.lay || 0) >= 0.999) { M.bar.position.copy(R.p); M.bar.quaternion.copy(R.q).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), P.roll || 0)); }
     else { const lay = P.lay || 0; M.bar.position.copy(j.p).lerp(R.p, lay); M.bar.quaternion.copy(j.q).slerp(R.q, lay); }
     // the rim light: from the lava, in view space
     if (M.rimU && typeof M3 !== 'undefined' && M3.camera) { const c = M3.camera; c.updateMatrixWorld(); const d = M.lava.position.clone().sub(M.ape.position).setY(30 * U).normalize(); M.rimU.uRimDir.value.copy(d.transformDirection(c.matrixWorldInverse)); }
-    stepSmoke(now);
+    stepSmoke(now); stepEmbers(now); stepFire(now);
     // sparks: a burst of 30-60 at each hit (more while the bar is hot), arcing down into the valley; embers on the ground
     const H = hitTimes(), last = M.lastT; if (last != null) for (let i = 0; i < H.length; i++) { const th = H[i]; if ((last < th && T >= th) || (last > T && th <= T)) burst(i, barAt(th).em); } M.lastT = T; stepSparks(now); }
   function rimLight(mat) { M.rimU = { uRimDir: { value: new THREE.Vector3(1, 0, 0) }, uRimC: { value: new THREE.Color(0xff7a2a).convertSRGBToLinear().multiplyScalar(0.55) } }; // a low orange rim from the lava side, faked in the shader (no extra light: mobile)
     mat.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, M.rimU); sh.fragmentShader = 'uniform vec3 uRimDir; uniform vec3 uRimC;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n{ float rf = pow(1.0 - clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0), 2.2) * clamp(dot(normal, uRimDir) * 0.8 + 0.25, 0.0, 1.0); totalEmissiveRadiance += uRimC * rf * (0.6 + 0.4 * diffuseColor.r * 3.0); }'); }; }
+  const hsh = (a, b) => { const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return v - Math.floor(v); }; // (local hash: no rnd() draws)
+  const gH = (x, z) => (typeof M3 !== 'undefined' && M3.heightAt ? M3.heightAt(x, z)[0] : HB);
+  // charred stumps on the scorch (sparser toward the platform, none in the work / stride strip), one instanced draw; a few with ember tips (points in the fire cloud)
+  function buildStumps(g, mob) { const P = []; for (let i = 0; i < 400 && P.length < 22; i++) { const X = L.scorch[0] + (hsh(i, 1.3) * 2 - 1) * L.scorch[2] * 0.95, Y = (hsh(i, 7.7) * 2 - 1) * L.scorch[3] * 0.95; if (Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]) > 0.93) continue;
+      const [x, y] = wld(X, Y); if (keepOut(x, y, 10 * U) && keepOut(x, y, 10 * U) !== 'yard' || workIn(X, Y, 12) || platD(X, Y) < L.skirt + 25) continue; if (hsh(i, 3.1) > sm(40, 160, Math.hypot(X - PC[0], Y))) continue; if (P.some((q) => Math.hypot(q[0] - X, q[1] - Y) < 22)) continue;
+      if (typeof M3 !== 'undefined' && M3.paths && M3.paths.some && M3.paths.some((pp) => (pp.pts || pp).some && (pp.pts || pp).some((q) => Array.isArray(q) && Math.hypot(q[0] - x, q[1] - y) < 14 * U))) continue; P.push([X, Y, i]); }
+    const geo = new THREE.CylinderGeometry(0.7, 1.15, 1, 7, 2, false); { const p = geo.attributes.position; for (let k = 0; k < p.count; k++) { const y = p.getY(k); if (y > 0.45) p.setY(k, y + (hsh(k, 9.1) - 0.5) * 0.55); else if (y < -0.45) { p.setX(k, p.getX(k) * 1.25); p.setZ(k, p.getZ(k) * 1.25); } } geo.translate(0, 0.5, 0); geo.computeVertexNormals(); }
+    const mat = new THREE.MeshLambertMaterial({ color: 0xffffff }), im = new THREE.InstancedMesh(geo, mat, P.length), m4 = new THREE.Matrix4(), c0 = new THREE.Color(0x1c1814).convertSRGBToLinear(), c1 = new THREE.Color(0x2a221b).convertSRGBToLinear(); // (#1c1814..#2a221b as linear: raw hexes read pale grey) M.stumpTips = [];
+    P.forEach(([X, Y, i], n) => { const [x, z] = wld(X, Y), h = (2.5 + 4 * hsh(i, 5.5)) * U, r = (1.0 + 0.9 * hsh(i, 6.6)) * U, y = gH(x, z) - 0.3 * U; m4.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler((hsh(i, 8.8) - 0.5) * 0.2, hsh(i, 4.4) * 6.28, (hsh(i, 2.2) - 0.5) * 0.2)), new THREE.Vector3(r, h, r));
+      im.setMatrixAt(n, m4); im.setColorAt(n, c0.clone().lerp(c1, hsh(i, 9.9))); if (hsh(i, 1.9) < 0.3) M.stumpTips.push(new THREE.Vector3(x, y + h, z)); });
+    im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.name = 'forgeStumps'; im.castShadow = !mob; g.add(im); M.stumps = im; M.nStumps = P.length; }
+  // trees just outside the scorched edge, burning: flickering flame points + 2 smoke quads each (in the plume's draw)
+  function burnTrees(mob) { const out = []; if (typeof W === 'undefined' || !W.objs) return out; for (const o of W.objs) { if (o.type !== 'tree' && o.type !== 'pine') continue; const [X, Y] = loc(o.x, o.y); if (!inBox(X, Y)) continue; const dE = (Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]) - 1) * L.scorch[3];
+      if (dE < 34 || dE > 80 || keepOut(o.x, o.y, 0)) continue; if (out.some((b) => Math.hypot(b.x - o.x, b.z - o.y) < 45 * U)) continue; const H = (o.r || 18) * (o.type === 'pine' ? 6.6 : 5.4); out.push({ x: o.x, z: o.y, y: gH(o.x, o.y), H, ph: hsh(o.x, o.y) }); if (out.length >= (mob ? 8 : 12)) break; } M.nBurn = out.length; return out; }
+  function buildFire(g, mob) { const per = mob ? 9 : 14, n = M.burn.length * per + (M.stumpTips || []).length; M.fireN = n; const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); M.firePer = per;
+    const pm = new THREE.PointsMaterial({ size: 5 * U, map: dotTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); pm.toneMapped = false; const pts = new THREE.Points(pg, pm); pts.frustumCulled = false; pts.name = 'forgeFire'; g.add(pts); M.fire = pts; }
+  function stepFire(now) { if (!M.fire) return; const ps = M.fire.geometry.attributes.position, cl = M.fire.geometry.attributes.color, per = M.firePer; let n = 0;
+    for (let b = 0; b < M.burn.length; b++) { const B = M.burn[b]; for (let k = 0; k < per; k++) { const u = ((k / per) + now * (0.9 + 0.3 * hsh(b, k)) + hsh(k, b)) % 1, a = hsh(b * 7 + k, 3.3) * 6.28, r = B.H * 0.18 * (1 - u * 0.6);
+        ps.setXYZ(n, B.x + Math.cos(a + now) * r, B.y + B.H * (0.3 + 0.75 * u + 0.05 * Math.sin(now * 9 + k)), B.z + Math.sin(a + now) * r); const f = (1 - u) * (0.75 + 0.25 * Math.sin(now * 17 + k * 3.1)); cl.setXYZ(n, f, f * lerp(0.75, 0.18, u), f * lerp(0.2, 0.02, u)); n++; } }
+    for (const p of M.stumpTips || []) { const f = 0.25 + 0.15 * Math.sin(now * 3 + p.x); ps.setXYZ(n, p.x, p.y, p.z); cl.setXYZ(n, f, f * 0.144, f * 0.01); n++; }
+    M.fire.geometry.setDrawRange(0, n); ps.needsUpdate = true; cl.needsUpdate = true; }
+  // embers: small glowing points drifting up out of the crater and off the platform, carried out over the valley, settling on the ground as dim embers (share the sparks' cloud)
+  function stepEmbers(now) { const dt = clamp(M.emPrev ? now - M.emPrev : 0.016, 0, 0.1); M.emPrev = now; M.emAcc = (M.emAcc || 0) + dt * (M.mob ? 9 : 14); const o = M.lava.position;
+    while (M.emAcc >= 1) { M.emAcc -= 1; const fromCr = Math.random() < 0.7, a = Math.random() * 6.28, r = Math.random() * 60 * U, p = fromCr ? new THREE.Vector3(o.x + Math.cos(a) * r, o.y + 4 * U, o.z + Math.sin(a) * r) : (() => { const [x, z] = wld(PC[0] + (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 30); return new THREE.Vector3(x, HB + 28 * U, z); })();
+      const wa = Math.random() * 6.28, ws = (5 + Math.random() * 9) * U; M.sp.push({ p, v: new THREE.Vector3(Math.cos(wa) * ws, (fromCr ? 14 + Math.random() * 10 : 5 + Math.random() * 5) * U, Math.sin(wa) * ws), age: 0, life: 10 + Math.random() * 8, ground: false, g: 2.2, drag: 0.15, c: [1, 0.25 + 0.3 * Math.random(), 0.03], ember: true }); if (M.sp.length > M.spN) M.sp.shift(); } }
   function stepSmoke(now) { const c = typeof M3 !== 'undefined' && M3.camera; if (!c || !M.smoke) return; const ps = M.smoke.geometry.attributes.position, cl = M.smoke.geometry.attributes.color, rt = new THREE.Vector3().setFromMatrixColumn(c.matrixWorld, 0), up = new THREE.Vector3().setFromMatrixColumn(c.matrixWorld, 1);
-    const n = 8, o = M.lava.position; for (let k = 0; k < n; k++) { const u = ((k / n + now * 0.012) % 1), h = (30 + u * 280) * U, sz = (35 + u * 110) * U, a = 0.16 * sm(0, 0.12, u) * (1 - sm(0.55, 1, u)), cx = o.x + (Math.sin(k * 2.3 + now * 0.05) * 12 - u * 70) * U, cz = o.z + Math.cos(k * 1.7) * 14 * U * u, cyy = HB + h;
+    const n = 8, o = M.lava.position; for (let k = 0; k < M.smN; k++) { if (k >= n) { const b = M.burn[(k - n) >> 1], u = (((k - n) & 1) * 0.5 + now * 0.08 + b.ph) % 1, sz = b.H * (0.35 + 0.6 * u), a = 0.38 * sm(0, 0.2, u) * (1 - sm(0.45, 1, u)), cx = b.x - u * 12 * U, cz = b.z + u * 5 * U, cyy = b.y + b.H * (0.9 + 1.4 * u);
+        [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy], m) => { ps.setXYZ(k * 4 + m, cx + (rt.x * sx + up.x * sy) * sz, cyy + (rt.y * sx + up.y * sy) * sz, cz + (rt.z * sx + up.z * sy) * sz); cl.setXYZW(k * 4 + m, 0.75, 0.72, 0.7, a); }); continue; } const u = ((k / n + now * 0.012) % 1), h = (60 + u * 330) * U, sz = (40 + u * 120) * U, a = 0.42 * sm(0, 0.15, u) * (1 - sm(0.5, 1, u)), cx = o.x + (Math.sin(k * 2.3 + now * 0.05) * 12 - u * 70) * U, cz = o.z + Math.cos(k * 1.7) * 14 * U * u, cyy = HB + h;
       const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]]; pts.forEach(([sx, sy], m) => { ps.setXYZ(k * 4 + m, cx + (rt.x * sx + up.x * sy) * sz, cyy + (rt.y * sx + up.y * sy) * sz, cz + (rt.z * sx + up.z * sy) * sz); cl.setXYZW(k * 4 + m, 1, 1, 1, a); }); }
     ps.needsUpdate = true; cl.needsUpdate = true; }
   const SPA = lin([1, 0xd2 / 255, 0x4a / 255]), SPB = lin([1, 0x6a / 255, 0x1a / 255]);
-  function burst(i, em) { const n = Math.round(30 + 30 * clamp(em / 1.9, 0, 1)), p0 = headWorld(); M.hits = (M.hits || 0) + 1; M.lastBurst = n;
+  function burst(i, em) { const n = Math.round(30 + 30 * clamp(em / 1.9, 0, 1)), p0 = headWorld(1); M.hits = (M.hits || 0) + 1; M.lastBurst = n;
     for (let k = 0; k < n; k++) { const a = (Math.random() - 0.5) * 2.2, el = 0.15 + Math.random() * 0.6, sp = (12 + Math.random() * 18) * U, mix = Math.random(); // fan out off the bar, away from him (world -x) and over the edge into the valley
       const dir = new THREE.Vector3(-Math.cos(a), 0, Math.sin(a) * 1.2); M.sp.push({ p: p0.clone(), v: dir.multiplyScalar(sp * Math.cos(el)).add(new THREE.Vector3(0, sp * Math.sin(el), 0)), age: 0, life: 4 + Math.random() * 3, ground: false, c: SPA.map((v, q) => lerp(v, SPB[q], mix)) });
       if (M.sp.length > M.spN) M.sp.shift(); } }
   function stepSparks(now) { const dt = clamp(M.spPrev ? now - M.spPrev : 0.016, 0, 0.1); M.spPrev = now; const g = 9.8 * U, pos = M.pts.geometry.attributes.position, col = M.pts.geometry.attributes.color; let n = 0;
-    for (let i = M.sp.length - 1; i >= 0; i--) { const s = M.sp[i]; s.age += dt; if (s.age > s.life) { M.sp.splice(i, 1); continue; } if (!s.ground) { s.v.y -= g * dt; s.p.addScaledVector(s.v, dt); const gz = (s.p.y < HB + 40 * U && typeof M3 !== 'undefined' && M3.heightAt ? M3.heightAt(s.p.x, s.p.z)[0] : HB) + 0.4 * U; if (s.p.y < gz) { s.p.y = gz; s.ground = true; s.tg = s.age; } } }
-    for (const s of M.sp) { if (n >= M.spN) break; pos.setXYZ(n, s.p.x, s.p.y, s.p.z); const f = s.ground ? Math.max(0, 1 - (s.age - s.tg) / 2.5) * 0.5 : 1 - 0.4 * sm(0, s.life, s.age); col.setXYZ(n, s.c[0] * f, s.c[1] * f * (s.ground ? 0.5 : 1), s.c[2] * f); n++; }
+    for (let i = M.sp.length - 1; i >= 0; i--) { const s = M.sp[i]; s.age += dt; if (s.age > s.life) { M.sp.splice(i, 1); continue; } if (!s.ground) { s.v.y -= (s.g ? s.g * U : g) * dt; if (s.drag) s.v.y = Math.max(s.v.y, -4 * U); s.p.addScaledVector(s.v, dt); const gz = (s.p.y < HB + 40 * U && typeof M3 !== 'undefined' && M3.heightAt ? M3.heightAt(s.p.x, s.p.z)[0] : HB) + 0.4 * U; if (s.p.y < gz) { s.p.y = gz; s.ground = true; s.tg = s.age; } } }
+    for (const s of M.sp) { if (n >= M.spN) break; pos.setXYZ(n, s.p.x, s.p.y, s.p.z); const f = s.ground ? Math.max(0, 1 - (s.age - s.tg) / (s.ember ? 6 : 2.5)) * (s.ember ? 0.35 : 0.5) : (s.ember ? 0.55 + 0.25 * Math.sin(now * 11 + s.p.x) : 1) - 0.4 * sm(0, s.life, s.age); col.setXYZ(n, s.c[0] * f, s.c[1] * f * (s.ground ? 0.5 : 1), s.c[2] * f); n++; }
     M.pts.geometry.setDrawRange(0, n); pos.needsUpdate = true; col.needsUpdate = true; }
   const shaderU = () => new THREE.Vector4(LIP[0], LIP[1], U, 1);
-  return { WS, F, U, LIP, HB, LOOP, HITS, L, M, wld, loc, carve, keepOut, scorched, clear, afterGen, orePrune, anchors, build, anim, barAt, hitTimes, phase, pose, platZ, platD, cone, Hr, Rb, shaderU, pathKeepW: (x, y) => { const [X, Y] = loc(x, y); return inBox(X, Y) && pathKeep(X, Y); }, BP, SWB, swbNear, setPose, restBar, jawWorld, headWorld, on };
+  return { WS, F, U, LIP, HB, LOOP, HITS, L, M, wld, loc, carve, keepOut, scorched, clear, afterGen, orePrune, anchors, build, anim, barAt, hitTimes, phase, pose, platZ, platD, cone, Hr, Rb, Rr, shaderU, pathKeepW: (x, y) => { const [X, Y] = loc(x, y); return inBox(X, Y) && pathKeep(X, Y); }, BP, SWB, swbNear, setPose, restBar, jawWorld, headWorld, on };
 })();
