@@ -423,7 +423,7 @@ function onAct(act, ds) {
     case 'quality': return QUALITY.set(ds.id);
     case 'toggletest': S.testMode = !S.testMode; save(); settingsModal(); return rerender(true);
     case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayReturn(sum); save(); return rerender(true); }
-    case 'reset': if (confirm('Reset all Hollowdeep progress?')) resetSave(); return;
+    case 'reset': if (confirm('Reset all Colossus Idle progress?')) resetSave(); return;
     case 'journal': closeModalQuiet(); setTab('city'); setTimeout(() => { const b = document.querySelector('[data-city=journal]'); if (b) b.click(); }, 60); return;
     default: return CityMap.onAct(act, ds);
   }

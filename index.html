@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#2f4a5c">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2246%22 fill=%22%23f6ecd4%22/%3E%3Cellipse cx=%2250%22 cy=%2254%22 rx=%2230%22 ry=%2222%22 fill=%22%231c2140%22/%3E%3Ccircle cx=%2250%22 cy=%2254%22 r=%228%22 fill=%22%23ffd46b%22/%3E%3C/svg%3E">
-<title>Hollowdeep — Playable Prototype</title>
+<title>Colossus Idle</title>
 <style>
 :root{
   --paper:#f6ecd4; --paper2:#efe0bd; --ink:#3a2e22; --ink2:#6b5a45; --dim:#8f7d63;
@@ -864,7 +864,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 <div id="app">
   <header id="top">
     <div class="titlebar">
-      <h1>Hollowdeep<small>prototype</small></h1>
+      <h1>Colossus Idle<small>prototype</small></h1>
       <span id="speedPill" class="pill"></span>
       <button class="iconbtn" data-act="settings" aria-label="Settings">⚙️</button>
     </div>
@@ -909,7 +909,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='18765811';
+<script>window.HD_BUILD='a6be4ccd';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -931,8 +931,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 18765811</div>
-<script src="assets/vendor/three.min.js?v=18765811"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a6be4ccd</div>
+<script src="assets/vendor/three.min.js?v=a6be4ccd"></script>
 <script>
 'use strict';
 
@@ -2540,7 +2540,7 @@ function onAct(act, ds) {
     case 'quality': return QUALITY.set(ds.id);
     case 'toggletest': S.testMode = !S.testMode; save(); settingsModal(); return rerender(true);
     case 'skip': { const sum = simulateAway(+ds.id * HOUR); closeModalQuiet(); awayReturn(sum); save(); return rerender(true); }
-    case 'reset': if (confirm('Reset all Hollowdeep progress?')) resetSave(); return;
+    case 'reset': if (confirm('Reset all Colossus Idle progress?')) resetSave(); return;
     case 'journal': closeModalQuiet(); setTab('city'); setTimeout(() => { const b = document.querySelector('[data-city=journal]'); if (b) b.click(); }, 60); return;
     default: return CityMap.onAct(act, ds);
   }

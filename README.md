@@ -1,4 +1,4 @@
-# Hollowdeep: playable prototype
+# Colossus Idle: playable prototype
 
 One page, `index.html`, plus its `assets/` folder (painted art and the vendored Three.js). It has no CDN or server dependencies. Open it in any modern browser (Safari/Chrome on a phone, or desktop). Progress saves to the browser's localStorage.
 
