@@ -240,7 +240,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 
 .cxnear{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(159,246,255,.08);box-shadow:inset 0 0 0 1px rgba(159,246,255,.15);color:#eaffff;font-size:13px}.cxnear .cxsv{position:static;width:34px;height:34px;flex:0 0 34px}.cxnear span{display:flex;flex-direction:column}.cxnear small{opacity:.75;font-size:11.5px}.cxnear.none{color:#ffc2b0}.cxnear.dim{color:#cfe6ea}.cxdset{min-height:46px;font-size:15px}
 #exBagBtn{position:absolute;right:12px;bottom:152px;z-index:7;display:none;flex-direction:column;align-items:center;justify-content:center;width:58px;height:58px;border-radius:16px;border:1px solid rgba(110,80,40,.35);background:rgba(246,236,212,.96);font-size:24px;box-shadow:0 3px 10px rgba(0,0,0,.3);cursor:pointer;padding:0}#exBagBtn span{font:700 11px system-ui,sans-serif;color:#3a2a18}#exBagBtn.on{display:flex}
-#drillHud{position:absolute;left:10px;bottom:138px;z-index:7;display:none;flex-direction:column-reverse;gap:6px;max-height:calc(100% - 330px);overflow-y:auto;scrollbar-width:none;padding:2px}#drillHud.on{display:flex}
+#drillHud{position:absolute;right:12px;left:auto;bottom:280px;z-index:7;display:none;width:64px;height:64px;flex-direction:column;gap:0;max-height:none;overflow:visible;padding:0}#drillHud.on{display:flex}
 #drillHud .dh{position:relative;width:50px;height:50px;flex:0 0 50px;border-radius:14px;border:1px solid rgba(110,80,40,.35);background:rgba(246,236,212,.96);box-shadow:0 3px 10px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;cursor:pointer;padding:0;touch-action:manipulation}
 #drillHud .dh .di{font-size:21px;line-height:1}#drillHud .dh small{font:700 9.5px system-ui,sans-serif;color:#3a2a18;max-width:46px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 #drillHud .dh .dot{position:absolute;top:4px;right:4px;width:9px;height:9px;border-radius:50%;background:#9a9a90;box-shadow:0 0 0 1.5px #fff8ea}#drillHud .dh.run .dot{background:#2fae5a}#drillHud .dh.coal .dot{background:#d8402a}#drillHud .dh.full .dot{background:#e8a020}
@@ -394,7 +394,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .cxsv.cxico{display:block;aspect-ratio:1/1;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / (var(--icols,9) - 1)) calc(var(--iy)*100% / (var(--irows,8) - 1));filter:none}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:3px;transform:translateX(-50%);padding:0 5px;border-radius:6px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
 .kKit .cxct.m,#bagSheet .cxct.m{background:linear-gradient(#e7f3c8,#c5d98a);box-shadow:0 0 0 1px #5a7a32,0 1px 2px rgba(0,0,0,.5)}
-#exBagBtn,#exMapBtn,#exSkillsBtn{width:64px;height:64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;font-size:0;padding:0}
+#exBagBtn,#exMapBtn,#exSkillsBtn,#drillHud .dh{width:64px;height:64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;font-size:0;padding:0}
 #exBagBtn{background-image:url(assets/ui/icons/btn_backpack_idle.webp)}
 .skLine{margin-top:4px;font-size:12px;line-height:1.35;opacity:.9}
 #exBagBtn:active,#exBagBtn.sel{background-image:url(assets/ui/icons/btn_backpack_pressed.webp)}
@@ -406,7 +406,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #exSkillsBtn.on{display:block}
 #exSkillsBtn:active,#exSkillsBtn.sel{background-image:url(assets/ui/icons/btn_skills_pressed.webp)}
 /* skills screen: leather kit panel, fixed, no page scroll (same pattern as the backpack sheet) */
-#skillsSheet{position:fixed;left:8px;right:8px;top:8px;bottom:216px;z-index:32;display:none;flex-direction:column;overflow:hidden;overscroll-behavior:none;touch-action:none;color:var(--kInk,#33200f);padding:10px 12px 8px;min-height:0}
+#skillsSheet{position:fixed;left:8px;right:8px;top:8px;bottom:280px;z-index:32;display:none;flex-direction:column;overflow:hidden;overscroll-behavior:none;touch-action:none;color:var(--kInk,#33200f);padding:10px 12px 8px;min-height:0}
 #skillsSheet.on{display:flex}
 #skillsSheet .skCap{position:absolute;width:36px;height:36px;border-radius:8px;background:linear-gradient(160deg,#f3d78f,#9a6c2c);box-shadow:0 0 0 2px #2b1a10,inset 0 0 0 1px rgba(255,240,200,.45);pointer-events:none;z-index:2}
 #skillsSheet .skCap:before{content:"";position:absolute;width:8px;height:8px;border-radius:50%;background:#f3d78f;border:2px solid #2b1a10}
@@ -499,7 +499,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skCap{width:48px;height:48px;border-radius:10px}
 }
 @media (max-height:680px){
-  #skillsSheet{top:4px;bottom:200px;padding:6px 8px}
+  #skillsSheet{top:4px;bottom:264px;padding:6px 8px}
   #skillsSheet .skHead h2{font-size:22px}
   #skillsSheet .skIco,#skillsSheet .skMedal{width:44px;height:44px}
   #skillsSheet .skName{font-size:16px}
@@ -722,6 +722,38 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .vaultp .vitem.zero{opacity:.4}
 img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
+#drillHud .dh{width:64px;height:64px;flex:0 0 64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;background-image:url(assets/ui/icons/btn_drills_badge_idle.webp)}
+#drillHud .dh.run,#drillHud .dh.coal,#drillHud .dh.idle,#drillHud .dh.full{background-image:url(assets/ui/icons/btn_drills_badge_idle.webp)}
+#drillHud .dh.off{background-image:url(assets/ui/icons/btn_drills_badge_disabled.webp)}
+#drillHud .dh:active,#drillHud .dh.sel{background-image:url(assets/ui/icons/btn_drills_badge_pressed.webp);filter:none;background-color:transparent;border:0}
+#drillHud .dh.off:active,#drillHud .dh.off.sel{background-image:url(assets/ui/icons/btn_drills_badge_disabled.webp)}
+#drillHud .dh .di,#drillHud .dh .dot,#drillHud .dh .tw,#drillHud .dh small{display:none}
+#drillHud .dh .n{position:absolute;left:40px;top:2px;width:21px;height:21px;display:flex;align-items:center;justify-content:center;margin:0;padding:0;font:700 11px Georgia,"Iowan Old Style",serif;color:#3a2414;line-height:1;pointer-events:none;text-shadow:none;max-width:none;overflow:visible}
+#drillHud .dh.many .n{font-size:9px}
+#drillCtl,#drillUse{position:fixed}
+#drillCtl .srow.sthumb .th{width:36px;height:36px;flex:0 0 36px;background:url(assets/ui/icons/set_bit_well.webp) center/contain no-repeat;position:relative;display:inline-block}
+#drillCtl .srow.sthumb .th.stand{background-image:url(assets/ui/icons/set_stand_well.webp)}
+#drillCtl .srow.sthumb .th .cxico{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px}
+#drillUse .prow[data-v=swap] .pico{background-image:url(assets/ui/icons/prompt_swap_bit_idle.webp)}
+#drillUse .prow[data-v=swap]:active .pico{background-image:url(assets/ui/icons/prompt_swap_bit_pressed.webp)}
+#drillUse .prow[data-v=takebit] .pico{background-image:url(assets/ui/icons/prompt_pickup_bit_idle.webp)}
+#drillUse .prow[data-v=takebit]:active .pico{background-image:url(assets/ui/icons/prompt_pickup_bit_pressed.webp)}
+#drillUse .prow[data-v=collect] .pico{background-image:url(assets/ui/icons/prompt_collect_ore_idle.webp)}
+#drillUse .prow[data-v=collect]:active .pico{background-image:url(assets/ui/icons/prompt_collect_ore_pressed.webp)}
+#drillUse .prow[data-v=tset] .pico{background-image:url(assets/ui/icons/prompt_tether_settings_idle.webp)}
+#drillUse .prow[data-v=tset]:active .pico{background-image:url(assets/ui/icons/prompt_tether_settings_pressed.webp)}
+#drillUse .prow[data-v=wire] .pico{background-image:url(assets/ui/icons/prompt_tether_to_ledge_idle.webp)}
+#drillUse .prow[data-v=wire]:active .pico{background-image:url(assets/ui/icons/prompt_tether_to_ledge_pressed.webp)}
+#drillUse .prow[data-v=up] .pico{background-image:url(assets/ui/icons/prompt_pickup_drill_idle.webp)}
+#drillUse .prow[data-v=up]:active .pico{background-image:url(assets/ui/icons/prompt_pickup_drill_pressed.webp)}
+
+#drillUse .prows .prow{border:1px solid transparent;background:transparent;box-shadow:none;border-radius:12px;font:600 14px Georgia,serif;color:#2b1a10;padding:5px 8px;min-height:44px;width:100%;flex-direction:row;justify-content:flex-start;align-items:center}
+#drillUse .prows .prow:active{outline:2px solid #7ad7e6;outline-offset:-2px;background:rgba(122,215,230,.12)}
+
+#drillCtl,#drillUse{overflow:hidden;background:#6b4322;z-index:40;bottom:72px}
+#drillCtl .dlist,#drillUse .dlist{overflow:auto;max-height:min(60vh,520px);-webkit-overflow-scrolling:touch}
+#drillCtl.kLeather,#drillUse.kLeather{background-color:#6b4322}
+
 </style>
 </head>
 <body>
@@ -775,39 +807,9 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-
-#drillHud .dh{width:64px;height:64px;flex:0 0 64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;background-image:url(assets/ui/icons/btn_drills_badge_idle.webp)}
-#drillHud .dh.run,#drillHud .dh.coal,#drillHud .dh.idle,#drillHud .dh.full,#drillHud .dh.off{background-image:url(assets/ui/icons/btn_drills_badge_idle.webp)}
-#drillHud .dh:active,#drillHud .dh.sel{background-image:url(assets/ui/icons/btn_drills_badge_pressed.webp);filter:none;background-color:transparent;border:0}
-#drillHud .dh .di,#drillHud .dh .dot,#drillHud .dh .tw,#drillHud .dh small{display:none}
-#drillHud .dh .n{position:absolute;left:40px;top:2px;width:21px;height:21px;display:flex;align-items:center;justify-content:center;margin:0;padding:0;font:700 11px Georgia,"Iowan Old Style",serif;color:#3a2414;line-height:1;pointer-events:none;text-shadow:none;max-width:none;overflow:visible}
-#drillHud .dh.many .n{font-size:9px}
-#drillCtl,#drillUse{position:fixed}
-#drillCtl .srow.sthumb .th{width:36px;height:36px;flex:0 0 36px;background:url(assets/ui/icons/set_bit_well.webp) center/contain no-repeat;position:relative;display:inline-block}
-#drillCtl .srow.sthumb .th.stand{background-image:url(assets/ui/icons/set_stand_well.webp)}
-#drillCtl .srow.sthumb .th .cxico{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px}
-#drillUse .prow[data-v=swap] .pico{background-image:url(assets/ui/icons/prompt_swap_bit_idle.webp)}
-#drillUse .prow[data-v=swap]:active .pico{background-image:url(assets/ui/icons/prompt_swap_bit_pressed.webp)}
-#drillUse .prow[data-v=takebit] .pico{background-image:url(assets/ui/icons/prompt_pickup_bit_idle.webp)}
-#drillUse .prow[data-v=takebit]:active .pico{background-image:url(assets/ui/icons/prompt_pickup_bit_pressed.webp)}
-#drillUse .prow[data-v=collect] .pico{background-image:url(assets/ui/icons/prompt_collect_ore_idle.webp)}
-#drillUse .prow[data-v=collect]:active .pico{background-image:url(assets/ui/icons/prompt_collect_ore_pressed.webp)}
-#drillUse .prow[data-v=tset] .pico{background-image:url(assets/ui/icons/prompt_tether_settings_idle.webp)}
-#drillUse .prow[data-v=tset]:active .pico{background-image:url(assets/ui/icons/prompt_tether_settings_pressed.webp)}
-#drillUse .prow[data-v=wire] .pico{background-image:url(assets/ui/icons/prompt_tether_to_ledge_idle.webp)}
-#drillUse .prow[data-v=wire]:active .pico{background-image:url(assets/ui/icons/prompt_tether_to_ledge_pressed.webp)}
-#drillUse .prow[data-v=up] .pico{background-image:url(assets/ui/icons/prompt_pickup_drill_idle.webp)}
-#drillUse .prow[data-v=up]:active .pico{background-image:url(assets/ui/icons/prompt_pickup_drill_pressed.webp)}
-
-#drillUse .prows .prow{border:1px solid transparent;background:transparent;box-shadow:none;border-radius:12px;font:600 14px Georgia,serif;color:#2b1a10;padding:5px 8px;min-height:44px;width:100%;flex-direction:row;justify-content:flex-start;align-items:center}
-#drillUse .prows .prow:active{outline:2px solid #7ad7e6;outline-offset:-2px;background:rgba(122,215,230,.12)}
-
-#drillCtl,#drillUse{overflow:hidden;background:#6b4322;z-index:40;bottom:72px}
-#drillCtl .dlist,#drillUse .dlist{overflow:auto;max-height:min(60vh,520px);-webkit-overflow-scrolling:touch}
-#drillCtl.kLeather,#drillUse.kLeather{background-color:#6b4322}
-<script>window.HD_BUILD='dab21700';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build dab21700</div>
-<script src="assets/vendor/three.min.js?v=dab21700"></script>
+<script>window.HD_BUILD='7d61b46e';(function(){function chk(){try{var u=location.href.split('#')[0].split('?')[0];fetch(u+'?bust='+Date.now(),{cache:'no-store'}).then(function(r){return r.text()}).then(function(t){var m=t.match(/HD_BUILD='([0-9a-f]{8})'/);if(m&&m[1]!==window.HD_BUILD&&sessionStorage.getItem('hdReload')!==m[1]){sessionStorage.setItem('hdReload',m[1]);try{if(typeof save==='function')save();}catch(e){}location.replace(u+'?v='+m[1]+location.hash);}}).catch(function(){});}catch(e){}}chk();document.addEventListener('visibilitychange',function(){if(!document.hidden)chk();});window.addEventListener('pageshow',function(e){if(e.persisted)chk();});})();</script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7d61b46e</div>
+<script src="assets/vendor/three.min.js?v=7d61b46e"></script>
 <script>
 'use strict';
 
@@ -12088,7 +12090,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   const ico = (n) => `assets/ui/icons/${n}.webp`;
   const seti = (n) => `<i class="seti" style="background-image:url(${ico(n)})"></i>`;
   const pico = (n) => `<i class="pico" aria-hidden="true"></i>`;
-  function fieldDrills(D) { D = D || drillState(); return D ? D.list.filter((d) => !d.camp && drillNode(d)) : []; }
+  function fieldDrills(D) { D = D || drillState(); return D ? D.list.filter((d) => !d.camp) : []; }
   function drillXY(d) { if (!d || d.camp) return null; if (d.sx != null && d.sy != null) return [d.sx, d.sy]; const n = drillNode(d); return n ? drillPos(n) : null; }
   function drillDist(d) { const h = EX.on && here(), p = drillXY(d); return (h && p) ? Math.hypot(p[0] - h[0], p[1] - h[1]) : 1e18; }
   function drillNearMe(d) { return !!d && (d.camp || drillDist(d) < DRILL.NEAR); }
@@ -12295,21 +12297,23 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (key === 'door') { const F = ledgeFront(), k = reach(F.x, F.y); EX.ret = { x: k[0], y: k[1], az: EX.az }; EX.tp = (EX.tp || 0) + 1; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); if (EX.on) { const r = EX.ret; EX.ret = null; enter(r.x, r.y); return true; } if (typeof setTab === 'function') setTab('city'); return true; }
     const T = tetherList().find((q) => q.key === key); if (!T) return false; if (T.camp) { if (CharView.st) CharView.st.exRet = null; if (typeof setTab === 'function') setTab('ledge'); return true; }
     const k = reach(T.x, T.y); EX.ret = { x: k[0], y: k[1], az: EX.az }; EX.tp = (EX.tp || 0) + 1; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); if (EX.on) { const r = EX.ret; EX.ret = null; enter(r.x, r.y); return true; } if (typeof setTab === 'function') setTab('city'); return true; }
-  // HUD: one button per active drill, stacked up the lower-left edge above the minimap (status dot: green running, red out of coal, amber full, grey idle)
+  // HUD: one Drills button in the right-hand stack (above Skills / Bag / Map), always on the city map, with a count badge
   const drillStat = (d) => (d.on ? 'run' : d.coal <= 0 ? 'coal' : d.hop >= DRILL.HOP ? 'full' : 'idle');
+  function onCityMap() { return typeof ui === 'undefined' || ui.tab === 'city'; }
   function drillLoc(d) { const n = drillNode(d), H = doorSpots().find((q) => q.type === 'ledge'), h = EX.on ? here() : null; if (!n) return '';
     return `<div class="drow">📍 ${Math.round(Math.hypot(n.x - H.x, n.y - H.y) / WS)} m from the Ledge door${h ? ` · ${Math.round(Math.hypot(n.x - h[0], n.y - h[1]) / WS)} m from you` : ''} · map ${Math.round(n.x / WS)}, ${Math.round(n.y / WS)}</div>`; }
-  function drillHud() { let h = document.getElementById('drillHud'); const D = EX.on ? drillState() : null, L = D ? fieldDrills(D) : [];
-    if (!h) { if (!L.length) return; h = document.createElement('div'); h.id = 'drillHud'; h.setAttribute('aria-label', 'Your drills'); (document.getElementById('cityWrap') || document.body).appendChild(h);
+  function drillHud() { let h = document.getElementById('drillHud'); const show = onCityMap(), D = show ? drillState() : null, L = D ? fieldDrills(D) : [];
+    if (!h) { if (!show) return; h = document.createElement('div'); h.id = 'drillHud'; h.setAttribute('aria-label', 'Your drills'); (document.getElementById('cityWrap') || document.body).appendChild(h);
       h.addEventListener('click', (e) => { if (!e.target.closest('button.dh')) return; const open = DRILL.listOn && document.getElementById('drillCtl') && document.getElementById('drillCtl').classList.contains('on'); drillPanel(open ? null : true); }); }
     const open = !!(DRILL.listOn && document.getElementById('drillCtl') && document.getElementById('drillCtl').classList.contains('on'));
     const agg = L.some((d) => drillStat(d) === 'run') ? 'run' : L.some((d) => drillStat(d) === 'coal') ? 'coal' : L.some((d) => drillStat(d) === 'full') ? 'full' : L.length ? 'idle' : 'off';
-    const sig = L.length + '|' + L.map((d) => d.id + drillStat(d) + (d.port ? 'w' : '')).join() + '|' + agg + (open ? '|on' : '');
-    h.classList.toggle('on', L.length > 0); const mm = document.getElementById('miniMap'), W = h.parentNode; if (mm && W && mm.offsetParent !== null) { const a = W.getBoundingClientRect(), m = mm.getBoundingClientRect(); h.style.bottom = Math.round(a.bottom - m.top + 8) + 'px'; }
+    const sig = (show ? '1' : '0') + '|' + L.length + '|' + L.map((d) => d.id + drillStat(d) + (d.port ? 'w' : '')).join() + '|' + agg + (open ? '|on' : '');
+    h.classList.toggle('on', show);
+    if (!show) { if (h.dataset.sig !== 'off') { h.innerHTML = ''; h.dataset.sig = 'off'; } return; }
     if (h.dataset.sig === sig) return; h.dataset.sig = sig;
     const LBL = { run: 'running', coal: 'out of coal', full: 'full', idle: 'idle', off: 'no drills' };
     const title = L.length ? `Drills (${L.length}): ${LBL[agg]}` : 'Drills';
-    h.innerHTML = L.length ? `<button data-d="all" class="dh${open ? ' sel' : ''}${L.length > 9 ? ' many' : ''}" title="${title}" aria-label="${title}"><span class="n">${L.length}</span></button>` : ''; }
+    h.innerHTML = `<button data-d="all" class="dh ${agg}${open ? ' sel' : ''}${L.length > 9 ? ' many' : ''}" title="${title}" aria-label="${title}"><span class="n">${L.length}</span></button>`; }
 
 
   // the drill on the map: the Hanging Camp's Drill at the same size it has there next to her (bit + hub about her height), bit angled into the node
@@ -12353,7 +12357,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (o.type === 'ledge') { enterLedgeFromMap(); } /* tapping the Ledge front door simply goes in: every tether option lives in the Tether Orb's settings */
     else if (o.type === 'door') { exit(); if (typeof GRAND !== 'undefined') GRAND.enterTree(); } }
   // coming back out of the Ledge or the Lumen Tree onto the map (city tab) after entering from Explore: back in Explore just outside that door
-  if (typeof setTab === 'function' && !setTab._ex) { const o0 = setTab; setTab = function (t) { const r0 = t === 'city' ? EX.ret : null; o0(t); if (r0) EX.ret = r0; /* (the map's Character view may already have put her back at her last spot: a door exit wins) */ if (t === 'city' && EX.ret) { const r = EX.ret; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); EX.ret = null; if (CharView.st) CharView.st.exRet = null; setTimeout(() => { if (enter(r.x, r.y)) { const G = CharView.st.gnd; if (G && isFinite(r.face)) G.face = r.face; if (isFinite(r.az)) EX.az = r.az; EX.back = r; } }, 40); } else if (t !== 'home' && t !== 'tree' && t !== 'city') EX.ret = null; }; setTab._ex = true; }
+  if (typeof setTab === 'function' && !setTab._ex) { const o0 = setTab; setTab = function (t) { const r0 = t === 'city' ? EX.ret : null; o0(t); if (r0) EX.ret = r0; /* (the map's Character view may already have put her back at her last spot: a door exit wins) */ if (t === 'city' && EX.ret) { const r = EX.ret; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); EX.ret = null; if (CharView.st) CharView.st.exRet = null; setTimeout(() => { if (enter(r.x, r.y)) { const G = CharView.st.gnd; if (G && isFinite(r.face)) G.face = r.face; if (isFinite(r.az)) EX.az = r.az; EX.back = r; } }, 40); } else if (t !== 'home' && t !== 'tree' && t !== 'city') EX.ret = null; drillHud(); }; setTab._ex = true; }
   function reach(x, y) { build(); const k = nearest(x, y, NV.size.indexOf(Math.max(...NV.size))); return cxy(k); } // the nearest spot she can stand on, in the connected world
   function aim(x, y, up) { let best = null; for (let k = 0; k < 16; k++) { EX.az = k * Math.PI / 8; tick(0); M3.render(0, CityMap.cam); const s = M3.project(x, y, up == null ? 20 : up); if (s[0] < 0 || s[1] < 0 || s[0] > innerWidth || s[1] > innerHeight) continue; const d = Math.hypot(s[0] - innerWidth / 2, s[1] - innerHeight / 2); if (!best || d < best[1]) best = [k, d, s]; } if (best) { EX.az = best[0] * Math.PI / 8; tick(0); M3.render(0, CityMap.cam); } return best && best[2]; } // swing the follow camera until a spot is in view
   function orbit(dx, dy) { EX.az -= dx * 0.008; EX.tilt = clamp(EX.tilt + dy * 0.004, -0.5, 0.9); }
@@ -12419,12 +12423,12 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
         if (_or.far > 0) for (const h of _or.intersectObjects(U, true)) { let u = h.object; while (u.parent && !u.userData.occU) u = u.parent; if (u.userData.occU) hit.add(u); } } }
     for (const u of hit) if (!FADED.has(u)) FADED.set(u, 1); const k = dt > 0 ? 1 - Math.exp(-dt * 10) : 1;
     for (const [u, a] of FADED) { const na = a + ((hit.has(u) ? OCC_A : 1) - a) * k; if (na > 0.99 && !hit.has(u)) { fadeUnit(u, 1); FADED.delete(u); } else { FADED.set(u, na); fadeUnit(u, na); } } EX.faded = [...FADED.keys()].length; }
-  // overlay: the map HUD buttons (Skills above Bag, then Map); she always runs on the map
+  // overlay: the map HUD buttons (Drills above Skills, then Bag, then Map); she always runs on the map
   function ui3(on) { const b0 = document.getElementById('exploreBar'); if (b0) b0.remove(); /* no Walk / Run / Exit bar: on the map she always runs; Dev view is the way out */ CharView.st.gait = 'run'; EX.gait = 'run';
     let mb = document.getElementById('exMapBtn'); if (!mb && on) { mb = document.createElement('button'); mb.id = 'exMapBtn'; mb.innerHTML = '🗺️<span>Map</span>'; mb.setAttribute('aria-label', 'Open the map'); mb.addEventListener('click', () => typeof ExMap !== 'undefined' && ExMap.open()); (document.getElementById('cityWrap') || document.body).appendChild(mb); } if (mb) mb.classList.toggle('on', !!on);
     let sb = document.getElementById('exSkillsBtn'); if (!sb && on) { sb = document.createElement('button'); sb.id = 'exSkillsBtn'; sb.innerHTML = '<span>Skills</span>'; sb.setAttribute('aria-label', 'Open skills'); sb.addEventListener('click', () => typeof Skills !== 'undefined' && Skills.screen(!Skills.screenOn())); (document.getElementById('cityWrap') || document.body).appendChild(sb); } if (sb) sb.classList.toggle('on', !!on); if (!on && typeof Skills !== 'undefined' && Skills.screenOn && Skills.screenOn()) Skills.screen(false);
     let bb = document.getElementById('exBagBtn'); if (!bb && on) { bb = document.createElement('button'); bb.id = 'exBagBtn'; bb.innerHTML = '🎒<span>Bag</span>'; bb.setAttribute('aria-label', 'Open the backpack'); bb.addEventListener('click', () => typeof Craft !== 'undefined' && Craft.sheet(!Craft.sheetOn())); (document.getElementById('cityWrap') || document.body).appendChild(bb); } if (bb) bb.classList.toggle('on', !!on); if (!on && typeof Craft !== 'undefined' && Craft.sheetOn && Craft.sheetOn()) Craft.sheet(false);
-    const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); drillHud(); if (!on && DRILL.sel) drillPanel(null); }
+    const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); if (typeof CityMap !== 'undefined' && CityMap.setView && !CityMap.setView._drillHud) { const sv = CityMap.setView; CityMap.setView = function (m) { const r = sv.apply(this, arguments); drillHud(); return r; }; CityMap.setView._drillHud = true; } drillHud(); if (!on && DRILL.sel) drillPanel(null); }
   return { onBridge, orePrune, drillFix, drillRate, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, longPress, drillNear, drillSetup, drillHud, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
 })();
 /* ---------- Explore: the Map screen - a full-screen stylized 2D map drawn from the nav grid / heightfield (toon hypsometric tint + hillshade, cliffs, water,
