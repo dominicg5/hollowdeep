@@ -14,7 +14,7 @@
 const FORGE = (() => {
   const WS = 6.35, F = 1.3, U = WS * F, LIP = [8750, 6000], HB = 90, LOOP = 27, HITS = 7, HIT0 = 12.8, HITDT = 1.6;
   const L = { crater: [-100, 0], rimR: 100, lava: 28, lip: 40, summit: 260, D: 18, S: 48, plat: [60, 150, 35, 26], skirt: 16.5, strike: [77, 133, 18], scorch: [60, 0, 280, 175], ash: 70,
-    ledge: [112, 197, 50], ledgeR: 14, bar: [30, 4, 4], tongs: 30, handle: 25, head: [5, 9, 5], grip: 6 };
+    ledge: [112, 197, 50], ledgeR: 14, bar: [30, 4, 4], tongs: 30, handle: 25, head: [5, 9, 5], grip: 10 };
   const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }, clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
   const wld = (X, Y) => [LIP[0] - X * U, LIP[1] + Y * U], loc = (x, y) => [(LIP[0] - x) / U, (y - LIP[1]) / U];
   const M = { built: false, moved: [], kept: [], paths: [], trees: 0 };
@@ -40,7 +40,7 @@ const FORGE = (() => {
   function platZ(X, Y) { const [e, d0] = platE(X, Y), n1 = Math.sin(X * 0.11 + Y * 0.07 + 1.3) * Math.sin(Y * 0.09 - X * 0.05), n2 = Math.sin(X * 0.23 - Y * 0.19 + 0.4), d = d0 + 0.5 * n1;
     let bz = -1; for (const [bx, by, h, r] of BOULD) { const q = Math.hypot(X - bx, Y - by); if (q < r) bz = Math.max(bz, h * (0.5 + 0.5 * Math.cos(Math.PI * q / r)) * (0.85 + 0.15 * n2)); }
     if (d > L.skirt + 1) return bz;
-    const flat = 1 - sm(0.8, 1.2, Math.hypot((X - 97) / 22, Y / 10)), top = L.plat[3] + (1.4 * Math.max(0, 1 - e * e) + 0.25 * n1 * n2) * (1 - flat);
+    const flat = 1 - sm(0.8, 1.2, Math.hypot((X - 102) / 25, Y / 11)), top = L.plat[3] + (1.4 * Math.max(0, 1 - e * e) + 0.25 * n1 * n2) * (1 - flat);
     if (d <= 0) return Math.max(bz, top - 1.2 * sm(-2.5, 0, d)); // a worn, rounded rim
     const v = 1.6 * Math.max(0, d + 0.35 * n2 * sm(0, 2, d)), P = 6, st = v - P / (2 * Math.PI) * 0.45 * Math.sin(2 * Math.PI * v / P); // broken steps (slope 0.9..2.3)
     return Math.max(bz, 0, top - 1.2 - st); }
@@ -133,7 +133,7 @@ const FORGE = (() => {
   // body plan (design metres, ape-local: +z forward, +y up, +x his left)
   const BP = { hip: 34, hipW: 6, thigh: 17, shin: 15, ankle: 2, chestUp: 2, torso: 26, shA: [11, 24, 0], shB: [10, 14, 1], armA: [19, 17], armB: [15, 14], head: [0, 25, 2] };
   // key poses (every key eased): X (along the loop line), yaw (deg, 90 = facing the volcano), lean (deg), hip drop, tongs hand-mid [y, z] + pitch (deg down), bar laid; the arms are solved in setPose
-  const TG = { start: { y: 42, z: 12, p: 26 }, dip: { y: 44, z: 16, p: 58 }, lift: { y: 49, z: 8, p: 14 }, lay: { y: 39, z: 13, p: 20 }, low: { y: 40, z: 11, p: 30 } };
+  const TG = { start: { y: 34, z: 18, p: 22 }, dip: { y: 36, z: 22, p: 34 }, lift: { y: 44, z: 12, p: 10 }, lay: { y: 30, z: 24, p: 3.8 }, low: { y: 31, z: 18, p: 18 } }; // (Art pass 3: the lower hands held out ~0.35 x his height in front of the hips, forearms ~30 deg below horizontal)
   const tgMix = (a, b, u) => ({ y: lerp(a.y, b.y, u), z: lerp(a.z, b.z, u), p: lerp(a.p, b.p, u) });
   function pose(t) { t = ((t % LOOP) + LOOP) % LOOP; const P = {}; const k = (a, b, t0, t1) => lerp(a, b, sm(t0, t1, t));
     if (t < 4) { P.X = L.D; P.yaw = 90; P.lean = k(16, 30, 0, 1.4) + 1.5 * Math.sin(Math.max(0, t - 1.4) * 2.4) * sm(1.4, 2, t); P.drop = k(0, 4, 0, 1.4); P.tg = tgMix(TG.start, TG.dip, sm(0, 1.6, t)); if (t > 1.6) P.tg.p += 2 * Math.sin((t - 1.6) * 3) * (1 - sm(3.4, 4, t)); }
@@ -153,8 +153,8 @@ const FORGE = (() => {
   let THREEok = false;
   function apeGeo(mob) { const parts = [], q = mob ? 0.7 : 1.1, sg = (n) => Math.max(6, Math.round(n * q));
     const lin = (h) => [(h >> 16) & 255, (h >> 8) & 255, h & 255].map((v) => Math.pow(v / 255, 2.2)); // (sRGB hex -> linear vertex colour)
-    const FK = 0.72, FL = lin(0x9c958a).map((v) => v * FK), FM = lin(0x6f6961).map((v) => v * FK), FS = lin(0x3f3a35).map((v) => v * FK), // (fur hexes x0.72: under ACES at exposure 1.25 the spec hexes read near-white)
-      SKIN = lin(0x8a6a52), LEATH = lin(0x5a3418), LEDGE = lin(0x321b0a), BRASS = lin(0xb8862b), BRD = lin(0x6b4a1c), HEADC = lin(0x3a3632), WRAP = lin(0x4a2c16), WOOD = lin(0x4f3420), IRON = lin(0x2e2b28), EYE = [0.008, 0.007, 0.006];
+    const FK = 0.9, FL = lin(0x8f8a82).map((v) => v * FK), FM = lin(0x625d57).map((v) => v * FK), FS = lin(0x34302c).map((v) => v * FK), // (Art pass 3 fur: lit #8f8a82, mid #625d57, shadow #34302c; x0.9 for ACES at exposure 1.25)
+      SKIN = lin(0x7a5a44), EYEZ = lin(0x4a3426), CATCH = [2.6, 1.3, 0.35], LEATH = lin(0x5a3418), LEDGE = lin(0x321b0a), BRASS = lin(0xb8862b), BRD = lin(0x6b4a1c), HEADC = lin(0x3a3632), WRAP = lin(0x4a2c16), WOOD = lin(0x4f3420), IRON = lin(0x2e2b28), EYE = [0.008, 0.007, 0.006];
     // kind: 0 plain, 1 fur, 2 fur with clumped tufts; col: an rgb or f(local x, y, z, ny) evaluated before the part is placed
     const add = (g, bone, col, kind, at, rot, scl) => { if (typeof col === 'function') { const p = g.attributes.position, n = g.attributes.normal, c = []; for (let i = 0; i < p.count; i++) c.push(col(p.getX(i), p.getY(i), p.getZ(i), n.getY(i))); g.userData.c = c; }
       if (scl) g.scale(...scl); if (rot) { if (rot[0]) g.rotateX(rot[0]); if (rot[1]) g.rotateY(rot[1]); if (rot[2]) g.rotateZ(rot[2]); } if (at) g.translate(...at); parts.push({ g, bone, col: typeof col === 'function' ? null : col, kind: kind || 0 }); };
@@ -170,19 +170,26 @@ const FORGE = (() => {
     add(sph(1, 26, 18), 1, FM, 1, [0, cy + 13, 0.5], null, [13.5, 15.5, 11]); add(sph(1, 24, 14), 1, FM, 1, [0, cy + 19, 1.5], null, [15.5, 9, 10.5]);
     add(sph(1, 24, 14), 1, FM, 2, [0, cy + 23, -4], null, [17, 9.5, 10]); add(sph(1, 18, 12), 1, FM, 2, [0, cy + 26.5, -5.5], null, [10, 7, 8]); // the heavy shoulder hump
     add(sph(1, 16, 12), 1, SKIN, 0, [0, cy + 16, 9.2], null, [8, 8, 3]); add(sph(1, 16, 12), 1, FM, 1, [0, cy + 23.5, 2.5], null, [6.8, 4.5, 6.2]); // chest skin, a short thick neck
-    const hc = [0, cy + BP.head[1] + 1.5, BP.head[2] + 1.5]; add(sph(1, 22, 16), 2, FM, 1, hc, null, [6, 5.6, 6]); add(sph(1, 14, 10), 2, FM, 2, [0, hc[1] + 4.6, hc[2] - 1.8], null, [3.6, 2.8, 4.8]);
-    add(sph(1, 18, 10), 2, SKIN.map((v) => v * 0.62), 0, [0, hc[1] + 2.0, hc[2] + 4.4], null, [7.4, 1.9, 2.7]); // the broad brow ridge
-    add(sph(1, 16, 12), 2, SKIN, 0, [0, hc[1] + 0.1, hc[2] + 3.9], null, [4.9, 4.4, 2.5]); add(sph(1, 16, 12), 2, SKIN, 0, [0, hc[1] - 2.2, hc[2] + 4.7], null, [4.2, 3.2, 3.0]);
-    for (const s of [1, -1]) { add(sph(0.62, 10, 8), 2, EYE, 0, [s * 2.1, hc[1] + 0.7, hc[2] + 5.7]); add(sph(1.4, 10, 8), 2, SKIN, 0, [s * 5.9, hc[1] + 0.2, hc[2] - 0.6]); }
+    // the head: a gorilla's. Skull + sagittal crest, heavy brow ridge (furrowed), deep-set eyes with warm catchlights in dark sockets, broad flat nose with nostrils, a jutting muzzle, wide mouth, jowls, small low ears
+    const hc = [0, cy + BP.head[1] + 1.5, BP.head[2] + 1.5]; add(sph(1, 22, 16), 2, FM, 1, [0, hc[1] + 0.6, hc[2] - 0.6], null, [5.8, 5.6, 6.1]); add(sph(1, 14, 10), 2, FM, 2, [0, hc[1] + 5.0, hc[2] - 1.6], null, [1.5, 2.8, 5.6]); // skull, crest
+    add(sph(1, 18, 10), 2, EYEZ, 0, [0, hc[1] + 2.3, hc[2] + 4.5], null, [7.0, 1.8, 2.6]); for (const s2 of [1, -1]) add(sph(1, 8, 6), 2, EYEZ.map((v) => v * 0.8), 0, [s2 * 1.1, hc[1] + 3.0, hc[2] + 5.9], [0, 0, s2 * 0.45], [1.5, 0.45, 0.6]); // brow ridge + the furrow
+    add(sph(1, 16, 10), 2, EYEZ, 0, [0, hc[1] + 0.8, hc[2] + 4.3], null, [4.8, 2.2, 1.8]); add(sph(1, 16, 12), 2, SKIN, 0, [0, hc[1] - 0.6, hc[2] + 3.9], null, [4.6, 3.6, 2.4]); // eye band, face
+    for (const s2 of [1, -1]) { add(sph(0.62, 10, 8), 2, EYE, 0, [s2 * 2.0, hc[1] + 0.9, hc[2] + 5.55]); add(sph(0.2, 6, 4), 2, CATCH, 0, [s2 * 2.0 + 0.2, hc[1] + 1.15, hc[2] + 6.1]); add(sph(1, 8, 6), 2, SKIN.map((v) => v * 0.75), 0, [s2 * 5.4, hc[1] - 0.8, hc[2] - 0.2], null, [0.8, 1.3, 0.9]); } // eyes, catchlights, ears
+    add(sph(1, 14, 10), 2, SKIN, 0, [0, hc[1] - 2.8, hc[2] + 5.2], null, [4.4, 3.0, 3.4]); for (const s2 of [1, -1]) add(sph(1, 10, 8), 2, SKIN.map((v) => v * 0.9), 0, [s2 * 3.4, hc[1] - 3.2, hc[2] + 3.6], null, [2.1, 2.0, 2.1]); // muzzle, jowls
+    add(sph(1, 12, 8), 2, EYEZ, 0, [0, hc[1] - 1.1, hc[2] + 6.6], null, [2.5, 1.3, 1.3]); for (const s2 of [1, -1]) add(sph(0.45, 6, 5), 2, EYE, 0, [s2 * 0.9, hc[1] - 1.55, hc[2] + 7.55]); // broad flat nose, nostrils
+    add(box(5.4, 0.35, 0.6), 2, EYE, 0, [0, hc[1] - 3.55, hc[2] + 8.15]); // the wide mouth
     // legs: planted, thick thighs, tufted shins, feet with skin soles
     for (const [s, b0] of [[1, 3], [-1, 5]]) { const x = s * BP.hipW; add(cap(5.3, BP.thigh - 5), b0, FM, 1, [x, hy - BP.thigh / 2, 0]); add(taper(4.6, 3.6, BP.shin - 2), b0 + 1, FM, 2, [x, hy - BP.thigh - BP.shin / 2 + 0.5, 0.3]); add(sph(4.2, 14, 10), b0 + 1, FM, 1, [x, hy - BP.thigh, 0.3]);
-      add(sph(1, 16, 10), b0 + 1, (px, py, pz, ny) => ny < -0.3 ? SKIN : FM, 0, [x, 1.7, 2.6], null, [4.0, 1.8, 6.4]); }
+      add(sph(1, 16, 10), s > 0 ? 18 : 19, (px, py, pz, ny) => ny < -0.3 ? SKIN : FM, 0, [x, 1.7, 2.6], null, [4.0, 1.8, 6.4]); add(sph(1, 10, 6), s > 0 ? 18 : 19, SKIN, 0, [x, 1.2, 7.6], null, [3.4, 1.2, 1.6]); } // (feet on their own bones: heel-to-toe)
     // arms: deltoid caps, thick tapered forearms (tufted), brass bracers, big hands with skin palms
     const arm = (sx, sy, sz, L1, L2, r1, rE, rW, b0, side) => { const x = side * sx, ys = cy + sy, ye = ys - L1, yw = ye - L2;
       add(sph(1, 16, 12), b0, FM, 2, [x * 1.04, ys + 0.6, sz - 0.5], null, [r1 * 1.3, r1 * 1.15, r1 * 1.25]); add(cap(r1, L1 - 2 * r1 + 1.5), b0, FM, 1, [x, ys - L1 / 2, sz]);
       add(sph(rE * 0.98, 14, 10), b0 + 1, FM, 1, [x, ye, sz]); add(taper(rE, rW, L2 - 1.5), b0 + 1, FM, 2, [x, ye - (L2 - 1.5) / 2, sz]);
       for (const [f, w] of [[0.55, 0.62], [0.8, 0.5]]) { const r = lerp(rE, rW, f) + 0.25; add(new THREE.TorusGeometry(r, w, sg(6), sg(18)), b0 + 1, f < 0.6 ? BRASS : BRD, 0, [x, ye - L2 * f, sz], [Math.PI / 2, 0, 0]); }
-      add(sph(1, 14, 10), b0 + 1, (px, py, pz, ny) => ny > 0.55 ? FM : SKIN, 0, [x, yw - 1.8, sz + 0.4], null, [rW * 1.25, 3.2, rW * 1.4]); };
+      if (b0 < 11) add(sph(1, 14, 10), b0 + 1, (px, py, pz, ny) => ny > 0.55 ? FM : SKIN, 0, [x, yw - 1.8, sz + 0.4], null, [rW * 1.25, 3.2, rW * 1.4]);
+      else { add(sph(1, 12, 8), b0 + 1, FM, 0, [x, yw - 0.6, sz - 0.6], null, [rW * 1.15, 2.2, rW * 1.0]); add(new THREE.TorusGeometry(rW + 0.35, 0.5, sg(6), sg(16)), b0 + 1, BRASS, 0, [x, yw + 1.3, sz], [Math.PI / 2, 0, 0]);
+        for (let f = 0; f < 4; f++) add(new THREE.TorusGeometry(1.45, 0.55, sg(6), sg(10), Math.PI * 1.45), b0 + 1, SKIN, 0, [x, yw - 1.0 - f * 1.05, sz], [Math.PI / 2, 0, Math.PI * 0.78]); // fingers wrapped round the rein (it runs through the fist along the forearm line)
+        add(cap(0.6, 1.8, 6), b0 + 1, SKIN, 0, [x, yw - 1.6, sz + 1.75]); } }; // the thumb on top
     arm(BP.shA[0], BP.shA[1], BP.shA[2], BP.armA[0], BP.armA[1], 4.6, 5.0, 3.4, 7, 1); arm(BP.shA[0], BP.shA[1], BP.shA[2], BP.armA[0], BP.armA[1], 4.6, 5.0, 3.4, 9, -1);
     arm(BP.shB[0], BP.shB[1], BP.shB[2], BP.armB[0], BP.armB[1], 3.8, 4.2, 2.9, 11, 1); arm(BP.shB[0], BP.shB[1], BP.shB[2], BP.armB[0], BP.armB[1], 3.8, 4.2, 2.9, 13, -1);
     // the leather apron (#5a3418, edges #321b0a): a bib from mid-chest to above the knees following the body (chest bone above the navel seam, hips bone below), a neck loop, a navel belt, an X of back straps clipped at the hips, 3 brass rivets
@@ -204,29 +211,39 @@ const FORGE = (() => {
     add(sph(0.85, 8, 6), 1, BRASS, 0, [0, cy + 9, front(0, cy + 9) + 1.3]); add(box(3.2, 3.6, 0.9), 1, BRASS, 0, [0, cy + 3, 11.4]); // rivet, buckle
     // the tongs (bone 15: rest at the model origin, +z along the reins to the jaws), the hammer (bone 17: +z along the handle, head at the end)
     add(box(0.9, 0.9, L.tongs), 15, IRON, 0, [1.0, 0, L.tongs / 2]); add(box(0.9, 0.9, L.tongs), 15, IRON, 0, [-1.0, 0, L.tongs / 2]); add(box(3.2, 1.6, 1.6), 15, IRON, 0, [0, 0, L.tongs * 0.62]);
-    add(box(1.2, 3.4, 4.5), 15, IRON, 0, [0, 1.6, L.tongs - 1.4]); add(box(1.2, 3.4, 4.5), 15, IRON, 0, [0, -1.6, L.tongs - 1.4]);
+    add(box(4.6, 1.0, L.grip + 1), 15, IRON, 0, [0, 2.5, L.tongs - 1.2 - L.grip / 2]); add(box(4.6, 1.0, L.grip + 1), 15, IRON, 0, [0, -2.5, L.tongs - 1.2 - L.grip / 2]); // the jaws: a third of the bar in them
     { const b = 17; add(new THREE.CylinderGeometry(0.75, 0.9, L.handle, sg(8)), b, WOOD, 0, [0, 0, L.handle / 2], [Math.PI / 2, 0, 0]); add(new THREE.CylinderGeometry(1.05, 1.05, 7, sg(8)), b, WRAP, 0, [0, 0, 3.5], [Math.PI / 2, 0, 0]);
       add(box(L.head[0], L.head[1], L.head[2]), b, HEADC, 0, [0, 0, L.handle]); add(box(L.head[0] + 0.5, 1.2, L.head[2] + 0.5), b, BRASS, 0, [0, L.head[1] * 0.38, L.handle]); add(box(L.head[0] + 0.5, 1.2, L.head[2] + 0.5), b, BRD, 0, [0, -L.head[1] * 0.38, L.handle]); }
     // merge: rigid skinning (one bone per part). Fur: lit / mid / shadow by facing (up lit, under dark), darker at the joints, clumped tufts (shoulders, forearms, shins) + a noise normal
     const J = [[0, cy + 24], [BP.shA[0], cy + BP.shA[1]], [BP.shA[0], cy + BP.shA[1] - BP.armA[0]], [BP.shB[0], cy + BP.shB[1]], [BP.shB[0], cy + BP.shB[1] - BP.armB[0]], [BP.hipW, hy], [BP.hipW, hy - BP.thigh], [0, hy - 4]];
-    const P = [], N = [], C = [], SI = [], SW = [], I = [], FU = []; let base = 0; const nz = (x, y, z) => 0.5 + 0.25 * Math.sin(x * 1.7 + y * 0.9) * Math.sin(z * 1.3 - y * 0.7) + 0.25 * Math.sin(x * 4.1 - z * 3.3 + y * 2.9);
-    for (const { g, bone, col, kind } of parts) { const gi = g.index ? g : null, p = g.attributes.position, n = g.attributes.normal, oy = bone >= 15 ? cy : 0; /* tongs + hammer: modelled at their bone's origin, which rests at the chest (bind pose) */
+    const P = [], N = [], C = [], SI = [], SW = [], I = [], FU = [], cards = [], CARDP = mob ? 0.62 : 0.8, hsh3 = (a, b, c) => { const v = Math.sin(a * 12.9898 + b * 78.233 + c * 37.719) * 43758.5453; return v - Math.floor(v); }; let base = 0; const nz = (x, y, z) => 0.5 + 0.25 * Math.sin(x * 1.7 + y * 0.9) * Math.sin(z * 1.3 - y * 0.7) + 0.25 * Math.sin(x * 4.1 - z * 3.3 + y * 2.9);
+    for (const { g, bone, col, kind } of parts) { const gi = g.index ? g : null, p = g.attributes.position, n = g.attributes.normal, oy = bone >= 15 && bone <= 17 ? cy : 0; /* tongs + hammer: modelled at their bone's origin, which rests at the chest (bind pose) */
       for (let i = 0; i < p.count; i++) { let x = p.getX(i), y = p.getY(i) + oy, z = p.getZ(i); const nn = nz(x, y, z), ny = n.getY(i); let c = g.userData.c ? g.userData.c[i] : col;
-        if (kind) { const tf = kind === 2 ? Math.pow(Math.max(0, Math.sin(x * 1.9 + z * 1.3 + y * 0.4) * Math.sin(y * 2.3 - x * 0.7 + z * 0.9)), 2) : 0, sh = (nn - 0.5) * 0.5 + tf * 1.6; x += n.getX(i) * sh; y += n.getY(i) * sh; z += n.getZ(i) * sh;
+        if (kind) { const tf = kind === 2 ? Math.pow(Math.max(0, Math.sin(x * 1.9 + z * 1.3 + y * 0.4) * Math.sin(y * 2.3 - x * 0.7 + z * 0.9)), 2) : 0, sh = (nn - 0.5) * 0.2 + tf * 0.35; x += n.getX(i) * sh; y += n.getY(i) * sh; z += n.getZ(i) * sh;
           let jd = 1e9; for (const [jx, jy] of J) jd = Math.min(jd, Math.hypot(Math.abs(x) - jx, y - jy)); const ao = (1 - 0.42 * (1 - sm(1, 6, jd))) * (0.86 + 0.28 * nn) * (y < 6 ? 0.8 : 1);
           const lit = ny >= 0 ? FM.map((v, k) => lerp(v, FL[k], Math.pow(ny, 0.8))) : FM.map((v, k) => lerp(v, FS[k], Math.min(1, -ny * 1.15))); c = lit.map((v, k) => lerp(v * (1 - 0.25 * (kind === 2 ? 1 - tf : 0)), FL[k] * 1.15, tf * 0.6) * ao); }
-        P.push(x, y, z); N.push(n.getX(i), ny, n.getZ(i)); C.push(...c); SI.push(bone, 0, 0, 0); SW.push(1, 0, 0, 0); FU.push(kind ? nn : -1); }
+        P.push(x, y, z); N.push(n.getX(i), ny, n.getZ(i)); C.push(...c); SI.push(bone, 0, 0, 0); SW.push(1, 0, 0, 0); FU.push(kind ? nn : -1);
+        if (kind && (kind === 2 ? hsh3(x, y, z) < CARDP : (bone <= 1 && n.getZ(i) < -0.25 && hsh3(x, z, y) < CARDP * 0.6))) cards.push([x, y, z, n.getX(i), ny, n.getZ(i), c, bone, bone === 2]); }
       if (gi) for (let i = 0; i < gi.index.count; i++) I.push(base + gi.index.getX(i)); else for (let i = 0; i < p.count; i++) I.push(base + i); base += p.count; g.dispose(); }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 3));
     geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(SI, 4)); geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(SW, 4)); geo.setIndex(I); geo.computeVertexNormals();
     { const nr = geo.attributes.normal, ps = geo.attributes.position; for (let i = 0; i < nr.count; i++) { if (FU[i] < 0) continue; const x = ps.getX(i), y = ps.getY(i), z = ps.getZ(i), v = new THREE.Vector3(nr.getX(i) + 0.1 * Math.sin(x * 3.1 + y * 1.7), nr.getY(i) + 0.1 * Math.sin(y * 2.9 - z * 2.3), nr.getZ(i) + 0.1 * Math.sin(z * 3.3 + x * 2.1)).normalize(); nr.setXYZ(i, v.x, v.y, v.z); } }
-    geo.computeBoundingSphere(); return geo; }
+    // fur cards: tapered strand cards (2 tris each, double-sided material) on the shoulders / hump, back, forearms, shins and crown; lit by the surface normal, root darker, tips lighter
+    { const nV = geo.attributes.position.count, CP = [], CN = [], CC = [], CS = [], CI = []; let nb = nV; const V = THREE.Vector3;
+      for (const [x, y, z, nx, ny, nz, c, bone, crown] of cards) for (let layer = 0; layer < 2; layer++) { const h = hsh3(x + layer, y, z), n = new V(nx, ny, nz), d = n.clone().multiplyScalar(crown ? 0.8 : 0.5).add(new V(0, crown ? 0.1 : -0.75, crown ? -0.5 : 0)).add(new V(h - 0.5, 0, hsh3(z, x, y) - 0.5).multiplyScalar(0.5)).normalize();
+        const len = layer ? 1.5 + 0.8 * h : 2.6 + 1.3 * h, w = layer ? 0.8 : 1.1, sd = new V().crossVectors(d, n).normalize(), r = new V(x, y, z).addScaledVector(n, -0.25 + 0.2 * layer), t = r.clone().addScaledVector(d, len);
+        const cr = c.map((v) => v * 0.7), ct = c.map((v, k) => lerp(v, FL[k] * 1.1, 0.5)); for (const [q, cc] of [[r.clone().addScaledVector(sd, -w / 2), cr], [r.clone().addScaledVector(sd, w / 2), cr], [t.clone().addScaledVector(sd, 0.08), ct], [t.clone().addScaledVector(sd, -0.08), ct]]) { CP.push(q.x, q.y, q.z); CN.push(nx, ny, nz); CC.push(...cc); CS.push(bone, 0, 0, 0); }
+        CI.push(nb, nb + 1, nb + 2, nb, nb + 2, nb + 3); nb += 4; }
+      const cat = (a, b, k) => { const o = new Float32Array(a.array.length + b.length); o.set(a.array); o.set(b, a.array.length); return new THREE.Float32BufferAttribute(o, k); };
+      const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', cat(geo.attributes.position, CP, 3)); g2.setAttribute('normal', cat(geo.attributes.normal, CN, 3)); g2.setAttribute('color', cat(geo.attributes.color, CC, 3));
+      const si = new Uint16Array(geo.attributes.skinIndex.array.length + CS.length); si.set(geo.attributes.skinIndex.array); si.set(CS, geo.attributes.skinIndex.array.length); g2.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
+      const sw = new Float32Array(si.length); for (let k = 0; k < si.length; k += 4) sw[k] = 1; g2.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4)); g2.setIndex(Array.from(geo.index.array).concat(CI)); geo.dispose(); g2.userData.cards = cards.length * 2; g2.computeBoundingSphere(); return g2; } }
   function bones() { const B = [], mk = (p, par) => { const b = new THREE.Bone(); b.position.set(...p); if (par != null) B[par].add(b); B.push(b); return b; };
     const hy = BP.hip; mk([0, hy, 0]); mk([0, BP.chestUp, 0], 0); mk([BP.head[0], BP.torso - 1 + 0, BP.head[2]], 1);
     for (const s of [1, -1]) { mk([s * BP.hipW, 0, 0], 0); mk([0, -BP.thigh, 0], B.length - 1); }
     for (const s of [1, -1]) { mk([s * BP.shA[0], BP.shA[1], BP.shA[2]], 1); mk([0, -BP.armA[0], 0], B.length - 1); }
     for (const s of [1, -1]) { mk([s * BP.shB[0], BP.shB[1], BP.shB[2]], 1); mk([0, -BP.armB[0], 0], B.length - 1); }
-    mk([0, 0, 0], 1); mk([0, 0, 0], 1); mk([0, 0, 0], 1); return B; }
+    mk([0, 0, 0], 1); mk([0, 0, 0], 1); mk([0, 0, 0], 1); mk([0, -BP.shin, 0], 4); mk([0, -BP.shin, 0], 6); return B; } // 18 / 19: the feet
   function lavaTex() { const N = 128, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d'), im = g.createImageData(N, N); // lava #fb6b1c with a hot #ffd24a core and hot veins, a little dark crust
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = i / N * 2 * Math.PI, b = j / N * 2 * Math.PI, rc = Math.hypot(i / N - 0.5, j / N - 0.5) * 2;
       const v = 0.5 + 0.22 * Math.sin(a * 3 + Math.sin(b * 2) * 2) * Math.cos(b * 3 + Math.sin(a * 2)) + 0.18 * Math.sin(a * 7 + b * 5) * Math.sin(b * 6 - a * 2) + 0.1 * Math.sin(a * 13 - b * 11), c = clamp(v, 0, 1), o = (j * N + i) * 4;
@@ -241,11 +258,11 @@ const FORGE = (() => {
     { const [cx, cz] = wld(L.crater[0], L.crater[1]); const lg = new THREE.CircleGeometry(84 * U, mob ? 28 : 48); lg.rotateX(-Math.PI / 2); M.lavaT = lavaTex(); const lm = new THREE.MeshBasicMaterial({ map: M.lavaT, color: 0xffffff }); lm.toneMapped = false;
       const lava = new THREE.Mesh(lg, lm); lava.position.set(cx, HB + L.lava * U, cz); lava.name = 'forgeLava'; g.add(lava); M.lava = lava; }
     // a light, low-alpha smoke plume (#6e6258): 8 camera-facing quads in one draw
-    { M.burn = burnTrees(mob); const n = 8 + 2 * M.burn.length; M.smN = n; const pg = new THREE.BufferGeometry(), I = []; for (let k = 0; k < n; k++) { const b = k * 4; I.push(b, b + 1, b + 2, b, b + 2, b + 3); } const uv = []; for (let k = 0; k < n; k++) uv.push(0, 0, 1, 0, 1, 1, 0, 1);
+    { M.burn = burnTrees(mob); const n = 12 + 2 * M.burn.length; M.smN = n; const pg = new THREE.BufferGeometry(), I = []; for (let k = 0; k < n; k++) { const b = k * 4; I.push(b, b + 1, b + 2, b, b + 2, b + 3); } const uv = []; for (let k = 0; k < n; k++) uv.push(0, 0, 1, 0, 1, 1, 0, 1);
       pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 12), 3)); pg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 16), 4)); pg.setIndex(I);
-      const sm2 = new THREE.MeshBasicMaterial({ color: 0x6e6258, map: smokeTex(), transparent: true, depthWrite: false, vertexColors: true, fog: false }); const pl = new THREE.Mesh(pg, sm2); pl.frustumCulled = false; pl.name = 'forgeSmoke'; pl.renderOrder = 2; g.add(pl); M.smoke = pl; }
+      const sm2 = new THREE.MeshBasicMaterial({ color: 0xffffff, map: smokeTex(), transparent: true, depthWrite: false, vertexColors: true, fog: false }); const pl = new THREE.Mesh(pg, sm2); pl.frustumCulled = false; pl.name = 'forgeSmoke'; pl.renderOrder = 2; g.add(pl); M.smoke = pl; }
     // the ape: one skinned mesh (rigid parts, vertex colours) = one draw call
-    { const geo = apeGeo(mob), B = bones(), mat = new THREE.MeshLambertMaterial({ vertexColors: true }); rimLight(mat); const ape = new THREE.SkinnedMesh(geo, mat); ape.add(B[0]); ape.updateMatrixWorld(true); ape.bind(new THREE.Skeleton(B));
+    { const geo = apeGeo(mob), B = bones(), mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }); rimLight(mat); const ape = new THREE.SkinnedMesh(geo, mat); ape.add(B[0]); ape.updateMatrixWorld(true); ape.bind(new THREE.Skeleton(B));
       ape.frustumCulled = false; ape.castShadow = !mob; ape.scale.setScalar(U); ape.name = 'forgeApe'; g.add(ape); M.ape = ape; M.B = B; M.apeTris = geo.index.count / 3; }
     // the bar (30 x 4 x 4): an emissive gradient, core -> edges (aE: 0 at the face centres, 1 at the box edges and ends), colours from the diagram's keyframes
     { const bg = new THREE.BoxGeometry(L.bar[2], L.bar[1], L.bar[0], 4, 4, 12); const p = bg.attributes.position, e = []; for (let k = 0; k < p.count; k++) { const ax = Math.abs(p.getX(k)) / (L.bar[2] / 2), ay = Math.abs(p.getY(k)) / (L.bar[1] / 2), az = Math.abs(p.getZ(k)) / (L.bar[0] / 2); e.push(Math.max(clamp(ax + ay - 1, 0, 1), sm(0.7, 1, az))); }
@@ -259,15 +276,15 @@ const FORGE = (() => {
     buildStumps(g, mob); buildFire(g, mob);
     M.t0 = performance.now() / 1000; M.lastT = null; M.barRest = null; anim(0, 0); }
   const V3 = () => new THREE.Vector3(), DOWN = () => new THREE.Vector3(0, -1, 0), ZAX = () => new THREE.Vector3(0, 0, 1);
-  function ik2(S, T, L1, L2, pole) { const d = T.clone().sub(S); let dist = d.length(); const dn = d.clone().normalize(); dist = clamp(dist, Math.abs(L1 - L2) + 0.01, L1 + L2 - 0.01);
+  function ik2(S, T, L1, L2, pole) { const d = T.clone().sub(S); let dist = d.length(); const dn = d.clone().normalize(); dist = clamp(dist, Math.abs(L1 - L2) + 0.01, (L1 + L2) * 0.96); /* (never a locked limb) */
     const a = (L1 * L1 + dist * dist - L2 * L2) / (2 * dist), h = Math.sqrt(Math.max(0, L1 * L1 - a * a)), p = pole.clone().sub(dn.clone().multiplyScalar(pole.dot(dn))); if (p.lengthSq() < 1e-6) p.set(0, 0, 1); p.normalize();
     return [S.clone().add(dn.clone().multiplyScalar(a)).add(p.multiplyScalar(h)), S.clone().add(dn.clone().multiplyScalar(dist))]; }
   function aimLimb(up, fore, S, E, H) { up.quaternion.setFromUnitVectors(DOWN(), E.clone().sub(S).normalize()); const dl = H.clone().sub(E).applyQuaternion(up.quaternion.clone().invert()).normalize(); fore.quaternion.setFromUnitVectors(DOWN(), dl); }
   // the upper right hammer: key hand positions (ape space), handle directions and elbow poles; arcs = quadratic Beziers through a control point
   const bez = (a, c, b, u) => a.clone().multiplyScalar((1 - u) * (1 - u)).add(c.clone().multiplyScalar(2 * u * (1 - u))).add(b.clone().multiplyScalar(u * u));
   const v3 = (x, y, z) => new THREE.Vector3(x, y, z), nlerp = (a, b, u) => a.clone().lerp(b, u).normalize();
-  function hammerAt(t, P, barC) { const strikeHead = v3(-3.5, barC.y + L.bar[1] / 2 + L.head[1] / 2, barC.z - 3), dI = v3(0.05, -0.6, 0.8).normalize(), I = strikeHead.clone().sub(dI.clone().multiplyScalar(L.handle));
-    const R = v3(-10, 64, 17), dR = v3(-0.1, 0.92, 0.35).normalize(), W = v3(-9, 82, 3), dW = v3(0.05, -0.3, -0.95).normalize(), pR = v3(-1, -0.3, -0.4), pW = v3(-0.4, 1, 0.2), pI = v3(-0.7, 0.2, -0.6);
+  function hammerAt(t, P, barC) { const strikeHead = v3(-1.5, barC.y + L.bar[1] / 2 + L.head[1] / 2 - 0.8, barC.z + 6), dI = v3(0.05, -0.6, 0.8).normalize(), I = strikeHead.clone().sub(dI.clone().multiplyScalar(L.handle));
+    const R = v3(-10, 64, 17), dR = v3(-0.1, 0.92, 0.35).normalize(), W = v3(-9, 84, 1), dW = v3(0.05, -0.45, -0.89).normalize(), pR = v3(-1, -0.3, -0.4), pW = v3(-0.4, 1, 0.2), pI = v3(-0.7, 0.2, -0.6);
     const hang = { h: v3(-13, P.hipY - 3, 5 + 2 * Math.sin(t * 1.3)), d: v3(-0.1, -0.92, 0.38).normalize(), p: v3(-1, 0, -1) };
     const tt = ((t % LOOP) + LOOP) % LOOP, Hh = hitTimes(); let h, d, p;
     const hit = (() => { for (const th of Hh) if (tt >= th - 0.85 && tt < th + 0.75) return th; return null; })();
@@ -275,38 +292,51 @@ const FORGE = (() => {
       if (x < -0.25) { const u = sm(-0.85, -0.25, x); h = bez(R, v3(-14, 80, 13), W, u); d = nlerp(dR, dW, u); p = nlerp(pR, pW, sm(-0.85, -0.45, x)); } // wind-up: shoulder rolls back, elbow above the head, the hammer drops behind
       else if (x < 0) { const u = (x + 0.25) / 0.25, ue = u * u * (1.6 - 0.6 * u); h = bez(W, v3(-8, 86, 24), I, ue); d = nlerp(dW, dI, Math.pow(u, 2.2)); p = nlerp(pW, pI, sm(0, 0.6, u)); } // swing: the elbow leads, the forearm whips
       else if (x < 0.067) { h = I.clone(); d = dI.clone(); p = pI.clone(); } // impact: a 2-frame hold
-      else if (x < 0.2) { const u = Math.sin(Math.PI * (x - 0.067) / 0.133); h = I.clone().add(v3(0, 1.8 * u, -0.6 * u)); d = nlerp(dI, v3(0, -0.3, 0.95), 0.25 * u); p = pI.clone(); } // a slight rebound
+      else if (x < 0.2) { const u = Math.sin(Math.PI * (x - 0.067) / 0.133); h = I.clone().add(v3(0, 1.8 * u, -0.6 * u)); d = dI.clone().applyAxisAngle(v3(1, 0, 0), -0.22 * u); /* a 12 deg rebound */ p = pI.clone(); } // a slight rebound
       else { const u = sm(0.2, 0.75, x); h = bez(I, v3(-14, 55, 27), R, u); d = nlerp(dI, dR, u); p = nlerp(pI, pR, u); } } // eased recovery
     else if (tt >= 10 && tt < 12) { const u = sm(10.6, 11.95, tt); h = hang.h.clone().lerp(R, u); h.z += 6 * Math.sin(Math.PI * u); d = nlerp(hang.d, dR, u); p = nlerp(hang.p, pR, u); } // raise to the ready pose
     else if (tt >= 12 && tt < 23.6) { h = R.clone(); d = dR.clone(); p = pR.clone(); if (tt > 23.15) { const u = sm(23.15, 23.6, tt); h.lerp(hang.h, u); d = nlerp(dR, hang.d, u); p = nlerp(pR, hang.p, u); } }
     else { h = hang.h; d = hang.d; p = hang.p; if (P.walk != null) { const sw = Math.sin(P.walk * 2 * Math.PI); h = h.clone().add(v3(0, 1.5 * Math.abs(sw), -6 * sw)); } } // hangs; swings against his steps
     return { h, d, p }; }
   // shoulder roll / torso twist / dip lead the hand (evaluated ~3 frames ahead); the elbow pole ~1.5 frames ahead
-  function strikeBody(t) { const Hh = hitTimes(); let tw = 0, dip = 0, sh = v3(0, 0, 0); for (const th of Hh) { const x = t - th; if (x < -0.85 || x > 0.75) continue;
-      const wind = sm(-0.85, -0.3, x) * (1 - sm(-0.3, 0, x)), hitk = sm(-0.25, 0, x) * (1 - sm(0.1, 0.75, x)); tw += 9 * wind - 6 * hitk; dip += 5 * hitk; sh.add(v3(0, 1.2 * wind - 0.4 * hitk, -2 * wind + 1.4 * hitk)); }
-    return { tw, dip, sh }; }
+  function strikeBody(t) { const Hh = hitTimes(); let tw = 0, dip = 0, fw = 0, sh = v3(0, 0, 0); for (const th of Hh) { const x = t - th; if (x < -0.85 || x > 0.75) continue;
+      const wind = sm(-0.85, -0.3, x) * (1 - sm(-0.3, 0, x)), hitk = sm(-0.25, 0, x) * (1 - sm(0.1, 0.75, x)); tw += 9 * wind - 6 * hitk; dip += 7 * hitk; fw += 1.4 * hitk; sh.add(v3(0, 1.2 * wind - 0.4 * hitk, -2 * wind + 1.4 * hitk)); }
+    return { tw, dip, sh, fw }; }
+  // foot placement: in a walk window each foot takes two steps (L .02-.30, R .25-.52, L .50-.78, R .72-1.0), landing where the body will stand a little later; a planted foot keeps its world spot and yaw
+  const WALKW = [[6.0, 9.8], [23.8, 26.6]], STEPS = [[[0.02, 0.3, 0.45], [0.5, 0.78, 1]], [[0.25, 0.52, 0.62], [0.72, 1, 1]]];
+  function stdFoot(s, X, yaw) { const lx = s * (BP.hipW + 1), lz = 3, c = Math.cos(yaw * DEG), sn = Math.sin(yaw * DEG); return [X - (lx * c + lz * sn), -lx * sn + lz * c, yaw]; }
+  function feetAt(t, P) { const tt = ((t % LOOP) + LOOP) % LOOP, out = []; const w = WALKW.find(([a, b]) => tt >= a && tt < b);
+    for (const [si, s] of [[0, 1], [1, -1]]) { if (!w) { out.push({ x: s * (BP.hipW + 1), z: 3, lift: 0, yaw: 0, pitch: 0, sw: 0 }); continue; }
+      const [a, b] = w, f = (tt - a) / (b - a), at = (q) => { const Q = pose(a + q * (b - a)); return stdFoot(s, Q.X, Q.yaw); }; let pos = at(0), lift = 0, pitch = 0, sw = 0;
+      for (const [f0, f1, land] of STEPS[si]) { const L2 = at(land); if (f >= f1) { pos = L2; continue; } if (f > f0) { const u = sm(f0, f1, f), r = (f - f0) / (f1 - f0); pos = [lerp(pos[0], L2[0], u), lerp(pos[1], L2[1], u), lerp(pos[2], L2[2], u)]; lift = 4.5 * Math.sin(Math.PI * r); sw = Math.sin(Math.PI * r);
+          pitch = 22 * sm(0, 0.15, r) * (1 - sm(0.15, 0.5, r)) - 16 * sm(0.55, 0.85, r) * (1 - sm(0.92, 1, r)); } break; } // toe-off (toes down), then heel strike (toes up), then flat
+      const c = Math.cos(P.yaw * DEG), sn = Math.sin(P.yaw * DEG), wx = -(pos[0] - P.X), wz = pos[1]; out.push({ x: wx * c - wz * sn, z: wx * sn + wz * c, lift, yaw: pos[2] - P.yaw, pitch, sw }); }
+    return out; }
   function setPose(t) { const B = M.B, P = pose(t), ape = M.ape, [wx, wz] = wld(P.X, 0); ape.position.set(wx, HB, wz); ape.rotation.set(0, P.yaw * DEG, 0); ape.updateMatrix(); ape.updateMatrixWorld(true);
     const sb = strikeBody(((t + 0.1) % LOOP + LOOP) % LOOP), walkTw = P.walk != null ? 6 * Math.sin(P.walk * 2 * Math.PI) : 0;
     const hips = B[0], chest = B[1], head = B[2]; hips.position.set(0, P.hipY, 0); hips.quaternion.setFromAxisAngle(v3(0, 1, 0), -walkTw * 0.5 * DEG);
     chest.quaternion.setFromAxisAngle(v3(1, 0, 0), (P.lean + sb.dip) * DEG).multiply(new THREE.Quaternion().setFromAxisAngle(v3(0, 1, 0), (sb.tw + walkTw) * DEG));
     head.quaternion.setFromAxisAngle(v3(1, 0, 0), -(P.lean + sb.dip) * 0.6 * DEG + 0.12).multiply(new THREE.Quaternion().setFromAxisAngle(v3(0, 1, 0), -(sb.tw + walkTw) * 0.6 * DEG));
     hips.updateMatrix(); chest.updateMatrix(); const chM = hips.matrix.clone().multiply(chest.matrix), chI = chM.clone().invert(), toC = (v) => v.clone().applyMatrix4(chI), dirC = (v) => v.clone().transformDirection(chI);
-    // legs: feet planted; two steps while walking (left first half, right second); knees forward, never straight
-    const wk = P.walk || 0, stepOf = (side) => (side > 0 ? sm(0.05, 0.5, wk) : sm(0.5, 0.95, wk)); let kneeL = null;
-    for (const [s, b0] of [[1, 3], [-1, 5]]) { const u = P.walk != null ? stepOf(s) : 0, lift = Math.sin(Math.PI * u) * 4.5, fz = 3 + (P.walk != null ? 5 * Math.sin(Math.PI * u) * (u < 1 ? 1 : 0) : 0);
-      const T2 = v3(s * (BP.hipW + 1), BP.ankle + lift - P.hipY, fz), S2 = v3(s * BP.hipW, 0, 0); const [E, H] = ik2(S2, T2, BP.thigh, BP.shin, v3(0, 0, 1)); aimLimb(B[b0], B[b0 + 1], S2, E, H); if (s > 0) kneeL = E.clone().add(v3(0, P.hipY, 0)); }
+    // legs: real foot placement. Planted feet stay put in the world; two steps each foot per walk (heel-to-toe), the hips shift over the planted foot
+    const FT = feetAt(t, P); hips.position.set(1.4 * (FT[1].sw - FT[0].sw), P.hipY, sb.fw); hips.updateMatrix(); const chM2 = hips.matrix.clone().multiply(chest.matrix); chI.copy(chM2).invert(); let kneeL = null;
+    for (const [s, b0, fb, F] of [[1, 3, 18, FT[0]], [-1, 5, 19, FT[1]]]) { const T2 = v3(F.x - hips.position.x, BP.ankle + F.lift - P.hipY, F.z - sb.fw), S2 = v3(s * BP.hipW, 0, 0); const [E, H] = ik2(S2, T2, BP.thigh, BP.shin, v3(0, 0, 1)); aimLimb(B[b0], B[b0 + 1], S2, E, H); if (s > 0) kneeL = E.clone().add(v3(hips.position.x, P.hipY, sb.fw));
+      const qD = new THREE.Quaternion().setFromEuler(new THREE.Euler(F.pitch * DEG, F.yaw * DEG, 0, 'YXZ')), qP = hips.quaternion.clone().multiply(B[b0].quaternion).multiply(B[b0 + 1].quaternion); B[fb].quaternion.copy(qP.invert().multiply(qD)); }
     // tongs: hand-mid in ape space -> chest space; both lower hands on the reins (elbows ~100 deg); the bar turns on strikes 3 and 6
     const tg = P.tg, hm = v3(0, tg.y + 0.5 * P.adj, tg.z + 0.4 * P.adj), td = v3(0, -Math.sin(tg.p * DEG), Math.cos(tg.p * DEG)); const hmC = toC(hm), tdC = dirC(td);
     B[15].position.copy(hmC); B[15].quaternion.setFromUnitVectors(ZAX(), tdC).multiply(new THREE.Quaternion().setFromAxisAngle(ZAX(), P.roll || 0));
-    for (const [s, b0] of [[1, 11], [-1, 13]]) { const S = v3(s * BP.shB[0], BP.shB[1], BP.shB[2]), T = hmC.clone().add(tdC.clone().multiplyScalar(s > 0 ? 1.5 : 4.5)).add(v3(s * 1.2, 0, 0)); const [E, H] = ik2(S, T, BP.armB[0], BP.armB[1], v3(s, -0.5, -0.5)); aimLimb(B[b0], B[b0 + 1], S, E, H); }
+    for (const [s, b0] of [[1, 11], [-1, 13]]) { const S = v3(s * BP.shB[0], BP.shB[1], BP.shB[2]), T0 = hmC.clone().add(tdC.clone().multiplyScalar(s > 0 ? 0 : 5.5)).add(v3(s * 1.0, 0, 0)), T = T0.clone().addScaledVector(T0.clone().sub(S).normalize(), -1.8); const [E, H] = ik2(S, T, BP.armB[0], BP.armB[1], v3(s, -0.5, -0.5)); /* (the rein runs through the fist) */ aimLimb(B[b0], B[b0 + 1], S, E, H); }
     // upper left: braced on his knee (dip), swinging against his steps (walks), on the platform's edge (lay + strikes: planted)
     { const tt = ((t % LOOP) + LOOP) % LOOP, knee = kneeL.clone().lerp(v3(BP.hipW, P.hipY, 0), 0.3).add(v3(1, 2.5, 2.5)), sw = P.walk != null ? Math.sin(P.walk * 2 * Math.PI) : 0, free = v3(13, P.hipY - 1 + 1.5 * Math.abs(sw), 5 + 6 * sw);
-      const [eX, eY] = [PC[0] - PA + 3 - L.S, 5], edge = v3(eY, L.plat[3] + 0.6, eX); let T;
+      const eY = 10, eX = PC[0] - PA * Math.sqrt(1 - (eY / PB) ** 2) + 1.5 - L.S, edge = v3(eY, L.plat[3] + 0.6, eX); let T;
       if (tt < 4) T = free.clone().lerp(knee, sm(0.2, 1.2, tt)); else if (tt < 6) T = knee.clone().lerp(free, sm(4.2, 5.4, tt)); else if (tt < 10) T = free; else if (tt < 23.4) T = free.clone().lerp(edge, sm(10.4, 11.6, tt)); else T = edge.clone().lerp(free, sm(23.4, 24.2, tt));
       const S = v3(BP.shA[0], BP.shA[1], BP.shA[2]), [E, H] = ik2(S, toC(T), BP.armA[0], BP.armA[1], v3(1, 0.2, -0.7)); aimLimb(B[7], B[8], S, E, H); B[16].position.set(0, 0, 0); }
     // upper right: the hammer (shoulder rolls with the strike body, elbow pole ~1.5 frames ahead of the hand)
     { const barC = M.barRest ? M.barRest.local : v3(0, 30, 50), a = hammerAt(t, P, barC), ap = hammerAt(t + 0.05, P, barC), S = v3(-BP.shA[0], BP.shA[1], BP.shA[2]).add(sb.sh); B[9].position.copy(S);
-      const hC = toC(a.h), dC = dirC(a.d); B[17].position.copy(hC); B[17].quaternion.setFromUnitVectors(ZAX(), dC); const [E, H] = ik2(S, hC, BP.armA[0], BP.armA[1], dirC(ap.p)); aimLimb(B[9], B[10], S, E, H); }
+      const hC = toC(a.h), dC = dirC(a.d); B[17].position.copy(hC); B[17].quaternion.setFromUnitVectors(ZAX(), dC); const [E, H] = ik2(S, hC, BP.armA[0], BP.armA[1], dirC(ap.p)); aimLimb(B[9], B[10], S, E, H);
+      const tt = ((t % LOOP) + LOOP) % LOOP, jaw = hm.clone().addScaledVector(td, L.tongs - 3), bar = v3(barC.x - 1.5, barC.y, barC.z + 6), hh = a.h.clone().addScaledVector(a.d, L.handle), sh2 = strikeBody(tt);
+      let look = tt >= 11.5 && tt < 23.2 ? bar.clone().lerp(hh, clamp(sh2.tw / 9, 0, 1) * 0.45) : P.walk != null ? v3(0, 55, 60) : jaw; const hp = v3(BP.head[0], BP.torso - 1, BP.head[2]), dir = toC(look).sub(hp).normalize();
+      const q = new THREE.Quaternion().setFromUnitVectors(ZAX(), dir), rest = new THREE.Quaternion().setFromAxisAngle(v3(1, 0, 0), 0.12); head.quaternion.copy(rest.slerp(q, 0.8)); } // his gaze
     ape.updateMatrixWorld(true); return P; }
   function jawWorld() { const b = M.B[15]; return { p: new THREE.Vector3(0, 0, L.tongs - 1.2).applyMatrix4(b.matrixWorld), q: b.getWorldQuaternion(new THREE.Quaternion()) }; }
   function headWorld(i) { return new THREE.Vector3(0, -L.head[1] / 2, L.handle).applyMatrix4(M.B[16 + (i || 0)].matrixWorld); }
@@ -338,8 +368,10 @@ const FORGE = (() => {
       im.setMatrixAt(n, m4); im.setColorAt(n, c0.clone().lerp(c1, hsh(i, 9.9))); if (hsh(i, 1.9) < 0.3) M.stumpTips.push(new THREE.Vector3(x, y + h, z)); });
     im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; im.name = 'forgeStumps'; im.castShadow = !mob; g.add(im); M.stumps = im; M.nStumps = P.length; }
   // trees just outside the scorched edge, burning: flickering flame points + 2 smoke quads each (in the plume's draw)
-  function burnTrees(mob) { const out = []; if (typeof W === 'undefined' || !W.objs) return out; for (const o of W.objs) { if (o.type !== 'tree' && o.type !== 'pine') continue; const [X, Y] = loc(o.x, o.y); if (!inBox(X, Y)) continue; const dE = (Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]) - 1) * L.scorch[3];
-      if (dE < 34 || dE > 80 || keepOut(o.x, o.y, 0)) continue; if (out.some((b) => Math.hypot(b.x - o.x, b.z - o.y) < 45 * U)) continue; const H = (o.r || 18) * (o.type === 'pine' ? 6.6 : 5.4); out.push({ x: o.x, z: o.y, y: gH(o.x, o.y), H, ph: hsh(o.x, o.y) }); if (out.length >= (mob ? 8 : 12)) break; } M.nBurn = out.length; return out; }
+  function burnTrees(mob) { const out = []; if (typeof W === 'undefined' || !W.objs) return out; const NS = mob ? 8 : 12, best = new Array(NS).fill(null); // one burning tree per sector of the ring just outside the scorched edge
+    for (const o of W.objs) { if (o.type !== 'tree' && o.type !== 'pine') continue; const [X, Y] = loc(o.x, o.y); if (!inBox(X, Y)) continue; const dE = (Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]) - 1) * L.scorch[3]; if (dE < 34 || dE > 85 || keepOut(o.x, o.y, 0)) continue;
+      const sec = Math.floor(((Math.atan2(Y / L.scorch[3], (X - L.scorch[0]) / L.scorch[2]) + Math.PI) / (2 * Math.PI)) * NS) % NS, sc = Math.abs(dE - 45); if (!best[sec] || sc < best[sec].sc) best[sec] = { o, sc }; }
+    for (const b of best) if (b) { const o = b.o, H = (o.r || 18) * (o.type === 'pine' ? 6.6 : 5.4); out.push({ x: o.x, z: o.y, y: gH(o.x, o.y), H, ph: hsh(o.x, o.y) }); } M.nBurn = out.length; return out; }
   function buildFire(g, mob) { const per = mob ? 9 : 14, n = M.burn.length * per + (M.stumpTips || []).length; M.fireN = n; const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); M.firePer = per;
     const pm = new THREE.PointsMaterial({ size: 5 * U, map: dotTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); pm.toneMapped = false; const pts = new THREE.Points(pg, pm); pts.frustumCulled = false; pts.name = 'forgeFire'; g.add(pts); M.fire = pts; }
   function stepFire(now) { if (!M.fire) return; const ps = M.fire.geometry.attributes.position, cl = M.fire.geometry.attributes.color, per = M.firePer; let n = 0;
@@ -352,9 +384,9 @@ const FORGE = (() => {
     while (M.emAcc >= 1) { M.emAcc -= 1; const fromCr = Math.random() < 0.7, a = Math.random() * 6.28, r = Math.random() * 60 * U, p = fromCr ? new THREE.Vector3(o.x + Math.cos(a) * r, o.y + 4 * U, o.z + Math.sin(a) * r) : (() => { const [x, z] = wld(PC[0] + (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 30); return new THREE.Vector3(x, HB + 28 * U, z); })();
       const wa = Math.random() * 6.28, ws = (5 + Math.random() * 9) * U; M.sp.push({ p, v: new THREE.Vector3(Math.cos(wa) * ws, (fromCr ? 14 + Math.random() * 10 : 5 + Math.random() * 5) * U, Math.sin(wa) * ws), age: 0, life: 10 + Math.random() * 8, ground: false, g: 2.2, drag: 0.15, c: [1, 0.25 + 0.3 * Math.random(), 0.03], ember: true }); if (M.sp.length > M.spN) M.sp.shift(); } }
   function stepSmoke(now) { const c = typeof M3 !== 'undefined' && M3.camera; if (!c || !M.smoke) return; const ps = M.smoke.geometry.attributes.position, cl = M.smoke.geometry.attributes.color, rt = new THREE.Vector3().setFromMatrixColumn(c.matrixWorld, 0), up = new THREE.Vector3().setFromMatrixColumn(c.matrixWorld, 1);
-    const n = 8, o = M.lava.position; for (let k = 0; k < M.smN; k++) { if (k >= n) { const b = M.burn[(k - n) >> 1], u = (((k - n) & 1) * 0.5 + now * 0.08 + b.ph) % 1, sz = b.H * (0.35 + 0.6 * u), a = 0.38 * sm(0, 0.2, u) * (1 - sm(0.45, 1, u)), cx = b.x - u * 12 * U, cz = b.z + u * 5 * U, cyy = b.y + b.H * (0.9 + 1.4 * u);
-        [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy], m) => { ps.setXYZ(k * 4 + m, cx + (rt.x * sx + up.x * sy) * sz, cyy + (rt.y * sx + up.y * sy) * sz, cz + (rt.z * sx + up.z * sy) * sz); cl.setXYZW(k * 4 + m, 0.75, 0.72, 0.7, a); }); continue; } const u = ((k / n + now * 0.012) % 1), h = (60 + u * 330) * U, sz = (40 + u * 120) * U, a = 0.42 * sm(0, 0.15, u) * (1 - sm(0.5, 1, u)), cx = o.x + (Math.sin(k * 2.3 + now * 0.05) * 12 - u * 70) * U, cz = o.z + Math.cos(k * 1.7) * 14 * U * u, cyy = HB + h;
-      const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]]; pts.forEach(([sx, sy], m) => { ps.setXYZ(k * 4 + m, cx + (rt.x * sx + up.x * sy) * sz, cyy + (rt.y * sx + up.y * sy) * sz, cz + (rt.z * sx + up.z * sy) * sz); cl.setXYZW(k * 4 + m, 1, 1, 1, a); }); }
+    const n = 12, o = M.lava.position; for (let k = 0; k < M.smN; k++) { if (k >= n) { const b = M.burn[(k - n) >> 1], u = (((k - n) & 1) * 0.5 + now * 0.08 + b.ph) % 1, sz = b.H * (0.35 + 0.6 * u), a = 0.38 * sm(0, 0.2, u) * (1 - sm(0.45, 1, u)), cx = b.x - u * 12 * U, cz = b.z + u * 5 * U, cyy = b.y + b.H * (0.9 + 1.4 * u);
+        [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([sx, sy], m) => { ps.setXYZ(k * 4 + m, cx + (rt.x * sx + up.x * sy) * sz, cyy + (rt.y * sx + up.y * sy) * sz, cz + (rt.z * sx + up.z * sy) * sz); cl.setXYZW(k * 4 + m, 0.12, 0.105, 0.095, a); }); continue; } const u = ((k / n + now * 0.01) % 1), h = (45 + u * 390) * U, sz = (45 + u * 150) * U, a = 0.6 * Math.pow(1 - u, 1.3) * sm(0, 0.06, u), cx = o.x + (Math.sin(k * 2.3 + now * 0.05) * 14 - u * 130) * U, cz = o.z + (Math.cos(k * 1.7) * 16 + u * 40) * U, cyy = HB + h;
+      const pts = [[-1, -1], [1, -1], [1, 1], [-1, 1]]; pts.forEach(([sx, sy], m) => { ps.setXYZ(k * 4 + m, cx + (rt.x * sx + up.x * sy) * sz, cyy + (rt.y * sx + up.y * sy) * sz, cz + (rt.z * sx + up.z * sy) * sz); cl.setXYZW(k * 4 + m, lerp(0.102, 0.254, u), lerp(0.080, 0.212, u), lerp(0.069, 0.181, u), a); }); } // #5a5049 at the base -> #8a7f76 up high
     ps.needsUpdate = true; cl.needsUpdate = true; }
   const SPA = lin([1, 0xd2 / 255, 0x4a / 255]), SPB = lin([1, 0x6a / 255, 0x1a / 255]);
   function burst(i, em) { const n = Math.round(30 + 30 * clamp(em / 1.9, 0, 1)), p0 = headWorld(1); M.hits = (M.hits || 0) + 1; M.lastBurst = n;
