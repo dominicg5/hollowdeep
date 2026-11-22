@@ -9,6 +9,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 })).newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.goto(URL); await p.waitForTimeout(1000); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 200000 }).catch(() => {}); await p.waitForFunction(() => Explore.on, null, { timeout: 30000 }).catch(() => {});
+  await p.evaluate(() => { Skills.migrate(); S.skills.mining = Math.max(S.skills.mining || 0, Skills.xpToReach(90)); }); // existing tests predate drill-slot unlocks; give all 9 slots so deploy checks stay about stands, bits and tethers
   const shot = async (f) => { if (SHOT) { await p.waitForTimeout(1500); await p.screenshot({ path: SHOT + '/' + f }); } };
   const vis = (q) => `(() => { const e = document.querySelector('${q}'); return !!e && e.offsetParent !== null && getComputedStyle(e).display !== 'none'; })()`;
   const a = await p.evaluate(`(() => { const B = [...document.querySelectorAll('.cityBtns button')].filter((e) => e.offsetParent !== null), vb = [...document.querySelectorAll('.cityBtns .vb')].map((e) => { const r = e.getBoundingClientRect(); return [e.dataset.city, Math.round(r.width), Math.round(r.height)]; });
