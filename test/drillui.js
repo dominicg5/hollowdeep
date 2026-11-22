@@ -1,6 +1,5 @@
 // Drill stand setup UI: the backpack stand (seeded, one per drill left, plus a Mithril bit), its "Set up at nearest ore" menu (ore within a 5 s walk at her run speed, type + distance,
-// or "No ore within 5 s walk"), confirm walks her there and deploys; one lower-left HUD button for all placed drills (clear of the minimap / Walk-Run bar / Map
-// button, touch-sized); tapping it opens a read-only stats list (stand, bit, angle, speed, throughput, hopper, Ledge Tether metres, status — no bit slots or pick-up / swap actions);
+// or "No ore within 5 s walk"), confirm walks her there and deploys; one HUD button for all placed drills in the right-hand stack above Skills / Bag / Map (touch-sized, always visible, with a count badge); tapping it opens a read-only stats list (stand, bit, angle, speed, throughput, hopper, Ledge Tether metres, status — no bit slots or pick-up / swap actions);
 // those actions live on a proximity prompt at the drill itself; long-press still deploys
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
@@ -14,6 +13,21 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { Skills.migrate(); S.skills.mining = Math.max(S.skills.mining || 0, Skills.xpToReach(90)); }); // existing tests predate drill-slot unlocks; give all 9 slots so deploy checks stay about stands, bits and tethers
   const shot = async (f) => { if (SHOT) { await p.waitForTimeout(1500); await p.screenshot({ path: SHOT + '/' + f }); } };
   const tick = (n) => p.evaluate((n) => { for (let i = 0; i < n; i++) Explore.tick(1 / 30); }, n);
+  // the Drills button is on the map HUD even with no field drills, and opens an empty list
+  const empty = await p.evaluate(async () => { if (!Explore.on) { const F = Explore.ledgeFront(); Explore.enter(F.x, F.y); for (let i = 0; i < 8; i++) Explore.tick(1 / 30); }
+    Explore.drillHud(); const h = document.getElementById('drillHud'); let b = h && h.querySelector('.dh'); const n = b && b.querySelector('.n');
+    const vis = !!(h && h.classList.contains('on') && b && b.offsetParent !== null);
+    if (b) b.click(); await new Promise((r) => setTimeout(r, 80));
+    const c = document.getElementById('drillCtl'), empty = !!(c && c.classList.contains('on') && /No drills placed/.test(c.textContent || ''));
+    if (c) Explore.drillPanel(null);
+    b = document.querySelector('#drillHud .dh');
+    const r = b && b.getBoundingClientRect(), bag = document.getElementById('exBagBtn') && document.getElementById('exBagBtn').getBoundingClientRect(), sk = document.getElementById('exSkillsBtn') && document.getElementById('exSkillsBtn').getBoundingClientRect();
+    return { vis, off: !!(b && b.classList.contains('off')), n: n && n.textContent, empty, above: r && bag && sk && Math.abs(r.right - bag.right) <= 2 && r.bottom <= sk.top + 1, dev: (CityMap.setView('dev'), Explore.drillHud(), !!(document.getElementById('drillHud') && document.getElementById('drillHud').classList.contains('on'))) }; });
+  console.log(JSON.stringify(empty)); ok(empty.vis && empty.off && empty.n === '0' && empty.empty, 'the Drills button is on the HUD with a 0 badge when none are placed, and opens the empty list');
+  ok(empty.above, 'the Drills button sits in the right-hand stack above Skills and Bag');
+  ok(empty.dev, 'the Drills button stays on the HUD in Dev view');
+  await p.evaluate(() => { if (typeof CityMap !== 'undefined' && CityMap.setView) CityMap.setView('char'); });
+
   // seeded item
   const s0 = await p.evaluate(() => { Explore.build(); const WS = Explore.WS, N = Explore.ORE.nodes, D = Explore.drillState(), R = 5 * Explore.runSpeed() * WS;
     // a spot with no ore within reach (well clear of every node) and one ~12 m from a reachable ground node
@@ -43,9 +57,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     if (n2) { const st2 = Explore.oreStand(n2); Explore.enter(st2[0], st2[1]); for (let i = 0; i < 8; i++) Explore.tick(1 / 30); } // next free cluster can be more than a 5 s walk from the first (valley tin is ~17 m)
     const r = Explore.drillSetup(); let t = 0; while (Explore.EX.pend && t < 900) { Explore.tick(1 / 30); t++; } Explore.drillPanel(null); for (let i = 0; i < 20; i++) Explore.tick(1 / 30); Explore.drillHud();
     const R = (q) => { const e = document.querySelector(q); if (!e || e.offsetParent === null) return null; const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; }, B = [...document.querySelectorAll('#drillHud .dh')].map((e) => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; });
-    const hit = (a, c) => a && c && a[0] < c[2] && c[0] < a[2] && a[1] < c[3] && c[1] < a[3]; const others = ['#miniMap', '#exploreBar', '#exMapBtn', '#exBagBtn', '#cityHint', '.cityBtns', '#cityInfo', '.cityTitle', '#ticker'].map((q) => [q, R(q)]).filter((x) => x[1]);
-    return { err: r.err || null, n: B.length, B, over: others.filter(([q, o]) => B.some((bb) => hit(bb, o))).map((x) => x[0]), stack: B.length < 2 || B.every((bb, i) => i === 0 || bb[3] <= B[i - 1][1] + 0.5 || B[i - 1][3] <= bb[1] + 0.5), min: Math.min(...B.map((bb) => Math.min(bb[2] - bb[0], bb[3] - bb[1]))), lowLeft: B.every((bb) => bb[0] < 80 && bb[1] > innerHeight * 0.35) }; });
-  console.log(JSON.stringify(h2)); ok(h2.n === 1, `one HUD button for all placed drills (${h2.n})`); ok(!h2.over.length, `HUD button clear of the other buttons (${h2.over.join(',') || 'none'})`); ok(h2.min >= 44 && h2.lowLeft, `touch-sized (${h2.min}px) in the lower left`);
+    const hit = (a, c) => a && c && a[0] < c[2] && c[0] < a[2] && a[1] < c[3] && c[1] < a[3]; const others = ['#miniMap', '#exploreBar', '#exMapBtn', '#exBagBtn', '#exSkillsBtn', '#cityHint', '.cityBtns', '#cityInfo', '.cityTitle', '#ticker'].map((q) => [q, R(q)]).filter((x) => x[1]);
+    const bag = R('#exBagBtn'), sk = R('#exSkillsBtn'), n = document.querySelector('#drillHud .dh .n');
+    return { err: r.err || null, n: B.length, badge: n && n.textContent, B, over: others.filter(([q, o]) => B.some((bb) => hit(bb, o))).map((x) => x[0]), stack: B.length < 2 || B.every((bb, i) => i === 0 || bb[3] <= B[i - 1][1] + 0.5 || B[i - 1][3] <= bb[1] + 0.5), min: Math.min(...B.map((bb) => Math.min(bb[2] - bb[0], bb[3] - bb[1]))), hud: B[0] && bag && sk && Math.abs(B[0][2] - bag[2]) <= 2 && B[0][3] <= sk[1] + 1 }; });
+  console.log(JSON.stringify(h2)); ok(h2.n === 1 && h2.badge === '2', `one HUD button for all placed drills with a count badge (${h2.n}, ${h2.badge})`); ok(!h2.over.length, `HUD button clear of the other buttons (${h2.over.join(',') || 'none'})`); ok(h2.min >= 44 && h2.hud, `touch-sized (${h2.min}px) in the right-hand stack above Skills and Bag`);
   await shot('hud.png');
   // tap the icon: the panel
   const pn = await p.evaluate(async () => { document.querySelector('#drillHud .dh').click(); await new Promise((r) => setTimeout(r, 100)); const c = document.getElementById('drillCtl'), t = c.textContent;
