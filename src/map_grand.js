@@ -14,7 +14,7 @@ const GRAND = (() => {
   const toW = (d, s) => [G.T.x + G.ox * d + G.lx * s, G.T.y + G.oy * d + G.ly * s];
   const toL = (x, y) => { const dx = x - G.T.x, dy = y - G.T.y; return [dx * G.ox + dy * G.oy, dx * G.lx + dy * G.ly]; };
   // the ground in front of the door is evened out into the same gentle grassy rim ground as all round the tree (no ridges, cliffs or ledges)
-  function carve(x, y, h, mh, hf) { [h, mh] = carveTree(x, y, h, mh); [h, mh] = carveRamps(x, y, h, mh, hf); return carveW(x, y, h, mh); }
+  function carve(x, y, h, mh, hf) { [h, mh] = carveTree(x, y, h, mh); [h, mh] = carveRamps(x, y, h, mh, hf); if (typeof MILL !== 'undefined') { wGeom(); [h, mh] = MILL.pre(x, y, h, mh); const r = carveW(x, y, h, mh); return MILL.post(x, y, r[0], r[1]); } /* the Roller Mill's ledge, floor and wheel pit (roller_mill.js) */ return carveW(x, y, h, mh); }
   /* ---------- plateau access, OPTION B (Dominic: keep both - on by default with the stone steps; ?ramps=0 or localStorage hdLumenRamps=0 turns it off): instead of the stone steps
      ~600 m east, up to three graded earthen ramps straight out from the door's side of the summit, in the root-free lanes, each bridging the bank
      where it is shortest; the roots stay unclimbable (the ramps start beyond their reach) ---------- */
@@ -62,7 +62,7 @@ const GRAND = (() => {
     const tgt = CITY.summitH + 25 * Math.sin(d / 900 + s2 / 1300) * Math.cos(s2 / 1100); return [h + (tgt - h) * w, mh * (1 - w)]; }
   function wet(x, y, m) { return wetW(x, y, m); }
   // the tree's local frame (d out from the trunk through the door, s across)
-  function fit() { const T = W.heartwood; if (!T) { G = null; return; } const o = T.in + Math.PI, ox = Math.cos(o), oy = Math.sin(o); G = { T, ox, oy, lx: -oy, ly: ox, rT: Math.hypot(T.x, T.y), moved: [] }; }
+  function fit() { if (typeof MILL !== 'undefined' && W.objs) { wGeom(); MILL.prune(W.objs); } /* nothing grows on the Roller Mill's ledge or floor */ const T = W.heartwood; if (!T) { G = null; return; } const o = T.in + Math.PI, ox = Math.cos(o), oy = Math.sin(o); G = { T, ox, oy, lx: -oy, ly: ox, rT: Math.hypot(T.x, T.y), moved: [] }; }
 
   /* ---------- the door ---------- */
   function doorWoodTex(hw, H) { return cvTex(512, 768, (g, w, h) => { const r = prng(41);
@@ -222,6 +222,7 @@ const GRAND = (() => {
       // into the Hollow: cut at its rim (it pours over there)
       let fall = null; { const e = P[P.length - 1], d = Math.hypot(e[0], e[1]); if (l1 < 0 && d > HR + 140 && d < HR + 900) { const pr = P[P.length - 2], tx = e[0] - pr[0], ty = e[1] - pr[1], tl = Math.hypot(tx, ty) || 1; let x = e[0], y = e[1]; for (let s = 0; s < 40 && Math.hypot(x, y) > HR + 100; s++) { const r = Math.hypot(x, y), bx = tx / tl * 0.5 - x / r * 0.5, by = ty / tl * 0.5 - y / r * 0.5, bl = Math.hypot(bx, by); x += bx / bl * 60; y += by / bl * 60; P.push([x, y]); } } } /* streams that stopped short of the rim run on to it and pour over */
       const k = P.findIndex((p) => Math.hypot(p[0], p[1]) < HR + 140); if (k > 0) { const a = P[k - 1], d = Math.hypot(a[0], a[1]), u = [a[0] / d, a[1] / d]; P = P.slice(0, k); P.push([u[0] * (HR + 40), u[1] * (HR + 40)]); fall = { x: u[0] * (HR + 40), y: u[1] * (HR + 40), ux: -u[0], uy: -u[1] }; }
+      if (si === 1 && typeof MILL !== 'undefined') P = MILL.resample(P); /* the Roller Mill: exact points at its steps, ledge lip and wheel pit */
       return { id: si, P, l0, l1, fall, wl: null, w: WT.W0 * (l0 >= 0 && l1 < 0 ? 1.15 : 1) }; });
     // each spring wells up into a little pool cupped by its boulders (Art's stream_spring_source sheets), the stream spills out of its downhill lip
     WT.streams.forEach((S, si) => { const p = S.P[0], q = S.P[Math.min(4, S.P.length - 1)], d = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1, ux = (q[0] - p[0]) / d, uy = (q[1] - p[1]) / d;
@@ -242,7 +243,7 @@ const GRAND = (() => {
         if (S.lp != null) { const L = WT.lakes[S.lp]; for (let i = 0; i < g.length; i++) if (lakeE(L, S.P[i][0], S.P[i][1]) < 8) wl[i] = Math.min(wl[i], L.wl); }
         if (S.l0 < 0) for (let i = 1; i < g.length; i++) wl[i] = Math.min(wl[i], wl[i - 1] - (S.l1 >= 0 && lakeE(WT.lakes[S.l1], S.P[i][0], S.P[i][1]) < 30 ? 0 : 0.02 * Math.hypot(S.P[i][0] - S.P[i - 1][0], S.P[i][1] - S.P[i - 1][1]))); /* and once more, with a steady fall of at least 2 in 100 so it always visibly runs: nothing above may ever lift it */
         if (S.l0 < 0 && S.l1 >= 0) { const lw = WT.lakes[S.l1].wl; for (let i = 0; i < g.length; i++) wl[i] = Math.max(wl[i], lw); }
-        S.wl = wl; }
+        S.wl = wl; if (typeof MILL !== 'undefined') MILL.levels(S); }
       for (const S of WT.streams) for (const end of [0, S.P.length - 1]) { const p = S.P[end]; if (WT.lakes.some((L) => lakeE(L, p[0], p[1]) < 60)) continue; let hit = null; for (const T of WT.streams) { if (T === S) continue; for (let k = 0; k + 1 < T.P.length; k++) { const a = T.P[k], b = T.P[k + 1], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2)), d = Math.hypot(p[0] - a[0] - dx * t, p[1] - a[1] - dy * t); if (d < T.w * 2.5 && (!hit || d < hit.d)) hit = { d, lv: T.wl[k] + (T.wl[k + 1] - T.wl[k]) * t }; } }
         if (!hit) continue; const N = Math.min(10, S.P.length - 1); for (let j = 0; j <= N; j++) { const i = end ? S.P.length - 1 - j : j, f = 1 - sm(0, N, j); S.wl[i] = S.wl[i] * (1 - f) + hit.lv * f; } S.join = (S.join || 0) + 1; }
       WT.planned = true; } finally { WT.planning = false; } return WT.planned; }
@@ -289,7 +290,7 @@ const GRAND = (() => {
   float a = (0.6 + 0.35 * streak) * smoothstep(0.0, 0.1, u) * smoothstep(1.0, 0.9, u) * (1.0 - smoothstep(0.75, 1.0, v));`);
     const P = [], U = [], I = [], SD = [], SF = [], FP = [], FU = [], FI = [];
     for (const S of WT.streams) { let acc = 0; const base = P.length / 3; S.P.forEach((p, i) => { const q = S.P[Math.min(S.P.length - 1, i + 1)], o = S.P[Math.max(0, i - 1)], tx = q[0] - o[0], ty = q[1] - o[1], tl = Math.hypot(tx, ty) || 1, nx = -ty / tl, ny = tx / tl; if (i) acc += Math.hypot(p[0] - o[0], p[1] - o[1]) * 0.5 + Math.hypot(p[0] - S.P[i - 1][0], p[1] - S.P[i - 1][1]) * 0.5;
-        const wd = S.w * 1.5 * (S.l0 >= 0 && i < 3 ? 1.6 : 1), y = S.wl[i]; for (const sd of [-1, 0, 1]) { const x = p[0] + nx * wd * sd, z = p[1] + ny * wd * sd; let inL = 1e9; for (const L of WT.lakes) inL = Math.min(inL, lakeE(L, x, z)); P.push(x, y, z); U.push((sd + 1) / 2, acc / 220); SD.push(y - meshH(x, z)); SF.push(inL < -2 ? -1 : sm(6, 70, inL)); /* well inside a lake the stream hands over: -1 = discard, the lake surface (same level, its own depth colour) shows instead of a second ribbon */ }
+        const wd = S.w * 1.5 * (S.l0 >= 0 && i < 3 ? 1.6 : 1), y = S.wl[i]; for (const sd of [-1, 0, 1]) { const x = p[0] + nx * wd * sd, z = p[1] + ny * wd * sd; let inL = 1e9; for (const L of WT.lakes) inL = Math.min(inL, lakeE(L, x, z)); P.push(x, y, z); U.push((sd + 1) / 2, acc / 220); SD.push(y - meshH(x, z)); SF.push(S.hid && S.hid[i] ? -1 : inL < -2 ? -1 : sm(6, 70, inL)); /* (S.hid: the Roller Mill draws its own fall onto the wheel and pit pool) */ /* well inside a lake the stream hands over: -1 = discard, the lake surface (same level, its own depth colour) shows instead of a second ribbon */ }
         if (i) { const a = base + (i - 1) * 3; I.push(a, a + 3, a + 1, a + 1, a + 3, a + 4, a + 1, a + 4, a + 2, a + 2, a + 4, a + 5); } });
       if (S.fall) { const F = S.fall, top = S.wl[S.wl.length - 1], fb0 = FP.length / 3, nx = -F.uy, ny = F.ux, NV = 12; for (let j = 0; j <= NV; j++) { const v = j / NV, out = 30 + 140 * Math.pow(v, 0.7); for (const sd of [-1, 1]) { const x = F.x + F.ux * out + nx * S.w * sd * (1 + v * 0.3), y = F.y + F.uy * out + ny * S.w * sd * (1 + v * 0.3); FP.push(x, top - 420 * Math.pow(v, 1.3), y); FU.push(sd < 0 ? 0 : 1, v); } if (j) { const a = fb0 + (j - 1) * 2; FI.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } } } }
     const mk = (P, U, I, m, ro, X) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('aU', new THREE.Float32BufferAttribute(U, 2)); if (X) for (const k in X) g.setAttribute(k, new THREE.Float32BufferAttribute(X[k], 1)); g.setIndex(I); const o = new THREE.Mesh(g, m); o.renderOrder = ro; o.frustumCulled = false; scene.add(o); return o; };
@@ -298,7 +299,7 @@ const GRAND = (() => {
 float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y); }
 float fb(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.03 + 7.1; a *= 0.5; } return s; }`;
   function animW(t, night) { if (!GX.wmats) return; for (const m of GX.wmats) { m.uniforms.uT.value = t; m.uniforms.uN.value = night || 0; } }
-  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); } buildLakes(C); }
-  function anim(t, night) { animDoor(t, night); animW(t, night); }
+  function build(C) { if (!GX.built) { GX.built = true; buildDoor(C); } buildLakes(C); if (typeof MILL !== 'undefined' && WT.built) MILL.build(C); }
+  function anim(t, night) { animDoor(t, night); animW(t, night); if (typeof MILL !== 'undefined') MILL.anim(t, night); }
   return { ramps: RAMP, rampsOn, onRamp(x, y, m) { if (!rampsOn() || !RAMP.list.length) return false; for (const R of RAMP.list) { const b = R.bb; if (x < b[0] || y < b[1] || x > b[2] || y > b[3]) continue; for (let q = 0; q < R.P.length; q += 2) if (Math.hypot(R.P[q][0] - x, R.P[q][1] - y) < 90 + m) return true; } return false; }, build, anim, wet, streamBridges, streamLines() { wGeom(); return WT.streams; }, lakeE, water: WT, dodge, doorSpot, carve, fit, doorCard, enterTree, toW, toL, get door() { return GX.door; }, get spec() { return G; }, gx: GX };
 })();

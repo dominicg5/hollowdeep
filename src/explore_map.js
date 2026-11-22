@@ -29,6 +29,7 @@ const ExMap = (() => {
     if (Explore.tetherList) for (const t of Explore.tetherList()) if (!t.camp && t.kind !== 'door' && isFinite(t.x)) L.push({ x: t.x, y: t.y, t: (t.kind === 'drop' ? '🪢 ' : '🛠️ ') + t.name, k: 'teth', kind: t.kind }); // every tether end, by its (renamable) name; kind picks the marker
     if (typeof Mosby !== 'undefined' && Mosby.MS && Mosby.MS.trip && Mosby.MS.at) L.push({ x: Mosby.MS.at.x, y: Mosby.MS.at.y, t: Mosby.MS.trip.done ? '🏠 Your house (on Mosby\'s cousin)' : '🏠 Your house, on the move', k: 'tort' });
     if (typeof Mosby !== 'undefined' && Mosby.GM && Mosby.GM.at) L.push({ x: Mosby.GM.at.x, y: Mosby.GM.at.y, t: '🐢 Mosby', k: 'mosby' }); // the giant tortoise, where he is now (tap: walk to him)
+    if (typeof MILL !== 'undefined' && MILL.F) { const [x, y] = MILL.wld(10, 6); L.push({ x, y, t: '⚙️ Roller Mill', k: 'mill' }); } // the water-powered Roller Mill at the stream bend
     return L; } // labels only for the key places; bridges are drawn as part of the path network
   function draw() { const cv = st.cv; if (!cv) return; const g = cv.getContext('2d'), v = st.view, B = baseImage(), dpr = v.dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.fillStyle = '#18202e'; g.fillRect(0, 0, v.W, v.H);
     const R = Explore.REG, C = Explore.C, [ox, oy] = W2S(R.X0, R.Y0), sc = v.s * C * B.K; g.imageSmoothingEnabled = true; g.drawImage(B.cv, ox, oy, B.bw * sc, B.bh * sc);
