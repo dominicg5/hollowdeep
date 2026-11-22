@@ -43,6 +43,28 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     s.querySelector('.cxs[data-id="stand:iron"]').click(); await new Promise((r) => setTimeout(r, 100)); const menu = document.querySelector('#bagSheet .cxmenu'); o.menu = !!document.querySelector('#bagSheet .cxdrill'); o.mapStill = Explore.on; o.menuSH = menu && menu.scrollHeight; o.menuCH = menu && menu.clientHeight; o.menuFit = !!(menu && menu.clientHeight > 0 && menu.scrollHeight <= menu.clientHeight + 1); return o; });
   console.log(JSON.stringify(r4)); ok(r4.on && r4.frac >= 0.25 && r4.frac <= 0.42, `tapping the Backpack icon opens a sheet about a third of the screen (${r4.frac})`); ok(r4.bag && r4.cu && r4.drill && !r4.vault, 'it shows only what she carries (no vault items); the Riveted Iron stand lives here'); ok(r4.n === 20 && r4.vis === 20 && !r4.scroll, `all 20 slots are visible at once with no scrolling (${r4.vis}/${r4.n}, scroll=${r4.scroll})`); ok(!r4.title && !r4.gauge && !r4.foot, 'no Backpack title, capacity gauge or footer text'); ok(r4.xInside && r4.xClear, 'the close button sits fully inside the panel corner, clear of the slots'); ok(r4.menu && r4.mapStill, 'tapping the Riveted Iron stand there opens its set-up menu, the map stays live'); ok(r4.icoSq, `backpack icons are square within 1 px (${(r4.ico || []).slice(0, 3).map((q) => q[0] + 'x' + q[1]).join(', ')})`); ok(r4.menuFit, `the item info panel fits without scrolling (${r4.menuSH} <= ${r4.menuCH})`);
   await shot('bag-sheet.png');
+  const r4b = await p.evaluate(async () => {
+    const rect = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return [+r.left.toFixed(1), +r.top.toFixed(1), +r.width.toFixed(1), +r.height.toFixed(1)]; };
+    const same = (a, b) => !!a && !!b && a.every((v, i) => Math.abs(v - b[i]) <= 1);
+    const s = document.getElementById('bagSheet'), b = document.getElementById('exBagBtn'), x = s && s.querySelector('.bsx'), ch = document.querySelector('[data-city=vchar]');
+    const before = { s: rect(s), b: rect(b), x: rect(x), ch: rect(ch), y: window.scrollY || 0 };
+    // a vertical drag / wheel / programmatic scroll must not move the sheet, the page, or the HUD buttons
+    window.scrollBy(0, 180); document.documentElement.scrollTop = 180; document.body.scrollTop = 180;
+    if (s) s.scrollTop = 80; const bsb = s && s.querySelector('.bsb'); if (bsb) bsb.scrollTop = 80;
+    if (s) s.dispatchEvent(new WheelEvent('wheel', { deltaY: 240, bubbles: true, cancelable: true, view: window }));
+    const midR = s.getBoundingClientRect();
+    s.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, clientX: midR.left + midR.width / 2, clientY: midR.top + 12, pointerId: 9, pointerType: 'touch' }));
+    s.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, cancelable: true, clientX: midR.left + midR.width / 2, clientY: midR.top - 140, pointerId: 9, pointerType: 'touch' }));
+    s.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true, clientX: midR.left + midR.width / 2, clientY: midR.top - 140, pointerId: 9, pointerType: 'touch' }));
+    const mid = { s: rect(s), b: rect(b), x: rect(x), ch: rect(ch), y: window.scrollY || 0 };
+    document.querySelector('#bagSheet [data-cx=mclose]').click(); document.querySelector('#bagSheet [data-cx=sclose]').click();
+    const after = { sOn: s.classList.contains('on'), b: rect(b), ch: rect(ch), y: window.scrollY || 0, bagOpen: document.documentElement.classList.contains('bag-open') };
+    // reopen the stand menu so the existing close / Backpack-tab check can run as before
+    document.getElementById('exBagBtn').click(); await new Promise((r) => setTimeout(r, 150));
+    const stand = document.querySelector('#bagSheet .cxs[data-id="stand:iron"]'); if (stand) stand.click(); await new Promise((r) => setTimeout(r, 80));
+    return { midOk: same(before.s, mid.s) && same(before.b, mid.b) && same(before.x, mid.x) && same(before.ch, mid.ch) && mid.y === 0, afterOk: !after.sOn && same(before.b, after.b) && same(before.ch, after.ch) && after.y === 0 && !after.bagOpen, before, mid, after, reopened: document.getElementById('bagSheet').classList.contains('on') };
+  });
+  console.log(JSON.stringify(r4b)); ok(r4b.midOk, 'a vertical drag or scroll does not move the open backpack or the HUD buttons'); ok(r4b.afterOk && r4b.reopened, 'closing the backpack leaves the HUD buttons in the same place, with no leftover page shift');
   const r5 = await p.evaluate(async () => { document.querySelector('#bagSheet [data-cx=mclose]').click(); document.querySelector('#bagSheet [data-cx=sclose]').click(); const c = !document.getElementById('bagSheet').classList.contains('on'); setTab('bag'); await new Promise((r) => setTimeout(r, 300)); const only = (sel) => [...document.querySelectorAll(sel + ' .cxs.full')].every((e) => e.dataset.w === 'bag' && Craft.get('bag', e.dataset.id) > 0) && !document.querySelector(sel + ' [data-id="ore:gold"]'); let v = !!document.querySelector('#view .cxg-vault') || !only('#view'); Craft.open('bag'); await new Promise((r) => setTimeout(r, 200)); v = v || !!document.querySelector('.modal .cxg-vault, #modal .cxg-vault') || !only('body'); try { closeModalQuiet(); } catch (e) {} const g = !!document.querySelector('#view .cxg-bag'); setTab('city'); await new Promise((r) => setTimeout(r, 900)); return { c, v, g, on: Explore.on }; });
   ok(r5.c && r5.g && !r5.v && r5.on, 'the sheet closes with ✕; the Backpack tab also shows only the backpack');
   // the Mole: tap -> bubble with Menu -> his screen
