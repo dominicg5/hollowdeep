@@ -8,7 +8,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = proces
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 }); let p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   const boot = async () => { await p.goto(URL + '?t=' + Date.now(), { timeout: 90000, waitUntil: 'commit' }); /* the game's own readiness is waited for below (a busy reload can hold the load event) */ await p.waitForTimeout(1000); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
     await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 240000 }).catch(() => {}); await p.waitForFunction(() => Explore.on && Mosby.GM.g, null, { timeout: 90000 }).catch(() => {});
     await p.evaluate(async () => { for (let i = 0; i < 120 && M3.models !== 'ready'; i++) await new Promise((r) => setTimeout(r, 1000)); await new Promise((r) => setTimeout(r, 1200)); });
@@ -85,7 +85,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   if (SHOT) { await p.evaluate(() => { MosbyTalk.close(); const E = Explore.EX, G = CharView.st.gnd, Rg = MosbyRide.region(), u = MosbyRide.um(); G.x = Rg.sx / u + 3; G.z = Rg.sz / u - 2; G.y = MosbyRide.hy(G.x, G.z); G.face = 2.4; E.d = 42; E.tilt = 0.3; E.az = 2.2; Mosby.GM.hold = false; __frame(40); /* he is walking */ }); await p.waitForTimeout(1500); await p.screenshot({ path: SHOT + '/mosby-ride-shell.png', timeout: 180000 }); }
   // ---- reload while riding: back on his shell
   await p.evaluate(() => { const G = CharView.st.gnd; S.mosbyRide.x = +G.x.toFixed(2); S.mosbyRide.z = +G.z.toFixed(2); save(); });
-  const saved = await p.evaluate(() => S.mosbyRide); await boot(); await p.waitForFunction(() => MosbyRide.on, null, { timeout: 30000 }).catch(() => {});
+  const saved = await p.evaluate(() => S.mosbyRide); /* reload = a fresh tab on the same saved game (navigating the busy WebGL page can stall for minutes) */ await p.close(); p = await ctx.newPage(); p.on('pageerror', (e) => errs.push(e.message)); await boot(); await p.waitForFunction(() => MosbyRide.on, null, { timeout: 30000 }).catch(() => {});
   const r5 = await p.evaluate(() => { const G = CharView.st.gnd, h = Explore.here(), GM = Mosby.GM; return { on: MosbyRide.on, x: G && G.x, z: G && G.z, off: Math.hypot(h[0] - GM.at.x, h[1] - GM.at.y) / Explore.WS, saved: S.mosbyRide }; });
   console.log(JSON.stringify(r5)); ok(r5.on && Math.hypot(r5.x - saved.x, r5.z - saved.z) < 0.5 && r5.off < 40, `a reload while riding puts her back on his shell where she stood (${r5.off.toFixed(1)} m from his middle)`);
   // ---- Hop off: safe flat dry ground within ~15 m of his flank
