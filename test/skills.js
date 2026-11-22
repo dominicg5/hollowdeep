@@ -155,7 +155,7 @@ const near = (a, b, e) => Math.abs(a - b) <= e;
   console.log(JSON.stringify({ open: ui.mid && ui.mid.open, rows: ui.mid && ui.mid.rows, locks: ui.mid && ui.mid.locks, hooked: ui.afterHook && { hooked: ui.afterHook.hooked, view: ui.afterHook.view }, midOk: ui.midOk, detOk: ui.detOk, afterOk: ui.afterOk }));
   ok(ui.before && ui.before.on, 'the Skills HUD button is on the Character-view HUD, above Bag');
   ok(ui.mid && ui.mid.open && ui.mid.sel, 'tapping the Skills button opens the skills screen and presses the button');
-  ok(ui.mid && ui.mid.rows === 4 && ui.mid.locks === 2, `the screen shows Mining, Smithing and two locked Future skill rows (${ui.mid && ui.mid.rows} rows, ${ui.mid && ui.mid.locks} locked)`);
+  ok(ui.mid && ui.mid.rows === 4 && ui.mid.locks === 1, `the screen shows Mining, Smithing, Tethercraft and one locked Future skill row (${ui.mid && ui.mid.rows} rows, ${ui.mid && ui.mid.locks} locked)`);
   const T = (ui.mid && ui.mid.t) || '';
   ok(ui.stM && ui.stM.level === 72 && ui.stM.pct === 62 && T.includes('Mining') && T.includes('6.2M') && T.includes('359.3k') && T.includes('579.6k') && /Drill slot 7/.test(T) && /Lumenite/.test(T), `Mining values match Skills (${ui.stM && ui.stM.pct}% · ${ui.stM && ui.stM.level} · 6.2M)`);
   ok(ui.stS && ui.stS.level === 41 && ui.stS.pct === 35 && T.includes('345.6k') && T.includes('10.9k') && T.includes('31.1k') && /Mithril bar/.test(T) && /Lv 55/.test(T), 'Smithing values match Skills (Lv 41, 345.6k total, Mithril bar · Lv 55)');

@@ -1387,11 +1387,11 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
      tether - with a name (default from where it ends, e.g. 'Copper Field NE drop'; renamable in the Tether Orb's settings). They are the Tether Orb's teleport
      destinations, the Mole's runs and the labelled ends on the pull-out map. A drop tether (laid from the Mithril Ledge Tether in her backpack) runs from a free
      door port over the same smooth slack-rope route as a drill's and simply ends on the ground where she stood. */
-  const TETHER_ITEM = 'tether:mithril', TETHER0 = 4000;
+  const TETHER_ITEM = 'tether:mithril', TETHER_SEED = 'tether:bronze', TETHER0 = 1500;
   const COMPASS = ['E', 'NE', 'N', 'NW', 'W', 'SW', 'S', 'SE'], compass = (dx, dy) => COMPASS[((Math.round(Math.atan2(-dy, dx) / (Math.PI / 4)) % 8) + 8) % 8]; // the map's north is -y
   function placeName(x, y, kind) { build(); let best = null, bd = WS * 70; for (const n of ORE.nodes) { const d = Math.hypot(n.x - x, n.y - y); if (d < bd) { bd = d; best = n; } } const sfx = kind ? ' ' + kind : '';
     if (best) { const sp = best.spot || best, o = ORE_LOOK[best.type]; return `${o ? o.name : best.type} Field ${compass(x - sp.x, y - sp.y)}${sfx}`; } const F = ledgeFront(); return `${Math.round(Math.hypot(x - F.x, y - F.y) / WS)} m ${compass(x - F.x, y - F.y)} of the Ledge${sfx}`; }
-  function dropState() { if (typeof S === 'undefined' || !S) return null; if (!S.drops) S.drops = { list: [], nid: 1 }; if (!S.tetherSeed) { S.tetherSeed = 1; if (typeof Craft !== 'undefined' && Craft.ITEMS[TETHER_ITEM]) Craft.add('bag', TETHER_ITEM, TETHER0); } return S.drops; } // first run: 4000 m of Mithril Ledge Tether in the backpack
+  function dropState() { if (typeof S === 'undefined' || !S) return null; if (!S.drops) S.drops = { list: [], nid: 1 }; if (!S.tetherSeed) { S.tetherSeed = 1; if (typeof Craft !== 'undefined' && Craft.ITEMS[TETHER_SEED]) Craft.add('bag', TETHER_SEED, TETHER0); } return S.drops; } // first run: a 1.5 km Bronze starter coil (same seed as Craft.bag(); the Tether Mill rolls the rest)
   function dropRoute(dp) { const H = doorSpots().find((q) => q.type === 'ledge'); if (!H) return null; const sx = H.x + H.nx * 12, sy = H.y + H.nz * 12, r = tetherPlan(sx, sy, dp.x, dp.y); if (!r) return null; const pts = r.pts;
     return { pts, len: Math.round((tetherLength(pts) + WS * 3) / WS), name: dp.name, drop: true }; }
   function freePort() { const hs = CharView.homeState(); let id = CharView.PORTS.slice(1).find((p, i) => i < hs.open && !hs.ports[p]); if (!id && hs.open < 8) { CharView.unlockPort(); id = CharView.PORTS[hs.open]; } return id || null; }

@@ -10,12 +10,13 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 200000 }).catch(() => {}); await p.waitForFunction(() => Explore.on, null, { timeout: 30000 }).catch(() => {});
   const shot = async (f) => { if (SHOT) { await p.waitForTimeout(400); await p.screenshot({ path: SHOT + '/' + f }); } };
 
-  const s0 = await p.evaluate(() => { Craft.add('vault', 'ore:gold', 7); Craft.sheet(true); const sh = document.getElementById('bagSheet');
-    return { bagM: Craft.get('bag', 'tether:mithril'), vaultM: Craft.get('vault', 'tether:mithril'), vaultFe: Craft.get('vault', 'tether:iron'), vaultG: Craft.get('vault', 'ore:gold'),
+  const s0 = await p.evaluate(() => { const seedB = Craft.get('bag', 'tether:bronze'), seedV = Craft.get('vault', 'tether:iron'); Craft.add('vault', 'ore:gold', 7); Craft.add('bag', 'tether:mithril', 4000); Craft.add('vault', 'tether:mithril', 5000); Craft.add('vault', 'tether:iron', 5000); Craft.sheet(true); const sh = document.getElementById('bagSheet');
+    return { seedB, seedV, bagM: Craft.get('bag', 'tether:mithril'), vaultM: Craft.get('vault', 'tether:mithril'), vaultFe: Craft.get('vault', 'tether:iron'), vaultG: Craft.get('vault', 'ore:gold'),
       sheetVault: !!(sh && (sh.querySelector('[data-id="tether:iron"]') || sh.querySelector('[data-id="ore:gold"]'))),
       sheetBag: !!(sh && sh.querySelector('[data-id="tether:mithril"]')), drop: !!document.querySelector('#bagSheet .cxdrop') }; });
   console.log(JSON.stringify(s0));
-  ok(s0.bagM === 4000 && s0.vaultM >= 5000 && s0.vaultFe >= 5000, `Mithril coil in the backpack (${s0.bagM} m) and every grade seeded in the vault`);
+  ok(s0.seedB === 1500 && s0.seedV === 0, `new save: a 1.5 km Bronze starter coil in the backpack (${s0.seedB} m), no free vault coils (Tether Mill rolls the rest)`);
+  ok(s0.bagM === 4000 && s0.vaultM >= 5000 && s0.vaultFe >= 5000, `test coils: Mithril in the backpack (${s0.bagM} m), Mithril + Iron in the vault`);
   ok(s0.sheetBag && !s0.sheetVault, 'the backpack sheet shows carried items only, never vault tethers or vault ore');
   await p.evaluate(() => Craft.sheet(false));
 
