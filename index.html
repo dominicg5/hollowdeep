@@ -758,8 +758,12 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
 
 /* Drills HUD: only the unobstructed Character-view game screen. Hidden whenever any modal or overlay is open. */
-html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden),#city.devv,#cityLoader:not(.hidden),#areaLoader.on) #drillHud,
-html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{display:none!important}
+html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#millProgress.on,#tetherBub:not(.hidden),#city.devv,#cityLoader:not(.hidden),#areaLoader.on) :is(#drillHud,#millHud),
+html.bag-open :is(#drillHud,#millHud),html.skills-open :is(#drillHud,#millHud),html.drill-open :is(#drillHud,#millHud){display:none!important}
+html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!important}
+#millHud{position:absolute;right:84px;bottom:280px;z-index:7;display:none;width:64px;height:64px}#millHud.on{display:block}
+#millHud .mh{position:relative;display:block;width:64px;height:64px;padding:0;border:0;background:url(assets/ui/icons/btn_mill_idle.webp) center/contain no-repeat;cursor:pointer;touch-action:manipulation}#millHud .mh:active{filter:brightness(.9)}
+#millHud .mh .n{position:absolute;left:40px;top:2px;width:21px;height:21px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:radial-gradient(circle at 50% 40%,#fbf2da,#e6d2a0);box-shadow:0 0 0 2px #b8862e,0 0 0 3px #3a2414,0 1px 2px rgba(0,0,0,.4);font:700 11px Georgia,"Iowan Old Style",serif;color:#3a2414;line-height:1;pointer-events:none}
 
 #drillCtl{top:8px;bottom:72px;left:8px;right:8px;max-height:none;padding:4px 6px 8px;font:400 13px/1.2 "Bree Serif",Georgia,serif;color:#2b1a10}
 #drillCtl .dlist{max-height:none;display:flex;flex-direction:column;gap:0}
@@ -903,7 +907,7 @@ html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{dis
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='900601a0';
+<script>window.HD_BUILD='eb321398';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -925,8 +929,8 @@ html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{dis
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 900601a0</div>
-<script src="assets/vendor/three.min.js?v=900601a0"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build eb321398</div>
+<script src="assets/vendor/three.min.js?v=eb321398"></script>
 <script>
 'use strict';
 
@@ -5765,7 +5769,7 @@ const MILL = (() => {
   /* ---------- Brannick's dialogue: tap him (no floating chip or icon in the world, Dominic t448u); walking away from the mill closes it ---------- */
   function open() { if (typeof MillUI !== 'undefined') MillUI.talk(); }
   function close() { if (typeof MillUI !== 'undefined') MillUI.close(); }
-  function blocked() { const r = document.documentElement, m = document.getElementById('modal'); return !!(r.classList.contains('bag-open') || r.classList.contains('skills-open') || r.classList.contains('drill-open') || (m && !m.classList.contains('hidden')) || document.querySelector('#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden)')); }
+  function blocked() { const r = document.documentElement, m = document.getElementById('modal'); return !!(r.classList.contains('bag-open') || r.classList.contains('skills-open') || r.classList.contains('drill-open') || (m && !m.classList.contains('hidden')) || document.querySelector('#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#millProgress.on,#tetherBub:not(.hidden)')); }
   function uiTick() { if (typeof Explore === 'undefined' || typeof document === 'undefined') return; const on = Explore.on && (typeof ui === 'undefined' || ui.tab === 'city') && (typeof CityMap === 'undefined' || !CityMap.mapView || CityMap.mapView().mode !== 'dev'); let near = false, h = null;
     if (on && Explore.here) { h = Explore.here(); if (h) { const [s, d] = loc(h[0], h[1]); near = s > -16 && s < 36 && d > -10 && d < 24; } }
     if (!near) close(); } // Dominic t448u: no floating chip or icon over the mill or over Brannick - tap Brannick himself to talk
@@ -5810,7 +5814,8 @@ const MillUI = (() => {
     if (!(dt > 0)) return; const capped = dt > CAP; dt = Math.min(dt, CAP); const had = m.jobs.length, n = had ? advance(dt) : 0;
     if (dt > 20 && n > 0) { m.capped = capped && !!m.jobs.length; say(`🪢 The mill rolled ${n} ${n === 1 ? 'spool' : 'spools'} while you were away${capped ? ' (capped at 72 h)' : ''}`); }
     if (typeof MILL !== 'undefined' && MILL.setRate) MILL.setRate(running(), m.jobs[0] ? m.jobs[0].grade : null);
-    if (P.on && now - lastT > 450) { lastT = now; drawQueue(); if (n) draw(); } }
+    if (P.on && now - lastT > 450) { lastT = now; drawQueue(); if (n) draw(); }
+    if (G.on) drawProgress(); if (typeof Explore !== 'undefined' && Explore.millHud) Explore.millHud(); }
   function queue(tab, k, n) { const m = st(); if (!m || !(n > 0) || !unlocked(k)) return false; const need = n * ingOf(tab, k), last = m.jobs[m.jobs.length - 1], join = last && last.tab === tab && last.grade === k;
     if (!join && m.jobs.length >= MAXJ) return false; if (Craft.have('ingot:' + k) < need || !Craft.take('ingot:' + k, need)) return false;
     if (join) last.n += n; else m.jobs.push({ id: m.nid++, tab, grade: k, n, done: 0, cur: 0, len: 0 }); if (typeof save === 'function') save(); return true; }
@@ -5909,6 +5914,28 @@ const MillUI = (() => {
     else if (a === 'col') { collect(); return drawQueue(); }
     draw(); }
 
+  /* ---- the HUD mill button's compact progress view (Art's SPEC §7, mill_progress_mock.png): read-only - no start, cancel or Collect here;
+     Dominic: "spools are collected from Brannick at the mill only" ---- */
+  const G = { on: false, el: null };
+  function progress(on) { if (typeof document === 'undefined') return; css(); if (!G.el) { const d = document.createElement('div'); d.id = 'millProgress'; d.className = 'mlP mlG'; d.setAttribute('role', 'dialog');
+      for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup', 'wheel']) d.addEventListener(e, (ev) => ev.stopPropagation());
+      d.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('[data-ml=x]')) progress(false); }); (document.getElementById('cityWrap') || document.body).appendChild(d); G.el = d; }
+    G.on = !!on; G.el.classList.toggle('on', G.on); if (G.on) { tick(); drawProgress(); } if (typeof Explore !== 'undefined' && Explore.drillHud) Explore.drillHud(); }
+  function drawProgress() { if (!G.el || !G.on) return; const m = st(), L = lv(), n = rackCount();
+    let q = '';
+    if (!m.jobs.length) q = `<div class="mlRow mlQh"><span class="mlLab">QUEUE</span></div><div class="mlDone">Queue finished</div>`;
+    else { q = `<div class="mlRow mlQh"><span class="mlLab">QUEUE · ${m.jobs.length} ${m.jobs.length === 1 ? 'job' : 'jobs'}</span><b class="mlTot">${dur(queueLeft())} left</b></div>`;
+      m.jobs.forEach((j, i) => { const cl = j.tab === 'climb', nm = esc(NM(j.grade));
+        if (!i) { const len = j.len > 0 ? j.len : unitLen(j.tab, j.grade, L), f = Math.min(1, (j.cur || 0) / len);
+          q += `<div class="mlGAct"><div class="mlGJ">${ico(outId(j.tab, j.grade), 'mlJI')}<b>${nm}${cl ? ' Wren\'s Tether' : ''}&nbsp; · &nbsp;${cl ? '' : 'spool '}${j.done + 1} of ${j.n}</b></div><div class="mlGL">${dur(jobLeft(j, L))} left</div>`
+            + `<div class="mlBar"><i style="width:${Math.max(2, f * 100).toFixed(1)}%"></i></div><small>Current ${cl ? 'tether' : 'spool'} · ${Math.floor(f * 100)}%</small></div>`; }
+        else q += `<div class="mlGW">${ico(outId(j.tab, j.grade), 'mlJI sm')}<b>${nm}${cl ? ' Wren\'s Tether' : ''}&nbsp; · &nbsp;${j.n} ${cl ? '' : j.n === 1 ? 'spool' : 'spools'}${cl ? '' : '&nbsp; · '}&nbsp;waiting</b><small>${dur(j.n * unitLen(j.tab, j.grade, L))}</small></div>`; }); }
+    const ids = Object.keys(m.rack).filter((id) => m.rack[id] > 0);
+    const rk = ids.length ? ids.map((id) => { const k = id.split(/[:_]/).pop(); return id.startsWith('tether:') ? `${Math.round(m.rack[id] / SPOOL_M)} spools&nbsp; · &nbsp;${num(m.rack[id])} m ${esc(NM(k))}` : `${m.rack[id]} ${esc(NM(k))} Wren's Tether${m.rack[id] === 1 ? '' : 's'}`; }).map((t) => `<b class="mlGR">${t}</b>`).join('') : '<b class="mlGR dim">Nothing ready yet</b>';
+    G.el.innerHTML = `<i class="mlCap tl"></i><i class="mlCap tr"></i><i class="mlCap bl"></i><i class="mlCap br"></i><div class="mlScroll"><div class="mlHead mlGH"><div class="mlTit"><h2>Tether Mill</h2><small>Rolling while you're away · up to 72 h</small></div><button type="button" class="mlX" data-ml="x" aria-label="Close"></button></div>`
+      + `<div class="mlCard">${q}</div><div class="mlCard"><div class="mlLab">READY ON THE RACK</div>${rk}${ids.length && ids.some((id) => id.startsWith('tether:')) ? '<small class="mlGS">Collected as coil metres, not separate items.</small>' : ''}<div class="mlGC">Collect from Brannick at the Tether Mill</div></div>`
+      + `<p class="mlGF">Finished spools stay safe on the rack.<br>New jobs: talk to Brannick at the mill.</p></div>`; void n; }
+
   let CSSdone = false;
   function css() { if (CSSdone || typeof document === 'undefined') return; CSSdone = true; const s = document.createElement('style'); s.textContent = CSS; document.head.appendChild(s); }
   const BRASS = 'linear-gradient(160deg,#f3d78f,#9a6c2c)', PARCH = 'linear-gradient(#f4e8c8,#dcc79a)', BREE = '"Bree Serif",Georgia,serif', SANS = 'system-ui,-apple-system,"Segoe UI",sans-serif';
@@ -5979,11 +6006,18 @@ const MillUI = (() => {
 .mlP .mlRack{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0 1px;border-top:1px solid #b08a50;margin-top:2px}.mlP .mlRack b{font:400 12px ${BREE}}
 .mlP .mlCol{flex:none;min-height:28px;min-width:84px;border:0;border-radius:9px;cursor:pointer;font:400 13px ${BREE};color:#2b1a10;background:linear-gradient(#ecc976,#9a6c2c);box-shadow:0 0 0 1.2px #2b1a10,0 2.5px 0 rgba(20,10,4,.4),inset 0 1px 0 rgba(255,255,255,.5)}
 .mlP .mlFoot{width:max-content;max-width:100%;margin:2px auto 0;padding:4px 10px;border-radius:5px;background:linear-gradient(#c98a48,#8a5426);box-shadow:0 0 0 1.2px #2b1a10;font:700 10px ${SANS};color:#2b1a10;text-align:center}
-@media (min-width:900px){.mlP{width:500px}}`;
+#millProgress{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 64px);transform:translateX(-50%);z-index:40;display:none;width:min(440px,calc(100% - 20px));max-height:calc(100% - 150px)}#millProgress.on{display:flex}
+.mlG .mlGH{margin:2px 0 8px 6px}.mlG .mlGH h2{font-size:21px}.mlG .mlGH small{font-weight:400;font-size:10.5px}.mlG .mlTot{font:400 12.5px ${BREE}}
+.mlG .mlGAct{padding:4px 0 7px;border-bottom:1px solid #b08a50}.mlG .mlGJ{display:flex;align-items:center;gap:8px}.mlG .mlGJ b{font:400 13px ${BREE}}.mlG .mlGL{text-align:right;font:400 10.5px ${SANS};color:#3a2414;margin:-2px 0 3px}
+.mlG .mlGAct small{font:400 10px ${SANS};color:#3a2414}.mlG .mlGW{display:flex;align-items:center;gap:8px;padding:6px 0 0}.mlG .mlGW b{flex:1;font:400 12px ${BREE};color:#2b1a10}.mlG .mlGW small{font:400 10px ${SANS};color:#5a3a1e}
+.mlG .mlDone{font:400 14px ${BREE};padding:2px 0 4px}.mlG .mlGR{display:block;font:400 15px/1.35 ${BREE}}.mlG .mlGR.dim{color:#6a5a48;font-size:13px}.mlG .mlGS{display:block;font:400 10px ${SANS};color:#3a2414;margin-top:2px}
+.mlG .mlGC{margin-top:9px;padding:9px 10px;border-radius:9px;text-align:center;font:400 13.5px ${BREE};color:#3a2414;background:rgba(140,100,40,.14);box-shadow:inset 0 0 0 1.2px rgba(140,100,40,.55)}
+.mlG .mlGF{margin:8px 0 2px;text-align:center;font:400 10.5px/1.7 ${SANS};color:#f3e4c2;text-shadow:0 1px 1px rgba(0,0,0,.4)}
+@media (min-width:900px){.mlP{width:500px}#millProgress{width:460px}}`;
 
   if (typeof window !== 'undefined') setInterval(() => { try { tick(); } catch (e) { /* never break the game loop */ } }, 500);
-  return { GRADES, MAXJ, CAP, st, tick, advance, queue, cancel, collect, rackCount, running, unitLen, ingOf, xpOf, outId, queueLeft, jobLeft, talk, close, open, shut,
-    get talking() { return D.on; }, get panelOn() { return P.on && !!rootEl(); }, P, D, LINES, dur };
+  return { GRADES, MAXJ, CAP, st, tick, advance, queue, cancel, collect, rackCount, running, unitLen, ingOf, xpOf, outId, queueLeft, jobLeft, talk, close, open, shut, progress,
+    get talking() { return D.on; }, get progressOn() { return G.on; }, get panelOn() { return P.on && !!rootEl(); }, P, D, LINES, dur };
 })();
 /* ---- NPC kit: the keepers on a ready-made rigged base (Quaternius CC0 Universal Base Characters + Modular Outfits, animated with the
    CC0 Universal Animation Library; see CREDITS.md). tools/npc_kit bakes each keeper (proportions, painted 1024 atlas, generated hair,
@@ -13225,7 +13259,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   // needs at least one field drill placed.
   const drillStat = (d) => (d.on ? 'run' : d.coal <= 0 ? 'coal' : d.hop >= DRILL.HOP ? 'full' : 'idle');
   function overlayOpen() { const r = document.documentElement, m = document.getElementById('modal');
-    return !!(r.classList.contains('bag-open') || r.classList.contains('skills-open') || r.classList.contains('drill-open') || (m && !m.classList.contains('hidden')) || document.querySelector('#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden)')); }
+    return !!(r.classList.contains('bag-open') || r.classList.contains('skills-open') || r.classList.contains('drill-open') || (m && !m.classList.contains('hidden')) || document.querySelector('#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#millProgress.on,#tetherBub:not(.hidden)')); }
   function onCityMap() { return (typeof ui === 'undefined' || ui.tab === 'city') && (typeof CityMap === 'undefined' || !CityMap.mapView || CityMap.mapView().mode !== 'dev'); }
   function hudBooted() { return typeof M3 !== 'undefined' && M3.st && !!M3.st.ok; }
   function hudLoading() { const L = document.getElementById('cityLoader'); if (L && !L.classList.contains('hidden')) return true;
@@ -13234,7 +13268,17 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function playHudOk() { return hudBooted() && !hudLoading() && onCityMap() && !overlayOpen(); }
   function drillLoc(d) { const n = drillNode(d), H = doorSpots().find((q) => q.type === 'ledge'), h = EX.on ? here() : null; if (!n) return '';
     return `<div class="drow" data-k="loc">📍 ${Math.round(Math.hypot(n.x - H.x, n.y - H.y) / WS)} m from the Ledge door${h ? ` · ${Math.round(Math.hypot(n.x - h[0], n.y - h[1]) / WS)} m from you` : ''} · map ${Math.round(n.x / WS)}, ${Math.round(n.y / WS)}</div>`; }
-  function drillHud() { let h = document.getElementById('drillHud'); const D = drillState(), L = D ? fieldDrills(D) : [], show = playHudOk() && L.length > 0;
+  // Tether Mill HUD button (Dominic t450u; Art's SPEC §7): left of Drills, same visibility rules (Character view, no overlay) plus only while the mill queue has jobs;
+  // the corner pip counts spools on the rack; tap -> MillUI's compact progress view. Refreshed with every drillHud() call (setView, viewMark, overlays) and by the mill tick.
+  function millHud() { let h = document.getElementById('millHud'); const m = typeof S !== 'undefined' && S && S.mill, jobs = m && Array.isArray(m.jobs) ? m.jobs.length : 0, show = jobs > 0 && playHudOk();
+    if (!h) { if (!show) return; h = document.createElement('div'); h.id = 'millHud'; (document.getElementById('cityWrap') || document.body).appendChild(h);
+      for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) h.addEventListener(e, (ev) => ev.stopPropagation());
+      h.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('button') && typeof MillUI !== 'undefined') MillUI.progress(true); }); }
+    const n = show && typeof MillUI !== 'undefined' ? MillUI.rackCount() : 0, sig = show ? 'on|' + n : 'off';
+    h.classList.toggle('on', show); if (h.dataset.sig === sig) return; h.dataset.sig = sig; if (!show) { h.innerHTML = ''; return; }
+    const t = `Tether Mill: ${jobs} ${jobs === 1 ? 'job' : 'jobs'} rolling${n ? ', ' + n + ' ready' : ''}`; h.innerHTML = `<button class="mh" title="${t}" aria-label="${t}">${n ? `<span class="n">${n > 99 ? '99+' : n}</span>` : ''}</button>`; }
+  function drillHud() { drillHud0(); millHud(); }
+  function drillHud0() { let h = document.getElementById('drillHud'); const D = drillState(), L = D ? fieldDrills(D) : [], show = playHudOk() && L.length > 0;
     if (!h) { if (!show) return; h = document.createElement('div'); h.id = 'drillHud'; h.setAttribute('aria-label', 'Your drills'); (document.getElementById('cityWrap') || document.body).appendChild(h);
       h.addEventListener('click', (e) => { if (!e.target.closest('button.dh')) return; drillPanel(true); }); }
     const agg = L.some((d) => drillStat(d) === 'run') ? 'run' : L.some((d) => drillStat(d) === 'coal') ? 'coal' : L.some((d) => drillStat(d) === 'full') ? 'full' : L.length ? 'idle' : 'off';
@@ -13361,7 +13405,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     let sb = document.getElementById('exSkillsBtn'); if (!sb && on) { sb = document.createElement('button'); sb.id = 'exSkillsBtn'; sb.innerHTML = '<span>Skills</span>'; sb.setAttribute('aria-label', 'Open skills'); sb.addEventListener('click', () => typeof Skills !== 'undefined' && Skills.screen(!Skills.screenOn())); (document.getElementById('cityWrap') || document.body).appendChild(sb); } if (sb) sb.classList.toggle('on', !!on); if (!on && typeof Skills !== 'undefined' && Skills.screenOn && Skills.screenOn()) Skills.screen(false);
     let bb = document.getElementById('exBagBtn'); if (!bb && on) { bb = document.createElement('button'); bb.id = 'exBagBtn'; bb.innerHTML = '🎒<span>Bag</span>'; bb.setAttribute('aria-label', 'Open the backpack'); bb.addEventListener('click', () => typeof Craft !== 'undefined' && Craft.sheet(!Craft.sheetOn())); (document.getElementById('cityWrap') || document.body).appendChild(bb); } if (bb) bb.classList.toggle('on', !!on); if (!on && typeof Craft !== 'undefined' && Craft.sheetOn && Craft.sheetOn()) Craft.sheet(false);
     const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); if (typeof CityMap !== 'undefined' && CityMap.setView && !CityMap.setView._drillHud) { const sv = CityMap.setView; CityMap.setView = function (m) { const r = sv.apply(this, arguments); drillHud(); return r; }; CityMap.setView._drillHud = true; } drillHud(); if (!on && DRILL.sel) drillPanel(null); }
-  return { tetherPlan, tetherLength, tetherOK, onBridge, orePrune, drillFix, drillRate, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, drillCaps, drillFlow, drillStrandText, bitPushNeed, drillIsBestOre, longPress, drillNear, drillSetup, drillHud, playHudOk, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
+  return { tetherPlan, tetherLength, tetherOK, onBridge, orePrune, drillFix, drillRate, genBridgeWays, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, genPaths, allPaths, ledgeSpur, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, drillCaps, drillFlow, drillStrandText, bitPushNeed, drillIsBestOre, longPress, drillNear, drillSetup, drillHud, playHudOk, millHud, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen, caves, caveHit, CAV, genCaves };
 })();
 /* ---------- Explore: the Map screen - a full-screen stylized 2D map drawn from the nav grid / heightfield (toon hypsometric tint + hillshade, cliffs, water,
    crevices, the footpath network, every bridge marked), labelled places and Wren's marker; tap anywhere -> A* travel (snapped to the nearest reachable spot)

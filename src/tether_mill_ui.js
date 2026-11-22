@@ -36,7 +36,8 @@ const MillUI = (() => {
     if (!(dt > 0)) return; const capped = dt > CAP; dt = Math.min(dt, CAP); const had = m.jobs.length, n = had ? advance(dt) : 0;
     if (dt > 20 && n > 0) { m.capped = capped && !!m.jobs.length; say(`🪢 The mill rolled ${n} ${n === 1 ? 'spool' : 'spools'} while you were away${capped ? ' (capped at 72 h)' : ''}`); }
     if (typeof MILL !== 'undefined' && MILL.setRate) MILL.setRate(running(), m.jobs[0] ? m.jobs[0].grade : null);
-    if (P.on && now - lastT > 450) { lastT = now; drawQueue(); if (n) draw(); } }
+    if (P.on && now - lastT > 450) { lastT = now; drawQueue(); if (n) draw(); }
+    if (G.on) drawProgress(); if (typeof Explore !== 'undefined' && Explore.millHud) Explore.millHud(); }
   function queue(tab, k, n) { const m = st(); if (!m || !(n > 0) || !unlocked(k)) return false; const need = n * ingOf(tab, k), last = m.jobs[m.jobs.length - 1], join = last && last.tab === tab && last.grade === k;
     if (!join && m.jobs.length >= MAXJ) return false; if (Craft.have('ingot:' + k) < need || !Craft.take('ingot:' + k, need)) return false;
     if (join) last.n += n; else m.jobs.push({ id: m.nid++, tab, grade: k, n, done: 0, cur: 0, len: 0 }); if (typeof save === 'function') save(); return true; }
@@ -135,6 +136,28 @@ const MillUI = (() => {
     else if (a === 'col') { collect(); return drawQueue(); }
     draw(); }
 
+  /* ---- the HUD mill button's compact progress view (Art's SPEC §7, mill_progress_mock.png): read-only - no start, cancel or Collect here;
+     Dominic: "spools are collected from Brannick at the mill only" ---- */
+  const G = { on: false, el: null };
+  function progress(on) { if (typeof document === 'undefined') return; css(); if (!G.el) { const d = document.createElement('div'); d.id = 'millProgress'; d.className = 'mlP mlG'; d.setAttribute('role', 'dialog');
+      for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup', 'wheel']) d.addEventListener(e, (ev) => ev.stopPropagation());
+      d.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('[data-ml=x]')) progress(false); }); (document.getElementById('cityWrap') || document.body).appendChild(d); G.el = d; }
+    G.on = !!on; G.el.classList.toggle('on', G.on); if (G.on) { tick(); drawProgress(); } if (typeof Explore !== 'undefined' && Explore.drillHud) Explore.drillHud(); }
+  function drawProgress() { if (!G.el || !G.on) return; const m = st(), L = lv(), n = rackCount();
+    let q = '';
+    if (!m.jobs.length) q = `<div class="mlRow mlQh"><span class="mlLab">QUEUE</span></div><div class="mlDone">Queue finished</div>`;
+    else { q = `<div class="mlRow mlQh"><span class="mlLab">QUEUE · ${m.jobs.length} ${m.jobs.length === 1 ? 'job' : 'jobs'}</span><b class="mlTot">${dur(queueLeft())} left</b></div>`;
+      m.jobs.forEach((j, i) => { const cl = j.tab === 'climb', nm = esc(NM(j.grade));
+        if (!i) { const len = j.len > 0 ? j.len : unitLen(j.tab, j.grade, L), f = Math.min(1, (j.cur || 0) / len);
+          q += `<div class="mlGAct"><div class="mlGJ">${ico(outId(j.tab, j.grade), 'mlJI')}<b>${nm}${cl ? ' Wren\'s Tether' : ''}&nbsp; · &nbsp;${cl ? '' : 'spool '}${j.done + 1} of ${j.n}</b></div><div class="mlGL">${dur(jobLeft(j, L))} left</div>`
+            + `<div class="mlBar"><i style="width:${Math.max(2, f * 100).toFixed(1)}%"></i></div><small>Current ${cl ? 'tether' : 'spool'} · ${Math.floor(f * 100)}%</small></div>`; }
+        else q += `<div class="mlGW">${ico(outId(j.tab, j.grade), 'mlJI sm')}<b>${nm}${cl ? ' Wren\'s Tether' : ''}&nbsp; · &nbsp;${j.n} ${cl ? '' : j.n === 1 ? 'spool' : 'spools'}${cl ? '' : '&nbsp; · '}&nbsp;waiting</b><small>${dur(j.n * unitLen(j.tab, j.grade, L))}</small></div>`; }); }
+    const ids = Object.keys(m.rack).filter((id) => m.rack[id] > 0);
+    const rk = ids.length ? ids.map((id) => { const k = id.split(/[:_]/).pop(); return id.startsWith('tether:') ? `${Math.round(m.rack[id] / SPOOL_M)} spools&nbsp; · &nbsp;${num(m.rack[id])} m ${esc(NM(k))}` : `${m.rack[id]} ${esc(NM(k))} Wren's Tether${m.rack[id] === 1 ? '' : 's'}`; }).map((t) => `<b class="mlGR">${t}</b>`).join('') : '<b class="mlGR dim">Nothing ready yet</b>';
+    G.el.innerHTML = `<i class="mlCap tl"></i><i class="mlCap tr"></i><i class="mlCap bl"></i><i class="mlCap br"></i><div class="mlScroll"><div class="mlHead mlGH"><div class="mlTit"><h2>Tether Mill</h2><small>Rolling while you're away · up to 72 h</small></div><button type="button" class="mlX" data-ml="x" aria-label="Close"></button></div>`
+      + `<div class="mlCard">${q}</div><div class="mlCard"><div class="mlLab">READY ON THE RACK</div>${rk}${ids.length && ids.some((id) => id.startsWith('tether:')) ? '<small class="mlGS">Collected as coil metres, not separate items.</small>' : ''}<div class="mlGC">Collect from Brannick at the Tether Mill</div></div>`
+      + `<p class="mlGF">Finished spools stay safe on the rack.<br>New jobs: talk to Brannick at the mill.</p></div>`; void n; }
+
   let CSSdone = false;
   function css() { if (CSSdone || typeof document === 'undefined') return; CSSdone = true; const s = document.createElement('style'); s.textContent = CSS; document.head.appendChild(s); }
   const BRASS = 'linear-gradient(160deg,#f3d78f,#9a6c2c)', PARCH = 'linear-gradient(#f4e8c8,#dcc79a)', BREE = '"Bree Serif",Georgia,serif', SANS = 'system-ui,-apple-system,"Segoe UI",sans-serif';
@@ -205,9 +228,16 @@ const MillUI = (() => {
 .mlP .mlRack{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0 1px;border-top:1px solid #b08a50;margin-top:2px}.mlP .mlRack b{font:400 12px ${BREE}}
 .mlP .mlCol{flex:none;min-height:28px;min-width:84px;border:0;border-radius:9px;cursor:pointer;font:400 13px ${BREE};color:#2b1a10;background:linear-gradient(#ecc976,#9a6c2c);box-shadow:0 0 0 1.2px #2b1a10,0 2.5px 0 rgba(20,10,4,.4),inset 0 1px 0 rgba(255,255,255,.5)}
 .mlP .mlFoot{width:max-content;max-width:100%;margin:2px auto 0;padding:4px 10px;border-radius:5px;background:linear-gradient(#c98a48,#8a5426);box-shadow:0 0 0 1.2px #2b1a10;font:700 10px ${SANS};color:#2b1a10;text-align:center}
-@media (min-width:900px){.mlP{width:500px}}`;
+#millProgress{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 64px);transform:translateX(-50%);z-index:40;display:none;width:min(440px,calc(100% - 20px));max-height:calc(100% - 150px)}#millProgress.on{display:flex}
+.mlG .mlGH{margin:2px 0 8px 6px}.mlG .mlGH h2{font-size:21px}.mlG .mlGH small{font-weight:400;font-size:10.5px}.mlG .mlTot{font:400 12.5px ${BREE}}
+.mlG .mlGAct{padding:4px 0 7px;border-bottom:1px solid #b08a50}.mlG .mlGJ{display:flex;align-items:center;gap:8px}.mlG .mlGJ b{font:400 13px ${BREE}}.mlG .mlGL{text-align:right;font:400 10.5px ${SANS};color:#3a2414;margin:-2px 0 3px}
+.mlG .mlGAct small{font:400 10px ${SANS};color:#3a2414}.mlG .mlGW{display:flex;align-items:center;gap:8px;padding:6px 0 0}.mlG .mlGW b{flex:1;font:400 12px ${BREE};color:#2b1a10}.mlG .mlGW small{font:400 10px ${SANS};color:#5a3a1e}
+.mlG .mlDone{font:400 14px ${BREE};padding:2px 0 4px}.mlG .mlGR{display:block;font:400 15px/1.35 ${BREE}}.mlG .mlGR.dim{color:#6a5a48;font-size:13px}.mlG .mlGS{display:block;font:400 10px ${SANS};color:#3a2414;margin-top:2px}
+.mlG .mlGC{margin-top:9px;padding:9px 10px;border-radius:9px;text-align:center;font:400 13.5px ${BREE};color:#3a2414;background:rgba(140,100,40,.14);box-shadow:inset 0 0 0 1.2px rgba(140,100,40,.55)}
+.mlG .mlGF{margin:8px 0 2px;text-align:center;font:400 10.5px/1.7 ${SANS};color:#f3e4c2;text-shadow:0 1px 1px rgba(0,0,0,.4)}
+@media (min-width:900px){.mlP{width:500px}#millProgress{width:460px}}`;
 
   if (typeof window !== 'undefined') setInterval(() => { try { tick(); } catch (e) { /* never break the game loop */ } }, 500);
-  return { GRADES, MAXJ, CAP, st, tick, advance, queue, cancel, collect, rackCount, running, unitLen, ingOf, xpOf, outId, queueLeft, jobLeft, talk, close, open, shut,
-    get talking() { return D.on; }, get panelOn() { return P.on && !!rootEl(); }, P, D, LINES, dur };
+  return { GRADES, MAXJ, CAP, st, tick, advance, queue, cancel, collect, rackCount, running, unitLen, ingOf, xpOf, outId, queueLeft, jobLeft, talk, close, open, shut, progress,
+    get talking() { return D.on; }, get progressOn() { return G.on; }, get panelOn() { return P.on && !!rootEl(); }, P, D, LINES, dur };
 })();

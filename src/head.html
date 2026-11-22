@@ -758,8 +758,12 @@ img.kCoin{width:18px;height:18px;vertical-align:-3px;margin-left:3px}
 
 
 /* Drills HUD: only the unobstructed Character-view game screen. Hidden whenever any modal or overlay is open. */
-html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#tetherBub:not(.hidden),#city.devv,#cityLoader:not(.hidden),#areaLoader.on) #drillHud,
-html.bag-open #drillHud,html.skills-open #drillHud,html.drill-open #drillHud{display:none!important}
+html:has(#modal:not(.hidden),#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#millDlg:not(.hidden),#millProgress.on,#tetherBub:not(.hidden),#city.devv,#cityLoader:not(.hidden),#areaLoader.on) :is(#drillHud,#millHud),
+html.bag-open :is(#drillHud,#millHud),html.skills-open :is(#drillHud,#millHud),html.drill-open :is(#drillHud,#millHud){display:none!important}
+html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!important}
+#millHud{position:absolute;right:84px;bottom:280px;z-index:7;display:none;width:64px;height:64px}#millHud.on{display:block}
+#millHud .mh{position:relative;display:block;width:64px;height:64px;padding:0;border:0;background:url(assets/ui/icons/btn_mill_idle.webp) center/contain no-repeat;cursor:pointer;touch-action:manipulation}#millHud .mh:active{filter:brightness(.9)}
+#millHud .mh .n{position:absolute;left:40px;top:2px;width:21px;height:21px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:radial-gradient(circle at 50% 40%,#fbf2da,#e6d2a0);box-shadow:0 0 0 2px #b8862e,0 0 0 3px #3a2414,0 1px 2px rgba(0,0,0,.4);font:700 11px Georgia,"Iowan Old Style",serif;color:#3a2414;line-height:1;pointer-events:none}
 
 #drillCtl{top:8px;bottom:72px;left:8px;right:8px;max-height:none;padding:4px 6px 8px;font:400 13px/1.2 "Bree Serif",Georgia,serif;color:#2b1a10}
 #drillCtl .dlist{max-height:none;display:flex;flex-direction:column;gap:0}
