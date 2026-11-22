@@ -1,5 +1,5 @@
 // Tether Mill (Art's stations/roller_mill handoff, Dominic: "exactly right ... I want it huge"): the open-air water mill at the stream bend above the west lake.
-// Checks: site + scale (12 m wheel, 4 roll stands 6 m apart, spool), the stream's level drop at the ledge lip (~12 m onto the wheel) with small steps upstream and the
+// Checks: site + 3x scale (36 m wheel, 4 roll stands 18 m apart, spool), the straight mill race carrying the whole stream, the ~36 m drop at the ledge lip
 // tailrace back into the same stream; the floor is flat, dry and reachable on foot; the works are solid; gear directions (wheel CW, top roll CCW, bottom CW, spool CW
 // from the front) and speed ratios agree; the bar thins stand to stand; the look-at chip shows near the mill; tris / draw calls at the mill view.
 // SHOT=1 also renders Brannick in front of the mill, a close 3/4 and a map-zoom view to /tmp/tethermill-*.png, and the pull-out map round the mill to /tmp/tethermill-map.png.
@@ -25,13 +25,13 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const M = MILL.M; M3.render(0, CityMap.cam); await new Promise((r) => setTimeout(r, 300)); MILL.anim(0, 0); const w0 = M.wheel.rotation.z, s0 = M.spoolG.rotation.z, m0 = new THREE.Matrix4(), m1 = new THREE.Matrix4(); M.rolls.getMatrixAt(0, m0); const e0 = new THREE.Euler().setFromRotationMatrix(m0); M.rolls.getMatrixAt(1, m1); const f0 = new THREE.Euler().setFromRotationMatrix(m1);
     await new Promise((r) => setTimeout(r, 300)); MILL.anim(0, 0); M.rolls.getMatrixAt(0, m0); M.rolls.getMatrixAt(1, m1); const e1 = new THREE.Euler().setFromRotationMatrix(m0), f1 = new THREE.Euler().setFromRotationMatrix(m1);
     const dA = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a)); o.dir = { wheel: Math.sign(M.wheel.rotation.z - w0), spool: Math.sign(M.spoolG.rotation.z - s0), top: Math.sign(dA(e0.z, e1.z)), bot: Math.sign(dA(f0.z, f1.z)) };
-    o.thin = MILL.T.every((t, i) => !i || t < MILL.T[i - 1]); o.scale = { wheel: L.wheel.R * 2, wheelW: L.wheel.W, pitch: L.stands[1] - L.stands[0], stands: L.stands.length, roll: L.rollR * 2, foot: +(L.spool + 2 - (L.lip - 3)).toFixed(1) };
+    o.thin = MILL.T.every((t, i) => !i || t < MILL.T[i - 1]); const Kx = MILL.K; o.scale = { K: Kx, wheel: L.wheel.R * 2 * Kx, wheelW: L.wheel.W * Kx, streamW: +(GRAND.streamLines()[1].w * 2 / WS).toFixed(1), pitch: L.stands[1] * Kx - L.stands[0] * Kx, stands: L.stands.length, standH: +(4.6 * Kx).toFixed(1), roll: L.rollR * 2 * Kx, rollW: 2.5 * Kx, spool: 4 * Kx, foot: +((L.spool + 2 - (L.lip - 3)) * Kx).toFixed(1), deep: +((L.pad[3] - L.pitD[0]) * Kx).toFixed(1) };
     await new Promise((r) => setTimeout(r, 600)); MILL.anim(0, 0); o.chip = !!document.querySelector('#millChip.on');
     return o; });
   console.log(JSON.stringify(R));
   ok(R.built && R.site, `the mill is built at world ${R.site} (map px ${R.mapPx})`);
-  ok(R.drop > 11.5 && R.drop < 13.5, `the stream drops ${R.drop && R.drop.toFixed(1)} m at the ledge lip onto the wheel`);
-  ok(R.steps.length >= 2 && R.steps.every((x) => x >= 0 && x < 4.5), `small steps upstream: ${R.steps.join(' / ')} m`);
+  ok(R.drop > 33 && R.drop < 40, `the stream drops ${R.drop && R.drop.toFixed(1)} m at the ledge lip onto the wheel`);
+  ok(R.steps.length >= 2 && R.steps.every((x) => x >= 0 && x < 13.5), `small steps upstream: ${R.steps.join(' / ')} m`);
   ok(R.mono && R.toLake >= 0 && R.hid > 0, 'the stream only ever runs downhill and the tailrace runs on into the same lake');
   ok(R.flat < 0.6 && R.wet === 0, `the mill floor is flat (${R.flat && R.flat.toFixed(2)} m spread) and dry (${R.wet} wet samples)`);
   ok(R.reach < 3 && R.walk && R.walked < 4000, `the floor is reachable and she walks off it (${R.walked} ticks)`);
@@ -39,6 +39,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.dir.wheel < 0 && R.dir.top > 0 && R.dir.bot < 0 && R.dir.spool < 0, `front view: wheel CW, top roll CCW, bottom roll CW, spool CW (${JSON.stringify(R.dir)})`);
   ok(R.ratio, 'one chain of ratios: pit gear 40:11 pinion, each stand sprocket sized to its roll speed, the spool to the braid speed');
   ok(R.thin, 'the bar is thinner after every stand');
+  ok(R.scale.wheel >= 34 && R.scale.wheelW >= Math.max(8.5, R.scale.streamW) && R.scale.foot > 95, `3x scale: wheel ${R.scale.wheel} x ${R.scale.wheelW} m (stream ${R.scale.streamW} m wide, all of it over the wheel), rolls ${R.scale.roll} x ${R.scale.rollW} m, spool ${R.scale.spool} m, footprint ${R.scale.foot} x ${R.scale.deep} m`);
   ok(R.chip, 'the Tether Mill chip shows near the mill');
   // Brannick (Art's NPC kit, hammer on his shoulder) keeps the mill: on the apron in front, facing the approach, solid, not in the village; tap -> the Tether Mill card
   await p.waitForFunction(() => { MILL.anim(0, 0); return !!MILL.BR.k; }, null, { timeout: 90000, polling: 500 });
@@ -46,7 +47,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const o = { at: [+s.toFixed(1), +d.toFixed(1)], floor: +((k.root.position.y - 130) / MILL.WS).toFixed(2), kpy: MILL.KP.y, ground: +((M3.heightAt(B.x, B.y)[0] - 130) / MILL.WS).toFixed(2), solid: !!Explore.solidAt(B.x, B.y), facing: +((f[0] * u[0] + f[1] * u[1]) / ul).toFixed(2), kit: k.root.name, h: +(B.hgt / MILL.WS).toFixed(2),
       town: typeof Town !== 'undefined' && Town.BLD ? Town.BLD.some((b) => b.npc === 'brannick') : false, label: ExMap.labels().some((L) => L.k === 'mill' && /Tether Mill/.test(L.t)) };
     o.icon = await fetch('assets/ui/icons/map_tether_mill.webp').then((r) => r.ok).catch(() => false);
-    const [wx, wy] = MILL.wld(-1.5, 17), q = Explore.reach(wx, wy); Explore.enter(q[0], q[1]); const E = Explore.EX; E.az = Math.atan2(ox - wx, oy - wy); for (let i = 0; i < 40; i++) Explore.tick(1 / 30); MILL.close(); MILL.anim(0, 0); M3.render(0, CityMap.cam); await new Promise((r) => setTimeout(r, 300)); MILL.anim(0, 0);
+    const [wx, wy] = MILL.wld(-1.5, 9.6 + 9 / MILL.K), q = Explore.reach(wx, wy); Explore.enter(q[0], q[1]); const E = Explore.EX; E.az = Math.atan2(wx - ox, wy - oy); for (let i = 0; i < 40; i++) Explore.tick(1 / 30); MILL.close(); MILL.anim(0, 0); M3.render(0, CityMap.cam); await new Promise((r) => setTimeout(r, 300)); MILL.anim(0, 0);
     const a = M3.project(B.x, B.y, B.hgt * 0.6); o.tapAt = a.map(Math.round); o.tap = Explore.tap(a[0], a[1]); for (let i = 0; i < 1500 && B.walking; i++) Explore.tick(1 / 30); await new Promise((r) => setTimeout(r, 300));
     const bub = document.getElementById('millBub'); o.card = !!bub && !bub.classList.contains('hidden') && /Brannick/.test(bub.textContent) && /Tether Mill/.test(bub.textContent); o.walked = !B.walking; return o; });
   console.log('KEEPER ' + JSON.stringify(K));
@@ -58,18 +59,18 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const perf = await p.evaluate(async () => { const out = {}, r = M3.renderer, g = MILL.M.grp; const V = (x, y, z) => g.localToWorld(new THREE.Vector3(x, y, z));
     const view = (P, Lk) => { M3.st.camOv = { P, L: Lk, near: 1.5, far: 40000 }; MILL.anim(0, 0); r.info.autoReset = false; r.info.reset(); M3.render(0, CityMap.cam); const i = { tris: r.info.render.triangles, calls: r.info.render.calls }; r.info.autoReset = true; return i; };
     out.parts = MILL.M.grp.children.map((m) => [m.isInstancedMesh ? 'I' + m.count : m.type[0], m.geometry ? Math.round((m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3) : 0]);
-    out.close = view(V(-14, 12, 30), V(9, 3, 3)); out.map = view(V(10, 900, 160), V(10, 0, 0)); g.visible = false; out.closeNoMill = view(V(-14, 12, 30), V(9, 3, 3)); g.visible = true; M3.st.camOv = null; return out; });
+    out.close = view(V(-14, 12, 30), V(9, 3, 3)); out.map = view(V(10, 300, 53), V(10, 0, 0)); g.visible = false; out.closeNoMill = view(V(-14, 12, 30), V(9, 3, 3)); g.visible = true; M3.st.camOv = null; return out; });
   console.log('PERF ' + JSON.stringify(perf));
   if (SHOT) { // each view: resize the 3D canvas to 1280x720, place the camera, render once and read the canvas in the same task
-    await p.evaluate(async () => { MILL.close(); const [x, y] = MILL.wld(2.0, 13.5), k = Explore.reach(x, y); Explore.enter(k[0], k[1]); for (let i = 0; i < 20; i++) Explore.tick(1 / 30); });
+    await p.evaluate(async () => { MILL.close(); const [x, y] = MILL.wld(-1.5 + 3 / MILL.K, 9.6 + 1.5 / MILL.K), k = Explore.reach(x, y); Explore.enter(k[0], k[1]); for (let i = 0; i < 20; i++) Explore.tick(1 / 30); });
     const out = await p.evaluate(async () => { const g = MILL.M.grp, V = (x, y, z) => g.localToWorld(new THREE.Vector3(x, y, z)), L = MILL.L, res = []; Explore.EX.on = false;
-      const views = [[V(-8, 2.6, 18), V(-1, 3.0, 6)], [V(-12, 9, 22), V(8.5, 3.2, 3)], [V(10, 210, 120), V(10, 0, 0)]];
+      const views = [[V(-1.5 + 8 / MILL.K, 2.4 / MILL.K, 9.6 + 10 / MILL.K), V(-1.5 - 3 / MILL.K, 4 / MILL.K, 9.6 - 4 / MILL.K)], [V(-12, 9, 22), V(8.5, 3.2, 3)], [V(10, 210, 120), V(10, 0, 0)]];
       for (let i = 0; i < 3; i++) { M3.resize(1280, 720, 1); M3.st.camOv = { P: views[i][0], L: views[i][1], near: 1.5, far: 40000 }; MILL.anim(0, 0); M3.render(0, CityMap.cam); await new Promise((r) => setTimeout(r, 200)); MILL.anim(0, 0); M3.resize(1280, 720, 1); M3.st.camOv = { P: views[i][0], L: views[i][1], near: 1.5, far: 40000 }; M3.render(0, CityMap.cam);
         const url = M3.renderer.domElement.toDataURL('image/png'), cam = M3.camera, pr = (x, y, z) => { const v = g.localToWorld(new THREE.Vector3(x, y, z)).project(cam); return [(v.x + 1) / 2 * 1280, (1 - v.y) / 2 * 720]; };
         const marks = 1 ? null : { stands: L.stands.map((x, k) => { const yt = L.nip + [0.24, 0.15, 0.09, 0.1][k] + L.rollR, yb = L.nip - L.rollR; return [pr(x, yt, L.stZ + 1.6), pr(x, yb, L.stZ + 1.6), pr(x + 0.75, yt, L.stZ + 1.6)]; }), wheel: [pr(0, L.wheel.y, L.wheel.z + 1.6), pr(L.wheel.R, L.wheel.y, L.wheel.z + 1.6)], spool: [pr(L.spool, 2.5, L.stZ + 1.6), pr(L.spool + 2, 2.5, L.stZ + 1.6)] };
         res.push([url, marks, M3.st.tris, M3.st.calls]); }
       M3.st.camOv = null; Explore.EX.on = true; M3.resize(innerWidth, innerHeight, devicePixelRatio); return res; });
-    const mapUrl = await p.evaluate(async () => { ExMap.open(); const v = ExMap.st.view, [x, y] = MILL.wld(10, 6); v.cx = x; v.cy = y; for (let i = 0; i < 20; i++) { ExMap.draw(); await new Promise((r) => setTimeout(r, 150)); } const u = ExMap.st.cv.toDataURL('image/png'); ExMap.close(); return u; });
+    const mapUrl = await p.evaluate(async () => { ExMap.open(); const v = ExMap.st.view, [x, y] = MILL.wld(10, 6); v.cx = x; v.cy = y; v.s *= 5; for (let i = 0; i < 20; i++) { ExMap.draw(); await new Promise((r) => setTimeout(r, 150)); } const u = ExMap.st.cv.toDataURL('image/png'); ExMap.close(); return u; });
     require('fs').writeFileSync('/tmp/tethermill-map.png', Buffer.from(mapUrl.split(',')[1], 'base64'));
     const fs = require('fs'); out.forEach(([url, marks, tris, calls], i) => { fs.writeFileSync(`/tmp/tethermill-${i}.png`, Buffer.from(url.split(',')[1], 'base64')); out[i] = [`/tmp/tethermill-${i}.png`, marks, tris, calls]; });
     fs.writeFileSync('/tmp/tethermill-marks.json', JSON.stringify(out)); console.log('SHOTS ' + JSON.stringify(out.map((q) => [q[0], q[2], q[3]])));
