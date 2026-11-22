@@ -26,7 +26,7 @@ const FORGE = (() => {
   const Rb = (th) => 108 + 242 * sm(5 * DEG, 80 * DEG, th); // cone foot: a steep 40 m wall under the lip (foot at x 8), ~700 across the rest
   function cone(X, Y) { const dx = X - L.crater[0], r = Math.hypot(dx, Y), th = Math.abs(Math.atan2(Y, dx)), rb = Rb(th); if (r >= rb) return null; const hr = Hr(th);
     if (r < L.rimR) return { z: 20 + (hr - 20) * sm(L.rimR - 16, L.rimR, r), inner: true, r, th };
-    const u = (rb - r) / (rb - L.rimR); return { z: hr * Math.pow(u, 1.5) * (1 + 0.05 * Math.sin(th * 23 + r * 0.06) * Math.min(1, u * 3)), inner: false, r, th }; }
+    const u = (rb - r) / (rb - L.rimR); return { z: hr * Math.pow(u, 1.5) * (1 + 0.02 * Math.sin(th * 23) * Math.min(1, u * 3)), inner: false, r, th, u }; }
   function platD(X, Y) { const [x0, x1, hy] = L.plat, k = L.skirt, dx = Math.max(x0 + k - X, X - x1 + k, 0), dy = Math.max(Math.abs(Y) - hy + k, 0); return Math.hypot(dx, dy); } // distance from the flat top (the 90 x 70 block's foot is at x 60: 12 m clear of his shins at S)
   function platZ(X, Y) { const d = platD(X, Y); if (d > L.skirt + 0.5) return -1; const w = 0.9 * Math.sin(X * 0.21 + Y * 0.13) + 0.6 * Math.sin(X * 0.47 - Y * 0.31); // rough rock faces (monotonic: no overhang)
     return d <= 0 ? L.plat[3] + 0.12 * Math.sin(X * 0.3) * Math.sin(Y * 0.27) : Math.max(0, L.plat[3] - Math.max(0, d + 0.4 * w * sm(0, 2, d) * (1 - sm(L.skirt - 2, L.skirt, d))) * 2.0); }
@@ -49,13 +49,13 @@ const FORGE = (() => {
     if (rL < 128) { const zh = HB + U * (L.ledge[2] + 2) * (1 - sm(L.ledgeR + 2, 124, rL)) * sm(-5, 22, dE); /* (the hill stops at the scorched oval: a steep face toward the works) */ if (zh > h) { h = zh; mh *= sm(L.ledgeR, 40, rL); } }
     if (rL < L.ledgeR + 10) { const w = 1 - sm(L.ledgeR, L.ledgeR + 10, rL); h += (HB + U * L.ledge[2] - h) * w; mh *= 1 - w; }
     if (rL < 128 && !M.noBench) { const [d, z] = swbNear(X, Y); if (d < 9) { const w = 1 - sm(4, 8.5, d); h += (HB + U * z - h) * w; mh *= 1 - w; } }
-    const c = cone(X, Y); if (c) { const zc = HB + U * c.z; if (c.inner) h = zc; else h = Math.max(h, zc); mh = Math.max(mh, 300 * sm(0, 8, c.z)); }
+    const c = cone(X, Y); if (c) { const zc = HB + U * c.z; if (c.inner) h = zc; else h = lerp(Math.max(h, zc), zc, sm(0.02, 0.18, c.u)); mh = Math.max(mh, 300 * sm(0, 8, c.z)); } // a clean cone: the rim-zone peaks under it no longer poke through
     const pz = platZ(X, Y); if (pz > 0) { h = Math.max(h, HB + U * pz); mh = Math.max(mh, 320 * sm(0, 3, pz)); }
     return [h, mh]; }
   // areas the homes / paths keep out of (m: margin in world units)
   function workIn(X, Y, md) { return X > -5 - md && X < L.plat[1] + L.skirt + 12 + md && Math.abs(Y) < 45 + md; }
   function keepOut(x, y, m) { const [X, Y] = loc(x, y), md = (m || 0) / U; if (!inBox(X, Y)) return false; const dx = X - L.crater[0], r = Math.hypot(dx, Y), th = Math.abs(Math.atan2(Y, dx));
-    if (r < Rb(th) + 5 + md) return 'cone'; if (platD(X, Y) < L.skirt + 12 + md) return 'platform'; if (workIn(X, Y, md)) return 'work';
+    if (r < Rb(th) + 5 + md) return 'cone'; if (platD(X, Y) < L.skirt + 12 + md) return 'platform'; if (workIn(X, Y, md)) return 'work'; if (X > -20 - md && X < 175 + md && Math.abs(Y) < 90 + md) return 'yard'; /* no home (or its yard trees) at his feet, the stride strip or round the platform */
     if (Math.hypot(X - L.ledge[0], Y - L.ledge[1]) < 30 + md) return 'ledge'; if (swbNear(X, Y)[0] < 12 + md) return 'switchback'; return false; }
   function pathKeep(X, Y) { const dx = X - L.crater[0], r = Math.hypot(dx, Y), th = Math.abs(Math.atan2(Y, dx)); return r < Rb(th) - 10 || platD(X, Y) < L.skirt + 12 || workIn(X, Y, 0); }
   function scorched(x, y, m) { const [X, Y] = loc(x, y); if (!inBox(X, Y)) return false; const e = Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]); return (e - 1) * L.scorch[3] < (m || 0) / U; }
@@ -138,15 +138,19 @@ const FORGE = (() => {
   /* ---------- 3D ---------- */
   let THREEok = false;
   function apeGeo(mob) { const parts = [], q = mob ? 0.55 : 1, sg = (n) => Math.max(6, Math.round(n * q));
-    const FUR = [0.42, 0.42, 0.41], SOOT = [0.15, 0.14, 0.14], SKIN = [0.2, 0.19, 0.19], LEATH = [0.37, 0.21, 0.11], BRASS = [0.8, 0.6, 0.24], IRON = [0.17, 0.17, 0.18], WOOD = [0.33, 0.22, 0.13];
+    const FUR = [0.3, 0.3, 0.3], SOOT = [0.1, 0.095, 0.095], SKIN = [0.16, 0.15, 0.15], LEATH = [0.3, 0.16, 0.075], LEATH2 = [0.22, 0.11, 0.05], BRASS = [0.8, 0.6, 0.24], IRON = [0.17, 0.17, 0.18], WOOD = [0.33, 0.22, 0.13];
     const add = (g, bone, col, fur, at, rot, scl) => { if (scl) g.scale(...scl); if (rot) { if (rot[0]) g.rotateX(rot[0]); if (rot[1]) g.rotateY(rot[1]); if (rot[2]) g.rotateZ(rot[2]); } if (at) g.translate(...at); parts.push({ g, bone, col, fur }); };
     const sph = (r, w, h) => new THREE.SphereGeometry(r, sg(w || 20), sg(h || 14)), cap = (r, l, s) => new THREE.CapsuleGeometry(r, l, 3, sg(s || 12)), box = (x, y, z) => new THREE.BoxGeometry(x, y, z);
     // bones: 0 hips, 1 chest, 2 head, 3/4 thighL/shinL, 5/6 thighR/shinR, 7/8 armA L up/fore, 9/10 armA R, 11/12 armB L, 13/14 armB R, 15 tongs, 16 hammer L, 17 hammer R
     const hy = BP.hip, cy = hy + BP.chestUp;
     add(sph(1, 20, 14), 0, FUR, 1, [0, hy + 1, -0.5], null, [11, 7.5, 8.5]);
     add(sph(1, 24, 16), 1, FUR, 1, [0, cy + 13, 0], null, [13.5, 15.5, 11]); add(sph(1, 20, 12), 1, FUR, 1, [0, cy + 21, -2.5], null, [16.5, 6.5, 9.5]); add(sph(1, 16, 12), 1, SKIN, 0, [0, cy + 15, 7.6], null, [8.5, 9, 3.4]);
-    { const g = box(17, 25, 1.1); const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i); p.setZ(i, p.getZ(i) - 0.018 * x * x + 0.004 * (y + 12.5) * 0); } add(g, 1, LEATH, 0, [0, cy + 6.5, 10.6]); }
-    add(box(2, 2, 1.6), 1, BRASS, 0, [5.8, cy + 17.6, 10.4]); add(box(2, 2, 1.6), 1, BRASS, 0, [-5.8, cy + 17.6, 10.4]); add(box(1.4, 14, 0.8), 1, LEATH, 0, [5.8, cy + 24, 6], [-0.5, 0, 0]); add(box(1.4, 14, 0.8), 1, LEATH, 0, [-5.8, cy + 24, 6], [-0.5, 0, 0]);
+    // the leather smith's apron (v3): a bib over the chest (chest bone) with neck straps and brass rivets, a belt with a brass buckle, and a long skirt from the waist to the knees (hips bone)
+    const curve = (g, k, z0) => { const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i); p.setZ(i, p.getZ(i) - k * x * x); } return g; };
+    add(curve(new THREE.BoxGeometry(16, 19, 0.9, 8, 2, 1), 0.035), 1, LEATH, 0, [0, cy + 9.5, 12.0]); add(curve(new THREE.BoxGeometry(17, 1.0, 1.1, 8, 1, 1), 0.035), 1, LEATH2, 0, [0, cy + 18.6, 12.3]);
+    for (const s of [1, -1]) { add(box(1.6, 15, 0.9), 1, LEATH2, 0, [s * 6.2, cy + 24.5, 7.6], [-0.62, 0, s * 0.18]); add(sph(0.8, 8, 6), 1, BRASS, 0, [s * 6.4, cy + 18, 12.6]); add(sph(0.8, 8, 6), 1, BRASS, 0, [s * 6.4, cy + 2, 12.4]); }
+    add(curve(new THREE.BoxGeometry(23, 2.6, 1.2, 8, 1, 1), 0.03), 0, LEATH2, 0, [0, hy + 3.5, 10.4]); add(box(3, 3, 1), 0, BRASS, 0, [0, hy + 3.5, 11.3]);
+    add(curve(new THREE.BoxGeometry(21, 24, 0.9, 8, 4, 1), 0.03), 0, LEATH, 0, [0, hy - 9, 10.9], [-0.16, 0, 0]); add(curve(new THREE.BoxGeometry(21.5, 1.0, 1.1, 8, 1, 1), 0.03), 0, LEATH2, 0, [0, hy - 20.8, 12.8], [-0.16, 0, 0]);
     const hc = [0, cy + BP.head[1] + 4, BP.head[2] + 1]; add(sph(5.4, 20, 14), 2, FUR, 1, hc); add(sph(1, 16, 12), 2, SKIN, 0, [0, hc[1] - 1.6, hc[2] + 3.6], null, [3.6, 3, 2.8]); add(box(8.4, 1.6, 2.6), 2, SKIN, 0, [0, hc[1] + 1.6, hc[2] + 3.9]);
     add(sph(0.62, 10, 8), 2, [0.05, 0.04, 0.04], 0, [1.9, hc[1] + 0.4, hc[2] + 4.9]); add(sph(0.62, 10, 8), 2, [0.05, 0.04, 0.04], 0, [-1.9, hc[1] + 0.4, hc[2] + 4.9]); add(sph(1.5, 10, 8), 2, SKIN, 0, [5.2, hc[1] + 0.3, hc[2] - 0.5]); add(sph(1.5, 10, 8), 2, SKIN, 0, [-5.2, hc[1] + 0.3, hc[2] - 0.5]);
     add(sph(1, 14, 10), 2, FUR, 1, [0, hc[1] + 4.3, hc[2] - 1.5], null, [3.4, 2.6, 4.6]);
@@ -188,7 +192,7 @@ const FORGE = (() => {
     { const geo = apeGeo(mob), B = bones(), mat = new THREE.MeshLambertMaterial({ vertexColors: true }); const ape = new THREE.SkinnedMesh(geo, mat); ape.add(B[0]); ape.updateMatrixWorld(true); ape.bind(new THREE.Skeleton(B));
       ape.frustumCulled = false; ape.castShadow = !mob; ape.scale.setScalar(U); ape.name = 'forgeApe'; g.add(ape); M.ape = ape; M.B = B; M.apeTris = geo.index.count / 3; }
     // the bar (30 x 4 x 4), its colour and glow from the diagram's keyframes
-    { const bg = new THREE.BoxGeometry(L.bar[2], L.bar[1], L.bar[0]); bg.translate(0, 0, L.bar[0] / 2 - L.grip); M.barM = new THREE.MeshLambertMaterial({ color: 0x5a3a2c, emissive: 0x000000 }); const bar = new THREE.Mesh(bg, M.barM); bar.scale.setScalar(U); bar.name = 'forgeBar'; g.add(bar); M.bar = bar; }
+    { const bg = new THREE.BoxGeometry(L.bar[2], L.bar[1], L.bar[0]); bg.translate(0, 0, L.bar[0] / 2 - L.grip); M.barM = new THREE.MeshLambertMaterial({ color: 0x5a3a2c, emissive: 0x000000 }); M.barM.toneMapped = false; const bar = new THREE.Mesh(bg, M.barM); bar.scale.setScalar(U); bar.name = 'forgeBar'; g.add(bar); M.bar = bar; }
     // sparks: one Points cloud (additive), bursts on each hit sized by the bar's glow, settling as embers
     { const n = mob ? 220 : 480; M.spN = n; M.sp = []; const pg = new THREE.BufferGeometry(); pg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); pg.setDrawRange(0, 0);
       const pm = new THREE.PointsMaterial({ size: 1.6 * U, map: dotTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); const pts = new THREE.Points(pg, pm); pts.frustumCulled = false; pts.name = 'forgeSparks'; g.add(pts); M.pts = pts; }
@@ -224,7 +228,7 @@ const FORGE = (() => {
   function restBar() { if (M.barRest) return M.barRest; setPose(12.0); const j = jawWorld(), flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2); // laid flat along the loop line (world -x), resting on the striking surface
     const top = HB + (L.plat[3] + L.bar[1] / 2) * U, p = new THREE.Vector3(j.p.x, top, LIP[1]); const local = new THREE.Vector3(0, L.plat[3] + L.bar[1] / 2, (LIP[0] - j.p.x) / U - L.S); M.barRest = { p, q: flat, local }; return M.barRest; }
   function anim(t, night) { if (!M.built) return; const now = M.tOv != null ? M.tOv : performance.now() / 1000, T = M.tOv != null ? ((M.tOv % LOOP) + LOOP) % LOOP : ((now - M.t0) % LOOP + LOOP) % LOOP; // (tOv: a test / shot pins the loop time) void t; void night; M.T = T; M.lavaT.offset.set((now * 0.004) % 1, (now * 0.0027) % 1);
-    restBar(); const P = setPose(T), bc = barAt(T); M.barM.color.setRGB(...bc.c.map((v) => v * 0.3 + 0.04)); M.barM.emissive.setRGB(...bc.c); M.barM.emissiveIntensity = bc.em * 0.7; M.phase = phase(T);
+    restBar(); const P = setPose(T), bc = barAt(T); const gl = clamp(bc.em / 0.9, 0, 1); M.barM.color.setRGB(...bc.c.map((v) => v * (1 - 0.85 * gl))); M.barM.emissive.setRGB(...bc.c); M.barM.emissiveIntensity = gl * (0.75 + 0.08 * bc.em); // the keyframe colour drives the glow; not tone-mapped, so it stays saturated M.phase = phase(T);
     const j = jawWorld(), R = M.barRest; if ((P.lay || 0) >= 0.999) { M.bar.position.copy(R.p); M.bar.quaternion.copy(R.q); M.bar.position.addScaledVector(new THREE.Vector3(1, 0, 0), L.grip * U * 0); }
     else { const lay = P.lay || 0; M.bar.position.copy(j.p).lerp(R.p, lay); M.bar.quaternion.copy(j.q).slerp(R.q, lay); }
     // sparks: a burst at each hit (count ~ the bar's glow); flying 60-150 m out, gravity, embers on the ground

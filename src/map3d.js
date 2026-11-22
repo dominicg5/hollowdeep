@@ -386,17 +386,17 @@ if (uFg.w > 0.5) { vec2 fq = vec2((uFg.x - vWP.x) / uFg.z, (vWP.z - uFg.y) / uFg
     float fcr = length(vec2(fq.x + 100.0, fq.y)), fcone = smoothstep(1.5, 7.0, fz) * (1.0 - smoothstep(330.0, 360.0, fcr)) * step(fq.x, 20.0);
     float fpd = length(vec2(max(max(60.0 - fq.x, fq.x - 150.0), 0.0), max(abs(fq.y) - 35.0, 0.0))), fplat = 1.0 - smoothstep(0.5, 3.5, fpd);
     float wS = 1.0 - smoothstep(-12.0, 10.0, fdE + (fn - 0.5) * 34.0), wA = 1.0 - smoothstep(28.0, 74.0, fdE + (fn - 0.5) * 44.0), wB = 1.0 - smoothstep(62.0, 118.0, fdE + (fn - 0.5) * 54.0);
-    tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.58, 0.47, 0.3), wB); tc.rgb = mix(tc.rgb, vec3(0.23, 0.22, 0.21) * (0.82 + 0.36 * fn), wA * 0.92); tc.rgb = mix(tc.rgb, vec3(0.05, 0.045, 0.042) * (0.65 + 0.7 * fn), wS);
-    float frk = fbm2(fq / 3.5 + vec2(fz * 0.08, 0.0)); tc.rgb = mix(tc.rgb, vec3(0.1, 0.085, 0.08) * (0.6 + 0.8 * frk) + vec3(0.06, 0.02, 0.0) * smoothstep(0.7, 0.9, frk) * (1.0 - smoothstep(30.0, 200.0, fz)), fcone);
-    tc.rgb = mix(tc.rgb, vec3(0.27, 0.26, 0.25) * (0.75 + 0.5 * fbm2(fq / 2.2)), fplat * (1.0 - fcone));
-    float frn = 1.0 - abs(2.0 * fbm2(fq / 26.0 + vec2(3.1, 7.7)) - 1.0); fgEm = smoothstep(0.966, 0.992, frn) * wS * (1.0 - fcone) * (1.0 - fplat) * (0.6 + 0.4 * fn); tc.rgb = mix(tc.rgb, vec3(0.25, 0.05, 0.01), fgEm * 0.5); /* thin ember-lit cracks, not lava streams */ } }
+    tc.rgb = mix(tc.rgb, tc.rgb * vec3(0.58, 0.47, 0.3), wB); tc.rgb = mix(tc.rgb, vec3(0.23, 0.22, 0.21) * (0.82 + 0.36 * fn), wA * 0.92); tc.rgb = mix(tc.rgb, vec3(0.055, 0.05, 0.048) * (0.7 + 0.6 * fn), wS);
+    float fa = atan(fq.y, fq.x + 100.0), frk = fbm2(vec2(fa * 40.0, fz * 0.05)); tc.rgb = mix(tc.rgb, vec3(0.085, 0.08, 0.078) * (0.8 + 0.4 * frk), fcone); exBump *= 1.0 - 0.9 * fcone; /* near-black smooth cone with faint vertical gullies (v3) */
+    tc.rgb = mix(tc.rgb, vec3(0.2, 0.195, 0.19) * (0.75 + 0.5 * fbm2(fq / 2.2)), fplat * (1.0 - fcone));
+    float frn = 1.0 - abs(2.0 * fbm2(fq / 26.0 + vec2(3.1, 7.7)) - 1.0); fgEm = smoothstep(0.986, 0.997, frn) * smoothstep(0.52, 0.62, fbm2(fq / 70.0 + vec2(9.3, 1.7))) * wS * (1.0 - fcone) * (1.0 - fplat) * (0.5 + 0.5 * fn); tc.rgb = mix(tc.rgb, vec3(0.2, 0.04, 0.01), fgEm * 0.6); /* thin, sparse, dim hairline ember cracks */ } }
 diffuseColor *= tc;`)
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
 if (abs(exBump) > 0.0 || exF > 0.002) { vec3 bp = -vViewPosition, sX = dFdx(bp), sY = dFdy(bp), R1 = cross(sY, normal), R2 = cross(normal, sX); float fDet = dot(sX, R1) * faceDirection; vec2 dH = vec2(dFdx(exBump), dFdy(exBump)); vec3 vG = sign(fDet) * (dH.x * R1 + dH.y * R2); normal = normalize(abs(fDet) * normal - vG); } // Explore: rock slopes get real relief in the lighting (bump from the strata/crack height)`)
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 float ledge = 0.55 + 0.45 * smoothstep(0.3, 0.8, slope); // terrace walls catch more glow than their ledges, so the steps read
 totalEmissiveRadiance += uLumen * inPit * (pow(dep, 0.9) * 1.25 * ledge) * (tc.rgb * 1.8 + 0.04) + uLumen * 0.1 * inPit * smoothstep(0.7, 1.0, dep);
-totalEmissiveRadiance += vec3(1.0, 0.3, 0.06) * fgEm * 1.0; // the forge's ember cracks`)
+totalEmissiveRadiance += vec3(0.95, 0.22, 0.04) * fgEm * 0.6; // the forge's ember cracks`)
         .replace('#include <fog_fragment>', `#include <fog_fragment>
 #ifdef USE_FOG
 float hz = uHaze * (1.0 - smoothstep(0.0, uPH * 0.85, vWP.y)) * (1.0 - inPitH(vWP.xz)) * smoothstep(1500.0, 9000.0, vVD); /* true view distance (cameraPosition is not the follow camera's position in Explore: the haze washed the near meadow grey-pale) */
