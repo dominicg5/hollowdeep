@@ -51,7 +51,7 @@ const Town = (() => {
   // ---- buildings: concept-map centre (px), facing (+1: toward +py, -1: toward -py), footprint (local metres, x across the front, z depth)
   const BLD = [
     {id:'general_store',name:'General Store',px:8.4*14,py:18.2*14,face:1,t:1,w:8.1,d:6.5,npc:'goldie'},
-    {id:'smithy',name:'Smithy',px:18.35*14,py:18.2*14,face:1,t:1,w:8.6,d:6.5,npc:'brannick'},
+    {id:'smithy',name:'Smithy',px:18.35*14,py:18.2*14,face:1,t:1,w:8.6,d:6.5}, /* (Dominic t438u) Brannick now keeps the Tether Mill: spawned by src/tether_mill.js, not here; his P entry and NPC kit stay */
     {id:'rope_maker',name:'Rope Maker',px:8.8*14,py:34.5*14,face:-1,t:1,w:5.6,d:15,npc:'tess'},
     {id:'inn',name:'Inn',px:18.5*14,py:30.9*14,face:-1,t:1,w:9.4,d:5.6,npc:'hattie'},
     {id:'guide_hut',name:"Guide's Hut",px:39*14,py:31.4*14,face:-1,t:1,w:5.8,d:5.8,round:1,npc:'fennick'}

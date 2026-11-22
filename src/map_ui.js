@@ -392,6 +392,7 @@ const CityMap = (() => {
     const tmp = document.createElement('canvas'); tmp.width = tmp.height = N; tmp.getContext('2d').putImageData(img, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, N * 2, N * 2);
     const sc = (N * 2) / (CITY.R * 2); g.fillStyle = 'rgba(150,60,40,.5)'; for (const h of W.homes) g.fillRect((h.x + CITY.R) * sc - 0.5, (h.y + CITY.R) * sc - 0.5, 1, 1); g.fillStyle = 'rgba(130,128,120,.95)'; for (const m of W.mountains) { g.beginPath(); g.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, Math.max(1.5, m.r * sc * 0.9), 0, TAU); g.fill(); }
   }
+  let mmMill = null;
   function drawMinimap(view3) {
     if (!mmBase) return; const s = mm.width; if (mm.width !== 240) { mm.width = mm.height = 240; }
     mctx.clearRect(0, 0, 240, 240); mctx.save(); mctx.beginPath(); mctx.arc(120, 120, 118, 0, TAU); mctx.clip(); mctx.drawImage(mmBase, 0, 0, 240, 240);
@@ -400,6 +401,8 @@ const CityMap = (() => {
     else mctx.strokeRect((cam.x - vw / 2 + CITY.R) * sc, (cam.y - vh / 2 + CITY.R) * sc, vw * sc, vh * sc);
     const p = W.player; mctx.fillStyle = '#ffd46b'; mctx.strokeStyle = '#7a4a1c'; mctx.beginPath(); mctx.arc((p.x + CITY.R) * sc, (p.y + CITY.R) * sc, 5, 0, TAU); mctx.fill(); mctx.stroke();
     if (typeof Mosby !== 'undefined' && Mosby.GM && Mosby.GM.at) { const g = Mosby.GM.at; mctx.fillStyle = '#4f9a5a'; mctx.strokeStyle = '#f4e6b8'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc((g.x + CITY.R) * sc, (g.y + CITY.R) * sc, 6, 0, TAU); mctx.fill(); mctx.stroke(); }
+    if (typeof MILL !== 'undefined' && MILL.F) { const [x, y] = MILL.wld(10, 6), X = (x + CITY.R) * sc, Y = (y + CITY.R) * sc; if (!mmMill) { mmMill = new Image(); mmMill.src = 'assets/ui/icons/map_tether_mill.webp'; } // the Tether Mill: its map icon (same art as the pull-out map), a brass disc until it loads
+      if (mmMill.complete && mmMill.naturalWidth) mctx.drawImage(mmMill, X - 15, Y - 15, 30, 30); else { mctx.fillStyle = '#56968f'; mctx.strokeStyle = '#2a1a0a'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(X, Y, 6, 0, TAU); mctx.fill(); mctx.stroke(); } }
     const m = currentMole(); if (m) { mctx.fillStyle = '#c8634c'; mctx.beginPath(); mctx.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, 4.5, 0, TAU); mctx.fill(); }
     mctx.restore(); void s;
   }

@@ -1,5 +1,5 @@
 /* =====================================================================
-   THE ROLLER MILL (Art's handoff: stations/roller_mill - roller_mill_mechanics_diagram.png is the source of truth, open_v5 blockouts for geometry):
+   THE TETHER MILL (Dominic t438u named it; Art's handoff, filed as: stations/roller_mill - roller_mill_mechanics_diagram.png is the source of truth, open_v5 blockouts for geometry):
    an open-air, water-powered mill on a natural ledge where the grey-highland stream bends above its lake (NW of the Tin Mine). The stream steps down
    to a ledge lip and pours onto the top paddles of a 12 m overshot wheel just past top dead centre (clockwise from the front). A big lumenite pit gear
    on the wheel axle (behind stand 1) meshes a lumenite pinion that drives the line shaft through a brass bevel; the shaft runs behind and above four
@@ -107,7 +107,7 @@ const MILL = (() => {
 
   /* ---------- build ---------- */
   function build(C) { if (M.built || !M.F || typeof THREE === 'undefined') return; M.built = true; const scene = C.scene, mob = typeof QUALITY !== 'undefined' && QUALITY.name === 'mobile', SEG = mob ? 10 : 16;
-    const F = M.F, g = new THREE.Group(); g.name = 'rollerMill'; g.position.set(F.ox, HF, F.oy); g.rotation.y = Math.atan2(-F.uy, F.ux); g.scale.setScalar(WS); M.grp = g; scene.add(g);
+    const F = M.F, g = new THREE.Group(); g.name = 'tetherMill'; g.position.set(F.ox, HF, F.oy); g.rotation.y = Math.atan2(-F.uy, F.ux); g.scale.setScalar(WS); M.grp = g; scene.add(g);
     const stoneT = imgTex('assets/t_rock.webp', 0.5), cliffT = imgTex('assets/t_cliff.webp', 0.22), woodT = woodTex();
     const mStone = new THREE.MeshLambertMaterial({ map: stoneT, color: 0xc9c2b4 }), mCliff = new THREE.MeshLambertMaterial({ map: cliffT, color: 0xb8ad9c }), mWood = new THREE.MeshLambertMaterial({ map: woodT, color: 0xffffff }),
       mBrass = new THREE.MeshLambertMaterial({ color: 0xc8954a, emissive: 0x2a1a06 }), mIron = new THREE.MeshLambertMaterial({ color: 0x4a4744 }), mLum = new THREE.MeshLambertMaterial({ color: 0x3fd9cf, emissive: 0x0d5552 }),
@@ -204,9 +204,26 @@ const MILL = (() => {
   function setupChains() { if (chains) return chains; chains = []; const zc = L.stZ - 2.05; L.stands.forEach((x, k) => { chains.push({ C: chainPath([x, L.shY], SP.stubR[k + 1] + 0.08, [x, rollY0(k)[0]], SP.rS + 0.08), v: SP.shaft * SP.stubR[k + 1], z: zc }); });
     chains.push({ C: chainPath([L.spool, L.shY], SP.spStub + 0.08, [L.spool, 2.5], SP.spSpr + 0.08), v: -SP.shaft * SP.spStub, z: zc }); return chains; }
   let lastVis = 0, visOn = true, detOn = true;
+  // ---- Brannick, the keeper with the hammer (Art's NPC kit 'brannick') runs the mill (Dominic t438u). Art's spot: a worn flag in the flagstone bay bumped out
+  // from the apron's front edge (s -3.2..0.2, d 8.2..10.8), centred at s -1.5, d 9.6, facing -d toward the works with the feed table on his left and stand 1 on
+  // his right; no solids on the pad. He turns to Wren when she is close. Tap him: she walks up to him and the Tether Mill card opens with his intro line.
+  const KP = { s: -1.5, d: 9.6, y: 0, face: [-1.5, 5.9], talk: [-1.5, 11.6] }, BR = { k: null, x: 0, y: 0, hgt: 0, t: 0, walking: false };
+  function keeper(now) { if (typeof NpcKit === 'undefined' || typeof THREE === 'undefined' || !M.F || !M.grp || !M.grp.parent) return;
+    if (!BR.k) { if (NpcKit.ST.state === 'idle') NpcKit.load().catch(() => {}); if (!NpcKit.has('brannick')) return; const [x, y] = wld(KP.s, KP.d), [fx, fy] = wld(KP.face[0], KP.face[1]);
+      const k = NpcKit.create('brannick', { scale: WS, yaw: Math.atan2(fx - x, fy - y), pos: new THREE.Vector3(x, HF + KP.y * WS, y) }); if (!k) return; k.root.name = 'millKeeper'; M.grp.parent.add(k.root);
+      Object.assign(BR, { k, x, y, hgt: k.h * WS, t: now }); }
+    wrapTap(); const k = BR.k, cam = M3.camera, dt = Math.min(0.1, Math.max(0, now - BR.t)); BR.t = now; const dc = cam ? Math.hypot(cam.position.x - BR.x, cam.position.y - HF, cam.position.z - BR.y) / WS : 10;
+    k.root.visible = visOn && dc < 260; if (!k.root.visible) return; let face = null; const h = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.on ? Explore.here() : null; if (h && Math.hypot(h[0] - BR.x, h[1] - BR.y) < WS * 7) face = Math.atan2(h[0] - BR.x, h[1] - BR.y);
+    NpcKit.update(k, dt, { talking: !!(M.bub && !M.bub.classList.contains('hidden')), face, camDist: dc }); }
+  function keeperAt(sx, sy) { if (!BR.k || !BR.k.root.visible || !M3.project) return false; const a = M3.project(BR.x, BR.y, KP.y * WS), b = M3.project(BR.x, BR.y, KP.y * WS + BR.hgt); if (a[0] < -999 || b[0] < -999) return false; // his base-to-top segment on screen (as the town keepers)
+    const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, u = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)); return Math.hypot(a[0] + vx * u - sx, a[1] + vy * u - sy) < Math.max(22, Math.sqrt(l2) * 0.4); }
+  function talkTo() { const [tx, ty] = wld(KP.talk[0], KP.talk[1]), h = Explore.here(); if (h && Math.hypot(h[0] - tx, h[1] - ty) < WS * 1.5) { open(); return 'npc'; }
+    BR.walking = true; const r = Explore.goTo(tx, ty, () => { BR.walking = false; open(); }); if (!r) { BR.walking = false; open(); } return 'npc'; }
+  function wrapTap() { if (M.tapW || typeof Explore === 'undefined' || !Explore.tap) return; M.tapW = true; const t0 = Explore.tap; Explore.tap = function (sx, sy, ...r) { if (Explore.EX && Explore.EX.on && keeperAt(sx, sy)) return talkTo(); return t0.call(this, sx, sy, ...r); }; }
   function anim(t, night) { if (!M.grp) return; const now = performance.now() / 1000, tt = now - M.t0, cam = typeof M3 !== 'undefined' ? M3.camera : null;
     if (cam && now - lastVis > 0.25) { lastVis = now; const c = wld(9, 2), dist = Math.hypot(cam.position.x - c[0], cam.position.z - c[1], cam.position.y - HF); const fr = new THREE.Frustum().setFromProjectionMatrix(new THREE.Matrix4().multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
       visOn = fr.intersectsSphere(new THREE.Sphere(new THREE.Vector3(c[0], HF + 4 * WS, c[1]), 26 * WS)); M.grp.visible = visOn; detOn = dist < 420 * WS; for (const o of [M.links, M.bev, M.spr, M.pins, M.ingots]) if (o) o.visible = detOn; uiTick(); }
+    keeper(now);
     if (!visOn) return; const wa = -SP.wheel * tt; M.wheel.rotation.z = wa; M.pit.rotation.z = wa; M.pin.rotation.z = SP.pin * tt; M.shaft.rotation.x = SP.shaft * tt; M.spoolG.rotation.z = -SP.spool * tt;
     if (M.water) { const u = M.water.material.uniforms; u.uT.value = tt; u.uN.value = night || 0; }
     M.mats.metT.offset.x = -(SP.v[1] * tt) % 1; M.mats.ropeT.offset.y = (SP.v[4] * tt / 0.6) % 1;
@@ -234,15 +251,17 @@ const MILL = (() => {
 #millBub{position:absolute;z-index:60;left:50%;bottom:96px;transform:translateX(-50%);box-sizing:border-box;width:min(320px,calc(100% - 16px));padding:4px 2px 8px;border:16px solid transparent;border-image:url(assets/ui/kit_moss.webp) 52 fill / 16px stretch;color:#f3e4c2;font:13px Georgia,serif;filter:drop-shadow(0 4px 8px rgba(0,0,0,.5))}
 #millBub.hidden{display:none}#millBub .mbTop{display:flex;align-items:center;gap:8px;margin:-6px -4px 6px}#millBub .mbI{display:grid;place-items:center;width:36px;height:36px;border-radius:50%;font-size:18px;background:radial-gradient(closest-side,#1e3434 66%,#e6bb68 72%,#7a4f1c 86%,#c8954a 100%)}
 #millBub .mbN{flex:1;display:flex;flex-direction:column;min-width:0}#millBub .mbN b{font:700 16px Georgia,serif;color:#f8ecd2}#millBub .mbN small{color:#e3d3b0;font-size:12px}#millBub p{margin:2px 6px 8px;line-height:1.35;color:#f1e3c4}
+#millBub .mbK{display:flex;align-items:flex-start;gap:8px;margin:0 6px 8px;padding:6px 8px;border-radius:10px;background:rgba(20,30,22,.45)}#millBub .mbK p{margin:0;font-style:italic;font-size:12.5px}#millBub .mbK b{font-style:normal}#millBub .mbK small{font-style:normal;color:#d8c69e}#millBub .mbP{flex:none;width:46px;height:46px;border-radius:50%;background:#2b3b2b url(assets/ui/npc/brannick.webp) center/cover;box-shadow:0 0 0 2px #c8954a}
 #millBub .mbX{width:34px;height:34px;min-width:34px;border-radius:50%;border:0;background:#2b3b2b;color:#f3e4c2;box-shadow:0 0 0 2px #c8954a;cursor:pointer}#millBub .mbM{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 6px}
 #millBub .mbM button{display:flex;align-items:center;gap:5px;min-height:34px;padding:4px 6px;border:0;border-radius:10px;font:12px Georgia,serif;color:#f3e4c2;background:rgba(20,30,22,.55);box-shadow:0 0 0 1px rgba(200,149,74,.6);cursor:pointer}#millBub .mbM button.on{box-shadow:0 0 0 2px #ffd36a;background:rgba(60,48,20,.7)}#millBub .mbM s{display:block;width:12px;height:12px;border-radius:3px;flex:0 0 12px;text-decoration:none;box-shadow:0 0 0 1px rgba(0,0,0,.5)}`;
   function uiEls() { if (M.chip) return true; if (typeof document === 'undefined') return false; const wrap = document.getElementById('cityWrap') || document.body, st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
-    const c = document.createElement('button'); c.id = 'millChip'; c.innerHTML = '<i>⚙️</i><span>Roller Mill</span>'; wrap.appendChild(c); const b = document.createElement('div'); b.id = 'millBub'; b.className = 'kKit hidden'; b.setAttribute('role', 'dialog'); wrap.appendChild(b);
+    const c = document.createElement('button'); c.id = 'millChip'; c.innerHTML = '<i>⚙️</i><span>Tether Mill</span>'; wrap.appendChild(c); const b = document.createElement('div'); b.id = 'millBub'; b.className = 'kKit hidden'; b.setAttribute('role', 'dialog'); wrap.appendChild(b);
     for (const el of [c, b]) for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) el.addEventListener(e, (ev) => ev.stopPropagation());
     c.addEventListener('click', (e) => { e.stopPropagation(); open(); }); b.addEventListener('click', (e) => { e.stopPropagation(); const t = e.target.closest('button'); if (!t) return; if (t.dataset.k === 'x') return close(); if (t.dataset.m) { setMetal(t.dataset.m); open(); } });
     M.chip = c; M.bub = b; return true; }
   function open() { if (!uiEls()) return; const B = (typeof Craft !== 'undefined' && Craft.BIT_T) || [], cur = B.find((q) => q[0] === M.metal) || ['steel', 'Steel', '#6B7580'];
-    M.bub.innerHTML = `<div class="mbTop"><span class="mbI">⚙️</span><span class="mbN"><b>Roller Mill</b><small>Water-powered · cold-rolls ingots into Ledge Tether braid</small></span><button class="mbX" data-k="x" aria-label="Close">✕</button></div>` +
+    M.bub.innerHTML = `<div class="mbTop"><span class="mbI">⚙️</span><span class="mbN"><b>Tether Mill</b><small>Water-powered · cold-rolls ingots into Ledge Tether braid</small></span><button class="mbX" data-k="x" aria-label="Close">✕</button></div>` +
+      `<div class="mbK"><span class="mbP"></span><p><b>Brannick</b> <small>keeper of the Tether Mill</small><br>"Every Ledge Tether starts here. Bring me good ingots and the river does the heavy work: four stands, thinner every pass, and out comes braid you can hang your life on."</p></div>` +
       `<p>The stream turns the wheel, the lumenite gears turn four roll stands, and the bar thins at every stand before it leaves as braid on the spool. Rolling <b>${cur[1]}</b> now.</p><div class="mbM">${B.map(([k, n, col]) => `<button data-m="${k}" class="${k === M.metal ? 'on' : ''}"><s style="background:${col}"></s>${n === 'Ember Onyx' ? 'Onyx' : n}</button>`).join('')}</div>`;
     M.bub.classList.remove('hidden'); }
   function close() { if (M.bub) M.bub.classList.add('hidden'); }
@@ -252,5 +271,5 @@ const MILL = (() => {
     if (!near || blocked()) { if (M.chip) M.chip.classList.remove('on'); if (!near) close(); return; } if (!uiEls()) return; const [x, y] = wld(10, L.stZ), p = M3.project ? M3.project(x, y, 6.2 * WS) : [-9999, -9999], wrap = M.chip.parentElement.getBoundingClientRect();
     const px = p[0] < -999 ? wrap.width / 2 : Math.max(70, Math.min(wrap.width - 70, p[0])), py = p[0] < -999 ? wrap.height * 0.3 : Math.max(60, Math.min(wrap.height - 140, p[1])); M.chip.style.left = px + 'px'; M.chip.style.top = py + 'px'; M.chip.classList.add('on'); }
 
-  return { WS, L, SP, T, M, frame, resample, levels, pre, post, inside, prune, build, anim, setMetal, open, close, loc, wld, get F() { return M.F; } };
+  return { WS, L, SP, T, M, BR, KP, keeperAt, frame, resample, levels, pre, post, inside, prune, build, anim, setMetal, open, close, loc, wld, get F() { return M.F; } };
 })();
