@@ -738,7 +738,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const coal = S.res.coal; S.res.coal = 0; d.coal = 0.5; step(3600e3); const stop = !d.on; S.res.coal = coal; const ends = Object.keys(CharView.mapDoorEnds || {}); Explore.drillPanel(null); Explore.exit();
       return { spots: S0.length, types: [...new Set(S0.map((q) => q.type))].sort().join(), nodes: N.length, mined, tool, left: [left0, D.left], lp, burn, hop, need, wired, port, vg, stop, ends: ends.includes(port), tiers: Explore.BITS.length }; });
     ok(om.spots === 30 && om.types === 'coal,copper,tin' && om.nodes > 120 && om.mined >= 2 && om.tool === 'pick', 'ore node clusters from spots.json; tap a node: she walks up and mines with the pick, ore into the backpack (' + JSON.stringify(om) + ')');
-    ok(om.lp && om.left[1] === om.left[0] - 1 && om.burn === 5 && om.hop >= 15 && om.hop <= 16 && om.need > 0 && om.wired && om.port && om.vg >= 15 && om.stop && om.ends && om.tiers === 5, 'drill: long-press deploys; steel bit mines 16/h burning 5 coal/h; stops without coal; a Ledge Tether (length = route metres) plugs into a door port and feeds the vault; the map door draws its strands'); }
+    ok(om.lp && om.left[1] === om.left[0] - 1 && om.burn === 7 && om.hop >= 15 && om.hop <= 16 && om.need > 0 && om.wired && om.port && om.vg >= 15 && om.stop && om.ends && om.tiers === 5, 'drill: long-press deploys; steel bit mines 16/h burning 7 coal/h; stops without coal; a Ledge Tether (length = route metres) plugs into a door port and feeds the vault; the map door draws its strands'); }
   ok(errs.length === 0, 'no JS errors ' + errs.slice(0, 3).join(' | '));
   await b.close(); console.log(fails ? `${fails} FAILED` : 'ALL PASS'); process.exit(fails ? 1 : 0);
 })();

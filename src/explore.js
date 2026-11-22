@@ -991,7 +991,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   const bitOf = (k) => BITS.find((b) => b.k === k) || BITS[0];
   // drill ore/h = the character's ore/h on that ore with a pick of the bit's tier, divided by 3 (replaces the old fixed BITS.rate table)
   function drillRate(d) { if (!d || !d.tier || drillSoft(d)) return 0; const b = bitOf(d.tier), t = b.tier != null ? b.tier : b.min; if (typeof Skills !== 'undefined' && Skills.drillOrePerHour) return Skills.drillOrePerHour(d.type, t, Skills.level('mining')); return 0; }
-  const fmtOreH = (r) => { const n = Math.round(r); return String(n); };
+  const fmtOreH = (r) => (Math.round((Number(r) || 0) * 10) / 10).toFixed(1);
 
   const TIER_N = { bronze: 'Bronze', iron: 'Iron', steel: 'Steel', gold: 'Gold', mithril: 'Mithril', rune: 'Rune', lumen: 'Lumen', onyx: 'Ember Onyx' };
   const TIER_K = ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'];
@@ -1196,45 +1196,75 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     else if (v === 'up') { drillPickUp(d); return drillClose(); }
     if (typeof save === 'function') save(); drillRefresh(); }
 
-  function drillCard(d, D) { const b = bitOf(d.tier), soft = drillSoft(d), nobit = !d.tier, ore = ORE_LOOK[d.type] ? ORE_LOOK[d.type].name : d.type;
-    const flow = (soft || nobit) ? null : drillFlow(d), rate = flow ? flow.rate : 0, thru = (d.on && flow) ? flow.oreH : 0, need = drillNeed(d), owned = tetherOwned(), free = tetherFree(D);
-    const tetVal = d.camp ? 'Strung to the Ledge door: main port (feeds the vault)' : d.port ? `wired · ${d.len} m on door port ${CharView.PORTS.indexOf(d.port)}` : `unwired · needs <b>${need} m</b> · available <b>${free} m</b> of ${owned} m${need > free ? ' · <span class="dst coal">not enough</span>' : ''}`;
-    const tetM = d.port || d.camp ? (d.len || 0) : need;
-    const row = (icon, lab, val, k) => `<div class="srow" data-k="${k}">${seti(icon)}<span class="slab">${lab}</span><span class="sval">${val}</span></div>`;
-    const thumb = (kind, id, lab, val, k) => `<div class="srow sthumb" data-k="${k}"><span class="th ${kind}">${(id && typeof itemIco === 'function' && itemIco(id)) || ''}</span><span class="slab">${lab}</span><span class="sval">${val}</span></div>`;
-    return `<div class="dcard" data-id="${d.id}"><div class="dch"><b>${d.name}</b><small>${ore} ore</small></div>`
-      + thumb('stand', (typeof Craft !== 'undefined' && Craft.STAND_ID) || 'stand:drill', 'Stand', standName(d) || '—', 'stand')
-      + thumb('bit', d.tier ? 'bit:' + d.tier : '', 'Bit', nobit ? 'None' : b.name, 'bit')
-      + row('stat_angle', 'Angle', drillAngDeg(d) + '°', 'angle')
-      + row('set_speed', 'Speed', fmtOreH(rate) + ' ore/h', 'speed')
-      + row('set_throughput', 'Throughput', fmtOreH(thru) + ' ore/h' + (d.on && flow && flow.starved ? ' · ' + flow.pct + '%' : ''), 'thru')
-      + row(hopIco(d), 'Hopper', (d.port || d.camp) ? `sent to the vault · mined ${d.mined || 0}` : `${d.hop}/${DRILL.HOP} · mined ${d.mined || 0}`, 'hop')
-      + `<div class="srow" data-k="tether">${seti(d.port || d.camp ? 'set_ledge_tether_wired' : 'set_ledge_tether_unwired')}<span class="slab">Ledge Tether${tetM ? ` <em class="tbadge">${tetM} m</em>` : ''}</span><span class="sval">${tetVal}${drillStrandText(d) ? ' · ' + drillStrandText(d) : ''}</span></div>`
-      + row(drillStatusIco(d), 'Status', `<span class="dst ${drillStat(d)}">${drillStatusText(d)}</span>`, 'stat')
-      + (d.camp ? '' : drillLoc(d)) + '</div>'; }
-  function drillPatchCard(card, d, D) {
-    const html = drillCard(d, D), tmp = document.createElement('div'); tmp.innerHTML = html;
+  function bitColor(k) { const t = (typeof Craft !== 'undefined' && Craft.BIT_T || []).find((x) => x[0] === k); return (t && t[2]) || '#B07F45'; }
+  function drillChip(d) {
+    const st = d.on ? 'run' : d.hop >= DRILL.HOP ? 'full' : (!d.tier || drillSoft(d) || d.coal <= 0) ? 'coal' : 'idle';
+    return { st, lab: drillStatusText(d) }; }
+  function drillSum(D, L) {
+    const slots = typeof Skills !== 'undefined' ? Skills.slotsUnlocked() : 0, nxt = typeof Skills !== 'undefined' ? Skills.nextSlotLevel() : null;
+    const lv = typeof Skills !== 'undefined' ? Skills.level('mining') : 0;
+    const nrun = L.filter((d) => d.on).length, nw = L.filter((d) => d.port || d.camp).length;
+    const tot = L.reduce((s, d) => s + ((d.on && !drillSoft(d) && d.tier) ? drillFlow(d).oreH : 0), 0);
+    const nextTxt = nxt ? 'Next slot: Mining ' + nxt : 'All 9 slots unlocked (last at Mining 90)';
+    return { slots, nxt, lv, nrun, nw, tot, nextTxt }; }
+  function drillHeadHTML(D, L) {
+    const s = drillSum(D, L);
+    return `<div class="dhead"><h2>Drills</h2><span class="dtag">stats only · actions are at each drill</span><span class="dk" data-k="x"><button data-v="x" class="kX" title="Close">✕</button></span></div>`
+      + `<div class="dmeta"><span class="dplate dbrass" data-k="slots">${L.length} / ${s.slots} slots in use</span>`
+      + `<span class="dplate dgreen" data-k="next">${s.nextTxt}</span>`
+      + `<span class="dsum" data-k="sum">${s.nrun} running · ${s.nw} on Ledge Tether · ${fmtOreH(s.tot)} ore/h now</span>`
+      + `<div class="dmedal" data-k="lv" aria-label="Level ${s.lv}"><small>LV</small><b>${s.lv}</b></div></div>`
+      + `<div class="dleg">ore/h → effective · hopper /${DRILL.HOP} · Ledge Tether</div>`
+      + `<div class="dcols" aria-hidden="true"><span>#</span><span>Ore</span><span>Bit</span><span>ore/h</span><span>Effective</span><span>Hopper</span><span>Ledge Tether</span><span>Status</span></div>`; }
+  function drillPatchHead(box, D, L) {
+    const tmp = document.createElement('div'); tmp.innerHTML = drillHeadHTML(D, L);
+    tmp.querySelectorAll('[data-k]').forEach((row) => {
+      if (row.getAttribute('data-k') === 'x') return;
+      const cur = box.querySelector('.dhead [data-k="' + row.getAttribute('data-k') + '"], .dmeta [data-k="' + row.getAttribute('data-k') + '"]');
+      if (!cur) return;
+      if (cur.innerHTML !== row.innerHTML) cur.innerHTML = row.innerHTML;
+      if (cur.className !== row.className) cur.className = row.className;
+    }); }
+  function drillCard(d, D, n) {
+    const b = bitOf(d.tier), soft = drillSoft(d), nobit = !d.tier, ore = ORE_LOOK[d.type] ? ORE_LOOK[d.type].name : (d.type || '—');
+    const flow = (soft || nobit) ? null : drillFlow(d), rate = flow ? flow.rate : 0, thru = (d.on && flow) ? flow.oreH : 0, ch = drillChip(d);
+    const oreIco = (d.type && typeof itemIco === 'function' && itemIco('ore:' + d.type)) || '';
+    const wired = !!(d.port || d.camp), tetM = wired ? (d.len || 0) : 0;
+    const hop = Math.max(0, Math.floor(d.hop || 0)), hopMax = DRILL.HOP, hopPct = hopMax ? Math.max(0, Math.min(100, hop / hopMax * 100)) : 0;
+    return `<div class="dcard${ch.st === 'idle' ? ' dim' : ''}" data-id="${d.id}" data-st="${ch.st}">`
+      + `<span class="dn" data-k="n">${n}</span>`
+      + `<span class="dore" data-k="ore"><span class="dorei">${oreIco}</span><b>${ore}</b></span>`
+      + `<span class="dbit" data-k="bit">${nobit ? '' : `<i class="dbiti" style="--bit:${bitColor(d.tier)}" aria-hidden="true"></i>`}<em>${nobit ? 'None' : b.name}</em></span>`
+      + `<span class="dline">`
+      + `<span class="drate" data-k="rate">${fmtOreH(rate)}</span><span class="darr">→</span>`
+      + `<span class="deff${thru ? ' on' : ''}" data-k="eff">${fmtOreH(thru)}${d.on && flow && flow.starved ? ' · ' + flow.pct + '%' : ''}</span><span class="dunit">ore/h</span>`
+      + `<span class="dhop" data-k="hop"><span class="dhopbar${hop >= hopMax ? ' full' : ''}"><i style="width:${hopPct}%"></i></span><span class="dhopn">${hop}/${hopMax}</span></span>`
+      + `<span class="dteth" data-k="tether"><span class="dtethl">${seti(wired ? 'set_ledge_tether_wired' : 'set_ledge_tether_unwired')}${wired ? `<em class="tbadge">${tetM} m</em>` : `<span class="dunw">Unwired</span>`}</span><span class="dstrand" data-k="strand">${drillStrandText(d, D)}</span></span>`
+      + `</span>`
+      + `<span class="dstat" data-k="stat"><span class="dchip ${ch.st}"><i></i>${ch.lab}</span></span>`
+      + `</div>`; }
+  function drillPatchCard(card, d, D, n) {
+    const html = drillCard(d, D, n), tmp = document.createElement('div'); tmp.innerHTML = html;
     const next = tmp.firstElementChild; if (!next) return;
-    const fresh = next.querySelectorAll('.srow[data-k]');
-    fresh.forEach((row) => { const cur = card.querySelector('.srow[data-k="' + row.getAttribute('data-k') + '"]'); if (cur && cur.innerHTML !== row.innerHTML) cur.innerHTML = row.innerHTML; });
-    const loc = card.querySelector('[data-k=loc]'), loc2 = next.querySelector('[data-k=loc]');
-    if (loc && loc2 && loc.innerHTML !== loc2.innerHTML) loc.innerHTML = loc2.innerHTML;
-    else if (loc && !loc2) loc.remove();
-    else if (!loc && loc2) card.insertAdjacentHTML('beforeend', loc2.outerHTML);
-    const hd = card.querySelector('.dch'), hd2 = next.querySelector('.dch'); if (hd && hd2 && hd.innerHTML !== hd2.innerHTML) hd.innerHTML = hd2.innerHTML;
-  }
+    if (card.className !== next.className) card.className = next.className;
+    if (card.dataset.st !== next.dataset.st) card.dataset.st = next.dataset.st || '';
+    next.querySelectorAll('[data-k]').forEach((row) => {
+      const cur = card.querySelector('[data-k="' + row.getAttribute('data-k') + '"]');
+      if (!cur) return;
+      if (cur.innerHTML !== row.innerHTML) cur.innerHTML = row.innerHTML;
+      if (cur.className !== row.className) cur.className = row.className;
+    }); }
 
   function drillUI() { const box = document.getElementById('drillCtl'), D = drillState(); if (!box || !D || !DRILL.listOn) return;
     const L = fieldDrills(D);
     const slots = typeof Skills !== 'undefined' ? Skills.slotsUnlocked() : 0, nxt = typeof Skills !== 'undefined' ? Skills.nextSlotLevel() : null;
-    const slotLine = typeof Skills !== 'undefined' ? `${L.length}/${slots} slot${slots === 1 ? '' : 's'}${nxt ? ' · next at Mining ' + nxt : L.length >= 9 ? ' · all unlocked' : ''}` : '';
-    const sig = L.map((d) => d.id).join() + '|' + slotLine;
+    const sig = L.map((d) => d.id).join() + '|' + slots + '|' + (nxt || '');
     const list = box.querySelector('.dlist');
-    if (list && box.dataset.sig === sig) { L.forEach((d) => { const c = list.querySelector('.dcard[data-id="' + d.id + '"]'); if (c) drillPatchCard(c, d, D); }); return; }
+    if (list && box.dataset.sig === sig) { drillPatchHead(box, D, L); L.forEach((d, i) => { const c = list.querySelector('.dcard[data-id="' + d.id + '"]'); if (c) drillPatchCard(c, d, D, i + 1); }); return; }
     const y = list ? list.scrollTop : 0;
-    box.innerHTML = `<div class="dhead"><b>Drill</b><span class="badge">read-only stats</span><span class="dk" data-k="x"><button data-v="x" class="kX" title="Close">✕</button></span></div>`
-      + (slotLine ? `<div class="drow">${slotLine}</div>` : '')
-      + `<div class="dlist">` + (L.length ? L.map((d) => drillCard(d, D)).join('') : `<div class="drow">No drills placed on the map.</div>`) + `</div>`
+    box.innerHTML = `<span class="dCap dCapTL"></span><span class="dCap dCapTR"></span><span class="dCap dCapBL"></span><span class="dCap dCapBR"></span>`
+      + drillHeadHTML(D, L)
+      + `<div class="dlist">` + (L.length ? L.map((d, i) => drillCard(d, D, i + 1)).join('') : `<div class="drow">No drills placed on the map.</div>`) + `</div>`
       + `<div class="dfoot">Actions live on the drill prompt, not here.</div>`;
     box.dataset.sig = sig;
     const list2 = box.querySelector('.dlist'); if (list2 && y) list2.scrollTop = y; }

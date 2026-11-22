@@ -1,5 +1,5 @@
 // Drill stand setup UI: the backpack stand (seeded, one per drill left, plus a Mithril bit), its "Set up at nearest ore" menu (ore within a 5 s walk at her run speed, type + distance,
-// or "No ore within 5 s walk"), confirm walks her there and deploys; one HUD button for all placed drills in the right-hand stack above Skills / Bag / Map (touch-sized, always visible, with a count badge); tapping it opens a read-only stats list (stand, bit, angle, speed, throughput, hopper, Ledge Tether metres, status — no bit slots or pick-up / swap actions);
+// or "No ore within 5 s walk"), confirm walks her there and deploys; one HUD button for all placed drills in the right-hand stack above Skills / Bag / Map (touch-sized, always visible, with a count badge); tapping it opens a read-only stats list (bit, ore/h, effective, hopper, Ledge Tether, status — no stand, angle, bit slots or pick-up / swap actions);
 // those actions live on a proximity prompt at the drill itself; long-press still deploys
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
@@ -67,27 +67,29 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     return { on: c.classList.contains('on'), t, sel: !!document.querySelector('#drillHud .dh.sel'), acts: [...c.querySelectorAll('[data-k=act] button, .prow')].map((b) => b.textContent.trim()), bit: !!c.querySelector('[data-k=bit] button'), cards: c.querySelectorAll('.dcard').length, foot: /Actions live on the drill prompt/.test(t) }; });
   const T = pn.t; ok(pn.on && pn.sel, 'tapping the HUD button opens the drill stats menu');
   ok(pn.cards === 2 && pn.foot && !pn.bit && !pn.acts.length, 'stats menu lists every placed drill and has no bit slots or action buttons');
-  ok(/ore/.test(T) && /📍 \d+ m from the Ledge door/.test(T), 'panel: ore type and location');
-  ok(/Stand/.test(T) && /Drill Stand/.test(T) && /Bit/.test(T) && /Mithril/.test(T), 'panel: stand and bit tier');
-  ok(/Angle/.test(T) && /-?\d+°/.test(T), 'panel: angle');
-  ok(/Speed/.test(T) && /\d+ ore\/h/.test(T) && /Throughput/.test(T), 'panel: speed and throughput');
-  ok(/Hopper/.test(T) && /\d+\/\d+/.test(T), 'panel: hopper');
+  ok(/Copper|Tin|Iron|Gold|Coal|Mithril|Runite|Lumenite/.test(T), 'panel: ore type');
+  ok(/Mithril/.test(T) && !/Drill Stand/.test(T) && !/°/.test(T), 'panel: bit tier, no stand or angle');
+  ok(/ore\/h/.test(T) && /Effective/i.test(T), 'panel: ore/h and effective');
+  ok(/\d+\/\d+/.test(T), 'panel: hopper');
   ok(/Running|Out of coal|Hopper full|Idle|No bit|too soft/.test(T), 'panel: status');
-  ok(/Ledge Tether/.test(T) && /needs \d+ m · available \d+ m/.test(T), 'panel: Ledge Tether need vs available (read-only)');
+  ok(/Ledge Tether/.test(T) && /Unwired/.test(T), 'panel: Ledge Tether (read-only)');
   const scrollCheck = async (label) => {
     const sc = await p.evaluate(() => {
       const box = document.getElementById('drillCtl'), list = box && box.querySelector('.dlist');
       if (!list) return { ok: false };
       const cs = getComputedStyle(list), boxCs = getComputedStyle(box);
+      if (list.scrollHeight <= list.clientHeight + 8) {
+        for (let i = 0; i < 12; i++) { const pad = document.createElement('div'); pad.className = 'dcard dpad'; pad.style.cssText = 'flex:0 0 80px;min-height:80px;height:80px;max-height:80px'; pad.textContent = 'pad ' + i; list.appendChild(pad); }
+      }
       const can = list.scrollHeight > list.clientHeight + 8;
       const y = can ? Math.min(140, Math.max(48, Math.floor((list.scrollHeight - list.clientHeight) * 0.6))) : 0;
       list.scrollTop = y; const before = list.scrollTop, el = list;
-      const D = Explore.drillState(), d = D.list.find((q) => !q.camp), mined = (d && (d.mined || 0)) + 7; if (d) d.mined = mined;
+      const D = Explore.drillState(), d = D.list.find((q) => !q.camp); if (d) { d.hop = 17; d.on = false; }
       Explore.drillUI(); for (let i = 0; i < 24; i++) Explore.tick(1 / 30);
       const list2 = box.querySelector('.dlist');
       const after = list2 ? list2.scrollTop : -1, same = list2 === el;
       list2 && list2.dispatchEvent(new WheelEvent('wheel', { deltaY: 80, bubbles: true, cancelable: true }));
-      return { ok: true, can, before, after, same, mined: !!(list2 && list2.textContent.includes('mined ' + mined)),
+      return { ok: true, can, before, after, same, mined: !!(list2 && /17\/300/.test(list2.textContent)),
         contain: /contain/.test((cs.overscrollBehavior || '') + (cs.overscrollBehaviorY || '')), pan: cs.touchAction === 'pan-y',
         listScroll: cs.overflowY === 'auto' || cs.overflowY === 'scroll', boxHidden: boxCs.overflow === 'hidden' || boxCs.overflowY === 'hidden',
         pinned: document.documentElement.classList.contains('drill-open'), page: window.scrollY }; });
