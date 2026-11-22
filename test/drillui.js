@@ -1,5 +1,5 @@
 // Drill stand setup UI: the backpack stand (seeded, one per drill left, plus a Mithril bit), its "Set up at nearest ore" menu (ore within a 5 s walk at her run speed, type + distance,
-// or "No ore within 5 s walk"), confirm walks her there and deploys; one HUD button for all placed drills in the right-hand stack above Skills / Bag / Map (touch-sized, always visible, with a count badge); tapping it opens a read-only stats list (bit, ore/h, effective, hopper, Ledge Tether, status — no stand, angle, bit slots or pick-up / swap actions);
+// or "No ore within 5 s walk"), confirm walks her there and deploys; one HUD button for all placed drills in the right-hand stack above Skills / Bag / Map (touch-sized, with a count badge, only on the unobstructed Character-view game screen — hidden whenever a modal or overlay is open, including the drills menu itself); tapping it opens a read-only stats list (bit, ore/h, effective, hopper, Ledge Tether, status — no stand, angle, bit slots or pick-up / swap actions);
 // those actions live on a proximity prompt at the drill itself; long-press still deploys
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
@@ -27,6 +27,26 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(empty.above, 'the Drills button sits in the right-hand stack above Skills and Bag');
   ok(!empty.dev, 'the Drills button is hidden in Dev view');
   await p.evaluate(() => { if (typeof CityMap !== 'undefined' && CityMap.setView) CityMap.setView('char'); });
+  const ov = await p.evaluate(async () => {
+    const shown = () => { const h = document.getElementById('drillHud'); return !!(h && h.classList.contains('on') && h.offsetParent !== null && h.querySelector('.dh')); };
+    Explore.drillHud();
+    const base = shown();
+    ExMap.open(); Explore.drillHud(); const map = shown();
+    ExMap.close(); Explore.drillHud(); const afterMap = shown();
+    Craft.sheet(true); Explore.drillHud(); const bag = shown();
+    Craft.sheet(false); Explore.drillHud(); const afterBag = shown();
+    const btn = document.querySelector('#drillHud .dh'); if (btn) btn.click();
+    await new Promise((r) => setTimeout(r, 80)); Explore.drillHud();
+    const menu = !!(document.getElementById('drillCtl') && document.getElementById('drillCtl').classList.contains('on'));
+    const menuHud = shown();
+    Explore.drillPanel(null); Explore.drillHud();
+    return { base, map, afterMap, bag, afterBag, menu, menuHud, afterMenu: shown() };
+  });
+  console.log(JSON.stringify(ov));
+  ok(ov.base && ov.afterMap && ov.afterBag && ov.afterMenu, 'the Drills button returns on the main Character-view screen after overlays close');
+  ok(!ov.map, 'the Drills button is hidden while the full Map is open');
+  ok(!ov.bag, 'the Drills button is hidden while the backpack is open');
+  ok(ov.menu && !ov.menuHud, 'the Drills button is hidden while the drills menu is open');
 
   // seeded item
   const s0 = await p.evaluate(() => { Explore.build(); const WS = Explore.WS, N = Explore.ORE.nodes, D = Explore.drillState(), R = 5 * Explore.runSpeed() * WS;
@@ -64,8 +84,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await shot('hud.png');
   // tap the icon: the panel
   const pn = await p.evaluate(async () => { document.querySelector('#drillHud .dh').click(); await new Promise((r) => setTimeout(r, 100)); const c = document.getElementById('drillCtl'), t = c.textContent;
-    return { on: c.classList.contains('on'), t, sel: !!document.querySelector('#drillHud .dh.sel'), acts: [...c.querySelectorAll('[data-k=act] button, .prow')].map((b) => b.textContent.trim()), bit: !!c.querySelector('[data-k=bit] button'), cards: c.querySelectorAll('.dcard').length, foot: /Actions live on the drill prompt/.test(t) }; });
-  const T = pn.t; ok(pn.on && pn.sel, 'tapping the HUD button opens the drill stats menu');
+    const h = document.getElementById('drillHud');
+    return { on: c.classList.contains('on'), t, hud: !!(h && h.classList.contains('on') && h.offsetParent !== null), acts: [...c.querySelectorAll('[data-k=act] button, .prow')].map((b) => b.textContent.trim()), bit: !!c.querySelector('[data-k=bit] button'), cards: c.querySelectorAll('.dcard').length, foot: /Actions live on the drill prompt/.test(t) }; });
+  const T = pn.t; ok(pn.on && !pn.hud, 'tapping the HUD button opens the drill stats menu and hides the button');
   ok(pn.cards === 2 && pn.foot && !pn.bit && !pn.acts.length, 'stats menu lists every placed drill and has no bit slots or action buttons');
   ok(/Copper|Tin|Iron|Gold|Coal|Mithril|Runite|Lumenite/.test(T), 'panel: ore type');
   ok(/Mithril/.test(T) && !/Drill Stand/.test(T) && !/°/.test(T), 'panel: bit tier, no stand or angle');

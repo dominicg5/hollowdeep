@@ -1408,21 +1408,22 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     const k = reach(T.x, T.y); EX.ret = { x: k[0], y: k[1], az: EX.az }; EX.tp = (EX.tp || 0) + 1; if (typeof CityMap !== 'undefined' && CityMap.mapViewSave) CityMap.mapViewSave({ mode: 'char' }); if (EX.on) { const r = EX.ret; EX.ret = null; enter(r.x, r.y); return true; } if (typeof setTab === 'function') setTab('city'); return true; }
   // HUD: one Drills button in the right-hand stack (above Skills / Bag / Map), always in Character view on the city map, with a count badge (hidden in Dev view)
   const drillStat = (d) => (d.on ? 'run' : d.coal <= 0 ? 'coal' : d.hop >= DRILL.HOP ? 'full' : 'idle');
+  function overlayOpen() { const r = document.documentElement, m = document.getElementById('modal');
+    return !!(r.classList.contains('bag-open') || r.classList.contains('skills-open') || r.classList.contains('drill-open') || (m && !m.classList.contains('hidden')) || document.querySelector('#exMap.on,#bagSheet.on,#skillsSheet.on,#tetherOrb.on,#drillCtl.on,#drillUse.on,#mosDlg:not(.hidden),#mosCard:not(.hidden),#townDlg:not(.hidden),#tetherBub:not(.hidden)')); }
   function onCityMap() { return (typeof ui === 'undefined' || ui.tab === 'city') && (typeof CityMap === 'undefined' || !CityMap.mapView || CityMap.mapView().mode !== 'dev'); }
   function drillLoc(d) { const n = drillNode(d), H = doorSpots().find((q) => q.type === 'ledge'), h = EX.on ? here() : null; if (!n) return '';
     return `<div class="drow" data-k="loc">📍 ${Math.round(Math.hypot(n.x - H.x, n.y - H.y) / WS)} m from the Ledge door${h ? ` · ${Math.round(Math.hypot(n.x - h[0], n.y - h[1]) / WS)} m from you` : ''} · map ${Math.round(n.x / WS)}, ${Math.round(n.y / WS)}</div>`; }
-  function drillHud() { let h = document.getElementById('drillHud'); const show = onCityMap(), D = show ? drillState() : null, L = D ? fieldDrills(D) : [];
+  function drillHud() { let h = document.getElementById('drillHud'); const show = onCityMap() && !overlayOpen(), D = show ? drillState() : null, L = D ? fieldDrills(D) : [];
     if (!h) { if (!show) return; h = document.createElement('div'); h.id = 'drillHud'; h.setAttribute('aria-label', 'Your drills'); (document.getElementById('cityWrap') || document.body).appendChild(h);
-      h.addEventListener('click', (e) => { if (!e.target.closest('button.dh')) return; const open = DRILL.listOn && document.getElementById('drillCtl') && document.getElementById('drillCtl').classList.contains('on'); drillPanel(open ? null : true); }); }
-    const open = !!(DRILL.listOn && document.getElementById('drillCtl') && document.getElementById('drillCtl').classList.contains('on'));
+      h.addEventListener('click', (e) => { if (!e.target.closest('button.dh')) return; drillPanel(true); }); }
     const agg = L.some((d) => drillStat(d) === 'run') ? 'run' : L.some((d) => drillStat(d) === 'coal') ? 'coal' : L.some((d) => drillStat(d) === 'full') ? 'full' : L.length ? 'idle' : 'off';
-    const sig = (show ? '1' : '0') + '|' + L.length + '|' + L.map((d) => d.id + drillStat(d) + (d.port ? 'w' : '')).join() + '|' + agg + (open ? '|on' : '');
+    const sig = (show ? '1' : '0') + '|' + L.length + '|' + L.map((d) => d.id + drillStat(d) + (d.port ? 'w' : '')).join() + '|' + agg;
     h.classList.toggle('on', show);
     if (!show) { if (h.dataset.sig !== 'off') { h.innerHTML = ''; h.dataset.sig = 'off'; } return; }
     if (h.dataset.sig === sig) return; h.dataset.sig = sig;
     const LBL = { run: 'running', coal: 'out of coal', full: 'full', idle: 'idle', off: 'no drills' };
     const title = L.length ? `Drills (${L.length}): ${LBL[agg]}` : 'Drills';
-    h.innerHTML = `<button data-d="all" class="dh ${agg}${open ? ' sel' : ''}${L.length > 9 ? ' many' : ''}" title="${title}" aria-label="${title}"><span class="n">${L.length}</span></button>`; }
+    h.innerHTML = `<button data-d="all" class="dh ${agg}${L.length > 9 ? ' many' : ''}" title="${title}" aria-label="${title}"><span class="n">${L.length}</span></button>`; }
 
 
   // the drill on the map: the Hanging Camp's Drill at the same size it has there next to her (bit + hub about her height), bit angled into the node
