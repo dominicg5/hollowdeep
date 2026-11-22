@@ -47,12 +47,12 @@ const MosbyRide = (() => {
   // where she lands: the nearest safe spot within ~15 m of his flank (on her side first)
   function landing(side) { const G = GM(), w = WS(), s = G.g.scale.x, h = Explore.here() || [G.at.x, G.at.y], flank = Mosby.B.rx * s, a0 = side != null ? side : Math.atan2(h[1] - G.at.y, h[0] - G.at.x), cands = [];
     for (let dm = 2; dm <= 15; dm += 1.5) for (let k = 0; k < 36; k++) { const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (Math.PI / 18), x = G.at.x + Math.cos(a) * (flank + dm * w), y = G.at.y + Math.sin(a) * (flank + dm * w); cands.push({ x, y, d: dm + Math.ceil(k / 2) * 0.35 }); }
-    cands.sort((p, q) => p.d - q.d); for (const c of cands) { if (!safe(c.x, c.y).ok) continue; const k = Explore.reach(c.x, c.y); /* she lands on the walk grid: the snapped spot must be safe too */ if (k && safe(k[0], k[1]).ok) return k; } return null; }
-  function safe(x, y) { const w = WS(), G = GM(), s = G.g.scale.x; const why = (k) => ({ ok: false, why: k });
+    cands.sort((p, q) => p.d - q.d); for (const c of cands) { if (!safe(c.x, c.y, 3).ok) continue; const k = Explore.reach(c.x, c.y); /* she lands on the walk grid: the snapped spot must be safe too */ if (k && safe(k[0], k[1], 3).ok) return k; } return null; }
+  function safe(x, y, m) { m = m || 0; /* m: extra metres of room round his feet (landing asks for 3, so the walk-grid snap can't put her too near one) */ const w = WS(), G = GM(), s = G.g.scale.x; const why = (k) => ({ ok: false, why: k });
     if ((typeof GRAND !== 'undefined' && GRAND.wet && GRAND.wet(x, y, w * 1)) || (typeof isWet === 'function' && isWet(x, y, 0))) return why('water');
     if (typeof MosbyTalk !== 'undefined' && MosbyTalk.crackW(x, y)) return why('crack');
     const dx = x - G.at.x, dy = y - G.at.y, a = G.yaw || 0, lx = dx * Math.cos(a) - dy * Math.sin(a), lz = dx * Math.sin(a) + dy * Math.cos(a); if ((lx / (Mosby.B.rx * s)) ** 2 + (lz / (Mosby.B.rz * s * 1.25)) ** 2 < 1.1) return why('body'); // his shell, head and tail
-    for (const c of G.col || []) if (Math.hypot(c.x - x, c.y - y) < c.r + w * 3) return why('feet');
+    for (const c of G.col || []) if (Math.hypot(c.x - x, c.y - y) < c.r + w * (3 + m)) return why('feet');
     const h0 = M3.meshH(x, y); let mx = 0; for (let k = 0; k < 8; k++) { const q = k / 8 * Math.PI * 2; mx = Math.max(mx, Math.abs(M3.meshH(x + Math.cos(q) * w * 2, y + Math.sin(q) * w * 2) - h0)); } if (mx > w * 0.9) return why('steep'); // > ~24 deg over 2 m, or a drop
     const k2 = Explore.reach(x, y); if (!k2 || Math.hypot(k2[0] - x, k2[1] - y) > w * 2.5) return why('not walkable');
     if (Explore.solidAt && Explore.solidAt(x, y)) return why('solid');
@@ -60,7 +60,10 @@ const MosbyRide = (() => {
   // he may have carried her far past the walk patch she got on in: if nothing near him is reachable, rebuild the patch beside him (on her side) and look again
   function dismount() { if (!R.on) return null; const Gm = GM(), h = Explore.here() || [Gm.at.x, Gm.at.y], side = Math.atan2(h[1] - Gm.at.y, h[0] - Gm.at.x), G = CharView.st.gnd, face = G ? G.face : 0, az = Explore.EX.az; let p = landing(side); detach(); S.mosbyRide = null; try { save(); } catch (e) {}
     if (!p) { const r = Mosby.B.rx * Gm.g.scale.x + WS() * 8; Explore.enter(Gm.at.x + Math.cos(side) * r, Gm.at.y + Math.sin(side) * r, { az, face }); p = landing(side); }
-    const k = p || Explore.here() || [Gm.at.x + WS() * 60, Gm.at.y]; Explore.enter(k[0], k[1], { az, face }); R.last = { x: k[0], y: k[1], want: p }; return R.last; }
+    let k = p || Explore.here() || [Gm.at.x + WS() * 60, Gm.at.y]; Explore.enter(k[0], k[1], { az, face });
+    /* entering re-snaps her onto the new walk patch, which can shift her a few metres: if that spot is no longer safe (say, too near a foot), look again from the new patch */
+    for (let t = 0; t < 3; t++) { const hh = Explore.here(); if (!hh || safe(hh[0], hh[1]).ok) break; const q = landing(side); if (!q) break; k = q; Explore.enter(k[0], k[1], { az, face }); }
+    const fin = Explore.here() || k; R.last = { x: fin[0], y: fin[1], want: p }; return R.last; }
   // a tap while aboard
   const _rc = new THREE.Raycaster(), _inv = new THREE.Matrix4();
   // where a tap ray meets the walkable top of his shell (marched in the shell frame, in metres), or null
