@@ -1077,14 +1077,28 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function drillStatusIco(d) { return d.on ? 'stat_status_running' : d.hop >= DRILL.HOP ? 'stat_status_hopper_full' : (!d.tier || drillSoft(d) || d.coal <= 0) ? 'stat_status_stalled' : 'stat_status_off'; }
   function hopIco(d) { return d.hop <= 0 ? 'stat_hopper_empty' : d.hop >= DRILL.HOP * 0.8 ? 'stat_hopper_full' : 'stat_hopper_half'; }
   function drillNeed(d) { if (!d) return 0; return d.port || d.camp ? d.len : (d.need != null ? d.need : (d.need = (drillRoute(d) || { len: 0 }).len)); }
-  function drillBox(id, cls, onClick) { let box = document.getElementById(id); if (!box) { box = document.createElement('div'); box.id = id; box.className = cls; (document.getElementById('cityWrap') || document.body).appendChild(box); box.addEventListener('click', onClick); } return box; }
-  function drillClose() { DRILL.listOn = false; DRILL.sel = null; DRILL.view = ''; DRILL.prox = false; const a = document.getElementById('drillCtl'), b = document.getElementById('drillUse'); if (a) a.classList.remove('on'); if (b) b.classList.remove('on'); drillHud(); }
+  function pinDrillScroll(on) {
+    document.documentElement.classList.toggle('drill-open', !!on);
+    const pin = () => { if (window.scrollX || window.scrollY) window.scrollTo(0, 0); };
+    if (DRILL.pin) { window.removeEventListener('scroll', DRILL.pin); DRILL.pin = null; }
+    pin(); if (on) window.addEventListener('scroll', DRILL.pin = pin, { passive: true }); }
+  function drillSheetOn() { const a = document.getElementById('drillCtl'), b = document.getElementById('drillUse'); return !!(a && a.classList.contains('on')) || !!(b && b.classList.contains('on')); }
+  function bindDrillSheet(box) {
+    if (box._drillPin) return; box._drillPin = true;
+    box.addEventListener('wheel', (e) => {
+      const list = e.target.closest('.dlist');
+      if (list) { const atTop = list.scrollTop <= 0 && e.deltaY < 0, atBot = list.scrollTop + list.clientHeight >= list.scrollHeight - 1 && e.deltaY > 0; if (atTop || atBot) e.preventDefault(); }
+      else e.preventDefault();
+    }, { passive: false });
+    box.addEventListener('touchmove', (e) => { if (!e.target.closest('.dlist')) e.preventDefault(); }, { passive: false }); }
+  function drillBox(id, cls, onClick) { let box = document.getElementById(id); if (!box) { box = document.createElement('div'); box.id = id; box.className = cls; (document.getElementById('cityWrap') || document.body).appendChild(box); box.addEventListener('click', onClick); bindDrillSheet(box); } return box; }
+  function drillClose() { DRILL.listOn = false; DRILL.sel = null; DRILL.view = ''; DRILL.prox = false; const a = document.getElementById('drillCtl'), b = document.getElementById('drillUse'); if (a) a.classList.remove('on'); if (b) b.classList.remove('on'); pinDrillScroll(false); drillHud(); }
   function drillRefresh() { if (DRILL.listOn) drillUI(); if (DRILL.sel && document.getElementById('drillUse') && document.getElementById('drillUse').classList.contains('on')) drillUseUI(); drillHud(); }
 
-  function drillPanel(on) { if (!on) { const use = document.getElementById('drillUse'); if (use) use.classList.remove('on'); DRILL.sel = null; DRILL.view = ''; DRILL.listOn = false; const box = document.getElementById('drillCtl'); if (box) box.classList.remove('on'); drillHud(); return; }
+  function drillPanel(on) { if (!on) { const use = document.getElementById('drillUse'); if (use) use.classList.remove('on'); DRILL.sel = null; DRILL.view = ''; DRILL.listOn = false; const box = document.getElementById('drillCtl'); if (box) box.classList.remove('on'); pinDrillScroll(false); drillHud(); return; }
     DRILL.listOn = true; DRILL.sel = null; DRILL.view = ''; const use = document.getElementById('drillUse'); if (use) use.classList.remove('on');
     const box = drillBox('drillCtl', 'kLeather kKit', (e) => { if (e.target.closest('button[data-v=x]')) drillPanel(null); });
-    box.classList.add('on'); drillUI(); drillHud(); }
+    box.classList.add('on'); pinDrillScroll(true); drillUI(); drillHud(); }
 
   function drillSwapBit(d, v) { const D = drillState(); if (!d || d.tier === v || !bitOf(v)) return false;
     if (typeof Craft === 'undefined' || Craft.have('bit:' + v) < 1) { if (typeof toast === 'function') toast("You don't have that bit"); return false; }
@@ -1113,36 +1127,52 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
 
   function drillCard(d, D) { const b = bitOf(d.tier), soft = drillSoft(d), nobit = !d.tier, ore = ORE_LOOK[d.type] ? ORE_LOOK[d.type].name : d.type;
     const rate = (soft || nobit) ? 0 : drillRate(d), thru = d.on ? rate : 0, need = drillNeed(d), owned = tetherOwned(), free = tetherFree(D);
-    const tet = d.camp ? 'wired' : d.port ? 'wired' : 'unwired';
     const tetVal = d.camp ? 'Strung to the Ledge door: main port (feeds the vault)' : d.port ? `wired · ${d.len} m on door port ${CharView.PORTS.indexOf(d.port)}` : `unwired · needs <b>${need} m</b> · available <b>${free} m</b> of ${owned} m${need > free ? ' · <span class="dst coal">not enough</span>' : ''}`;
     const tetM = d.port || d.camp ? (d.len || 0) : need;
-    const row = (icon, lab, val) => `<div class="srow">${seti(icon)}<span class="slab">${lab}</span><span class="sval">${val}</span></div>`;
-    const thumb = (kind, id, lab, val) => `<div class="srow sthumb"><span class="th ${kind}">${(id && typeof itemIco === 'function' && itemIco(id)) || ''}</span><span class="slab">${lab}</span><span class="sval">${val}</span></div>`;
+    const row = (icon, lab, val, k) => `<div class="srow" data-k="${k}">${seti(icon)}<span class="slab">${lab}</span><span class="sval">${val}</span></div>`;
+    const thumb = (kind, id, lab, val, k) => `<div class="srow sthumb" data-k="${k}"><span class="th ${kind}">${(id && typeof itemIco === 'function' && itemIco(id)) || ''}</span><span class="slab">${lab}</span><span class="sval">${val}</span></div>`;
     return `<div class="dcard" data-id="${d.id}"><div class="dch"><b>${d.name}</b><small>${ore} ore</small></div>`
-      + thumb('stand', d.stand ? 'stand:' + d.stand : '', 'Stand', standName(d) || '—')
-      + thumb('bit', d.tier ? 'bit:' + d.tier : '', 'Bit', nobit ? 'None' : b.name)
-      + row('stat_angle', 'Angle', drillAngDeg(d) + '°')
-      + row('set_speed', 'Speed', fmtOreH(rate) + ' ore/h')
-      + row('set_throughput', 'Throughput', fmtOreH(thru) + ' ore/h')
-      + row(hopIco(d), 'Hopper', (d.port || d.camp) ? `sent to the vault · mined ${d.mined || 0}` : `${d.hop}/${DRILL.HOP} · mined ${d.mined || 0}`)
-      + `<div class="srow">${seti(d.port || d.camp ? 'set_ledge_tether_wired' : 'set_ledge_tether_unwired')}<span class="slab">Ledge Tether${tetM ? ` <em class="tbadge">${tetM} m</em>` : ''}</span><span class="sval">${tetVal}</span></div>`
-      + row(drillStatusIco(d), 'Status', `<span class="dst ${drillStat(d)}">${drillStatusText(d)}</span>`)
+      + thumb('stand', d.stand ? 'stand:' + d.stand : '', 'Stand', standName(d) || '—', 'stand')
+      + thumb('bit', d.tier ? 'bit:' + d.tier : '', 'Bit', nobit ? 'None' : b.name, 'bit')
+      + row('stat_angle', 'Angle', drillAngDeg(d) + '°', 'angle')
+      + row('set_speed', 'Speed', fmtOreH(rate) + ' ore/h', 'speed')
+      + row('set_throughput', 'Throughput', fmtOreH(thru) + ' ore/h', 'thru')
+      + row(hopIco(d), 'Hopper', (d.port || d.camp) ? `sent to the vault · mined ${d.mined || 0}` : `${d.hop}/${DRILL.HOP} · mined ${d.mined || 0}`, 'hop')
+      + `<div class="srow" data-k="tether">${seti(d.port || d.camp ? 'set_ledge_tether_wired' : 'set_ledge_tether_unwired')}<span class="slab">Ledge Tether${tetM ? ` <em class="tbadge">${tetM} m</em>` : ''}</span><span class="sval">${tetVal}</span></div>`
+      + row(drillStatusIco(d), 'Status', `<span class="dst ${drillStat(d)}">${drillStatusText(d)}</span>`, 'stat')
       + (d.camp ? '' : drillLoc(d)) + '</div>'; }
+  function drillPatchCard(card, d, D) {
+    const html = drillCard(d, D), tmp = document.createElement('div'); tmp.innerHTML = html;
+    const next = tmp.firstElementChild; if (!next) return;
+    const fresh = next.querySelectorAll('.srow[data-k]');
+    fresh.forEach((row) => { const cur = card.querySelector('.srow[data-k="' + row.getAttribute('data-k') + '"]'); if (cur && cur.innerHTML !== row.innerHTML) cur.innerHTML = row.innerHTML; });
+    const loc = card.querySelector('[data-k=loc]'), loc2 = next.querySelector('[data-k=loc]');
+    if (loc && loc2 && loc.innerHTML !== loc2.innerHTML) loc.innerHTML = loc2.innerHTML;
+    else if (loc && !loc2) loc.remove();
+    else if (!loc && loc2) card.insertAdjacentHTML('beforeend', loc2.outerHTML);
+    const hd = card.querySelector('.dch'), hd2 = next.querySelector('.dch'); if (hd && hd2 && hd.innerHTML !== hd2.innerHTML) hd.innerHTML = hd2.innerHTML;
+  }
 
   function drillUI() { const box = document.getElementById('drillCtl'), D = drillState(); if (!box || !D || !DRILL.listOn) return;
     const L = fieldDrills(D);
     const slots = typeof Skills !== 'undefined' ? Skills.slotsUnlocked() : 0, nxt = typeof Skills !== 'undefined' ? Skills.nextSlotLevel() : null;
     const slotLine = typeof Skills !== 'undefined' ? `${L.length}/${slots} slot${slots === 1 ? '' : 's'}${nxt ? ' · next at Mining ' + nxt : L.length >= 9 ? ' · all unlocked' : ''}` : '';
+    const sig = L.map((d) => d.id).join() + '|' + slotLine;
+    const list = box.querySelector('.dlist');
+    if (list && box.dataset.sig === sig) { L.forEach((d) => { const c = list.querySelector('.dcard[data-id="' + d.id + '"]'); if (c) drillPatchCard(c, d, D); }); return; }
+    const y = list ? list.scrollTop : 0;
     box.innerHTML = `<div class="dhead"><b>Drill</b><span class="badge">read-only stats</span><span class="dk" data-k="x"><button data-v="x" class="kX" title="Close">✕</button></span></div>`
       + (slotLine ? `<div class="drow">${slotLine}</div>` : '')
       + `<div class="dlist">` + (L.length ? L.map((d) => drillCard(d, D)).join('') : `<div class="drow">No drills placed on the map.</div>`) + `</div>`
-      + `<div class="dfoot">Actions live on the drill prompt, not here.</div>`; }
+      + `<div class="dfoot">Actions live on the drill prompt, not here.</div>`;
+    box.dataset.sig = sig;
+    const list2 = box.querySelector('.dlist'); if (list2 && y) list2.scrollTop = y; }
 
-  function drillInteract(d) { if (!d) { const box = document.getElementById('drillUse'); if (box) box.classList.remove('on'); if (!DRILL.listOn) DRILL.sel = null; DRILL.view = ''; drillHud(); return; }
+  function drillInteract(d) { if (!d) { const box = document.getElementById('drillUse'); if (box) box.classList.remove('on'); if (!DRILL.listOn) DRILL.sel = null; DRILL.view = ''; pinDrillScroll(drillSheetOn()); drillHud(); return; }
     DRILL.listOn = false; DRILL.sel = d; DRILL.prox = drillNearMe(d); if (!DRILL.view) DRILL.view = '';
     const st = document.getElementById('drillCtl'); if (st) st.classList.remove('on');
     const box = drillBox('drillUse', 'kLeather kKit', (e) => { const b = e.target.closest('button[data-v]'); if (!b || !DRILL.sel || b.classList.contains('dis') || b.disabled) return; drillAct(DRILL.sel, b.parentNode.dataset.k || b.dataset.k || '', b.dataset.v); });
-    box.classList.add('on'); drillUseUI(); drillHud(); }
+    box.classList.add('on'); pinDrillScroll(true); drillUseUI(); drillHud(); }
 
   function drillUseUI() { const box = document.getElementById('drillUse'), d = DRILL.sel, D = drillState(); if (!box || !d || !D) return;
     const bitN = d.tier && bitOf(d.tier) ? bitOf(d.tier).name : 'No bit', pdeg = drillAngDeg(d), need = drillNeed(d), owned = tetherOwned(), free = tetherFree(D);
@@ -1277,7 +1307,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   const drillStat = (d) => (d.on ? 'run' : d.coal <= 0 ? 'coal' : d.hop >= DRILL.HOP ? 'full' : 'idle');
   function onCityMap() { return typeof ui === 'undefined' || ui.tab === 'city'; }
   function drillLoc(d) { const n = drillNode(d), H = doorSpots().find((q) => q.type === 'ledge'), h = EX.on ? here() : null; if (!n) return '';
-    return `<div class="drow">📍 ${Math.round(Math.hypot(n.x - H.x, n.y - H.y) / WS)} m from the Ledge door${h ? ` · ${Math.round(Math.hypot(n.x - h[0], n.y - h[1]) / WS)} m from you` : ''} · map ${Math.round(n.x / WS)}, ${Math.round(n.y / WS)}</div>`; }
+    return `<div class="drow" data-k="loc">📍 ${Math.round(Math.hypot(n.x - H.x, n.y - H.y) / WS)} m from the Ledge door${h ? ` · ${Math.round(Math.hypot(n.x - h[0], n.y - h[1]) / WS)} m from you` : ''} · map ${Math.round(n.x / WS)}, ${Math.round(n.y / WS)}</div>`; }
   function drillHud() { let h = document.getElementById('drillHud'); const show = onCityMap(), D = show ? drillState() : null, L = D ? fieldDrills(D) : [];
     if (!h) { if (!show) return; h = document.createElement('div'); h.id = 'drillHud'; h.setAttribute('aria-label', 'Your drills'); (document.getElementById('cityWrap') || document.body).appendChild(h);
       h.addEventListener('click', (e) => { if (!e.target.closest('button.dh')) return; const open = DRILL.listOn && document.getElementById('drillCtl') && document.getElementById('drillCtl').classList.contains('on'); drillPanel(open ? null : true); }); }
