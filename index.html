@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='f825d4c3';
+<script>window.HD_BUILD='3e2f76ca';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build f825d4c3</div>
-<script src="assets/vendor/three.min.js?v=f825d4c3"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 3e2f76ca</div>
+<script src="assets/vendor/three.min.js?v=3e2f76ca"></script>
 <script>
 'use strict';
 
@@ -5811,7 +5811,7 @@ const MILL = (() => {
       for (const zc of [zS - 1.6, zS + 1.6]) { D.push(T(bb(1.1, 0.95 - j, 0.6, L.spool, 0.4 + 0.475, zc, 0.06), dO()), T(bb(1.1, 0.95 - j, 0.6, L.spool, 1.35 + 0.475, zc, 0.06), dO()), T(bb(1.25, 0.1, 0.75, L.spool, 2.3, zc, 0.04), dO())); } }
     return { D, FL, CL }; }
   function build(C) { if (M.built || !M.F || typeof THREE === 'undefined') return; M.built = true; const scene = C.scene, mob = typeof QUALITY !== 'undefined' && QUALITY.name === 'mobile', SEG = mob ? 10 : 16;
-    const F = M.F, g = new THREE.Group(); g.name = 'tetherMill'; g.position.set(F.ox, HF, F.oy); g.rotation.y = Math.atan2(-F.uy, F.ux); g.scale.setScalar(WK); M.grp = g; scene.add(g);
+    const F = M.F, g = new THREE.Group(); g.name = 'tetherMill'; g.position.set(F.ox, HF, F.oy); g.rotation.y = Math.atan2(-F.uy, F.ux); g.scale.setScalar(WK); M.grp = g; scene.add(g); setTimeout(() => { if (typeof hdFreeGeo === 'function') g.traverse((o) => { if (o.isMesh && !o.isSkinnedMesh && o.geometry) hdFreeGeo(o.geometry); }); }, 0); /* (t577u: the mill's static meshes keep no vertex arrays in RAM on a phone) */
     const stoneT = imgTex('assets/t_rock.webp', 0.5), woodT = woodTex();
     const softR = softTex('assets/t_rock.webp', 0.5, 0.65), mDressed = new THREE.MeshLambertMaterial({ map: softR, vertexColors: true }), mFlag = new THREE.MeshLambertMaterial({ map: softTex('assets/t_rock.webp', 1.2, 0.7), vertexColors: true }), mCliff = new THREE.MeshLambertMaterial({ map: softTex('assets/t_cliff.webp', 0.22, 0.65), vertexColors: true }),  mWood = new THREE.MeshLambertMaterial({ map: woodT, color: 0xffffff }),
       mBrass = new THREE.MeshLambertMaterial({ color: 0xc8954a, emissive: 0x2a1a06 }), mIron = new THREE.MeshLambertMaterial({ color: 0x4a4744 }), mLum = new THREE.MeshLambertMaterial({ color: 0x3fd9cf, emissive: 0x0d5552 }),
@@ -8546,7 +8546,7 @@ void main() {
     if (m.lamps) for (const c of m.lamps) { const p = at(c); PR.glow.push([p[0], p[1], p[2], h]); }
     if (h.isPlayer && m.doors && m.doors.length) { const D = m.doors[0], p = at(D.p), q = at(D.q), nx = q[0] - p[0], nz = q[2] - p[2], nl = Math.hypot(nx, nz) || 1; W.playerDoor = { x: p[0], y: p[2], up: p[1], nx: nx / nl, nz: nz / nl, w: D.w * w, h: D.h * w }; } } // the player's house front door (map units), where Explore hangs the Ledge door
   /* ---------- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall (merged geometry, instanced foliage) ---------- */
-  function hwCanvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); if (rep) t.repeat.set(rep[0], rep[1]); return t; }
+  function hwCanvasTex(w, h, draw, rep) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.generateMipmaps = true; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter; t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); if (rep) t.repeat.set(rep[0], rep[1]); return hdFreeAfterUpload(t); } /* (t577u: painted once; its canvas let go after upload) */
   // the Grand Tree's bark, hand-made (same craft as the Lumen Tree's hall): long interlocking plates drawn out up the trunk, split by deep dark furrows, every
   // plate its own weathered tone (grey-brown, some warmer, some mossy), combed with fibres and baked as a lit relief so it reads deep at every zoom; fine
   // cross-cracks and a few knots on top. Tileable.
@@ -12733,10 +12733,10 @@ const Explore = (() => {
   function deckH(B, t) { const ar = B.arch != null ? B.arch : B.gen === 'stair' ? 0 : Math.min(14, Math.max(3, B.L * 0.06)); return B.ha + (B.hb - B.ha) * t + 1.6 + ar * Math.sin(Math.PI * clamp(t, 0, 1)); } // gently arched where the span allows
   function onBridge(x, y, pad) { for (const B0 of BRIDGES) { const B = brSpec(B0), px = x - B.a[0], py = y - B.a[1]; const bw = B.dw || DW; if (Math.abs(px) > B.L + bw || Math.abs(py) > B.L + bw) continue; const t = (px * B.ux + py * B.uy) / B.L, s = Math.abs(-px * B.uy + py * B.ux); if (t > 0 && t < 1 && s < bw / 2 - 2 + (pad || 0)) return [B, t]; } if (CAVEP.length) for (const B of CAVEP) { const px = x - B.a[0], py = y - B.a[1], t = (px * B.ux + py * B.uy) / B.L, s = Math.abs(-px * B.uy + py * B.ux); if (t >= 0 && t <= 1 && s < B.dw / 2 - 2 + (pad || 0)) return [B, t]; } return null; } // (the caves' ramps and floors are decks too)
   function hAt(x, y) { const ob = onBridge(x, y, 0); if (ob) return deckH(ob[0], ob[1]); if (NV.root) { const [i, j] = cellOf(x, y), k = j * NV.nx + i; if (NV.root[k]) return rootH(x, y); } return mH(x, y); }
-  function rootH(x, y) { const fx = clamp((x - REG.X0) / C, 0, NV.nx - 1.001), fy = clamp((y - REG.Y0) / C, 0, NV.ny - 1.001), i = fx | 0, j = fy | 0, u = fx - i, v = fy - j, H = NV.h, n = NV.nx, k = j * n + i; return (H[k] * (1 - u) + H[k + 1] * u) * (1 - v) + (H[k + n] * (1 - u) + H[k + n + 1] * u) * v; } // on a root's back: the nav surface
+  function rootH(x, y) { const fx = clamp((x - REG.X0) / C, 0, NV.nx - 1.001), fy = clamp((y - REG.Y0) / C, 0, NV.ny - 1.001), i = fx | 0, j = fy | 0, u = fx - i, v = fy - j, H = NV.h, n = NV.nx, k = j * n + i; return NV.h0 + NV.hs * ((H[k] * (1 - u) + H[k + 1] * u) * (1 - v) + (H[k + n] * (1 - u) + H[k + n + 1] * u) * v); } // on a root's back: the nav surface
   // ---- the nav grid: walk / climb / blocked cells from the terrain heightfield, bridge decks walkable
   // (t577u iOS memory) the A* visit stamps are Uint16 (4.25 MB each, not 8.5): when the stamp would pass 65535 both are cleared and it restarts at 1
-  function nvStamp() { let t = (NV.stamp || 0) + 1; if (t > 65535) { if (NV.mark) NV.mark.fill(0); if (NV.closed) NV.closed.fill(0); t = 1; } return (NV.stamp = t); }
+  function nvStamp() { clearTimeout(NV.relT); NV.relT = setTimeout(() => { NV.gs = NV.par = NV.mark = NV.closed = null; NV.stamp = 0; }, 8000); /* (the A* scratch, 25 MB, only while routes are being planned) */ let t = (NV.stamp || 0) + 1; if (t > 65535) { if (NV.mark) NV.mark.fill(0); if (NV.closed) NV.closed.fill(0); t = 1; } return (NV.stamp = t); }
   function build() { if (NV.built && !(NV.solids === 0 && M3.models === 'ready')) return NV; NV.built = false; /* (re)built once the house models are in, so houses are always solid */ const t0 = performance.now(), nx = Math.round((REG.X1 - REG.X0) / C) + 1, ny = Math.round((REG.Y1 - REG.Y0) / C) + 1, N = nx * ny, h = new Float32Array(N), cls = new Uint8Array(N); NV.nx = nx; NV.ny = ny;
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) h[j * nx + i] = mH(REG.X0 + i * C, REG.Y0 + j * C);
     // the Lumen Tree's great roots lie across the rim: where a root rests on the ground its back is the walking surface (she runs up it from where it
@@ -12805,7 +12805,10 @@ const Explore = (() => {
        masked out first; then the ramps are opened again - she can go up either way */
     const rampK = []; if (typeof GRAND !== 'undefined' && GRAND.rampsOn && GRAND.rampsOn() && GRAND.onRamp) for (let k = 0; k < N; k++) if (cls[k] && GRAND.onRamp(REG.X0 + (k % nx) * C, REG.Y0 + ((k / nx) | 0) * C, 60)) { rampK.push([k, cls[k]]); cls[k] = 0; }
     comps(false); lumenSteps(comp); for (const [k, v] of rampK) cls[k] = v; comps(true); // one walkable world: with the bridges and cliff stairs every region meant for walking joins the main one; what is still cut off (ledges in the summit's sheer cliff bands, slivers between cracks, scraps on the edge peaks) is scenery
-    Object.assign(NV, { built: true, nx, ny, N, h, cls, sl, comp, root: null, rootBlk: root, ms: Math.round(performance.now() - t0) }); if (!NV.keepSmall) { ORE.pruned = null; orePrune(); } return NV; }
+    { /* (t577u iOS memory) kept after the build: heights as Uint16 (h0 + h * hs, ~1 cm steps), components as Int16 when they fit; the slope grid, the root
+       blockers and the route tags were build-only, so they are let go */ let h0 = Infinity, h1 = -Infinity; for (let k = 0; k < N; k++) { const v = h[k]; if (v < h0) h0 = v; if (v > h1) h1 = v; } if (!isFinite(h0)) { h0 = 0; h1 = 1; }
+      const hs = (h1 - h0) / 65535 || 1e-6, hq = new Uint16Array(N); for (let k = 0; k < N; k++) hq[k] = Math.round((h[k] - h0) / hs) || 0; let cq = comp; if (NV.size && NV.size.length < 32767) cq = Int16Array.from(comp);
+      Object.assign(NV, { built: true, nx, ny, N, h: hq, h0, hs, cls, comp: cq, root: null, rt: null, ms: Math.round(performance.now() - t0) }); } if (!NV.keepSmall) { ORE.pruned = null; orePrune(); } return NV; }
   const cellOf = (x, y) => [clamp(Math.round((x - REG.X0) / C), 0, NV.nx - 1), clamp(Math.round((y - REG.Y0) / C), 0, NV.ny - 1)];
   const cxy = (k) => [REG.X0 + (k % NV.nx) * C, REG.Y0 + ((k / NV.nx) | 0) * C];
   /* ---- solid scenery colliders: M3's trees/rocks/bushes + giant and mid ore boulders, field rocks, focal boulders, the detail-cluster boulders placed
@@ -12832,7 +12835,7 @@ const Explore = (() => {
   function nearest(x, y, cp) { build(); const [i0, j0] = cellOf(x, y), { nx, ny, cls, comp } = NV, ok = (k) => cls[k] && (cp == null || comp[k] === cp); if (ok(j0 * nx + i0)) return j0 * nx + i0;
     for (let R = 1; R < Math.max(nx, ny); R++) { let best = -1, bd = 1e18; for (let j = j0 - R; j <= j0 + R; j++) for (let i = i0 - R; i <= i0 + R; i++) { if (Math.max(Math.abs(i - i0), Math.abs(j - j0)) !== R || i < 0 || j < 0 || i >= nx || j >= ny) continue; const k = j * nx + i; if (!ok(k)) continue; const d = (i - i0) ** 2 + (j - j0) ** 2; if (d < bd) { bd = d; best = k; } } if (best >= 0) return best; } return -1; }
   // A* over the grid: running ground costs 1 per metre, climbing 3.5x plus height gained; diagonal moves never cut a blocked corner
-  function plan(sx, sy, tx, ty) { build(); const { nx, ny, cls, h, comp } = NV, s = nearest(sx, sy), sc = comp[s]; tx = clamp(tx, REG.X0, REG.X1); ty = clamp(ty, REG.Y0, REG.Y1); const g = nearest(tx, ty, sc); if (s < 0 || g < 0) return null;
+  function plan(sx, sy, tx, ty) { build(); const { nx, ny, cls, h, comp, hs } = NV, s = nearest(sx, sy), sc = comp[s]; tx = clamp(tx, REG.X0, REG.X1); ty = clamp(ty, REG.Y0, REG.Y1); const g = nearest(tx, ty, sc); if (s < 0 || g < 0) return null;
     const snapped = Math.hypot(cxy(g)[0] - tx, cxy(g)[1] - ty) > C * 0.75, N = NV.N, gs = NV.gs || (NV.gs = new Float32Array(N)), par = NV.par || (NV.par = new Int32Array(N)), mark = NV.mark || (NV.mark = new Uint16Array(N)); const stamp = nvStamp();
     const [gx, gy] = [g % nx, (g / nx) | 0], H = (k) => { const dx = Math.abs(k % nx - gx), dy = Math.abs(((k / nx) | 0) - gy); return (dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy)) * C; };
     let hk = new Float64Array(1024), hn = new Int32Array(1024), hl = 0; const push = (f, n) => { if (hl >= hk.length) { const a = new Float64Array(hk.length * 2), b = new Int32Array(hk.length * 2); a.set(hk); b.set(hn); hk = a; hn = b; } let k = hl++; while (k > 0) { const p = (k - 1) >> 1; if (hk[p] <= f) break; hk[k] = hk[p]; hn[k] = hn[p]; k = p; } hk[k] = f; hn[k] = n; };
@@ -12840,7 +12843,7 @@ const Explore = (() => {
     mark[s] = stamp; gs[s] = 0; par[s] = -1; push(H(s), s); const closed = NV.closed || (NV.closed = new Uint16Array(N)); let found = false, it = 0;
     while (hl) { const n = pop(); if (closed[n] === stamp) continue; closed[n] = stamp; it++; if (n === g) { found = true; break; } const i = n % nx, j = (n / nx) | 0;
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { if (!di && !dj) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (!cls[m] || closed[m] === stamp) continue; if (di && dj && (!cls[j * nx + a] || !cls[b * nx + i])) continue;
-        const L = (di && dj ? Math.SQRT2 : 1) * C, cl = cls[m] === 2 || cls[n] === 2, dh = Math.abs(h[m] - h[n]), c = L * (cl ? 3.5 : 1) + dh * (cl ? 1.2 : 0.5), ng = gs[n] + c; if (mark[m] !== stamp || ng < gs[m]) { mark[m] = stamp; gs[m] = ng; par[m] = n; push(ng + H(m), m); } } }
+        const L = (di && dj ? Math.SQRT2 : 1) * C, cl = cls[m] === 2 || cls[n] === 2, dh = Math.abs(h[m] - h[n]) * hs, c = L * (cl ? 3.5 : 1) + dh * (cl ? 1.2 : 0.5), ng = gs[n] + c; if (mark[m] !== stamp || ng < gs[m]) { mark[m] = stamp; gs[m] = ng; par[m] = n; push(ng + H(m), m); } } }
     if (!found) return null; const raw = []; for (let n = g; n !== -1; n = par[n]) raw.push(n); raw.reverse();
     // string pulling on running ground (never across a climb or off a deck); climbs keep every cell so she follows the rock
     // string pulling on running ground (never across a climb); climbs keep every cell so she follows the rock; a bridge is crossed on its
@@ -13325,7 +13328,7 @@ const Explore = (() => {
         if (SEG.length) { const segG = new THREE.CylinderGeometry(1, 1, 1, 7, 1); segG.rotateZ(Math.PI / 2); const sm = new THREE.InstancedMesh(segG, new THREE.MeshPhongMaterial({ color: S.type === 'coal' ? 0x101012 : S.type === 'copper' ? 0xd06a28 : 0xc8d0dc, specular: S.type === 'coal' ? 0xa0a0b0 : S.type === 'copper' ? 0xffb070 : 0xffffff, shininess: S.type === 'coal' ? 110 : 70, emissive: S.type === 'copper' ? 0x2a0e02 : 0x000000, flatShading: true }), SEG.length);
           const M5 = new THREE.Matrix4(), X = new THREE.Vector3(), Y = new THREE.Vector3(), Z = new THREE.Vector3(ox, 0, oy); SEG.forEach((g, i) => { X.set(g.b[0] - g.a[0], g.b[1] - g.a[1], g.b[2] - g.a[2]); const L = X.length() * 1.15; X.normalize(); Y.crossVectors(Z, X).normalize(); const Z2 = new THREE.Vector3().crossVectors(X, Y); M5.makeBasis(X.clone().multiplyScalar(L), Y.multiplyScalar(g.th), Z2.multiplyScalar(g.th * 0.55)); M5.setPosition((g.a[0] + g.b[0]) / 2, (g.a[1] + g.b[1]) / 2, (g.a[2] + g.b[2]) / 2); sm.setMatrixAt(i, M5); }); sm.name = 'cliff_seams'; sm.castShadow = true; G.add(sm); void ang2; } }
       const geo = (Pa, Ca) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(Pa, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(Ca, 3)); g.computeVertexNormals(); return g; };
-      const wg = geo(P, C); if (V && S.type !== 'coal') { const n = wg.attributes.position.count, A = new Float32Array(n * 4); for (let i = 0; i < n; i++) { A.set(V.seam, i * 4); A[i * 4 + 3] = S.type === 'copper' ? 6 : 4; } wg.setAttribute('aSeam', new THREE.Float32BufferAttribute(A, 4)); } /* cliff_veins_*: the ore veins run through the face as real lines too */ const wall = new THREE.Mesh(wg, S.type === 'coal' ? glossM : rockM); wall.castShadow = true; wall.receiveShadow = true; wall.name = 'cliff_wall'; G.add(wall);
+      const wg = geo(P, C); if (V && S.type !== 'coal') { const n = wg.attributes.position.count, A = new Float32Array(n * 4); for (let i = 0; i < n; i++) { A.set(V.seam, i * 4); A[i * 4 + 3] = S.type === 'copper' ? 6 : 4; } wg.setAttribute('aSeam', new THREE.Float32BufferAttribute(A, 4)); } /* cliff_veins_*: the ore veins run through the face as real lines too */ const wall = new THREE.Mesh(wg, S.type === 'coal' ? glossM : rockM); wall.castShadow = true; wall.receiveShadow = true; wall.name = 'cliff_wall'; G.add(wall); if (typeof hdFreeGeo === 'function') hdFreeGeo(wg); /* (t577u: nothing reads it back; climbing / mining use the nav grid and ore nodes) */
       const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), Eu = new THREE.Euler(), Sc = new THREE.Vector3(), Pp = new THREE.Vector3(), cl = new THREE.Color(), upv = new THREE.Vector3(0, 1, 0), dv = new THREE.Vector3();
       if (NUG.length) { const nn = NUG.filter((n) => n.g === 'n'), xx = NUG.filter((n) => n.g === 'x');
         if (nn.length) { const m = new THREE.InstancedMesh(nug, new THREE.MeshPhongMaterial({ color: S.type === 'coal' ? 0x141416 : 0xd8742a, specular: S.type === 'coal' ? 0x9a9aa8 : 0xffc080, shininess: S.type === 'coal' ? 90 : 60, flatShading: true, emissive: S.type === 'coal' ? 0x000000 : 0x3a1404 }), nn.length); nn.forEach((n, i) => { Eu.set(r() * 3, r() * 3, r() * 3); Q.setFromEuler(Eu); Sc.set(n.s, n.s * (0.7 + r() * 0.3), n.s * 0.8); M4.compose(Pp.set(n.x, n.y, n.z), Q, Sc); m.setMatrixAt(i, M4); }); m.castShadow = true; m.name = 'cliff_nuggets'; G.add(m); }
@@ -13622,14 +13625,14 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     for (let q = 1; q <= n; q++) { const x = A[0] + (B[0] - A[0]) * q / n, y = A[1] + (B[1] - A[1]) * q / n;
       if (check && !tetherOK(x, y, ends)) return Infinity; const h1 = mH(x, y); len += Math.hypot(L / n, h1 - h0); h0 = h1; } return len; }
   function tetherLength(pts) { let L = 0; for (let q = 1; q < pts.length; q++) L += tetherLeg(pts[q - 1], pts[q], null, false); return L; }
-  function tetherPlan(sx, sy, tx, ty) { build(); const { nx, ny, N, h, tb } = NV, ends = [[sx, sy], [tx, ty]], [si, sj] = cellOf(sx, sy), [gi, gj] = cellOf(tx, ty), s = sj * nx + si, g = gj * nx + gi;
+  function tetherPlan(sx, sy, tx, ty) { build(); const { nx, ny, N, h, tb, hs } = NV, ends = [[sx, sy], [tx, ty]], [si, sj] = cellOf(sx, sy), [gi, gj] = cellOf(tx, ty), s = sj * nx + si, g = gj * nx + gi;
     const gs = NV.gs || (NV.gs = new Float32Array(N)), par = NV.par || (NV.par = new Int32Array(N)), mark = NV.mark || (NV.mark = new Uint16Array(N)), closed = NV.closed || (NV.closed = new Uint16Array(N)), stamp = nvStamp();
-    const H = (k) => Math.hypot((k % nx - gi) * C, (((k / nx) | 0) - gj) * C, h[k] - h[g]), ok = (k) => tb[k] || ends.some((p) => { const [x, y] = cxy(k); return Math.hypot(x - p[0], y - p[1]) < WS * 8; });
+    const H = (k) => Math.hypot((k % nx - gi) * C, (((k / nx) | 0) - gj) * C, (h[k] - h[g]) * hs), ok = (k) => tb[k] || ends.some((p) => { const [x, y] = cxy(k); return Math.hypot(x - p[0], y - p[1]) < WS * 8; });
     const heap = NV.ph || (NV.ph = pathHeap()); heap.clear(); gs[s] = 0; par[s] = -1; mark[s] = stamp; heap.push(H(s), s); let found = false;
     while (heap.n) { const k = heap.pop(); if (closed[k] === stamp) continue; closed[k] = stamp; if (k === g) { found = true; break; } const i = k % nx, j = (k / nx) | 0;
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { if (!di && !dj) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a;
         if (closed[m] === stamp || !ok(m) || (di && dj && (!ok(j * nx + a) || !ok(b * nx + i)))) continue;
-        const cost = Math.hypot((di && dj ? Math.SQRT2 : 1) * C, h[m] - h[k]), ng = gs[k] + cost;
+        const cost = Math.hypot((di && dj ? Math.SQRT2 : 1) * C, (h[m] - h[k]) * hs), ng = gs[k] + cost;
         if (mark[m] !== stamp || ng < gs[m]) { mark[m] = stamp; gs[m] = ng; par[m] = k; heap.push(ng + H(m), m); } } }
     if (!found) return null; const raw = []; for (let k = g; k !== -1; k = par[k]) raw.push(cxy(k)); raw.reverse(); raw[0] = ends[0]; raw[raw.length - 1] = ends[1];
     // Farthest clear shortcut which costs no more surface length, never a shortcut through the hillside. No nav cls / walking penalty here.
@@ -14147,7 +14150,7 @@ const ExMap = (() => {
   const palAt = (t) => { for (let i = 1; i < PAL.length; i++) if (t <= PAL[i][0]) { const [a, A] = PAL[i - 1], [b, B] = PAL[i], u = (t - a) / (b - a); return [A[0] + (B[0] - A[0]) * u, A[1] + (B[1] - A[1]) * u, A[2] + (B[2] - A[2]) * u]; } return PAL[PAL.length - 1][1]; };
   // ---- the base picture: one texel per 2x2 nav cells
   function baseImage() { if (st.base) return st.base; const NV = Explore.build(), { nx, ny, cls, h } = NV, K = 2, bw = Math.ceil(nx / K), bh = Math.ceil(ny / K), cv = document.createElement('canvas'); cv.width = bw; cv.height = bh;
-    const g = cv.getContext('2d'), img = g.createImageData(bw, bh), D = img.data; let h0 = 1e9, h1 = -1e9; for (let k = 0; k < nx * ny; k += 7) if (cls[k]) { h0 = Math.min(h0, h[k]); h1 = Math.max(h1, h[k]); }
+    const g = cv.getContext('2d'), img = g.createImageData(bw, bh), D = img.data; let h0 = 1e9, h1 = -1e9; for (let k = 0; k < nx * ny; k += 7) if (cls[k]) { const hv = NV.h0 != null ? NV.h0 + h[k] * NV.hs : h[k]; h0 = Math.min(h0, hv); h1 = Math.max(h1, hv); } /* (nav heights are stored quantised) */
     const C = Explore.C, R = Explore.REG, wet = (x, y) => typeof GRAND !== 'undefined' && GRAND.spec && GRAND.wet(x, y, 0), cr = typeof CITY !== 'undefined' ? CITY.R : 1e9;
     for (let j = 0; j < bh; j++) for (let i = 0; i < bw; i++) { const ci = Math.min(nx - 1, i * K), cj = Math.min(ny - 1, j * K), k = cj * nx + ci, x = R.X0 + ci * C, y = R.Y0 + cj * C, o = (j * bw + i) * 4; let c;
       const r = Math.hypot(x, y); if (r > cr) { c = [24, 30, 44]; }
