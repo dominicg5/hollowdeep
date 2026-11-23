@@ -304,7 +304,7 @@ const Mosby = (() => {
       else { rx = Math.asin((-H + 2 * H * u) / Lg); /* foot moves back at a constant ground speed */ /* (Dominic: legs ran in reverse) stance: the planted foot pushes back, front (-A) to behind (+A), as the body passes over it - +rotation.x swings a hanging leg toward -z (behind) */ if (u < 0.08) dip = Math.max(dip, 1 - u / 0.08); }
       const ext = sw ? 0 : Lg / Math.cos(rx) - Lg; /* telescope so the planted sole stays on the ground through the sweep */
       L.hip.rotation.x = rx; L.foot.position.y = L.rest - ext + lift; L.foot.rotation.x = L.fx0 - rx * (sw ? 0.4 : 1) - toe; L.hip.position.y = L.hy0 + lift * 0.12;
-      const down = !sw; if (moving && down && !L.down) dust(L); L.down = down; }
+      const down = !sw; if (moving && down && !L.down) { dust(L); if (MS === GM && typeof GameMusic !== 'undefined') GameMusic.stomp(); } /* (t362u) his footfall: each foot's own stomp on the frame it plants */ L.down = down; }
     const br = Math.sin(T * 0.85); MS.dip = (MS.dip || 0) + (dip - (MS.dip || 0)) * Math.min(1, dt * 6);
     MS.body.position.x = moving ? -0.09 * sway : MS.body.position.x * 0.95; MS.body.position.y = -0.06 * MS.dip + 0.012 * br; MS.body.rotation.z = moving ? 0.03 * sway : 0; MS.body.rotation.x = moving ? 0.012 * MS.dip : 0;
     MS.shell.scale.set(1 + 0.006 * br, 1 + 0.011 * br, 1 + 0.004 * br); MS.neck.position.z = MS.neck0.z + 0.05 * br + (moving ? 0.08 : 0); MS.neck.rotation.x = 0.035 * Math.sin(T * 0.3) - (moving ? 0.04 : 0) + (moving ? 0.05 * MS.dip : 0); MS.neck.rotation.y = 0.1 * Math.sin(T * 0.17); MS.head.rotation.z = 0.035 * Math.sin(T * 0.23);
