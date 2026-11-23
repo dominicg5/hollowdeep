@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='9be83464';
+<script>window.HD_BUILD='b449f990';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 9be83464</div>
-<script src="assets/vendor/three.min.js?v=9be83464"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build b449f990</div>
+<script src="assets/vendor/three.min.js?v=b449f990"></script>
 <script>
 'use strict';
 
@@ -14772,7 +14772,7 @@ const Mosby = (() => {
       else { rx = Math.asin((-H + 2 * H * u) / Lg); /* foot moves back at a constant ground speed */ /* (Dominic: legs ran in reverse) stance: the planted foot pushes back, front (-A) to behind (+A), as the body passes over it - +rotation.x swings a hanging leg toward -z (behind) */ if (u < 0.08) dip = Math.max(dip, 1 - u / 0.08); }
       const ext = sw ? 0 : Lg / Math.cos(rx) - Lg; /* telescope so the planted sole stays on the ground through the sweep */
       L.hip.rotation.x = rx; L.foot.position.y = L.rest - ext + lift; L.foot.rotation.x = L.fx0 - rx * (sw ? 0.4 : 1) - toe; L.hip.position.y = L.hy0 + lift * 0.12;
-      const down = !sw; if (moving && down && !L.down) dust(L); L.down = down; }
+      const down = !sw; if (moving && down && !L.down) { dust(L); if (MS === GM && typeof GameMusic !== 'undefined') GameMusic.stomp(); } /* (t362u) his footfall: each foot's own stomp on the frame it plants */ L.down = down; }
     const br = Math.sin(T * 0.85); MS.dip = (MS.dip || 0) + (dip - (MS.dip || 0)) * Math.min(1, dt * 6);
     MS.body.position.x = moving ? -0.09 * sway : MS.body.position.x * 0.95; MS.body.position.y = -0.06 * MS.dip + 0.012 * br; MS.body.rotation.z = moving ? 0.03 * sway : 0; MS.body.rotation.x = moving ? 0.012 * MS.dip : 0;
     MS.shell.scale.set(1 + 0.006 * br, 1 + 0.011 * br, 1 + 0.004 * br); MS.neck.position.z = MS.neck0.z + 0.05 * br + (moving ? 0.08 : 0); MS.neck.rotation.x = 0.035 * Math.sin(T * 0.3) - (moving ? 0.04 : 0) + (moving ? 0.05 * MS.dip : 0); MS.neck.rotation.y = 0.1 * Math.sin(T * 0.17); MS.head.rotation.z = 0.035 * Math.sin(T * 0.23);
@@ -15203,15 +15203,22 @@ const TheusAudio = (() => {
   function start() { if (A.started) return; if (!ctx()) return; A.started = true; try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {} /* (iOS: play through the ringer switch like music apps) */ musicTick(); get(Z.overworld.track); get('pick_hit_A'); get('pick_hit_B'); } /* the first tap: whichever zone is active right now (on Mosby, at Theus, the overworld) loads first and starts; the overworld loop and the two pick hits are fetched too (once, kept in memory) */ /* the first tap: the audio starts up; the overworld loop and the two pick hits are fetched (once, kept in memory) */
   // (Dominic t359u) her pickaxe on ore / crystal: A and B in turn, +-4% pitch, one per visible impact (CharView calls this on the frame the pick head lands)
   function pickHit() { const C = A.ctx, k = A.pk = A.pk ? 0 : 1, name = k ? 'pick_hit_A' : 'pick_hit_B', b = A.buf[name]; if (!C || !A.started || !b) return 0; const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; s.playbackRate.value = 1 + (Math.random() * 2 - 1) * 0.04; g.gain.value = 0.8; s.connect(g); g.connect(A.master); s.start(); A.plays.push([name, +s.playbackRate.value.toFixed(3), typeof CharView !== 'undefined' ? +(CharView.an && CharView.an.mu || 0).toFixed(3) : null]); if (A.plays.length > 20) A.plays.shift(); return 1; } /* the first tap: the audio starts up and the overworld loop is fetched (once, kept in memory) */
-  function update(dOv) { const d = dOv != null ? dOv : A.dOv != null ? A.dOv : dist(); /* (A.dOv: a test pins her distance) */ A.lastD = d; const inside = d < AUDIO_R; if (inside && !A.ctx) ctx(); if (inside) { get('theus_swing_whoosh'); get('theus_thunder_strike_D'); } if (inside !== A.inside) A.inside = inside; musicTick(); return inside; }
+  function update(dOv) { const d = dOv != null ? dOv : A.dOv != null ? A.dOv : dist(); /* (A.dOv: a test pins her distance) */ A.lastD = d; const inside = d < AUDIO_R; if (inside && !A.ctx) ctx(); if (inside) { get('theus_swing_whoosh'); get('theus_thunder_strike_D'); } if (inside !== A.inside) A.inside = inside; { const dm = A.mOv != null ? A.mOv : mDist(); A.lastM = dm; if (A.started && dm < STOMP_R) for (const n of STOMPS) get(n); } musicTick(); return inside; }
   function play(name, offset, d) { const C = A.ctx, b = A.buf[name], g0 = fall(d != null ? d : A.dOv != null ? A.dOv : dist()); if (!C || !b || g0 <= 0) return 0; const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = g0; s.connect(g); g.connect(A.master); s.start(0, Math.max(0, Math.min(b.duration - 0.01, offset || 0))); A.plays.push([name, +g0.toFixed(3)]); if (A.plays.length > 20) A.plays.shift(); return g0; }
   // FORGE: lateBy = how far past the swing's start this frame is (s), so the crack still lands LEAD s before contact
   const swing = (lead, lateBy, d) => play('theus_swing_whoosh', CRACK - lead + LEAD + (lateBy || 0), d);
   const hit = (d) => play('theus_thunder_strike_D', 0, d);
+  // (Dominic t362u) Mosby's footfalls: Stomp D and its two variations in turn, one per foot on the frame it plants (mosby.js stepAnim), only while he walks.
+  // Full on his back; off him it fades smoothly with her distance to him, silent at STOMP_R m (he is ~80 m across). Fetched the first time she's in range, kept.
+  const STOMP_R = 250, STOMPS = ['mosby_stomp_D', 'mosby_stomp_D_var1', 'mosby_stomp_D_var2'];
+  function mDist() { const on = A.mosbyOv != null ? A.mosbyOv : typeof MosbyRide !== 'undefined' && !!MosbyRide.on; if (on) return 0; if (typeof Mosby === 'undefined' || !Mosby.GM || !Mosby.GM.at || typeof Explore === 'undefined' || !Explore.on || !Explore.here) return Infinity; const h = Explore.here(); if (!h) return Infinity; return Math.hypot(h[0] - Mosby.GM.at.x, h[1] - Mosby.GM.at.y) / Explore.WS; }
+  const sFall = (d) => (d <= 0 ? 1 : d >= STOMP_R ? 0 : 0.5 * (1 + Math.cos(Math.PI * d / STOMP_R)));
+  function stomp(dOv) { const d = dOv != null ? dOv : A.mOv != null ? A.mOv : mDist(), g0 = sFall(d), C = A.ctx; if (!C || !A.started || g0 <= 0) return 0; const name = STOMPS[(A.stI = ((A.stI == null ? -1 : A.stI) + 1) % STOMPS.length)], b = A.buf[name]; if (!b) { get(name); return 0; }
+    const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = g0; s.connect(g); g.connect(A.master); s.start(); A.plays.push([name, +g0.toFixed(3)]); if (A.plays.length > 20) A.plays.shift(); return 1; }
   function setVol(v) { A.vol = Math.max(0, Math.min(1, +v || 0)); if (A.master) A.master.gain.value = A.mute ? 0 : A.vol; }
   function setMute(m) { A.mute = !!m; if (A.master) A.master.gain.value = A.mute ? 0 : A.vol; }
   if (typeof window !== 'undefined') setInterval(() => { try { update(); } catch (e) {} }, 250);
-  return { A, Z, zone, AUDIO_R, fmt, get, update, musicTick, start, pickHit, fall, swing, hit, dist, setVol, setMute, get inside() { return A.inside; } };
+  return { A, Z, zone, AUDIO_R, fmt, get, update, musicTick, start, pickHit, stomp, sFall, STOMP_R, STOMPS, fall, swing, hit, dist, setVol, setMute, get inside() { return A.inside; } };
 })();
 const GameMusic = TheusAudio; /* (the general music module: zones + priority; TheusAudio is the same object) */
 /* ===== Hitch a ride on Mosby (Dominic: "an option to hitch a ride on his back ... you have to interact with him to get off ... which will drop you in the
