@@ -269,7 +269,6 @@ const Skills = (() => {
   const TYPE_ORDER = { ore: 0, bar: 0, roll: 0, slot: 1, use: 2, make: 2 };
   const TYPE_TAG = { ore: 'ORE', bar: 'BAR', roll: 'MILL', slot: 'DRILL SLOT', use: 'TOOL USE', make: 'TOOL MAKE' };
   const TOOL_MAKE = [
-    { key: 'climb', name: 'climbing picks', icon: (k) => 'tool:climb_' + k },
     { key: 'pick', name: 'pickaxe', icon: (k) => 'tool:pick_' + k },
     { key: 'bit', name: 'drill bit', icon: () => 'tool:bit' },
     { key: 'lifeline', name: 'Ledge Tether', icon: (k) => 'tool:tether_' + k }
@@ -293,7 +292,7 @@ const Skills = (() => {
     } else if (skill === 'tethercraft') {
       BIT_KEYS.forEach((k, i) => { const tn = BAR_NAMES[k] || k, lv = TETHER_LEVELS[i];
         E.push({ level: lv, kind: 'roll', name: tn + ' braid', id: 'tether:' + k });
-        E.push({ level: lv, kind: 'roll', name: tn + ' Wren\'s Tether', id: 'tool:tlink_' + k }); });
+      }); // (climbing tethers are no longer rolled: one base tether, looks are skins)
     } else {
       for (const k of BIT_KEYS) {
         const lv = BAR_LEVELS[k]; if (lv == null) continue;

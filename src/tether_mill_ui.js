@@ -38,7 +38,7 @@ const MillUI = (() => {
     if (typeof MILL !== 'undefined' && MILL.setRate) MILL.setRate(running(), m.jobs[0] ? m.jobs[0].grade : null);
     if (P.on && now - lastT > 450) { lastT = now; drawQueue(); if (n) draw(); }
     if (G.on) drawProgress(); if (typeof Explore !== 'undefined' && Explore.millHud) Explore.millHud(); }
-  function queue(tab, k, n) { const m = st(); if (!m || !(n > 0) || !unlocked(k)) return false; const need = n * ingOf(tab, k), last = m.jobs[m.jobs.length - 1], join = last && last.tab === tab && last.grade === k;
+  function queue(tab, k, n) { const m = st(); if (!m || !(n > 0) || !unlocked(k) || tab === 'climb') return false; const need = n * ingOf(tab, k), last = m.jobs[m.jobs.length - 1], join = last && last.tab === tab && last.grade === k;
     if (!join && m.jobs.length >= MAXJ) return false; if (Craft.have('ingot:' + k) < need || !Craft.take('ingot:' + k, need)) return false;
     if (join) last.n += n; else m.jobs.push({ id: m.nid++, tab, grade: k, n, done: 0, cur: 0, len: 0 }); if (typeof save === 'function') save(); return true; }
   function cancel(id) { const m = st(); const i = m ? m.jobs.findIndex((j) => j.id === id) : -1; if (i < 0) return 0; const j = m.jobs[i], back = (j.n - j.done) * ingOf(j.tab, j.grade), ing = 'ingot:' + j.grade;
@@ -91,7 +91,7 @@ const MillUI = (() => {
   function rootEl() { const r = document.querySelector('#modalBody [data-mill]'); if (!r || typeof ui === 'undefined' || ui.modal !== 'mill') { P.on = false; return null; } return r; }
   function qtyOf(owned, ips) { return P.qty === 'max' ? Math.max(1, Math.floor(owned / ips)) : P.qty; }
   function draw() { const r = rootEl(); if (!r) return; const m = st(), L = lv(), a = Skills.xpToReach(L), b = Skills.xpToReach(L + 1), xp = Skills.xp('tethercraft'), need = Math.max(1, b - a), into = Math.max(0, xp - a), pct = Math.min(100, Math.floor((100 * into) / need));
-    const tab = P.tab, k = P.grade, g = T(k), ips = ingOf(tab, k), owned = Craft.have('ingot:' + k), maxN = Math.floor(owned / ips), q = qtyOf(owned, ips), needI = q * ips, short = Math.max(0, needI - owned), unit = unitLen(tab, k, L), ux = xpOf(tab, k);
+    const tab = (P.tab = 'braid'), k = P.grade, /* (climbing tethers are no longer rolled; their looks are skins at the Lumen Crystal) */ g = T(k), ips = ingOf(tab, k), owned = Craft.have('ingot:' + k), maxN = Math.floor(owned / ips), q = qtyOf(owned, ips), needI = q * ips, short = Math.max(0, needI - owned), unit = unitLen(tab, k, L), ux = xpOf(tab, k);
     const last = m.jobs[m.jobs.length - 1], full = m.jobs.length >= MAXJ && !(last && last.tab === tab && last.grade === k), cl = tab === 'climb';
     const tiles = GRADES.map((gk) => { const t = T(gk), lock = L < t.u, n = NM(gk); return `<button type="button" class="mlT${lock ? ' lock' : ''}${gk === k ? ' on' : ''}" data-ml="g" data-v="${gk}">${ico(outId(tab, gk), 'mlTI')}`
       + `<b class="${n.length > 8 ? 'sm' : ''}">${esc(n)}</b><small>${lock ? 'Unlock Lv ' + t.u : ingOf(tab, gk) + ' ingots'}</small>${lock ? '<i class="mlLock"></i>' : ''}</button>`; }).join('');
@@ -101,7 +101,6 @@ const MillUI = (() => {
       + `<div class="mlHead"><div class="mlPort"></div><div class="mlTit"><h2>Tether Mill</h2><small>Brannick · Hammer Keeper</small></div><button type="button" class="mlX" data-ml="x" aria-label="Close"></button></div>`
       + `<div class="mlCard mlLv"><div class="mlMed"><small>LV</small><b>${L}</b></div><div class="mlLvB"><div class="mlRow"><h3>Tethercraft</h3><span class="mlPct">${pct}% to Lv ${L + 1}</span></div>`
       + `<div class="mlBar"><i style="width:${Math.max(3, pct)}%"></i></div><div class="mlRow"><span class="mlXp">${fx(into)} / ${fx(need)} XP</span><span class="mlSpd">Mill speed&nbsp; +${Math.round((bonus(k, L) - 1) * 100)}%</span></div></div></div>`
-      + `<div class="mlTabs"><button type="button" class="${cl ? '' : 'on'}" data-ml="tab" data-v="braid">Ledge Tether</button><button type="button" class="${cl ? 'on' : ''}" data-ml="tab" data-v="climb">Climbing Tether</button></div>`
       + `<div class="mlCard mlMake"><div class="mlLab">GRADE</div><div class="mlGrid">${tiles}</div><hr>`
       + `<div class="mlRec">${ico(outId(tab, k), 'mlRI')}<div><h3>${esc(NM(k))} ${cl ? 'Wren\'s Tether' : 'braid spool'}</h3><p>${cl ? 'equipped climbing line' : SPOOL_M + ' m single strand'}&nbsp; · &nbsp;${cl ? dur(unit) : unit.toFixed(1) + ' s'}&nbsp; · &nbsp;${fx(ux)} XP</p></div></div>`
       + `<div class="mlIng">${ico('ingot:' + k, 'mlII')}<div class="mlIngL"><small>${esc(NM(k))} ingots</small><b>${num(owned)} owned</b></div><div class="mlIngR"><small>NEEDED</small><b class="${short ? 'short' : 'ok'}">${num(needI)}</b></div></div>`

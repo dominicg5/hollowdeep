@@ -7,7 +7,11 @@ const Craft = (() => {
   const ITEMS = {};
   for (const [k, n, c] of ORE_T) ITEMS['ore:' + k] = { name: n + ' ore', short: n, emoji: '🪨', col: c, kind: 'ore', base: 2 };
   TIERS.forEach(([k, n, c], i) => { ITEMS['ingot:' + k] = { name: n + ' ingot', short: n, emoji: '🧱', col: c, kind: 'ingot', tier: i };
-    for (const [t, tn, e] of TOOLS) ITEMS['tool:' + t + '_' + k] = { name: n + ' ' + tn.toLowerCase(), short: n, emoji: e, col: c, kind: 'tool', tool: t, tier: i }; });
+    for (const [t, tn, e] of TOOLS) ITEMS['tool:' + t + '_' + k] = { name: n + ' ' + tn.toLowerCase(), short: n, emoji: e, col: c, kind: 'tool', tool: t, tier: i, climbGear: t === 'climb' || t === 'tlink' || undefined }; });
+  // (Dominic) climbing gear has no grades now: everyone carries the Iron climbing picks and the Bronze climbing tether; every other look is a cosmetic skin (Lumen Crystals).
+  // The other grades' ids stay defined only so old saves migrate (migrateClimbGear); they are never made, bought, sold or shown.
+  const CLIMB_BASE = 'tool:climb_iron', TLINK_BASE = 'tool:tlink_bronze';
+  ITEMS[CLIMB_BASE].name = 'Iron Climbing Picks'; ITEMS[TLINK_BASE].name = 'Bronze Climbing Tether'; ITEMS[TLINK_BASE].emoji = '🪢';
   // Theus's tiered pickaxe (Dominic: the tier lives on the item): one per kind at most, its own id (never a plain pickaxe, never payment); its tier is S.tpicks[kind] while it exists
   TIERS.forEach(([k, n, c], i) => { ITEMS['tool:tpick_' + k] = { name: n + ' Pickaxe (tiered)', short: n, emoji: '⛏️', col: c, kind: 'tool', tool: 'pick', tier: i, grade: k, tiered: true }; });
   for (const [k, n, c] of TIERS) ITEMS['tether:' + k] = { name: n + ' Ledge Tether', short: n + ' Tether', emoji: '🪢', col: c, kind: 'teth', tool: 'lifeline', unit: 'm', grade: k }; // coils measured in metres: lay drop tethers, upgrade / swap strands (Tether Orb)
@@ -44,10 +48,10 @@ const Craft = (() => {
     lumen: { u: 100, ips: 2, s: 93.3, xp: 64848, ci: 28, cs: 1306, cx: 907878 },
     onyx: { u: 125, ips: 2, s: 116.0, xp: 197582, ci: 43, cs: 2495, cx: 4248006 }
   };
-  for (const [t] of TOOLS) if (t !== 'tlink') TIERS.forEach(([k], i) => { const n = Math.round(TOOL_COST[t] * 1.55 ** i), inp = { ['ingot:' + k]: n }; if (TOOL_EXTRA[t]) inp[TOOL_EXTRA[t] + k] = 2; SMITH.push({ out: 'tool:' + t + '_' + k, in: inp, tool: t }); });
+  for (const [t] of TOOLS) if (t !== 'tlink' && t !== 'climb') TIERS.forEach(([k], i) => { const n = Math.round(TOOL_COST[t] * 1.55 ** i), inp = { ['ingot:' + k]: n }; if (TOOL_EXTRA[t]) inp[TOOL_EXTRA[t] + k] = 2; SMITH.push({ out: 'tool:' + t + '_' + k, in: inp, tool: t }); });
   // local placeholder market: value climbs per tier; the crystal buys at 80%
   const value = (id) => { const it = ITEMS[id]; if (!it) return 0; if (it.tiered) return value('tool:pick_' + it.grade); /* (a tiered pickaxe sells at the plain price) */ if (it.kind === 'ore') return Math.round(2 * 1.7 ** Math.max(0, ORE_T.findIndex((o) => 'ore:' + o[0] === id) - 1)); let v = 0; const r = SMELT.find((q) => q.out === id) || SMITH.find((q) => q.out === id); if (r) for (const k in r.in) v += value(k) * r.in[k]; else if (it.tool === 'tlink' && MILL[id.slice(10)]) v = value('ingot:' + id.slice(10)) * MILL[id.slice(10)].ci; return Math.round(v * 1.25); };
-  const sellP = (id) => Math.max(1, Math.floor(value(id) * 0.8)), buyP = (id) => Math.max(1, Math.ceil(value(id) * 1.15));
+  const sellP = (id) => Math.max(1, Math.floor(value(id) * 0.8 * 10)), buyP = (id) => Math.max(1, Math.ceil(value(id) * 1.15 * 10)); // gold coins (x10 the old Lumen prices)
   // ---- storage: backpack = S.backpack {id:n}; vault = S.ledgeVault (ores/ingots/gear) with iron, coal, steel living in S.res
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
   function migrateDrillSplit() { if (typeof S === 'undefined' || !S || S.drillSplit) return;
@@ -64,7 +68,29 @@ const Craft = (() => {
     const g = S.ledgeVault && S.ledgeVault.gear; if (g) { let n = 0; for (const k of ['timber', 'iron', 'brass', 'lumenite']) { const v = Math.floor(g[k] || 0); if (v > 0) { n += v; delete g[k]; } } if (n) g.drill = (g.drill || 0) + n; }
     for (const key of ['bagOrder', 'vaultOrder']) { const O = S[key]; if (!Array.isArray(O)) continue; let put = false; for (let i = 0; i < O.length; i++) { if (O[i] === STAND_ID) put = true; else if (O[i] && String(O[i]).startsWith('stand:')) { if (put) O[i] = null; else { O[i] = STAND_ID; put = true; } } } }
     if (S.drills && S.drills.list) for (const d of S.drills.list) d.stand = 'drill'; }
-  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) { S.backpack[STAND_ID] = (S.backpack[STAND_ID] || 0) + n; S.backpack['bit:mithril'] = (S.backpack['bit:mithril'] || 0) + n; } } migrateDrillSplit(); migrateStandUnify(); if (!S.tetherSeed) { S.tetherSeed = 1; S.backpack['tether:bronze'] = (S.backpack['tether:bronze'] || 0) + 1500; } return S.backpack; } // first run: Drill Stands + Mithril bits, one pair per drill left; new saves get a 1.5 km Bronze starter coil (the mill rolls the rest), older saves carry tetherSeed and keep what they have
+  function bag() { if (!S.backpack) S.backpack = {}; if (!S.mdSeed) { S.mdSeed = 1; const n = S.drills ? S.drills.left : 20; if (n > 0) { S.backpack[STAND_ID] = (S.backpack[STAND_ID] || 0) + n; S.backpack['bit:mithril'] = (S.backpack['bit:mithril'] || 0) + n; } } migrateDrillSplit(); migrateStandUnify(); migrateClimbGear(); if (!S.tetherSeed) { S.tetherSeed = 1; S.backpack['tether:bronze'] = (S.backpack['tether:bronze'] || 0) + 1500; } baseGear(); return S.backpack; } // first run: Drill Stands + Mithril bits, one pair per drill left; new saves get a 1.5 km Bronze starter coil (the mill rolls the rest), older saves carry tetherSeed and keep what they have
+  // ---- skins (cosmetic only, bought with Lumen Crystals at the Lumen Crystal): S.skins = { climb: {grade: 1}, tlink: {grade: 1} }; the look worn is S.climbGrade / S.tetherGrade
+  const SKIN_LOOKS = { climb: ['stone', 'bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'], tlink: ['regular', 'bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'] };
+  const SKIN_BASE = { climb: 'iron', tlink: 'bronze' }, SKIN_KEY = { climb: 'climbGrade', tlink: 'tetherGrade' }, SKIN_SET = { climb: 'setClimb', tlink: 'setTether' };
+  const SKIN_NAME = (kind, g) => (g === 'stone' ? 'Stone' : g === 'regular' ? 'Vine' : (TIERS.find((q) => q[0] === g) || [0, g])[1]) + (kind === 'climb' ? ' Climbing Picks' : ' Climbing Tether');
+  const SKIN_PRICE = { stone: 30, regular: 30, bronze: 40, iron: 60, steel: 80, gold: 120, mithril: 160, rune: 220, lumen: 300, onyx: 400 }; // Lumen Crystals
+  function skins() { const K = S.skins || (S.skins = {}); for (const k of ['climb', 'tlink']) { K[k] = K[k] || {}; K[k][SKIN_BASE[k]] = 1; } return K; }
+  const skinOwned = (kind, g) => !!skins()[kind][g];
+  const crystals = () => Math.floor(S.crystals || 0);
+  function skinBuy(kind, g) { if (!SKIN_LOOKS[kind] || !SKIN_LOOKS[kind].includes(g) || skinOwned(kind, g)) return false; const p = SKIN_PRICE[g] || 100; if (crystals() < p) return false; S.crystals = crystals() - p; skins()[kind][g] = 1; return true; }
+  function skinWear(kind, g) { if (!skinOwned(kind, g)) return false; S[SKIN_KEY[kind]] = g; if (typeof CharView !== 'undefined' && CharView[SKIN_SET[kind]]) try { CharView[SKIN_SET[kind]](g); } catch (e) {} return true; } // the look only: no stat anywhere reads it
+  // old saves: every other climbing grade (backpack, vault, the mill's rack, a queued Wren's Tether job) becomes the base gear and unlocks its look as an owned skin;
+  // the look she wore stays on (Stone / Vine, the old defaults, become the Iron / Bronze base look); queued climbing-tether jobs refund their unspent ingots
+  function migrateClimbGear() { if (typeof S === 'undefined' || !S || S.climbGearV >= 1) return; S.climbGearV = 1; const K = skins(), b = S.backpack || (S.backpack = {}), v = S.ledgeVault || (S.ledgeVault = {}); v.gear = v.gear || {};
+    const own = (kind, g) => { if (SKIN_LOOKS[kind].includes(g)) K[kind][g] = 1; }, got = S.climbMigrated = { climb: [], tlink: [], refund: {} };
+    for (const kind of ['climb', 'tlink']) for (const [g] of TIERS) { const id = 'tool:' + kind + '_' + g; if (g === SKIN_BASE[kind]) continue; const n = Math.floor(b[id] || 0) + Math.floor(v.gear[kind + '_' + g] || 0) + Math.floor((S.mill && S.mill.rack && S.mill.rack[id]) || 0);
+      delete b[id]; delete v.gear[kind + '_' + g]; if (S.mill && S.mill.rack) delete S.mill.rack[id]; if (n > 0) { own(kind, g); got[kind].push(g); } }
+    if (S.mill && Array.isArray(S.mill.jobs)) S.mill.jobs = S.mill.jobs.filter((j) => { if (j.tab !== 'climb') return true; const T = MILL[j.grade], back = T ? (j.n - j.done) * T.ci : 0; if (back > 0) { const ing = 'ingot:' + j.grade; b[ing] = (b[ing] || 0) + back; got.refund[ing] = (got.refund[ing] || 0) + back; } if (j.done > 0) own('tlink', j.grade); return false; });
+    if (S.mill && S.mill.jobs && !S.mill.jobs.length && S.mill.tab === 'climb') S.mill.tab = 'braid';
+    for (const kind of ['climb', 'tlink']) { const key = SKIN_KEY[kind], g = S[key]; if (!g || g === 'stone' || g === 'regular' || !SKIN_LOOKS[kind].includes(g)) S[key] = SKIN_BASE[kind]; else own(kind, g); }
+    for (const id of [CLIMB_BASE, TLINK_BASE]) { const k = id.slice(5), n = Math.floor(b[id] || 0) + Math.floor(v.gear[k] || 0); if (n > 1) { got.extra = (got.extra || 0) + n - 1; if (b[id]) { b[id] = 1; delete v.gear[k]; } else v.gear[k] = 1; } } }
+  // everyone carries exactly the base pair (backpack first, else the vault)
+  function baseGear() { if (typeof S === 'undefined' || !S || !S.backpack) return; const v = S.ledgeVault && S.ledgeVault.gear; for (const id of [CLIMB_BASE, TLINK_BASE]) { const k = id.slice(5); if (!(S.backpack[id] > 0) && !(v && v[k] > 0)) S.backpack[id] = 1; } }
   function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines', 'coils']) v[k] = v[k] || {}; migrateDrillSplit(); migrateStandUnify(); if (!S.coilSeed) S.coilSeed = 1; return v; } // the free 5000 m of every grade is gone now the mill rolls braid; saves seeded before keep their coils
   function vSlot(id) { const [kind, key] = id.split(':'), v = vault(); return kind === 'ore' ? [v.ores, key] : kind === 'ingot' ? [v.ingots, key] : kind === 'tether' ? [v.coils, key] : [v.gear, key]; }
   function get(where, id) { if (where === 'bag') return Math.floor(bag()[id] || 0); if (RES[id]) return Math.floor((S.res && S.res[RES[id]]) || 0); const [o, k] = vSlot(id); return Math.floor(o[k] || 0); }
@@ -107,20 +133,23 @@ const Craft = (() => {
   function canMake(r, x) { return Object.keys(r.in).every((k) => have(k) >= r.in[k] * x); }
   function maxMake(r) { let m = Infinity; for (const k in r.in) m = Math.min(m, Math.floor(have(k) / r.in[k])); return m; }
   function make(r, x, dest) { if (x <= 0 || !canMake(r, x) || !fits(dest === 'vault' ? 'vault' : 'bag', r.out, x)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
-  const lum = () => Math.floor((S.res && S.res.lumen) || 0);
-  function sell(id, n) { n = Math.min(n, have(id)); if (n <= 0) return 0; take(id, n); S.res.lumen = (S.res.lumen || 0) + sellP(id) * n; const it = ITEMS[id];
-    if (it && it.tiered && have(id) <= 0) { if (S.tpicks) delete S.tpicks[it.grade]; if (S.pickEqT === it.grade) S.pickEqT = null; } /* sold: that kind starts over at T0 */ return n; }
-  function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); n = Math.min(n, room('bag', id)); if (n <= 0) return 0; S.res.lumen -= buyP(id) * n; add('bag', id, n); return n; }
+  // (Dominic) everything is bought and sold for gold coins (S.gold, Mosby's fare purse); Lumen Crystals buy skins only. Rate: 1 Lumen of the old prices = 10 gold.
+  const COIN_RATE = 10, gold = () => { if (S.gold == null) S.gold = 2500; return Math.floor(S.gold); }, lum = gold;
+  const COIN = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
+  if (typeof document !== 'undefined' && !document.getElementById('cxSkinCss')) { const e = document.createElement('style'); e.id = 'cxSkinCss'; e.textContent = '.cxsw{flex:none;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55),transparent 45%),var(--c);box-shadow:inset 0 0 0 2px rgba(60,35,15,.55);margin-right:6px}.cxskH{margin:10px 0 4px;font-size:15px}.cxsoon{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;margin:6px 0;border-radius:10px;background:rgba(120,170,255,.14);box-shadow:inset 0 0 0 1px rgba(90,130,220,.35)}.cxsoon b{flex:1 1 100%}.cxsoon small{flex:1;opacity:.8}.cxgd{display:inline-flex;align-items:center}'; document.head.appendChild(e); }
+  function sell(id, n) { n = Math.min(n, have(id)); if (n <= 0) return 0; take(id, n); S.gold = gold() + sellP(id) * n; const it = ITEMS[id];
+    if (it && it.tiered && have(id) <= 0) { if (S.tpicks) delete S.tpicks[it.grade]; if (S.pickEqT === it.grade) { S.pickEqT = null; if (typeof CharView !== 'undefined' && CharView.setPick) try { CharView.setPick(S.pickGrade); } catch (e) {} } } /* sold: that kind starts over at T0 */ return n; }
+  function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); n = Math.min(n, room('bag', id)); if (n <= 0) return 0; S.gold = gold() - buyP(id) * n; add('bag', id, n); return n; }
   // ---- UI
   const st = { qty: 1, dest: 'bag', tab: 'sell', kind: null, acat: 'pick', atool: 'lifeline', menu: null };
-  const ANV_CAT = [['pick', 'Pickaxes', '⛏️'], ['climb', 'Climbing Picks', '🧗'], ['teth', 'Tethers', '🪢']], TETH_SUB = [['lifeline', '🪢 Ledge Tethers']]; // Wren's Tether (tool:tlink_*) is rolled at the Tether Mill now
+  const ANV_CAT = [['pick', 'Pickaxes', '⛏️'], ['teth', 'Tethers', '🪢']], TETH_SUB = [['lifeline', '🪢 Ledge Tethers']]; // Wren's Tether (tool:tlink_*) is rolled at the Tether Mill now
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fmt = (n) => (n >= 1e4 ? Math.round(n / 1000) + 'k' : String(n));
   const ico = (id) => { const it = ITEMS[id] || { emoji: '📦', col: '#888' }; return `<span class="cxi" style="--c:${it.col}">${it.emoji}</span>`; };
   const nm = (id) => { const it = ITEMS[id]; return it ? (it.tiered ? `${TIERS[it.tier][1]} Pickaxe (T${pickTier(it.grade)})` : it.name) : id; };
   const qtyBar = () => `<div class="cxq">${[1, 10, 100, 'all'].map((q) => `<button class="btn sm ${st.qty === q ? 'alt' : 'ghost'}" data-cx="qty" data-v="${q}">${q === 'all' ? 'All' : '×' + q}</button>`).join('')}</div>`;
   const destBar = () => `<div class="cxq"><span class="dim">Output to</span>${[['bag', '🎒 Backpack'], ['vault', '🔒 Vault']].map(([k, l]) => `<button class="btn sm ${st.dest === k ? 'alt' : 'ghost'}" data-cx="dest" data-v="${k}">${l}</button>`).join('')}</div>`;
-  const SKIP_SHOP = { drill: 1, teth: 1, stand: 1, bit: 1 }; const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && !SKIP_SHOP[ITEMS[id].kind] && !ITEMS[id].tiered); // (a tiered pickaxe never goes to the shop: players trade it at the Ledgeville Exchange)
+  const SKIP_SHOP = { drill: 1, teth: 1, stand: 1, bit: 1 }; const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && !SKIP_SHOP[ITEMS[id].kind] && !ITEMS[id].tiered && !ITEMS[id].climbGear); // (climbing gear: never sold or bought; its looks are skins) // (a tiered pickaxe never goes to the shop: players trade it at the Ledgeville Exchange)
   // ---- hand-drawn item icons (inline SVG): a wobbly inked outline over the item's colour, a highlight, per-kind drawings; jitter seeded by the id so each looks inked once
   const ICO = {};
   function svgIco(id) { if (ICO[id]) return ICO[id]; const it = ITEMS[id] || { kind: '?', col: '#888' }; let sd = 7; for (const ch of id) sd = (sd * 31 + ch.charCodeAt(0)) % 2147483647; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, j = (v) => (v + (R() - 0.5) * 1.6).toFixed(1);
@@ -136,13 +165,19 @@ const Craft = (() => {
     else if (it.kind === 'bit') b = `<path d="${P([[18, 36], [30, 36], [24, 8]])}" fill="${c}" ${st}/><rect x="${j(20)}" y="${j(34)}" width="8" height="5" rx="1" fill="#8a8d92" ${st}/><rect x="${j(22)}" y="${j(38)}" width="4" height="5" fill="#6a6d72" ${st}/>`;
     else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
     return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
-  const pic = (id) => { const it = ITEMS[id], a = it && it.tiered ? 'tool:pick_' + it.grade : id; return ((typeof itemIco === 'function' && itemIco(a)) || svgIco(a)) + tb(id); };
+  // (Mia's ember flame ladder) a tiered Ember Onyx pickaxe's icon takes its tier's flame colour: a hue / brightness tint of the same art (the dark stone barely moves)
+  const ONYX_HEX = ['#ff4a1c', '#ff6a1a', '#ff8f1f', '#ffb52e', '#ffe08a', '#c8f4ff', '#5fdcff', '#3aa0ff', '#3f5cff', '#7a4dff', '#b04bff'];
+  function onyxFilter(t) { t = Math.max(0, Math.min(10, t | 0)); if (!t) return ''; const hx = ONYX_HEX[t], r = parseInt(hx.slice(1, 3), 16) / 255, g = parseInt(hx.slice(3, 5), 16) / 255, b = parseInt(hx.slice(5, 7), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = (h * 60 + 360) % 360; const s = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+    return `hue-rotate(${Math.round(h - 12)}deg) saturate(${(0.6 + 0.6 * s).toFixed(2)}) brightness(${(1 + Math.max(0, l - 0.55) * 1.2).toFixed(2)})`; }
+  const tintIco = (html, t) => { const f = onyxFilter(t); return f && html ? html.replace(/^<(\w+)/, (m0) => `${m0} data-tier="${t}"`).replace('style="', `style="filter:${f};`).replace(/^<svg /, `<svg style="filter:${f}" `) : html; };
+  const pic = (id) => { const it = ITEMS[id], a = it && it.tiered ? 'tool:pick_' + it.grade : id, h = (typeof itemIco === 'function' && itemIco(a)) || svgIco(a); return (it && it.tiered && it.grade === 'onyx' ? tintIco(h, pickTier('onyx')) : h) + tb(id); };
   const tb = (id) => { const it = ITEMS[id]; return it && it.tiered ? `<b class="cxtb">T${pickTier(it.grade)}</b>` : ''; }; // the brass tier badge on a tiered pickaxe's icon
   const badge = (id, c) => { const it = ITEMS[id], m = it && it.unit === 'm'; return `<b class="cxct${m ? ' m' : ''}">${m ? fmtN(c) + ' m' : '×' + fmtN(c)}</b>`; };
   const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
   const EQUIP = { pick: ['pickGrade', 'setPick', 'Pickaxe'], climb: ['climbGrade', 'setClimb', 'Climbing picks'], tlink: ['tetherGrade', 'setTether', 'Tether'] };
-  const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || S[E[0]] !== TIERS[it.tier][0]) return false; return it.tool !== 'pick' || (it.tiered ? S.pickEqT === it.grade : S.pickEqT !== TIERS[it.tier][0]); };
-  function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (it.tool === 'pick') S.pickEqT = it.tiered ? g : null; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
+  const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (it && it.climbGear) return id === CLIMB_BASE || id === TLINK_BASE; /* (always worn; the look is a skin) */ if (!E || S[E[0]] !== TIERS[it.tier][0]) return false; return it.tool !== 'pick' || (it.tiered ? S.pickEqT === it.grade : S.pickEqT !== TIERS[it.tier][0]); };
+  function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (it && it.climbGear) return id === CLIMB_BASE || id === TLINK_BASE; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (it.tool === 'pick') S.pickEqT = it.tiered ? g : null; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
     const seen = {}; for (let i = 0; i < n; i++) { const id = O[i]; let c = id ? get(where, id) : 0, first = true; if (id && where === 'bag') { const j = seen[id] || 0, p = perSlot(id); seen[id] = j + 1; first = !j; c = p >= STACK_MAX ? c : Math.max(0, Math.min(p, c - j * p)); }
       const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && first && equipped(id) ? ' eq' : ''}${one ? ' one' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + (one ? '' : badge(id, c)) : ''}</div>`; }
@@ -162,7 +197,7 @@ const Craft = (() => {
     const it = ITEMS[id] || {}, o = [];
     const where = (st.menu && st.menu.w) === 'vault' ? 'Vault' : 'Backpack';
     o.push(['Held', (it.unit === 'm' ? fmtN(c) + ' m' : '×' + fmtN(c)) + ' in ' + where]);
-    const tn = TIER_N(it); if (tn) o.push(['Tier', tn]);
+    const tn = it.climbGear ? '' : TIER_N(it); if (tn) o.push(['Tier', tn]); if (it.climbGear) o.push(['Look', SKIN_NAME(it.tool === 'climb' ? 'climb' : 'tlink', S[it.tool === 'climb' ? 'climbGrade' : 'tetherGrade'] || SKIN_BASE[it.tool === 'climb' ? 'climb' : 'tlink'])]);
     if (it.tiered && typeof Skills !== 'undefined' && Skills.multLabel) { const t = pickTier(it.grade); o.push(['Upgrade', 'T' + t + ' \u00b7 ' + Skills.multLabel(Skills.tierMult(t)) + ' mining']); }
     if (it.kind && KIND_N[it.kind]) o.push(['Kind', KIND_N[it.kind]]);
     if (it.kind === 'tool' && EQUIP[it.tool]) o.push(['Slot', EQUIP[it.tool][2]]);
@@ -176,8 +211,7 @@ const Craft = (() => {
     if (it.kind === 'bit') return 'Fits any placed stand. Swap or pick it up at the drill itself.';
     if (it.tiered) return 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Ledgeville Exchange (the shop will not buy it).';
     if (it.kind === 'tool' && it.tool === 'pick') return 'Equip it to mine ore out on the map.';
-    if (it.kind === 'tool' && it.tool === 'climb') return 'Equip it to climb pitches on the map.';
-    if (it.kind === 'tool' && it.tool === 'tlink') return 'Equip it as the line you travel on.';
+    if (it.climbGear) return 'Everyone carries these; they climb the same in any look. New looks are cosmetic skins at the Lumen Crystal.';
     if (it.kind === 'tool' && it.tool === 'lifeline') return 'A winch and hook for a Ledge Tether line.';
     if (it.kind === 'ore') return w === 'bag' ? 'Carried in the backpack. Smelt it at the Ledge, or move it to the vault (Backpack ⇄ Vault).' : 'Stored in the Ledge vault.';
     if (it.kind === 'ingot') return w === 'bag' ? 'Smelted metal, ready to smith. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : 'Stored in the Ledge vault.';
@@ -236,12 +270,21 @@ const Craft = (() => {
       if (!F && r.tool !== tool) continue;
       h += `<div class="cxr rec" data-out="${r.out}">${ico(r.out)}<span class="cxn">${esc(it.name)}<small class="cxcs">${cost(r, x)}</small></span><button class="btn sm ${canMake(r, x) ? 'alt' : 'ghost'}" data-cx="make" data-k="${kind}" data-i="${i}" ${canMake(r, x) ? '' : 'disabled'}>${F ? 'Smelt' : 'Smith'} ×${x}</button></div>`; }
     return h + '</div><button class="btn ghost" data-cx="close">Close</button></div>'; }
-  function exHTML() { const S2 = st.tab === 'sell';
-    let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 ${S2 ? 'Sell' : 'Buy'}</h2><span class="tag">✦ ${fmt(lum())} Lumen</span></div><div class="dim">The crystal trades with the Hollow. Placeholder local market prices.</div>`;
-    h += `<div class="cxq">${[['sell', 'Sell'], ['buy', 'Buy']].map(([k, l]) => `<button class="btn sm ${st.tab === k ? 'alt' : 'ghost'}" data-cx="tab" data-v="${k}">${l}</button>`).join('')}</div>${qtyBar()}`;
-    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => !SKIP_SHOP[ITEMS[id].kind] && !ITEMS[id].tiered); /* (a tiered pickaxe is only made at Theus's forge) */
+  function skinsHTML() { const K = skins(); let h = '';
+    for (const kind of ['climb', 'tlink']) { h += `<h3 class="cxskH">${kind === 'climb' ? '🧗 Climbing picks' : '🪢 Climbing tether'}</h3><div class="card cxl">`;
+      for (const g of SKIN_LOOKS[kind]) { const on = (S[SKIN_KEY[kind]] || SKIN_BASE[kind]) === g, own = !!K[kind][g], p = SKIN_PRICE[g] || 100, base = g === SKIN_BASE[kind];
+        h += `<div class="cxr cxsk" data-kind="${kind}" data-g="${g}"><span class="cxsw" style="--c:${(TIERS.find((q) => q[0] === g) || [0, 0, g === 'stone' ? '#8d8a82' : '#6a7d36'])[2]}"></span><span class="cxn">${esc(SKIN_NAME(kind, g))}<small>${base ? 'Base look' : own ? 'Owned' : `💠 ${p} Lumen Crystals`} · cosmetic only</small></span>`
+          + (on ? '<button class="btn sm ghost" disabled>Wearing</button>' : own ? `<button class="btn sm alt" data-cx="skwear" data-kind="${kind}" data-g="${g}">Wear</button>` : `<button class="btn sm ${crystals() >= p ? 'alt' : 'ghost'}" data-cx="skbuy" data-kind="${kind}" data-g="${g}" ${crystals() >= p ? '' : 'disabled'}>Buy 💠 ${p}</button>`) + '</div>'; }
+      h += '</div>'; }
+    return h; }
+  function exHTML() { const S2 = st.tab === 'sell', SK = st.tab === 'skins';
+    let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 ${SK ? 'Skins' : S2 ? 'Sell' : 'Buy'}</h2>${SK ? `<span class="tag cxcr">💠 ${fmt(crystals())} Lumen Crystals</span>` : `<span class="tag cxgd">${fmt(gold())}${COIN}</span>`}</div><div class="dim">${SK ? 'Looks for your climbing gear. Cosmetic only: every look climbs the same.' : 'The crystal trades with the Hollow for gold coins. Placeholder local market prices.'}</div>`;
+    h += `<div class="cxq">${[['sell', 'Sell'], ['buy', 'Buy'], ['skins', 'Skins']].map(([k, l]) => `<button class="btn sm ${st.tab === k ? 'alt' : 'ghost'}" data-cx="tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    if (SK) return h + `<div class="cxsoon"><b>Get Lumen Crystals</b><small>Coming soon. Lumen Crystals will only ever buy looks.</small><button class="btn sm ghost" disabled>Coming soon</button></div>` + skinsHTML() + '<button class="btn ghost" data-cx="close">Close</button></div>';
+    h += qtyBar();
+    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => !SKIP_SHOP[ITEMS[id].kind] && !ITEMS[id].tiered && !ITEMS[id].climbGear); /* (a tiered pickaxe is only made at Theus's forge) */
     h += ids.length ? `<div class="card cxl">${ids.map((id) => { const p = S2 ? sellP(id) : buyP(id), n = st.qty === 'all' ? (S2 ? have(id) : Math.floor(lum() / p)) : st.qty, ok = S2 ? have(id) >= Math.max(1, n) : lum() >= p * Math.max(1, n);
-      return `<div class="cxr" data-id="${id}">${ITEMS[id].tiered ? `<span class="cxtw">${ico(id)}${tb(id)}</span>` : ico(id)}<span class="cxn">${esc(nm(id))}<small>✦ ${p} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
+      return `<div class="cxr" data-id="${id}">${ITEMS[id].tiered ? `<span class="cxtw">${ico(id)}${tb(id)}</span>` : ico(id)}<span class="cxn">${esc(nm(id))}<small>${fmt(p)}${COIN} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
     return h + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
   const VIEW = { bag: () => bagHTML(true), xfer: xferHTML, furnace: () => recipeHTML('furnace'), anvil: () => recipeHTML('anvil'), exchange: exHTML };
   function open(kind) { if (typeof openModal !== 'function' || !VIEW[kind]) return false; st.kind = kind; st.menu = null; openModal(VIEW[kind](), 'cx-' + kind); return true; }
@@ -259,8 +302,10 @@ const Craft = (() => {
     else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); } st.menu = null; }
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
     else if (a === 'make') { const r = (t.dataset.k === 'furnace' ? SMELT : SMITH)[+t.dataset.i]; const x = st.qty === 'all' ? maxMake(r) : st.qty; if (make(r, x, st.dest) && typeof toast === 'function') toast(`${t.dataset.k === 'furnace' ? '🔥' : '⚒️'} ${x}× ${nm(r.out)} → ${st.dest === 'vault' ? 'Vault' : 'Backpack'}`); }
+    else if (a === 'skbuy') { if (skinBuy(t.dataset.kind, t.dataset.g) && typeof toast === 'function') toast(`💠 ${SKIN_NAME(t.dataset.kind, t.dataset.g)} unlocked`); }
+    else if (a === 'skwear') { if (skinWear(t.dataset.kind, t.dataset.g) && typeof toast === 'function') toast(`✨ Wearing ${SKIN_NAME(t.dataset.kind, t.dataset.g)}`); }
     else if (a === 'sell') { const n = sell(id, nOf(have(id))); if (n && typeof toast === 'function') toast(`💠 Sold ${n}× ${nm(id)}`); }
     else if (a === 'buy') { const n = buy(id, nOf(Math.floor(lum() / buyP(id)))); if (n && typeof toast === 'function') toast(`💠 Bought ${n}× ${nm(id)}`); }
     refresh(); });
-  return { TPICK, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { TPICK, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, onyxFilter, tintIco, ONYX_HEX, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, COIN_RATE, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();

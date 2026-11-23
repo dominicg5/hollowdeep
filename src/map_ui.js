@@ -485,29 +485,30 @@ const CityMap = (() => {
       <tbody id="boardPin">${row(W.player, me, true)}</tbody><tbody><tr><td colspan="4"><hr style="margin:4px 0"></td></tr>${B.slice(0, 100).map((h, i) => row(h, i)).join('')}</tbody></table>
       ${me >= 100 ? `<div class="dim small">… you are #${me + 1} of ${B.length}</div>` : ''}${btnRow('<button class="btn" data-act="mapgohome">🏠 Fly to my home</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
-  /* ---------- the Exchange: a free player market, resources for Lumen at player-set prices (simple order-book stub) ---------- */
-  const EX_RES = ['stone', 'timber', 'moss', 'iron', 'coal', 'steel', 'amber', 'obsidian'], EX_BASE = { stone: 0.4, timber: 0.45, moss: 0.6, iron: 0.9, coal: 0.8, steel: 2.2, amber: 3, obsidian: 3.5 };
-  function exState() { if (!S.exchange) S.exchange = { bought: {}, mine: [], nextId: 1 }; return S.exchange; }
+  /* ---------- the Exchange: a free player market, resources for gold coins at player-set prices (simple order-book stub). (Dominic: gold coins; old Lumen prices x10) ---------- */
+  const EX_RES = ['stone', 'timber', 'moss', 'iron', 'coal', 'steel', 'amber', 'obsidian'], EX_BASE = { stone: 4, timber: 4.5, moss: 6, iron: 9, coal: 8, steel: 22, amber: 30, obsidian: 35 }; // gold per unit
+  const GOLD = () => (typeof Craft !== 'undefined' && Craft.gold ? Craft.gold() : (S.gold == null ? (S.gold = 2500) : S.gold)), CI = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
+  function exState() { if (!S.exchange) S.exchange = { bought: {}, mine: [], nextId: 1, gold: 1 }; const e = S.exchange; if (!e.gold) { e.gold = 1; for (const m of e.mine || []) m.price = Math.round(m.price * 10); } return e; }
   function exListings() { const day = Math.floor(gTime() / (6 * HOUR)), rr = mulberry32(day * 977 + 5), out = [], ex = exState(), AI = W.homes.filter((h) => !h.isPlayer);
-    for (let i = 0; i < 14; i++) { const k = EX_RES[Math.floor(rr() * EX_RES.length)], h = AI[Math.floor(rr() * AI.length)], qty = 10 * (1 + Math.floor(rr() * 12)), price = Math.max(0.1, Math.round(EX_BASE[k] * (0.7 + rr() * 0.8) * 10) / 10), id = day + ':' + i;
+    for (let i = 0; i < 14; i++) { const k = EX_RES[Math.floor(rr() * EX_RES.length)], h = AI[Math.floor(rr() * AI.length)], qty = 10 * (1 + Math.floor(rr() * 12)), price = Math.max(1, Math.round(EX_BASE[k] * (0.7 + rr() * 0.8))), id = day + ':' + i;
       if (!ex.bought[id]) out.push({ id, k, seller: h.owner, qty, price }); }
     return out.sort((a, b) => a.k.localeCompare(b.k) || a.price - b.price); }
   function exchangeCard() { const ex = exState(), L = exListings(), R = CONFIG.resources;
-    openModal(`<h2>⚖️ The Exchange</h2><div class="small">A free market by the Hollow: players sell resources for Lumen at their own prices. You have <b>${fmt(S.res.lumen || 0)} 🏮</b>.</div>
+    openModal(`<h2>⚖️ The Exchange</h2><div class="small">A free market by the Hollow: players sell resources for gold coins at their own prices. You have <b>${fmt(GOLD())}${CI}</b>.</div>
       <h3 style="margin:8px 0 4px">Listings</h3>
       <table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th align="left">Item</th><th align="left">Seller</th><th align="right">Qty</th><th align="right">Price</th><th></th></tr>
-      ${L.map((o) => `<tr><td>${R[o.k].icon} ${R[o.k].name}</td><td>${esc(o.seller)}</td><td align="right">${o.qty}</td><td align="right">${o.price} 🏮/u</td><td align="right"><button class="btn small" data-act="exbuy" data-id="${o.id}" ${(S.res.lumen || 0) < o.qty * o.price ? 'disabled' : ''}>Buy ${fmt(Math.ceil(o.qty * o.price))} 🏮</button></td></tr>`).join('')}</table>
+      ${L.map((o) => `<tr><td>${R[o.k].icon} ${R[o.k].name}</td><td>${esc(o.seller)}</td><td align="right">${o.qty}</td><td align="right">${o.price}${CI}/u</td><td align="right"><button class="btn small" data-act="exbuy" data-id="${o.id}" ${GOLD() < o.qty * o.price ? 'disabled' : ''}>Buy ${fmt(Math.ceil(o.qty * o.price))}${CI}</button></td></tr>`).join('')}</table>
       <h3 style="margin:10px 0 4px">Sell</h3>
       <div class="wrapgap"><select id="exK">${EX_RES.map((k) => `<option value="${k}">${R[k].icon} ${R[k].name} (${fmt(S.res[k] || 0)})</option>`).join('')}</select>
-        <input id="exQ" type="number" min="1" value="10" style="width:64px" aria-label="Quantity"> × <input id="exP" type="number" min="0.1" step="0.1" value="1" style="width:64px" aria-label="Price per unit in Lumen"> 🏮/u
+        <input id="exQ" type="number" min="1" value="10" style="width:64px" aria-label="Quantity"> × <input id="exP" type="number" min="1" step="1" value="10" style="width:64px" aria-label="Price per unit in gold">${CI}/u
         <button class="btn" data-act="exsell">Post listing</button></div>
-      ${ex.mine.length ? `<h3 style="margin:10px 0 4px">Your listings</h3>${ex.mine.map((m) => `<div class="small">${R[m.k].icon} ${m.qty} ${R[m.k].name} @ ${m.price} 🏮/u <button class="btn ghost small" data-act="excancel" data-id="${m.id}">Cancel</button></div>`).join('')}<div class="dim small">Buyers for player listings are coming soon; cancelling returns the goods.</div>` : ''}
+      ${ex.mine.length ? `<h3 style="margin:10px 0 4px">Your listings</h3>${ex.mine.map((m) => `<div class="small">${R[m.k].icon} ${m.qty} ${R[m.k].name} @ ${m.price}${CI}/u <button class="btn ghost small" data-act="excancel" data-id="${m.id}">Cancel</button></div>`).join('')}<div class="dim small">Buyers for player listings are coming soon; cancelling returns the goods.</div>` : ''}
       ${typeof Theus !== 'undefined' && Theus.exHTML ? Theus.exHTML() : ''}
       ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function exAct(act, ds) { const ex = exState();
-    if (act === 'exbuy') { const o = exListings().find((x) => x.id === ds.id); if (!o) return; const cost = Math.ceil(o.qty * o.price); if ((S.res.lumen || 0) < cost) return toast('Not enough Lumen.'); S.res.lumen -= cost; addRes(o.k, o.qty); ex.bought[o.id] = 1; toast(`⚖️ Bought ${o.qty} ${CONFIG.resources[o.k].name} from ${o.seller} for ${cost} 🏮`); }
-    if (act === 'exsell') { const k = $('#exK').value, q = Math.floor(+$('#exQ').value), pr = Math.round(+$('#exP').value * 10) / 10; if (!(q > 0) || !(pr > 0)) return toast('Set a quantity and a price.'); if ((S.res[k] || 0) < q) return toast('You do not have that much.'); S.res[k] -= q; ex.mine.push({ id: ex.nextId++, k, qty: q, price: pr }); toast(`⚖️ Listed ${q} ${CONFIG.resources[k].name} at ${pr} 🏮 each`); }
+    if (act === 'exbuy') { const o = exListings().find((x) => x.id === ds.id); if (!o) return; const cost = Math.ceil(o.qty * o.price); if (GOLD() < cost) return toast('Not enough gold.'); S.gold = GOLD() - cost; addRes(o.k, o.qty); ex.bought[o.id] = 1; toast(`⚖️ Bought ${o.qty} ${CONFIG.resources[o.k].name} from ${o.seller} for ${cost} gold`); }
+    if (act === 'exsell') { const k = $('#exK').value, q = Math.floor(+$('#exQ').value), pr = Math.round(+$('#exP').value); if (!(q > 0) || !(pr > 0)) return toast('Set a quantity and a price.'); if ((S.res[k] || 0) < q) return toast('You do not have that much.'); S.res[k] -= q; ex.mine.push({ id: ex.nextId++, k, qty: q, price: pr }); toast(`⚖️ Listed ${q} ${CONFIG.resources[k].name} at ${pr} gold each`); }
     if (act === 'excancel') { const i = ex.mine.findIndex((m) => m.id === +ds.id); if (i >= 0) { const m = ex.mine[i]; ex.mine.splice(i, 1); addRes(m.k, m.qty); } }
     exchangeCard(); }
   function playerCard() {
