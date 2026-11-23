@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='b449f990';
+<script>window.HD_BUILD='1d054add';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build b449f990</div>
-<script src="assets/vendor/three.min.js?v=b449f990"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 1d054add</div>
+<script src="assets/vendor/three.min.js?v=1d054add"></script>
 <script>
 'use strict';
 
@@ -9504,7 +9504,7 @@ const CityMap = (() => {
     if (typeof Mosby !== 'undefined' && Mosby.GM && Mosby.GM.at) { const g = Mosby.GM.at; mctx.fillStyle = '#4f9a5a'; mctx.strokeStyle = '#f4e6b8'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc((g.x + CITY.R) * sc, (g.y + CITY.R) * sc, 6, 0, TAU); mctx.fill(); mctx.stroke(); }
     if (typeof MILL !== 'undefined' && MILL.F) { const [x, y] = MILL.wld(10, 6), X = (x + CITY.R) * sc, Y = (y + CITY.R) * sc; if (!mmMill) { mmMill = new Image(); mmMill.src = 'assets/ui/icons/map_tether_mill.webp'; } // the Tether Mill: its map icon (same art as the pull-out map), a brass disc until it loads
       if (mmMill.complete && mmMill.naturalWidth) mctx.drawImage(mmMill, X - 15, Y - 15, 30, 30); else { mctx.fillStyle = '#56968f'; mctx.strokeStyle = '#2a1a0a'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(X, Y, 6, 0, TAU); mctx.fill(); mctx.stroke(); } }
-    if (typeof FORGE !== 'undefined' && FORGE.M && FORGE.M.ape) { const q = FORGE.M.ape.position, X = (q.x + CITY.R) * sc, Y = (q.z + CITY.R) * sc; mctx.fillStyle = '#d2461e'; mctx.strokeStyle = '#fff1d0'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(X, Y, 6, 0, TAU); mctx.fill(); mctx.stroke(); mctx.font = '8px system-ui,sans-serif'; mctx.textAlign = 'center'; mctx.textBaseline = 'middle'; mctx.fillText('🔨', X, Y + 0.5); } // (Dominic t565u) Theus
+    if (typeof FORGE !== 'undefined' && FORGE.M && FORGE.M.ape) { const q = FORGE.M.ape.position, X = (q.x + CITY.R) * sc, Y = (q.z + CITY.R) * sc; const im = window.__theusIco || (window.__theusIco = Object.assign(new Image(), { src: 'assets/ui/icons/map_theus.webp' })); if (im.complete && im.naturalWidth) mctx.drawImage(im, X - 9, Y - 9, 18, 18); else { mctx.fillStyle = '#d2461e'; mctx.beginPath(); mctx.arc(X, Y, 5, 0, TAU); mctx.fill(); } } // (Dominic t565u) Theus
     const m = currentMole(); if (m) { mctx.fillStyle = '#c8634c'; mctx.beginPath(); mctx.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, 4.5, 0, TAU); mctx.fill(); }
     mctx.restore(); void s;
   }
@@ -14190,8 +14190,8 @@ const ExMap = (() => {
     // ore spots: a small crystal per cluster (copper orange, tin silver-blue, coal black); cliff veins get a dashed ring (seen, not yet minable)
     if (Explore.oreSpots) { const r = Math.max(16, Math.min(28, v.s * 90)); for (const p of Explore.oreSpots()) { if (Explore.ORE.pruned && p.nodes && !p.nodes.length) continue; const [x, y] = W2S(p.x, p.y); if (x < -10 || y < -10 || x > v.W + 10 || y > v.H + 10) continue; if (!blit(g, 'map_vein_' + p.type, x, y, r)) blit(g, 'map_ore_vein', x, y, r); }
     }
-    const MK = { home: 'map_home_ledge', tort: 'map_home_ledge', tree: 'map_lumen_tree', city: 'map_town', ss: 'map_portaledge', drop: 'map_drop_tether_end', drill: 'map_drill', teth: 'map_drop_tether_end', mosby: 'map_mosby', mill: 'map_tether_mill' };
-    g.font = '600 12px system-ui,sans-serif'; g.textAlign = 'center'; for (const L of labels()) { const [x, y] = W2S(L.x, L.y); if (x < -80 || y < -20 || x > v.W + 80 || y > v.H + 20) continue; const icon = L.k === 'mosby' && typeof Mosby !== 'undefined' && Mosby.GM && Mosby.GM.walk ? 'map_mosby_transit' : (L.k === 'teth' && L.kind === 'drill' ? 'map_drill' : MK[L.k]); const shown = (icon && blit(g, icon, x, y, 36)) || (L.k === 'theus' && pin(g, x, y, '🔨', '#d2461e')); const w = g.measureText(L.t).width + 12; g.fillStyle = L.k === 'bridge' ? 'rgba(90,58,28,.88)' : 'rgba(246,236,212,.94)'; g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - (shown ? 40 : 26), w, 18, 9) : g.rect(x - w / 2, y - (shown ? 40 : 26), w, 18); g.fill(); g.fillStyle = L.k === 'bridge' ? '#fff1d0' : '#3a2a18'; g.fillText(L.t, x, y - (shown ? 27 : 13)); if (!shown) { g.fillStyle = '#3a2a18'; g.beginPath(); g.arc(x, y, 3, 0, 6.3); g.fill(); } }
+    const MK = { home: 'map_home_ledge', tort: 'map_home_ledge', tree: 'map_lumen_tree', city: 'map_town', ss: 'map_portaledge', drop: 'map_drop_tether_end', drill: 'map_drill', teth: 'map_drop_tether_end', mosby: 'map_mosby', mill: 'map_tether_mill', theus: 'map_theus' };
+    g.font = '600 12px system-ui,sans-serif'; g.textAlign = 'center'; for (const L of labels()) { const [x, y] = W2S(L.x, L.y); if (x < -80 || y < -20 || x > v.W + 80 || y > v.H + 20) continue; const icon = L.k === 'mosby' && typeof Mosby !== 'undefined' && Mosby.GM && Mosby.GM.walk ? 'map_mosby_transit' : (L.k === 'teth' && L.kind === 'drill' ? 'map_drill' : MK[L.k]); const shown = (icon && blit(g, icon, x, y, 36)) ; const w = g.measureText(L.t).width + 12; g.fillStyle = L.k === 'bridge' ? 'rgba(90,58,28,.88)' : 'rgba(246,236,212,.94)'; g.beginPath(); g.roundRect ? g.roundRect(x - w / 2, y - (shown ? 40 : 26), w, 18, 9) : g.rect(x - w / 2, y - (shown ? 40 : 26), w, 18); g.fill(); g.fillStyle = L.k === 'bridge' ? '#fff1d0' : '#3a2a18'; g.fillText(L.t, x, y - (shown ? 27 : 13)); if (!shown) { g.fillStyle = '#3a2a18'; g.beginPath(); g.arc(x, y, 3, 0, 6.3); g.fill(); } }
     const h = Explore.here(); if (h) { const [x, y] = W2S(h[0], h[1]), G = CharView.st.gnd, f = G ? G.face : 0; if (!blit(g, 'map_player', x, y, 40)) { g.save(); g.translate(x, y); g.rotate(-f + Math.PI); g.fillStyle = '#2f6fe0'; g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(0, -11); g.lineTo(8, 8); g.lineTo(0, 4); g.lineTo(-8, 8); g.closePath(); g.fill(); g.stroke(); g.restore(); } }
     chip(); }
   // ---- ETA: walk / run pace on the ground, the Climbing Pick grade's pace on climb pitches (3D length), deck = ground
