@@ -73,6 +73,9 @@ const ICONS = {
   }
 };
 function itemIco(id) {
+  // (Art's Lumenite tier icons) tool:pick_lumen@t1..@t10 live in a small 10x1 sheet, fetched by the browser only when one is first shown; T0 stays in the atlas
+  const lt = /^tool:pick_lumen@t(\d+)$/.exec(id);
+  if (lt) { const t = Math.max(0, Math.min(10, +lt[1])); if (t) return '<i class="cxsv cxico cxlt" style="--ix:' + (t - 1) + ';--iy:0" aria-hidden="true"></i>'; id = 'tool:pick_lumen'; }
   const i = ICONS.map[id];
   if (i == null) return null;
   const ix = i % ICONS.cols, iy = (i / ICONS.cols) | 0;

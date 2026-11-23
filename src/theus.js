@@ -7,7 +7,7 @@
 const Theus = (() => {
   const ST = { el: null, step: null, up: null, sel: null, flash: null };
   const GN = { bronze: 'Bronze', iron: 'Iron', steel: 'Steel', gold: 'Gold', mithril: 'Mithril', rune: 'Rune', lumen: 'Lumen', onyx: 'Ember Onyx' }, NAME = (k) => (GN[k] || k) + ' Pickaxe';
-  const ico = (k, t) => { const id = 'tool:pick_' + k, h = (typeof itemIco === 'function' && itemIco(id)) || (typeof Craft !== 'undefined' ? Craft.svgIco(id) : ''); return (k === 'onyx' || k === 'lumen') && t > 0 && Craft.tintIco ? Craft.tintIco(h, t, k) : h; }; // (Ember Onyx: its tier's flame colour)
+  const ico = (k, t) => { const id = 'tool:pick_' + k, h = (typeof itemIco === 'function' && itemIco(k === 'lumen' && t > 0 ? id + '@t' + t : id)) || (typeof Craft !== 'undefined' ? Craft.svgIco(id) : ''); return k === 'onyx' && t > 0 && Craft.tintIco ? Craft.tintIco(h, t) : h; }; // (Lumenite: Art's painted tier icons) // (Ember Onyx: its tier's flame colour)
   const have = (k) => (typeof Craft !== 'undefined' ? Craft.have('tool:pick_' + k) : 0);
   // (Dominic: Theus pulls from the vault) owned = plain pickaxes of that kind in the backpack and the vault together, less the one in her hand (never taken; nor is the tiered one)
   // (equipped gear has its own slot now: the pickaxe in her hand is never in the backpack or vault counts, so it is never taken as payment)
