@@ -909,7 +909,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='49a64aa1';
+<script>window.HD_BUILD='a300af2e';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -931,8 +931,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 49a64aa1</div>
-<script src="assets/vendor/three.min.js?v=49a64aa1"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a300af2e</div>
+<script src="assets/vendor/three.min.js?v=a300af2e"></script>
 <script>
 'use strict';
 
@@ -7804,11 +7804,17 @@ const M3 = (() => {
   // t445u (Dominic): one smooth natural regrade on the walk from the Lumen Tree platform down to the keeper valley floor - a ~35 deg pitch at (-6656,1792)
   // eased to an even fall along the line (no ramp, tread or structure): within RG.core of the segment the ground follows the straight grade between the
   // natural heights at its two ends, blended back to the untouched hillside by RG.bat. Its painted path is the first PATHS entry in explore.js.
-  const RG = { list: [[-6752, 1696, -6560, 1888]], core: 30, bat: 110, z: null, off: false };
-  function rgCarve(x, y, hm) { if (RG.off) return hm; for (let i = 0; i < RG.list.length; i++) { const [ax, ay, bx, by] = RG.list[i]; if (x < Math.min(ax, bx) - RG.bat || x > Math.max(ax, bx) + RG.bat || y < Math.min(ay, by) - RG.bat || y > Math.max(ay, by) + RG.bat) continue;
-      if (!RG.z) { RG.off = true; RG.z = RG.list.map((q) => [heightAt(q[0], q[1])[0], heightAt(q[2], q[3])[0]]); RG.off = false; }
-      const dx = bx - ax, dy = by - ay, t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy), 0, 1), d = Math.hypot(x - ax - dx * t, y - ay - dy * t); if (d >= RG.bat) continue;
-      const z = RG.z[i][0] + (RG.z[i][1] - RG.z[i][0]) * (t * t * (3 - 2 * t) * 0.5 + t * 0.5), w = smooth01(RG.bat, RG.core, d); hm = [hm[0] + (z - hm[0]) * w, hm[1] * (1 - 0.5 * w)]; } return hm; }
+  // t470u-t484u (Dominic: "Regrades for all of them. Do not disrupt the forge." / "level out some more area ... a slight choke point between the volcano and the ridge"):
+  // more of the same local regrades. An entry may carry [.., za, zb, core, bat, lin]: fixed end heights (null = the natural height there, so a chain of strips
+  // meets at one height), its own core / blend widths, and lin = an even linear fall (chained strips join without a kink). None of them feed map gen or rnd().
+  // Each switches on only once the world is generated (W.ready), reads its end heights then, and joins a cliff-ringed walk pocket to the valley floor along
+  // the shortest straight line with no crevice, water, ore field, bridge or forge feature in it: the E basin (5994,3108), the W shelf (-5501,4760), the S shelf (3736,-6408).
+  const RG = { z2: null, list: [[-6752, 1696, -6560, 1888], [5088, 3712, 5008, 5264, null, null, 80, 170, 1], [-5888, 5184, -7120, 5904, null, null, 80, 170, 1], [3168, -5920, 2672, -5008, null, null, 80, 170, 1]/*RGLIST*/], core: 30, bat: 110, z: null, off: false };
+  function rgCarve(x, y, hm) { if (RG.off) return hm; for (let i = 0; i < RG.list.length; i++) { const q = RG.list[i], [ax, ay, bx, by] = q, core = q[6] || RG.core, bat = q[7] || RG.bat; if (q[8] && !(typeof W !== 'undefined' && W.ready === true)) continue; /* (the newer ones switch on only after world generation, like the forge's, so they never feed it) */ if (x < Math.min(ax, bx) - bat || x > Math.max(ax, bx) + bat || y < Math.min(ay, by) - bat || y > Math.max(ay, by) + bat) continue;
+      if (!RG.z) { RG.off = true; RG.z = RG.list.map((e) => [e[4] != null ? e[4] : heightAt(e[0], e[1])[0], e[5] != null ? e[5] : heightAt(e[2], e[3])[0]]); RG.off = false; }
+      if (q[8] && !RG.z2) { RG.off = true; RG.z2 = RG.list.map((e) => [e[4] != null ? e[4] : heightAt(e[0], e[1])[0], e[5] != null ? e[5] : heightAt(e[2], e[3])[0]]); RG.off = false; } // (the newer ones' end heights are read once the world is complete)
+      const dx = bx - ax, dy = by - ay, t = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy), 0, 1), d = Math.hypot(x - ax - dx * t, y - ay - dy * t); if (d >= bat) continue;
+      const Z = q[8] ? RG.z2[i] : RG.z[i], z = Z[0] + (Z[1] - Z[0]) * (q[8] ? t : t * t * (3 - 2 * t) * 0.5 + t * 0.5), w = smooth01(bat, core, d); hm = [hm[0] + (z - hm[0]) * w, hm[1] * (1 - (q[8] ? 0.9 : 0.5) * w)]; } return hm; }
   function routeCarve(x, y, hm) { const [ax, ay] = SSR.a, dx = SSR.b[0] - ax, dy = SSR.b[1] - ay, L2 = dx * dx + dy * dy, t = ((x - ax) * dx + (y - ay) * dy) / L2; if (t < -0.08 || t > 1.08) return hm;
     const tc = clamp(t, 0, 1), d = Math.hypot(x - (ax + dx * tc), y - (ay + dy * tc)), W = SSR.w + SSR.bank; if (d > W) return hm;
     const u = tc * SSR.N, k = Math.floor(u), f = u - k, face = k < SSR.N ? smooth01(SSR.ledge, 1, f) : 0, ht = SSR.h0 + (SSR.h1 - SSR.h0) * Math.min(1, (k + face) / SSR.N);
