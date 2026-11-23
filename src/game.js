@@ -13,6 +13,10 @@ const QUALITY = (() => { const P = { high: { name: 'high', dpr: 2, shadowMap: 20
 const HD_MEM = { freedMB: 0 };
 function hdFreeAfterUpload(t) { if (!t || !t.isTexture) return t; const prev = t.onUpdate; t.onUpdate = function (tx) { if (prev) prev.call(this, tx); tx.onUpdate = prev || null; const im = tx.image;
   if (im && typeof HTMLCanvasElement !== 'undefined' && im instanceof HTMLCanvasElement && im.width > 1) { HD_MEM.freedMB += im.width * im.height * 4 / 1048576; im.width = im.height = 1; } }; return t; }
+/* (t577u) iOS memory: a static mesh nothing raycasts or reads back (terrain tiles, crevice walls, ore-field ground) keeps its vertex arrays in RAM after the GPU
+   has them. On a phone, let them go once uploaded (bounds computed first, for culling). Rebuilt meshes make new geometry, so they're unaffected. */
+function hdFreeGeo(g) { if (!g || !g.isBufferGeometry || typeof QUALITY === 'undefined' || QUALITY.name !== 'mobile') return g; if (!g.boundingSphere) g.computeBoundingSphere(); if (!g.boundingBox) g.computeBoundingBox();
+  const f = function () { if (this.array) { HD_MEM.geoMB = (HD_MEM.geoMB || 0) + this.array.byteLength / 1048576; this.array = null; } }; for (const k in g.attributes) g.attributes[k].onUpload(f); if (g.index) g.index.onUpload(f); return g; }
 /* =====================================================================
    HOLLOWDEEP — playable prototype
    All tunable numbers live in CONFIG. Times are in GAME hours/minutes;

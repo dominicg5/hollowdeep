@@ -159,7 +159,7 @@ const M3 = (() => {
       for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const s0 = (y0 + j) * N1 + (x0 + i), d = j * nx + i; P[d * 3] = fp.getX(s0); P[d * 3 + 1] = fp.getY(s0); P[d * 3 + 2] = fp.getZ(s0); Nn[d * 3] = fn.getX(s0); Nn[d * 3 + 1] = fn.getY(s0); Nn[d * 3 + 2] = fn.getZ(s0); UV[d * 2] = fu.getX(s0); UV[d * 2 + 1] = fu.getY(s0); M[d] = g.m[s0]; }
       for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, c, d, b); } // PlaneGeometry's own split (a-c-b, c-d-b), so meshH matches
       const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(Nn, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); geo.setAttribute('aMt', new THREE.BufferAttribute(M, 1)); geo.setIndex(idx); geo.computeBoundingSphere(); geo.computeBoundingBox();
-      const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
+      hdFreeGeo(geo); const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
     full.dispose(); return out; }
   /* ---------- crevices: every crack on the map is a real cut - the ground is masked away over it (tK) and rock walls with strata drop into darkness ---------- */
   const CRV = { mesh: null, maskCv: null, tex: null, win: null, depth: [] };
@@ -193,7 +193,7 @@ const M3 = (() => {
         const endHere = i === n - 1 || hollowDist(c.pts[i + 1][0], c.pts[i + 1][1]) < 30; if (prev < 0 || endHere) for (let q = 1; q + 1 < m / 2; q++) { const a0 = base + q, b0 = base + q + 1, c0 = base + m - 1 - q, d0 = base + m - 2 - q; idx.push(a0, b0, c0, b0, d0, c0); } /* end caps: a rock wall closes each end of the cut (no open, see-through ends) */
         prev = base; } }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
-    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Group(); CRV.mesh.name = 'crevices'; for (const g of splitGeo(geo, CRV_CELL)) { g.computeBoundingSphere(); const m = new THREE.Mesh(g, mat); m.name = 'creviceChunk'; m.receiveShadow = true; m.castShadow = true; CRV.mesh.add(m); } geo.dispose(); /* the walls shade their own depths */ scene.add(CRV.mesh);
+    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Group(); CRV.mesh.name = 'crevices'; for (const g of splitGeo(geo, CRV_CELL)) { g.computeBoundingSphere(); hdFreeGeo(g); const m = new THREE.Mesh(g, mat); m.name = 'creviceChunk'; m.receiveShadow = true; m.castShadow = true; CRV.mesh.add(m); } geo.dispose(); /* the walls shade their own depths */ scene.add(CRV.mesh);
     CRV.maskCv = document.createElement('canvas'); CRV.maskCv.width = CRV.maskCv.height = QUALITY.name === 'mobile' ? 1024 : 2048; /* (t577u iOS memory: 4 MB not 16 on a phone) */ CRV.tex = new THREE.CanvasTexture(CRV.maskCv); CRV.tex.flipY = false; CRV.tex.generateMipmaps = false; CRV.tex.minFilter = THREE.LinearFilter; CRV.win = null; }
   /* perf (draw calls): a crevice chunk is only drawn where it can show - inside the ground-cut window (outside it the uncut ground covers the walls; margin for the
      lips) and nearer than the fog's far plane (past it a chunk is pure fog colour). Coarser cells (2400 u) also halve the chunks a view touches. */
@@ -237,7 +237,7 @@ const M3 = (() => {
     const geo = new THREE.PlaneGeometry(2 * g.half, 2 * g.half, g.N, g.N); geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position; // after rotation: x right, z = map y (row iy -> z = -half + iy*step)
     for (let i = 0; i < pos.count; i++) pos.setY(i, g.h[i]);
-    geo.setAttribute('aMt', new THREE.BufferAttribute(g.m, 1)); geo.computeVertexNormals();
+    geo.setAttribute('aMt', new THREE.BufferAttribute(g.m, 1)); geo.computeVertexNormals(); hdFreeGeo(geo);
     const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.frustumCulled = false; return mesh;
   }
 
@@ -1010,7 +1010,7 @@ diffuseColor *= sdc;
     if (CLB.grp) { const k = 0.75 + 0.25 * Math.sin(t * 1.6); CLB.grp.children.forEach((o) => { if (o.isMesh) o.material.opacity = k; else if (o.isSprite) { o.material.opacity = 0.75 + 0.25 * Math.sin(t * 2.2); const sc = 120 * Math.max(0.8, Math.min(4, 0.5 / Math.max(0.05, cam.z))); o.scale.set(sc, sc, 1); } }); } }
 
   /* ---------- build ---------- */
-  function supported() { try { const c = document.createElement('canvas'); return !!(window.THREE && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; } }
+  function supported() { try { const c = document.createElement('canvas'), gl = window.THREE && (c.getContext('webgl2') || c.getContext('webgl')); if (gl) { try { const x = gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); } catch (e) {} } /* (t577u: the probe's context let go, not kept as a 3rd WebGL context) */ return !!gl; } catch (e) { return false; } }
   function init(wrap, onProgress) {
     if (st.ok || st.building || !supported() || window.NO3D || location.protocol === 'file:') return st.ok; // file:// pages taint WebGL textures: use the 2D painter there
     st.building = true; const prog = onProgress || (() => {});
