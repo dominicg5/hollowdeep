@@ -35,7 +35,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // swap: the old one goes back into the backpack
     C.add('bag', P('iron'), 1); C.equip(P('iron')); o.swap = [C.get('bag', P('bronze')), C.get('bag', P('iron')), C.worn().pick, S.pickGrade];
     // sell the equipped one: blocked (only a spare could be sold)
-    o.sell = ['sell' in C, 'buy' in C, 'sellP' in C, 'buyP' in C, C.worn().pick];
+    o.sell = ['sell' in C, 'sellP' in C, 'buyP' in C, C.worn().pick];
     // ---- full backpack: unequip blocked everywhere (the vault screen too), nothing goes to the vault
     fill(); const v0 = C.get('vault', P('iron')); o.unFull = [C.unequip(P('iron')), C.worn().pick, /Backpack full/.test(last()), C.get('vault', P('iron')) - v0];
     C.open('xfer'); o.unVault = C.unequip(P('iron')); try { closeModalQuiet(); } catch (e) {}
@@ -44,7 +44,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // crafting: room checked before the ingredients are taken
     C.add('vault', 'ore:copper', 30); C.add('vault', 'ore:tin', 30); const r = C.SMELT.find((q) => q.out === 'ingot:bronze'), cu = C.have('ore:copper'), tn = C.have('ore:tin'), vb = C.get('vault', 'ingot:bronze'); o.craft = [C.make(r, 1, 'bag'), C.have('ore:copper') === cu && C.have('ore:tin') === tn, C.get('bag', 'ingot:bronze'), C.get('vault', 'ingot:bronze') - vb];
     // buying: blocked before the gold is taken; taking from the vault: blocked
-    S.gold = 100000; const vt = C.get('vault', 'ore:tin'); o.wd = [C.move('vault', 'bag', 'ore:tin', 5), C.get('vault', 'ore:tin') - vt];
+    S.gold = 100000; o.buy = [C.buy(P('bronze'), 1), S.gold]; const vt = C.get('vault', 'ore:tin'); o.wd = [C.move('vault', 'bag', 'ore:tin', 5), C.get('vault', 'ore:tin') - vt];
     // Theus: gift pending while full (not to the vault), given on the next talk once there is room; a tiered pickaxe needs backpack room
     S.theusMet = false; S.theusGiftDue = 0; const gv = C.get('vault', P('bronze')), gb = C.have(P('bronze')); o.gift = [Theus.gift(), !!S.theusGiftDue, C.get('vault', P('bronze')) - gv, C.have(P('bronze')) - gb, !!S.theusMet];
     C.add('bag', P('rune'), -1); Theus.open(); Theus.close(); o.gift2 = [!!S.theusGiftDue, C.have(P('bronze')) - gb];
@@ -59,12 +59,13 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // ---- gold only: no Lumen -> gold rate anywhere; old saves' listings keep their numbers (no x10); the x10-era prices hard-coded at their gold values
     { const tp0 = S.tpEx, ex0 = S.exchange; S.tpEx = { ai: [{ id: 'ai1', k: 'bronze', tier: 2, seller: 'X', price: 100 }], mine: [{ id: 'm1', k: 'iron', tier: 1, price: 7 }], next: 2 }; S.exchange = { bought: {}, mine: [{ k: 'stone', qty: 5, price: 3 }], nextId: 2 };
       Theus.exState(); try { CityMap.exchangeCard(); } catch (e) {} try { closeModalQuiet(); } catch (e) {}
-      o.gold = ['COIN_RATE' in C, S.tpEx.ai[0].price, S.tpEx.mine[0].price, S.exchange.mine[0].price, /data-cx="(sell|buy)"/.test(bh), /coin\.webp/.test(bh)]; o.shopH = bh.match(/<h2>([^<]*)/)[1]; S.tpEx = null; o.aiP = Theus.exState().ai.map((q) => q.price).join('/'); S.tpEx = tp0; S.exchange = ex0; }
+      o.gold = ['COIN_RATE' in C, S.tpEx.ai[0].price, S.tpEx.mine[0].price, S.exchange.mine[0].price, /data-cx="(sell|buy)"/.test(bh), /coin\.webp/.test(bh)]; o.shopH = bh.match(/<h2>([^<]*)/)[1]; { const b0 = JSON.stringify(S.backpack), o0 = JSON.stringify(S.bagOrder), gd = S.gold; S.backpack = {}; S.bagOrder = []; C.order('bag'); S.gold = 1000; const got = C.buy(P('bronze'), 1); o.shop = [got, 1000 - S.gold, C.get('bag', P('bronze')), C.buy(P('iron'), 1), C.buy('ore:copper', 1), JSON.stringify(C.SHOP)]; C.st.tab = 'skins'; C.open('exchange'); const hh = document.getElementById('modalBody').innerHTML; o.shopUI = [(hh.match(/data-cx="buy"/g) || []).length, /data-cx="buy" data-id="tool:pick_bronze"/.test(hh), /data-cx="sell"/.test(hh)]; try { closeModalQuiet(); } catch (e) {} S.backpack = JSON.parse(b0); S.bagOrder = JSON.parse(o0); C.order('bag'); S.gold = gd; }
+      S.tpEx = null; o.aiP = Theus.exState().ai.map((q) => q.price).join('/'); S.tpEx = tp0; S.exchange = ex0; }
     o.gridEq = (C.bagHTML(false).match(/class="cxs[^"]* eq[ "]/g) || []).length; save(); return o; });
   ok(R.migW.join() === 'gold,iron,rune,30,36,6,false,false,false', `winch migration: the old anvil winch (Gold x2, Iron x1, Rune x1) dropped; ingots back (Gold ${R.migW[1]}, Rune ${R.migW[2]}, Iron ${R.migW[3]}); recorded in S.winchMigrated`);
   ok(R.migV2.join() === '2,3,18,18,false,stone', `winch v2 on a v1 save: Iron copies in the backpack, vault and an Exchange listing dropped, 3 x 6 Iron ingots back, other listings kept (${R.migV2.join(',')}) (got no ledge winch)`);
-  ok(R.gold.join() === 'false,100,7,3,false,false' && R.aiP === '18610/21890/474980/598970/898710' && R.sell.join() === 'false,false,false,false,tool:pick_iron', `gold only: no COIN_RATE; old Theus / Exchange listings keep their gold numbers (no x10); Theus's AI sellers keep their asking prices (${R.aiP}) (${R.gold.join(',')})`);
-  ok(R.shopH === '💠 Skins', `no set prices (Dominic): the shop ("${R.shopH}") has no Sell / Buy and no gold price; Craft has no sell / buy / sellP / buyP; ores, bars and pickaxes trade only between players (got player prices)`);
+  ok(R.gold.join() === 'false,100,7,3,true,true' && R.aiP === '18610/21890/474980/598970/898710' && R.sell.join() === 'false,false,false,tool:pick_iron', `gold only: no COIN_RATE; old Theus / Exchange listings keep their gold numbers (no x10); Theus's AI sellers keep their asking prices (${R.aiP}) (${R.gold.join(',')})`);
+  ok(R.shopH === '💠 Skins' && R.shop.join() === '1,345,1,0,0,{"tool:pick_bronze":345}' && R.shopUI.join() === '1,true,false', `no set prices (Dominic) except the Bronze Pickaxe: bought for 345 gold (${R.shop.join(',')}), the only Buy row; the shop buys nothing back (no Sell, no Craft.sell / sellP / buyP); other pickaxes and ores can't be bought (got player prices) (got bronze 345)`);
   { const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8'), w = src.match(/S\.crystals\s*(\+=|-=|=(?!=))[^;]*/g) || [], init = (src.match(/\bcrystals:\s*[^,}]+/g) || []);
     ok(!/COIN_RATE/.test(src) && w.length === 1 && /^S\.crystals = crystals\(\) - p$/.test(w[0]) && init.length > 0 && init.every((q) => /:\s*0$/.test(q)), `no rate in the build; Lumen Crystals have no in-game source: the one write to S.crystals is the skin purchase (${w.join(' | ')}), new saves start at ${init.join(', ')} (got gold only)`); }
   ok(R.gridEq === 0, 'no equipped highlight in the backpack grid');
@@ -76,7 +77,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.unFull.join() === 'false,tool:pick_iron,true,0' && R.unVault === false, `full backpack: unequip blocked with "Backpack full" (also on the vault screen), nothing sent to the vault (got block it)`);
   ok(R.partial.join() === '5,0', `full backpack: a partial copper stack still takes 5, a new kind (tin) takes 0`);
   ok(R.craft.join() === '0,true,0,0', `smelting into a full backpack: blocked, ingredients kept (${R.craft.join(',')})`);
-  ok(R.wd[0] === 0 && R.wd[1] === 0, `taking from the vault blocked`);
+  ok(R.buy[0] === 0 && R.buy[1] === 100000 && R.wd[0] === 0 && R.wd[1] === 0, `full backpack: buying the Bronze Pickaxe blocked before any gold is taken; taking from the vault blocked`);
   ok(R.gift.join() === 'false,true,0,0,true' && R.gift2.join() === 'false,1', `Theus's gift: pending while full (not to the vault), given on the next talk once a slot is free (${R.gift.join(',')} / ${R.gift2.join(',')})`);
   ok(R.upFull.join() === 'false,full,25', `Theus: no backpack room for a new tiered pickaxe -> blocked, nothing paid`);
   ok(R.upHand.join() === 'true,0,tool:tpick_gold,1,gold' && R.upSpare.join() === 'true,0,tool:pick_steel,1', `the equipped pickaxe pays only as the one being upgraded (Gold: 20 + the one in hand -> tiered in hand); with 21 spare the one in hand stays (${R.upSpare.join(',')})`);

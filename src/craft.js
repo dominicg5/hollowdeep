@@ -57,6 +57,8 @@ const Craft = (() => {
   for (const [t] of TOOLS) if (t !== 'tlink' && t !== 'climb') TIERS.forEach(([k], i) => { const n = Math.round(TOOL_COST[t] * 1.55 ** i), inp = { ['ingot:' + k]: n }; if (TOOL_EXTRA[t]) inp[TOOL_EXTRA[t] + k] = 2; SMITH.push({ out: 'tool:' + t + '_' + k, in: inp, tool: t }); });
   // (Dominic: "Prices are all determined by what the players list them at. There will be no set prices except the most basic tools like stickaxe")
   // no shop prices: ores, bars and pickaxes are never sold to or bought from the shop (the Stickaxe is her bare-hand tool, always free, not an item)
+  // the one fixed-price item (Dominic: "Sell the Bronze pickaxe at a fixed price"): bought only, the shop never buys it back
+  const SHOP = { 'tool:pick_bronze': 345 };
   // ---- storage: backpack = S.backpack {id:n}; vault = S.ledgeVault (ores/ingots/gear) with iron, coal, steel living in S.res
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
   function migrateDrillSplit() { if (typeof S === 'undefined' || !S || S.drillSplit) return;
@@ -309,8 +311,10 @@ const Craft = (() => {
           + (on ? '<button class="btn sm ghost" disabled>Wearing</button>' : own ? `<button class="btn sm alt" data-cx="skwear" data-kind="${kind}" data-g="${g}">Wear</button>` : `<button class="btn sm ${crystals() >= p ? 'alt' : 'ghost'}" data-cx="skbuy" data-kind="${kind}" data-g="${g}" ${crystals() >= p ? '' : 'disabled'}>Buy 💠 ${p}</button>`) + '</div>'; }
       h += '</div>'; }
     return h; }
-  function exHTML() { // the Lumen Crystal: looks only (Lumen Crystals, premium); nothing is sold to or bought from it for gold
-    let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 Skins</h2><span class="tag cxcr">💠 ${fmt(crystals())} Lumen Crystals</span></div><div class="dim">Looks for your climbing gear. Cosmetic only: every look climbs the same. No set prices for ores, bars or pickaxes: players set them.</div>`;
+  function buy(id, n = 1) { const p = SHOP[id]; if (!p || !(n > 0)) return 0; if (room('bag', id) <= 0) return fullMsg(), 0; /* (full backpack: blocked before any gold is taken) */ n = Math.min(n, Math.floor(gold() / p), room('bag', id)); if (n <= 0) return 0; S.gold = gold() - p * n; add('bag', id, n); return n; }
+  function exHTML() { // the Lumen Crystal: looks (Lumen Crystals, premium) + the one fixed-price shop item (gold); the shop buys nothing back
+    let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 Skins</h2><span class="tag cxcr">💠 ${fmt(crystals())} Lumen Crystals</span></div><div class="dim">Looks for your climbing gear. Cosmetic only: every look climbs the same. No set prices for ores, bars or pickaxes: players set them. The Bronze Pickaxe is the one shop item.</div>`;
+    h += `<h3 class="cxskH">Shop</h3><div class="card cxl">${Object.keys(SHOP).map((id) => `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}<small>${fmt(SHOP[id])}${COIN}</small></span><button class="btn sm ${gold() >= SHOP[id] ? 'alt' : 'ghost'}" data-cx="buy" data-id="${id}" ${gold() >= SHOP[id] ? '' : 'disabled'}>Buy</button></div>`).join('')}</div>`;
     return h + `<div class="cxsoon"><b>Get Lumen Crystals</b><small>Coming soon. Lumen Crystals will only ever buy looks.</small><button class="btn sm ghost" disabled>Coming soon</button></div>` + skinsHTML() + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
   const VIEW = { bag: () => bagHTML(true), xfer: xferHTML, furnace: () => recipeHTML('furnace'), anvil: () => recipeHTML('anvil'), exchange: exHTML };
   function open(kind) { if (typeof openModal !== 'function' || !VIEW[kind]) return false; st.kind = kind; st.menu = null; openModal(VIEW[kind](), 'cx-' + kind); return true; }
@@ -330,7 +334,8 @@ const Craft = (() => {
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') { if (get('vault', id) > 0 && !move('vault', 'bag', id, nOf(get('vault', id)))) fullMsg(); }
     else if (a === 'make') { const r = (t.dataset.k === 'furnace' ? SMELT : SMITH)[+t.dataset.i]; const x = st.qty === 'all' ? maxMake(r) : st.qty; if (make(r, x, st.dest) && typeof toast === 'function') toast(`${t.dataset.k === 'furnace' ? '🔥' : '⚒️'} ${x}× ${nm(r.out)} → ${st.dest === 'vault' ? 'Vault' : 'Backpack'}`); }
     else if (a === 'skbuy') { if (skinBuy(t.dataset.kind, t.dataset.g) && typeof toast === 'function') toast(`💠 ${SKIN_NAME(t.dataset.kind, t.dataset.g)} unlocked`); }
+    else if (a === 'buy') { if (buy(id, 1) && typeof toast === 'function') toast(`💠 Bought ${nm(id)}`); }
     else if (a === 'skwear') { if (skinWear(t.dataset.kind, t.dataset.g) && typeof toast === 'function') toast(`✨ Wearing ${SKIN_NAME(t.dataset.kind, t.dataset.g)}`); }
     refresh(); });
-  return { TPICK, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco, onyxFilter, tintIco, ONYX_HEX, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { SHOP, buy, TPICK, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco, onyxFilter, tintIco, ONYX_HEX, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();
