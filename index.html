@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='1312c83a';
+<script>window.HD_BUILD='c88144a6';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 1312c83a</div>
-<script src="assets/vendor/three.min.js?v=1312c83a"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build c88144a6</div>
+<script src="assets/vendor/three.min.js?v=c88144a6"></script>
 <script>
 'use strict';
 
@@ -9748,6 +9748,13 @@ const CharView = (() => {
   function tube(pts, r, s = 8, tseg = 24) { return new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map((p) => V(...p))), tseg, r, s, false); }
   function part(parent, geo, mat, pos, rot, scl, o = {}) { const m = new THREE.Mesh(geo, mat); if (pos) m.position.set(...pos); if (rot) m.rotation.set(...rot); if (scl) m.scale.set(...scl); m.castShadow = o.shadow !== false; parent.add(m);
     if (o.ink !== false) { const ol = new THREE.Mesh(geo, OUT); m.add(ol); } return m; }
+  // the winch drum centre in the winch's own frame (hung on its strap below/out from the belt); the rope attach points sit on it
+  const WINCH_DRUM = { y: -0.024, z: -0.02 };
+  // merge [geo, colour, pos, rot, scl] parts into one non-indexed geometry with vertex colours (one draw + one ink hull)
+  function mergeVC(items) { const P = [], N = [], Cc = [], m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), col = new THREE.Color();
+    for (const [g0, c, p = [0, 0, 0], r = [0, 0, 0], sc = [1, 1, 1]] of items) { const g = g0.index ? g0.toNonIndexed() : g0.clone(); g0.dispose(); m.compose(V(...p), q.setFromEuler(e.set(...r)), V(...sc)); g.applyMatrix4(m); const a = g.attributes.position, n = g.attributes.normal; col.set(c);
+      for (let i = 0; i < a.count; i++) { P.push(a.getX(i), a.getY(i), a.getZ(i)); N.push(n.getX(i), n.getY(i), n.getZ(i)); Cc.push(col.r, col.g, col.b); } g.dispose(); }
+    const G = new THREE.BufferGeometry(); G.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); G.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); G.setAttribute('color', new THREE.Float32BufferAttribute(Cc, 3)); return G; }
   // lofted shell along z: sections [z, half-width, bottom y, top y, (x centre)], superellipse cross-sections (n: squareness), rounded end caps
   function loft(sec, n = 3, seg = 20, caps = true) { const pos = [], idx = [], S = sec.length, pw = 2 / n;
     for (const [z, hw, yb, yt, xc = 0] of sec) { const ym = (yb + yt) / 2, hh = (yt - yb) / 2; for (let i = 0; i < seg; i++) { const a = i / seg * TAU, c = Math.cos(a), si = Math.sin(a); pos.push(xc + hw * Math.sign(c) * Math.pow(Math.abs(c), pw), ym + hh * Math.sign(si) * Math.pow(Math.abs(si), pw), z); } }
@@ -10358,9 +10365,23 @@ const CharView = (() => {
         const pv = bone('ropePivot', pk, -(W / 2 + 0.052), y0 + H * 0.16, zc - 0.035); part(pk, rbox(0.024, 0.05, 0.022, 0.003), M.belt, [-(W / 2 + 0.018), y0 + H * 0.16, zc - 0.035], null, null, { ink: false }); part(pk, rbox(0.014, 0.014, 0.014, 0.003), M.brass, [-(W / 2 + 0.034), y0 + H * 0.16 - 0.02, zc - 0.035], null, null, { ink: false });
         built.rope = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; built.tethers = []; const tg = { parent: pv, pos: [-0.004, -0.09, 0], rot: [0, -Math.PI / 2, 0.04], o: { R: 0.058, n: 5, dr: 0.003, tr: 0.0105, dz: 0.0065, sy: 1.75 } }; built.tethers.push(tg); mountTether(tg, S && S.tetherGrade); }
       { // ascender winch: clips to the back panel, upper right corner (above the Tether coil, outside the flap straps); shown while ascending
-        const wn = new THREE.Group(); wn.position.set(-(W / 2 - 0.045), y0 + H * 0.36, zb - 0.05); pk.add(wn); built.winch = wn; wn.userData.grade = 'iron'; const wm = toon(0x7d8288), wb = toon(0x5a5f66); /* (Dominic: the one Iron Winch for everyone; no other grades) */
-        part(wn, rbox(0.068, 0.054, 0.044, 0.008), wm); const dr = new THREE.Group(); dr.position.set(0, 0.032, -0.004); wn.add(dr); built.winchDrum = dr; part(dr, cyl(0.016, 0.016, 0.05, 12), toon(0x2c2f34), null, [0, 0, Math.PI / 2]); part(dr, rbox(0.052, 0.006, 0.01, 0.002), wb, [0, 0.014, 0], null, null, { ink: false });
-        part(wn, rbox(0.014, 0.03, 0.012, 0.003), wb, [0.026, -0.03, 0.02], null, null, { ink: false }); part(wn, rbox(0.014, 0.03, 0.012, 0.003), wb, [-0.026, -0.03, 0.02], null, null, { ink: false }); wn.visible = false; }
+        const wn = new THREE.Group(); wn.position.set(-(W / 2 - 0.045), y0 + H * 0.36, zb - 0.05); pk.add(wn); built.winch = wn; wn.userData.grade = 'iron'; /* (Dominic: the one Iron Winch for everyone; no other grades) */
+        /* (Art: dark forged iron like the iron pickaxe binding, rust in the recesses, a drum the rope wraps, two bolted side plates, a brass ratchet lever, the gear ink,
+           hung from the harness on a short strap so it stands clear of the hip. Two vertex-coloured merged meshes (frame + spinning drum), each with its ink hull) */
+        const D = WINCH_DRUM, R = 0.012, FE = 0x55585e, DK = 0x3e4146, BO = 0x6c7077, RU = 0x7a4a2a, RD = 0x5e3a22, BR = 0xb8893a, BK = 0xd8b060, LE = 0x5a3a22, RP = 0xc9a66b, wv = toon(0xffffff, null, { vertexColors: true });
+        const F = [];
+        for (const sx of [-1, 1]) { const x = sx * 0.026; F.push([rbox(0.008, 0.07, 0.05, 0.003), FE, [x, D.y - 0.004, D.z]]); /* side plate */
+          for (const [by, bz] of [[0.024, 0.016], [0.024, -0.016], [-0.03, 0.016], [-0.03, -0.016]]) { F.push([cyl(0.0052, 0.0052, 0.0012, 10), RU, [x + sx * 0.0043, D.y + by, D.z + bz], [0, 0, Math.PI / 2]]); F.push([cyl(0.0034, 0.0034, 0.004, 8), BO, [x + sx * 0.005, D.y + by, D.z + bz], [0, 0, Math.PI / 2]]); } /* bolts, rust round their seats */
+          F.push([cyl(0.0068, 0.0068, 0.006, 12), DK, [x + sx * 0.006, D.y, D.z], [0, 0, Math.PI / 2]]); F.push([rbox(0.0018, 0.012, 0.034, 0.0008), RD, [sx * 0.0215, D.y - 0.03, D.z]]); /* axle boss; rust along the inner foot */ }
+        F.push([rbox(0.044, 0.01, 0.012, 0.003), FE, [0, D.y + 0.031, D.z - 0.012]], [rbox(0.044, 0.01, 0.014, 0.003), FE, [0, D.y - 0.037, D.z - 0.01]]); /* top cam housing + bottom spacer (outer side, clear of the rope) */
+        for (const sx of [-1, 1]) F.push([rbox(0.005, 0.012, 0.016, 0.0015), RU, [sx * 0.0205, D.y + 0.031, D.z - 0.012]], [rbox(0.005, 0.012, 0.016, 0.0015), RU, [sx * 0.0205, D.y - 0.037, D.z - 0.01]]); /* rust in the plate joints */
+        F.push([rbox(0.004, 0.036, 0.007, 0.0015), BR, [0.0352, D.y + 0.013, D.z - 0.01], [0.6, 0, 0]], [ell(0.0055, 0.0055, 0.0055, 10, 8), BK, [0.0352, D.y + 0.027, D.z - 0.027]], [rbox(0.005, 0.008, 0.008, 0.002), BR, [0.0352, D.y, D.z]]); /* brass ratchet lever on the right plate */
+        F.push([new THREE.TorusGeometry(0.0085, 0.0018, 6, 14), DK, [0, D.y + 0.04, D.z - 0.004], [0, Math.PI / 2, 0]]); /* D-ring on the top housing */
+        F.push([rbox(0.016, 0.044, 0.004, 0.0015), LE, [0, 0.022, -0.012], [0.588, 0, 0]], [rbox(0.022, 0.012, 0.007, 0.002), LE, [0, 0.044, 0.002]], [rbox(0.018, 0.004, 0.0055, 0.001), DK, [0, 0.034, -0.0035], [0.588, 0, 0]]); /* the short strap up to the belt, its loop and buckle bar */
+        part(wn, mergeVC(F), wv); const dr = new THREE.Group(); dr.position.set(0, D.y, D.z); wn.add(dr); built.winchDrum = dr;
+        const G = [[cyl(R, R, 0.036, 14), DK, [0, 0, 0], [0, 0, Math.PI / 2]]]; for (const sx of [-1, 1]) { G.push([cyl(0.0175, 0.0175, 0.004, 14), FE, [sx * 0.019, 0, 0], [0, 0, Math.PI / 2]]); for (let k = 0; k < 8; k++) { const a = k / 8 * TAU; G.push([rbox(0.0045, 0.004, 0.004, 0.001), FE, [sx * 0.019, Math.cos(a) * 0.0185, Math.sin(a) * 0.0185], [a, 0, 0]]); } G.push([rbox(0.0016, 0.03, 0.0032, 0.0006), RD, [sx * 0.0212, 0, 0]]); } /* drum + cam flanges with ratchet teeth; a dark spoke shows the spin */
+        for (const x of [-0.0075, 0, 0.0075]) G.push([new THREE.TorusGeometry(R + 0.0024, 0.0027, 6, 18), RP, [x, 0, 0], [0, Math.PI / 2, 0]]); /* rope wraps */
+        part(dr, mergeVC(G), wv); wn.visible = false; }
       { // the lantern on its ring, swinging off the left side of the pack (same model and placement for both delvers)
         const pv = bone('lanternPivot', pk, W / 2 + 0.07, y0 + 0.01, zc + 0.03); built.lantern = { b: pv, ax: 0, az: 0, vx: 0, vz: 0 }; part(pv, new THREE.TorusGeometry(0.014, 0.003, 5, 12), M.dark, [0, -0.01, 0], [0, Math.PI / 2, 0]);
         const L = new THREE.Group(); L.position.y = -0.09; pv.add(L); part(L, new THREE.ConeGeometry(0.038, 0.035, 8), M.dark, [0, 0.055, 0]); part(L, cyl(0.036, 0.036, 0.016, 10), M.dark, [0, -0.05, 0]); part(L, cyl(0.03, 0.03, 0.01, 10), M.dark, [0, 0.035, 0]);
@@ -10812,7 +10833,7 @@ const CharView = (() => {
     const ws = coil ? coil.getWorldScale(V(0, 0, 0)).x : 1, rad = (tg0 ? tg0.o.tr : 0.0105) * ws, pitch = cd ? cd.pitch * rad : 0.05; // same cord thickness and lay as the coil on the pack
     // rig: the line runs from the anchor down to the winch at the front centre of the belt; from the winch a slack loop sags and swings back round the
     // right hip to the spool on the pack, the lower (right) hand managing it on the rope; the upper (left) hand rides the main line above the winch
-    W2.updateMatrixWorld(true); const top = W2.localToWorld(V(T.A.x, T.A.y - 0.03, CL.ZW - 0.072)), wn = c.built.winch; let end = wn ? wn.localToWorld(V(0, 0.03, 0.012)) : B.hips.localToWorld(V(0, 0.06, 0.15)), bot = wn ? wn.localToWorld(V(0, -0.03, 0.012)) : end.clone();
+    W2.updateMatrixWorld(true); const top = W2.localToWorld(V(T.A.x, T.A.y - 0.03, CL.ZW - 0.072)), wn = c.built.winch; let end = wn ? wn.localToWorld(V(0, WINCH_DRUM.y + 0.03, WINCH_DRUM.z + 0.0146)) : B.hips.localToWorld(V(0, 0.06, 0.15)), bot = wn ? wn.localToWorld(V(0, WINCH_DRUM.y - 0.03, WINCH_DRUM.z + 0.0146)) : end.clone(); /* (the rope runs tangent to the drum's inner face, over the wraps) */
     // the line feeds off the pack coil: leave the bundle at its lowest loop, running a short way round the coil first so it reads as unspooling
     const co = tg0 ? tg0.o : { R: 0.058, sy: 1.75 }, onCoil = (a2, out = 0) => coil.localToWorld(V((co.R + out) * Math.cos(a2), (co.R + out) * co.sy * Math.sin(a2), 0.014)), aE = -Math.PI / 2 - 0.35;
     const spool = coil ? onCoil(aE) : B.hips.localToWorld(V(-0.2, 0.2, -0.15)), feedIn = coil ? [onCoil(aE + 0.5, 0.004), onCoil(aE + 1.0, 0.002), onCoil(aE + 1.5, 0)] : [];
