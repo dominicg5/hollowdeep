@@ -10,6 +10,9 @@ const REGRADES = [
   { name: 'pocket-e-basin-t470u', a: [5088,3712], b: [5008,5264], r: 170 },
   { name: 'pocket-w-shelf-t470u', a: [-5888,5184], b: [-7120,5904], r: 170 },
   { name: 'pocket-s-shelf-t470u', a: [3168,-5920], b: [2672,-5008], r: 170 },
+  { name: 'pocket-mill-side-t470u', a: [-7840,3500], b: [-7296,3968], r: 110 },
+  { name: 'forge-choke-s-t483u', a: [7720,3500], b: [7740,4250], r: 300 },
+  { name: 'forge-choke-n-t483u', a: [8400,2450], b: [7720,3500], r: 300 },
 ];
 const PTS = [['cross47-a', -7269, -259], ['cross47-b', -7233, -365], ['cross47-bank', -7250, -320], ['cross47-c', -7255, -300], ['cross47-d', -7240, -340]];
 for (let x = -10500; x <= 10500; x += 1500) for (let y = -10500; y <= 10500; y += 1500) PTS.push([`g${x},${y}`, x, y]);
