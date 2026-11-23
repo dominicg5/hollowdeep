@@ -161,7 +161,7 @@ const FORGE = (() => {
   /* ---------- 3D ---------- */
   let THREEok = false;
   // the baked body (tools/bake_ape.js -> assets/forge_ape.bin): ONE continuous skinned mesh for the body + head, fetched at load (long before the forge builds); never marched at runtime
-  let APEB = null; try { if (typeof fetch === 'function' && typeof location !== 'undefined') fetch('assets/forge_ape.bin?v=p5a').then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { APEB = b; }).catch(() => {}); } catch (e) {}
+  let APEB = null; try { if (typeof fetch === 'function' && typeof location !== 'undefined') fetch('assets/forge_ape.bin?v=p6a').then((r) => (r.ok ? r.arrayBuffer() : null)).then((b) => { APEB = b; }).catch(() => {}); } catch (e) {}
   function decodeApe(buf) { const h = new Float32Array(buf, 0, 12); if (h[0] !== Math.fround(0x41504531)) return null; const nV = h[1], nI = h[2]; let o = 48; const take = (T, n) => { const a = new T(buf, o, n); o += Math.ceil(n * T.BYTES_PER_ELEMENT / 4) * 4; return a; };
     const Q = take(Uint16Array, nV * 3), sb = take(Uint8Array, nV * 2), sw = take(Uint8Array, nV), gr = take(Uint8Array, nV), rg = take(Uint8Array, nV), idx = take(Uint16Array, nI), pos = new Float32Array(nV * 3);
     for (let v = 0; v < nV; v++) for (let i = 0; i < 3; i++) pos[v * 3 + i] = h[3 + i] + Q[v * 3 + i] * h[6 + i]; return { nV, nI, pos, sb, sw, gr, rg, idx, apA: h[9], apB: h[10] }; }
