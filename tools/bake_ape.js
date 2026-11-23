@@ -31,15 +31,21 @@ function parts(p) { const B = {}, put = (b, d) => { B[b] = B[b] === undefined ? 
   for (const G of LEGS) { const th = cap(p, [G.x, hy - 2.5, 0], [G.x, hy - 14.5, 0], 5.3); put(G.bt, th); const kn = sph(p, [G.x, hy - BP.thigh, 0.3], 4.2), sh = rcone(p, [G.x, hy - BP.thigh - 0.5, 0.3], [G.x, 3.5, 0.3], 4.6, 3.6), shin = smin(kn, sh, 1.0); put(G.bs, shin);
     const ft = smin(ell(p, [G.x, 1.7, 2.6], [4.0, 1.8, 6.4]), ell(p, [G.x, 1.2, 7.6], [3.4, 1.2, 1.6]), 1.0); put(G.bf, ft); D = Math.min(D, smin(torso, smin(smin(th, shin, K.kn), ft, K.an), K.hip)); }
   return { D, B, hd, cs, chest }; }
-function head(p) { const q = [(p[0] - HC[0]) / HS, (p[1] - HC[1]) / HS, (p[2] - HC[2]) / HS];
+// pass 6 wrinkle folds: polylines laid on the face surface (found once on the fold-free head), carved as shallow grooves (shadow colour)
+let WR = null; function wrinkles() { if (WR) return WR; const surf = (x, y) => { for (let z = 13; z > 2; z -= 0.04) if (head([HC[0] + x * HS, HC[1] + y * HS, HC[2] + z * HS], true).d < 0) return z; return null; }, line = (f) => { const P = []; for (let i = 0; i <= 8; i++) { const [x, y] = f(i / 8), z = surf(x, y); if (z != null) P.push([x, y, z]); } return P; };
+  WR = [line((t) => [lerp(-1.4, 1.4, t), 0.5 + 0.12 * (1 - Math.pow(2 * t - 1, 2))]), line((t) => [lerp(-1.6, 1.6, t), 0.95 + 0.1 * (1 - Math.pow(2 * t - 1, 2))])]; // two across the nose bridge
+  for (const s of [1, -1]) WR.push(line((t) => [s * (t < 0.5 ? lerp(2.5, 3.3, t * 2) : lerp(3.3, 3.05, t * 2 - 1)), t < 0.5 ? lerp(-1.0, -2.8, t * 2) : lerp(-2.8, -4.4, t * 2 - 1)])); // nose-to-mouth folds
+  return WR; }
+function head(p, noWr) { const q = [(p[0] - HC[0]) / HS, (p[1] - HC[1]) / HS, (p[2] - HC[2]) / HS];
   const skull = ell(q, [0, 0.6, -0.6], [5.8, 5.6, 6.1]), crest = Math.min(cap(q, [0, 4.4, 2.2], [0, 6.0, -0.8], 1.3), cap(q, [0, 6.0, -0.8], [0, 6.9, -3.8], 1.7), cap(q, [0, 6.9, -3.8], [0, 5.2, -6.6], 1.7)); /* a broad ridge, not a horn */
   const brow = smin(ell(q, [0, 2.3, 4.9], [5.0, 1.45, 1.7]), cap(q, [-4.9, 2.0, 3.4], [4.9, 2.0, 3.4], 1.2), 1.0), neck = cap(q, [0, -4.5, -2.5], [0, -11, -6.5], 5.0);
-  const muz = ell(q, [0, -2.5, 6.0], [4.0, 3.0, 3.8]), nose = ell(q, [0, -0.9, 8.7], [2.9, 1.15, 1.05]), jaw = ell(q, [0, -4.8, 6.4], [3.5, 1.45, 3.6]);
+  const lip = ell(q, [0, -2.7, 8.5], [2.7, 1.25, 1.0]), chin = ell(q, [0, -5.5, 9.3], [1.9, 1.05, 1.35]), muz = ell(q, [0, -2.5, 6.0], [4.0, 3.0, 3.8]), nose = ell(q, [0, -0.9, 8.7], [2.9, 1.15, 1.05]), jaw = ell(q, [0, -4.8, 6.4], [3.5, 1.45, 3.6]);
   let cheeks = 1e9, ears = 1e9; for (const s of [1, -1]) { cheeks = Math.min(cheeks, ell(q, [s * 3.4, -1.4, 4.6], [1.9, 1.9, 1.5]), ell(q, [s * 3.3, -3.3, 4.6], [2.1, 2.0, 2.2])); ears = Math.min(ears, ell(q, [s * 5.6, -0.6, -0.3], [0.75, 1.2, 0.9])); }
-  const fur = smin(smin(smin(skull, crest, 2.2), brow, 1.2), neck, 2.0), face = smin(smin(smin(muz, nose, 0.5), jaw, 0.6), cheeks, 1.0);
+  const fur = smin(smin(smin(skull, crest, 2.2), brow, 1.2), neck, 2.0), face = smin(smin(smin(smin(smin(muz, nose, 0.5), jaw, 0.6), cheeks, 1.0), lip, 0.8), chin, 0.9); /* (pass 6: a deeper upper lip, a slightly jutting chin) */
   let d = smin(smin(fur, face, 1.4), ears, 0.5);
-  let sub = 1e9; for (const s of [1, -1]) { const so = Math.hypot(q[0] - s * 2.0, q[1] - 0.55, q[2] - 5.9) - 1.35, ns = Math.hypot(q[0] - s * 0.95, q[1] + 1.35, q[2] - 9.75) - 0.42; d = smax(d, -so, 0.6); d = smax(d, -ns, 0.2); sub = Math.min(sub, Math.abs(so), Math.abs(ns) * 1.5); }
+  let sub = 1e9; for (const s of [1, -1]) { const so = Math.hypot(q[0] - s * 2.0, q[1] - 0.55, q[2] - 5.75) - 1.5, /* (pass 6: deeper sockets) */ ns = Math.hypot(q[0] - s * 0.95, q[1] + 1.35, q[2] - 9.75) - 0.42; d = smax(d, -so, 0.6); d = smax(d, -ns, 0.2); sub = Math.min(sub, Math.abs(so), Math.abs(ns) * 1.5); }
   const mo = Math.min(cap(q, [-2.9, -4.1, 8.6], [0, -3.75, 9.55], 0.2), cap(q, [0, -3.75, 9.55], [2.9, -4.1, 8.6], 0.2)); d = smax(d, -mo, 0.25); sub = Math.min(sub, Math.abs(mo) * 1.2);
+  if (!noWr && q[2] > 5 && Math.abs(q[0]) < 4.5 && q[1] > -5.5 && q[1] < 2) for (const P of wrinkles()) for (let i = 1; i < P.length; i++) { const w = cap(q, P[i - 1], P[i], 0.28); if (w < 1) { d = smax(d, -w, 0.15); sub = Math.min(sub, Math.abs(w) * 1.3); } }
   return { d: d * HS, q, fur, face: Math.min(face, ears), brow, sub, skull }; }
 const BOUNDS = [[-50, -1, -17], [50, 77, 24]], H = 0.3, ADJ = new Set(['0,1', '1,2', '1,7', '7,8', '1,9', '9,10', '1,11', '11,12', '1,13', '13,14', '0,3', '3,4', '0,5', '5,6', '4,18', '6,19']);
 (async () => { const t0 = Date.now(), dims = BOUNDS[1].map((v, i) => Math.round((v - BOUNDS[0][i]) / H) + 1), [nx, ny, nz] = dims;
@@ -62,9 +68,9 @@ const BOUNDS = [[-50, -1, -17], [50, 77, 24]], H = 0.3, ADJ = new Set(['0,1', '1
     let [b1, d1] = bs[0], b2 = 0, w = 1; const second = bs.slice(1).find(([b]) => ADJ.has(Math.min(b, b1) + ',' + Math.max(b, b1))); if (second && second[1] - d1 < 3) { b2 = second[0]; w = 1 / (1 + Math.exp(-(second[1] - d1) / 0.55)); }
     SB[v * 2] = b1; SB[v * 2 + 1] = b2; SW[v] = Math.round(w * 255);
     let g; const A = ARMS.find((a) => a.b0 === b1 || a.b0 + 1 === b1);
-    if (A && b1 === A.b0 + 1) { const t = clamp(((p[0] - A.E[0]) * A.u[0] + (p[1] - A.E[1]) * A.u[1]) / A.L2, 0, 1); g = lerp(1, 0, sm(0.35, 1, t)); }
-    else if (A) { const t = clamp(((p[0] - A.S[0]) * A.u[0] + (p[1] - A.S[1]) * A.u[1]) / A.L1, 0, 1); g = lerp(lerp(3, 2, sm(0, 0.35, t)), 1, sm(0.6, 1.05, t)); }
-    else { const ye = p[1] + 9 * sm(-1, -7, p[2]) * (b1 <= 1 ? 1 : 0); g = ye > cy + 17 ? lerp(2, 3, sm(cy + 17, cy + 24, ye)) : ye > cy - 2 ? lerp(1, 2, sm(cy - 2, cy + 15, ye)) : lerp(0, 1, sm(hy - BP.thigh - 4, hy - 6, ye)); }
+    if (A) { const sA = clamp(((p[0] - A.S[0]) * A.u[0] + (p[1] - A.S[1]) * A.u[1]) / (A.L1 + A.L2), 0, 1); g = lerp(3, 2, sm(0, 0.3, sA)) - 1.4 * sm(0.38, 0.68, sA) - 0.6 * sm(0.85, 1.0, sA); } // (pass 6: one soft fade over ~30% of the arm, centred on the elbow: no glove edge)
+    else if (b1 === 2) { const q = R.hd.q; g = lerp(1, 3, sm(2.6, 7.4, q[1] + 0.5 * Math.max(0, -q[2]))); g = lerp(g, 3, sm(-1, -4, q[2]) * sm(-13, -3, q[1])); } // (pass 6: dark #5e5952 brow, the crest grading to silver over ~40% of the skull, the saddle down the back of the neck)
+    else { const ye = p[1] + 9 * sm(-1, -7, p[2]) * (b1 <= 1 ? 1 : 0); g = ye > cy + 17 ? lerp(2, 3, sm(cy + 17, cy + 24, ye)) : ye > cy - 2 ? lerp(1, 2, sm(cy - 2, cy + 15, ye)) : lerp(0, 1, sm(hy - BP.thigh - 5, hy - BP.thigh + 5, ye)); } // (knee fade ~30% of the leg)
     GR[v] = Math.round(clamp(g / 3, 0, 1) * 255);
     let rg = 0; if (b1 === 2) { const h = R.hd, q = h.q; if (h.sub < 0.45 || (h.brow < h.fur + 0.2 && n[1] < -0.35 && q[2] > 3)) rg = 2; else if (h.face < Math.min(h.fur, h.brow) + 0.25 || (q[2] > 4.0 && q[1] > -1 && q[1] < 1.4 && Math.abs(q[0]) < 4.6 && h.brow > 0.4)) rg = 1; }
     else if (b1 === 1 && R.cs < R.chest + 0.3 && p[2] > 8) rg = 1; else if ((b1 === 18 || b1 === 19) && n[1] < -0.3) rg = 1;
