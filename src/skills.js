@@ -32,7 +32,7 @@ const Skills = (() => {
   // Tethercraft (Dominic): the Tether Mill rolls ingots into braid spools / Wren's Tethers; hard unlock levels per grade (same curve as Mining & Smithing)
   const TETHER_LEVELS = [1, 20, 25, 40, 55, 70, 100, 125];
   const SKILL_KEYS = ['mining', 'smithing', 'tethercraft'];
-  const TOOL_OFFSETS = { tlink: 0, climb: 2, pick: 3, bit: 5, lifeline: 7 }; // make level = bar + offset; lifeline is the Ledge Tether
+  const TOOL_OFFSETS = { tlink: 0, climb: 2, pick: 3, bit: 5 }; // make level = bar + offset
   const PICK_USE_LEVELS = [1, 10, 20, 35, 50, 65, 95, 120]; // Mining level to use a pick/bit of that tier (table only; current gating is unchanged)
   const BIT_KEYS = ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'];
 
@@ -299,7 +299,7 @@ const Skills = (() => {
         E.push({ level: lv, kind: 'bar', name: tn + ' bar', id: 'ingot:' + k });
         TOOL_MAKE.forEach((t) => {
           const off = TOOL_OFFSETS[t.key]; if (off == null) return;
-          const nm = t.key === 'lifeline' ? tn + ' Ledge Tether' : tn + ' ' + t.name;
+          const nm = tn + ' ' + t.name;
           E.push({ level: lv + off, kind: 'make', name: nm, id: t.icon(k) });
         });
       }

@@ -17,11 +17,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     C.get('vault', 'ore:tin'); // (the vault store exists)
     // ---- migration of an old save
     S.winchV = 0; S.wornV = 0; delete S.worn; S.backpack['tool:lifeline_gold'] = 2; S.backpack['tool:lifeline_iron'] = 1; (S.ledgeVault.gear = S.ledgeVault.gear || {}).lifeline_rune = 1; S.backpack[C.CLIMB_BASE] = 1; S.backpack[C.TLINK_BASE] = 1;
-    S.backpack[P('steel')] = 2; S.pickGrade = 'steel'; S.pickEqT = null; const g0 = S.backpack['ingot:gold'] || 0, r0 = S.backpack['ingot:rune'] || 0; C.migrateWinch(); C.migrateWorn();
-    o.migW = [S.winchMigrated.winch.join(), S.backpack['ingot:gold'] - g0, S.backpack['ingot:rune'] - r0, 'tool:lifeline_gold' in S.backpack, 'lifeline_rune' in S.ledgeVault.gear];
+    S.backpack[P('steel')] = 2; S.pickGrade = 'steel'; S.pickEqT = null; const g0 = S.backpack['ingot:gold'] || 0, r0 = S.backpack['ingot:rune'] || 0, i0 = S.backpack['ingot:iron'] || 0; C.migrateWinch(); C.migrateWorn();
+    o.migW = [S.winchMigrated.winch.join(), S.backpack['ingot:gold'] - g0, S.backpack['ingot:rune'] - r0, S.backpack['ingot:iron'] - i0, 'tool:lifeline_gold' in S.backpack, 'tool:lifeline_iron' in S.backpack, 'lifeline_rune' in S.ledgeVault.gear];
+    // a save that already ran winch v1 still holds Iron copies of the old anvil winch (backpack, vault, an Exchange listing): v2 drops them all with the ingot refund
+    { const ex = S.exchange || (S.exchange = { bought: {}, mine: [], nextId: 1, gold: 1 }), m0 = (ex.mine || []).slice(); ex.mine = [{ k: 'tool:lifeline_iron', qty: 1, price: 50 }, { k: 'stone', qty: 10, price: 4 }];
+      S.winchV = 1; S.backpack['tool:lifeline_iron'] = 1; S.ledgeVault.gear.lifeline_iron = 1; const j0 = S.backpack['ingot:iron'] || 0; C.migrateWinch(); const d = S.winchMigrated.v2;
+      o.migV2 = [S.winchV, d.dropped.iron, d.refund['ingot:iron'], S.backpack['ingot:iron'] - j0, Object.keys(S.backpack).concat(Object.keys(S.ledgeVault.gear)).some((k) => /lifeline_/.test(k)), ex.mine.map((m) => m.k).join()]; ex.mine = m0; }
     o.migE = [C.get('bag', C.CLIMB_BASE), C.get('bag', C.TLINK_BASE), C.get('bag', C.WINCH_BASE), C.get('bag', P('steel')), C.worn().pick, S.wornMigrated.pick, C.have(C.CLIMB_BASE), C.have(P('steel'))];
     // ---- the winch: one fixed Iron Winch, nothing else anywhere
-    o.winch = [Object.keys(C.ITEMS).filter((id) => /lifeline/.test(id)).join(), C.ITEMS[C.WINCH_BASE].name, C.SMITH.some((r) => /lifeline/.test(r.out)), C.equipped(C.WINCH_BASE), C.have(C.WINCH_BASE)];
+    o.winch = [Object.keys(C.ITEMS).filter((id) => /lifeline_/.test(id)).join(), C.WINCH_BASE, C.ITEMS[C.WINCH_BASE].name, C.SMITH.some((r) => /lifeline/.test(r.out)), C.equipped(C.WINCH_BASE), C.have(C.WINCH_BASE)];
     C.st.tab = 'buy'; C.open('exchange'); const bh = document.getElementById('modalBody').innerHTML; C.st.tab = 'sell'; C.open('exchange'); const sh = document.getElementById('modalBody').innerHTML; C.open('anvil'); const ah = document.getElementById('modalBody').innerHTML; try { closeModalQuiet(); } catch (e) {}
     o.winchShop = [/lifeline|Winch/.test(bh), /lifeline|Winch/.test(sh), /lifeline|Winch|Ledge Tether/.test(ah), (Skills.unlockEntries('smithing') || []).some((e) => /lifeline|tether_/.test(e.id || ''))];
     o.up = +CharView.climbSpeeds().up.toFixed(3);
@@ -53,10 +57,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // mining with a full backpack: she stops and the message shows
     fill(); const got = Explore.mineGive('gold', 3); o.mine = [got, /Backpack full/.test(last())];
     o.gridEq = (C.bagHTML(false).match(/class="cxs[^"]* eq[ "]/g) || []).length; save(); return o; });
-  ok(R.migW.join() === 'gold,rune,30,36,false,false', `winch migration: Gold x2 + Rune x1 winches -> the Iron Winch; ingots back (Gold ${R.migW[1]}, Rune ${R.migW[2]}); recorded in S.winchMigrated`);
+  ok(R.migW.join() === 'gold,iron,rune,30,36,6,false,false,false', `winch migration: the old anvil winch (Gold x2, Iron x1, Rune x1) dropped; ingots back (Gold ${R.migW[1]}, Rune ${R.migW[2]}, Iron ${R.migW[3]}); recorded in S.winchMigrated`);
+  ok(R.migV2.join() === '2,3,18,18,false,stone', `winch v2 on a v1 save: Iron copies in the backpack, vault and an Exchange listing dropped, 3 x 6 Iron ingots back, other listings kept (${R.migV2.join(',')}) (got no ledge winch)`);
   ok(R.gridEq === 0, 'no equipped highlight in the backpack grid');
   ok(R.migE.join() === '0,0,0,1,tool:pick_steel,bag,1,2', `equipped migration: climbing picks / tether / winch out of the backpack, one Steel pickaxe moved to her hand (${R.migE.join(',')})`);
-  ok(R.winch.join() === 'tool:lifeline_iron,Iron Winch,false,true,1' && R.winchShop.join() === 'false,false,false,false', `only the Iron Winch exists, always worn; no recipe, shop, sell, anvil or unlock entry (${R.winch.join(',')} / ${R.winchShop.join(',')}) (got iron winch)`);
+  ok(R.winch.join() === ',gear:winch_iron,Iron Winch,false,true,1' && R.winchShop.join() === 'false,false,false,false', `only the Iron Winch exists, always worn; no recipe, shop, sell, anvil or unlock entry (${R.winch.join(',')} / ${R.winchShop.join(',')}) (got iron winch)`);
   ok(Math.abs(R.up - 1.45) < 0.01, `ascend speed stays ${R.up} m/s`);
   ok(R.eq[0] === 2 && R.eq[1] === 1 && R.eq[2] === 0 && R.eq[3] === 'tool:pick_bronze' && R.eq[4] && R.eq[5] === 0 && R.eq[6] === 'bronze', `equipping takes it out of the grid and the slot count (${R.eq[0]} -> ${R.eq[1]} slots); equipment row shown; no gear in the grid (got equipped out of backpack)`);
   ok(R.swap.join() === '1,0,tool:pick_iron,iron' && R.sell.join() === '0,tool:pick_iron', `swap returns the old pickaxe to the backpack; selling the equipped one is blocked (${R.swap.join(',')} / ${R.sell.join(',')})`);

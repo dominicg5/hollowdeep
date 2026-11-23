@@ -3,7 +3,7 @@ const Craft = (() => {
   // ---- item catalogue: id -> {name, emoji, col}; ids are kind:key
   const ORE_T = [['copper', 'Copper', '#e0874a'], ['tin', 'Tin', '#dfe2da'], ['iron', 'Iron', '#b4583a'], ['coal', 'Coal', '#3a383e'], ['gold', 'Gold', '#ffd25a'], ['mithril', 'Mithril', '#bfe0ff'], ['runite', 'Runite', '#d2b8ff'], ['lumenite', 'Lumenite', '#8ff6ff'], ['onyx', 'Ember Onyx', '#ff4a1c']];
   const TIERS = [['bronze', 'Bronze', '#c07a3c'], ['iron', 'Iron', '#7d8288'], ['steel', 'Steel', '#9aa4ae'], ['gold', 'Gold', '#e6b640'], ['mithril', 'Mithril', '#9cc0e6'], ['rune', 'Rune', '#7a56c8'], ['lumen', 'Lumen', '#2f6fe0'], ['onyx', 'Ember Onyx', '#ff5a28']];
-  const TOOLS = [['pick', 'Pickaxe', '⛏️'], ['climb', 'Climbing picks', '🧗'], ['tlink', 'Tether links', '🔗'], ['lifeline', 'Ledge Tether', '🪢']];
+  const TOOLS = [['pick', 'Pickaxe', '⛏️'], ['climb', 'Climbing picks', '🧗'], ['tlink', 'Tether links', '🔗']];
   const ITEMS = {};
   for (const [k, n, c] of ORE_T) ITEMS['ore:' + k] = { name: n + ' ore', short: n, emoji: '🪨', col: c, kind: 'ore', base: 2 };
   TIERS.forEach(([k, n, c], i) => { ITEMS['ingot:' + k] = { name: n + ' ingot', short: n, emoji: '🧱', col: c, kind: 'ingot', tier: i };
@@ -12,9 +12,9 @@ const Craft = (() => {
   // The other grades' ids stay defined only so old saves migrate (migrateClimbGear); they are never made, bought, sold or shown.
   const CLIMB_BASE = 'tool:climb_iron', TLINK_BASE = 'tool:tlink_bronze';
   ITEMS[CLIMB_BASE].name = 'Iron Climbing Picks'; ITEMS[TLINK_BASE].name = 'Bronze Climbing Tether'; ITEMS[TLINK_BASE].emoji = '🪢';
-  // (Dominic) the ascender winch is Iron for everyone: one fixed Iron Winch (the old Ledge Tether tool id); every other winch grade is gone (no item, recipe, icon or listing; old saves migrate, migrateWinch)
-  const WINCH_BASE = 'tool:lifeline_iron'; Object.assign(ITEMS[WINCH_BASE], { name: 'Iron Winch', short: 'Winch', emoji: '🪝', winch: true });
-  for (const [k] of TIERS) if ('tool:lifeline_' + k !== WINCH_BASE) delete ITEMS['tool:lifeline_' + k];
+  // (Dominic: "There should have never been a winch for the Ledge tether system") the hip ascender is its own fixed gear, always worn: not a tool, never made, bought,
+  // sold, listed, carried or stored. The old anvil-made Ledge Tether winch (tool:lifeline_*) is gone; old saves drop it with a refund (migrateWinch v2)
+  const WINCH_BASE = 'gear:winch_iron'; ITEMS[WINCH_BASE] = { name: 'Iron Winch', short: 'Winch', emoji: '🪝', col: (TIERS.find((q) => q[0] === 'iron') || [])[2], kind: 'gear', winch: true, grade: 'iron' };
   // (Dominic) equipped gear lives in equipment slots, never in the backpack grid or its slot count: the base gear (always worn) and the pickaxe in her hand (S.worn.pick)
   const BASE_GEAR = [CLIMB_BASE, TLINK_BASE, WINCH_BASE], isBase = (id) => BASE_GEAR.includes(id);
   const FULL = '🎒 Backpack full'; const fullMsg = (m) => { if (typeof toast === 'function') toast(m || FULL); return false; };
@@ -40,7 +40,7 @@ const Craft = (() => {
     { out: 'ingot:lumen', in: { 'ore:lumenite': 26, 'ore:coal': coal(6) } },
     { out: 'ingot:onyx', in: { 'ore:onyx': 42, 'ore:coal': coal(7) } },
   ];
-  const TOOL_COST = { pick: 3, climb: 2, tlink: 1, lifeline: 4 }, TOOL_EXTRA = { lifeline: 'tool:tlink_' };
+  const TOOL_COST = { pick: 3, climb: 2, tlink: 1 }, TOOL_EXTRA = {};
   const SMITH = [];
   // Tether Mill (Dominic): braid spools (100 m single strand, ips ingots, s seconds, xp Tethercraft XP) and Wren's Tether (ci ingots, cs seconds, cx XP); u = Tethercraft unlock.
   // Hard-coded from SPEC §1 (option B: spool XP = anvil XP x 10.844). The anvil no longer makes tool:tlink_* - the mill does.
@@ -54,7 +54,7 @@ const Craft = (() => {
     lumen: { u: 100, ips: 2, s: 93.3, xp: 64848, ci: 28, cs: 1306, cx: 907878 },
     onyx: { u: 125, ips: 2, s: 116.0, xp: 197582, ci: 43, cs: 2495, cx: 4248006 }
   };
-  for (const [t] of TOOLS) if (t !== 'tlink' && t !== 'climb' && t !== 'lifeline') TIERS.forEach(([k], i) => { const n = Math.round(TOOL_COST[t] * 1.55 ** i), inp = { ['ingot:' + k]: n }; if (TOOL_EXTRA[t]) inp[TOOL_EXTRA[t] + k] = 2; SMITH.push({ out: 'tool:' + t + '_' + k, in: inp, tool: t }); });
+  for (const [t] of TOOLS) if (t !== 'tlink' && t !== 'climb') TIERS.forEach(([k], i) => { const n = Math.round(TOOL_COST[t] * 1.55 ** i), inp = { ['ingot:' + k]: n }; if (TOOL_EXTRA[t]) inp[TOOL_EXTRA[t] + k] = 2; SMITH.push({ out: 'tool:' + t + '_' + k, in: inp, tool: t }); });
   // local placeholder market: value climbs per tier; the crystal buys at 80%
   const value = (id) => { const it = ITEMS[id]; if (!it) return 0; if (it.tiered) return value('tool:pick_' + it.grade); /* (a tiered pickaxe sells at the plain price) */ if (it.kind === 'ore') return Math.round(2 * 1.7 ** Math.max(0, ORE_T.findIndex((o) => 'ore:' + o[0] === id) - 1)); let v = 0; const r = SMELT.find((q) => q.out === id) || SMITH.find((q) => q.out === id); if (r) for (const k in r.in) v += value(k) * r.in[k]; else if (it.tool === 'tlink' && MILL[id.slice(10)]) v = value('ingot:' + id.slice(10)) * MILL[id.slice(10)].ci; return Math.round(v * 1.25); };
   const sellP = (id) => Math.max(1, Math.floor(value(id) * 0.8 * 10)), buyP = (id) => Math.max(1, Math.ceil(value(id) * 1.15 * 10)); // gold coins (x10 the old Lumen prices)
@@ -95,10 +95,17 @@ const Craft = (() => {
     if (S.mill && S.mill.jobs && !S.mill.jobs.length && S.mill.tab === 'climb') S.mill.tab = 'braid';
     for (const kind of ['climb', 'tlink']) { const key = SKIN_KEY[kind], g = S[key]; if (!g || g === 'stone' || g === 'regular' || !SKIN_LOOKS[kind].includes(g)) S[key] = SKIN_BASE[kind]; else own(kind, g); }
     for (const id of [CLIMB_BASE, TLINK_BASE]) { const k = id.slice(5), n = Math.floor(b[id] || 0) + Math.floor(v.gear[k] || 0); if (n > 1) got.extra = (got.extra || 0) + n - 1; delete b[id]; delete v.gear[k]; } } // (the base pair is worn, in its equipment slot)
-  // old saves: every other winch grade (backpack or vault) becomes the one Iron Winch; its ingots come back (the anvil recipe it took), as the climbing-gear migration refunds
-  function migrateWinch() { if (typeof S === 'undefined' || !S || S.winchV >= 1) return; S.winchV = 1; const b = S.backpack || (S.backpack = {}), v = S.ledgeVault || (S.ledgeVault = {}); v.gear = v.gear || {}; const got = S.winchMigrated = { winch: [], refund: {} };
-    TIERS.forEach(([g], i) => { const id = 'tool:lifeline_' + g; if (id === WINCH_BASE) return; const n = Math.floor(b[id] || 0) + Math.floor(v.gear['lifeline_' + g] || 0); delete b[id]; delete v.gear['lifeline_' + g]; if (!(n > 0)) return;
-      got.winch.push(g); const ing = 'ingot:' + g, back = n * Math.round(TOOL_COST.lifeline * 1.55 ** i); b[ing] = (b[ing] || 0) + back; got.refund[ing] = (got.refund[ing] || 0) + back; }); }
+  // old saves: the anvil-made Ledge Tether winch (tool:lifeline_<grade>, every grade, Iron too) is dropped from the backpack, the vault and the player's Exchange
+  // listings; its ingots come back (its old anvil recipe, round(4 x 1.55^tier)), as the climbing-gear migration refunds. v1 (other grades -> Iron) already refunded those.
+  const LEGACY_WINCH = 'tool:lifeline_', LEGACY_WINCH_COST = 4;
+  function migrateWinch() { if (typeof S === 'undefined' || !S || S.winchV >= 2) return; S.winchV = 2; const b = S.backpack || (S.backpack = {}), v = S.ledgeVault || (S.ledgeVault = {}); v.gear = v.gear || {};
+    const got = S.winchMigrated = Object.assign({ winch: [], refund: {} }, S.winchMigrated || {}, { v2: { dropped: {}, refund: {} } }), d = got.v2;
+    const pay = (g, n) => { const i = TIERS.findIndex((q) => q[0] === g); if (i < 0 || !(n > 0)) return; const ing = 'ingot:' + g, back = n * Math.round(LEGACY_WINCH_COST * 1.55 ** i); b[ing] = (b[ing] || 0) + back; d.refund[ing] = (d.refund[ing] || 0) + back; got.refund[ing] = (got.refund[ing] || 0) + back; d.dropped[g] = (d.dropped[g] || 0) + n; if (!got.winch.includes(g)) got.winch.push(g); };
+    for (const id of Object.keys(b)) if (id.startsWith(LEGACY_WINCH)) { pay(id.slice(LEGACY_WINCH.length), Math.floor(b[id] || 0)); delete b[id]; }
+    for (const k of Object.keys(v.gear)) if (k.startsWith('lifeline_')) { pay(k.slice(9), Math.floor(v.gear[k] || 0)); delete v.gear[k]; }
+    for (const ord of [S.bagOrder, S.vaultOrder]) if (Array.isArray(ord)) for (let i = 0; i < ord.length; i++) if (typeof ord[i] === 'string' && ord[i].startsWith(LEGACY_WINCH)) ord[i] = null;
+    const ex = S.exchange; if (ex && Array.isArray(ex.mine)) ex.mine = ex.mine.filter((m) => { const k = m && (m.k || m.id); if (typeof k !== 'string' || !(k.startsWith(LEGACY_WINCH) || k.startsWith('lifeline_'))) return true; pay(k.replace(LEGACY_WINCH, '').replace('lifeline_', ''), Math.floor(m.qty || 1)); return false; });
+    if (S.mill && Array.isArray(S.mill.jobs)) S.mill.jobs = S.mill.jobs.filter((j) => { const o = j && (j.out || j.id); if (typeof o !== 'string' || !o.startsWith(LEGACY_WINCH)) return true; pay(o.slice(LEGACY_WINCH.length), Math.floor(j.n || j.qty || 1)); return false; }); }
   // old saves (once): the equipped gear leaves the backpack / vault for its equipment slot (a save fix, not a player action)
   const wornPickOf = () => { const g = S.pickGrade; return g && g !== 'stick' && TIERS.some((q) => q[0] === g) ? (S.pickEqT === g ? 'tool:tpick_' + g : 'tool:pick_' + g) : null; };
   function migrateWorn() { if (typeof S === 'undefined' || !S || S.wornV >= 1) return; S.wornV = 1; const b = S.backpack || (S.backpack = {}), v = S.ledgeVault || (S.ledgeVault = {}); v.gear = v.gear || {}; const W = S.worn = { pick: null }, out = { base: 0, pick: null };
@@ -294,7 +301,7 @@ const Craft = (() => {
     // anvil: one category at a time (top tabs Pickaxes / Climbing Picks / Tethers; Tethers splits Ledge Tethers vs Wren's own Tether), each listed by material tier - no long scroll
     if (!F) { h += `<div class="cxtabs">${ANV_CAT.map(([k, l, e]) => `<button class="cxtab${st.acat === k ? ' on' : ''}" data-cx="acat" data-v="${k}"><span>${e}</span>${l}</button>`).join('')}</div>`;
       if (st.acat === 'teth' && TETH_SUB.length > 1) h += `<div class="cxq cxsub">${TETH_SUB.map(([k, l]) => `<button class="btn sm ${st.atool === k ? 'alt' : 'ghost'}" data-cx="atool" data-v="${k}">${l}</button>`).join('')}</div>`; }
-    const tool = F ? null : st.acat === 'teth' ? (TETH_SUB.some((q) => q[0] === st.atool) ? st.atool : 'lifeline') : st.acat; h += '<div class="card cxl">';
+    const tool = F ? null : st.acat === 'teth' ? (TETH_SUB.some((q) => q[0] === st.atool) ? st.atool : null) : st.acat; h += '<div class="card cxl">';
     for (let i = 0; i < list.length; i++) { const r = list[i], x = st.qty === 'all' ? Math.max(1, maxMake(r)) : st.qty, it = ITEMS[r.out];
       if (!F && r.tool !== tool) continue;
       h += `<div class="cxr rec" data-out="${r.out}">${ico(r.out)}<span class="cxn">${esc(it.name)}<small class="cxcs">${cost(r, x)}</small></span><button class="btn sm ${canMake(r, x) ? 'alt' : 'ghost'}" data-cx="make" data-k="${kind}" data-i="${i}" ${canMake(r, x) ? '' : 'disabled'}>${F ? 'Smelt' : 'Smith'} ×${x}</button></div>`; }

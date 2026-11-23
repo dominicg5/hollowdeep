@@ -55,7 +55,7 @@ const ICONS = {
     'tool:pick_onyx':47,
     'tool:pick_rune':48,
     'tool:pick_steel':49,
-    'tool:lifeline_iron':52,
+    'gear:winch_iron':52,
     'stand:drill':59,
     'stand:timber':59,
     'stand:iron':59,
