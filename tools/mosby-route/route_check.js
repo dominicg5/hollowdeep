@@ -27,7 +27,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html';
       let TC = []; try { TC = Town.cols ? Town.cols() : []; } catch (e) {} for (const c of TC) blk(c.x, c.y, c.r, 8);
       for (const B0 of E.BRIDGES) { if (!B0.a || B0.a[0] > 1e6) continue; const L = Math.hypot(B0.b[0] - B0.a[0], B0.b[1] - B0.a[1]); for (let t = 0; t <= L; t += 16) blk(B0.a[0] + (B0.b[0] - B0.a[0]) * t / L, B0.a[1] + (B0.b[1] - B0.a[1]) * t / L, (B0.dw || 18), 2); }
       const hw = W.heartwood; blk(hw.x, hw.y, 900, 16); for (const nd of E.ORE.nodes || []) blk(nd.x, nd.y, 120, 32);
-      res.grid = { G: g, X0, n, h, f: Array.from(f), ore: (E.ORE.spots || []).map((s) => [s.x | 0, s.y | 0, (s.r || WS * 20) | 0]), loop: P }; }
+      res.grid = { G: g, X0, n, h, f: Array.from(f), ore: (E.ORE.spots || []).map((s) => [s.x | 0, s.y | 0, (s.r || WS * 20) | 0]), nodes: (E.ORE.nodes || []).map((q) => [q.x | 0, q.y | 0, (q.s || 30) | 0]), loop: P }; }
     return res; }, process.env.DUMP || '');
   if (R.grid) { fs.writeFileSync(process.env.DUMP, JSON.stringify(R.grid)); delete R.grid; }
   console.log(JSON.stringify(R)); console.log('ROUTE worst clearance ' + R.worst.clrM + ' m as he rides it (level body ' + R.worst.clrLevelM + ' m; lift up to ' + R.worst.liftM + ' m, pitch ' + R.worst.pitch + ' deg), slope along ' + R.worst.along + ' / across ' + R.worst.across + ' deg, problem stretches ' + R.stretches.length + (errs.length ? ' ERR ' + errs[0] : '')); await b.close(); })();

@@ -123,6 +123,8 @@ def rep(name, m):
         pitch_max=round(float(np.abs(m['pitch']).max()), 1) if 'pitch' in m else None, lifted_pct=round(float((m['lift'] > 0.2).mean() * 100), 1) if 'lift' in m else None,
         min_turn_r_m=round(float(turn_r(resample(np.c_[m['px'], m['py']], 120)).min() / WS)))))
 _lab, _nl = nd.label((f & 32) > 0); NODES = np.array([[X0 + (b + .5) * G, X0 + (a + .5) * G] for a, b in nd.center_of_mass((f & 32) > 0, _lab, range(1, _nl + 1))]) if _nl else np.zeros((0, 2))
+NODE_S = np.array([q[2] for q in d['nodes']], float) if d.get('nodes') else None
+if NODE_S is not None: NODES = np.array([[q[0], q[1]] for q in d['nodes']], float)  # the real ore nodes (route_check DUMP), not blob centres
 def feet(L, s_node=K('NODE_S', 40)):
     # test/mosbygiant.js: his four foot colliders (hips at +-hipX, +-hipZ, swinging +-~0.6 m of stride, r 1.2 s) never within an ore node's radius
     U = WS * 1.15 * 10; hx, hz, r = 2.45 * U, 2.3 * U, 1.2 * U; cum = np.r_[0, np.cumsum(np.hypot(*np.diff(np.vstack([L, L[:1]]), axis=0).T))]; s = np.arange(0, cum[-1], 20)
@@ -132,8 +134,8 @@ def feet(L, s_node=K('NODE_S', 40)):
         for sz in (-1, 1):
             for dz in (-0.75 * U, 0, 0.75 * U):
                 x = px + ux * (sz * hz + dz) - uy * sx * hx; y = py + uy * (sz * hz + dz) + ux * sx * hx
-                for nx_, ny_ in NODES:
-                    d = np.hypot(x - nx_, y - ny_) - s_node - r; i = int(np.argmin(d))
+                for k_, (nx_, ny_) in enumerate(NODES):
+                    d = np.hypot(x - nx_, y - ny_) - (NODE_S[k_] if NODE_S is not None else s_node) - r; i = int(np.argmin(d))
                     if d[i] < worst[0]: worst = (float(d[i]), [int(px[i]), int(py[i])])
     return round(worst[0] / WS, 1), worst[1]
 # local nudge: where a foot would reach an ore node, shift that stretch of the loop sideways, away from the node (smooth falloff along the loop)
