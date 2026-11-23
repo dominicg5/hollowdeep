@@ -68,30 +68,49 @@ const Craft = (() => {
   function vault() { const v = S.ledgeVault || (S.ledgeVault = {}); for (const k of ['ores', 'ingots', 'gear', 'lines', 'coils']) v[k] = v[k] || {}; migrateDrillSplit(); migrateStandUnify(); if (!S.coilSeed) S.coilSeed = 1; return v; } // the free 5000 m of every grade is gone now the mill rolls braid; saves seeded before keep their coils
   function vSlot(id) { const [kind, key] = id.split(':'), v = vault(); return kind === 'ore' ? [v.ores, key] : kind === 'ingot' ? [v.ingots, key] : kind === 'tether' ? [v.coils, key] : [v.gear, key]; }
   function get(where, id) { if (where === 'bag') return Math.floor(bag()[id] || 0); if (RES[id]) return Math.floor((S.res && S.res[RES[id]]) || 0); const [o, k] = vSlot(id); return Math.floor(o[k] || 0); }
-  // ---- slot grids: the backpack has BAG_N slots, the vault VAULT_N; one item kind per slot, stacks are unlimited (no weight). S.bagOrder / S.vaultOrder keep which kind
-  // sits in which slot (counts stay in S.backpack / the vault store), so a kind needs a free slot only when it is new to that container
-  const BAG_N = 20, VAULT_N = 100;
+  // ---- slot grids: the backpack has BAG_N slots, the vault VAULT_N. S.bagOrder / S.vaultOrder keep which kind sits in which slot (counts stay in S.backpack / the vault store).
+  // (Dominic) Backpack: ores, coal, bars and every other non-tool item stack to STACK (500) per slot, the 501st starts a new slot; pickaxes and other tools take one slot each;
+  // Ledge Tether length (metres) stacks in one slot. Vault: every kind sits in one slot, tools included, up to STACK_MAX (the largest exact whole number a save holds).
+  const BAG_N = 20, VAULT_N = 100, STACK = 500, STACK_MAX = Number.MAX_SAFE_INTEGER;
+  const perSlot = (id) => { const it = ITEMS[id]; if (!it) return STACK; if (it.unit === 'm') return STACK_MAX; return it.kind === 'tool' ? 1 : STACK; };
+  const slotsFor = (where, id, c) => (c <= 0 ? 0 : where === 'bag' ? Math.ceil(c / perSlot(id)) : 1);
+  // old saves (unlimited stacks): split the backpack into 500-slots and single tool slots once; whatever no longer fits goes to the vault, nothing is lost
+  function migrateBagStacks() { if (typeof S === 'undefined' || !S || S.bagStack500) return; S.bagStack500 = 1; const b = bag(); let O = Array.isArray(S.bagOrder) ? S.bagOrder : [];
+    const ids = Object.keys(b).filter((k) => b[k] > 0), eq = ids.filter((k) => equipped(k)), pri = [...new Set([...eq, ...O.filter((k) => k && ids.includes(k)), ...ids])];
+    let free = BAG_N; const moved = {};
+    for (const id of pri) { const c = Math.floor(b[id]), need = slotsFor('bag', id, c), got = Math.min(need, free), keep = Math.min(c, got * perSlot(id)); free -= got;
+      if (keep < c) { const v = c - keep; if (vaultAdd(id, v)) { b[id] = keep; moved[id] = v; if (!keep) delete b[id]; } } }
+    S.bagOrder = O.slice(0, BAG_N).map((k) => (k && b[k] > 0 ? k : null)); for (let i = 0; i < S.bagOrder.length; i++) if (S.bagOrder.indexOf(S.bagOrder[i]) !== i) S.bagOrder[i] = null;
+    S.bagMoved = moved; }
+  function vaultAdd(id, n) { if (n <= 0) return true; const O = order('vault'); if (!O.includes(id) && !O.slice(0, VAULT_N).includes(null)) return false; if (RES[id]) { S.res[RES[id]] = Math.min(STACK_MAX, (S.res[RES[id]] || 0) + n); } else { const [o, k] = vSlot(id); o[k] = Math.min(STACK_MAX, (o[k] || 0) + n); } order('vault'); return true; }
   const vaultIds = () => Object.keys(ITEMS).filter((id) => get('vault', id) > 0);
-  function order(where) { const key = where === 'bag' ? 'bagOrder' : 'vaultOrder', N = where === 'bag' ? BAG_N : VAULT_N; let O = S[key]; if (!Array.isArray(O)) O = S[key] = [];
-    while (O.length < N) O.push(null); for (let i = 0; i < O.length; i++) if (O[i] && get(where, O[i]) <= 0) O[i] = null;
-    const ids = where === 'bag' ? Object.keys(bag()).filter((k) => bag()[k] > 0) : vaultIds(); for (const id of ids) if (!O.includes(id)) { let i = O.indexOf(null); if (i < 0 || i >= N) { O.push(id); } else O[i] = id; } // (an old save over the limit keeps its extra stacks until they empty)
+  function order(where) { if (where === 'bag') migrateBagStacks(); const key = where === 'bag' ? 'bagOrder' : 'vaultOrder', N = where === 'bag' ? BAG_N : VAULT_N; let O = S[key]; if (!Array.isArray(O)) O = S[key] = [];
+    while (O.length < N) O.push(null); const need = {}, cnt = {}; const ids = where === 'bag' ? Object.keys(bag()).filter((k) => bag()[k] > 0) : vaultIds(); for (const id of ids) need[id] = slotsFor(where, id, get(where, id));
+    for (let i = O.length - 1; i >= 0; i--) { const id = O[i]; if (!id) continue; if (!need[id]) { O[i] = null; continue; } cnt[id] = (cnt[id] || 0) + 1; } // (a kind drops its last slots first when its count shrinks)
+    for (let i = O.length - 1; i >= 0; i--) { const id = O[i]; if (id && cnt[id] > need[id]) { O[i] = null; cnt[id]--; } }
+    for (const id of ids) while ((cnt[id] || 0) < need[id]) { const i = O.indexOf(null); if (i < 0 || i >= N) O.push(id); else O[i] = id; cnt[id] = (cnt[id] || 0) + 1; } // (an old save over the limit keeps its extra stacks until they empty)
     while (O.length > N && O[O.length - 1] == null) O.pop(); return O; }
-  function fits(where, id) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N; return O.includes(id) || O.slice(0, N).includes(null); }
-  function add(where, id, n) { if (n > 0 && !fits(where, id)) return 0; if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; order('bag'); return n; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); order('vault'); return n; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; order('vault'); return n; }
+  // how many more of id the container takes: the backpack counts the spare room in its own slots of that kind plus every free slot; the vault, up to STACK_MAX
+  function room(where, id) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, c = get(where, id), free = O.slice(0, N).filter((k) => k == null).length;
+    if (where !== 'bag') return O.includes(id) || free ? Math.max(0, STACK_MAX - c) : 0; const p = perSlot(id); if (p >= STACK_MAX) return O.includes(id) || free ? Math.max(0, STACK_MAX - c) : 0;
+    return Math.max(0, slotsFor('bag', id, c) * p - c) + free * p; }
+  function fits(where, id, n) { return room(where, id) >= Math.max(1, n || 1); }
+  function add(where, id, n) { if (n > 0 && !fits(where, id, n)) return 0; if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; order('bag'); return n; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); order('vault'); return n; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; order('vault'); return n; }
+  function addUpTo(where, id, n) { const r = Math.min(Math.floor(n), room(where, id)); return r > 0 ? add(where, id, r) : 0; } // as many as fit (mining: the rest of that strike is left in the rock)
   const have = (id) => get('bag', id) + get('vault', id);
   const TPICK = (k) => 'tool:tpick_' + k;
   function pickTier(k) { if (typeof S === 'undefined' || !S || have(TPICK(k)) <= 0) return 0; return Math.max(1, Math.min(10, Math.floor((S.tpicks && S.tpicks[k]) || 1))); } // the tiered pickaxe's own tier; no tiered pickaxe = T0
   // the equipped pickaxe's own tier: the tiered one only while it is the one in her hand (plain pickaxes are T0)
   function equippedPickTierN() { const g = typeof S !== 'undefined' && S && S.pickGrade; return g && S.pickEqT === g ? pickTier(g) : 0; }
   function take(id, n) { if (have(id) < n) return false; const a = Math.min(get('bag', id), n); add('bag', id, -a); if (n - a) add('vault', id, -(n - a)); return true; }
-  function move(from, to, id, n) { n = Math.min(Math.floor(n), get(from, id)); if (n <= 0 || !fits(to, id)) return 0; add(from, id, -n); add(to, id, n); return n; }
+  function move(from, to, id, n) { n = Math.min(Math.floor(n), get(from, id), room(to, id)); if (n <= 0) return 0; add(from, id, -n); add(to, id, n); return n; }
   function canMake(r, x) { return Object.keys(r.in).every((k) => have(k) >= r.in[k] * x); }
   function maxMake(r) { let m = Infinity; for (const k in r.in) m = Math.min(m, Math.floor(have(k) / r.in[k])); return m; }
-  function make(r, x, dest) { if (x <= 0 || !canMake(r, x) || !fits(dest === 'vault' ? 'vault' : 'bag', r.out)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
+  function make(r, x, dest) { if (x <= 0 || !canMake(r, x) || !fits(dest === 'vault' ? 'vault' : 'bag', r.out, x)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
   const lum = () => Math.floor((S.res && S.res.lumen) || 0);
   function sell(id, n) { n = Math.min(n, have(id)); if (n <= 0) return 0; take(id, n); S.res.lumen = (S.res.lumen || 0) + sellP(id) * n; const it = ITEMS[id];
     if (it && it.tiered && have(id) <= 0) { if (S.tpicks) delete S.tpicks[it.grade]; if (S.pickEqT === it.grade) S.pickEqT = null; } /* sold: that kind starts over at T0 */ return n; }
-  function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); if (n <= 0 || !fits('bag', id)) return 0; S.res.lumen -= buyP(id) * n; add('bag', id, n); return n; }
+  function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); n = Math.min(n, room('bag', id)); if (n <= 0) return 0; S.res.lumen -= buyP(id) * n; add('bag', id, n); return n; }
   // ---- UI
   const st = { qty: 1, dest: 'bag', tab: 'sell', kind: null, acat: 'pick', atool: 'lifeline', menu: null };
   const ANV_CAT = [['pick', 'Pickaxes', '⛏️'], ['climb', 'Climbing Picks', '🧗'], ['teth', 'Tethers', '🪢']], TETH_SUB = [['lifeline', '🪢 Ledge Tethers']]; // Wren's Tether (tool:tlink_*) is rolled at the Tether Mill now
@@ -125,7 +144,8 @@ const Craft = (() => {
   const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || S[E[0]] !== TIERS[it.tier][0]) return false; return it.tool !== 'pick' || (it.tiered ? S.pickEqT === it.grade : S.pickEqT !== TIERS[it.tier][0]); };
   function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (it.tool === 'pick') S.pickEqT = it.tiered ? g : null; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
-    for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + badge(id, c) : ''}</div>`; }
+    const seen = {}; for (let i = 0; i < n; i++) { const id = O[i]; let c = id ? get(where, id) : 0, first = true; if (id && where === 'bag') { const j = seen[id] || 0, p = perSlot(id); seen[id] = j + 1; first = !j; c = p >= STACK_MAX ? c : Math.max(0, Math.min(p, c - j * p)); }
+      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && first && equipped(id) ? ' eq' : ''}${one ? ' one' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + (one ? '' : badge(id, c)) : ''}</div>`; }
     return h + '</div>'; }
   const used = (w) => order(w).filter(Boolean).length;
   // the Backpack shows only what she carries; the Ledge Vault sits beside it only on the vault's own Backpack ⇄ Vault screen (xfer)
@@ -133,8 +153,8 @@ const Craft = (() => {
   const gauge = (n, N) => `<span class="kGauge" style="--g:${Math.min(1, n / N).toFixed(3)}" role="img" aria-label="${n} of ${N} slots used"><i></i><b>${n} / ${N}</b></span>`;
   function gridsHTML(inModal, xfer) {
     let h = `<div class="cxp cxgrid kKit" data-cxv="${xfer ? 'xfer' : 'bag'}"><div class="kPanel kLeather"><div class="row between kHead"><h2>Backpack</h2>${gauge(used('bag'), BAG_N)}${inModal && !xfer ? '<button class="kX" data-cx="close" aria-label="Close">✕</button>' : ''}</div>`;
-    h += (xfer ? '' : `<div class="dim kSub">What Wren carries. Tap an item for its options.${typeof Skills !== 'undefined' ? ' · ' + Skills.uiLine() : ''}</div>`) + gridHTML('bag') + (xfer ? '' : '<div class="kFoot">Stacks have no limit and no weight.</div>') + '</div>';
-    if (xfer) h += `<div class="kSwap"><span class="kPlate">⇄</span><small>Tap to move a stack · hold for more (equip, move some). Stacks have no limit and no weight.</small></div><div class="kPanel kLeather"><div class="row between kHead"><h2>Ledge Vault</h2>${gauge(used('vault'), VAULT_N)}</div>` + gridHTML('vault') + '</div>';
+    h += (xfer ? '' : `<div class="dim kSub">What Wren carries. Tap an item for its options.${typeof Skills !== 'undefined' ? ' · ' + Skills.uiLine() : ''}</div>`) + gridHTML('bag') + (xfer ? '' : '<div class="kFoot">Ores, coal and bars stack to 500 per slot. Ledge Tether length stacks in one slot. Other tools take one slot each.</div>') + '</div>';
+    if (xfer) h += `<div class="kSwap"><span class="kPlate">⇄</span><small>Tap to move a stack · hold for more (equip, move some). Backpack: ores, coal and bars 500 per slot, Ledge Tether length in one slot, other tools one slot each. The vault stacks everything in one slot.</small></div><div class="kPanel kLeather"><div class="row between kHead"><h2>Ledge Vault</h2>${gauge(used('vault'), VAULT_N)}</div>` + gridHTML('vault') + '</div>';
     h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal && xfer ? '<button class="btn ghost kBtn kCream" data-cx="close">Close</button>' : '') + '</div>'; }
   const TIER_N = (it) => { if (!it) return ''; if (it.tier != null && TIERS[it.tier]) return TIERS[it.tier][1]; const g = it.grade || it.stand; const T = g && TIERS.find((q) => q[0] === g); return T ? T[1] : (it.short || g || ''); };
   const KIND_N = { ore: 'Ore', ingot: 'Ingot', tool: 'Tool', teth: 'Ledge Tether', stand: 'Drill stand', bit: 'Drill bit', drill: 'Drill' };
@@ -204,7 +224,7 @@ const Craft = (() => {
   document.addEventListener('pointerup', () => { if (lp && !lp.fired) clearTimeout(lp.tm); });
   document.addEventListener('contextmenu', (e) => { if (e.target.closest('.cxs')) e.preventDefault(); });
   document.addEventListener('click', (e) => { const t = e.target.closest('.cxs.full'); if (!t) return; if (lp && lp.fired) { lp = null; return; } lp = null; const w = t.dataset.w, id = t.dataset.id, to = w === 'bag' ? 'vault' : 'bag', cv = t.closest('[data-cxv]'); if ((ITEMS[id] && ITEMS[id].kind === 'teth') || !cv || cv.dataset.cxv !== 'xfer') { st.menu = { w, id, x: !!cv && cv.dataset.cxv === 'xfer' }; return refresh(); }
-    const n = move(w, to, id, get(w, id)); if (!n && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); refresh(); });
+    const n = move(w, to, id, w === 'bag' && t.dataset.n ? +t.dataset.n : get(w, id)); if (!n && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); refresh(); });
   const cost = (r, x) => Object.keys(r.in).map((k) => `<span class="cxc${have(k) >= r.in[k] * x ? '' : ' short'}">${ico(k)}${r.in[k] * x} ${esc(ITEMS[k].short)}<small>/${fmt(have(k))}</small></span>`).join('');
   function recipeHTML(kind) { const F = kind === 'furnace', list = F ? SMELT : SMITH;
     let h = `<div class="cxp" data-cxv="${kind}"><div class="row between"><h2>${F ? '🔥 Furnace' : '⚒️ Anvil'}</h2><span class="tag">placeholder recipes</span></div><div class="dim">${F ? 'Smelt ore into ingots. Ore is taken from your backpack first, then the vault.' : 'Hammer ingots into tools. Ingots are taken from your backpack first, then the vault.'}</div>${qtyBar()}${destBar()}`;
@@ -242,5 +262,5 @@ const Craft = (() => {
     else if (a === 'sell') { const n = sell(id, nOf(have(id))); if (n && typeof toast === 'function') toast(`💠 Sold ${n}× ${nm(id)}`); }
     else if (a === 'buy') { const n = buy(id, nOf(Math.floor(lum() / buyP(id)))); if (n && typeof toast === 'function') toast(`💠 Bought ${n}× ${nm(id)}`); }
     refresh(); });
-  return { TPICK, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { TPICK, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, bag, get, add, addUpTo, room, perSlot, STACK, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();
