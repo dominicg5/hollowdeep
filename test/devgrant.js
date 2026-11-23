@@ -14,6 +14,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.goto(URL + '?t=' + Date.now(), { timeout: 90000, waitUntil: 'commit' }); await p.waitForFunction(() => typeof S !== 'undefined' && S && typeof Craft !== 'undefined' && typeof DevGrant !== 'undefined', null, { timeout: 120000 });
   await p.waitForTimeout(3000); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} });
   const ID = 'tool:tpick_onyx';
+  // the plain one-time claim button (Dominic, on his phone): shown on a save that hasn't claimed, top centre of the screen
+  await p.waitForFunction(() => !!document.getElementById('devClaimBtn'), null, { timeout: 8000 }).catch(() => {});
+  const B0 = await p.evaluate(() => { const b = document.getElementById('devClaimBtn'), r = b && b.getBoundingClientRect(); return b ? [b.textContent, Math.round(r.top), Math.round(r.left + r.width / 2), getComputedStyle(b).display !== 'none'] : null; });
+  ok(!!B0 && /Claim T10 Ember Onyx \+ Mining 300/.test(B0[0]) && B0[1] < 80 && Math.abs(B0[2] - 195) < 10 && B0[3], `an unclaimed save shows the 'Claim T10 Ember Onyx + Mining 300' button at the top centre (${JSON.stringify(B0)})`);
   // a wrong token: nothing happens (no grant, hash left alone)
   await p.evaluate(() => { location.hash = '#dev=not-the-token'; }); await p.waitForTimeout(1500);
   const W = await p.evaluate((ID) => [(S.devGrants || []).length, Craft.have(ID), Skills.level('mining'), /dev=/.test(location.hash)], ID);
@@ -27,6 +31,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate((t) => { location.hash = '#dev=' + t; }, TOKEN); await p.waitForTimeout(2000);
   const A = await p.evaluate((ID) => [S.devGrants.length, Craft.have(ID), Craft.pickTier('onyx'), /dev=/.test(location.hash)], ID);
   ok(A.join() === '1,1,10,false', `runs once per save: the link again grants nothing more (${A.join(',')})`);
+  // the button: gone once claimed (by the link above); on an unclaimed save one tap runs the same grant once and the button is gone for good
+  const BC = await p.evaluate(async (ID) => { const o = [!!document.getElementById('devClaimBtn')]; const sv = JSON.stringify({ g: S.devGrants, sk: S.skills }); S.devGrants = []; S.skills.mining = 0; DevGrant.button(); const b = document.getElementById('devClaimBtn'); o.push(!!b); if (b) b.click();
+    await new Promise((r) => setTimeout(r, 1300)); o.push(S.devGrants.length, Skills.level('mining'), Craft.pickTier('onyx'), !!document.getElementById('devClaimBtn')); const s = JSON.parse(sv); S.devGrants = s.g; S.skills = s.sk; return o; }, ID);
+  ok(BC.join() === 'false,true,1,300,10,false', `claim button: hidden once claimed; on an unclaimed save one tap grants T10 Ember Onyx + Mining 300 once (S.devGrants) and it disappears (${BC.join(',')}) (got claim button)`);
   // a save without one and a full backpack: it is equipped; the old (Iron) pickaxe goes to the vault (no backpack room), logged
   const F = await p.evaluate(async ([ID, T]) => { const sv = JSON.stringify({ b: S.backpack, o: S.bagOrder, v: S.ledgeVault, w: S.worn, t: S.tpicks, g: S.devGrants, pg: S.pickGrade, pe: S.pickEqT, sk: S.skills });
     Craft.take(ID, Craft.spare(ID)); delete S.tpicks.onyx; S.devGrants = []; S.skills.mining = 0; Craft.add('bag', 'tool:pick_iron', 1); Craft.equip('tool:pick_iron'); let n = 0; while (Craft.fits('bag', 'tool:pick_rune') && n++ < 40) Craft.add('bag', 'tool:pick_rune', 1);

@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='34c9db1d';
+<script>window.HD_BUILD='2094f40b';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 34c9db1d</div>
-<script src="assets/vendor/three.min.js?v=34c9db1d"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 2094f40b</div>
+<script src="assets/vendor/three.min.js?v=2094f40b"></script>
 <script>
 'use strict';
 
@@ -15280,8 +15280,16 @@ const DevGrant = (() => {
   async function check(tries = 120) { const t = tokenOf(); if (!t || !(window.crypto && crypto.subtle)) return 'none';
     const h = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t))); if (h !== HASH) return 'none'; /* (a wrong token does nothing) */
     for (let i = 0; i < tries; i++) { const r = apply(); if (r) { strip(); return r; } await new Promise((res) => setTimeout(res, 500)); } return 'none'; }
-  if (typeof window !== 'undefined') { window.addEventListener('hashchange', () => { check(); }); setTimeout(() => check(), 0); }
-  return { check };
+  // (Dominic, on his phone: no link to copy) a plain one-time button runs the same grant; it shows only on a save that hasn't claimed it, and is gone for good once claimed
+  const claimed = () => typeof S !== 'undefined' && S && (S.devGrants || []).some((g) => g.key === KEY);
+  function button() { if (typeof document === 'undefined' || !document.body) return null; let b = document.getElementById('devClaimBtn'); const show = typeof S !== 'undefined' && !!S && typeof Craft !== 'undefined' && typeof Skills !== 'undefined' && !claimed();
+    if (!show) { if (b) b.remove(); return null; }
+    if (!b) { b = document.createElement('button'); b.id = 'devClaimBtn'; b.type = 'button'; b.textContent = '🔥 Claim T10 Ember Onyx + Mining 300';
+      b.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 10px);left:50%;transform:translateX(-50%);z-index:9999;padding:10px 18px;border-radius:22px;border:2px solid #ffcf7a;background:linear-gradient(#e0662a,#8f2c10);color:#fff6e0;font:700 15px system-ui,sans-serif;box-shadow:0 3px 10px rgba(0,0,0,.5);white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis';
+      b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); const r = apply(); if (r === 'granted' || r === 'done') b.remove(); }); document.body.appendChild(b); }
+    return b; }
+  if (typeof window !== 'undefined') { window.addEventListener('hashchange', () => { check(); }); setTimeout(() => check(), 0); setInterval(button, 1000); }
+  return { check, apply, button, claimed };
 })();
 /* ===== Hitch a ride on Mosby (Dominic: "an option to hitch a ride on his back ... you have to interact with him to get off ... which will drop you in the
    general location of where Mosby is at"; then: "don't build a platform on Mosby I like his shell too much. Just make it so the player can walk on his shell

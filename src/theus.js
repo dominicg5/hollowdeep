@@ -198,6 +198,14 @@ const DevGrant = (() => {
   async function check(tries = 120) { const t = tokenOf(); if (!t || !(window.crypto && crypto.subtle)) return 'none';
     const h = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t))); if (h !== HASH) return 'none'; /* (a wrong token does nothing) */
     for (let i = 0; i < tries; i++) { const r = apply(); if (r) { strip(); return r; } await new Promise((res) => setTimeout(res, 500)); } return 'none'; }
-  if (typeof window !== 'undefined') { window.addEventListener('hashchange', () => { check(); }); setTimeout(() => check(), 0); }
-  return { check };
+  // (Dominic, on his phone: no link to copy) a plain one-time button runs the same grant; it shows only on a save that hasn't claimed it, and is gone for good once claimed
+  const claimed = () => typeof S !== 'undefined' && S && (S.devGrants || []).some((g) => g.key === KEY);
+  function button() { if (typeof document === 'undefined' || !document.body) return null; let b = document.getElementById('devClaimBtn'); const show = typeof S !== 'undefined' && !!S && typeof Craft !== 'undefined' && typeof Skills !== 'undefined' && !claimed();
+    if (!show) { if (b) b.remove(); return null; }
+    if (!b) { b = document.createElement('button'); b.id = 'devClaimBtn'; b.type = 'button'; b.textContent = '🔥 Claim T10 Ember Onyx + Mining 300';
+      b.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 10px);left:50%;transform:translateX(-50%);z-index:9999;padding:10px 18px;border-radius:22px;border:2px solid #ffcf7a;background:linear-gradient(#e0662a,#8f2c10);color:#fff6e0;font:700 15px system-ui,sans-serif;box-shadow:0 3px 10px rgba(0,0,0,.5);white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis';
+      b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); const r = apply(); if (r === 'granted' || r === 'done') b.remove(); }); document.body.appendChild(b); }
+    return b; }
+  if (typeof window !== 'undefined') { window.addEventListener('hashchange', () => { check(); }); setTimeout(() => check(), 0); setInterval(button, 1000); }
+  return { check, apply, button, claimed };
 })();
