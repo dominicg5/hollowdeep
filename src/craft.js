@@ -202,7 +202,12 @@ const Craft = (() => {
   const equipped = (id) => !!id && (isBase(id) || worn().pick === id);
   const setPickLook = (g) => { if (typeof CharView !== 'undefined' && CharView.setPick) try { CharView.setPick(g); } catch (e) {} };
   // equip a pickaxe: it leaves the backpack (or the vault) for her hand; the one she held goes back to the backpack, or the swap is blocked when there is no room
+  // (Dominic) Mining level to equip a pickaxe: Skills.PICK_USE_LEVELS by tier (Bronze 1 ... Ember Onyx 120); the Stickaxe (bare hands) has none. Only a new equip is
+  // checked: a pickaxe already in her hand stays there and keeps mining (grandfathered)
+  const pickNeed = (id) => { const it = ITEMS[id]; return it && it.tool === 'pick' && typeof Skills !== 'undefined' && Skills.PICK_USE_LEVELS ? Skills.PICK_USE_LEVELS[it.tier] || 1 : 1; };
+  const pickLocked = (id) => typeof Skills !== 'undefined' && Skills.level && Skills.level('mining') < pickNeed(id);
   function equip(id) { const it = ITEMS[id]; if (isBase(id)) return true; if (!it || it.kind !== 'tool' || it.tool !== 'pick') return false; if (equipped(id)) { const g = TIERS[it.tier][0]; S.pickGrade = g; S.pickEqT = it.tiered ? g : null; setPickLook(g); return true; }
+    if (pickLocked(id)) { if (typeof toast === 'function') toast('Unlock Lv ' + pickNeed(id)); return false; }
     const from = get('bag', id) > 0 ? 'bag' : get('vault', id) > 0 ? 'vault' : null; if (!from) return false; const W = worn(), old = W.pick; add(from, id, -1);
     if (old && !add('bag', old, 1)) { add(from, id, 1); return fullMsg(); }
     const g = TIERS[it.tier][0]; W.pick = id; S.pickGrade = g; S.pickEqT = it.tiered ? g : null; setPickLook(g); return true; }
@@ -250,7 +255,8 @@ const Craft = (() => {
     return o;
   }
   function itemBlurb(id, w) {
-    const it = ITEMS[id] || {};
+    const it = ITEMS[id] || {}; const req = it.kind === 'tool' && it.tool === 'pick' ? ` Mining Lv ${pickNeed(id)} to equip${pickLocked(id) && !equipped(id) ? ` (🔒 Unlock Lv ${pickNeed(id)})` : ''}.` : '';
+    if (req) return (it.tiered ? 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Ledgeville Exchange (the shop will not buy it).' : 'Equip it to mine ore out on the map.') + req;
     if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then swap or pick up the bit at the drill itself.';
     if (it.kind === 'teth') return 'The same braid as the door tethers. Lay a drop tether from the backpack on the map, or use the coil to upgrade a strand.';
     if (it.kind === 'bit') return 'Fits any placed stand. Swap or pick it up at the drill itself.';
@@ -266,13 +272,22 @@ const Craft = (() => {
     const stats = itemStats(id, c).map(([k, v]) => `<small>${esc(k)}</small><b>${esc(v)}</b>`).join('');
     return `<div class="cxmh">${pic(id)}<div class="cxmd"><b>${esc(nm(id))}</b><div class="cxsts">${stats}</div>${blurb ? `<p class="cxds">${blurb}</p>` : ''}</div></div>`;
   }
-  function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
+  // (Dominic) Drop: any backpack item can be thrown away for good from its tap menu, after a confirm (how many, for a stack); what she has equipped is not in the
+  // backpack, so it can't be dropped until it is unequipped
+  function menuHTML() { const m = st.menu; if (m.del && m.w === 'bag' && !m.x) return delHTML(m.id); const h = menuHTML0(); if (m.w !== 'bag' || m.x || get('bag', m.id) <= 0) return h;
+    const i = h.lastIndexOf('<button class="btn sm ghost" data-cx="mclose">Cancel</button>'); return i < 0 ? h : h.slice(0, i) + `<button class="btn sm ghost kDrop" data-cx="del" data-id="${m.id}">🗑 Drop</button>` + h.slice(i); }
+  function delHTML(id) { const c = get('bag', id), u = ITEMS[id] && ITEMS[id].unit === 'm' ? ' m' : '', Q = c > 1 ? [...new Set([1, 10, c].filter((q) => q <= c))] : [1];
+    return `<div class="cxmenu cxdel" data-w="bag" data-id="${id}">${infoHead(id, c, 'Drop it for good? It is gone forever: it does not go to the vault or the map.')}<div class="cxacts">`
+      + Q.map((q) => `<button class="btn sm ${q === c ? 'alt' : 'ghost'}" data-cx="delok" data-id="${id}" data-n="${q}">🗑 Drop ${q === c && c > 1 ? 'all ' + q : q}${u}</button>`).join('')
+      + `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
+  function drop(id, n) { const c = get('bag', id); n = Math.min(Math.floor(n) || 0, c); if (n <= 0) return 0; add('bag', id, -n); if (typeof save === 'function') save(); return n; }
+  function menuHTML0() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
     if (it && (it.kind === 'stand' || it.kind === 'drill')) return drillMenuHTML(id, c);
     if (it && it.kind === 'teth' && !st.menu.x) return dropMenuHTML(id, c); // drop-tether confirm only in the backpack; the vault transfer screen needs Move (length / all)
     const u = it && it.unit === 'm' ? ' m' : '';
     return `<div class="cxmenu" data-w="${w}" data-id="${id}">${infoHead(id, c, st.menu.x ? '' : itemBlurb(id, w))}` +
       `<div class="cxacts">` +
-      (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
+      (E ? (it.tool === 'pick' && !equipped(id) && pickLocked(id) ? `<button class="btn sm ghost kLock" data-cx="equip" data-id="${id}" disabled>🔒 Unlock Lv ${pickNeed(id)}</button>` : `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>`) : '') +
       (st.menu.x ? `${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}` +
       `<input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button>` : '') +
       `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
@@ -339,6 +354,8 @@ const Craft = (() => {
     else if (a === 'mclose') st.menu = null;
     else if (a === 'dropok') { st.menu = null; const r = typeof Explore !== 'undefined' && Explore.dropCreate ? Explore.dropCreate(id) : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
     else if (a === 'dset') { const sid = id; st.menu = null; const r = typeof Explore !== 'undefined' && Explore.drillSetup ? Explore.drillSetup(sid) : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
+    else if (a === 'del') { if (st.menu) st.menu.del = true; }
+    else if (a === 'delok') { const n = drop(id, +t.dataset.n); st.menu = null; if (n && typeof toast === 'function') toast(`🗑 Dropped ${n}× ${nm(id)}`); }
     else if (a === 'equip') { if (equip(id) && typeof toast === 'function') toast(`✅ Equipped ${nm(id)}`); st.menu = null; }
     else if (a === 'unequip') { if (unequip(id) && typeof toast === 'function') toast(`🎒 ${nm(id)} back in the backpack`); st.menu = null; }
     else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? FULL : '🔒 Vault is full'); } st.menu = null; }
@@ -348,5 +365,5 @@ const Craft = (() => {
     else if (a === 'buy') { if (buy(id, 1) && typeof toast === 'function') toast(`💠 Bought ${nm(id)}`); }
     else if (a === 'skwear') { if (skinWear(t.dataset.kind, t.dataset.g) && typeof toast === 'function') toast(`✨ Wearing ${SKIN_NAME(t.dataset.kind, t.dataset.g)}`); }
     refresh(); });
-  return { SHOP, buy, TPICK, equipGrade, syncWorn, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco, onyxFilter, tintIco, ONYX_HEX, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco, onyxFilter, tintIco, ONYX_HEX, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();

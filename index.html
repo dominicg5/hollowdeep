@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='14a662cb';
+<script>window.HD_BUILD='0a1d0262';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 14a662cb</div>
-<script src="assets/vendor/three.min.js?v=14a662cb"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 0a1d0262</div>
+<script src="assets/vendor/three.min.js?v=0a1d0262"></script>
 <script>
 'use strict';
 
@@ -2903,7 +2903,12 @@ const Craft = (() => {
   const equipped = (id) => !!id && (isBase(id) || worn().pick === id);
   const setPickLook = (g) => { if (typeof CharView !== 'undefined' && CharView.setPick) try { CharView.setPick(g); } catch (e) {} };
   // equip a pickaxe: it leaves the backpack (or the vault) for her hand; the one she held goes back to the backpack, or the swap is blocked when there is no room
+  // (Dominic) Mining level to equip a pickaxe: Skills.PICK_USE_LEVELS by tier (Bronze 1 ... Ember Onyx 120); the Stickaxe (bare hands) has none. Only a new equip is
+  // checked: a pickaxe already in her hand stays there and keeps mining (grandfathered)
+  const pickNeed = (id) => { const it = ITEMS[id]; return it && it.tool === 'pick' && typeof Skills !== 'undefined' && Skills.PICK_USE_LEVELS ? Skills.PICK_USE_LEVELS[it.tier] || 1 : 1; };
+  const pickLocked = (id) => typeof Skills !== 'undefined' && Skills.level && Skills.level('mining') < pickNeed(id);
   function equip(id) { const it = ITEMS[id]; if (isBase(id)) return true; if (!it || it.kind !== 'tool' || it.tool !== 'pick') return false; if (equipped(id)) { const g = TIERS[it.tier][0]; S.pickGrade = g; S.pickEqT = it.tiered ? g : null; setPickLook(g); return true; }
+    if (pickLocked(id)) { if (typeof toast === 'function') toast('Unlock Lv ' + pickNeed(id)); return false; }
     const from = get('bag', id) > 0 ? 'bag' : get('vault', id) > 0 ? 'vault' : null; if (!from) return false; const W = worn(), old = W.pick; add(from, id, -1);
     if (old && !add('bag', old, 1)) { add(from, id, 1); return fullMsg(); }
     const g = TIERS[it.tier][0]; W.pick = id; S.pickGrade = g; S.pickEqT = it.tiered ? g : null; setPickLook(g); return true; }
@@ -2951,7 +2956,8 @@ const Craft = (() => {
     return o;
   }
   function itemBlurb(id, w) {
-    const it = ITEMS[id] || {};
+    const it = ITEMS[id] || {}; const req = it.kind === 'tool' && it.tool === 'pick' ? ` Mining Lv ${pickNeed(id)} to equip${pickLocked(id) && !equipped(id) ? ` (🔒 Unlock Lv ${pickNeed(id)})` : ''}.` : '';
+    if (req) return (it.tiered ? 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Ledgeville Exchange (the shop will not buy it).' : 'Equip it to mine ore out on the map.') + req;
     if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then swap or pick up the bit at the drill itself.';
     if (it.kind === 'teth') return 'The same braid as the door tethers. Lay a drop tether from the backpack on the map, or use the coil to upgrade a strand.';
     if (it.kind === 'bit') return 'Fits any placed stand. Swap or pick it up at the drill itself.';
@@ -2967,13 +2973,22 @@ const Craft = (() => {
     const stats = itemStats(id, c).map(([k, v]) => `<small>${esc(k)}</small><b>${esc(v)}</b>`).join('');
     return `<div class="cxmh">${pic(id)}<div class="cxmd"><b>${esc(nm(id))}</b><div class="cxsts">${stats}</div>${blurb ? `<p class="cxds">${blurb}</p>` : ''}</div></div>`;
   }
-  function menuHTML() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
+  // (Dominic) Drop: any backpack item can be thrown away for good from its tap menu, after a confirm (how many, for a stack); what she has equipped is not in the
+  // backpack, so it can't be dropped until it is unequipped
+  function menuHTML() { const m = st.menu; if (m.del && m.w === 'bag' && !m.x) return delHTML(m.id); const h = menuHTML0(); if (m.w !== 'bag' || m.x || get('bag', m.id) <= 0) return h;
+    const i = h.lastIndexOf('<button class="btn sm ghost" data-cx="mclose">Cancel</button>'); return i < 0 ? h : h.slice(0, i) + `<button class="btn sm ghost kDrop" data-cx="del" data-id="${m.id}">🗑 Drop</button>` + h.slice(i); }
+  function delHTML(id) { const c = get('bag', id), u = ITEMS[id] && ITEMS[id].unit === 'm' ? ' m' : '', Q = c > 1 ? [...new Set([1, 10, c].filter((q) => q <= c))] : [1];
+    return `<div class="cxmenu cxdel" data-w="bag" data-id="${id}">${infoHead(id, c, 'Drop it for good? It is gone forever: it does not go to the vault or the map.')}<div class="cxacts">`
+      + Q.map((q) => `<button class="btn sm ${q === c ? 'alt' : 'ghost'}" data-cx="delok" data-id="${id}" data-n="${q}">🗑 Drop ${q === c && c > 1 ? 'all ' + q : q}${u}</button>`).join('')
+      + `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
+  function drop(id, n) { const c = get('bag', id); n = Math.min(Math.floor(n) || 0, c); if (n <= 0) return 0; add('bag', id, -n); if (typeof save === 'function') save(); return n; }
+  function menuHTML0() { const { w, id } = st.menu, c = get(w, id), to = w === 'bag' ? 'Vault' : 'Backpack', it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool];
     if (it && (it.kind === 'stand' || it.kind === 'drill')) return drillMenuHTML(id, c);
     if (it && it.kind === 'teth' && !st.menu.x) return dropMenuHTML(id, c); // drop-tether confirm only in the backpack; the vault transfer screen needs Move (length / all)
     const u = it && it.unit === 'm' ? ' m' : '';
     return `<div class="cxmenu" data-w="${w}" data-id="${id}">${infoHead(id, c, st.menu.x ? '' : itemBlurb(id, w))}` +
       `<div class="cxacts">` +
-      (E ? `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>` : '') +
+      (E ? (it.tool === 'pick' && !equipped(id) && pickLocked(id) ? `<button class="btn sm ghost kLock" data-cx="equip" data-id="${id}" disabled>🔒 Unlock Lv ${pickNeed(id)}</button>` : `<button class="btn sm ${equipped(id) ? 'ghost' : 'alt'}" data-cx="equip" data-id="${id}" ${equipped(id) ? 'disabled' : ''}>${equipped(id) ? 'Equipped' : 'Equip'} (${E[2]})</button>`) : '') +
       (st.menu.x ? `${[1, 10].map((q) => `<button class="btn sm ghost" data-cx="mv" data-n="${q}" ${c >= q ? '' : 'disabled'}>Move ${q}${u} → ${to}</button>`).join('')}` +
       `<input class="cxin" type="number" min="1" max="${c}" value="${Math.min(c, 5)}" inputmode="numeric"><button class="btn sm ghost" data-cx="mvc">Move</button><button class="btn sm alt" data-cx="mv" data-n="all">All → ${to}</button>` : '') +
       `<button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
@@ -3040,6 +3055,8 @@ const Craft = (() => {
     else if (a === 'mclose') st.menu = null;
     else if (a === 'dropok') { st.menu = null; const r = typeof Explore !== 'undefined' && Explore.dropCreate ? Explore.dropCreate(id) : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
     else if (a === 'dset') { const sid = id; st.menu = null; const r = typeof Explore !== 'undefined' && Explore.drillSetup ? Explore.drillSetup(sid) : null; if (r && !r.err) { if (st.sheet) sheet(false); else if (typeof closeModal === 'function') closeModal(); return; } }
+    else if (a === 'del') { if (st.menu) st.menu.del = true; }
+    else if (a === 'delok') { const n = drop(id, +t.dataset.n); st.menu = null; if (n && typeof toast === 'function') toast(`🗑 Dropped ${n}× ${nm(id)}`); }
     else if (a === 'equip') { if (equip(id) && typeof toast === 'function') toast(`✅ Equipped ${nm(id)}`); st.menu = null; }
     else if (a === 'unequip') { if (unequip(id) && typeof toast === 'function') toast(`🎒 ${nm(id)} back in the backpack`); st.menu = null; }
     else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? FULL : '🔒 Vault is full'); } st.menu = null; }
@@ -3049,7 +3066,7 @@ const Craft = (() => {
     else if (a === 'buy') { if (buy(id, 1) && typeof toast === 'function') toast(`💠 Bought ${nm(id)}`); }
     else if (a === 'skwear') { if (skinWear(t.dataset.kind, t.dataset.g) && typeof toast === 'function') toast(`✨ Wearing ${SKIN_NAME(t.dataset.kind, t.dataset.g)}`); }
     refresh(); });
-  return { SHOP, buy, TPICK, equipGrade, syncWorn, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco, onyxFilter, tintIco, ONYX_HEX, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco, onyxFilter, tintIco, ONYX_HEX, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();
 /* generated by art/pack.py */
 const ART_MANIFEST = {"v":1794699487,"atlases":3,"s":{"sp_pass_0":[0,0,0,857,836,952,929],"sp_falls_0":[0,859,0,801,660,942,777],"civ_lift":[0,1662,0,210,642,210,642],"home2_7":[0,0,838,400,499,400,499],"home3_7":[0,402,838,400,499,400,499],"home_7":[0,804,838,400,499,400,499],"home2_5":[0,1206,838,330,428,330,428],"home3_5":[0,1538,838,330,428,330,428],"home_5":[0,0,1339,330,428,330,428],"home2_6":[0,332,1339,360,416,360,416],"home3_6":[0,694,1339,360,416,360,416],"home_6":[0,1056,1339,360,416,360,416],"landmarks_2":[0,1418,1339,361,414,451,517],"home2_4":[1,0,0,270,405,270,405],"home3_4":[1,272,0,270,405,270,405],"home_4":[1,544,0,270,405,270,405],"civic_vault_2":[1,816,0,323,377,404,471],"landmarks_0":[1,1141,0,297,374,371,467],"sp_outpost_0":[1,1440,0,423,344,769,625],"home2_3":[1,0,407,300,337,300,337],"home3_3":[1,302,407,300,337,300,337],"home_3":[1,604,407,300,337,300,337],"creatures_3":[1,906,407,356,335,593,558],"mtn_7":[1,1264,407,284,299,284,299],"mtn_0":[1,1550,407,283,290,283,290],"mtn_3":[1,0,746,289,284,289,284],"home2_2":[1,291,746,300,270,300,270],"home3_2":[1,593,746,300,270,300,270],"home_2":[1,895,746,300,270,300,270],"mtn_1":[1,1197,746,291,267,291,267],"landmarks_1":[1,1490,746,300,260,375,325],"mtn_8":[1,0,1032,298,257,298,257],"mtn_2":[1,300,1032,301,254,301,254],"home2_1":[1,603,1032,250,253,250,253],"home3_1":[1,855,1032,250,253,250,253],"home_1":[1,1107,1032,250,253,250,253],"mtn_6":[1,1359,1032,297,251,297,251],"mtn_5":[1,1658,1032,294,229,294,229],"civ_market":[1,0,1291,200,228,400,456],"mtn_4":[1,202,1291,286,222,286,222],"home2_0":[1,490,1291,230,216,230,216],"home3_0":[1,722,1291,230,216,230,216],"home_0":[1,954,1291,230,216,230,216],"hollow_bits_2":[1,1186,1291,120,196,200,326],"hollow_bits_7":[1,1308,1291,117,193,195,321],"hollow_bits_8":[1,1427,1291,175,188,291,313],"props_0":[1,1604,1291,145,184,264,335],"p_forest_5":[1,1751,1291,148,181,269,329],"hollow_bits_0":[1,0,1521,176,179,293,298],"props2_6":[1,178,1521,161,177,292,321],"hollow_bits_6":[1,341,1521,170,176,283,294],"hollow_bits_1":[1,513,1521,172,173,286,289],"props_2":[1,687,1521,128,172,233,312],"props2_8":[1,817,1521,80,169,145,308],"props_7":[1,899,1521,41,169,75,308],"props_8":[1,942,1521,125,169,227,307],"p_forest_1":[1,1069,1521,109,168,198,305],"p_forest_4":[1,1180,1521,155,164,281,299],"hollow_bits_3":[1,1337,1521,186,163,310,272],"p_forest_0":[1,1525,1521,176,162,320,295],"p_forest_3":[1,1703,1521,152,162,277,295],"props2_7":[1,1857,1521,111,162,201,294],"p_forest_2":[1,0,1702,111,161,201,292],"props2_2":[1,113,1702,157,155,285,282],"props2_3":[1,272,1702,130,154,237,280],"hollow_bits_4":[1,404,1702,74,151,123,252],"props2_0":[1,480,1702,172,151,312,274],"props2_4":[1,654,1702,150,144,272,261],"p_forest_6":[1,806,1702,157,142,286,259],"props2_5":[1,965,1702,108,140,197,254],"yard_4":[1,1075,1702,112,138,225,277],"yard_5":[1,1189,1702,102,138,205,277],"props2_1":[1,1293,1702,183,136,332,247],"props_6":[1,1478,1702,150,136,273,247],"hollow_bits_5":[1,1630,1702,217,134,361,224],"props_3":[1,1849,1702,146,133,266,242],"props_4":[1,0,1865,144,130,261,237],"p_forest_7":[1,146,1865,138,129,250,235],"yard_8":[1,286,1865,114,126,227,252],"yard_0":[1,402,1865,152,124,304,249],"yard_6":[1,556,1865,129,124,258,248],"yard_2":[1,687,1865,161,121,322,242],"yard_7":[1,850,1865,160,118,319,237],"p_forest_8":[1,1012,1865,85,116,154,210],"props_5":[1,1099,1865,144,116,262,210],"props_1":[1,1245,1865,125,114,227,208],"yard_3":[1,1372,1865,134,114,269,229],"people_15":[1,1508,1865,57,99,127,221],"people_11":[1,1567,1865,46,97,103,215],"people_8":[1,1615,1865,47,96,104,214],"people_9":[1,1664,1865,45,96,101,214],"people_14":[1,1711,1865,40,95,88,212],"people_10":[1,1753,1865,56,94,124,209],"people_12":[1,1811,1865,59,94,131,210],"people_13":[1,1872,1865,40,94,88,208],"people_2":[1,1914,1865,71,94,158,210],"yard_1":[2,0,0,126,94,252,188],"people_4":[2,128,0,55,92,122,205],"people_5":[2,185,0,38,92,84,205],"people_3":[2,225,0,51,91,113,202],"people_7":[2,278,0,56,91,125,202],"people_6":[2,336,0,52,87,115,194],"people_0":[2,390,0,55,84,123,187],"people_1":[2,447,0,52,83,116,184],"creatures_1":[2,501,0,46,79,122,207],"creatures_0":[2,549,0,62,72,164,189],"creatures_2":[2,613,0,93,71,246,188],"creatures_6":[2,708,0,54,70,142,185],"creatures_5":[2,764,0,71,60,186,157],"creatures_4":[2,837,0,84,56,222,147]}};
@@ -15399,8 +15416,8 @@ const MosbyVeins = (() => {
     G.g.updateMatrixWorld(true); const hb = new THREE.Box3(); G.head.traverse((o) => { if (o.isMesh) hb.expandByObject(o); }); const c = hb.getCenter(V3()), rc = new THREE.Raycaster(V3(c.x, hb.max.y + WS() * 30, c.z), V3(0, -1, 0)); rc.camera = M3.camera;
     const hit = rc.intersectObject(G.head, true).find((h) => h.object.isMesh); if (hit) { const loc = G.head.worldToLocal(hit.point.clone()), wn = hit.face ? hit.face.normal.clone().transformDirection(hit.object.matrixWorld) : V3(0, 1, 0), ln = wn.clone().transformDirection(new THREE.Matrix4().copy(G.head.matrixWorld).invert()).normalize();
       const k = G.head.worldToLocal(hit.point.clone().add(V3(WS(), 0, 0))).distanceTo(loc); /* head-local units per metre */ const cg = crystalGeo(k), cm = new THREE.Mesh(cg, new THREE.MeshStandardMaterial({ color: 0x4fd9e8, emissive: 0x139cb4, emissiveIntensity: 0.9, roughness: 0.2, metalness: 0.08, flatShading: true, fog: false }));
-      cm.position.copy(loc).addScaledVector(ln, -0.25 * k); cm.quaternion.setFromUnitVectors(up, ln); cm.name = 'mosbyLumen'; cm.castShadow = false; G.head.add(cm); MV.cmesh = cm; MV.lum = { node: { type: 'lumen', hits: 0 }, r: 1.5 }; } }
-  function crystalGeo(k) { let q = 11; const r = () => (q = (q * 16807) % 2147483647) / 2147483647, parts = [], up = V3(0, 1, 0); for (let i = 0; i < 9; i++) { const big = i === 0, a = i * 2.39996, d = big ? 0 : 0.35 + r() * 0.75, h = big ? 1.9 : 0.7 + r() * 0.9, w = big ? 0.32 : 0.14 + r() * 0.12;
+      cm.position.copy(loc).addScaledVector(ln, -0.25 * k); cm.quaternion.setFromUnitVectors(up, ln); cm.name = 'mosbyLumen'; cm.castShadow = false; G.head.add(cm); MV.cmesh = cm; MV.lum = { node: { type: 'lumen', hits: 0 }, r: 1.9 }; } }
+  function crystalGeo(k) { let q = 11; const r = () => (q = (q * 16807) % 2147483647) / 2147483647, parts = [], up = V3(0, 1, 0); for (let i = 0; i < 22; i++) { const big = i === 0, a = i * 2.39996, d = big ? 0 : i < 9 ? 0.35 + r() * 0.75 : 1.0 + r() * 0.9, h = big ? 1.9 : i < 9 ? 0.7 + r() * 0.9 : 0.35 + r() * 0.6, w = big ? 0.32 : i < 9 ? 0.14 + r() * 0.12 : 0.08 + r() * 0.08; /* a crown of big prisms, then a ring of small ones in the moss */
       const body = new THREE.CylinderGeometry(w * 0.92, w, h, 6, 1).toNonIndexed().translate(0, h / 2, 0), tip = new THREE.ConeGeometry(w * 0.92, h * 0.32, 6, 1).toNonIndexed().translate(0, h + h * 0.16, 0); for (const g of [body, tip]) { g.deleteAttribute('uv'); const tilt = new THREE.Quaternion().setFromAxisAngle(V3(Math.cos(a + 1.57), 0, Math.sin(a + 1.57)), big ? 0.05 : 0.25 + r() * 0.3); g.applyMatrix4(new THREE.Matrix4().compose(V3(Math.cos(a) * d, -0.15, Math.sin(a) * d).multiplyScalar(k), tilt, V3(k, k, k))); parts.push(g); } }
     const g = merge(parts); g.computeVertexNormals(); return g; }
   function merge(L) { const keys = Object.keys(L[0].attributes).filter((a) => L.every((g) => g.attributes[a] && g.attributes[a].itemSize === L[0].attributes[a].itemSize)), out = new THREE.BufferGeometry(); L = L.map((g) => (g.index ? g.toNonIndexed() : g));
@@ -15437,8 +15454,7 @@ const MosbyVeins = (() => {
 
   // ---------- the hold: he stands still for all of this, and his walk waits while she is on his head, neck or face, or mining ----------
   const busy = () => riding() && (MV.st !== 'shell' || !!MV.task || !!(MV.mining && gnd() && gnd().mine));
-  function holdHook() { const G = GM(); if (!G || G.__mvHold) return; let h = !!G.hold; Object.defineProperty(G, 'hold', { get() { return h || busy(); }, set(v) { h = !!v; }, configurable: true, enumerable: true }); G.__mvHold = true; G.holdRaw = () => h; }
-  function stopHim(why) { const G = GM(); if (!G.holdRaw || G.holdRaw() || busy()) return false; toastT('🐢 Mosby stops for you' + (why ? ' — ' + why : '')); return true; }
+  // (Dominic) nothing she does on him stops him or holds him: veins, the climb, Rappel and the crystal all work while he walks (she rides along in his shell's frame)
 
   // ---------- taps aboard ----------
   const _rc = new THREE.Raycaster();
@@ -15447,7 +15463,7 @@ const MosbyVeins = (() => {
     const o = hb.object; if (o === MV.vmesh) { let best = null, bd = 1e9; for (const v of MV.veins) { const d = Math.hypot(v.x - q.x, v.z - q.z); if (d < bd) { bd = d; best = v; } } return { k: 'vein', v: best, q }; } if (o === MV.cmesh) return { k: 'crystal', q };
     for (let p = o; p; p = p.parent) if (p === G.neck) return { k: 'head', q }; if (MosbyRide.clampM(q.x, q.z)[2]) return { k: 'top', q }; if (q.z > field().zT - 1 && Math.abs(q.x) < 14) return { k: 'face', q }; const top = MosbyRide.shellPoint(sx, sy); return top ? { k: 'top', q: V3(top.x, 0, top.z) } : null; }
   function tap(sx, sy, orig) { const G = gnd(); if (!G || !GM().g) return orig(sx, sy); build(); if (G.mine && MV.mining) { G.mine = false; if (Explore.ORE.mining && Explore.ORE.mining.mosby) Explore.ORE.mining = null; MV.mining = null; }
-    const h = hitAt(sx, sy); if (MV.st === 'shell') { if (!h || h.k === 'top' || h.k === 'head') { MV.task = null; return orig(sx, sy); } /* (his head: his menu, as before) */ if (h.k === 'vein') return veinGo(h.v); if (h.k === 'crystal') return crystalGo(); return headGo({}); }
+    const h = hitAt(sx, sy); if (MV.st === 'shell') { if (!h || h.k === 'top') { MV.task = null; return orig(sx, sy); } /* (his legs / tail / the Hop off button still open his menu) */ if (h.k === 'vein') return veinGo(h.v); if (h.k === 'crystal') return headGo({ crystal: true }); return headGo(h.k === 'head' ? { x: h.q.x, z: h.q.z } : {}); } /* a tap on his head: she climbs down to it */
     if (!h) return { stay: true };
     if (MV.st === 'head') { if (h.k === 'crystal') return crystalGo(); if (h.k === 'head') return headWalk(h.q.x, h.q.z); if (h.k === 'top' || h.k === 'vein') return shellGo({ x: h.q.x, z: h.q.z }); if (h.k === 'face') return shellGo({ s: nearestS(h.q) }); return { stay: true }; }
     // on the face (climbing / holding / on the rope): a tap on the wall climbs there (off the rope first)
@@ -15455,10 +15471,10 @@ const MosbyVeins = (() => {
   function walkTo(x, z, done) { const G = gnd(); G.path = [{ x, z }]; G.pi = 0; G.goal = { x, z, fit: true, done: () => { if (Math.hypot(G.x - x, G.z - z) < 0.6) done(); else MV.task = null; } }; G.gBest = 1e9; G.stall = 0; }
   // a shell vein: the field's checks first (pickaxe reach, a full backpack), then walk beside it and mine it with the field's own strike loop
   function veinGo(v) { const G = gnd(); if (typeof Skills !== 'undefined' && Skills.pickReaches && !Skills.pickReaches(S.pickGrade, v.type)) { toastT('Needs a stronger pickaxe'); return 'ore-weak'; } if (typeof Craft !== 'undefined' && Craft.fits && !Craft.fits('bag', 'ore:' + v.type)) { toastT(Explore.BAG_FULL); return 'bag-full'; }
-    stopHim('mine away'); MV.task = { vein: v }; let a0 = Math.atan2(G.z - v.z, G.x - v.x), st = null; for (let k = 0; k < 16 && !st; k++) { const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.4, x = v.x + Math.cos(a) * (v.r + 0.65), z = v.z + Math.sin(a) * (v.r + 0.65), c = MosbyRide.clampM(x, z); if (c[2] && !solidHit(x, z, 0.3)) st = [x, z]; }
+    MV.task = { vein: v }; let a0 = Math.atan2(G.z - v.z, G.x - v.x), st = null; for (let k = 0; k < 16 && !st; k++) { const a = a0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.4, x = v.x + Math.cos(a) * (v.r + 0.65), z = v.z + Math.sin(a) * (v.r + 0.65), c = MosbyRide.clampM(x, z); if (c[2] && !solidHit(x, z, 0.3)) st = [x, z]; }
     if (!st) { MV.task = null; toastT('Coal vein: out of reach'.replace('Coal', Explore.ORE_LOOK[v.type].name)); return 'ore-far'; } walkTo(st[0], st[1], () => mineStart(v)); return 'ore'; }
   function mineStart(v) { const G = gnd(), O = Explore.ORE; MV.task = null; G.path = null; G.goal = null; G.face = Math.atan2(v.x - G.x, v.z - G.z); G.mine = true; O.mining = v.node; O.ph0 = undefined; O.strikes = 0; MV.mining = v; }
-  function headGo(t) { stopHim('climb down to his head'); field(); MV.task = Object.assign({ head: true }, t); walkTo(0, field().zT, () => { const T = MV.task; MV.st = 'face'; MV.s = 0; climbTo(field().sMax); MV.task = T; }); try { if (S.mosbyRide) { S.mosbyRide.x = 0; S.mosbyRide.z = +field().zT.toFixed(2); } } catch (e) {} return 'head'; }
+  function headGo(t) { field(); MV.task = Object.assign({ head: true }, t); walkTo(0, field().zT, () => { const T = MV.task; MV.st = 'face'; MV.s = 0; climbTo(field().sMax); MV.task = T; }); try { if (S.mosbyRide) { S.mosbyRide.x = 0; S.mosbyRide.z = +field().zT.toFixed(2); } } catch (e) {} return 'head'; }
   function shellGo(t) { const H = field(), e = faceAt(H.sMax).p; MV.task = Object.assign({ top: t.x != null ? { x: t.x, z: t.z } : null }); walkTo(e.x, e.z + 0.3, () => { const T = MV.task; MV.st = 'face'; MV.s = H.sMax; climbTo(t.s != null ? t.s : 0); MV.task = T; }); return 'shell'; }
   function headWalk(x, z) { const H = field(); let p = H.inZone(x, z) ? [x, z] : H.near(x, z); if (!p) return { stay: true }; const c = crystalAt(); if (c && Math.hypot(p[0] - c.x, p[1] - c.z) < MV.lum.r + 0.5) { const a = Math.atan2(p[1] - c.z, p[0] - c.x); p = [c.x + Math.cos(a) * (MV.lum.r + 0.6), c.z + Math.sin(a) * (MV.lum.r + 0.6)]; } walkTo(p[0], p[1], () => { MV.task = null; }); return { walk: p }; }
   function crystalGo() { const lv = typeof Skills !== 'undefined' ? Skills.level('mining') : 1; if (lv < LUMEN_LV) { toastT('Lumen Crystal: Unlock Lv ' + LUMEN_LV); return 'lumen-locked'; }
@@ -15514,7 +15530,7 @@ const MosbyVeins = (() => {
       if (MV.st === 'head') { const H = field(); if (!G.exC) { if (!H.inZone(G.x, G.z) && MV.lastHead) { G.x = MV.lastHead[0]; G.z = MV.lastHead[1]; } /* the edge of his head: she stops there (a stalled walk ends on its own) */ const c = crystalAt(); if (c) { const dx = G.x - c.x, dz = G.z - c.z, L = Math.hypot(dx, dz), rr = MV.lum.r + 0.4; if (L < rr && L > 1e-4) { G.x = c.x + dx / L * rr; G.z = c.z + dz / L * rr; } } G.y = headY(G.x, G.z); MV.lastHead = [G.x, G.z]; } return; }
       faceTick(G, MV.dt); }; api.__mv = true; }
   function reset() { const G = gnd(); lockSet(false); if (MV.st !== 'shell' && G) { G.exC = false; G.exW = 0; G.exLeanS = 0; G.exOff = null; if (G.mine && MV.mining) G.mine = false; } MV.st = 'shell'; MV.task = null; MV.mining = null; MV.hf = null; if (MV.line) MV.line.visible = false; ui(); }
-  function pre(dt) { MV.dt = Math.min(0.1, dt || 1 / 30); build(); holdHook(); if (!riding()) { if (MV.st !== 'shell' || MV.task || MV.mining) reset(); MV.hf = null; if (MV.lumEl) MV.lumEl.style.display = 'none'; return; }
+  function pre(dt) { MV.dt = Math.min(0.1, dt || 1 / 30); build(); if (!riding()) { if (MV.st !== 'shell' || MV.task || MV.mining) reset(); MV.hf = null; if (MV.lumEl) MV.lumEl.style.display = 'none'; return; }
     toolHook(); const E = Explore.EX; if (E.ride) keepWrap(E.ride); const G = gnd(); if (G && !G.__mvAdv) { G.__mvAdv = true; const a0 = G.exAdv; G.exAdv = function (dX, dY) { if (riding() && MV.st !== 'shell') { MV.adv += dY; return; } if (a0) return a0.call(this, dX, dY); }; }
     if (MV.cmesh) { MV.cPar = null; MV.cPar = crystalAt(); }
     if (G && MV.mining && MV.mining.type !== 'lumen' && !G.mine) MV.mining = null; lumenStep(MV.dt); lumenHint(); ui(); }
