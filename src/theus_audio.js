@@ -9,14 +9,21 @@
      are the hooks; a hidden tab is silent). ===== */
 const TheusAudio = (() => {
   const AUDIO_R = 300, MUSIC_LEN = 55.253, FADE = 2.5, BASE = 'assets/audio/', CRACK = 1.2, LEAD = 0.03;
-  const A = { ctx: null, master: null, mus: null, musG: null, buf: {}, load: {}, fmt: null, inside: false, fetches: 0, vol: 0.8, mute: false, lastD: Infinity, plays: [] };
+  const A = { ctx: null, master: null, mus: null, musG: null, buf: {}, load: {}, raw: {}, fmt: null, inside: false, fetches: 0, vol: 0.8, mute: false, lastD: Infinity, plays: [] };
   function fmt() { if (A.fmt) return A.fmt; let ogg = ''; try { ogg = document.createElement('audio').canPlayType('audio/ogg; codecs="vorbis"'); } catch (e) {} return (A.fmt = ogg ? 'ogg' : 'm4a'); }
   function ctx() { if (A.ctx) return A.ctx; const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; A.ctx = new C(); A.master = A.ctx.createGain(); A.master.gain.value = A.mute ? 0 : A.vol; A.master.connect(A.ctx.destination); return A.ctx; }
   const resume = () => { if (A.ctx && A.ctx.state !== 'running') A.ctx.resume().catch(() => {}); };
   if (typeof window !== 'undefined') { for (const e of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(e, () => { start(); resume(); }, { capture: true, passive: true }); document.addEventListener('visibilitychange', () => { if (!A.ctx) return; if (document.hidden) A.ctx.suspend().catch(() => {}); else resume(); }); }
   // the one loader: each sound fetched once, in the one format this browser plays
+  // (Dominic t557u, iPhone memory) the music loops: decoded to mono (half the PCM), and a loop's decoded buffer is let go once it has faded out and its zone is
+  // inactive (only its few hundred KB of compressed bytes are kept, to decode again); the small sound effects stay decoded
+  const isLoop = (name) => Object.values(Z).some((z) => z.track === name);
+  function mono(C, b) { if (b.numberOfChannels < 2) return b; const m = C.createBuffer(1, b.length, b.sampleRate), o = m.getChannelData(0), n = b.numberOfChannels; for (let c = 0; c < n; c++) { const d = b.getChannelData(c); for (let i = 0; i < d.length; i++) o[i] += d[i] / n; } return m; }
+  function release(id) { const z = Z[id]; if (!z || A.cur === id || A.src[id]) return; try { if (z.active()) return; } catch (e) {} delete A.buf[z.track]; delete A.load[z.track]; }
   function get(name) { if (A.buf[name]) return Promise.resolve(A.buf[name]); if (A.load[name]) return A.load[name]; const C = ctx(); if (!C) return Promise.resolve(null);
-    const one = (ext) => { A.fetches++; return fetch(BASE + name + '.' + ext).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then((ab) => new Promise((ok, no) => C.decodeAudioData(ab, ok, no))); };
+    const loop = isLoop(name), dec = (ab) => new Promise((ok, no) => C.decodeAudioData(ab, ok, no)).then((b) => (loop ? mono(C, b) : b));
+    if (A.raw[name]) return (A.load[name] = dec(A.raw[name].slice(0)).then((b) => { A.buf[name] = b; return b; }).catch(() => null)); /* (a released loop: decoded again from its kept compressed bytes, no refetch) */
+    const one = (ext) => { A.fetches++; return fetch(BASE + name + '.' + ext).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then((ab) => { if (loop) A.raw[name] = ab.slice(0); return dec(ab); }); };
     return (A.load[name] = one(fmt()).catch(() => (fmt() === 'ogg' ? one('m4a') : null)).then((b) => { A.buf[name] = b; return b; }).catch(() => null)); }
   // where she is vs Theus (design metres), only out on the map
   function dist() { if (typeof FORGE === 'undefined' || !FORGE.M || !FORGE.M.built || !FORGE.M.ape || typeof Explore === 'undefined' || !Explore.on) return Infinity; const h = Explore.here && Explore.here(); if (!h) return Infinity; const p = FORGE.M.ape.position; return Math.hypot(h[0] - p.x, h[1] - p.z) / FORGE.U; }
@@ -35,7 +42,7 @@ const TheusAudio = (() => {
     const P = g.gain; try { if (P.cancelAndHoldAtTime) P.cancelAndHoldAtTime(t); else { P.cancelScheduledValues(t); P.setValueAtTime(from, t); } P.setValueCurveAtTime(c, t + 0.005, FADE); } catch (e) { try { P.cancelScheduledValues(0); P.setValueAtTime(from, t); P.linearRampToValueAtTime(to, t + FADE); } catch (e2) {} } } /* (cancelAndHold: a fade can turn round mid-way without a jump) */
   function startTrack(z) { const C = A.ctx, b = A.buf[z.track]; const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; s.loop = true; const extra = Math.max(0, b.duration - (z.len || b.duration)); if (extra > 0.01) { s.loopStart = Math.min(extra, 2112 / b.sampleRate); s.loopEnd = s.loopStart + z.len; } /* (AAC priming / padding kept out of the loop) */
     g.gain.value = 0; xf(g, 0, z.vol); s.connect(g); g.connect(A.master); s.start(0, s.loopStart || 0); A.src[z.id] = { s, g, tm: null }; }
-  function stopTrack(id) { const q = A.src[id]; if (!q) return; delete A.src[id]; q.id = id; A.out = q; xf(q.g, q.g.gain.value, 0); q.tm = setTimeout(() => { try { q.s.stop(); q.s.disconnect(); q.g.disconnect(); } catch (e) {} }, FADE * 1000 + 100); }
+  function stopTrack(id) { const q = A.src[id]; if (!q) return; delete A.src[id]; q.id = id; A.out = q; xf(q.g, q.g.gain.value, 0); q.tm = setTimeout(() => { try { q.s.stop(); q.s.disconnect(); q.g.disconnect(); q.s.buffer = null; } catch (e) {} release(id); }, FADE * 1000 + 100); }
   function musicTick() { if (!A.ctx || !A.started) return; const act = Object.values(Z).filter((z) => { try { return z.active(); } catch (e) { return false; } }).sort((a, b) => b.prio - a.prio); let want = null;
     for (const z of act) { if (A.buf[z.track]) { want = z; break; } if (A.bad && A.bad[z.track]) continue; get(z.track).then((b) => { if (!b) (A.bad = A.bad || {})[z.track] = 1; musicTick(); }); if (z.id === A.cur || !A.cur) { want = z; break; } } /* (a higher zone still loading: what's playing keeps playing; with nothing playing yet, wait for the right one rather than start a lower one first) */ /* (a higher zone still loading: the current one keeps playing until it's ready) */
     const id = want ? want.id : null; if (id === A.cur) { if (id && !A.src[id] && A.buf[want.track]) startTrack(want); return; } if (A.cur) stopTrack(A.cur); A.cur = id; if (want && A.buf[want.track]) startTrack(want); }
