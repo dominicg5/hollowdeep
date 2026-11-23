@@ -1,7 +1,8 @@
 // Theus (the forge ape) talk + pickaxe tiers on the item (Dominic: one tiered pickaxe per kind, its own tier; plain ones stack, are T0 and pay). Checks: the first-meeting chain
 // (restart if closed early, one gift, returning players skip it, no Prometheus), tier maths, equipped item's tier sets the multiplier, drills unaffected, strike yield, consumption, save
 // round-trip + earlier-build migration, names / T badges (backpack never shows vault items), sell confirm + reset to T0, forge card (T0, names wrap), anvil gate, portraits, no page errors.
-// SHOT=1: pickaxe_upgrade_item_panel / backpack_tier_badge / sell_tiered_confirm / theus_first_meeting_strip (composed from probe/js/strip) to /workspace/shots-char/final/.
+// Also: tiered pickaxes only at the Ledgeville Exchange (no shop; buy blocked when holding that kind; list with the warning; cancel), shop sheet title, ore reach (grade + one above).
+// SHOT=1: ore_out_of_reach / exchange_list_tiered / exchange_buy_blocked to /workspace/shots-char/final/.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '', OUT = '/workspace/shots-char/final/';
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
@@ -30,7 +31,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.strike = [K.oreFromStrike(0.6, 1, 0.5), K.oreFromStrike(0.6, 1, 0.7), K.oreFromStrike(0.6, 8, 0.9), K.oreFromStrike(0.6, 8, 0.5), K.oreFromStrike(0.6, 1024, 0.99)];
     // consumption: 25 plain Steel (10 bag + 15 vault), plain Steel in hand. First upgrade: 1 becomes the T1 item + 20 paid (21); T2 (40) refused with 4; +40 -> T2; one tiered item throughout, never counted as plain
     clr(P('steel')); Craft.add('bag', P('steel'), 10); Craft.add('vault', P('steel'), 15); Craft.equip(P('steel')); o.h0 = Craft.have(P('steel'));
-    const r1 = Theus.upgrade('steel'); o.r1 = [r1.ok, K.pickUpgTier('steel'), Craft.have(P('steel')), Craft.have(T('steel')), S.pickEqT]; const r2 = Theus.upgrade('steel'); o.r2 = [r2.ok, r2.why, K.pickUpgTier('steel'), Craft.have(P('steel')), Craft.have(T('steel'))];
+    const r1 = Theus.upgrade('steel'); o.r1 = [r1.ok, K.pickUpgTier('steel'), Craft.have(P('steel')), Craft.have(T('steel')), String(S.pickEqT), Craft.get('bag', T('steel'))]; const r2 = Theus.upgrade('steel'); o.r2 = [r2.ok, r2.why, K.pickUpgTier('steel'), Craft.have(P('steel')), Craft.have(T('steel'))];
     Craft.add('bag', P('steel'), 40); const r3 = Theus.upgrade('steel'); o.r3 = [r3.ok, K.pickUpgTier('steel'), Craft.have(P('steel')), Craft.have(T('steel'))]; o.other = K.pickUpgTier('iron');
     // save round-trip, then a save from the earlier build (pickTiers per kind) migrates to one tiered item per kind
     save(); const raw = JSON.parse(localStorage.getItem('hollowdeep.save.v1')), back = load(); o.saved = [raw.tpicks && raw.tpicks.steel, back.tpicks && back.tpicks.steel, (back.backpack[T('steel')] || 0) + ((back.ledgeVault.gear || {}).tpick_steel || 0), back.theusMet];
@@ -40,12 +41,22 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     setT('bronze', 5); setT('rune', 3); setT('gold', 2); if (Craft.get('bag', T('gold'))) Craft.move('bag', 'vault', T('gold'), 1); o.nm = Craft.nm(T('bronze'));
     const bh = Craft.bagHTML(false); o.bag = [bh.includes('title="Rune Pickaxe (T3)"'), /data-id="tool:tpick_rune"[^>]*>.*?<b class="cxtb">T3<\/b>/.test(bh), bh.includes('tool:tpick_gold')];
     Craft.open('xfer'); const xh = document.getElementById('modalBody').innerHTML, vi = xh.indexOf('Ledge Vault'); o.vault = [vi > 0 && xh.indexOf('title="Gold Pickaxe (T2)"') > vi, /<b class="cxtb">T2<\/b>/.test(xh.slice(vi))];
-    S.res.lumen = 0; Craft.st.tab = 'sell'; Craft.st.qty = 1; Craft.open('exchange'); const sb = () => document.querySelector(`#modalBody [data-cx="sell"][data-id="${T('bronze')}"]`), row = sb() && sb().closest('.cxr');
-    o.row = [row && row.textContent.includes('Bronze Pickaxe (T5)'), !!(row && row.querySelector('.cxtb'))]; sb().click(); const dz = document.querySelector('#modalBody .cxdanger'); o.conf = [dz && dz.querySelector('p').textContent, Craft.have(T('bronze'))];
-    document.querySelector('#modalBody [data-cx="sellno"]').click(); o.keep = [!document.querySelector('#modalBody .cxdanger'), Craft.have(T('bronze')), K.pickUpgTier('bronze')];
-    sb().click(); document.querySelector('#modalBody [data-cx="sellok"]').click(); o.sold = [Craft.have(T('bronze')), K.pickUpgTier('bronze'), !!(S.tpicks && S.tpicks.bronze), S.res.lumen > 0]; try { closeModalQuiet(); } catch (e) {}
+    // the shop sheet: titled Sell / Buy (not "Lumen Crystal"), plain items still there, tiered pickaxes never (sell or buy)
+    Craft.st.tab = 'sell'; Craft.st.qty = 1; Craft.open('exchange'); let mh = document.getElementById('modalBody'); o.shopSell = [mh.querySelector('h2').textContent, !!mh.querySelector(`[data-id="${T('bronze')}"]`), !!mh.querySelector(`[data-cx="sell"][data-id="${P('bronze')}"]`), !/Lumen Crystal/.test(mh.innerHTML)];
+    Craft.st.tab = 'buy'; Craft.open('exchange'); mh = document.getElementById('modalBody'); o.shopBuy = [mh.querySelector('h2').textContent, /tpick_/.test(mh.innerHTML), !/Lumen Crystal/.test(mh.innerHTML)]; Craft.st.tab = 'sell'; try { closeModalQuiet(); } catch (e) {}
+    // the Ledgeville Exchange: buy blocked when holding that kind, buy brings the item with its tier, list (danger warning) hands it over, cancel returns it (blocked if you hold one again)
+    S.res.lumen = 100000; Theus.XS.msg = null; Theus.XS.conf = null; CityMap.exchangeCard(); const q = (sel) => document.querySelector('#modalBody ' + sel), msg = () => { const e = q('.thExMsg'); return e ? e.textContent : ''; }, E = Theus.exState();
+    o.ex0 = [!!q('#thEx'), E.ai.length, E.ai.map((a) => a.k + a.tier).join(' ')];
+    q('[data-act="extbuy"][data-id="ai1"]').click(); o.blocked = [msg(), S.res.lumen, E.ai.some((a) => a.id === 'ai1'), K.pickUpgTier('bronze')];
+    setT('steel', 0); const pr3 = E.ai.find((a) => a.id === 'ai3').price; q('[data-act="extbuy"][data-id="ai3"]').click(); o.bought = [Craft.have(T('steel')), K.pickUpgTier('steel'), 100000 - S.res.lumen === pr3, E.ai.some((a) => a.id === 'ai3'), Craft.get('bag', T('steel')) + Craft.get('vault', T('steel'))];
+    const lst = (k, pr) => { q('#thExK').value = k; q('#thExP').value = String(pr); q('[data-act="extlist"]').click(); };
+    lst('bronze', 4800); const dz = q('.cxdanger'); o.lconf = [dz && dz.querySelector('p').textContent, q('#thExK').value, q('#thExP').value, Craft.have(T('bronze'))];
+    q('[data-act="extlistno"]').click(); o.lkeep = [!q('.cxdanger'), Craft.have(T('bronze')), K.pickUpgTier('bronze')];
+    lst('bronze', 4800); q('[data-act="extlistok"]').click(); const ml = E.mine[E.mine.length - 1]; o.listed = [Craft.have(T('bronze')), K.pickUpgTier('bronze'), ml && ml.k + ml.tier + '@' + ml.price, S.res.lumen === 100000 - pr3];
+    setT('bronze', 1); CityMap.exchangeCard(); q(`[data-act="extcancel"][data-id="${ml.id}"]`).click(); o.cblock = [msg(), K.pickUpgTier('bronze'), E.mine.includes(ml)];
+    setT('bronze', 0); CityMap.exchangeCard(); q(`[data-act="extcancel"][data-id="${ml.id}"]`).click(); o.cback = [Craft.have(T('bronze')), K.pickUpgTier('bronze'), E.mine.includes(ml)]; try { closeModalQuiet(); } catch (e) {} setT('bronze', 0);
     // the forge card: bronze (sold) shows T0 and the first-upgrade note; names wrap, no ellipsis
-    Theus.openUp('bronze'); o.t0 = [document.querySelector('#thUp .uK[data-k="bronze"] .thBadge').textContent, document.querySelector('#thUp .uK[data-k="lumen"] .thBadge').textContent, !!document.querySelector('#thUp .uNote')];
+    Theus.openUp('bronze'); o.t0 = [document.querySelector('#thUp .uK[data-k="bronze"] .thBadge').textContent, document.querySelector('#thUp .uK[data-k="lumen"] .thBadge').textContent, !!document.querySelector('#thUp .uNote')]; const oreRow = () => [...document.querySelectorAll('#thUp .uRow span')].map((e) => e.textContent).find((x) => /^Ore\/h/.test(x)); o.oreRow = [oreRow()]; Theus.openUp('gold'); o.oreRow.push(oreRow()); Theus.openUp('onyx'); o.oreRow.push(oreRow());
     o.wrap = [...document.querySelectorAll('#thUp .uK span')].map((e) => { const c = getComputedStyle(e); return c.whiteSpace !== 'nowrap' && c.textOverflow !== 'ellipsis' && e.scrollWidth <= e.clientWidth + 1 && e.textContent.endsWith('Pickaxe'); }).every(Boolean); Theus.closeUp();
     // the anvil gate: on the platform top vs the scorched ground below
     const F = FORGE, t = []; for (const [X, Y] of [[85, 0], [120, 10], [105, -80], [140, 100]]) { Theus.close(); const r = Theus.tapAt(F.wld(X, Y)); t.push([X, Y, r, !dlg().classList.contains('hidden'), F.platD(X, Y)]); } Theus.close(); o.gate = t;
@@ -56,6 +67,13 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     setT('steel', 1); clr(P('steel')); Craft.add('bag', P('steel'), 40); Theus.openUp('steel'); const btn = document.querySelector('#thUp .uGo'); o.btnOn = btn && !btn.disabled; btn.click();
     o.click = [K.pickUpgTier('steel'), Craft.have(P('steel')), Craft.have(T('steel')), !!document.querySelector('#thUp .uFx .sp'), /pleased/.test(document.querySelector('#thUp .uSay i').style.backgroundImage)];
     o.gates = /gates/i.test(document.getElementById('thUp').innerHTML + dlg().innerHTML); Theus.closeUp();
+    // ore reach (plain and tiered alike): grade + exactly one ore above; out of reach -> 'Needs a stronger pickaxe', mining doesn't start; the gift Bronze mines Copper/Tin
+    o.reach = ['stick', 'bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'].map((g) => K.oreReachBest(g)); o.coalAll = K.PICK_KINDS.every((g) => K.pickReaches(g, 'coal'));
+    o.reachX = [K.pickReaches('bronze', 'tin'), K.pickReaches('bronze', 'iron'), K.pickReaches('steel', 'gold'), K.pickReaches('steel', 'mithril'), K.pickReaches('stick', 'coal'), K.pickReaches('stick', 'copper')];
+    const NS = Explore.ORE.nodes.filter((n) => Explore.oreStand(n)), coal = NS.find((n) => n.type === 'coal'), cu = NS.find((n) => n.type === 'copper') || NS.find((n) => n.type === 'tin'), lastT = () => { const e = document.querySelector('#toasts .toast:last-child'); return e ? e.textContent : ''; };
+    S.pickGrade = 'stick'; S.pickEqT = null; const w0 = Explore.mineTap(coal); o.weak = [w0, lastT(), !Explore.ORE.mining, Explore.EX.pend || null];
+    Craft.equip('tool:pick_bronze'); o.giftMine = [S.pickGrade, Explore.mineTap(cu), cu && cu.type, Explore.mineTap(coal)];
+    { const G = CharView.st.gnd; if (G) { G.path = null; G.goal = null; G.mine = false; } Explore.EX.pend = null; if (Explore.EX.mark) Explore.EX.mark.visible = false; } // (cancel the walks those taps started)
     const img = (f) => new Promise((res) => { const i = new Image(); i.onload = () => res([i.naturalWidth, i.naturalHeight]); i.onerror = () => res(null); i.src = 'assets/ui/theus/' + f + '.webp'; }); return Promise.all(['idle', 'talking', 'pleased'].map(img)).then((im) => { o.img = im; return o; }); });
   console.log('THEUS ' + JSON.stringify(R));
   ok(R.midStep === 'first4' && R.mid.join() === '0,false' && R.restart === 'first1', `first meeting: closed at ${R.midStep} (no gift, not met), reopened at ${R.restart}`);
@@ -67,12 +85,22 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.oreh.join() === '1,8,1024' && R.eqT.join() === '16,16,true,false' && R.eqP.join() === '1,false,true', `ore/h formula x${R.oreh.join(', x')} at T0/T3/T10; tiered Steel T4 in hand x${R.eqT[0]}, plain Steel in hand x${R.eqP[0]}`);
   ok(JSON.stringify(R.drill[0]) === JSON.stringify(R.drill[1]) && R.drill[2] === 1024, `drills unaffected: ${R.drill[0].map((v) => v.toFixed(2)).join(', ')} ore/h with no tiered pickaxe and with every kind T10 (T10 in hand)`);
   ok(R.strike.join() === '1,0,4,5,614', `strike yield x mult (chance 0.6: x1 -> 1/0, x8 -> 4/5, x1024 -> ${R.strike[4]})`);
-  ok(R.h0 === 25 && R.r1.join() === 'true,1,4,1,steel' && R.r2.join() === 'false,short,1,4,1' && R.r3.join() === 'true,2,4,1' && R.other === 0, `consumption: 25 plain -> T1 took 21 (1 became the tiered one, 20 paid; left ${R.r1[2]}, tiered ${R.r1[3]}, in hand); T2 refused with 4 (nothing taken); +40 -> T2 (left 4, still one tiered)`);
+  ok(R.h0 === 25 && R.r1.join() === 'true,1,4,1,null,1' && R.r2.join() === 'false,short,1,4,1' && R.r3.join() === 'true,2,4,1' && R.other === 0, `consumption: 25 plain -> T1 took 21 (1 became the tiered one, 20 paid; left ${R.r1[2]}, tiered ${R.r1[3]} in the backpack, not equipped); T2 refused with 4 (nothing taken); +40 -> T2 (left 4, still one tiered)`);
   ok(R.saved.join() === '2,2,1,true' && R.mig.join() === '5,3,1,1,0,steel,false', `save round-trip (hollowdeep.save.v1): tiered Steel T${R.saved[1]}; earlier-build save {bronze:5, steel:3} -> one tiered item each (T${R.mig[0]}, T${R.mig[1]}), Steel in hand, pickTiers gone`);
-  ok(R.nm === 'Bronze Pickaxe (T5)' && R.bag.join() === 'true,true,false' && R.vault.join() === 'true,true' && R.row.join() === 'true,true', `names + T badges: "${R.nm}"; backpack shows Rune (T3) with its badge and never the vault's Gold (T2); the vault grid shows Gold (T2); sell row`);
-  ok(R.conf[0] === "This will lose Tier 5. You'll start over at Tier 1." && R.conf[1] === 1 && R.keep.join() === 'true,1,5' && R.sold.join() === '0,0,false,true', `sell confirm "${R.conf[0]}"; Keep it keeps T5; sold -> kind back to T0`);
+  ok(R.nm === 'Bronze Pickaxe (T5)' && R.bag.join() === 'true,true,false' && R.vault.join() === 'true,true', `names + T badges: "${R.nm}"; backpack shows Rune (T3) with its badge and never the vault's Gold (T2); the vault grid shows Gold (T2)`);
+  ok(R.shopSell.join() === '💠 Sell,false,true,true' && R.shopBuy.join() === '💠 Buy,false,true', `shop sheet titled "${R.shopSell[0]}" / "${R.shopBuy[0]}" (no "Lumen Crystal"); plain Bronze still sells; tiered pickaxes not in the shop's sell or buy list`);
+  const OWN = 'You already have a tiered Bronze Pickaxe. You can only hold one of each kind.';
+  ok(R.ex0[0] && R.ex0[1] === 5 && R.blocked[0] === OWN && R.blocked[1] === 100000 && R.blocked[2] && R.blocked[3] === 5, `Exchange: ${R.ex0[1]} seeded tiered listings (${R.ex0[2]}); buying ai Bronze T3 while holding Bronze T5 is blocked: "${R.blocked[0]}" (no Lumen taken)`);
+  ok(R.bought.join() === '1,4,true,false,1', `buy: Steel T4 arrives with its tier (one item), the seller's price paid, listing gone`);
+  ok(R.lconf[0] === "This will lose Tier 5. You'll start over at Tier 1." && R.lconf[1] === 'bronze' && R.lconf[2] === '4800' && R.lconf[3] === 1 && R.lkeep.join() === 'true,1,5', `list action + price field: "${R.lconf[0]}"; Keep it keeps T5`);
+  ok(R.listed.join() === '0,0,bronze5@4800,true', `listed: Bronze T5 handed over at 4,800 (kind back to T0, no shop money)`);
+  ok(R.cblock[0] === OWN && R.cblock[1] === 1 && R.cblock[2] && R.cback.join() === '1,5,false', `cancel blocked while holding a tiered Bronze; after that, cancel returns it at T5`);
   ok(R.t0.join() === 'T0,T0,true' && R.wrap, `forge card: kinds without a tiered pickaxe show T0; names wrap whole (no ellipsis)`);
+  ok(R.oreRow.join('|') === 'Ore/h (Coal)|Ore/h (Mithril)|Ore/h (Ember Onyx)', `forge ore/h uses the best ore each pickaxe reaches: ${R.oreRow.join(', ')}`);
   ok(R.gate[0][2] === 'open' && R.gate[0][3] && R.gate[1][2] === 'open' && R.gate[2][2] === 'hint' && !R.gate[2][3] && R.gate[3][2] === 'hint' && !R.gate[3][3], `anvil gate: on the platform top opens the talk, on the ground only the hint: ${JSON.stringify(R.gate)}`);
+  ok(R.reach.join() === 'copper,coal,gold,gold,mithril,runite,lumenite,onyx,onyx' && R.coalAll && R.reachX.join() === 'true,false,true,false,false,true', `ore reach (best ore per grade, Stickaxe first): ${R.reach.join(', ')}; Coal reachable by every pickaxe; Bronze: Tin yes, Iron no; Steel: Gold yes, Mithril no; Stickaxe: Copper only`);
+  ok(R.weak[0] === 'ore-weak' && R.weak[1] === 'Needs a stronger pickaxe' && R.weak[2] && !R.weak[3], `out of reach (Stickaxe on Coal): "${R.weak[1]}", mining doesn't start`);
+  ok(R.giftMine[0] === 'bronze' && R.giftMine[1] === 'ore' && R.giftMine[3] === 'ore', `the gift Bronze Pickaxe mines ${R.giftMine[2]} (and Coal)`);
   ok(R.f0 === 'idle' && R.f1 === 'talking' && R.f2 === 'pleased' && R.img.every((q) => q && q[0] === 192 && q[1] === 192), `portraits: idle on hello, talking mid-line, pleased on the deal (192x192 x3)`);
   ok(R.btns.includes('Upgrade pickaxe') && R.upOpen && R.prom.join() === 'who', `talk: ${R.btns.join(' / ')}; "Upgrade pickaxe" opens the card; Prometheus only in the lore line (${R.prom})`);
   ok(R.btnOn && R.click.join() === '2,0,1,true,true' && !R.gates, `Upgrade button: T1 -> T2, 40 consumed, still one tiered, hammer + sparks, pleased line; no "gates" wording`);
@@ -87,17 +115,21 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(pk.hitOn && !pk.hitOff && !pk.gndHit && pk.openTop && pk.tapTop === 'open', `on the anvil top (at ${pk.top}): a tap on his body (${pk.sp}) through Explore.tap opens the talk; the platform at her feet / beside him (${pk.off}) is no hit (skinned raycast, ground-occluded)`);
   ok(pk.tapGnd === 'hint' && !pk.openGnd, `on the ground (at ${pk.gnd}): tapping him gives only the hint, no talk`);
   if (SHOT) {
-    const shot = async (f, setup, sel, block) => { await p.evaluate(([setup, sel, block]) => { (0, eval)(setup)(); const e = sel && document.querySelector(sel); if (e) e.scrollIntoView({ block }); }, [setup.toString(), sel, block]); await p.waitForTimeout(600); await p.screenshot({ path: OUT + f }); };
-    await shot('pickaxe_upgrade_item_panel.png', () => { const P = (k) => 'tool:pick_' + k, T = (k) => Craft.TPICK(k), clr = (id) => Craft.take(id, Craft.have(id)); const setT = (k, n) => { clr(T(k)); if (!Craft.add('bag', T(k), 1)) Craft.add('vault', T(k), 1); S.tpicks[k] = n; };
-      Theus.close(); try { closeModalQuiet(); } catch (e) {} setT('bronze', 5); setT('gold', 1); clr(P('bronze')); Craft.add('bag', P('bronze'), 400); Craft.equip(T('bronze')); Theus.openUp('bronze'); });
-    await shot('backpack_tier_badge.png', () => { Theus.closeUp(); Craft.open('bag'); Craft.st.menu = { w: 'bag', id: Craft.TPICK('bronze') }; document.getElementById('modalBody').innerHTML = Craft.bagHTML(true); }, '#modalBody .cxmenu', 'nearest');
-    await shot('sell_tiered_confirm.png', () => { Craft.st.menu = null; Craft.st.tab = 'sell'; Craft.st.qty = 1; Craft.open('exchange'); document.querySelector(`#modalBody [data-cx="sell"][data-id="${Craft.TPICK('bronze')}"]`).click(); }, '#modalBody .cxdanger', 'center');
-    // the first-meeting strip: each of the 7 lines (the dialogue bar + portrait), then the gift toast
-    await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} document.querySelectorAll('#toasts .toast').forEach((t) => t.remove()); S.theusMet = false; Theus.open(); }); const fs = require('fs'), SD = '/workspace/probe/js/strip/'; fs.mkdirSync(SD, { recursive: true });
-    for (let i = 0; i < 7; i++) { await p.waitForTimeout(250); const bb = await p.locator('#thDlg').boundingBox(); await p.screenshot({ path: SD + 's' + i + '.png', clip: { x: Math.max(0, bb.x - 10), y: Math.max(0, bb.y - 8), width: Math.min(390 - Math.max(0, bb.x - 10), bb.width + 20), height: bb.height + 14 } }); await p.evaluate(() => document.getElementById('thDlg').click()); }
-    await p.waitForTimeout(300); const tb = await p.locator('#toasts .toast').last().boundingBox(); await p.screenshot({ path: SD + 's7.png', clip: { x: 0, y: Math.max(0, tb.y - 12), width: 390, height: tb.height + 24 } });
-    console.log('STRIP ' + JSON.stringify(await p.evaluate(() => [Theus.step, Craft.have('tool:pick_bronze')])));
-    await p.evaluate(() => { FORGE.M.tOv = null; });
+    // 1) the Stickaxe on a Coal vein: the toast (kept on screen: swiftshader frames outlast its 3.2 s timer), the vein in front of her
+    await p.evaluate(async () => { const wait = (ms) => new Promise((r) => setTimeout(r, ms)); try { closeModalQuiet(); } catch (e) {} Theus.close(); Theus.closeUp(); FORGE.M.tOv = null;
+      const NS = Explore.ORE.nodes.filter((n) => n.type === 'coal' && Explore.oreStand(n)), n = NS[0], st = Explore.oreStand(n); Explore.enter(st[0], st[1]); for (let i = 0; i < 5; i++) Explore.tick(1 / 30);
+      let best = null; for (let a = 0; a < 6.28; a += 0.785) { Explore.EX.az = a; await wait(700); const el = M3.renderer.domElement, v = new THREE.Vector3(n.x, M3.meshH(n.x, n.y), n.y).project(M3.camera), d = v.z < 1 ? Math.hypot(v.x, v.y + 0.1) : 9; if (!best || d < best[1]) best = [a, d]; }
+      Explore.EX.az = best[0]; await wait(1500); S.pickGrade = 'stick'; S.pickEqT = null; if (typeof CharView !== 'undefined' && CharView.setPick) try { CharView.setPick('stick'); } catch (e) {}
+      Explore.mineTap(n); const t0 = document.querySelector('#toasts .toast:last-child'), c = t0.cloneNode(true); c.style.animation = 'none'; document.querySelectorAll('#toasts .toast').forEach((q) => q.remove()); document.getElementById('toasts').appendChild(c); });
+    await p.waitForTimeout(800); await p.screenshot({ path: OUT + 'ore_out_of_reach.png' });
+    // 2) the Exchange: list a tiered Bronze T5 at 4,800 (the list row with its price field, then the red warning)
+    await p.evaluate(() => { document.querySelectorAll('#toasts .toast').forEach((q) => q.remove()); const T = (k) => Craft.TPICK(k), setT = (k, n) => { Craft.take(T(k), Craft.have(T(k))); if (n) { if (!Craft.add('bag', T(k), 1)) Craft.add('vault', T(k), 1); S.tpicks[k] = n; } };
+      setT('bronze', 5); setT('rune', 3); S.res.lumen = 25000; Theus.XS.msg = null; Theus.XS.conf = null; CityMap.exchangeCard(); const q = (sel) => document.querySelector('#modalBody ' + sel); q('#thExK').value = 'bronze'; q('#thExP').value = '4800'; q('[data-act="extlist"]').click();
+      const h = [...document.querySelectorAll('#modalBody #thEx h4')][0]; if (h) h.scrollIntoView({ block: 'start' }); });
+    await p.waitForTimeout(1800); await p.screenshot({ path: OUT + 'exchange_list_tiered.png' });
+    // 3) buying the AI Bronze T3 while holding Bronze T5: blocked
+    await p.evaluate(() => { const q = (sel) => document.querySelector('#modalBody ' + sel); q('[data-act="extlistno"]').click(); q('[data-act="extbuy"][data-id="ai1"]').click(); document.querySelectorAll('#toasts .toast').forEach((t) => t.remove()); const e = document.querySelector('#modalBody #thEx'); if (e) e.scrollIntoView({ block: 'start' }); });
+    await p.waitForTimeout(1800); await p.screenshot({ path: OUT + 'exchange_buy_blocked.png' });
   }
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   console.log(fails ? `${fails} FAILED` : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
