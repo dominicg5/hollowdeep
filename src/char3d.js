@@ -991,7 +991,7 @@ const CharView = (() => {
     out.hz = hz; out.hipX = hipX; out.rope = rope; return out; }
   function tetherTick(T, dt) { T.t = (T.t || 0) + dt; if (T.pose) T.bw = Math.min(1, (T.bw || 0) + dt / 0.5); const Q = an.eq;
     if (T.k === 'anchor' && T.t >= TV.anchorT) { T.k = 'clip'; T.t = 0; T.clipped = true; T.depth = 0.4; }
-    else if (T.k === 'clip' && T.t >= 0.35) { T.k = 'anchored'; T.t = 0; }
+    else if (T.k === 'clip' && T.t >= 0.35) { T.k = 'anchored'; T.t = 0; if (T.auto) { T.next = T.auto; T.auto = null; T.k = 'prep'; T.free = true; } } // the Rappel button: straight on into the rappel
     else if (T.k === 'prep' && Q && !Q.seq && Q.held === 'none') { T.k = T.next; T.t = 0; T.pose = true; T.bw = 0; T.h = 0; T.y0 = undefined; }
     else if (T.k === 'coil' && T.t >= TV.coilT) { T.k = 'draw'; T.t = 0; T.free = false; T.clipped = false; }
     else if (T.k === 'draw' && Q && !Q.seq && Q.held === 'climb') { if (T.ground) { an.tv = null; markTether(); dismount(T.P); return; } an.cl = climbInit(T.P); an.tv = null; markTether(); return; }
@@ -999,7 +999,7 @@ const CharView = (() => {
   /* ---------- on the ground at the foot of the wall: step off, walk with the pad (run cycle, smooth turns), walk back into the wall to climb again ---------- */
   const DMAX = 40; // max zoom-out distance (frames the whole wall and the field)
   const GW = { spd: 3.7, walk: 1.2, back: 0.45, X0: -21, X1: 21, Z0: -24, turn: 9 }, WX0 = WALL.X0 + 0.5, WX1 = WALL.X1 - 0.5; // the ground is a big field in front of (and wider than) the wall
-  function dismount(P) { st.gnd = st.ledge && LP.on ? Object.assign(lpWalker(P.x, 0, 0), { back: GW.back, vx: 0, vz: 0 }) : { x: P.x, z: 0, face: 0, mv: 0, back: GW.back, vx: 0, vz: 0 }; an.cl = climbInit(V(P.x, 0, 0)); an.tv = null; an.gb = 0; st.climbDir = 'stop'; st.climbAuto = false; st.tvK = null; st.climbBlk = ''; markTether(); markClimb(); const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = 'On the ground: tap to move, tap the wall to climb'; if (st.pg) { st.gnd.back = 0.25; } }
+  function dismount(P) { st.gnd = st.ledge && LP.on ? Object.assign(lpWalker(P.x, 0, 0), { back: GW.back, vx: 0, vz: 0 }) : { x: P.x, z: 0, face: 0, mv: 0, back: GW.back, vx: 0, vz: 0 }; an.cl = climbInit(V(P.x, 0, 0)); an.tv = null; an.gb = 0; st.climbDir = 'stop'; st.climbAuto = false; st.tvK = null; st.climbBlk = ''; markTether(); markClimb(); const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = 'On the ground: tap to move, tap the wall to climb'; if (st.pg) { st.gnd.back = 0.25; }  markTether(); }
 
   /* ---------- tap-to-move path planning: grid A* (8-directional, no corner cutting) over a walkability grid of the bounds minus the solid
      obstacles (inflated by her body radius + clearance), then string-pulled with exact segment-vs-circle line of sight (any-angle, so the path is
@@ -1071,22 +1071,29 @@ const CharView = (() => {
     if (P.ph === 'climb') { const dx = P.x - C.P.x, dy = P.y - C.P.y, L = Math.hypot(dx, dy); if (L < 0.2 || (P.bt = C.blk ? (P.bt || 0) + 1 : 0) > 45 || (P.last && DIRS[P.last][0] * dx + DIRS[P.last][1] * dy < -0.02)) { st.pg = null; P.ph = 'done'; } else { let best = -2; for (const q in DIRS) { if (q === 'stop') continue; const v = DIRS[q], dd = (v[0] * dx + v[1] * dy) / L / Math.hypot(v[0], v[1]); if (dd > best) { best = dd; k = q; } } if (C.mu < 0.05) P.last = k; } }
     else if (P.ph === 'down') { k = 'd'; if (st.gnd) { P.ph = 'run'; pgGround(); return; } }
     if (st.climbDir !== k) { st.climbDir = k; markClimb(); } }
-  function mount() { const G = st.gnd; st.gnd = null; st.wantClimb = false; an.cl = climbInit(V(G.x, 0, 0)); an.act = 'climb'; an.at = 0; an.mw = 0.6; if (!(st.climbDir in DIRS) || st.climbDir === 'stop' || /^d/.test(st.climbDir)) st.climbDir = 'stop'; st.climbDir = /^u/.test(st.climbDir) ? st.climbDir : 'stop'; markClimb(); const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = ''; if (G.onMount) G.onMount(); if (st.pg) { if (st.pg.wall) { st.pg.ph = 'climb'; st.climbDir = 'stop'; } else st.pg = null; } }
-  function tetherAct(k) { if ((an.act !== 'climb' && st.anim !== 'climb') || st.gnd) return; const P = an.cl ? an.cl.P.clone() : V(0, 0, 0); let T = an.tv; st.climbAuto = false; st.climbDir = 'stop'; markClimb(); const g = rig && rig.built.tethers && rig.built.tethers[0] && rig.built.tethers[0].grp, fac = CLIMB_LOCK.teth;
+  function mount() { const G = st.gnd; st.gnd = null; st.wantClimb = false; an.cl = climbInit(V(G.x, 0, 0)); an.act = 'climb'; an.at = 0; an.mw = 0.6; if (!(st.climbDir in DIRS) || st.climbDir === 'stop' || /^d/.test(st.climbDir)) st.climbDir = 'stop'; st.climbDir = /^u/.test(st.climbDir) ? st.climbDir : 'stop'; markClimb(); const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = ''; if (G.onMount) G.onMount(); if (st.pg) { if (st.pg.wall) { st.pg.ph = 'climb'; st.climbDir = 'stop'; } else st.pg = null; }  markTether(); }
+  function tetherAct(k) { const kk = k; if ((an.act !== 'climb' && st.anim !== 'climb') || st.gnd) return; const P = an.cl ? an.cl.P.clone() : V(0, 0, 0); let T = an.tv; st.climbAuto = false; st.climbDir = 'stop'; markClimb(); const g = rig && rig.built.tethers && rig.built.tethers[0] && rig.built.tethers[0].grp, fac = CLIMB_LOCK.teth;
     if (k === 'anchor' && T && T.clipped) k = 'unanchor'; // once clipped, the Anchor button reads Unanchor
     if (k === 'unanchor') { if (!T || !T.clipped || T.k === 'coil' || T.k === 'draw') return;
       if (!T.pose) { T.pin = false; an.tv = null; if (!an.cl) an.cl = climbInit(T.P); markTether(); return; } // still on the picks: just unclip and carry on climbing
       T.k = 'coil'; T.t = 0; T.unanchor = true; markTether(); return; } // on the rope: coil the line from where she hangs, then back onto the picks right here
-    if (k === 'stop') { if (T && (T.k === 'rappel' || T.k === 'ascend' || T.k === 'prep')) { if (T.k === 'prep') { T.k = 'anchored'; T.free = false; } else { T.k = 'hang'; T.h = 0; T.y0 = undefined; T.D = 0; } } markTether(); return; }
-    if ((k === 'rappel' || k === 'ascend') && T && T.k === k) return tetherAct('stop'); // tapping the running action again stops on the rope
-    if (k === 'anchor') { if (T) return; an.tv = { k: 'anchor', t: 0, A: V(clamp(P.x - 0.42, WALL.X0 + 0.2, WALL.X1 - 0.2), P.y + 1.02, 0), P, fac, depth: 1 }; }
+    // (Dominic) one Rappel button: from the picks it drives the pin, clips and stows (the anchor sequence) and then rappels on its own; Stop hangs her on the rope
+    if (k === 'go') { if (!T) k = 'anchor'; else if (T.k === 'anchored' || T.k === 'hang') k = 'rappel'; else return; }
+    if (k === 'stop') { if (T && (T.k === 'anchor' || T.k === 'clip')) T.auto = null; /* stopped mid-anchor: stays clipped on the picks */ if (T && (T.k === 'rappel' || T.k === 'ascend' || T.k === 'prep')) { if (T.k === 'prep') { T.k = 'anchored'; T.free = false; } else { T.k = 'hang'; T.h = 0; T.y0 = undefined; T.D = 0; T.pair = true; } } markTether(); return; }
+    if ((k === 'rappel' || k === 'ascend') && T && T.k === k) { if (T.pair) return tetherAct('stop'); if (kk !== 'go') return tetherAct('stop'); return; } // tapping the running action again stops on the rope
+    if (k === 'anchor') { if (T) return; an.tv = { k: 'anchor', t: 0, A: V(clamp(P.x - 0.42, WALL.X0 + 0.2, WALL.X1 - 0.2), P.y + 1.02, 0), P, fac, depth: 1, auto: kk === 'go' ? 'rappel' : null }; }
     else if (k === 'rappel' || k === 'ascend') { if (!T || !T.clipped || T.k === 'coil' || T.k === 'draw' || T.k === 'anchor') return; T.fac = fac;
       if (k === 'ascend' && T.P.y >= T.A.y - TV.top - 1e-3) return;
       if (T.pose) { T.k = k; T.t = 0; T.h = 0; T.y0 = undefined; T.D = 0; } else { T.k = 'prep'; T.next = k; T.free = true; T.t = 0; } }
     markTether(); }
-  function markTether() { const T = an.tv; document.querySelectorAll('#charClimb [data-tv]').forEach((b) => { const k = b.dataset.tv; b.classList.toggle('on', !!T && (T.k === k || (T.k === 'hang' && k === 'rappel') || (T.k === 'prep' && T.next === k) || (k === 'anchor' && !!T.clipped)));
-      b.classList.toggle('dis', st.gnd ? true : k === 'anchor' ? !!T && !(T.clipped && T.k !== 'coil' && T.k !== 'draw') : !T || !T.clipped || T.k === 'coil' || T.k === 'draw');
-      if (k === 'anchor') { const un = !!T && !!T.clipped; if (b.textContent !== (un ? 'Unanchor' : 'Anchor')) { b.textContent = un ? 'Unanchor' : 'Anchor'; b.title = un ? 'Unclip from the Tether here, coil it and climb on from this spot' : 'Drive an anchor pin and clip the Tether'; } } }); }
+  // the Rappel slot (#charClimb .tvb): climbing -> [Rappel]; anchoring / rappelling -> [Stop]; stopped on the rope -> [Ascend][Rappel] (each runs on its own, tap it again to stop)
+  function tvMode() { const T = an.tv; if (st.gnd || (an.act !== 'climb' && st.anim !== 'climb')) return 'off'; if (!T) return 'go'; if (T.k === 'coil' || T.k === 'draw') return 'busy';
+    if (T.k === 'anchored' && !T.pose) return 'go'; if (T.pair && (T.k === 'hang' || T.k === 'rappel' || T.k === 'ascend' || T.k === 'prep')) return 'pair'; return T.k === 'hang' ? 'pair' : 'stop'; }
+  function markTether() { const box = document.querySelector('#charClimb .tvb'); if (!box) return; const T = an.tv, m = tvMode(), on = (k) => !!T && (T.k === k || (T.k === 'prep' && T.next === k)), key = m + (m === 'pair' ? (on('ascend') ? 'A' : on('rappel') ? 'R' : '') : '');
+    st.tvMode = m; if (box.dataset.m === key) return; box.dataset.m = key;
+    box.innerHTML = m === 'stop' ? '<button data-tv="stop" class="on" title="Stop and hang on the rope">Stop</button>'
+      : m === 'pair' ? `<div class="tvp"><button data-tv="ascend" class="${on('ascend') ? 'on' : ''}" title="Winch back up to the anchor (tap again to stop)">Ascend</button><button data-tv="rappel" class="${on('rappel') ? 'on' : ''}" title="Rappel down (tap again to stop)">Rappel</button></div>`
+      : `<button data-tv="go" class="${m === 'go' ? '' : 'dis'}" title="Anchor the Tether and rappel down">Rappel</button>`; }
   /* ---------- the paid-out Tether line: built from the pack coil's own cord recipe (same core + twisted strand materials, strand count, thickness, vine leaves), drawn as live tubes ---------- */
   // a tube whose centreline is set every frame (parallel-transport frames, uv wraps the strand texture so it twists along the length)
   function dynTube(M, RS, mat) { const n = (M + 1) * (RS + 1), geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); geo.setAttribute('normal', new THREE.Float32BufferAttribute(new Float32Array(n * 3), 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2));
