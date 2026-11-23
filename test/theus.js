@@ -2,7 +2,7 @@
 // (restart if closed early, one gift, returning players skip it, no Prometheus), tier maths, equipped item's tier sets the multiplier, drills unaffected, strike yield, consumption, save
 // round-trip + earlier-build migration, names / T badges (backpack never shows vault items), sell confirm + reset to T0, forge card (T0, names wrap), anvil gate, portraits, no page errors.
 // Also: tiered pickaxes only at the Ledgeville Exchange (no shop; buy blocked when holding that kind; list with the warning; cancel), shop sheet title, ore reach (grade + one above).
-// SHOT=1: forge_owned_combined, backpack_stacks_500, vault_stacked_pickaxes to /workspace/shots-char/final/.
+// SHOT=1: forge_owned_combined, backpack_stacks_500, vault_stacked_pickaxes, backpack_climbing_gear, lumen_crystal_skin_shop, exchange_gold_coins, ember_onyx_tier_icons, ember_onyx_tiers_hand to /workspace/shots-char/final/.
 // Also: Theus pulls from the vault (owned = pack + vault, paid vault first), backpack 500-per-slot stacks / single-slot tools / one tether stack, full backpack, vault stacking, slot migration.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '', OUT = '/workspace/shots-char/final/';
@@ -46,14 +46,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     Craft.st.tab = 'sell'; Craft.st.qty = 1; Craft.open('exchange'); let mh = document.getElementById('modalBody'); o.shopSell = [mh.querySelector('h2').textContent, !!mh.querySelector(`[data-id="${T('bronze')}"]`), !!mh.querySelector(`[data-cx="sell"][data-id="${P('bronze')}"]`), !/Lumen Crystal/.test(mh.innerHTML)];
     Craft.st.tab = 'buy'; Craft.open('exchange'); mh = document.getElementById('modalBody'); o.shopBuy = [mh.querySelector('h2').textContent, /tpick_/.test(mh.innerHTML), !/Lumen Crystal/.test(mh.innerHTML)]; Craft.st.tab = 'sell'; try { closeModalQuiet(); } catch (e) {}
     // the Ledgeville Exchange: buy blocked when holding that kind, buy brings the item with its tier, list (danger warning) hands it over, cancel returns it (blocked if you hold one again)
-    S.res.lumen = 100000; Theus.XS.msg = null; Theus.XS.conf = null; CityMap.exchangeCard(); const q = (sel) => document.querySelector('#modalBody ' + sel), msg = () => { const e = q('.thExMsg'); return e ? e.textContent : ''; }, E = Theus.exState();
+    S.gold = 10000000; Theus.XS.msg = null; Theus.XS.conf = null; CityMap.exchangeCard(); const q = (sel) => document.querySelector('#modalBody ' + sel), msg = () => { const e = q('.thExMsg'); return e ? e.textContent : ''; }, E = Theus.exState();
     o.ex0 = [!!q('#thEx'), E.ai.length, E.ai.map((a) => a.k + a.tier).join(' ')];
-    q('[data-act="extbuy"][data-id="ai1"]').click(); o.blocked = [msg(), S.res.lumen, E.ai.some((a) => a.id === 'ai1'), K.pickUpgTier('bronze')];
-    setT('steel', 0); const pr3 = E.ai.find((a) => a.id === 'ai3').price; q('[data-act="extbuy"][data-id="ai3"]').click(); o.bought = [Craft.have(T('steel')), K.pickUpgTier('steel'), 100000 - S.res.lumen === pr3, E.ai.some((a) => a.id === 'ai3'), Craft.get('bag', T('steel')) + Craft.get('vault', T('steel'))];
+    q('[data-act="extbuy"][data-id="ai1"]').click(); o.blocked = [msg(), S.gold, E.ai.some((a) => a.id === 'ai1'), K.pickUpgTier('bronze')];
+    setT('steel', 0); const pr3 = E.ai.find((a) => a.id === 'ai3').price; q('[data-act="extbuy"][data-id="ai3"]').click(); o.bought = [Craft.have(T('steel')), K.pickUpgTier('steel'), 10000000 - S.gold === pr3, E.ai.some((a) => a.id === 'ai3'), Craft.get('bag', T('steel')) + Craft.get('vault', T('steel'))];
     const lst = (k, pr) => { q('#thExK').value = k; q('#thExP').value = String(pr); q('[data-act="extlist"]').click(); };
     lst('bronze', 4800); const dz = q('.cxdanger'); o.lconf = [dz && dz.querySelector('p').textContent, q('#thExK').value, q('#thExP').value, Craft.have(T('bronze'))];
     q('[data-act="extlistno"]').click(); o.lkeep = [!q('.cxdanger'), Craft.have(T('bronze')), K.pickUpgTier('bronze')];
-    lst('bronze', 4800); q('[data-act="extlistok"]').click(); const ml = E.mine[E.mine.length - 1]; o.listed = [Craft.have(T('bronze')), K.pickUpgTier('bronze'), ml && ml.k + ml.tier + '@' + ml.price, S.res.lumen === 100000 - pr3];
+    lst('bronze', 4800); q('[data-act="extlistok"]').click(); const ml = E.mine[E.mine.length - 1]; o.listed = [Craft.have(T('bronze')), K.pickUpgTier('bronze'), ml && ml.k + ml.tier + '@' + ml.price, S.gold === 10000000 - pr3];
     setT('bronze', 1); CityMap.exchangeCard(); q(`[data-act="extcancel"][data-id="${ml.id}"]`).click(); o.cblock = [msg(), K.pickUpgTier('bronze'), E.mine.includes(ml)];
     setT('bronze', 0); CityMap.exchangeCard(); q(`[data-act="extcancel"][data-id="${ml.id}"]`).click(); o.cback = [Craft.have(T('bronze')), K.pickUpgTier('bronze'), E.mine.includes(ml)]; try { closeModalQuiet(); } catch (e) {} setT('bronze', 0);
     // the forge card: bronze (sold) shows T0 and the first-upgrade note; names wrap, no ellipsis
@@ -71,7 +71,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       o.own0 = [own(), document.querySelector('#thUp .uGo').disabled, Theus.upgrade('steel').ok]; Craft.add('vault', P('steel'), 2); Theus.openUp('steel'); o.own1 = own(); const r = Theus.upgrade('steel');
       o.payVF = [r.ok, r.paid && r.paid.vault, r.paid && r.paid.pack, Craft.get('vault', P('steel')), Craft.get('bag', P('steel')), Craft.equipped(P('steel')), Craft.have(T('steel')), K.pickUpgTier('steel')]; Theus.closeUp(); setT('steel', 0); clr(P('steel')); }
     // backpack stacking: ores, coal, bars 500 per slot (501st starts a new slot), tools one per slot, Ledge Tether length in one slot; full backpack -> clear message, mining stops; the vault: one slot per kind up to STACK_MAX
-    { const bk = JSON.stringify(S.backpack), bo = JSON.stringify(S.bagOrder), pg = S.pickGrade, pe = S.pickEqT; S.backpack = {}; S.bagOrder = [];
+    { Craft.add('vault', Craft.CLIMB_BASE, 1); Craft.add('vault', Craft.TLINK_BASE, 1); /* (the base climbing pair waits in the vault so the pack starts empty) */ const bk = JSON.stringify(S.backpack), bo = JSON.stringify(S.bagOrder), pg = S.pickGrade, pe = S.pickEqT; S.backpack = {}; S.bagOrder = [];
       const slots = (id) => [...new DOMParser().parseFromString(Craft.bagHTML(false), 'text/html').querySelectorAll(`.cxs[data-id="${id}"]`)].map((e) => +e.dataset.n + (e.querySelector('.cxct') ? '' : '!'));
       Craft.add('bag', 'ore:copper', 1000); o.s1000 = slots('ore:copper').join(); Craft.add('bag', 'ore:copper', 1); o.s1001 = slots('ore:copper').join(); Craft.add('bag', 'ore:copper', 199);
       Craft.add('bag', 'ore:coal', 501); Craft.add('bag', 'ingot:bronze', 600); Craft.add('bag', 'tool:pick_bronze', 3); Craft.add('bag', 'tool:climb_iron', 1); Craft.add('bag', 'tether:bronze', 4500); Craft.add('bag', 'tether:bronze', 30000); Craft.add('bag', 'stand:drill', 25); Craft.add('bag', 'bit:iron', 12);
@@ -89,7 +89,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const vb = IDS.map((id) => Craft.get('vault', id)); Craft.order('bag'); const O = Craft.order('bag'), cnt = (id) => O.filter((x) => x === id).length;
       o.mig2 = { used: O.filter(Boolean).length, len: O.length, slots: IDS.map(cnt).join(), bag: IDS.map((id) => Craft.get('bag', id)).join(), toVault: IDS.map((id, i) => Craft.get('vault', id) - vb[i]).join(), kept: IDS.every((id, i) => Craft.get('bag', id) + Craft.get('vault', id) - vb[i] === add0[id]), eq: Craft.get('bag', 'tool:pick_iron'), moved: JSON.stringify(S.bagMoved) };
       IDS.forEach((id, i) => { if (Craft.get('vault', id) > vb[i]) Craft.add('vault', id, -(Craft.get('vault', id) - vb[i])); });
-      S.backpack = JSON.parse(bk); S.bagOrder = JSON.parse(bo); S.bagStack500 = 1; S.bagStackV = 2; S.pickGrade = pg; S.pickEqT = pe; Explore.ORE.mining = null; Craft.order('bag'); }
+      S.backpack = JSON.parse(bk); S.bagOrder = JSON.parse(bo); S.bagStack500 = 1; S.bagStackV = 2; S.pickGrade = pg; S.pickEqT = pe; Explore.ORE.mining = null; Craft.add('vault', Craft.CLIMB_BASE, -1); Craft.add('vault', Craft.TLINK_BASE, -1); Craft.order('bag'); }
     // design rule (character beats automation): character ore/h vs one drill and a 20-drill fleet, same tier, Mining 60; backpack ore room
     { const L2 = 60, ores = ['copper', 'iron', 'gold', 'mithril']; o.audit = ores.map((x, i) => { const tr = [0, 2, 3, 4][i], c = K.characterOrePerHour(x, tr, L2), d = K.drillOrePerHour(x, tr, L2); return [x, Math.round(c), Math.round(d), Math.round(20 * d), Math.round(c * K.tierMult(4)), Math.round(c * K.tierMult(10))].join('/'); }); }
     // the anvil gate: on the platform top vs the scorched ground below
@@ -138,7 +138,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.nm === 'Bronze Pickaxe (T5)' && R.bag.join() === 'true,true,false' && R.vault.join() === 'true,true', `names + T badges: "${R.nm}"; backpack shows Rune (T3) with its badge and never the vault's Gold (T2); the vault grid shows Gold (T2)`);
   ok(R.shopSell.join() === '💠 Sell,false,true,true' && R.shopBuy.join() === '💠 Buy,false,true', `shop sheet titled "${R.shopSell[0]}" / "${R.shopBuy[0]}" (no "Lumen Crystal"); plain Bronze still sells; tiered pickaxes not in the shop's sell or buy list`);
   const OWN = 'You already have a tiered Bronze Pickaxe. You can only hold one of each kind.';
-  ok(R.ex0[0] && R.ex0[1] === 5 && R.blocked[0] === OWN && R.blocked[1] === 100000 && R.blocked[2] && R.blocked[3] === 5, `Exchange: ${R.ex0[1]} seeded tiered listings (${R.ex0[2]}); buying ai Bronze T3 while holding Bronze T5 is blocked: "${R.blocked[0]}" (no Lumen taken)`);
+  ok(R.ex0[0] && R.ex0[1] === 5 && R.blocked[0] === OWN && R.blocked[1] === 10000000 && R.blocked[2] && R.blocked[3] === 5, `Exchange: ${R.ex0[1]} seeded tiered listings (${R.ex0[2]}); buying ai Bronze T3 while holding Bronze T5 is blocked: "${R.blocked[0]}" (no gold taken)`);
   ok(R.bought.join() === '1,4,true,false,1', `buy: Steel T4 arrives with its tier (one item), the seller's price paid, listing gone`);
   ok(R.lconf[0] === "This will lose Tier 5. You'll start over at Tier 1." && R.lconf[1] === 'bronze' && R.lconf[2] === '4800' && R.lconf[3] === 1 && R.lkeep.join() === 'true,1,5', `list action + price field: "${R.lconf[0]}"; Keep it keeps T5`);
   ok(R.listed.join() === '0,0,bronze5@4800,true', `listed: Bronze T5 handed over at 4,800 (kind back to T0, no shop money)`);
@@ -166,6 +166,43 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   console.log('PICK ' + JSON.stringify(pk));
   ok(pk.hitOn && !pk.hitOff && !pk.gndHit && pk.openTop && pk.tapTop === 'open', `on the anvil top (at ${pk.top}): a tap on his body (${pk.sp}) through Explore.tap opens the talk; the platform at her feet / beside him (${pk.off}) is no hit (skinned raycast, ground-occluded)`);
   ok(pk.tapGnd === 'hint' && !pk.openGnd, `on the ground (at ${pk.gnd}): tapping him gives only the hint, no talk`);
+  // climbing gear / skins / gold, locked climb speeds, Ember Onyx flames (after the forge walk, so nothing here touches the anvil scene)
+  Object.assign(R, await p.evaluate(() => { const K = Skills, o = {}, P = (k) => 'tool:pick_' + k, T = (k) => Craft.TPICK(k), clr = (id) => Craft.take(id, Craft.have(id));
+    const setT = (k, n) => { clr(T(k)); S.tpicks = S.tpicks || {}; if (n > 0) { if (!Craft.add('bag', T(k), 1)) Craft.add('vault', T(k), 1); S.tpicks[k] = n; } else delete S.tpicks[k]; };
+    // (Dominic) climbing gear: one base pair (Iron picks, Bronze climbing tether), no grades to make / buy / sell; other looks are skins for Lumen Crystals; gold coins for everything else
+    { const CB = Craft.CLIMB_BASE, TB = Craft.TLINK_BASE; o.cg0 = [Craft.have(CB), Craft.have(TB), S.climbGrade, S.tetherGrade, Craft.SMITH.some((r) => /climb_|tlink_/.test(r.out)), MillUI.queue('climb', 'bronze', 1), Skills.unlockEntries('tethercraft').some((e) => /tlink/.test(e.id || '')), Skills.unlockEntries('smithing').some((e) => /climb/.test(e.id || ''))];
+      Craft.st.tab = 'buy'; Craft.open('exchange'); let mh = document.getElementById('modalBody').innerHTML; o.cgShop = [/tool:climb_|tool:tlink_/.test(mh), /coin\.webp/.test(mh), /Lumen/.test(document.querySelector('#modalBody .tag').textContent)]; Craft.st.tab = 'sell'; Craft.open('exchange'); mh = document.getElementById('modalBody').innerHTML; o.cgShop.push(/tool:climb_|tool:tlink_/.test(mh));
+      // gold: a sale pays gold coins (x10 the old Lumen price), Lumen untouched
+      const P0 = 'tool:pick_bronze'; Craft.add('vault', P0, 1); const g0 = Craft.gold(), l0 = S.res.lumen, sp = Craft.sellP(P0); Craft.sell(P0, 1); o.gold = [Craft.gold() - g0, sp, Math.max(1, Math.floor(Craft.value(P0) * 0.8 * 10)), S.res.lumen === l0, Craft.COIN_RATE];
+      try { closeModalQuiet(); } catch (e) {} CityMap.exchangeCard(); const xh = document.getElementById('modalBody').innerHTML; o.exGold = [/coin\.webp/.test(xh), /🏮|\ud83c\udfee/.test(xh), /for Lumen/.test(xh)]; try { closeModalQuiet(); } catch (e) {}
+      // migration: other grades -> base + owned skins; the worn look stays; Stone / Vine -> base; queued climbing-tether jobs refund their ingots
+      S.mill = S.mill || {}; S.mill.jobs = S.mill.jobs || []; S.mill.rack = S.mill.rack || {}; const sv = { b: JSON.stringify(S.backpack), cg: S.climbGrade, tg: S.tetherGrade, mj: JSON.stringify(S.mill.jobs), sk: JSON.stringify(S.skins) };
+      const im0 = Craft.get('bag', 'ingot:mithril'); S.climbGearV = 0; S.backpack['tool:climb_gold'] = 2; S.backpack[CB] = 3; (S.ledgeVault.gear || (S.ledgeVault.gear = {})).tlink_rune = 1; S.mill.rack['tool:tlink_steel'] = 1; S.mill.jobs.push({ id: 999, tab: 'climb', grade: 'mithril', n: 3, done: 1, cur: 0, len: 0 }); S.climbGrade = 'lumen'; S.tetherGrade = 'regular';
+      Craft.migrateClimbGear(); const K2 = Craft.skins();
+      o.cgMig = [Object.keys(K2.climb).sort().join(), Object.keys(K2.tlink).sort().join(), Craft.have('tool:climb_gold'), Craft.have('tool:tlink_rune'), !!S.mill.rack['tool:tlink_steel'], S.mill.jobs.some((j) => j.tab === 'climb'), S.climbGrade, S.tetherGrade, Craft.have(CB), Craft.get('bag', 'ingot:mithril') - im0];
+      S.backpack = JSON.parse(sv.b); S.climbGrade = 'iron'; S.tetherGrade = 'bronze'; S.mill.jobs = JSON.parse(sv.mj); S.skins = JSON.parse(sv.sk); Craft.order('bag');
+      // skins: bought with Lumen Crystals at the Lumen Crystal; buying is stubbed (coming soon); wearing changes the look only
+      S.crystals = 500; Craft.st.tab = 'skins'; Craft.open('exchange'); const sh = () => document.getElementById('modalBody'); o.sk0 = [sh().querySelector('h2').textContent, sh().querySelectorAll('.cxsk').length, /Coming soon/.test(sh().textContent), sh().querySelector('.cxsoon button').disabled];
+      const sp0 = JSON.stringify(CharView.climbSpeeds()); sh().querySelector('[data-cx="skbuy"][data-kind="climb"][data-g="steel"]').click(); o.sk1 = [S.crystals, Craft.skinOwned('climb', 'steel')]; sh().querySelector('[data-cx="skwear"][data-kind="climb"][data-g="steel"]').click();
+      const s1 = CharView.climbSpeeds(); o.sk2 = [S.climbGrade, s1.picks, JSON.stringify(Object.assign({}, s1, { picks: 0 })) === JSON.stringify(Object.assign(JSON.parse(sp0), { picks: 0 })), Craft.skinBuy('climb', 'gold') === true && S.crystals === 300, Craft.skinBuy('tlink', 'onyx') === false];
+      Craft.skinWear('climb', 'iron'); Craft.skinWear('tlink', 'bronze'); const s2 = CharView.climbSpeeds(); o.speeds = [s2.picks, s2.tether, s2.ex, s2.out, s2.teth, s2.down, s2.up]; S.crystals = 0; S.skins = JSON.parse(sv.sk); Craft.st.tab = 'sell'; try { closeModalQuiet(); } catch (e) {} }
+    // Ember Onyx flame ladder: the built pickaxe's crack / flame colour per tier; the one in her hand follows the tiered pickaxe she holds; icons tint
+    { o.ember = []; for (let t = 0; t <= 10; t++) { const px = CharView.makePickaxe('onyx', t); o.ember.push([t, px.userData.tierCol, t ? '#' + px.userData.light.color.getHexString() : px.userData.tierCol, px.userData.fx.length]); px.traverse((q) => { if (q.geometry) q.geometry.dispose(); }); }
+      setT('onyx', 5); Craft.equip(T('onyx')); const pk = () => CharView.rig && CharView.rig.built.pick; o.emberHand = [pk() && pk().userData.tierCol]; Craft.equip(P('bronze')); o.emberHand.push(pk() && pk().userData.tierCol);
+      o.emberIco = [Craft.onyxFilter(0), !!Craft.onyxFilter(5), /filter:hue-rotate/.test(Craft.bagHTML(false)) || /filter:hue-rotate/.test(Craft.tintIco('<i style="x"></i>', 5))]; setT('onyx', 0); }
+    return o; }));
+  console.log('GEAR ' + JSON.stringify([R.cg0, R.cgShop, R.gold, R.exGold, R.cgMig, R.sk0, R.sk1, R.sk2, R.speeds, R.ember, R.emberHand, R.emberIco]));
+  ok(R.cg0.join() === '1,1,iron,bronze,false,false,false,false', `climbing gear: everyone has Iron Climbing Picks + Bronze Climbing Tether (look iron / bronze); no smithing recipe, no mill job, no skill unlock for other grades`);
+  ok(!R.cgShop[0] && R.cgShop[1] && !R.cgShop[2] && !R.cgShop[3], 'shop: no climbing gear to buy or sell; prices and purse in gold coins (coin icon), not Lumen');
+  ok(R.gold[0] === R.gold[1] && R.gold[1] === R.gold[2] && R.gold[3] && R.gold[4] === 10, `gold coins: a plain Bronze Pickaxe sells for ${R.gold[0]} gold (old Lumen price x10); Lumen untouched`);
+  ok(R.exGold[0] && !R.exGold[1] && !R.exGold[2], 'Ledgeville Exchange: prices, purse and listings in gold coins (no 🏮)');
+  ok(R.cgMig.join() === 'gold,iron,lumen,bronze,mithril,rune,steel,0,0,false,false,lumen,bronze,1,24', `climbing migration: owned Gold picks, worn Lumen look, Rune / Steel tethers, a part-done Mithril tether job -> skins (${R.cgMig[0]} | ${R.cgMig[1]}); one base pair; Lumen look kept, Vine -> Bronze; 24 Mithril ingots refunded`);
+  ok(R.sk0[0] === '💠 Skins' && R.sk0[1] === 18 && R.sk0[2] && R.sk0[3] && R.sk1.join() === '420,true' && R.sk2[0] === 'steel' && R.sk2[1] === 'steel' && R.sk2[2] && R.sk2[3] && R.sk2[4], `Lumen Crystal skins: 18 looks, crystal purchase stubbed "coming soon"; Steel picks bought for 80 (500 -> ${R.sk1[0]}), worn: the look changes, the speeds don't`);
+  ok(R.speeds[0] === 'iron' && R.speeds[1] === 'bronze' && Math.abs(R.speeds[2] - 0.936) < 1e-9 && Math.abs(R.speeds[3] - 1.4) < 1e-9 && Math.abs(R.speeds[4] - 1.56) < 1e-9 && Math.abs(R.speeds[5] - 1.7333) < 1e-3 && Math.abs(R.speeds[6] - 1.4474) < 1e-3, `locked climb speeds with Iron picks + Bronze tether: Explore climbFac ${R.speeds[2]} (CLIMB_EX x 1.56), outside ${R.speeds[3]}, rope fac ${R.speeds[4]} (${R.speeds[5].toFixed(2)} m/s down, ${R.speeds[6].toFixed(2)} m/s up) (got locked climb speeds)`);
+  const HEX = ['#ff4a1c', '#ff6a1a', '#ff8f1f', '#ffb52e', '#ffe08a', '#c8f4ff', '#5fdcff', '#3aa0ff', '#3f5cff', '#7a4dff', '#b04bff'];
+  const near = (a, b) => [1, 3, 5].every((i) => Math.abs(parseInt(a.substr(i, 2), 16) - parseInt(b.substr(i, 2), 16)) <= 1);
+  ok(R.ember.every(([t, c, l]) => c === HEX[t] && near(l, HEX[t])) && R.ember[10][3] === R.ember[9][3] + 1, `Ember Onyx flame colour per tier matches the ladder (T0 ${R.ember[0][1]} ... T5 ${R.ember[5][1]} ... T10 ${R.ember[10][1]} + violet sparks) (got ember flames)`);
+  ok(R.emberHand.join() === '#c8f4ff,' && R.emberIco[0] === '' && R.emberIco[1] && R.emberIco[2], `in her hand: tiered Ember Onyx T5 -> ${R.emberHand[0]}; icons tinted per tier (T0 untouched)`);
   if (SHOT) {
     const shot = async (f, setup, sel, block) => { await p.evaluate(([setup, sel, block]) => { (0, eval)(setup)(); const e = sel && document.querySelector(sel); if (e) e.scrollIntoView({ block }); }, [setup.toString(), sel, block]); await p.waitForTimeout(900); await p.screenshot({ path: OUT + f }); };
     // the forge: tiered Bronze T5 -> T6 needs 640; 630 plain in the vault + 13 in the pack, one of them in her hand -> "642 (vault 630 · pack 12) / 640"
@@ -175,6 +212,18 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // the vault: every kind in one slot, pickaxes included
     await shot('vault_stacked_pickaxes.png', () => { try { closeModalQuiet(); } catch (e) {} const V = { 'tool:pick_bronze': 630, 'tool:pick_iron': 212, 'tool:pick_steel': 380, 'tool:pick_gold': 96, 'tool:pick_mithril': 41, 'tool:pick_rune': 12, 'tool:climb_iron': 25, 'tool:climb_steel': 8 }; for (const id in V) Craft.add('vault', id, V[id] - Craft.get('vault', id));
       S.vaultOrder = Object.keys(V); Craft.order('vault'); Craft.open('xfer'); }, '#modalBody .cxg-vault', 'start');
+    // climbing gear in the backpack (the base pair, its Look line), the Lumen Crystal skin shop, the Exchange in gold coins
+    await shot('backpack_climbing_gear.png', () => { try { closeModalQuiet(); } catch (e) {} Craft.open('bag'); Craft.st.menu = { w: 'bag', id: Craft.CLIMB_BASE }; document.getElementById('modalBody').innerHTML = Craft.bagHTML(true); }, '#modalBody .cxmenu', 'nearest');
+    await shot('lumen_crystal_skin_shop.png', () => { Craft.st.menu = null; try { closeModalQuiet(); } catch (e) {} S.crystals = 420; Craft.skins().climb.steel = 1; Craft.st.tab = 'skins'; Craft.open('exchange'); }, '#modalBody h2', 'start');
+    await shot('exchange_gold_coins.png', () => { Craft.st.tab = 'sell'; try { closeModalQuiet(); } catch (e) {} CityMap.exchangeCard(); }, '#modalBody #thEx', 'end');
+    // the Ember Onyx icon ladder T0..T10 (backpack slot look with the T badge)
+    await shot('ember_onyx_tier_icons.png', () => { try { closeModalQuiet(); } catch (e) {} const ic = itemIco('tool:pick_onyx'); let h = ''; for (let t = 0; t <= 10; t++) h += `<div class="cxs full">${Craft.tintIco(ic, t)}${t ? `<b class="cxtb">T${t}</b>` : '<b class="cxtb">T0</b>'}</div>`;
+      openModal(`<div class="cxp cxgrid kKit"><div class="kPanel kLeather"><div class="row between kHead"><h2>Ember Onyx tiers</h2></div><div class="cxg cxg-bag">${h}</div><div class="kFoot">T0 plain · T1-T10 tiered (Theus)</div></div></div>`, 'cx-bag'); }, '#modalBody .cxg', 'center');
+    // in her hand (Character tab): T0, T5, T10, stitched side by side
+    await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('char'); }); await p.waitForTimeout(2500);
+    for (const t of [0, 5, 10]) { await p.evaluate((t) => { const T = Craft.TPICK('onyx'); Craft.take(T, Craft.have(T)); if (t) { Craft.add('vault', T, 1); S.tpicks.onyx = t; Craft.equip(T); } else { Craft.add('vault', 'tool:pick_onyx', 1); Craft.equip('tool:pick_onyx'); } }, t); await p.waitForTimeout(1800);
+      const bb = await p.evaluate(() => { const r = document.getElementById('charCanvas').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: Math.min(r.height, 560) }; }); await p.screenshot({ path: `/workspace/probe/js/onyx_t${t}.png`, clip: bb }); }
+    require('child_process').execSync(`ffmpeg -y -loglevel error -i /workspace/probe/js/onyx_t0.png -i /workspace/probe/js/onyx_t5.png -i /workspace/probe/js/onyx_t10.png -filter_complex "[0][1][2]hstack=inputs=3" ${OUT}ember_onyx_tiers_hand.png`);
   }
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   console.log(fails ? `${fails} FAILED` : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
