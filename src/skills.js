@@ -104,8 +104,19 @@ const Skills = (() => {
     const o = ORES[oreId]; if (!o) return 0;
     const onTask = opt && opt.onTask != null ? opt.onTask : ON_TASK;
     const L = miningLevel == null ? 1 : miningLevel;
-    return (3600 / SWING_S) * swingBonus(pickTier) * onTask * yieldChance(oreId, pickTier) * levelSpeedBonus(L, o.unlock);
+    return (3600 / SWING_S) * swingBonus(pickTier) * onTask * yieldChance(oreId, pickTier) * levelSpeedBonus(L, o.unlock) * ((opt && opt.upg) || 1); // opt.upg: Theus's pickaxe tier multiplier (character pickaxe only; drills never pass it)
   }
+  // ---- Theus's pickaxe tiers (per pickaxe kind, in the save as S.pickTiers; old saves have none = T0): tier N multiplies that pickaxe's mining rate by 2^N;
+  //      the step to tier N costs 20 x 2^(N-1) pickaxes of the same kind (20, 40 ... 10240), consumed
+  const PICK_TIER_MAX = 10;
+  const pickUpgCost = (n) => (n >= 1 && n <= PICK_TIER_MAX ? 20 * Math.pow(2, n - 1) : 0);
+  function pickUpgTier(kind) { const T = typeof S !== 'undefined' && S && S.pickTiers; return Math.max(0, Math.min(PICK_TIER_MAX, Math.floor((T && T[kind]) || 0))); }
+  const pickUpgMult = (kind) => Math.pow(2, pickUpgTier(kind));
+  function equippedPickMult() { const g = typeof S !== 'undefined' && S && S.pickGrade; return g && BIT_KEYS.includes(g) ? pickUpgMult(g) : 1; }
+  // the character's real ore/h with the equipped pickaxe (its tier multiplier included)
+  function equippedOrePerHour(oreId, miningLevel) { return characterOrePerHour(oreId, equippedPickTier(), miningLevel == null ? level('mining') : miningLevel, { upg: equippedPickMult() }); }
+  // ore from one landed swing: the yield chance x the multiplier, the fraction rolled (so x1 is the old one-or-none)
+  function oreFromStrike(chance, mult, rnd) { const e = Math.max(0, chance) * Math.max(1, mult || 1), n = Math.floor(e); return n + ((rnd == null ? Math.random() : rnd) < e - n ? 1 : 0); }
   function drillOrePerHour(oreId, bitTier, miningLevel, opt) { return characterOrePerHour(oreId, bitTier, miningLevel, opt) / DRILL_RATE_DIV; }
   // Full character XP/h, active or AFK — there is no idle throttle and no input timeout.
   function characterXpPerHour(oreId, pickTier, miningLevel, opt) {
@@ -501,7 +512,7 @@ const Skills = (() => {
     clampXp, xpToReach, xpForLevel, levelFromXp, migrate, xp: xpOf, level, addXp, oreOf, oreUnlock, oreXp,
     yieldChance, levelSpeedBonus, swingBonus, characterOrePerHour, drillOrePerHour, characterXpPerHour, drillXpPerHour,
     bestPickTier, bestAct, tessDrillQuestDone, slotsUnlocked, nextSlotLevel, hoursToLevel, bitBurn, BIT_BURN, bitTier, pickTierFromGrade,
-    equippedPickTier, awardMine, awardCraft, awardMill, fmtXp, skillLine, uiLine, hopperHours, NAMES,
+    equippedPickTier, PICK_TIER_MAX, pickUpgCost, pickUpgTier, pickUpgMult, equippedPickMult, equippedOrePerHour, oreFromStrike, PICK_KINDS: BIT_KEYS, awardMine, awardCraft, awardMill, fmtXp, skillLine, uiLine, hopperHours, NAMES,
     nextUnlock, skillState, itemSrc, unlockEntries, openDetail,
     get onDetail() { return onDetail; }, set onDetail(fn) { onDetail = fn; },
     get detailSkill() { return detailSkill; },

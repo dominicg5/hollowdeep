@@ -171,7 +171,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 function newState() {
   const veins = {}; CONFIG.layers.forEach((L) => L.veins.forEach((v) => (veins[v.id] = 1)));
   const buildings = {}; for (const k in CONFIG.buildings) buildings[k] = CONFIG.buildings[k].start ?? 1;
-  return { charSex: 'm', pickGrade: 'stick', tetherGrade: 'regular', toolMode: 'pick', climbGrade: 'stone',
+  return { charSex: 'm', pickGrade: 'stick', pickTiers: {}, tetherGrade: 'regular', toolMode: 'pick', climbGrade: 'stone',
     v: 1, testMode: CONFIG.testMode.defaultOn, gameTime: 0, lastReal: Date.now(), created: Date.now(),
     res: Object.assign({}, CONFIG.start), buildings, build: null,
     hero: { level: 1, xp: 0, task: null },
