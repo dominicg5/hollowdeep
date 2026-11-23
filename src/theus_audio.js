@@ -27,6 +27,7 @@ const TheusAudio = (() => {
   const Z = {};
   function zone(id, o) { Z[id] = Object.assign({ id, prio: 0, vol: 0.55, len: 0, active: () => true }, o); return Z[id]; }
   zone('overworld', { track: 'valley_handpan_A_loop', len: 36.0, prio: 0, vol: 0.5 });
+  zone('mosby', { track: 'mosby_B_loop', len: 24.0, prio: 5, vol: 0.5, active: () => (A.mosbyOv != null ? A.mosbyOv : typeof MosbyRide !== 'undefined' && !!MosbyRide.on) }); /* (Dominic t358u) while she rides him: shell top, neck or head. Below Theus: if he walks into the volcano radius, Theus's music wins */
   zone('theus', { track: 'theus_battle_loop', len: MUSIC_LEN, prio: 10, vol: 0.55, active: () => A.inside });
   A.cur = null; A.src = {};
   // every music change is an equal-power crossfade over FADE s (never a hard cut): in = sin, out = cos of the same 0..1 sweep, so the sum of power stays level

@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='e06a34d5';
+<script>window.HD_BUILD='a64cc580';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build e06a34d5</div>
-<script src="assets/vendor/three.min.js?v=e06a34d5"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a64cc580</div>
+<script src="assets/vendor/three.min.js?v=a64cc580"></script>
 <script>
 'use strict';
 
@@ -15318,6 +15318,7 @@ const TheusAudio = (() => {
   const Z = {};
   function zone(id, o) { Z[id] = Object.assign({ id, prio: 0, vol: 0.55, len: 0, active: () => true }, o); return Z[id]; }
   zone('overworld', { track: 'valley_handpan_A_loop', len: 36.0, prio: 0, vol: 0.5 });
+  zone('mosby', { track: 'mosby_B_loop', len: 24.0, prio: 5, vol: 0.5, active: () => (A.mosbyOv != null ? A.mosbyOv : typeof MosbyRide !== 'undefined' && !!MosbyRide.on) }); /* (Dominic t358u) while she rides him: shell top, neck or head. Below Theus: if he walks into the volcano radius, Theus's music wins */
   zone('theus', { track: 'theus_battle_loop', len: MUSIC_LEN, prio: 10, vol: 0.55, active: () => A.inside });
   A.cur = null; A.src = {};
   // every music change is an equal-power crossfade over FADE s (never a hard cut): in = sin, out = cos of the same 0..1 sweep, so the sum of power stays level
