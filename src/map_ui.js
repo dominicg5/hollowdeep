@@ -502,6 +502,7 @@ const CityMap = (() => {
         <input id="exQ" type="number" min="1" value="10" style="width:64px" aria-label="Quantity"> × <input id="exP" type="number" min="0.1" step="0.1" value="1" style="width:64px" aria-label="Price per unit in Lumen"> 🏮/u
         <button class="btn" data-act="exsell">Post listing</button></div>
       ${ex.mine.length ? `<h3 style="margin:10px 0 4px">Your listings</h3>${ex.mine.map((m) => `<div class="small">${R[m.k].icon} ${m.qty} ${R[m.k].name} @ ${m.price} 🏮/u <button class="btn ghost small" data-act="excancel" data-id="${m.id}">Cancel</button></div>`).join('')}<div class="dim small">Buyers for player listings are coming soon; cancelling returns the goods.</div>` : ''}
+      ${typeof Theus !== 'undefined' && Theus.exHTML ? Theus.exHTML() : ''}
       ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function exAct(act, ds) { const ex = exState();
@@ -589,6 +590,7 @@ const CityMap = (() => {
       case 'mapraid': { const h = W.homes[+ds.id]; closeModalQuiet(); discoverRegion(h.region); return startMapRaid(h); }
       case 'mapvisit': { const h = W.homes[+ds.id]; toast(`👋 Visiting ${h.owner} is coming soon.`); return; }
       case 'exbuy': case 'exsell': case 'excancel': return exAct(act, ds);
+      case 'extbuy': case 'extlist': case 'extlistok': case 'extlistno': case 'extcancel': if (typeof Theus !== 'undefined' && Theus.exAct) Theus.exAct(act, ds); return exchangeCard(); // tiered pickaxes (src/theus.js)
       case 'mapboard': return boardModal();
       case 'mapgohome': closeModalQuiet(); return focusHome(W.player, Math.max(CITY.homeZoom || 1.05, cam.z));
       case 'mbuy': marketBuy(ds.id, +ds.n, +ds.m); if (marketCard.last) marketCard(marketCard.last); return;

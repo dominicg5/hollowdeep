@@ -190,6 +190,14 @@ const Skills = (() => {
     if (grade === 'stick' || grade == null) return 0; // stickaxe: same swing as bronze in char3d (tier < 1 → 0)
     const i = BIT_KEYS.indexOf(grade); return i < 0 ? 0 : i;
   }
+  // ore reach (Dominic): a pickaxe mines every ore at or below its grade plus exactly one ore above it (plain and tiered alike; drills / tethers keep their own rules).
+  // Ore order: Copper/Tin, Coal, Iron, Gold, Mithril, Runite, Lumenite, Ember Onyx. The Stickaxe is not a graded pickaxe: Copper/Tin only.
+  const ORE_RANK = { copper: 0, tin: 0, coal: 1, iron: 2, gold: 3, mithril: 4, runite: 5, lumenite: 6, onyx: 7 };
+  const PICK_RANK = { bronze: 0, iron: 2, steel: 2, gold: 3, mithril: 4, rune: 5, lumen: 6, onyx: 7 };
+  function pickReachRank(grade) { const r = PICK_RANK[grade]; return r == null ? 0 : Math.min(7, r + 1); }
+  function pickReaches(grade, oreId) { const o = ORE_RANK[oreId]; return o != null && o <= pickReachRank(grade); }
+  function oreReachBest(grade) { const r = pickReachRank(grade); return ORE_ORDER.filter((id) => ORE_RANK[id] <= r).pop() || 'copper'; } // the best (highest) ore that pickaxe reaches
+  const oreName = (id) => (ORES[id] ? ORES[id].name : id);
   function equippedPickTier() { return pickTierFromGrade(typeof S !== 'undefined' && S && S.pickGrade); }
 
   function awardMine(oreId, n) { n = n || 0; if (n <= 0) return; addXp('mining', oreXp(oreId) * n); }
@@ -516,7 +524,7 @@ const Skills = (() => {
     clampXp, xpToReach, xpForLevel, levelFromXp, migrate, xp: xpOf, level, addXp, oreOf, oreUnlock, oreXp,
     yieldChance, levelSpeedBonus, swingBonus, characterOrePerHour, drillOrePerHour, characterXpPerHour, drillXpPerHour,
     bestPickTier, bestAct, tessDrillQuestDone, slotsUnlocked, nextSlotLevel, hoursToLevel, bitBurn, BIT_BURN, bitTier, pickTierFromGrade,
-    equippedPickTier, PICK_TIER_MAX, pickUpgCost, pickUpgTier, pickUpgMult, equippedPickMult, equippedOrePerHour, oreFromStrike, PICK_KINDS: BIT_KEYS, awardMine, awardCraft, awardMill, fmtXp, skillLine, uiLine, hopperHours, NAMES,
+    equippedPickTier, PICK_TIER_MAX, pickUpgCost, pickUpgTier, pickUpgMult, equippedPickMult, equippedOrePerHour, oreFromStrike, PICK_KINDS: BIT_KEYS, pickReaches, pickReachRank, oreReachBest, oreName, ORE_RANK, awardMine, awardCraft, awardMill, fmtXp, skillLine, uiLine, hopperHours, NAMES,
     nextUnlock, skillState, itemSrc, unlockEntries, openDetail,
     get onDetail() { return onDetail; }, set onDetail(fn) { onDetail = fn; },
     get detailSkill() { return detailSkill; },

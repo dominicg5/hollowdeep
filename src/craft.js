@@ -101,7 +101,7 @@ const Craft = (() => {
   const nm = (id) => { const it = ITEMS[id]; return it ? (it.tiered ? `${TIERS[it.tier][1]} Pickaxe (T${pickTier(it.grade)})` : it.name) : id; };
   const qtyBar = () => `<div class="cxq">${[1, 10, 100, 'all'].map((q) => `<button class="btn sm ${st.qty === q ? 'alt' : 'ghost'}" data-cx="qty" data-v="${q}">${q === 'all' ? 'All' : '×' + q}</button>`).join('')}</div>`;
   const destBar = () => `<div class="cxq"><span class="dim">Output to</span>${[['bag', '🎒 Backpack'], ['vault', '🔒 Vault']].map(([k, l]) => `<button class="btn sm ${st.dest === k ? 'alt' : 'ghost'}" data-cx="dest" data-v="${k}">${l}</button>`).join('')}</div>`;
-  const SKIP_SHOP = { drill: 1, teth: 1, stand: 1, bit: 1 }; const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && !SKIP_SHOP[ITEMS[id].kind]);
+  const SKIP_SHOP = { drill: 1, teth: 1, stand: 1, bit: 1 }; const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && !SKIP_SHOP[ITEMS[id].kind] && !ITEMS[id].tiered); // (a tiered pickaxe never goes to the shop: players trade it at the Ledgeville Exchange)
   // ---- hand-drawn item icons (inline SVG): a wobbly inked outline over the item's colour, a highlight, per-kind drawings; jitter seeded by the id so each looks inked once
   const ICO = {};
   function svgIco(id) { if (ICO[id]) return ICO[id]; const it = ITEMS[id] || { kind: '?', col: '#888' }; let sd = 7; for (const ch of id) sd = (sd * 31 + ch.charCodeAt(0)) % 2147483647; const R = () => (sd = (sd * 16807) % 2147483647) / 2147483647, j = (v) => (v + (R() - 0.5) * 1.6).toFixed(1);
@@ -153,6 +153,7 @@ const Craft = (() => {
     if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then swap or pick up the bit at the drill itself.';
     if (it.kind === 'teth') return 'The same braid as the door tethers. Lay a drop tether from the backpack on the map, or use the coil to upgrade a strand.';
     if (it.kind === 'bit') return 'Fits any placed stand. Swap or pick it up at the drill itself.';
+    if (it.tiered) return 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Ledgeville Exchange (the shop will not buy it).';
     if (it.kind === 'tool' && it.tool === 'pick') return 'Equip it to mine ore out on the map.';
     if (it.kind === 'tool' && it.tool === 'climb') return 'Equip it to climb pitches on the map.';
     if (it.kind === 'tool' && it.tool === 'tlink') return 'Equip it as the line you travel on.';
@@ -215,9 +216,8 @@ const Craft = (() => {
       h += `<div class="cxr rec" data-out="${r.out}">${ico(r.out)}<span class="cxn">${esc(it.name)}<small class="cxcs">${cost(r, x)}</small></span><button class="btn sm ${canMake(r, x) ? 'alt' : 'ghost'}" data-cx="make" data-k="${kind}" data-i="${i}" ${canMake(r, x) ? '' : 'disabled'}>${F ? 'Smelt' : 'Smith'} ×${x}</button></div>`; }
     return h + '</div><button class="btn ghost" data-cx="close">Close</button></div>'; }
   function exHTML() { const S2 = st.tab === 'sell';
-    let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 Lumen Crystal</h2><span class="tag">✦ ${fmt(lum())} Lumen</span></div><div class="dim">The crystal trades with the Hollow. Placeholder local market prices.</div>`;
+    let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 ${S2 ? 'Sell' : 'Buy'}</h2><span class="tag">✦ ${fmt(lum())} Lumen</span></div><div class="dim">The crystal trades with the Hollow. Placeholder local market prices.</div>`;
     h += `<div class="cxq">${[['sell', 'Sell'], ['buy', 'Buy']].map(([k, l]) => `<button class="btn sm ${st.tab === k ? 'alt' : 'ghost'}" data-cx="tab" data-v="${k}">${l}</button>`).join('')}</div>${qtyBar()}`;
-    if (S2 && st.confirm && have(st.confirm) > 0) { const c = st.confirm, t = pickTier(ITEMS[c].grade); h += `<div class="cxdanger" role="alertdialog"><b>⚠️ Sell ${esc(nm(c))}?</b><p>This will lose Tier ${t}. You'll start over at Tier 1.</p><div class="cxq"><button class="btn sm cxdng" data-cx="sellok" data-id="${c}">Sell for ✦ ${sellP(c)}</button><button class="btn sm ghost" data-cx="sellno">Keep it</button></div></div>`; } else st.confirm = null;
     const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => !SKIP_SHOP[ITEMS[id].kind] && !ITEMS[id].tiered); /* (a tiered pickaxe is only made at Theus's forge) */
     h += ids.length ? `<div class="card cxl">${ids.map((id) => { const p = S2 ? sellP(id) : buyP(id), n = st.qty === 'all' ? (S2 ? have(id) : Math.floor(lum() / p)) : st.qty, ok = S2 ? have(id) >= Math.max(1, n) : lum() >= p * Math.max(1, n);
       return `<div class="cxr" data-id="${id}">${ITEMS[id].tiered ? `<span class="cxtw">${ico(id)}${tb(id)}</span>` : ico(id)}<span class="cxn">${esc(nm(id))}<small>✦ ${p} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
@@ -238,9 +238,6 @@ const Craft = (() => {
     else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); } st.menu = null; }
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
     else if (a === 'make') { const r = (t.dataset.k === 'furnace' ? SMELT : SMITH)[+t.dataset.i]; const x = st.qty === 'all' ? maxMake(r) : st.qty; if (make(r, x, st.dest) && typeof toast === 'function') toast(`${t.dataset.k === 'furnace' ? '🔥' : '⚒️'} ${x}× ${nm(r.out)} → ${st.dest === 'vault' ? 'Vault' : 'Backpack'}`); }
-    else if (a === 'sell' && ITEMS[id] && ITEMS[id].tiered) st.confirm = id; /* a tiered pickaxe asks first (danger) */
-    else if (a === 'sellno') st.confirm = null;
-    else if (a === 'sellok') { st.confirm = null; const n = sell(id, 1); if (n && typeof toast === 'function') toast(`💠 Sold ${nm(id).replace(/ \(T\d+\)$/, '')} · the tier is gone`); }
     else if (a === 'sell') { const n = sell(id, nOf(have(id))); if (n && typeof toast === 'function') toast(`💠 Sold ${n}× ${nm(id)}`); }
     else if (a === 'buy') { const n = buy(id, nOf(Math.floor(lum() / buyP(id)))); if (n && typeof toast === 'function') toast(`💠 Bought ${n}× ${nm(id)}`); }
     refresh(); });

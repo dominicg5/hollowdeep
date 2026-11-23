@@ -62,6 +62,8 @@ const Theus = (() => {
 .cxmh{position:relative}.cxmh>.cxtb{left:2px;top:2px}.cxtw{position:relative;display:inline-block;flex:none}.cxtw .cxtb{left:-4px;top:-6px}
 .cxdanger{margin:8px 0;padding:10px 12px;border-radius:10px;background:#fbe3dc;border:2px solid #b22a14;box-shadow:0 2px 6px rgba(120,20,10,.25);color:#5a1208}.cxdanger b{display:block;font-size:16px;color:#8e1a0a}.cxdanger p{margin:4px 0 8px;font-weight:700;color:#b22a14}.cxdanger .cxdng{background:linear-gradient(#e2785a,#a8442c);color:#fff;border-color:#702a18}
 .thTI{display:inline-block;width:22px;height:22px;vertical-align:-5px;margin-right:6px}.thTI .cxsv,.thTI svg{position:static;inset:auto;transform:none;width:22px;height:22px;margin:0}
+.thEx .thExRow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(127,127,127,.25)}.thEx .thExN{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.2}.thEx .thExN small{opacity:.75}.thExI{width:34px;height:34px}.thExI .cxsv,.thExI svg{position:static;inset:auto;transform:none;width:34px;height:34px;margin:0}.thExI .cxtb{left:-5px;top:-5px}
+.thExMsg{margin:8px 0;padding:8px 10px;border-radius:9px;font-weight:700;font-size:14px}.thExMsg.bad{background:#fbe3dc;border:2px solid #b22a14;color:#8e1a0a}.thExMsg.good{background:#e3f1d8;border:2px solid #5b7a32;color:#2f4a12}
 @keyframes thHam{0%{transform:rotate(-55deg)}70%{transform:rotate(18deg)}100%{transform:rotate(0)}}@keyframes thSp{0%{transform:translate(-50%,-50%) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.3);opacity:0}}
 @media (max-width:520px){#thUp .uBox{padding:6px 6px 8px;border-width:14px}#thUp h3{font-size:21px;margin-bottom:6px}#thUp .uParch{padding:9px}#thUp .uSay{font-size:14px;min-height:44px}#thUp .uSay i{width:44px;height:44px}#thUp .uMain{flex-direction:column;gap:8px}#thUp .uList{flex:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px;max-height:none}#thUp .uK{min-width:0;min-height:40px;padding:3px 6px;gap:5px;font-size:13px}#thUp .uK .cxsv{width:24px;height:24px}#thUp .uK span{font-size:12.5px}#thUp .uRow{font-size:14px;padding:4px 9px}#thUp .uPips{gap:5px}#thUp .uPips i{width:20px;height:20px}}`;
   if (typeof document !== 'undefined') { const st = document.createElement('style'); st.id = 'theusCss'; st.textContent = CSS; (document.head || document.documentElement).appendChild(st); } // (at load: the tier badge and the sell warning live on the backpack / vault / sell screens too)
@@ -97,8 +99,8 @@ const Theus = (() => {
   // ---- the upgrade card
   const KINDS = () => (typeof Skills !== 'undefined' && Skills.PICK_KINDS) || ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'];
   const tierOf = (k) => Skills.pickUpgTier(k);
-  const bestOre = () => { const L = Skills.level('mining'); return (Skills.bestAct(L) || {}).id || 'copper'; };
-  const oreH = (k, t) => { const id = bestOre(); return Skills.characterOrePerHour(id, KINDS().indexOf(k), Skills.level('mining'), { upg: Math.pow(2, t) }); };
+  const bestOre = (k) => Skills.oreReachBest(k); // the best ore that pickaxe can reach (its grade + one above)
+  const oreH = (k, t) => { const id = bestOre(k); return Skills.characterOrePerHour(id, KINDS().indexOf(k), Skills.level('mining'), { upg: Math.pow(2, t) }); };
   // the upgrade itself: consume the pickaxes, raise the tier, save
   // the upgrade (Dominic: the tier lives on the item): the first one turns one plain pickaxe into the kind's single tiered pickaxe (T1) and consumes the T1 cost too;
   // later ones raise that item's tier. Payment is always plain pickaxes of the same kind (the tiered one is its own item and is never taken).
@@ -106,9 +108,9 @@ const Theus = (() => {
   function upgrade(k) { const t = tierOf(k); if (t >= Skills.PICK_TIER_MAX) return { ok: false, why: 'max' }; const n = need(k, t), T = Craft.TPICK(k); if (have(k) < n) return { ok: false, why: 'short', need: n, have: have(k) };
     const dest = t > 0 ? null : Craft.fits('bag', T) ? 'bag' : Craft.fits('vault', T) ? 'vault' : ''; if (dest === '') { if (typeof toast === 'function') toast('No free slot for it: clear a backpack or vault slot'); return { ok: false, why: 'full' }; }
     if (!Craft.take('tool:pick_' + k, n)) return { ok: false, why: 'short', need: n, have: have(k) }; S.tpicks = S.tpicks || {};
-    if (dest) { Craft.add(dest, T, 1); if (S.pickGrade === k) S.pickEqT = k; } /* (holding that kind: the new tiered one goes in her hand) */ S.tpicks[k] = t + 1; if (typeof save === 'function') save(); return { ok: true, tier: t + 1, cost: n, made: dest || null }; }
+    if (dest) Craft.add(dest, T, 1); /* (Dominic: into the backpack, not equipped) */ S.tpicks[k] = t + 1; if (typeof save === 'function') save(); return { ok: true, tier: t + 1, cost: n, made: dest || null }; }
   const LINES = ['Ha! Feel the weight of that.', 'Folded and true. It will bite deeper now.', 'Twice the bite. Go and use it.', 'The fire liked those.', 'Good iron sings. Hear it?'];
-  function upHTML() { const ks = KINDS(); if (!ST.sel || !ks.includes(ST.sel)) ST.sel = (typeof S !== 'undefined' && ks.includes(S.pickGrade)) ? S.pickGrade : ks.find((k) => have(k) > 0) || ks[0]; const k = ST.sel, t = tierOf(k), max = t >= Skills.PICK_TIER_MAX, c = max ? 0 : need(k, t), h = have(k), short = !max && h < c, ore = bestOre(), oreNm = ore.charAt(0).toUpperCase() + ore.slice(1);
+  function upHTML() { const ks = KINDS(); if (!ST.sel || !ks.includes(ST.sel)) ST.sel = (typeof S !== 'undefined' && ks.includes(S.pickGrade)) ? S.pickGrade : ks.find((k) => have(k) > 0) || ks[0]; const k = ST.sel, t = tierOf(k), max = t >= Skills.PICK_TIER_MAX, c = max ? 0 : need(k, t), h = have(k), short = !max && h < c, ore = bestOre(k), oreNm = Skills.oreName(ore);
     const list = ks.map((q) => { const tq = tierOf(q); return `<button class="uK${q === k ? ' on' : ''}" data-k="${q}">${ico(q)}<span>${NAME(q)}</span><b class="thBadge${tq >= Skills.PICK_TIER_MAX ? ' max' : ''}">T${tq}</b></button>`; }).join('');
     const say = ST.flash ? ST.flash : max ? 'That one is finished. Nothing left in it to fold.' : short ? `Bring me more ${NAME(k)}s. ${c} of them, all the same kind.` : t === 0 ? `${c} of those. One I fold into yours for good, the rest feed it.` : `${c} of those and I will make it bite twice as hard.`;
     const det = max ? `<div class="uMast">Mastered</div><div class="uRow"><span>Multiplier</span><b>x${Math.pow(2, t)}</b></div><div class="uRow"><span>Ore/h (${oreNm})</span><b>${fmt(oreH(k, t))}</b></div>`
@@ -124,6 +126,40 @@ const Theus = (() => {
       u.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (!b) { if (e.target === u) closeUp(); return; } upAct(b.dataset.a, b.dataset.k); }); ST.up = u; }
     if (k) ST.sel = k; ST.flash = null; render(); ST.up.classList.remove('hidden'); return ST.up; }
   function closeUp() { if (ST.up) ST.up.classList.add('hidden'); ST.flash = null; }
-  return { ST, STEPS, gift, onAnvil, hit, tapAt, open, close, go, act, openUp, closeUp, upgrade, upAct, render, NAME, get step() { return ST.step && ST.step.id; } };
+
+  // ---- the Ledgeville Exchange (Dominic): tiered pickaxes trade only between players, at the seller's price; never with the shop. Listing hands the item over
+  //      (its tier goes with it; held until cancelled, like the other player listings); buying brings the item with its tier; one tiered pickaxe per kind.
+  const XS = { msg: null, conf: null };
+  const lum = () => Math.floor((S.res && S.res.lumen) || 0), n0 = (v) => Math.round(v).toLocaleString('en-US');
+  const ownMsg = (k) => `You already have a tiered ${NAME(k)}. You can only hold one of each kind.`;
+  function exState() { const E = S.tpEx || (S.tpEx = { ai: null, mine: [], next: 1 }); if (!E.ai) { const AI = (typeof W !== 'undefined' && W.homes ? W.homes.filter((h) => !h.isPlayer) : []), who = (i) => (AI.length ? AI[(i * 7 + 3) % AI.length].owner : ['Brannoc', 'Ysolde', 'Tamsin', 'Orrin', 'Mabry'][i]);
+      const plain = (k) => (typeof Craft !== 'undefined' ? Craft.sellP('tool:pick_' + k) : 10);
+      E.ai = [['bronze', 3], ['iron', 2], ['steel', 4], ['gold', 2], ['mithril', 1]].map(([k, t], i) => ({ id: 'ai' + (i + 1), k, tier: t, seller: who(i), price: Math.max(10, Math.round(plain(k) * (1 + 20 * (Math.pow(2, t) - 1)) * (0.55 + 0.1 * i) / 10) * 10) })); } return E; }
+  const slotFor = (id) => (Craft.fits('bag', id) ? 'bag' : Craft.fits('vault', id) ? 'vault' : null);
+  function give(k, tier) { const id = Craft.TPICK(k), w = slotFor(id); if (!w) return false; Craft.add(w, id, 1); S.tpicks = S.tpicks || {}; S.tpicks[k] = tier; return w; }
+  const icoT = (k, t) => `<span class="cxtw thExI">${ico(k)}<b class="cxtb">T${t}</b></span>`;
+  function exHTML() { if (typeof S === 'undefined' || !S) return ''; const E = exState(), mine = KINDS().filter((k) => Craft.have(Craft.TPICK(k)) > 0), c = XS.conf;
+    let h = `<div class="thEx" id="thEx"><h3 style="margin:12px 0 2px">\u26cf\ufe0f Tiered pickaxes</h3><div class="dim small">Traded only between players, at the seller's price. The shop never buys or sells them. You can hold one tiered pickaxe of each kind.</div>`;
+    if (XS.msg) h += `<div class="thExMsg ${XS.msg[0]}" role="status">${XS.msg[1]}</div>`;
+    h += E.ai.map((o) => `<div class="thExRow">${icoT(o.k, o.tier)}<span class="thExN"><b>${NAME(o.k)} (T${o.tier})</b><small>${o.seller} \u00b7 x${Math.pow(2, o.tier)} mining</small></span><button class="btn small" data-act="extbuy" data-id="${o.id}">Buy ${n0(o.price)} \ud83c\udfee</button></div>`).join('') || '<div class="dim small">No tiered pickaxes listed right now.</div>';
+    h += `<h4 style="margin:10px 0 4px">List yours</h4>`;
+    if (mine.length) { const sel = c ? c.k : mine[0], sug = (k) => Math.round(Craft.sellP('tool:pick_' + k) * (1 + 20 * (Math.pow(2, Craft.pickTier(k)) - 1)) * 0.6);
+      h += `<div class="wrapgap thExList"><select id="thExK" aria-label="Tiered pickaxe">${mine.map((k) => `<option value="${k}"${k === sel ? ' selected' : ''}>${NAME(k)} (T${Craft.pickTier(k)})</option>`).join('')}</select><input id="thExP" type="number" min="1" step="1" value="${c ? c.price : sug(sel)}" style="width:92px" aria-label="Price in Lumen"> \ud83c\udfee <button class="btn" data-act="extlist">List</button></div>`;
+      if (c && Craft.have(Craft.TPICK(c.k)) > 0) h += `<div class="cxdanger" role="alertdialog"><b>\u26a0\ufe0f List ${NAME(c.k)} (T${Craft.pickTier(c.k)}) for ${n0(c.price)} \ud83c\udfee?</b><p>This will lose Tier ${Craft.pickTier(c.k)}. You'll start over at Tier 1.</p><div class="wrapgap"><button class="btn cxdng" data-act="extlistok">List it</button><button class="btn ghost" data-act="extlistno">Keep it</button></div></div>`;
+    } else h += '<div class="dim small">You have no tiered pickaxe to list. Theus at the forge makes them.</div>';
+    if (E.mine.length) h += `<h4 style="margin:10px 0 4px">Your tiered listings</h4>` + E.mine.map((m) => `<div class="thExRow">${icoT(m.k, m.tier)}<span class="thExN"><b>${NAME(m.k)} (T${m.tier})</b><small>${n0(m.price)} \ud83c\udfee \u00b7 waiting for a buyer</small></span><button class="btn ghost small" data-act="extcancel" data-id="${m.id}">Cancel</button></div>`).join('') + '<div class="dim small">Buyers for player listings are coming soon; cancelling returns the pickaxe with its tier.</div>';
+    return h + '</div>'; }
+  function exAct(act, ds) { const E = exState(); XS.msg = null;
+    if (act === 'extbuy') { const o = E.ai.find((q) => q.id === ds.id); if (!o) return false; if (Craft.have(Craft.TPICK(o.k)) > 0) { XS.msg = ['bad', ownMsg(o.k)]; toast(ownMsg(o.k)); return false; }
+      if (lum() < o.price) { XS.msg = ['bad', 'Not enough Lumen.']; return false; } if (!slotFor(Craft.TPICK(o.k))) { XS.msg = ['bad', 'No free backpack or vault slot for it.']; return false; }
+      S.res.lumen -= o.price; give(o.k, o.tier); E.ai = E.ai.filter((q) => q !== o); XS.msg = ['good', `Bought ${NAME(o.k)} (T${o.tier}) from ${o.seller}.`]; toast(`\u2696\ufe0f Bought ${NAME(o.k)} (T${o.tier}) from ${o.seller} for ${n0(o.price)} \ud83c\udfee`); if (typeof save === 'function') save(); return true; }
+    if (act === 'extlist') { const ke = document.getElementById('thExK'), pe = document.getElementById('thExP'), k = ke && ke.value, pr = Math.floor(+(pe && pe.value)); if (!k || !(pr >= 1)) { XS.msg = ['bad', 'Set a price in Lumen.']; return false; } XS.conf = { k, price: pr }; return true; }
+    if (act === 'extlistno') { XS.conf = null; return true; }
+    if (act === 'extlistok') { const c = XS.conf; XS.conf = null; if (!c || Craft.have(Craft.TPICK(c.k)) <= 0) return false; const t = Craft.pickTier(c.k); Craft.take(Craft.TPICK(c.k), 1); if (S.tpicks) delete S.tpicks[c.k]; if (S.pickEqT === c.k) S.pickEqT = null;
+      E.mine.push({ id: E.next++, k: c.k, tier: t, price: c.price }); XS.msg = ['good', `Listed ${NAME(c.k)} (T${t}) at ${n0(c.price)} \ud83c\udfee.`]; if (typeof save === 'function') save(); return true; }
+    if (act === 'extcancel') { const i = E.mine.findIndex((m) => m.id === +ds.id); if (i < 0) return false; const m = E.mine[i]; if (Craft.have(Craft.TPICK(m.k)) > 0) { XS.msg = ['bad', ownMsg(m.k)]; return false; }
+      if (!give(m.k, m.tier)) { XS.msg = ['bad', 'No free backpack or vault slot for it.']; return false; } E.mine.splice(i, 1); XS.msg = ['good', `${NAME(m.k)} (T${m.tier}) is back in your pack.`]; if (typeof save === 'function') save(); return true; }
+    return false; }
+  return { XS, exHTML, exAct, exState, ST, STEPS, gift, onAnvil, hit, tapAt, open, close, go, act, openUp, closeUp, upgrade, upAct, render, NAME, get step() { return ST.step && ST.step.id; } };
 })();
 if (typeof window !== 'undefined') window.Theus = Theus;
