@@ -11,7 +11,7 @@ const ExMap = (() => {
   const palAt = (t) => { for (let i = 1; i < PAL.length; i++) if (t <= PAL[i][0]) { const [a, A] = PAL[i - 1], [b, B] = PAL[i], u = (t - a) / (b - a); return [A[0] + (B[0] - A[0]) * u, A[1] + (B[1] - A[1]) * u, A[2] + (B[2] - A[2]) * u]; } return PAL[PAL.length - 1][1]; };
   // ---- the base picture: one texel per 2x2 nav cells
   function baseImage() { if (st.base) return st.base; const NV = Explore.build(), { nx, ny, cls, h } = NV, K = 2, bw = Math.ceil(nx / K), bh = Math.ceil(ny / K), cv = document.createElement('canvas'); cv.width = bw; cv.height = bh;
-    const g = cv.getContext('2d'), img = g.createImageData(bw, bh), D = img.data; let h0 = 1e9, h1 = -1e9; for (let k = 0; k < nx * ny; k += 7) if (cls[k]) { h0 = Math.min(h0, h[k]); h1 = Math.max(h1, h[k]); }
+    const g = cv.getContext('2d'), img = g.createImageData(bw, bh), D = img.data; let h0 = 1e9, h1 = -1e9; for (let k = 0; k < nx * ny; k += 7) if (cls[k]) { const hv = NV.h0 != null ? NV.h0 + h[k] * NV.hs : h[k]; h0 = Math.min(h0, hv); h1 = Math.max(h1, hv); } /* (nav heights are stored quantised) */
     const C = Explore.C, R = Explore.REG, wet = (x, y) => typeof GRAND !== 'undefined' && GRAND.spec && GRAND.wet(x, y, 0), cr = typeof CITY !== 'undefined' ? CITY.R : 1e9;
     for (let j = 0; j < bh; j++) for (let i = 0; i < bw; i++) { const ci = Math.min(nx - 1, i * K), cj = Math.min(ny - 1, j * K), k = cj * nx + ci, x = R.X0 + ci * C, y = R.Y0 + cj * C, o = (j * bw + i) * 4; let c;
       const r = Math.hypot(x, y); if (r > cr) { c = [24, 30, 44]; }
