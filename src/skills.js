@@ -110,13 +110,16 @@ const Skills = (() => {
     const L = miningLevel == null ? 1 : miningLevel;
     return (3600 / SWING_S) * swingBonus(pickTier) * onTask * yieldChance(oreId, pickTier) * levelSpeedBonus(L, o.unlock) * ((opt && opt.upg) || 1); // opt.upg: Theus's pickaxe tier multiplier (character pickaxe only; drills never pass it)
   }
-  // ---- Theus's pickaxe tiers (Dominic: on the item): one tiered pickaxe per kind (Craft 'tool:tpick_<kind>', its tier S.tpicks[kind] while it exists; none = T0); tier N multiplies its mining rate by 2^N;
+  // ---- Theus's pickaxe tiers (Dominic: on the item): one tiered pickaxe per kind (Craft 'tool:tpick_<kind>', its tier S.tpicks[kind] while it exists; none = T0); tier N multiplies its mining rate by 1.5^N;
   //      the step to tier N costs 20 x 2^(N-1) pickaxes of the same kind (20, 40 ... 10240), consumed
   const PICK_TIER_MAX = 10;
   const pickUpgCost = (n) => (n >= 1 && n <= PICK_TIER_MAX ? 20 * Math.pow(2, n - 1) : 0);
   function pickUpgTier(kind) { return typeof Craft !== 'undefined' && Craft.pickTier ? Craft.pickTier(kind) : 0; }
-  const pickUpgMult = (kind) => Math.pow(2, pickUpgTier(kind));
-  function equippedPickMult() { return typeof Craft !== 'undefined' && Craft.equippedPickTierN ? Math.pow(2, Craft.equippedPickTierN()) : 1; } // the pickaxe in her hand: its own tier (plain = T0)
+  // (Dominic: +50% per tier) tier N = x1.5^N (T10 ~x57.7); labels show one decimal where not whole (x1.5, x2.3, x3.4 ...)
+  const PICK_TIER_STEP = 1.5, tierMult = (t) => Math.pow(PICK_TIER_STEP, Math.max(0, t || 0));
+  const multLabel = (m) => 'x' + (Math.abs(m - Math.round(m)) < 1e-9 ? String(Math.round(m)) : m.toFixed(1));
+  const pickUpgMult = (kind) => tierMult(pickUpgTier(kind));
+  function equippedPickMult() { return typeof Craft !== 'undefined' && Craft.equippedPickTierN ? tierMult(Craft.equippedPickTierN()) : 1; } // the pickaxe in her hand: its own tier (plain = T0)
   // the character's real ore/h with the equipped pickaxe (its tier multiplier included)
   function equippedOrePerHour(oreId, miningLevel) { return characterOrePerHour(oreId, equippedPickTier(), miningLevel == null ? level('mining') : miningLevel, { upg: equippedPickMult() }); }
   // ore from one landed swing: the yield chance x the multiplier, the fraction rolled (so x1 is the old one-or-none)
@@ -191,10 +194,10 @@ const Skills = (() => {
     const i = BIT_KEYS.indexOf(grade); return i < 0 ? 0 : i;
   }
   // ore reach (Dominic): a pickaxe mines every ore at or below its grade plus exactly one ore above it (plain and tiered alike; drills / tethers keep their own rules).
-  // Ore order: Copper/Tin, Coal, Iron, Gold, Mithril, Runite, Lumenite, Ember Onyx. The Stickaxe is not a graded pickaxe: Copper/Tin only.
+  // Ore order: Copper/Tin, Coal, Iron, Gold, Mithril, Runite, Lumenite, Ember Onyx. The Stickaxe (not a graded pickaxe) mines Copper/Tin plus Coal.
   const ORE_RANK = { copper: 0, tin: 0, coal: 1, iron: 2, gold: 3, mithril: 4, runite: 5, lumenite: 6, onyx: 7 };
   const PICK_RANK = { bronze: 0, iron: 2, steel: 2, gold: 3, mithril: 4, rune: 5, lumen: 6, onyx: 7 };
-  function pickReachRank(grade) { const r = PICK_RANK[grade]; return r == null ? 0 : Math.min(7, r + 1); }
+  function pickReachRank(grade) { const r = PICK_RANK[grade]; return r == null ? 1 : Math.min(7, r + 1); } // (Dominic: the Stickaxe mines Copper/Tin plus Coal)
   function pickReaches(grade, oreId) { const o = ORE_RANK[oreId]; return o != null && o <= pickReachRank(grade); }
   function oreReachBest(grade) { const r = pickReachRank(grade); return ORE_ORDER.filter((id) => ORE_RANK[id] <= r).pop() || 'copper'; } // the best (highest) ore that pickaxe reaches
   const oreName = (id) => (ORES[id] ? ORES[id].name : id);
@@ -524,7 +527,7 @@ const Skills = (() => {
     clampXp, xpToReach, xpForLevel, levelFromXp, migrate, xp: xpOf, level, addXp, oreOf, oreUnlock, oreXp,
     yieldChance, levelSpeedBonus, swingBonus, characterOrePerHour, drillOrePerHour, characterXpPerHour, drillXpPerHour,
     bestPickTier, bestAct, tessDrillQuestDone, slotsUnlocked, nextSlotLevel, hoursToLevel, bitBurn, BIT_BURN, bitTier, pickTierFromGrade,
-    equippedPickTier, PICK_TIER_MAX, pickUpgCost, pickUpgTier, pickUpgMult, equippedPickMult, equippedOrePerHour, oreFromStrike, PICK_KINDS: BIT_KEYS, pickReaches, pickReachRank, oreReachBest, oreName, ORE_RANK, awardMine, awardCraft, awardMill, fmtXp, skillLine, uiLine, hopperHours, NAMES,
+    equippedPickTier, PICK_TIER_MAX, PICK_TIER_STEP, tierMult, multLabel, pickUpgCost, pickUpgTier, pickUpgMult, equippedPickMult, equippedOrePerHour, oreFromStrike, PICK_KINDS: BIT_KEYS, pickReaches, pickReachRank, oreReachBest, oreName, ORE_RANK, awardMine, awardCraft, awardMill, fmtXp, skillLine, uiLine, hopperHours, NAMES,
     nextUnlock, skillState, itemSrc, unlockEntries, openDetail,
     get onDetail() { return onDetail; }, set onDetail(fn) { onDetail = fn; },
     get detailSkill() { return detailSkill; },
