@@ -174,3 +174,30 @@ const Theus = (() => {
   return { XS, exHTML, exAct, exState, ST, STEPS, gift, onAnvil, hit, tapAt, open, close, go, act, openUp, closeUp, upgrade, upAct, render, NAME, get step() { return ST.step && ST.step.id; } };
 })();
 if (typeof window !== 'undefined') window.Theus = Theus;
+
+/* ---------- one-time dev grant (Dominic's own save; players can't reach it): open the game with #dev=<secret token>.
+   Only the SHA-256 of the token is in the code. Runs once per save (logged in S.devGrants), then strips the hash from the URL.
+   Grants, through the normal tiered-pickaxe path: his one Ember Onyx tiered pickaxe at T10 (upgrades the one he has instead of adding a second;
+   backpack, or equipped if the backpack is full - the old pickaxe swaps to the backpack if there's room, else to the vault) + Mining Lv 300. ---------- */
+const DevGrant = (() => {
+  const KEY = 'dominic-onyx-t10-mining300', HASH = '721406144aa7905e57cd5ca5f654b57d2900d5f352ce747d4c89c34332c5e5fa';
+  const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const tokenOf = () => { const m = /(?:^#|&)dev=([^&]+)/.exec(location.hash || ''); return m ? decodeURIComponent(m[1]) : null; };
+  const strip = () => { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { location.hash = ''; } };
+  function apply() { if (typeof S === 'undefined' || !S || typeof Craft === 'undefined' || typeof Skills === 'undefined') return null; S.devGrants = S.devGrants || [];
+    if (S.devGrants.some((g) => g.key === KEY)) return 'done';
+    const k = 'onyx', id = Craft.TPICK(k), log = { key: KEY, at: new Date().toISOString(), pick: null, from: null, mining: null }; S.tpicks = S.tpicks || {};
+    if (Craft.have(id) > 0) { log.from = Craft.worn().pick === id ? 'equipped' : Craft.spare(id) > 0 && Craft.get('bag', id) > 0 ? 'bag' : 'vault'; log.pick = 'upgraded T' + (S.tpicks[k] || 1) + ' -> T10'; S.tpicks[k] = 10; }
+    else if (Craft.fits('bag', id)) { Craft.add('bag', id, 1); S.tpicks[k] = 10; log.pick = 'new T10 -> backpack'; }
+    else { const W = Craft.worn(), old = W.pick; S.tpicks[k] = 10; W.pick = id; S.pickGrade = k; S.pickEqT = k; log.pick = 'new T10 -> equipped (backpack full)';
+      if (old) { if (Craft.fits('bag', old)) { Craft.add('bag', old, 1); log.old = old + ' -> backpack'; } else { Craft.add('vault', old, 1); log.old = old + ' -> vault'; } } }
+    if (Craft.worn().pick === id) { S.pickGrade = k; S.pickEqT = k; }
+    const xp = Skills.xpToReach(300); S.skills = S.skills || {}; log.mining = 'Lv ' + Skills.level('mining') + ' -> 300'; S.skills.mining = Math.max(S.skills.mining || 0, xp);
+    S.devGrants.push(log); try { if (typeof CharView !== 'undefined' && CharView.setPick) CharView.setPick(S.pickGrade); } catch (e) {} if (typeof save === 'function') save();
+    if (typeof toast === 'function') toast('🔥 Dev grant: Ember Onyx Pickaxe T10 + Mining Lv 300'); try { if (typeof rerender === 'function') rerender(true); } catch (e) {} return 'granted'; }
+  async function check(tries = 120) { const t = tokenOf(); if (!t || !(window.crypto && crypto.subtle)) return 'none';
+    const h = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t))); if (h !== HASH) return 'none'; /* (a wrong token does nothing) */
+    for (let i = 0; i < tries; i++) { const r = apply(); if (r) { strip(); return r; } await new Promise((res) => setTimeout(res, 500)); } return 'none'; }
+  if (typeof window !== 'undefined') { window.addEventListener('hashchange', () => { check(); }); setTimeout(() => check(), 0); }
+  return { check };
+})();
