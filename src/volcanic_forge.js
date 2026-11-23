@@ -73,6 +73,15 @@ const FORGE = (() => {
     if (r < Rb(th) + 5 + md) return 'cone'; if (platD(X, Y) < L.skirt + 12 + md) return 'platform'; if (workIn(X, Y, md)) return 'work'; if (X > -20 - md && X < 175 + md && Math.abs(Y) < 90 + md) return 'yard'; /* no home (or its yard trees) at his feet, the stride strip or round the platform */
     if (Math.hypot(X - L.ledge[0], Y - L.ledge[1]) < 30 + md) return 'ledge'; if (swbNear(X, Y)[0] < 12 + md) return 'switchback'; return false; }
   function pathKeep(X, Y) { const dx = X - L.crater[0], r = Math.hypot(dx, Y), th = Math.abs(Math.atan2(Y, dx)); return r < Rb(th) - 10 || platD(X, Y) < L.skirt + 12 || workIn(X, Y, 0); }
+  // (Dominic t565u) the map views (pull-out map + minimap): his lava lake orange / red, the crater and cone dark basalt, the scorched oval charred black with ember
+  // cracks, fading through the ash band back to the ground colour - drawn in code over the existing map colours (c), no texture. null = not the volcano's ground
+  function mapTint(x, y, c) { const [X, Y] = loc(x, y); if (Math.abs(X + 100) > 900 || Math.abs(Y) > 900) return null; /* (not clipped to the works' box: his cone's foot runs past it) */ const dx = X - L.crater[0], r = Math.hypot(dx, Y), th = Math.abs(Math.atan2(Y, dx)), lum = clamp((c[0] + c[1] + c[2]) / 420, 0.65, 1.3);
+    if (r < 84) { const n = 0.5 + 0.5 * Math.sin(X * 0.11 + 3 * Math.cos(Y * 0.09)) * Math.sin(Y * 0.13 - X * 0.05), t = clamp(r / 84 + 0.25 * (n - 0.5), 0, 1); return t < 0.45 ? [255, lerp(196, 120, t / 0.45), lerp(70, 34, t / 0.45)] : [lerp(250, 196, (t - 0.45) / 0.55), lerp(110, 40, (t - 0.45) / 0.55), lerp(30, 22, (t - 0.45) / 0.55)]; } /* the lava: a hot yellow-orange core, orange, red at its edge */
+    if (r < Rr(th)) return [92 * lum, 38 * lum, 26 * lum]; /* the crater wall, lit red from below */
+    if (r < Rb(th)) return [54 * lum, 46 * lum, 44 * lum]; /* the cone: dark basalt (keeps the map's hill shading) */
+    const dE = (Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]) - 1) * L.scorch[3]; if (dE >= L.ash) return null;
+    if (dE < 0 && Math.abs(Math.sin(X * 0.045 + 2.2 * Math.sin(Y * 0.031)) * Math.cos(Y * 0.038 - X * 0.012)) < 0.035) return [200, 74, 28]; /* ember cracks */
+    const k = [34 * lum, 30 * lum, 29 * lum], ash = [104 * lum, 98 * lum, 92 * lum], w = sm(0, L.ash * 0.55, dE), w2 = sm(L.ash * 0.45, L.ash, dE); return k.map((v, i) => { const a = v + (ash[i] - v) * w; return a + (c[i] - a) * w2; }); } /* charred earth -> ash -> ground */
   function scorched(x, y, m) { const [X, Y] = loc(x, y); if (!inBox(X, Y)) return false; const e = Math.hypot((X - L.scorch[0]) / L.scorch[2], Y / L.scorch[3]); return (e - 1) * L.scorch[3] < (m || 0) / U; }
   const clear = (x, y, m) => scorched(x, y, (m || 0) + 35 * U) || !!keepOut(x, y, m);
 
@@ -607,5 +616,5 @@ const FORGE = (() => {
     for (const s of M.sp) { if (n >= M.spN) break; pos.setXYZ(n, s.p.x, s.p.y, s.p.z); const f = s.ground ? Math.max(0, 1 - (s.age - s.tg) / (s.ember ? 6 : 2.5)) * (s.ember ? 0.35 : 0.5) : (s.ember ? 0.55 + 0.25 * Math.sin(now * 11 + s.p.x) : 1) - 0.4 * sm(0, s.life, s.age); col.setXYZ(n, s.c[0] * f, s.c[1] * f * (s.ground ? 0.5 : 1), s.c[2] * f); n++; }
     M.pts.geometry.setDrawRange(0, n); pos.needsUpdate = true; col.needsUpdate = true; }
   const shaderU = () => new THREE.Vector4(LIP[0], LIP[1], U, 1);
-  return { clipNow, faceGap, headHit, WS, F, U, LIP, HB, LOOP, HITS, L, M, wld, loc, carve, keepOut, scorched, clear, afterGen, orePrune, anchors, build, anim, barAt, hitTimes, phase, pose, platZ, platD, cone, Hr, Rb, Rr, shaderU, homeU, pathKeepW: (x, y) => { const [X, Y] = loc(x, y); return inBox(X, Y) && pathKeep(X, Y); }, BP, SWB, swbNear, setPose, restBar, jawWorld, headWorld, apePts, on };
+  return { mapTint, clipNow, faceGap, headHit, WS, F, U, LIP, HB, LOOP, HITS, L, M, wld, loc, carve, keepOut, scorched, clear, afterGen, orePrune, anchors, build, anim, barAt, hitTimes, phase, pose, platZ, platD, cone, Hr, Rb, Rr, shaderU, homeU, pathKeepW: (x, y) => { const [X, Y] = loc(x, y); return inBox(X, Y) && pathKeep(X, Y); }, BP, SWB, swbNear, setPose, restBar, jawWorld, headWorld, apePts, on };
 })();

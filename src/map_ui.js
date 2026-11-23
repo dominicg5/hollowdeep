@@ -388,7 +388,7 @@ const CityMap = (() => {
   }
   function buildMinimapBase() {
     const N = 160; mmBase = document.createElement('canvas'); mmBase.width = mmBase.height = N * 2; const g = mmBase.getContext('2d'); const img = g.createImageData(N, N);
-    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = (i / N) * 2 * CITY.R - CITY.R, y = (j / N) * 2 * CITY.R - CITY.R; let col = groundRGB(x, y); if (hollowDist(x, y) < 0) col = [24, 30, 52]; else if (inLake(x, y)) col = [93, 155, 179]; else if (chasmDist(x, y) < 6) col = [30, 32, 48]; const o = (j * N + i) * 4; img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255; }
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = (i / N) * 2 * CITY.R - CITY.R, y = (j / N) * 2 * CITY.R - CITY.R; let col = groundRGB(x, y); if (hollowDist(x, y) < 0) col = [24, 30, 52]; else if (inLake(x, y)) col = [93, 155, 179]; else if (chasmDist(x, y) < 6) col = [30, 32, 48]; if (typeof FORGE !== 'undefined' && FORGE.mapTint) { const t = FORGE.mapTint(x, y, col); if (t) col = t; } /* (Dominic t565u) his volcano */ const o = (j * N + i) * 4; img.data[o] = col[0]; img.data[o + 1] = col[1]; img.data[o + 2] = col[2]; img.data[o + 3] = 255; }
     const tmp = document.createElement('canvas'); tmp.width = tmp.height = N; tmp.getContext('2d').putImageData(img, 0, 0); g.imageSmoothingEnabled = true; g.drawImage(tmp, 0, 0, N * 2, N * 2);
     const sc = (N * 2) / (CITY.R * 2); g.fillStyle = 'rgba(150,60,40,.5)'; for (const h of W.homes) g.fillRect((h.x + CITY.R) * sc - 0.5, (h.y + CITY.R) * sc - 0.5, 1, 1); g.fillStyle = 'rgba(130,128,120,.95)'; for (const m of W.mountains) { g.beginPath(); g.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, Math.max(1.5, m.r * sc * 0.9), 0, TAU); g.fill(); }
   }
@@ -403,6 +403,7 @@ const CityMap = (() => {
     if (typeof Mosby !== 'undefined' && Mosby.GM && Mosby.GM.at) { const g = Mosby.GM.at; mctx.fillStyle = '#4f9a5a'; mctx.strokeStyle = '#f4e6b8'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc((g.x + CITY.R) * sc, (g.y + CITY.R) * sc, 6, 0, TAU); mctx.fill(); mctx.stroke(); }
     if (typeof MILL !== 'undefined' && MILL.F) { const [x, y] = MILL.wld(10, 6), X = (x + CITY.R) * sc, Y = (y + CITY.R) * sc; if (!mmMill) { mmMill = new Image(); mmMill.src = 'assets/ui/icons/map_tether_mill.webp'; } // the Tether Mill: its map icon (same art as the pull-out map), a brass disc until it loads
       if (mmMill.complete && mmMill.naturalWidth) mctx.drawImage(mmMill, X - 15, Y - 15, 30, 30); else { mctx.fillStyle = '#56968f'; mctx.strokeStyle = '#2a1a0a'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(X, Y, 6, 0, TAU); mctx.fill(); mctx.stroke(); } }
+    if (typeof FORGE !== 'undefined' && FORGE.M && FORGE.M.ape) { const q = FORGE.M.ape.position, X = (q.x + CITY.R) * sc, Y = (q.z + CITY.R) * sc; mctx.fillStyle = '#d2461e'; mctx.strokeStyle = '#fff1d0'; mctx.lineWidth = 2; mctx.beginPath(); mctx.arc(X, Y, 6, 0, TAU); mctx.fill(); mctx.stroke(); mctx.font = '8px system-ui,sans-serif'; mctx.textAlign = 'center'; mctx.textBaseline = 'middle'; mctx.fillText('🔨', X, Y + 0.5); } // (Dominic t565u) Theus
     const m = currentMole(); if (m) { mctx.fillStyle = '#c8634c'; mctx.beginPath(); mctx.arc((m.x + CITY.R) * sc, (m.y + CITY.R) * sc, 4.5, 0, TAU); mctx.fill(); }
     mctx.restore(); void s;
   }
