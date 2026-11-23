@@ -69,6 +69,10 @@ const Skills = (() => {
   function migrate(s) {
     s = s || (typeof S !== 'undefined' ? S : null);
     if (!s) return s;
+    // the earlier build kept a tier per kind (S.pickTiers): each becomes one tiered pickaxe of that kind at that tier (backpack, or the vault if the backpack is full)
+    if (s.pickTiers && typeof s.pickTiers === 'object') { s.tpicks = s.tpicks || {}; const b = s.backpack || (s.backpack = {}); for (const k of BIT_KEYS) { const n = Math.min(PICK_TIER_MAX, Math.floor(s.pickTiers[k] || 0)); if (n <= 0) continue;
+        s.tpicks[k] = n; if (Object.keys(b).filter((q) => b[q] > 0).length < 20 || b['tool:tpick_' + k]) b['tool:tpick_' + k] = 1; else { const v = s.ledgeVault || (s.ledgeVault = {}); (v.gear || (v.gear = {}))['tpick_' + k] = 1; }
+        if (s.pickGrade === k) s.pickEqT = k; } delete s.pickTiers; }
     if (!s.skills || typeof s.skills !== 'object') s.skills = { mining: 0, smithing: 0, tethercraft: 0 };
     s.skills.mining = clampXp(s.skills.mining);
     s.skills.smithing = clampXp(s.skills.smithing);
@@ -106,13 +110,13 @@ const Skills = (() => {
     const L = miningLevel == null ? 1 : miningLevel;
     return (3600 / SWING_S) * swingBonus(pickTier) * onTask * yieldChance(oreId, pickTier) * levelSpeedBonus(L, o.unlock) * ((opt && opt.upg) || 1); // opt.upg: Theus's pickaxe tier multiplier (character pickaxe only; drills never pass it)
   }
-  // ---- Theus's pickaxe tiers (per pickaxe kind, in the save as S.pickTiers; old saves have none = T0): tier N multiplies that pickaxe's mining rate by 2^N;
+  // ---- Theus's pickaxe tiers (Dominic: on the item): one tiered pickaxe per kind (Craft 'tool:tpick_<kind>', its tier S.tpicks[kind] while it exists; none = T0); tier N multiplies its mining rate by 2^N;
   //      the step to tier N costs 20 x 2^(N-1) pickaxes of the same kind (20, 40 ... 10240), consumed
   const PICK_TIER_MAX = 10;
   const pickUpgCost = (n) => (n >= 1 && n <= PICK_TIER_MAX ? 20 * Math.pow(2, n - 1) : 0);
-  function pickUpgTier(kind) { const T = typeof S !== 'undefined' && S && S.pickTiers; return Math.max(0, Math.min(PICK_TIER_MAX, Math.floor((T && T[kind]) || 0))); }
+  function pickUpgTier(kind) { return typeof Craft !== 'undefined' && Craft.pickTier ? Craft.pickTier(kind) : 0; }
   const pickUpgMult = (kind) => Math.pow(2, pickUpgTier(kind));
-  function equippedPickMult() { const g = typeof S !== 'undefined' && S && S.pickGrade; return g && BIT_KEYS.includes(g) ? pickUpgMult(g) : 1; }
+  function equippedPickMult() { return typeof Craft !== 'undefined' && Craft.equippedPickTierN ? Math.pow(2, Craft.equippedPickTierN()) : 1; } // the pickaxe in her hand: its own tier (plain = T0)
   // the character's real ore/h with the equipped pickaxe (its tier multiplier included)
   function equippedOrePerHour(oreId, miningLevel) { return characterOrePerHour(oreId, equippedPickTier(), miningLevel == null ? level('mining') : miningLevel, { upg: equippedPickMult() }); }
   // ore from one landed swing: the yield chance x the multiplier, the fraction rolled (so x1 is the old one-or-none)

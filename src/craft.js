@@ -8,6 +8,8 @@ const Craft = (() => {
   for (const [k, n, c] of ORE_T) ITEMS['ore:' + k] = { name: n + ' ore', short: n, emoji: '🪨', col: c, kind: 'ore', base: 2 };
   TIERS.forEach(([k, n, c], i) => { ITEMS['ingot:' + k] = { name: n + ' ingot', short: n, emoji: '🧱', col: c, kind: 'ingot', tier: i };
     for (const [t, tn, e] of TOOLS) ITEMS['tool:' + t + '_' + k] = { name: n + ' ' + tn.toLowerCase(), short: n, emoji: e, col: c, kind: 'tool', tool: t, tier: i }; });
+  // Theus's tiered pickaxe (Dominic: the tier lives on the item): one per kind at most, its own id (never a plain pickaxe, never payment); its tier is S.tpicks[kind] while it exists
+  TIERS.forEach(([k, n, c], i) => { ITEMS['tool:tpick_' + k] = { name: n + ' Pickaxe (tiered)', short: n, emoji: '⛏️', col: c, kind: 'tool', tool: 'pick', tier: i, grade: k, tiered: true }; });
   for (const [k, n, c] of TIERS) ITEMS['tether:' + k] = { name: n + ' Ledge Tether', short: n + ' Tether', emoji: '🪢', col: c, kind: 'teth', tool: 'lifeline', unit: 'm', grade: k }; // coils measured in metres: lay drop tethers, upgrade / swap strands (Tether Orb)
   // drill split: one Drill Stand (no material tiers) plus a swappable bit (8 tiers). The old 'drill:mithril' id is kept only so a leftover count still migrates; it is not seeded or shown once empty.
   const STAND_ID = 'stand:drill', STAND_OLD = ['stand:timber', 'stand:iron', 'stand:brass', 'stand:lumenite'];
@@ -44,7 +46,7 @@ const Craft = (() => {
   };
   for (const [t] of TOOLS) if (t !== 'tlink') TIERS.forEach(([k], i) => { const n = Math.round(TOOL_COST[t] * 1.55 ** i), inp = { ['ingot:' + k]: n }; if (TOOL_EXTRA[t]) inp[TOOL_EXTRA[t] + k] = 2; SMITH.push({ out: 'tool:' + t + '_' + k, in: inp, tool: t }); });
   // local placeholder market: value climbs per tier; the crystal buys at 80%
-  const value = (id) => { const it = ITEMS[id]; if (!it) return 0; if (it.kind === 'ore') return Math.round(2 * 1.7 ** Math.max(0, ORE_T.findIndex((o) => 'ore:' + o[0] === id) - 1)); let v = 0; const r = SMELT.find((q) => q.out === id) || SMITH.find((q) => q.out === id); if (r) for (const k in r.in) v += value(k) * r.in[k]; else if (it.tool === 'tlink' && MILL[id.slice(10)]) v = value('ingot:' + id.slice(10)) * MILL[id.slice(10)].ci; return Math.round(v * 1.25); };
+  const value = (id) => { const it = ITEMS[id]; if (!it) return 0; if (it.tiered) return value('tool:pick_' + it.grade); /* (a tiered pickaxe sells at the plain price) */ if (it.kind === 'ore') return Math.round(2 * 1.7 ** Math.max(0, ORE_T.findIndex((o) => 'ore:' + o[0] === id) - 1)); let v = 0; const r = SMELT.find((q) => q.out === id) || SMITH.find((q) => q.out === id); if (r) for (const k in r.in) v += value(k) * r.in[k]; else if (it.tool === 'tlink' && MILL[id.slice(10)]) v = value('ingot:' + id.slice(10)) * MILL[id.slice(10)].ci; return Math.round(v * 1.25); };
   const sellP = (id) => Math.max(1, Math.floor(value(id) * 0.8)), buyP = (id) => Math.max(1, Math.ceil(value(id) * 1.15));
   // ---- storage: backpack = S.backpack {id:n}; vault = S.ledgeVault (ores/ingots/gear) with iron, coal, steel living in S.res
   const RES = { 'ore:iron': 'iron', 'ore:coal': 'coal', 'ingot:steel': 'steel' };
@@ -77,13 +79,18 @@ const Craft = (() => {
   function fits(where, id) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N; return O.includes(id) || O.slice(0, N).includes(null); }
   function add(where, id, n) { if (n > 0 && !fits(where, id)) return 0; if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; order('bag'); return n; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); order('vault'); return n; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; order('vault'); return n; }
   const have = (id) => get('bag', id) + get('vault', id);
+  const TPICK = (k) => 'tool:tpick_' + k;
+  function pickTier(k) { if (typeof S === 'undefined' || !S || have(TPICK(k)) <= 0) return 0; return Math.max(1, Math.min(10, Math.floor((S.tpicks && S.tpicks[k]) || 1))); } // the tiered pickaxe's own tier; no tiered pickaxe = T0
+  // the equipped pickaxe's own tier: the tiered one only while it is the one in her hand (plain pickaxes are T0)
+  function equippedPickTierN() { const g = typeof S !== 'undefined' && S && S.pickGrade; return g && S.pickEqT === g ? pickTier(g) : 0; }
   function take(id, n) { if (have(id) < n) return false; const a = Math.min(get('bag', id), n); add('bag', id, -a); if (n - a) add('vault', id, -(n - a)); return true; }
   function move(from, to, id, n) { n = Math.min(Math.floor(n), get(from, id)); if (n <= 0 || !fits(to, id)) return 0; add(from, id, -n); add(to, id, n); return n; }
   function canMake(r, x) { return Object.keys(r.in).every((k) => have(k) >= r.in[k] * x); }
   function maxMake(r) { let m = Infinity; for (const k in r.in) m = Math.min(m, Math.floor(have(k) / r.in[k])); return m; }
   function make(r, x, dest) { if (x <= 0 || !canMake(r, x) || !fits(dest === 'vault' ? 'vault' : 'bag', r.out)) return 0; for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
   const lum = () => Math.floor((S.res && S.res.lumen) || 0);
-  function sell(id, n) { n = Math.min(n, have(id)); if (n <= 0) return 0; take(id, n); S.res.lumen = (S.res.lumen || 0) + sellP(id) * n; return n; }
+  function sell(id, n) { n = Math.min(n, have(id)); if (n <= 0) return 0; take(id, n); S.res.lumen = (S.res.lumen || 0) + sellP(id) * n; const it = ITEMS[id];
+    if (it && it.tiered && have(id) <= 0) { if (S.tpicks) delete S.tpicks[it.grade]; if (S.pickEqT === it.grade) S.pickEqT = null; } /* sold: that kind starts over at T0 */ return n; }
   function buy(id, n) { n = Math.min(n, Math.floor(lum() / buyP(id))); if (n <= 0 || !fits('bag', id)) return 0; S.res.lumen -= buyP(id) * n; add('bag', id, n); return n; }
   // ---- UI
   const st = { qty: 1, dest: 'bag', tab: 'sell', kind: null, acat: 'pick', atool: 'lifeline', menu: null };
@@ -91,7 +98,7 @@ const Craft = (() => {
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const fmt = (n) => (n >= 1e4 ? Math.round(n / 1000) + 'k' : String(n));
   const ico = (id) => { const it = ITEMS[id] || { emoji: '📦', col: '#888' }; return `<span class="cxi" style="--c:${it.col}">${it.emoji}</span>`; };
-  const nm = (id) => (ITEMS[id] ? ITEMS[id].name : id);
+  const nm = (id) => { const it = ITEMS[id]; return it ? (it.tiered ? `${TIERS[it.tier][1]} Pickaxe (T${pickTier(it.grade)})` : it.name) : id; };
   const qtyBar = () => `<div class="cxq">${[1, 10, 100, 'all'].map((q) => `<button class="btn sm ${st.qty === q ? 'alt' : 'ghost'}" data-cx="qty" data-v="${q}">${q === 'all' ? 'All' : '×' + q}</button>`).join('')}</div>`;
   const destBar = () => `<div class="cxq"><span class="dim">Output to</span>${[['bag', '🎒 Backpack'], ['vault', '🔒 Vault']].map(([k, l]) => `<button class="btn sm ${st.dest === k ? 'alt' : 'ghost'}" data-cx="dest" data-v="${k}">${l}</button>`).join('')}</div>`;
   const SKIP_SHOP = { drill: 1, teth: 1, stand: 1, bit: 1 }; const allIds = () => Object.keys(ITEMS).filter((id) => have(id) > 0 && !SKIP_SHOP[ITEMS[id].kind]);
@@ -110,12 +117,13 @@ const Craft = (() => {
     else if (it.kind === 'bit') b = `<path d="${P([[18, 36], [30, 36], [24, 8]])}" fill="${c}" ${st}/><rect x="${j(20)}" y="${j(34)}" width="8" height="5" rx="1" fill="#8a8d92" ${st}/><rect x="${j(22)}" y="${j(38)}" width="4" height="5" fill="#6a6d72" ${st}/>`;
     else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
     return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
-  const pic = (id) => (typeof itemIco === 'function' && itemIco(id)) || svgIco(id);
+  const pic = (id) => { const it = ITEMS[id], a = it && it.tiered ? 'tool:pick_' + it.grade : id; return ((typeof itemIco === 'function' && itemIco(a)) || svgIco(a)) + tb(id); };
+  const tb = (id) => { const it = ITEMS[id]; return it && it.tiered ? `<b class="cxtb">T${pickTier(it.grade)}</b>` : ''; }; // the brass tier badge on a tiered pickaxe's icon
   const badge = (id, c) => { const it = ITEMS[id], m = it && it.unit === 'm'; return `<b class="cxct${m ? ' m' : ''}">${m ? fmtN(c) + ' m' : '×' + fmtN(c)}</b>`; };
   const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
   const EQUIP = { pick: ['pickGrade', 'setPick', 'Pickaxe'], climb: ['climbGrade', 'setClimb', 'Climbing picks'], tlink: ['tetherGrade', 'setTether', 'Tether'] };
-  const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; return !!E && S[E[0]] === TIERS[it.tier][0]; };
-  function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
+  const equipped = (id) => { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || S[E[0]] !== TIERS[it.tier][0]) return false; return it.tool !== 'pick' || (it.tiered ? S.pickEqT === it.grade : S.pickEqT !== TIERS[it.tier][0]); };
+  function equip(id) { const it = ITEMS[id], E = it && it.kind === 'tool' && EQUIP[it.tool]; if (!E || have(id) <= 0) return false; const g = TIERS[it.tier][0]; S[E[0]] = g; if (it.tool === 'pick') S.pickEqT = it.tiered ? g : null; if (typeof CharView !== 'undefined' && CharView[E[1]]) try { CharView[E[1]](g); } catch (e) {} return true; }
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
     for (let i = 0; i < n; i++) { const id = O[i], c = id ? get(where, id) : 0; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && equipped(id) ? ' eq' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + badge(id, c) : ''}</div>`; }
     return h + '</div>'; }
@@ -209,9 +217,10 @@ const Craft = (() => {
   function exHTML() { const S2 = st.tab === 'sell';
     let h = `<div class="cxp" data-cxv="exchange"><div class="row between"><h2>💠 Lumen Crystal</h2><span class="tag">✦ ${fmt(lum())} Lumen</span></div><div class="dim">The crystal trades with the Hollow. Placeholder local market prices.</div>`;
     h += `<div class="cxq">${[['sell', 'Sell'], ['buy', 'Buy']].map(([k, l]) => `<button class="btn sm ${st.tab === k ? 'alt' : 'ghost'}" data-cx="tab" data-v="${k}">${l}</button>`).join('')}</div>${qtyBar()}`;
-    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => !SKIP_SHOP[ITEMS[id].kind]);
+    if (S2 && st.confirm && have(st.confirm) > 0) { const c = st.confirm, t = pickTier(ITEMS[c].grade); h += `<div class="cxdanger" role="alertdialog"><b>⚠️ Sell ${esc(nm(c))}?</b><p>This will lose Tier ${t}. You'll start over at Tier 1.</p><div class="cxq"><button class="btn sm cxdng" data-cx="sellok" data-id="${c}">Sell for ✦ ${sellP(c)}</button><button class="btn sm ghost" data-cx="sellno">Keep it</button></div></div>`; } else st.confirm = null;
+    const ids = S2 ? allIds() : Object.keys(ITEMS).filter((id) => !SKIP_SHOP[ITEMS[id].kind] && !ITEMS[id].tiered); /* (a tiered pickaxe is only made at Theus's forge) */
     h += ids.length ? `<div class="card cxl">${ids.map((id) => { const p = S2 ? sellP(id) : buyP(id), n = st.qty === 'all' ? (S2 ? have(id) : Math.floor(lum() / p)) : st.qty, ok = S2 ? have(id) >= Math.max(1, n) : lum() >= p * Math.max(1, n);
-      return `<div class="cxr" data-id="${id}">${ico(id)}<span class="cxn">${esc(nm(id))}<small>✦ ${p} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
+      return `<div class="cxr" data-id="${id}">${ITEMS[id].tiered ? `<span class="cxtw">${ico(id)}${tb(id)}</span>` : ico(id)}<span class="cxn">${esc(nm(id))}<small>✦ ${p} each${S2 ? ' · have ' + fmt(have(id)) : ''}</small></span><button class="btn sm ${ok ? 'alt' : 'ghost'}" data-cx="${S2 ? 'sell' : 'buy'}" data-id="${id}" ${ok && n > 0 ? '' : 'disabled'}>${S2 ? 'Sell' : 'Buy'} ×${Math.max(1, n)}</button></div>`; }).join('')}</div>` : '<div class="card dim">Nothing to sell. Bring ore, ingots or tools.</div>';
     return h + '<button class="btn ghost" data-cx="close">Close</button></div>'; }
   const VIEW = { bag: () => bagHTML(true), xfer: xferHTML, furnace: () => recipeHTML('furnace'), anvil: () => recipeHTML('anvil'), exchange: exHTML };
   function open(kind) { if (typeof openModal !== 'function' || !VIEW[kind]) return false; st.kind = kind; st.menu = null; openModal(VIEW[kind](), 'cx-' + kind); return true; }
@@ -229,8 +238,11 @@ const Craft = (() => {
     else if (a === 'mv' || a === 'mvc') { const M = st.menu; if (M) { const c = get(M.w, M.id), q = a === 'mvc' ? Math.max(0, Math.floor(+(t.closest('.cxmenu').querySelector('.cxin') || {}).value || 0)) : t.dataset.n === 'all' ? c : +t.dataset.n, to = M.w === 'bag' ? 'vault' : 'bag'; const n = move(M.w, to, M.id, Math.min(q, c)); if (!n && q > 0 && typeof toast === 'function') toast(to === 'bag' ? '🎒 Backpack is full - free a slot first' : '🔒 Vault is full'); } st.menu = null; }
     else if (a === 'dep') move('bag', 'vault', id, nOf(get('bag', id))); else if (a === 'wd') move('vault', 'bag', id, nOf(get('vault', id)));
     else if (a === 'make') { const r = (t.dataset.k === 'furnace' ? SMELT : SMITH)[+t.dataset.i]; const x = st.qty === 'all' ? maxMake(r) : st.qty; if (make(r, x, st.dest) && typeof toast === 'function') toast(`${t.dataset.k === 'furnace' ? '🔥' : '⚒️'} ${x}× ${nm(r.out)} → ${st.dest === 'vault' ? 'Vault' : 'Backpack'}`); }
+    else if (a === 'sell' && ITEMS[id] && ITEMS[id].tiered) st.confirm = id; /* a tiered pickaxe asks first (danger) */
+    else if (a === 'sellno') st.confirm = null;
+    else if (a === 'sellok') { st.confirm = null; const n = sell(id, 1); if (n && typeof toast === 'function') toast(`💠 Sold ${nm(id).replace(/ \(T\d+\)$/, '')} · the tier is gone`); }
     else if (a === 'sell') { const n = sell(id, nOf(have(id))); if (n && typeof toast === 'function') toast(`💠 Sold ${n}× ${nm(id)}`); }
     else if (a === 'buy') { const n = buy(id, nOf(Math.floor(lum() / buyP(id)))); if (n && typeof toast === 'function') toast(`💠 Bought ${n}× ${nm(id)}`); }
     refresh(); });
-  return { BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { TPICK, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, equipped, svgIco, ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, bag, get, add, have, take, move, make, maxMake, canMake, sell, buy, value, sellP, buyP, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();
