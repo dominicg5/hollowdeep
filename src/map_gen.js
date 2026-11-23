@@ -235,7 +235,7 @@ function makeOwner(rnd, used) {
     else n = p(NM.adj) + p(NM.noun) + (10 + Math.floor(rnd() * 89));
     if (!used.has(n)) { used.add(n); return n; }
   }
-  return 'Delver' + Math.floor(rnd() * 9999);
+  return 'Climber' + Math.floor(rnd() * 9999);
 }
 const PET_KINDS = ['pup', 'wisp', 'moth', 'ferret', 'tortoise', 'kit'];
 const PET_NAMES = { pup: 'Moss Pup', wisp: 'Chalk Wisp', moth: 'Amber Moth', ferret: 'Bellows Ferret', tortoise: 'Shellback calf', kit: 'Lanternkit' };
@@ -370,7 +370,7 @@ function generateCity() {
   { const c = W.cracks.find((k) => k.wide && k.pts.length > 10); const e = c.pts[c.pts.length - 1], q = c.pts[c.pts.length - 3]; const ang = Math.atan2(e[1] - q[1], e[0] - q[0]);
     const x = e[0] + Math.cos(ang) * 46, y = e[1] + Math.sin(ang) * 46; const lm = { type: 'gate', x, y, r: 34, name: 'The Undergate', a: ang, region: regionAt(x, y) }; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 52); }
 
-  const riftNames = ['The Lumen Throat', 'Glimmerdrop', 'The Breathing Rift', 'Old Delver\'s Mouth', 'The Pale Stair', 'Moth Rift', 'Wickfall Cleft', 'The Second Hollow?', 'Murmur Gap', 'Lanternfall Rift'];
+  const riftNames = ['The Lumen Throat', 'Glimmerdrop', 'The Breathing Rift', 'Old Climber\'s Mouth', 'The Pale Stair', 'Moth Rift', 'Wickfall Cleft', 'The Second Hollow?', 'Murmur Gap', 'Lanternfall Rift'];
   W.rifts.forEach((c, i) => { const p = c.pts[0], q = c.pts[2]; const ang = Math.atan2(p[1] - q[1], p[0] - q[0]); const x = p[0] + Math.cos(ang) * 40, y = p[1] + Math.sin(ang) * 40;
     const lm = { type: 'rift', x, y, r: 30, name: riftNames[i % riftNames.length], a: ang, crack: c, region: regionAt(x, y) }; c.mouth = lm; W.landmarks.push(lm); W.civic.push(lm); occMark(OCC.obj, x, y, 60); });
 
