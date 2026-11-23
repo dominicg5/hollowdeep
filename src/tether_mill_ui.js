@@ -63,7 +63,7 @@ const MillUI = (() => {
     idle: ["Wheel's idling and so am I. Bring me ingots.", "Water's free. Ingots aren't. What are we rolling?"],
     run: (n, t) => `She's turning. ${n} spools to go, near enough ${t}.`, rack: "Spools are cooling on the rack. Take 'em before I trip on 'em.",
     cap: "Wheel ran itself dry waiting on you. Rack's full, though.", short: (h, n) => `That's ${h} of ${n}. Mill won't roll air.`,
-    newG: (g) => `${g}, eh? Steady hands now. She bites harder.`, climb: "Wren's lines, for the climb. No length to 'em. You wear one.",
+    newG: (g) => `${g}, eh? Steady hands now. She bites harder.`,
     lock: (n) => `Not yet. Come back at Tethercraft ${n}.` };
   const D = { el: null, pages: [], page: 0, on: false, faceT: 0 };
   function dlg() { if (D.el) return D.el; css(); const d = document.createElement('div'); d.id = 'millDlg'; d.className = 'kKit hidden'; d.setAttribute('role', 'dialog');
@@ -125,8 +125,7 @@ const MillUI = (() => {
     box.innerHTML = h; foot.innerHTML = m.jobs.length ? `Queue total ${dur(queueLeft())}&nbsp; · &nbsp;ingots are held when you queue` : 'Ingots are held when you queue · refunded on cancel'; }
   function onClick(e) { const b = e.target.closest('[data-ml]'); if (!b) return; e.stopPropagation(); const a = b.dataset.ml, v = b.dataset.v, m = st();
     if (a === 'x') return shut();
-    if (a === 'tab') { P.tab = v === 'climb' ? 'climb' : 'braid'; if (P.tab === 'climb' && !m.climb) { m.climb = 1; say(LINES.climb); } }
-    else if (a === 'g') { if (!unlocked(v)) { say(LINES.lock(T(v).u)); return; } P.grade = v; }
+    if (a === 'g') { if (!unlocked(v)) { say(LINES.lock(T(v).u)); return; } P.grade = v; }
     else if (a === 'q') P.qty = v === 'max' ? 'max' : +v;
     else if (a === 'go') { const ips = ingOf(P.tab, P.grade), owned = Craft.have('ingot:' + P.grade), q = qtyOf(owned, ips);
       if (owned < q * ips) { say(LINES.short(num(owned), num(q * ips))); return; } if (!queue(P.tab, P.grade, q)) { say('The queue is full - 5 jobs at most'); return; } tick(); }
@@ -194,8 +193,6 @@ const MillUI = (() => {
 .mlP .mlPct{font:400 10px ${SANS};color:#5a3a1e}.mlP .mlXp{font:400 11px ${BREE}}.mlP .mlSpd{font:700 10px ${SANS};color:#2a6a5a}
 .mlP .mlBar{height:12px;border-radius:99px;background:linear-gradient(#2a1a10,#140c06);box-shadow:0 0 0 2.5px #c48a3a,0 0 0 4px #2b1a10;overflow:hidden;margin:3px 2px}
 .mlP .mlBar i{display:block;height:100%;border-radius:99px;max-width:100%;background:repeating-linear-gradient(90deg,transparent 0 13px,rgba(0,0,0,.14) 13px 14px),linear-gradient(180deg,#bff9ff,#2a9a9a);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.45);transition:width .4s linear}
-.mlP .mlTabs{display:flex;gap:10px;margin:0 0 7px}.mlP .mlTabs button{flex:1;min-height:30px;border:0;border-radius:10px;cursor:pointer;font:400 13.5px/1 ${BREE};color:#f3e4c2;background:linear-gradient(#8a5a2e,#5e3a1a);box-shadow:0 0 0 1.5px #2b1a10,0 3px 0 rgba(20,10,4,.45),inset 0 1px 0 rgba(255,255,255,.18)}
-.mlP .mlTabs button.on{color:#2b1a10;background:linear-gradient(#f4e8c8,#d8c08c);box-shadow:0 0 0 2px #ffd36a,0 0 0 3.2px #2b1a10,0 3px 0 rgba(20,10,4,.35),inset 0 1px 0 rgba(255,255,255,.5)}
 .mlP .mlLab{font:700 8.5px ${SANS};letter-spacing:.06em;color:#7a5a3a;margin:1px 0 4px}
 .mlP .mlGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 5px}
 .mlP .mlT{position:relative;display:flex;flex-direction:column;align-items:center;gap:0;padding:3px 2px 3px;border:0;border-radius:5px;background:${PARCH};box-shadow:0 0 0 1.2px #8c6428;cursor:pointer;color:#2b1a10;font:inherit;min-width:0}

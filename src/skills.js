@@ -214,10 +214,10 @@ const Skills = (() => {
     if (xp) addXp('smithing', xp * count);
   }
 
-  // Tether Mill: Tethercraft XP per finished spool / Wren's Tether (Craft.MILL: xp per braid spool, cx per climbing tether); never Smithing
+  // Tether Mill: Tethercraft XP per finished Ledge Tether braid spool (Craft.MILL xp = anvil XP x 10.844); never Smithing
   function awardMill(tab, grade, count) {
     const T = typeof Craft !== 'undefined' && Craft.MILL && Craft.MILL[grade]; if (!T || !(count > 0)) return 0;
-    const xp = (tab === 'climb' ? T.cx : T.xp) * count; addXp('tethercraft', xp); return xp;
+    if (tab === 'climb') return 0; /* (Dominic) no climbing tethers at the mill: only Ledge Tether braid spools pay Tethercraft */ const xp = T.xp * count; addXp('tethercraft', xp); return xp;
   }
 
   function fmtXp(n) {

@@ -1090,6 +1090,7 @@ const CharView = (() => {
   function tvMode() { const T = an.tv; if (st.gnd || (an.act !== 'climb' && st.anim !== 'climb')) return 'off'; if (!T) return 'go'; if (T.k === 'coil' || T.k === 'draw') return 'busy';
     if (T.k === 'anchored' && !T.pose) return 'go'; if (T.pair && (T.k === 'hang' || T.k === 'rappel' || T.k === 'ascend' || T.k === 'prep')) return 'pair'; return T.k === 'hang' ? 'pair' : 'stop'; }
   function markTether() { const box = document.querySelector('#charClimb .tvb'); if (!box) return; const T = an.tv, m = tvMode(), on = (k) => !!T && (T.k === k || (T.k === 'prep' && T.next === k)), key = m + (m === 'pair' ? (on('ascend') ? 'A' : on('rappel') ? 'R' : '') : '');
+    const os = document.querySelector('#charClimb [data-dir="stop"]'); if (os) os.style.display = (m === 'stop' || m === 'pair' || m === 'busy') ? 'none' : ''; // (Dominic) the old Stop hides while she's on the rope (the Rappel slot has its own Stop)
     st.tvMode = m; if (box.dataset.m === key) return; box.dataset.m = key;
     box.innerHTML = m === 'stop' ? '<button data-tv="stop" class="on" title="Stop and hang on the rope">Stop</button>'
       : m === 'pair' ? `<div class="tvp"><button data-tv="ascend" class="${on('ascend') ? 'on' : ''}" title="Winch back up to the anchor (tap again to stop)">Ascend</button><button data-tv="rappel" class="${on('rappel') ? 'on' : ''}" title="Rappel down (tap again to stop)">Rappel</button></div>`

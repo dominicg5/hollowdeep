@@ -909,7 +909,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='547802c4';
+<script>window.HD_BUILD='8a359652';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -931,8 +931,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 547802c4</div>
-<script src="assets/vendor/three.min.js?v=547802c4"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 8a359652</div>
+<script src="assets/vendor/three.min.js?v=8a359652"></script>
 <script>
 'use strict';
 
@@ -1820,10 +1820,10 @@ const Skills = (() => {
     if (xp) addXp('smithing', xp * count);
   }
 
-  // Tether Mill: Tethercraft XP per finished spool / Wren's Tether (Craft.MILL: xp per braid spool, cx per climbing tether); never Smithing
+  // Tether Mill: Tethercraft XP per finished Ledge Tether braid spool (Craft.MILL xp = anvil XP x 10.844); never Smithing
   function awardMill(tab, grade, count) {
     const T = typeof Craft !== 'undefined' && Craft.MILL && Craft.MILL[grade]; if (!T || !(count > 0)) return 0;
-    const xp = (tab === 'climb' ? T.cx : T.xp) * count; addXp('tethercraft', xp); return xp;
+    if (tab === 'climb') return 0; /* (Dominic) no climbing tethers at the mill: only Ledge Tether braid spools pay Tethercraft */ const xp = T.xp * count; addXp('tethercraft', xp); return xp;
   }
 
   function fmtXp(n) {
@@ -5948,7 +5948,7 @@ const MillUI = (() => {
     idle: ["Wheel's idling and so am I. Bring me ingots.", "Water's free. Ingots aren't. What are we rolling?"],
     run: (n, t) => `She's turning. ${n} spools to go, near enough ${t}.`, rack: "Spools are cooling on the rack. Take 'em before I trip on 'em.",
     cap: "Wheel ran itself dry waiting on you. Rack's full, though.", short: (h, n) => `That's ${h} of ${n}. Mill won't roll air.`,
-    newG: (g) => `${g}, eh? Steady hands now. She bites harder.`, climb: "Wren's lines, for the climb. No length to 'em. You wear one.",
+    newG: (g) => `${g}, eh? Steady hands now. She bites harder.`,
     lock: (n) => `Not yet. Come back at Tethercraft ${n}.` };
   const D = { el: null, pages: [], page: 0, on: false, faceT: 0 };
   function dlg() { if (D.el) return D.el; css(); const d = document.createElement('div'); d.id = 'millDlg'; d.className = 'kKit hidden'; d.setAttribute('role', 'dialog');
@@ -6010,8 +6010,7 @@ const MillUI = (() => {
     box.innerHTML = h; foot.innerHTML = m.jobs.length ? `Queue total ${dur(queueLeft())}&nbsp; · &nbsp;ingots are held when you queue` : 'Ingots are held when you queue · refunded on cancel'; }
   function onClick(e) { const b = e.target.closest('[data-ml]'); if (!b) return; e.stopPropagation(); const a = b.dataset.ml, v = b.dataset.v, m = st();
     if (a === 'x') return shut();
-    if (a === 'tab') { P.tab = v === 'climb' ? 'climb' : 'braid'; if (P.tab === 'climb' && !m.climb) { m.climb = 1; say(LINES.climb); } }
-    else if (a === 'g') { if (!unlocked(v)) { say(LINES.lock(T(v).u)); return; } P.grade = v; }
+    if (a === 'g') { if (!unlocked(v)) { say(LINES.lock(T(v).u)); return; } P.grade = v; }
     else if (a === 'q') P.qty = v === 'max' ? 'max' : +v;
     else if (a === 'go') { const ips = ingOf(P.tab, P.grade), owned = Craft.have('ingot:' + P.grade), q = qtyOf(owned, ips);
       if (owned < q * ips) { say(LINES.short(num(owned), num(q * ips))); return; } if (!queue(P.tab, P.grade, q)) { say('The queue is full - 5 jobs at most'); return; } tick(); }
@@ -6079,8 +6078,6 @@ const MillUI = (() => {
 .mlP .mlPct{font:400 10px ${SANS};color:#5a3a1e}.mlP .mlXp{font:400 11px ${BREE}}.mlP .mlSpd{font:700 10px ${SANS};color:#2a6a5a}
 .mlP .mlBar{height:12px;border-radius:99px;background:linear-gradient(#2a1a10,#140c06);box-shadow:0 0 0 2.5px #c48a3a,0 0 0 4px #2b1a10;overflow:hidden;margin:3px 2px}
 .mlP .mlBar i{display:block;height:100%;border-radius:99px;max-width:100%;background:repeating-linear-gradient(90deg,transparent 0 13px,rgba(0,0,0,.14) 13px 14px),linear-gradient(180deg,#bff9ff,#2a9a9a);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.45);transition:width .4s linear}
-.mlP .mlTabs{display:flex;gap:10px;margin:0 0 7px}.mlP .mlTabs button{flex:1;min-height:30px;border:0;border-radius:10px;cursor:pointer;font:400 13.5px/1 ${BREE};color:#f3e4c2;background:linear-gradient(#8a5a2e,#5e3a1a);box-shadow:0 0 0 1.5px #2b1a10,0 3px 0 rgba(20,10,4,.45),inset 0 1px 0 rgba(255,255,255,.18)}
-.mlP .mlTabs button.on{color:#2b1a10;background:linear-gradient(#f4e8c8,#d8c08c);box-shadow:0 0 0 2px #ffd36a,0 0 0 3.2px #2b1a10,0 3px 0 rgba(20,10,4,.35),inset 0 1px 0 rgba(255,255,255,.5)}
 .mlP .mlLab{font:700 8.5px ${SANS};letter-spacing:.06em;color:#7a5a3a;margin:1px 0 4px}
 .mlP .mlGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 5px}
 .mlP .mlT{position:relative;display:flex;flex-direction:column;align-items:center;gap:0;padding:3px 2px 3px;border:0;border-radius:5px;background:${PARCH};box-shadow:0 0 0 1.2px #8c6428;cursor:pointer;color:#2b1a10;font:inherit;min-width:0}
@@ -10764,6 +10761,7 @@ const CharView = (() => {
   function tvMode() { const T = an.tv; if (st.gnd || (an.act !== 'climb' && st.anim !== 'climb')) return 'off'; if (!T) return 'go'; if (T.k === 'coil' || T.k === 'draw') return 'busy';
     if (T.k === 'anchored' && !T.pose) return 'go'; if (T.pair && (T.k === 'hang' || T.k === 'rappel' || T.k === 'ascend' || T.k === 'prep')) return 'pair'; return T.k === 'hang' ? 'pair' : 'stop'; }
   function markTether() { const box = document.querySelector('#charClimb .tvb'); if (!box) return; const T = an.tv, m = tvMode(), on = (k) => !!T && (T.k === k || (T.k === 'prep' && T.next === k)), key = m + (m === 'pair' ? (on('ascend') ? 'A' : on('rappel') ? 'R' : '') : '');
+    const os = document.querySelector('#charClimb [data-dir="stop"]'); if (os) os.style.display = (m === 'stop' || m === 'pair' || m === 'busy') ? 'none' : ''; // (Dominic) the old Stop hides while she's on the rope (the Rappel slot has its own Stop)
     st.tvMode = m; if (box.dataset.m === key) return; box.dataset.m = key;
     box.innerHTML = m === 'stop' ? '<button data-tv="stop" class="on" title="Stop and hang on the rope">Stop</button>'
       : m === 'pair' ? `<div class="tvp"><button data-tv="ascend" class="${on('ascend') ? 'on' : ''}" title="Winch back up to the anchor (tap again to stop)">Ascend</button><button data-tv="rappel" class="${on('rappel') ? 'on' : ''}" title="Rappel down (tap again to stop)">Rappel</button></div>`
