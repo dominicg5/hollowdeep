@@ -52,8 +52,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.upSpare = [up3.ok, C.get('vault', P('steel')), C.worn().pick, C.get('bag', Craft.TPICK('steel'))];
     // mining with a full backpack: she stops and the message shows
     fill(); const got = Explore.mineGive('gold', 3); o.mine = [got, /Backpack full/.test(last())];
-    save(); return o; });
+    o.gridEq = (C.bagHTML(false).match(/class="cxs[^"]* eq[ "]/g) || []).length; save(); return o; });
   ok(R.migW.join() === 'gold,rune,30,36,false,false', `winch migration: Gold x2 + Rune x1 winches -> the Iron Winch; ingots back (Gold ${R.migW[1]}, Rune ${R.migW[2]}); recorded in S.winchMigrated`);
+  ok(R.gridEq === 0, 'no equipped highlight in the backpack grid');
   ok(R.migE.join() === '0,0,0,1,tool:pick_steel,bag,1,2', `equipped migration: climbing picks / tether / winch out of the backpack, one Steel pickaxe moved to her hand (${R.migE.join(',')})`);
   ok(R.winch.join() === 'tool:lifeline_iron,Iron Winch,false,true,1' && R.winchShop.join() === 'false,false,false,false', `only the Iron Winch exists, always worn; no recipe, shop, sell, anvil or unlock entry (${R.winch.join(',')} / ${R.winchShop.join(',')}) (got iron winch)`);
   ok(Math.abs(R.up - 1.45) < 0.01, `ascend speed stays ${R.up} m/s`);
@@ -69,23 +70,25 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.mine.join() === '0,true', `mining into a full backpack: nothing added, she stops with "Backpack full" (got full backpack block)`);
   if (SHOT) {
     // mining blocked toast over the map
-    await p.evaluate(() => { const S0 = Craft.order('bag'); Explore.mineGive('gold', 3); }); await p.waitForTimeout(300); await p.screenshot({ path: OUT + 'backpack_full_mining_blocked.png' });
+    // (renders only: the game's own toasts stay up until the shot - a swiftshader screenshot takes longer than a toast's 3.2 s life)
+    await p.evaluate(() => { const t0 = window.toast; window.toast = (m) => { t0(m); const el = document.querySelector('#toasts .toast:last-child'); if (el) el.remove = () => {}; }; });
+    await p.evaluate(() => { document.querySelectorAll('#toasts .toast').forEach((t) => t.parentNode.removeChild(t)); let n = 0; while (Craft.fits('bag', 'tool:pick_rune') && n++ < 40) Craft.add('bag', 'tool:pick_rune', 1); Explore.mineGive('gold', 3); }); await p.waitForTimeout(400); await p.screenshot({ path: OUT + 'backpack_full_mining_blocked.png' });
     // backpack with gear equipped (room in the pack again)
-    await p.evaluate(() => { for (let i = 0; i < 6; i++) Craft.add('bag', 'tool:pick_rune', -1); Craft.open('bag'); }); await p.waitForTimeout(400); await p.screenshot({ path: OUT + 'backpack_equipped_gear.png' });
+    await p.evaluate(() => { for (let i = 0; i < 6; i++) Craft.add('bag', 'tool:pick_rune', -1); document.querySelectorAll('#toasts .toast').forEach((t) => t.parentNode.removeChild(t)); Craft.open('bag'); }); await p.waitForTimeout(1500); await p.screenshot({ path: OUT + 'backpack_equipped_gear.png' });
     // full backpack: the unequip message
-    await p.evaluate(() => { let n = 0; while (Craft.fits('bag', 'tool:pick_rune') && n++ < 40) Craft.add('bag', 'tool:pick_rune', 1); Craft.open('bag'); document.querySelector('#modalBody [data-cx="unequip"]').click(); }); await p.waitForTimeout(300); await p.screenshot({ path: OUT + 'backpack_full_unequip.png' });
-    await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} });
+    await p.evaluate(() => { let n = 0; while (Craft.fits('bag', 'tool:pick_rune') && n++ < 40) Craft.add('bag', 'tool:pick_rune', 1); Craft.open('bag'); document.querySelectorAll('#toasts .toast').forEach((t) => t.parentNode.removeChild(t)); }); await p.waitForTimeout(1200); await p.evaluate(() => document.querySelector('#modalBody [data-cx="unequip"]').click()); await p.waitForTimeout(400); await p.screenshot({ path: OUT + 'backpack_full_unequip.png' });
+    await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} document.querySelectorAll('#toasts .toast').forEach((t) => t.parentNode.removeChild(t)); });
   }
   // ---- the Iron Winch on her hip while ascending (Character tab)
   await p.evaluate(() => document.querySelector('nav#tabs [data-tab=char]').click()); await p.waitForFunction(() => CharView.st.ok && CharView.rig, null, { timeout: 120000 }).catch(() => {});
   await p.click('#charAnim [data-anim=climb]', { force: true }); await p.evaluate(() => { const C = CharView, st = C.st; st.paused = true; C.sim(1 / 30, 90); st.dist = 6; C.pgGo({ wall: true, x: st.climbPos.x, y: 5.4 }); for (let i = 0; i < 1500 && st.pg; i++) C.sim(1 / 30, 1); C.sim(1 / 30, 15); C.advance(1 / 30, 2); });
   const tap = (sel) => p.evaluate((sel) => document.querySelector('#charClimb ' + sel).click(), sel);
   const until = (c, n = 600) => p.evaluate(([c, n]) => { const C = CharView, f = new Function('C', 'return ' + c); for (let i = 0; i < n && !f(C); i++) C.sim(1 / 30, 1); return f(C); }, [c, n]);
-  await tap('[data-tv=go]'); await until("C.st.tvK === 'rappel' && C.st.climbPos.y < 3.2", 900); await tap('[data-tv=stop]'); await p.evaluate(() => CharView.sim(1 / 30, 20)); await tap('[data-tv=ascend]'); await until("C.st.tvK === 'ascend'", 120); await p.evaluate(() => { CharView.st.dist = 2.4; CharView.sim(1 / 30, 1); });
-  const W = await p.evaluate(() => { const w = CharView.rig.built.winch, cam = CharView.cam, cv = document.getElementById('charCanvas'), r = cv.getBoundingClientRect(); CharView.advance(1 / 30, 2); const v = w.getWorldPosition(new THREE.Vector3()).project(cam);
+  await tap('[data-tv=go]'); await until("C.st.tvK === 'rappel' && C.st.climbPos.y < 2.0", 1500); await tap('[data-tv=stop]'); await p.evaluate(() => CharView.sim(1 / 30, 20)); await tap('[data-tv=ascend]'); await until("C.st.tvK === 'ascend'", 120); await p.evaluate(() => CharView.sim(1 / 30, 5)); /* (early in the climb up: it stops at the anchor) */
+  const W = await p.evaluate(() => { const w = CharView.rig.built.winch, cam = CharView.cam, cv = document.getElementById('charCanvas'), r = cv.getBoundingClientRect(); CharView.st.camFn = (cm, rg) => { const q = rg.built.winch.getWorldPosition(new THREE.Vector3()); cm.position.set(q.x - 1.3, q.y + 0.35, q.z + 0.7); cm.lookAt(q); }; /* (a side close-up: the winch sits on the belt, facing the wall) */ CharView.sim(1 / 30, 1); CharView.advance(1 / 30, 2); const v = w.getWorldPosition(new THREE.Vector3()).project(cam);
     const cols = []; w.traverse((q) => { if (q.isMesh) for (const m of [].concat(q.material)) if (m && m.color) cols.push('#' + m.color.getHexString()); }); const col = cols.includes('#7d8288') ? '#7d8288' : cols.join('/'); return { vis: w.visible, grade: w.userData.grade, col, k: CharView.an.tv && CharView.an.tv.k, x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; });
   ok(W.vis && W.grade === 'iron' && W.col === '#7d8288' && W.k === 'ascend', `her hip winch is the Iron Winch (${JSON.stringify(W)}), shown while ascending`);
-  if (SHOT) await p.screenshot({ path: OUT + 'winch_iron_ascend_closeup.png', clip: { x: Math.max(0, W.x - 80), y: Math.max(0, W.y - 80), width: 160, height: 160 } });
+  if (SHOT) await p.screenshot({ path: OUT + 'winch_iron_ascend_closeup.png', clip: { x: Math.max(0, Math.min(390 - 300, W.x - 150)), y: Math.max(0, W.y - 170), width: 300, height: 340 } });
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   console.log(fails ? fails + ' FAILED' : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
 })();

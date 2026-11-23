@@ -94,7 +94,7 @@ const Craft = (() => {
     if (S.mill && Array.isArray(S.mill.jobs)) S.mill.jobs = S.mill.jobs.filter((j) => { if (j.tab !== 'climb') return true; const T = MILL[j.grade], back = T ? (j.n - j.done) * T.ci : 0; if (back > 0) { const ing = 'ingot:' + j.grade; b[ing] = (b[ing] || 0) + back; got.refund[ing] = (got.refund[ing] || 0) + back; } if (j.done > 0) own('tlink', j.grade); return false; });
     if (S.mill && S.mill.jobs && !S.mill.jobs.length && S.mill.tab === 'climb') S.mill.tab = 'braid';
     for (const kind of ['climb', 'tlink']) { const key = SKIN_KEY[kind], g = S[key]; if (!g || g === 'stone' || g === 'regular' || !SKIN_LOOKS[kind].includes(g)) S[key] = SKIN_BASE[kind]; else own(kind, g); }
-    for (const id of [CLIMB_BASE, TLINK_BASE]) { const k = id.slice(5), n = Math.floor(b[id] || 0) + Math.floor(v.gear[k] || 0); if (n > 1) { got.extra = (got.extra || 0) + n - 1; if (b[id]) { b[id] = 1; delete v.gear[k]; } else v.gear[k] = 1; } } }
+    for (const id of [CLIMB_BASE, TLINK_BASE]) { const k = id.slice(5), n = Math.floor(b[id] || 0) + Math.floor(v.gear[k] || 0); if (n > 1) got.extra = (got.extra || 0) + n - 1; delete b[id]; delete v.gear[k]; } } // (the base pair is worn, in its equipment slot)
   // old saves: every other winch grade (backpack or vault) becomes the one Iron Winch; its ingots come back (the anvil recipe it took), as the climbing-gear migration refunds
   function migrateWinch() { if (typeof S === 'undefined' || !S || S.winchV >= 1) return; S.winchV = 1; const b = S.backpack || (S.backpack = {}), v = S.ledgeVault || (S.ledgeVault = {}); v.gear = v.gear || {}; const got = S.winchMigrated = { winch: [], refund: {} };
     TIERS.forEach(([g], i) => { const id = 'tool:lifeline_' + g; if (id === WINCH_BASE) return; const n = Math.floor(b[id] || 0) + Math.floor(v.gear['lifeline_' + g] || 0); delete b[id]; delete v.gear['lifeline_' + g]; if (!(n > 0)) return;
@@ -136,7 +136,7 @@ const Craft = (() => {
     if (where !== 'bag') return O.includes(id) || free ? Math.max(0, STACK_MAX - c) : 0; const p = perSlot(id); if (p >= STACK_MAX) return O.includes(id) || free ? Math.max(0, STACK_MAX - c) : 0;
     return Math.max(0, slotsFor('bag', id, c) * p - c) + free * p; }
   function fits(where, id, n) { return room(where, id) >= Math.max(1, n || 1); }
-  function add(where, id, n) { if (n > 0 && !fits(where, id, n)) return 0; if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; order('bag'); return n; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); order('vault'); return n; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; order('vault'); return n; }
+  function add(where, id, n) { if (n > 0 && (isBase(id) || !fits(where, id, n))) return 0; /* (base gear is always worn: never carried or stored) */ if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; order('bag'); return n; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); order('vault'); return n; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; order('vault'); return n; }
   // all or nothing (several kinds into one container): any that does not fit undoes the rest
   function addAll(where, list) { const done = []; for (const [id, n] of list) { if (!(n > 0)) continue; if (!add(where, id, n)) { for (const [i2, n2] of done) add(where, i2, -n2); return false; } done.push([id, n]); } return true; }
   function addUpTo(where, id, n) { const r = Math.min(Math.floor(n), room(where, id)); return r > 0 ? add(where, id, r) : 0; } // as many as fit (mining: the rest of that strike is left in the rock)
@@ -197,7 +197,7 @@ const Craft = (() => {
   const equipped = (id) => !!id && (isBase(id) || worn().pick === id);
   const setPickLook = (g) => { if (typeof CharView !== 'undefined' && CharView.setPick) try { CharView.setPick(g); } catch (e) {} };
   // equip a pickaxe: it leaves the backpack (or the vault) for her hand; the one she held goes back to the backpack, or the swap is blocked when there is no room
-  function equip(id) { const it = ITEMS[id]; if (isBase(id)) return true; if (!it || it.kind !== 'tool' || it.tool !== 'pick') return false; if (equipped(id)) return true;
+  function equip(id) { const it = ITEMS[id]; if (isBase(id)) return true; if (!it || it.kind !== 'tool' || it.tool !== 'pick') return false; if (equipped(id)) { const g = TIERS[it.tier][0]; S.pickGrade = g; S.pickEqT = it.tiered ? g : null; setPickLook(g); return true; }
     const from = get('bag', id) > 0 ? 'bag' : get('vault', id) > 0 ? 'vault' : null; if (!from) return false; const W = worn(), old = W.pick; add(from, id, -1);
     if (old && !add('bag', old, 1)) { add(from, id, 1); return fullMsg(); }
     const g = TIERS[it.tier][0]; W.pick = id; S.pickGrade = g; S.pickEqT = it.tiered ? g : null; setPickLook(g); return true; }
@@ -209,7 +209,7 @@ const Craft = (() => {
     return `<div class="kEq" data-cxv="equip">${row.map(([l, id]) => `<div class="kEqS${id ? ' full' : ''}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}><small>${l}</small>${id ? pic(id) : '<i class="kEqN">Stickaxe</i>'}${id && !isBase(id) ? `<button class="btn sm ghost" data-cx="unequip" data-id="${id}">Unequip</button>` : ''}</div>`).join('')}</div>`; }
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
     const seen = {}; for (let i = 0; i < n; i++) { const id = O[i]; let c = id ? get(where, id) : 0, first = true; if (id && where === 'bag') { const j = seen[id] || 0, p = perSlot(id); seen[id] = j + 1; first = !j; c = p >= STACK_MAX ? c : Math.max(0, Math.min(p, c - j * p)); }
-      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && first && equipped(id) ? ' eq' : ''}${one ? ' one' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + (one ? '' : badge(id, c)) : ''}</div>`; }
+      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${one ? ' one' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + (one ? '' : badge(id, c)) : ''}</div>`; }
     return h + '</div>'; }
   const used = (w) => order(w).filter(Boolean).length;
   // the Backpack shows only what she carries; the Ledge Vault sits beside it only on the vault's own Backpack ⇄ Vault screen (xfer)

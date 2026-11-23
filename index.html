@@ -111,8 +111,8 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 #modal .sheet{width:100%;max-width:540px;max-height:88vh;overflow:auto;background:radial-gradient(circle at 20% 0%,#fffaf0,#f3e5c4);border-radius:20px 20px 0 0;padding:16px 14px calc(env(safe-area-inset-bottom) + 16px);box-shadow:0 -10px 30px rgba(0,0,0,.35);animation:rise .25s ease-out}
 @media(min-width:600px){#modal{align-items:center}#modal .sheet{border-radius:20px}}
 @keyframes rise{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
-#toasts{position:fixed;top:96px;left:0;right:0;z-index:60;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
-.toast{background:rgba(36,50,74,.95);color:#fff3d0;padding:8px 14px;border-radius:12px;font-size:13.5px;max-width:92%;box-shadow:0 6px 18px rgba(0,0,0,.3);animation:rise .2s ease-out}
+#toasts{position:fixed;top:96px;left:0;right:0;z-index:100001;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.toast{background:rgba(36,50,74,.95);color:#fff3d0;padding:8px 14px;border-radius:12px;font-size:13.5px;max-width:92%;box-shadow:0 6px 18px rgba(0,0,0,.3);opacity:1;animation:none}
 /* golem reveal */
 .raidscene{border-radius:14px;overflow:hidden;line-height:0;margin:8px 0}
 .raidscene svg{width:100%;display:block}
@@ -290,7 +290,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .cxs{container-type:size}
 .kKit .cxs>.cxsv,#bagSheet .cxs>.cxsv{position:absolute;inset:auto;left:50%;top:calc(50% - 7px);width:min(76cqmin,calc(100cqh - 16px));height:min(76cqmin,calc(100cqh - 16px));transform:translate(-50%,-50%);box-sizing:border-box}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:4px;transform:translateX(-50%);padding:0 5px;border-radius:5px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
-.kEq{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 8px;padding:6px;border-radius:10px;background:rgba(42,22,10,.14);box-shadow:inset 0 0 0 1.5px rgba(42,22,10,.35)}.kEqS{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:64px;padding:3px 2px;border-radius:8px;background:rgba(255,246,222,.35)}.kEqS small{font:700 8.5px Georgia,serif;color:var(--kInk);text-align:center;line-height:1.05}.kEqS .cxic,.kEqS svg,.kEqS img{width:34px;height:34px}.kEqS .btn.sm{padding:1px 6px;font-size:10px;min-height:0}.kEqN{font:italic 10px Georgia,serif;color:var(--kInk);opacity:.7;margin-top:8px}
+.kEq{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:4px 0 8px;padding:6px;border-radius:10px;background:rgba(42,22,10,.14);box-shadow:inset 0 0 0 1.5px rgba(42,22,10,.35)}.kEqS{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:64px;padding:3px 2px;border-radius:8px;background:rgba(255,246,222,.35)}.kEqS small{font:700 8.5px Georgia,serif;color:var(--kInk);text-align:center;line-height:1.05}.kEq .kEqS .cxsv{position:static;inset:auto;display:block;width:34px;height:34px;flex:0 0 34px;max-width:34px;max-height:34px;transform:none;aspect-ratio:1/1;margin:1px auto 0;box-sizing:border-box}.kEqS{position:relative}.kEqS .cxtb{position:absolute;top:14px;right:4px}#bagSheet .kEq{margin:0 0 4px;padding:4px;gap:4px}#bagSheet .kEqS{min-height:0;flex-direction:row;justify-content:center;gap:3px;padding:2px}#bagSheet .kEqS small{display:none}#bagSheet .kEq .kEqS .cxsv{width:26px;height:26px;flex-basis:26px}.kEqS .btn.sm{padding:1px 6px;font-size:10px;min-height:0}.kEqN{font:italic 10px Georgia,serif;color:var(--kInk);opacity:.7;margin-top:8px}
 .kFoot{margin:8px auto 2px;padding:5px 14px;text-align:center;font:italic 12.5px Georgia,serif;color:var(--kInk);border-radius:8px;background:rgba(110,62,24,.22);box-shadow:inset 0 0 0 1px rgba(60,30,10,.35);outline:1px dashed rgba(255,226,180,.45);outline-offset:-4px}
 .kKit .cxmenu,#bagSheet .cxmenu{background:linear-gradient(#f8eed6,#e8d4aa);color:var(--kInk);box-shadow:0 0 0 2px #a76d33,0 0 0 3px #4e2d12,0 6px 16px rgba(0,0,0,.5);outline:1px dashed rgba(140,100,50,.55);outline-offset:-5px}
 .kKit .cxmh span,#bagSheet .cxmh span{color:var(--kInk)}.kKit .cxmh b,#bagSheet .cxmh b{font-family:Georgia,serif}
@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='8be5574e';
+<script>window.HD_BUILD='1312c83a';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 8be5574e</div>
-<script src="assets/vendor/three.min.js?v=8be5574e"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 1312c83a</div>
+<script src="assets/vendor/three.min.js?v=1312c83a"></script>
 <script>
 'use strict';
 
@@ -2793,7 +2793,7 @@ const Craft = (() => {
     if (S.mill && Array.isArray(S.mill.jobs)) S.mill.jobs = S.mill.jobs.filter((j) => { if (j.tab !== 'climb') return true; const T = MILL[j.grade], back = T ? (j.n - j.done) * T.ci : 0; if (back > 0) { const ing = 'ingot:' + j.grade; b[ing] = (b[ing] || 0) + back; got.refund[ing] = (got.refund[ing] || 0) + back; } if (j.done > 0) own('tlink', j.grade); return false; });
     if (S.mill && S.mill.jobs && !S.mill.jobs.length && S.mill.tab === 'climb') S.mill.tab = 'braid';
     for (const kind of ['climb', 'tlink']) { const key = SKIN_KEY[kind], g = S[key]; if (!g || g === 'stone' || g === 'regular' || !SKIN_LOOKS[kind].includes(g)) S[key] = SKIN_BASE[kind]; else own(kind, g); }
-    for (const id of [CLIMB_BASE, TLINK_BASE]) { const k = id.slice(5), n = Math.floor(b[id] || 0) + Math.floor(v.gear[k] || 0); if (n > 1) { got.extra = (got.extra || 0) + n - 1; if (b[id]) { b[id] = 1; delete v.gear[k]; } else v.gear[k] = 1; } } }
+    for (const id of [CLIMB_BASE, TLINK_BASE]) { const k = id.slice(5), n = Math.floor(b[id] || 0) + Math.floor(v.gear[k] || 0); if (n > 1) got.extra = (got.extra || 0) + n - 1; delete b[id]; delete v.gear[k]; } } // (the base pair is worn, in its equipment slot)
   // old saves: every other winch grade (backpack or vault) becomes the one Iron Winch; its ingots come back (the anvil recipe it took), as the climbing-gear migration refunds
   function migrateWinch() { if (typeof S === 'undefined' || !S || S.winchV >= 1) return; S.winchV = 1; const b = S.backpack || (S.backpack = {}), v = S.ledgeVault || (S.ledgeVault = {}); v.gear = v.gear || {}; const got = S.winchMigrated = { winch: [], refund: {} };
     TIERS.forEach(([g], i) => { const id = 'tool:lifeline_' + g; if (id === WINCH_BASE) return; const n = Math.floor(b[id] || 0) + Math.floor(v.gear['lifeline_' + g] || 0); delete b[id]; delete v.gear['lifeline_' + g]; if (!(n > 0)) return;
@@ -2835,7 +2835,7 @@ const Craft = (() => {
     if (where !== 'bag') return O.includes(id) || free ? Math.max(0, STACK_MAX - c) : 0; const p = perSlot(id); if (p >= STACK_MAX) return O.includes(id) || free ? Math.max(0, STACK_MAX - c) : 0;
     return Math.max(0, slotsFor('bag', id, c) * p - c) + free * p; }
   function fits(where, id, n) { return room(where, id) >= Math.max(1, n || 1); }
-  function add(where, id, n) { if (n > 0 && !fits(where, id, n)) return 0; if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; order('bag'); return n; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); order('vault'); return n; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; order('vault'); return n; }
+  function add(where, id, n) { if (n > 0 && (isBase(id) || !fits(where, id, n))) return 0; /* (base gear is always worn: never carried or stored) */ if (where === 'bag') { const b = bag(); b[id] = (b[id] || 0) + n; if (b[id] <= 0) delete b[id]; order('bag'); return n; } if (RES[id]) { S.res[RES[id]] = Math.max(0, (S.res[RES[id]] || 0) + n); order('vault'); return n; } const [o, k] = vSlot(id); o[k] = Math.max(0, (o[k] || 0) + n); if (!o[k]) delete o[k]; order('vault'); return n; }
   // all or nothing (several kinds into one container): any that does not fit undoes the rest
   function addAll(where, list) { const done = []; for (const [id, n] of list) { if (!(n > 0)) continue; if (!add(where, id, n)) { for (const [i2, n2] of done) add(where, i2, -n2); return false; } done.push([id, n]); } return true; }
   function addUpTo(where, id, n) { const r = Math.min(Math.floor(n), room(where, id)); return r > 0 ? add(where, id, r) : 0; } // as many as fit (mining: the rest of that strike is left in the rock)
@@ -2896,7 +2896,7 @@ const Craft = (() => {
   const equipped = (id) => !!id && (isBase(id) || worn().pick === id);
   const setPickLook = (g) => { if (typeof CharView !== 'undefined' && CharView.setPick) try { CharView.setPick(g); } catch (e) {} };
   // equip a pickaxe: it leaves the backpack (or the vault) for her hand; the one she held goes back to the backpack, or the swap is blocked when there is no room
-  function equip(id) { const it = ITEMS[id]; if (isBase(id)) return true; if (!it || it.kind !== 'tool' || it.tool !== 'pick') return false; if (equipped(id)) return true;
+  function equip(id) { const it = ITEMS[id]; if (isBase(id)) return true; if (!it || it.kind !== 'tool' || it.tool !== 'pick') return false; if (equipped(id)) { const g = TIERS[it.tier][0]; S.pickGrade = g; S.pickEqT = it.tiered ? g : null; setPickLook(g); return true; }
     const from = get('bag', id) > 0 ? 'bag' : get('vault', id) > 0 ? 'vault' : null; if (!from) return false; const W = worn(), old = W.pick; add(from, id, -1);
     if (old && !add('bag', old, 1)) { add(from, id, 1); return fullMsg(); }
     const g = TIERS[it.tier][0]; W.pick = id; S.pickGrade = g; S.pickEqT = it.tiered ? g : null; setPickLook(g); return true; }
@@ -2908,7 +2908,7 @@ const Craft = (() => {
     return `<div class="kEq" data-cxv="equip">${row.map(([l, id]) => `<div class="kEqS${id ? ' full' : ''}"${id ? ` data-id="${id}" title="${esc(nm(id))}"` : ''}><small>${l}</small>${id ? pic(id) : '<i class="kEqN">Stickaxe</i>'}${id && !isBase(id) ? `<button class="btn sm ghost" data-cx="unequip" data-id="${id}">Unequip</button>` : ''}</div>`).join('')}</div>`; }
   function gridHTML(where) { const O = order(where), N = where === 'bag' ? BAG_N : VAULT_N, n = Math.max(N, O.length); let h = `<div class="cxg cxg-${where}" data-w="${where}">`;
     const seen = {}; for (let i = 0; i < n; i++) { const id = O[i]; let c = id ? get(where, id) : 0, first = true; if (id && where === 'bag') { const j = seen[id] || 0, p = perSlot(id); seen[id] = j + 1; first = !j; c = p >= STACK_MAX ? c : Math.max(0, Math.min(p, c - j * p)); }
-      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${id && first && equipped(id) ? ' eq' : ''}${one ? ' one' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + (one ? '' : badge(id, c)) : ''}</div>`; }
+      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${one ? ' one' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + (one ? '' : badge(id, c)) : ''}</div>`; }
     return h + '</div>'; }
   const used = (w) => order(w).filter(Boolean).length;
   // the Backpack shows only what she carries; the Ledge Vault sits beside it only on the vault's own Backpack ⇄ Vault screen (xfer)
