@@ -280,7 +280,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 .kGauge b{position:absolute;left:0;right:0;bottom:17%;text-align:center;font:700 8.5px Georgia,serif;color:#2a160a;white-space:nowrap}
 .kX,#bagSheet .bsx.kX,#tetherOrb .toBack.kX{flex:none;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border-radius:50%;border:0;background:radial-gradient(circle at 50% 46%,#f7ead0 0 50%,#6e4a1c 53%,#f0cd82 60%,#b07a34 76%,#5e3c14 100%);color:#3a2412;font:700 19px Georgia,serif;line-height:44px;box-shadow:0 2px 4px rgba(0,0,0,.45);cursor:pointer}
 /* the backpack sheet over the map: all 20 slots visible, no title / gauge / footer, no scrolling */
-#bagSheet{position:fixed;left:4px;right:4px;bottom:4px;height:38%;min-height:260px;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk);overflow:hidden;overscroll-behavior:none;touch-action:none}#bagSheet:has(.cxmenu){height:60%;max-height:calc(100% - 8px)}
+#bagSheet{position:fixed;left:4px;right:4px;bottom:4px;height:60%;max-height:calc(100% - 8px);min-height:260px;background:none;border-radius:0;box-shadow:none;padding:0;color:var(--kInk);overflow:hidden;overscroll-behavior:none;touch-action:none}/* (Dominic t550u: the big-icon layout an item tap used to open is now the backpack's default) */
 #bagSheet .bsh{display:flex;justify-content:flex-end;align-items:center;margin:0;padding:0 0 2px;min-height:0;flex:none}
 #bagSheet .bsx.kX{position:relative;top:auto;right:auto;width:36px;height:36px;min-width:36px;min-height:36px;line-height:36px;font-size:16px;z-index:3;margin:0;flex:none}
 #bagSheet .bsb{display:flex;flex-direction:column;padding:0 2px 2px;overflow:hidden;flex:1;min-height:0;position:relative}#bagSheet .cxg{flex:1;min-height:0;overflow:hidden;grid-auto-rows:1fr}#bagSheet .cxs{aspect-ratio:auto;min-height:0}#bagSheet .cxmenu{position:absolute;left:4px;right:4px;bottom:4px;z-index:4;margin-top:0}
@@ -715,7 +715,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #bagSheet .cxnear small{font-size:10.5px;white-space:normal}
 #bagSheet .cxdset{min-height:34px;font-size:13.5px;padding:4px 8px}
 @media (max-height:680px){
-  #bagSheet:has(.cxmenu){height:64%}
+  #bagSheet{height:64%}
   #bagSheet .cxmenu{padding:5px 6px;gap:3px}
   #bagSheet .cxmenu .cxmd>b{font-size:13px}
   #bagSheet .cxmenu .cxsts{gap:0 6px;font-size:10.5px}

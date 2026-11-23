@@ -921,7 +921,7 @@ const CharView = (() => {
     return { wrist: wr, Q }; }
 
   /* ---------- locomotion + work cycles ---------- */
-  const SEQ_T = { pickDraw: 1.35, pickStow: 1.35, climbDraw: 1.0, climbStow: 1.0 }, TOOL_T = 2.2, RUN_T = 0.62, WALK_T = 1.05, MINE_T = 1.7, MINE_SPIKE = 1, MINE_GRIP = -0.255;
+  const SEQ_T = { pickDraw: 1.35, pickStow: 1.35, climbDraw: 1.0, climbStow: 1.0 }, TOOL_T = 2.2, RUN_T = 0.62, WALK_T = 1.05, MINE_T = 1.7, SWING_VIS_MAX = 1.5, MINE_SPIKE = 1, MINE_GRIP = -0.255;
   // run foot path (character space) for a leg phase q in [0,1): stance 0-0.38 (heel strike > flat > toe push-off), then the swing (heel kick, knee drive, reach)
   // gait foot paths (character space, +z forward) for a leg phase q in [0,1): q = 0 is initial contact. The stance foot is PLANTED: its flat-foot
   // ankle position slides back by exactly D over the stance fraction b, and the phase is driven by distance travelled (dPhase = ground distance / S,
@@ -1259,7 +1259,7 @@ const CharView = (() => {
       // run (w): low over the flexed stance leg, high in the flight phase; strong forward lean from the hips, pelvis + shoulder counter-rotation
       hy += w * (-0.06 + 0.035 * Math.cos(2 * TAU * (ph - 0.42))); hz += w * 0.035; leanS += w * 0.26; cx += w * 0.15; hipX += w * 0.06; hipY -= w * 0.13 * c1; cry += w * 0.2 * c1; hry -= w * 0.12 * c1; hrz += w * 0.03 * cm; crz -= w * 0.02 * cm;
       hrx -= w * 0.3; nrx -= w * 0.07; pickY += w * 0.012 * Math.cos(2 * TAU * ph); pickRx += w * 0.05 * Math.sin(2 * TAU * ph); shY += w * 0.008 * Math.cos(2 * TAU * ph); }
-    if (an.act === 'mine') { const pg = c.built.pick && GRADES[c.built.pick.userData.grade], sf0 = 1 + 0.15 * (pg && pg.tier > 0 ? pg.tier : 0) / 7; const oreN = (typeof Explore !== 'undefined' && Explore.ORE && Explore.ORE.mining) ? Explore.ORE.mining.type : null; const sf = sf0 * (oreN && typeof Skills !== 'undefined' ? Skills.levelSpeedBonus(Skills.level('mining'), Skills.oreUnlock(oreN)) : 1); an.mp = ((an.mp ?? an.at / MINE_T) + dt * sf / MINE_T); st.mineFac = sf; const um = an.mp % 1, k = mineKey(um), w = mw; f.mine = Object.assign(k, { w, u: um }); st.minePh = um;
+    if (an.act === 'mine') { const pg = c.built.pick && GRADES[c.built.pick.userData.grade], sf0 = 1 + 0.15 * (pg && pg.tier > 0 ? pg.tier : 0) / 7; const oreN = (typeof Explore !== 'undefined' && Explore.ORE && Explore.ORE.mining) ? Explore.ORE.mining.type : null; const sf = sf0 * (oreN && typeof Skills !== 'undefined' ? Skills.levelSpeedBonus(Skills.level('mining'), Skills.oreUnlock(oreN)) : 1); const sfv = Math.min(sf, SWING_VIS_MAX); an.mp = ((an.mp ?? an.at / MINE_T) + dt * sfv / MINE_T); st.mineFac = sf; st.mineRep = sf / sfv; /* (the swing is drawn at most SWING_VIS_MAX x; Explore lands the rest as extra strikes) */ const um = an.mp % 1, k = mineKey(um), w = mw; f.mine = Object.assign(k, { w, u: um }); st.minePh = um;
       if (an.mu !== undefined && an.mu < 0.52 && um >= 0.52 && w > 0.9) an.hit = true; an.mu = um;
       leanS += w * k.lean * 0.45; cx += w * k.lean * 0.55; hy -= w * k.drop; hz += w * (k.hz - k.drop * 0.4); cry += w * k.tw; hipY += w * k.tw * 0.45; hrx += w * (k.hp - k.lean * 0.6); nrx += w * k.hp * 0.3; }
     // equip body motion: look over the right shoulder and turn into the stow, then dip and glance down to the belt while drawing the climbing picks
