@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='0a1d0262';
+<script>window.HD_BUILD='9f1ef37d';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 0a1d0262</div>
-<script src="assets/vendor/three.min.js?v=0a1d0262"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 9f1ef37d</div>
+<script src="assets/vendor/three.min.js?v=9f1ef37d"></script>
 <script>
 'use strict';
 
@@ -15530,15 +15530,26 @@ const MosbyVeins = (() => {
       if (MV.st === 'head') { const H = field(); if (!G.exC) { if (!H.inZone(G.x, G.z) && MV.lastHead) { G.x = MV.lastHead[0]; G.z = MV.lastHead[1]; } /* the edge of his head: she stops there (a stalled walk ends on its own) */ const c = crystalAt(); if (c) { const dx = G.x - c.x, dz = G.z - c.z, L = Math.hypot(dx, dz), rr = MV.lum.r + 0.4; if (L < rr && L > 1e-4) { G.x = c.x + dx / L * rr; G.z = c.z + dz / L * rr; } } G.y = headY(G.x, G.z); MV.lastHead = [G.x, G.z]; } return; }
       faceTick(G, MV.dt); }; api.__mv = true; }
   function reset() { const G = gnd(); lockSet(false); if (MV.st !== 'shell' && G) { G.exC = false; G.exW = 0; G.exLeanS = 0; G.exOff = null; if (G.mine && MV.mining) G.mine = false; } MV.st = 'shell'; MV.task = null; MV.mining = null; MV.hf = null; if (MV.line) MV.line.visible = false; ui(); }
-  function pre(dt) { MV.dt = Math.min(0.1, dt || 1 / 30); build(); if (!riding()) { if (MV.st !== 'shell' || MV.task || MV.mining) reset(); MV.hf = null; if (MV.lumEl) MV.lumEl.style.display = 'none'; return; }
+  function pre(dt) { MV.dt = Math.min(0.1, dt || 1 / 30); build(); try { talkWrap(); dropWrap(); dropFix(); noPause(); } catch (e) { if (!MV.err2) console.error(MV.err2 = e); } if (!riding()) { if (MV.st !== 'shell' || MV.task || MV.mining) reset(); MV.hf = null; if (MV.lumEl) MV.lumEl.style.display = 'none'; return; }
     toolHook(); const E = Explore.EX; if (E.ride) keepWrap(E.ride); const G = gnd(); if (G && !G.__mvAdv) { G.__mvAdv = true; const a0 = G.exAdv; G.exAdv = function (dX, dY) { if (riding() && MV.st !== 'shell') { MV.adv += dY; return; } if (a0) return a0.call(this, dX, dY); }; }
     if (MV.cmesh) { MV.cPar = null; MV.cPar = crystalAt(); }
     if (G && MV.mining && MV.mining.type !== 'lumen' && !G.mine) MV.mining = null; lumenStep(MV.dt); lumenHint(); ui(); }
+  // (Dominic) he never pauses for her: his menu while she rides (Hop off) doesn't hold him, and going off to mine (on him or off him) lets his talk go
+  function talkWrap() { if (typeof MosbyTalk === 'undefined' || !MosbyTalk.open || MosbyTalk.open.__mv) return; const o0 = MosbyTalk.open, f = function () { const r = o0.apply(this, arguments); if (riding() && GM()) GM().hold = false; return r; }; f.__mv = true; MosbyTalk.open = f; }
+  function noPause() { const G = gnd(), E = typeof Explore !== 'undefined' && Explore.EX; if (!GM() || !GM().hold) return; if (riding()) return; /* (his menu aboard never holds him: talkWrap) */ if (typeof MosbyTalk === 'undefined' || !MosbyTalk.step) return; if ((G && G.mine) || (Explore.ORE && Explore.ORE.mining) || (E && E.pend === 'ore')) MosbyTalk.close(); }
+  // (Dominic) no Ledge Tethers on Mosby: a drop tether can't be laid on his shell or body (riding, or where he stands); old saves lose any laid on him (the tether back to the vault)
+  const onHim = (x, y) => { const G = GM(); if (riding()) return true; if (!G || !G.at || !G.g) return false; return Math.hypot(x - G.at.x, y - G.at.y) < Mosby.B.rx * G.g.scale.x * 1.05; };
+  const NO_TETH = '🐢 No Ledge Tethers on Mosby';
+  function dropWrap() { if (!Explore.dropNeed || Explore.dropNeed.__mv) return; const n0 = Explore.dropNeed, c0 = Explore.dropCreate;
+    const fN = function (id) { const h = Explore.EX && Explore.EX.on && Explore.here(); if (h && onHim(h[0], h[1])) return { err: 'mosby', id }; return n0.apply(this, arguments); }; fN.__mv = true; Explore.dropNeed = fN;
+    if (c0) Explore.dropCreate = function (id) { const h = Explore.EX && Explore.EX.on && Explore.here(); if (h && onHim(h[0], h[1])) { toastT(NO_TETH); return { err: 'mosby', id }; } return c0.apply(this, arguments); }; }
+  function dropFix() { if (typeof S === 'undefined' || !S || S.mosbyDropFix || !S.drops || !Explore.dropRemove || !Mosby.gLoop || !GM() || !GM().g) return; S.mosbyDropFix = 1; const L = Mosby.gLoop().L, R = Mosby.B.rx * GM().g.scale.x, P = [];
+    for (let q = 0; q < L; q += Explore.WS * 8) P.push(Mosby.gAt(q)); const bad = (S.drops.list || []).filter((d) => P.some((p) => Math.hypot(d.x - p[0], d.y - p[1]) < R)); for (const d of bad) Explore.dropRemove(d.id); MV.dropFixed = bad.length; if (bad.length) toastT(NO_TETH + ': ' + bad.length + ' tether' + (bad.length > 1 ? 's' : '') + ' laid on him went back to the vault'); try { save(); } catch (e) {} }
   function install() { if (typeof Explore === 'undefined' || typeof MosbyRide === 'undefined') return; if (Explore.tick && !Explore.tick.__mv) { const t0 = Explore.tick, f = function (dt) { try { pre(dt); } catch (e) { if (!MV.err) console.error(MV.err = e); } return t0.apply(this, arguments); }; f.__mv = true; Explore.tick = f; }
     if (!MosbyRide.tapAboard.__mv) { const t0 = MosbyRide.tapAboard, f = function (sx, sy) { return tap(sx, sy, (a, b) => t0.call(MosbyRide, a, b)); }; f.__mv = true; MosbyRide.tapAboard = f; }
     if (!MosbyRide.sync.__mv) { const s0 = MosbyRide.sync, f = function () { try { pose(); } catch (e) {} return s0.apply(this, arguments); }; f.__mv = true; MosbyRide.sync = f; } }
   if (typeof window !== 'undefined') setInterval(install, 300);
-  return { MV, LUMEN_LV, LUMEN_MS, build, field, faceAt, tap, veinGo, headGo, shellGo, crystalGo, act, lumenStep, lumenActive, busy, get veins() { return MV.veins; }, get st() { return MV.st; } };
+  return { MV, onHim, dropFix, LUMEN_LV, LUMEN_MS, build, field, faceAt, tap, veinGo, headGo, shellGo, crystalGo, act, lumenStep, lumenActive, busy, get veins() { return MV.veins; }, get st() { return MV.st; } };
 })();
 // ---- tap-a-tether: tap one of her own laid tethers (the Ledge line, a drop or a drill tether) on the map -> a small field-kit bubble (Art's B_* skin:
 // moss canvas, brass close, enamel buttons) at the rope offering a teleport to its start (the Ledge door) or its end, each with its name. A drop tether

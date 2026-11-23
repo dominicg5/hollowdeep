@@ -91,6 +91,19 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   console.log(JSON.stringify(r7));
   ok(r6.mid && r7.st === 'shell' && r7.inside && !r7.busy && r7.hop !== 'none', `she climbs back up onto the top of his shell (Hop off back)`);
   ok(r7.moves, 'back on top, he is still walking');
+  // ---- he never pauses: his menu aboard (Hop off) doesn't hold him; after Hop off he walks on; going off to mine near him lets his talk go. No Ledge Tethers on him.
+  const r9 = await p.evaluate(() => { const GM = Mosby.GM, G = CharView.st.gnd, o = {}; GM.hold = false; __toasts.length = 0;
+    o.needOn = (Explore.dropNeed('tether:bronze') || {}).err; o.makeOn = (Explore.dropCreate('tether:bronze') || {}).err; o.toastOn = __lastToast(/No Ledge Tethers on Mosby/); o.footprint = MosbyVeins.onHim(GM.at.x, GM.at.y);
+    const s0 = GM.s; document.getElementById('exHopBtn').click(); o.menu = MosbyTalk.step; __frame(30); o.walkMenu = GM.s !== s0 && !GM.hold;
+    const hb = document.querySelector('#mosDlg [data-a=hopoff]'); if (hb) hb.click(); o.off = !MosbyRide.on; const s1 = GM.s; __frame(30); o.walkOff = GM.s !== s1 && !GM.hold;
+    const G2 = CharView.st.gnd; MosbyTalk.open(); o.held = GM.hold; G2.mine = true; __frame(2); o.talkGone = !MosbyTalk.step && !GM.hold; const s2 = GM.s; __frame(20); o.walkMine = GM.s !== s2; G2.mine = false;
+    const fx = S.mosbyDropFix, rm = Explore.dropRemove, L = (S.drops = S.drops || { list: [], nid: 1 }).list, p0 = Mosby.gAt(Mosby.gLoop().L * 0.37), far = [GM.at.x + Explore.WS * 3000, GM.at.y + Explore.WS * 3000];
+    L.push({ id: 'tOnHim', x: p0[0], y: p0[1], len: 5 }, { id: 'tFar', x: far[0], y: far[1], len: 5 }); Explore.dropRemove = (id) => { const i = L.findIndex((d) => d.id === id); if (i >= 0) L.splice(i, 1); return true; }; delete S.mosbyDropFix; MosbyVeins.dropFix();
+    o.fix = [L.some((d) => d.id === 'tOnHim'), L.some((d) => d.id === 'tFar')]; Explore.dropRemove = rm; S.drops.list = L.filter((d) => !/^t(OnHim|Far)$/.test(d.id)); S.mosbyDropFix = fx || 1; return o; });
+  console.log(JSON.stringify(r9));
+  ok(r9.menu === 'aboard' && r9.walkMenu && r9.off && r9.walkOff, 'his menu aboard (Hop off) does not stop him, and after she hops off he walks on (got hop-off no stop)');
+  ok(r9.held && r9.talkGone && r9.walkMine, 'off him, going to mine lets his talk go and he walks on (no pause)');
+  ok(r9.needOn === 'mosby' && r9.makeOn === 'mosby' && r9.toastOn && r9.footprint && r9.fix.join() === 'false,true', `no Ledge Tethers on Mosby: laying one while on him is blocked with a toast; an old save's tether on his route is taken off, others kept (${r9.fix.join(',')}) (got no ledge tethers on Mosby)`);
   // ---- a skill at its level cap: full bar, 'Lv 300 · MAX', total XP (got skill max)
   const r8 = await p.evaluate(async () => { const o = {}; S.skills.mining = Skills.xpToReach(300) + 12345; const st = Skills.skillState('mining'); o.st = [st.level, st.max, st.pct]; o.line = Skills.skillLine('mining'); Skills.screen(true); await new Promise((r) => setTimeout(r, 600));
     const row = document.querySelector('.skRow[data-sk="mining"]'); o.txt = row ? row.textContent.replace(/\s+/g, ' ') : ''; o.w = row ? row.querySelector('.skBar i').style.width : ''; S.skills.mining = Skills.xpToReach(299); const s2 = Skills.skillState('mining'); o.below = [s2.level, !!s2.max]; Skills.screen(false); return o; });
