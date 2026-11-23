@@ -12,8 +12,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const L = await p.evaluate(async () => { const o = {}, M = MillUI, X = (L) => Skills.xpToReach(L);
     o.seed = { bronze: Craft.get('bag', 'tether:bronze'), mithril: Craft.get('bag', 'tether:mithril'), vaultIron: Craft.get('vault', 'tether:iron') };
     o.skill = { name: Skills.NAMES.tethercraft, lv: Skills.level('tethercraft'), levels: Skills.TETHER_LEVELS.join(','), icon: Skills.SKILL_ICONS.tethercraft };
-    o.anvil = { tlink: Craft.SMITH.filter((r) => /^tool:tlink_/.test(r.out)).length, life: Craft.SMITH.filter((r) => r.tool === 'lifeline').every((r) => Object.keys(r.in).some((k) => /^tool:tlink_/.test(k))) };
-    Craft.st.acat = 'teth'; Craft.open('anvil'); o.anvil.rows = [...document.querySelectorAll('#modalBody .cxr.rec')].map((e) => e.dataset.out); o.anvil.sub = document.querySelectorAll('#modalBody [data-cx=atool]').length; closeModalQuiet();
+    o.anvil = { tlink: Craft.SMITH.filter((r) => /^tool:tlink_/.test(r.out)).length, life: Craft.SMITH.some((r) => /lifeline|winch/.test(r.out) || r.tool === 'lifeline') };
+    Craft.st.acat = 'pick'; Craft.open('anvil'); o.anvil.rows = [...document.querySelectorAll('#modalBody .cxr.rec')].map((e) => e.dataset.out); o.anvil.sub = document.querySelectorAll('#modalBody [data-cx=atool]').length; closeModalQuiet();
     // queue math: 20 Steel spools at Lv 42 = 20 x 35.0 s
     S.mill = null; M.st(); S.skills.tethercraft = X(42); Craft.add('bag', 'ingot:steel', 80); o.q = M.queue('braid', 'steel', 20); o.unit = M.unitLen('braid', 'steel'); o.left = M.queueLeft(); o.steelLeft = Craft.have('ingot:steel');
     // refund on cancel: 3 spools done of 20 -> 17 x 4 ingots back
@@ -41,7 +41,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   console.log(JSON.stringify(L));
   ok(L.seed.bronze === 1500 && L.seed.mithril === 0 && L.seed.vaultIron === 0, `new save: 1,500 m Bronze starter coil, no free Mithril / vault coils (${JSON.stringify(L.seed)})`);
   ok(L.skill.name === 'Tethercraft' && L.skill.lv === 1 && L.skill.levels === '1,20,25,40,55,70,100,125' && L.skill.icon === 'tether:mithril', 'Tethercraft is a third skill (Lv 1, unlocks 1/20/25/40/55/70/100/125)');
-  ok(L.anvil.tlink === 0 && L.anvil.life && L.anvil.sub === 0 && L.anvil.rows.length === 8 && L.anvil.rows.every((r) => /^tool:lifeline_/.test(r)), 'the anvil no longer lists tool:tlink_* or the Wren\'s Tether sub-tab; Ledge Tethers still take 2 x tlink');
+  ok(L.anvil.tlink === 0 && !L.anvil.life && L.anvil.sub === 0 && L.anvil.rows.length === 8 && L.anvil.rows.every((r) => /^tool:pick_/.test(r)), 'the anvil makes pickaxes only: no tool:tlink_*, no Wren\'s Tether sub-tab, no Ledge Tether winch (the hip winch is fixed gear; Ledge Tether spools are rolled at the Tether Mill)');
   ok(L.q && Math.abs(L.unit - 35.0) < 0.05 && Math.abs(L.left - 20 * L.unit) < 0.01 && L.steelLeft === 0, `queue math: 20 Steel spools at Lv 42 = 20 x ${L.unit.toFixed(2)} s = ${L.left.toFixed(1)} s; 80 ingots held`);
   ok(L.back === 68 && L.steelBack === 68, `cancel refunds the ingots of the 17 unfinished spools (${L.back})`);
   ok(L.cap.done === L.cap.want && /while you were away/.test(L.cap.toast) && /capped at 72 h/.test(L.cap.toast) && L.cap.rate === 1 && L.cap.metal === 'bronze', `100 h away credits 72 h only: ${L.cap.done} / ${L.cap.want} Bronze spools ("${L.cap.toast}"), wheel at full rate in the job's metal`);
