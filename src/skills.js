@@ -270,8 +270,7 @@ const Skills = (() => {
   const TYPE_TAG = { ore: 'ORE', bar: 'BAR', roll: 'MILL', slot: 'DRILL SLOT', use: 'TOOL USE', make: 'TOOL MAKE' };
   const TOOL_MAKE = [
     { key: 'pick', name: 'pickaxe', icon: (k) => 'tool:pick_' + k },
-    { key: 'bit', name: 'drill bit', icon: () => 'tool:bit' },
-    { key: 'lifeline', name: 'Ledge Tether', icon: (k) => 'tool:tether_' + k }
+    { key: 'bit', name: 'drill bit', icon: () => 'tool:bit' } // (the winch is fixed Iron: no Ledge Tether tool is made)
   ];
   const PRIZE = {
     mining: { 95: 'THE LUMENITE WALL', 120: 'EMBER ONYX · MASTER OF THE SEAM' },

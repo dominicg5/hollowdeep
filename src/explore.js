@@ -1149,7 +1149,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (drillSlotFull(D)) { drillSlotToast(); return null; }
     const pl = drillPlace(n); if (pl.err === 'range') { if (typeof toast === 'function') toast('Move the stand — that vein is outside the drill\'s pitch range (−60° to +15°)'); return null; }
     const standId = takeStandPref(opt.stand); if (!standId) { if (typeof toast === 'function') toast('Need a drill stand'); return null; }
-    const bit = takeBitPref(opt.bit || D.bit || 'mithril'); if (!bit) { giveBack(standId); if (typeof toast === 'function') toast('Need a drill bit'); return null; }
+    const bit = takeBitPref(opt.bit || D.bit || 'mithril'); if (!bit) { giveBack(standId, true); if (typeof toast === 'function') toast('Need a drill bit'); return null; }
     const fill = Math.min(DRILL.FILL, Math.floor(S.res.coal || 0)); S.res.coal -= fill;
     const d = { id: 'd' + D.nid++, node: i, spot: n.spot.id, type: n.type, name: ORE_LOOK[n.type].name + ' drill #' + (D.nid - 1), tier: bit, stand: 'drill', coal: fill, hop: 0, acc: 0, port: null, len: 0, t: S.gameTime, yaw: pl.yaw, pitch: pl.pitch, sx: pl.x, sy: pl.y };
     D.bit = bit; D.list.push(d); syncLeft(D); drillHud(); if (typeof save === 'function') save(); return d; }
@@ -1158,8 +1158,9 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function mineGive(type, k) { const id = 'ore:' + type, got = typeof Craft !== 'undefined' ? (Craft.addUpTo ? Craft.addUpTo('bag', id, k) : Craft.add('bag', id, k)) : 0;
     if (got > 0) { ORE.mined = (ORE.mined || 0) + got; if (typeof Skills !== 'undefined') Skills.awardMine(type, got); if (typeof save === 'function') save(); if (typeof toast === 'function' && got === k && ORE.mined % 3 === 0) toast('+' + ORE.mined + ' ' + ORE_LOOK[type].name + ' ore'); }
     if (got < k) { if (typeof toast === 'function') toast(BAG_FULL); mineStop(); } return got; }
-  function drillPickUp(d) { if (!d) return; const D = drillState(); if (d.camp) return; if (d.port) drillWire(d, false); const hop = d.hop || 0, b0 = Craft && Craft.addUpTo ? Craft.addUpTo('bag', 'ore:' + d.type, hop) : 0, b = b0 + (hop - b0 > 0 && Craft.add('vault', 'ore:' + d.type, hop - b0) ? hop - b0 : 0); if (b && typeof Skills !== 'undefined') Skills.awardMine(d.type, b); /* (backpack full: the rest of the hopper goes to the vault) */ S.res.coal += Math.floor(d.coal);
-    if (d.stand) giveBack(DRILL_ITEM); if (d.tier) giveBack('bit:' + d.tier);
+  function drillPickUp(d) { if (!d) return false; const D = drillState(); if (d.camp) return false; const hop = d.hop || 0, gets = [['ore:' + d.type, hop], d.stand ? [DRILL_ITEM, 1] : null, d.tier ? ['bit:' + d.tier, 1] : null].filter((q) => q && q[1] > 0);
+    if (typeof Craft !== 'undefined' && Craft.addAll && !Craft.addAll('bag', gets)) { if (typeof toast === 'function') toast(Craft.FULL); return false; } /* (Dominic: the hopper, stand and bit all go to the backpack or the pickup is blocked; nothing overflows to the vault) */
+    if (d.port) drillWire(d, false); if (hop && typeof Skills !== 'undefined') Skills.awardMine(d.type, hop); S.res.coal += Math.floor(d.coal);
     D.list.splice(D.list.indexOf(d), 1); syncLeft(D); if (DRILL.sel === d) DRILL.sel = null; const m = DRILL.meshes.get(d.id); if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); } if (typeof save === 'function') save(); }
   function drillWire(d, on) { if (!d) return false; const D = drillState(), hs = CharView.homeState(); if (!on) { if (d.port && !d.camp) { CharView.unplugPort(d.port); d.port = null; } NV.tdest = {}; if (typeof save === 'function') save(); return true; }
     if (d.port) return true; const r = drillRoute(d); if (!r) return false; d.len = r.len; const owned = tetherOwned(), free = tetherFree(D); if (r.len > free) { if (typeof toast === 'function') toast(`Needs ${r.len} m of Ledge Tether, you have ${owned} m`); return false; }
@@ -1205,7 +1206,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
 
   function drillSwapBit(d, v) { const D = drillState(); if (!d || d.tier === v || !bitOf(v)) return false;
     if (typeof Craft === 'undefined' || Craft.have('bit:' + v) < 1) { if (typeof toast === 'function') toast("You don't have that bit"); return false; }
-    if (!Craft.take('bit:' + v, 1)) return false; if (d.tier) giveBack('bit:' + d.tier); d.tier = v; D.bit = v;
+    if (!Craft.take('bit:' + v, 1)) return false; if (d.tier && !giveBack('bit:' + d.tier)) { giveBack('bit:' + v, true); if (typeof toast === 'function') toast(Craft.FULL); return false; } d.tier = v; D.bit = v;
     if (d.camp && CharView.setDrillGrade) CharView.setDrillGrade(v);
     const m = DRILL.meshes.get(d.id); if (m && CharView.swapDrillBit) { CharView.swapDrillBit(m, v); if (m.userData.bitCol && CharView.BIT_SPARK) m.userData.bitCol.setHex(CharView.BIT_SPARK[v] || 0xffb35c); } else if (m) { m.parent && m.parent.remove(m); DRILL.meshes.delete(d.id); }
     if (typeof save === 'function') save(); return true; }
@@ -1225,7 +1226,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     else if (v === 'fuel') { const f = Math.min(DRILL.TANK - d.coal, Math.floor(S.res.coal || 0), DRILL.FILL); S.res.coal -= f; d.coal += f; }
     else if (v === 'collect') { const got = Craft.add('bag', 'ore:' + d.type, d.hop); if (got) { if (typeof Skills !== 'undefined') Skills.awardMine(d.type, got); d.hop = 0; } else if (typeof toast === 'function') toast(BAG_FULL.replace(' to keep mining', '')); }
     else if (v === 'wire') drillWire(d, !d.port); else if (v === 'takebit') drillTakeBit(d);
-    else if (v === 'up') { drillPickUp(d); return drillClose(); }
+    else if (v === 'up') { if (drillPickUp(d) === false) return false; return drillClose(); }
     if (typeof save === 'function') save(); drillRefresh(); }
 
   function bitColor(k) { const t = (typeof Craft !== 'undefined' && Craft.BIT_T || []).find((x) => x[0] === k); return (t && t[2]) || '#B07F45'; }
@@ -1376,7 +1377,8 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function standIds() { const id = DRILL_ITEM, old = (typeof Craft !== 'undefined' && Craft.STAND_OLD) || []; return [id].concat(old.filter((x) => x !== id)); }
   function countStands() { if (typeof Craft === 'undefined') return 0; let n = 0; for (const id of standIds()) n += Craft.have(id); return n; }
   function syncLeft(D) { if (D) D.left = countStands(); }
-  function giveBack(id) { if (typeof Craft === 'undefined') return null; if (Craft.fits('bag', id) && Craft.add('bag', id, 1)) return 'bag'; if (Craft.fits('vault', id) && Craft.add('vault', id, 1)) return 'vault'; return null; }
+  // (Dominic: nothing overflows to the vault) a stand / bit back into the backpack only; undo=true puts back one just taken (to the backpack, else the vault it came from)
+  function giveBack(id, undo) { if (typeof Craft === 'undefined') return null; if (Craft.fits('bag', id) && Craft.add('bag', id, 1)) return 'bag'; if (undo && Craft.fits('vault', id) && Craft.add('vault', id, 1)) return 'vault'; return null; }
   function takeOne(id) { return typeof Craft !== 'undefined' && Craft.have(id) > 0 && !!Craft.take(id, 1); }
   function takeStandPref(prefer) { const ids = []; if (prefer && String(prefer).startsWith('stand:')) ids.push(prefer); for (const id of standIds()) ids.push(id); const seen = new Set(); for (const id of ids) { if (seen.has(id)) continue; seen.add(id); if (takeOne(id)) return id; } return null; }
   function takeBitPref(prefer) { const ids = []; if (prefer) ids.push('bit:' + prefer); ids.push('bit:mithril'); if (typeof Craft !== 'undefined' && Craft.BIT_T) for (const x of Craft.BIT_T) ids.push('bit:' + x[0]); const seen = new Set(); for (const id of ids) { if (seen.has(id)) continue; seen.add(id); if (takeOne(id)) return id.slice(4); } return null; }

@@ -10,8 +10,9 @@ const Theus = (() => {
   const ico = (k, t) => { const id = 'tool:pick_' + k, h = (typeof itemIco === 'function' && itemIco(id)) || (typeof Craft !== 'undefined' ? Craft.svgIco(id) : ''); return k === 'onyx' && t > 0 && Craft.tintIco ? Craft.tintIco(h, t) : h; }; // (Ember Onyx: its tier's flame colour)
   const have = (k) => (typeof Craft !== 'undefined' ? Craft.have('tool:pick_' + k) : 0);
   // (Dominic: Theus pulls from the vault) owned = plain pickaxes of that kind in the backpack and the vault together, less the one in her hand (never taken; nor is the tiered one)
-  const inHand = (k) => (typeof S !== 'undefined' && S && S.pickGrade === k && S.pickEqT !== k && have(k) > 0 ? 1 : 0);
-  function split(k) { const id = 'tool:pick_' + k, b = Craft.get('bag', id), v = Craft.get('vault', id), h = inHand(k), pb = Math.max(0, b - (h && b > 0 ? 1 : 0)), pv = Math.max(0, v - (h && b <= 0 ? 1 : 0)); return { vault: pv, pack: pb, all: pv + pb }; }
+  // (equipped gear has its own slot now: the pickaxe in her hand is never in the backpack or vault counts, so it is never taken as payment)
+  const inHand = (k) => (typeof S !== 'undefined' && S && Craft.worn && Craft.worn().pick === 'tool:pick_' + k ? 1 : 0);
+  function split(k) { const id = 'tool:pick_' + k, pv = Craft.get('vault', id), pb = Craft.get('bag', id); return { vault: pv, pack: pb, all: pv + pb }; }
   const owned = (k) => (typeof Craft !== 'undefined' ? split(k).all : 0);
   // payment: the vault first, then the backpack
   function pay(k, n) { const id = 'tool:pick_' + k, sp = split(k); if (sp.all < n) return false; const fv = Math.min(n, sp.vault), fb = n - fv; if (fv) Craft.add('vault', id, -fv); if (fb) Craft.add('bag', id, -fb); return { vault: fv, pack: fb }; }
@@ -97,9 +98,11 @@ const Theus = (() => {
   function go(id) { if (id === '@gift') { gift(); return go('menu'); } if (id === '@up') return openUp(); if (id === '@close') return close(); const s = STEPS[id]; if (!s) return close(); ST.step = Object.assign({ id }, s); const d = el(); d.classList.remove('hidden'); d.querySelector('.tPort').style.backgroundImage = face(s.face); d.querySelector('.tWell p').textContent = s.say;
     d.querySelector('.tPip').style.display = s.next || s.end ? '' : 'none'; const bt = d.querySelector('.tBtns'); bt.className = 'tBtns n' + (s.btn || []).length; bt.innerHTML = (s.btn || []).map(([t, a, c]) => `<button class="thQ ${c}" data-a="${a}">${t}</button>`).join(''); if (s.end) ST.step.next = '@close'; return ST.step; }
   function act(a) { if (a === 'upgrade') return go('deal'); return go(a); }
-  function open() { if (ST.up && !ST.up.classList.contains('hidden')) return true; go(typeof S !== 'undefined' && S && !S.theusMet ? 'first1' : 'hello'); return true; }
-  // his welcome gift: one plain Bronze Pickaxe to the backpack (the vault if it is full), once per save; theusMet is saved right here
-  function gift() { if (typeof S === 'undefined' || !S || S.theusMet) return false; S.theusMet = true; const id = 'tool:pick_bronze'; if (!Craft.add('bag', id, 1)) Craft.add('vault', id, 1); if (typeof save === 'function') save();
+  function open() { if (ST.up && !ST.up.classList.contains('hidden')) return true; if (typeof S !== 'undefined' && S && S.theusMet && S.theusGiftDue) gift(); go(typeof S !== 'undefined' && S && !S.theusMet ? 'first1' : 'hello'); return true; }
+  // his welcome gift: one plain Bronze Pickaxe to the backpack, once per save; theusMet is saved right here. Backpack full: the gift stays pending (S.theusGiftDue) and is offered again next talk
+  function gift() { if (typeof S === 'undefined' || !S || (S.theusMet && !S.theusGiftDue)) return false; S.theusMet = true; const id = 'tool:pick_bronze';
+    if (!Craft.add('bag', id, 1)) { S.theusGiftDue = 1; if (typeof save === 'function') save(); if (typeof toast === 'function') toast(Craft.FULL + ': Theus keeps the Bronze Pickaxe for you. Free a slot and talk to him again.'); return false; } /* (Dominic: never to the vault; it stays pending) */
+    S.theusGiftDue = 0; if (typeof save === 'function') save();
     if (typeof toast === 'function') { toast('Received: Bronze Pickaxe'); const t = document.querySelector('#toasts .toast:last-child'); if (t) t.insertAdjacentHTML('afterbegin', `<span class="thTI">${ico('bronze')}</span>`); } return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.step = null; }
   // ---- the upgrade card
@@ -111,12 +114,15 @@ const Theus = (() => {
   // the upgrade (Dominic: the tier lives on the item): the first one turns one plain pickaxe into the kind's single tiered pickaxe (T1) and consumes the T1 cost too;
   // later ones raise that item's tier. Payment is always plain pickaxes of the same kind (the tiered one is its own item and is never taken).
   const need = (k, t) => Skills.pickUpgCost(t + 1) + (t === 0 ? 1 : 0);
-  function upgrade(k) { const t = tierOf(k); if (t >= Skills.PICK_TIER_MAX) return { ok: false, why: 'max' }; const n = need(k, t), T = Craft.TPICK(k); if (owned(k) < n) return { ok: false, why: 'short', need: n, have: owned(k) };
-    const dest = t > 0 ? null : Craft.fits('bag', T) ? 'bag' : Craft.fits('vault', T) ? 'vault' : ''; if (dest === '') { if (typeof toast === 'function') toast('No free slot for it: clear a backpack or vault slot'); return { ok: false, why: 'full' }; }
-    const paid = pay(k, n); if (!paid) return { ok: false, why: 'short', need: n, have: owned(k) }; S.tpicks = S.tpicks || {};
+  // owned for an upgrade: the spare plain pickaxes, plus the one in her hand only for the first upgrade (T0 -> T1), where it is the one being upgraded (it becomes the tiered one, still in her hand)
+  const upOwned = (k, t) => owned(k) + (t === 0 ? inHand(k) : 0);
+  function upgrade(k) { const t = tierOf(k); if (t >= Skills.PICK_TIER_MAX) return { ok: false, why: 'max' }; const n = need(k, t), T = Craft.TPICK(k), hand = t === 0 && owned(k) < n && inHand(k) ? 1 : 0; if (upOwned(k, t) < n) return { ok: false, why: 'short', need: n, have: upOwned(k, t) };
+    const dest = t > 0 || hand ? null : Craft.fits('bag', T) ? 'bag' : ''; if (dest === '') { if (typeof toast === 'function') toast(Craft.FULL); return { ok: false, why: 'full' }; } /* (Dominic: into the backpack only, never the vault) */
+    const paid = pay(k, n - hand); if (!paid) return { ok: false, why: 'short', need: n, have: upOwned(k, t) }; S.tpicks = S.tpicks || {};
+    if (hand) { const W = Craft.worn(); W.pick = T; S.pickGrade = k; S.pickEqT = k; paid.hand = 1; }
     if (dest) Craft.add(dest, T, 1); /* (Dominic: into the backpack, not equipped) */ S.tpicks[k] = t + 1; if (S.pickGrade === k && S.pickEqT === k && typeof CharView !== 'undefined' && CharView.setPick) try { CharView.setPick(k); } catch (e) {} /* (Ember Onyx: the flames in her hand take the new tier's colour) */ if (typeof save === 'function') save(); return { ok: true, tier: t + 1, cost: n, made: dest || null, paid }; }
   const LINES = ['Ha! Feel the weight of that.', 'Folded and true. It will bite deeper now.', 'Half again the bite. Go and use it.', 'The fire liked those.', 'Good iron sings. Hear it?'];
-  function upHTML() { const ks = KINDS(); if (!ST.sel || !ks.includes(ST.sel)) ST.sel = (typeof S !== 'undefined' && ks.includes(S.pickGrade)) ? S.pickGrade : ks.find((k) => have(k) > 0) || ks[0]; const k = ST.sel, t = tierOf(k), max = t >= Skills.PICK_TIER_MAX, c = max ? 0 : need(k, t), h = owned(k), sp = split(k), short = !max && h < c, ore = bestOre(k), oreNm = Skills.oreName(ore);
+  function upHTML() { const ks = KINDS(); if (!ST.sel || !ks.includes(ST.sel)) ST.sel = (typeof S !== 'undefined' && ks.includes(S.pickGrade)) ? S.pickGrade : ks.find((k) => have(k) > 0) || ks[0]; const k = ST.sel, t = tierOf(k), max = t >= Skills.PICK_TIER_MAX, c = max ? 0 : need(k, t), h = upOwned(k, t), sp = split(k), short = !max && h < c, ore = bestOre(k), oreNm = Skills.oreName(ore);
     const list = ks.map((q) => { const tq = tierOf(q); return `<button class="uK${q === k ? ' on' : ''}" data-k="${q}">${ico(q, tq)}<span>${NAME(q)}</span><b class="thBadge${tq >= Skills.PICK_TIER_MAX ? ' max' : ''}">T${tq}</b></button>`; }).join('');
     const say = ST.flash ? ST.flash : max ? 'That one is finished. Nothing left in it to fold.' : short ? `Bring me more ${NAME(k)}s. ${c} of them, all the same kind.` : t === 0 ? `${c} of those. One I fold into yours for good, the rest feed it.` : `${c} of those and I will make it bite half again as hard.`;
     const det = max ? `<div class="uMast">Mastered</div><div class="uRow"><span>Multiplier</span><b>${Skills.multLabel(Skills.tierMult(t))}</b></div><div class="uRow"><span>Ore/h (${oreNm})</span><b>${fmt(oreH(k, t))}</b></div>`
@@ -141,7 +147,7 @@ const Theus = (() => {
   function exState() { const E = S.tpEx || (S.tpEx = { ai: null, mine: [], next: 1, gold: 1 }); if (!E.gold) { E.gold = 1; for (const o of [...(E.ai || []), ...(E.mine || [])]) o.price = Math.round(o.price * Craft.COIN_RATE); } /* (old Lumen prices -> gold, x10) */ if (!E.ai) { const AI = (typeof W !== 'undefined' && W.homes ? W.homes.filter((h) => !h.isPlayer) : []), who = (i) => (AI.length ? AI[(i * 7 + 3) % AI.length].owner : ['Brannoc', 'Ysolde', 'Tamsin', 'Orrin', 'Mabry'][i]);
       const plain = (k) => (typeof Craft !== 'undefined' ? Craft.sellP('tool:pick_' + k) : 10);
       E.ai = [['bronze', 3], ['iron', 2], ['steel', 4], ['gold', 2], ['mithril', 1]].map(([k, t], i) => ({ id: 'ai' + (i + 1), k, tier: t, seller: who(i), price: Math.max(10, Math.round(plain(k) * (1 + 20 * (Math.pow(2, t) - 1)) * (0.55 + 0.1 * i) / 10) * 10) })); } return E; }
-  const slotFor = (id) => (Craft.fits('bag', id) ? 'bag' : Craft.fits('vault', id) ? 'vault' : null);
+  const slotFor = (id) => (Craft.fits('bag', id) ? 'bag' : null); // (Dominic: the backpack only; full -> blocked)
   function give(k, tier) { const id = Craft.TPICK(k), w = slotFor(id); if (!w) return false; Craft.add(w, id, 1); S.tpicks = S.tpicks || {}; S.tpicks[k] = tier; return w; }
   const icoT = (k, t) => `<span class="cxtw thExI">${ico(k, t)}<b class="cxtb">T${t}</b></span>`;
   function exHTML() { if (typeof S === 'undefined' || !S) return ''; const E = exState(), mine = KINDS().filter((k) => Craft.have(Craft.TPICK(k)) > 0), c = XS.conf;
@@ -157,14 +163,14 @@ const Theus = (() => {
     return h + '</div>'; }
   function exAct(act, ds) { const E = exState(); XS.msg = null;
     if (act === 'extbuy') { const o = E.ai.find((q) => q.id === ds.id); if (!o) return false; if (Craft.have(Craft.TPICK(o.k)) > 0) { XS.msg = ['bad', ownMsg(o.k)]; toast(ownMsg(o.k)); return false; }
-      if (lum() < o.price) { XS.msg = ['bad', 'Not enough gold.']; return false; } if (!slotFor(Craft.TPICK(o.k))) { XS.msg = ['bad', 'No free backpack or vault slot for it.']; return false; }
+      if (lum() < o.price) { XS.msg = ['bad', 'Not enough gold.']; return false; } if (!slotFor(Craft.TPICK(o.k))) { XS.msg = ['bad', Craft.FULL + '.']; toast(Craft.FULL); return false; }
       S.gold = lum() - o.price; give(o.k, o.tier); E.ai = E.ai.filter((q) => q !== o); XS.msg = ['good', `Bought ${NAME(o.k)} (T${o.tier}) from ${o.seller}.`]; toast(`\u2696\ufe0f Bought ${NAME(o.k)} (T${o.tier}) from ${o.seller} for ${n0(o.price)} gold`); if (typeof save === 'function') save(); return true; }
     if (act === 'extlist') { const ke = document.getElementById('thExK'), pe = document.getElementById('thExP'), k = ke && ke.value, pr = Math.floor(+(pe && pe.value)); if (!k || !(pr >= 1)) { XS.msg = ['bad', 'Set a price in gold.']; return false; } XS.conf = { k, price: pr }; return true; }
     if (act === 'extlistno') { XS.conf = null; return true; }
-    if (act === 'extlistok') { const c = XS.conf; XS.conf = null; if (!c || Craft.have(Craft.TPICK(c.k)) <= 0) return false; const t = Craft.pickTier(c.k); Craft.take(Craft.TPICK(c.k), 1); if (S.tpicks) delete S.tpicks[c.k]; if (S.pickEqT === c.k) S.pickEqT = null;
+    if (act === 'extlistok') { const c = XS.conf; XS.conf = null; if (!c || Craft.have(Craft.TPICK(c.k)) <= 0) return false; if (Craft.equipped(Craft.TPICK(c.k))) { XS.msg = ['bad', 'Unequip it first.']; toast('Unequip it first'); return false; } const t = Craft.pickTier(c.k); Craft.take(Craft.TPICK(c.k), 1); if (S.tpicks) delete S.tpicks[c.k]; if (S.pickEqT === c.k) S.pickEqT = null;
       E.mine.push({ id: E.next++, k: c.k, tier: t, price: c.price }); XS.msg = ['good', `Listed ${NAME(c.k)} (T${t}) at ${n0(c.price)}${CO()}.`]; if (typeof save === 'function') save(); return true; }
     if (act === 'extcancel') { const i = E.mine.findIndex((m) => m.id === +ds.id); if (i < 0) return false; const m = E.mine[i]; if (Craft.have(Craft.TPICK(m.k)) > 0) { XS.msg = ['bad', ownMsg(m.k)]; return false; }
-      if (!give(m.k, m.tier)) { XS.msg = ['bad', 'No free backpack or vault slot for it.']; return false; } E.mine.splice(i, 1); XS.msg = ['good', `${NAME(m.k)} (T${m.tier}) is back in your pack.`]; if (typeof save === 'function') save(); return true; }
+      if (!give(m.k, m.tier)) { XS.msg = ['bad', Craft.FULL + '.']; toast(Craft.FULL); return false; } E.mine.splice(i, 1); XS.msg = ['good', `${NAME(m.k)} (T${m.tier}) is back in your pack.`]; if (typeof save === 'function') save(); return true; }
     return false; }
   return { XS, exHTML, exAct, exState, ST, STEPS, gift, onAnvil, hit, tapAt, open, close, go, act, openUp, closeUp, upgrade, upAct, render, NAME, get step() { return ST.step && ST.step.id; } };
 })();

@@ -42,12 +42,12 @@ const MillUI = (() => {
     if (!join && m.jobs.length >= MAXJ) return false; if (Craft.have('ingot:' + k) < need || !Craft.take('ingot:' + k, need)) return false;
     if (join) last.n += n; else m.jobs.push({ id: m.nid++, tab, grade: k, n, done: 0, cur: 0, len: 0 }); if (typeof save === 'function') save(); return true; }
   function cancel(id) { const m = st(); const i = m ? m.jobs.findIndex((j) => j.id === id) : -1; if (i < 0) return 0; const j = m.jobs[i], back = (j.n - j.done) * ingOf(j.tab, j.grade), ing = 'ingot:' + j.grade;
-    m.jobs.splice(i, 1); if (back > 0 && !Craft.add('bag', ing, back)) Craft.add('vault', ing, back); if (typeof save === 'function') save(); return back; }
+    if (back > 0 && !Craft.fits('bag', ing, back)) { say(Craft.FULL + ' - free a slot first'); return 0; } /* (Dominic: refunds go to the backpack or the cancel waits; never the vault by itself) */ m.jobs.splice(i, 1); if (back > 0) Craft.add('bag', ing, back); if (typeof save === 'function') save(); return back; }
   function jobLeft(j, L) { const u = unitLen(j.tab, j.grade, L); return (j.len > 0 ? j.len - (j.cur || 0) : u) + (j.n - j.done - 1) * u; }
   function queueLeft() { const m = st(); return m ? m.jobs.reduce((a, j, i) => a + (i ? (j.n - j.done) * unitLen(j.tab, j.grade) : jobLeft(j)), 0) : 0; }
   function rackCount() { const m = st(); if (!m) return 0; let c = 0; for (const id in m.rack) c += id.startsWith('tether:') ? Math.round(m.rack[id] / SPOOL_M) : m.rack[id]; return c; }
   function collect() { const m = st(); if (!m) return 0; let got = 0;
-    for (const id of Object.keys(m.rack)) { const n = m.rack[id]; if (!(n > 0)) { delete m.rack[id]; continue; } if (!Craft.add('bag', id, n) && !Craft.add('vault', id, n)) { say('🎒 Backpack is full - free a slot first'); break; }
+    for (const id of Object.keys(m.rack)) { const n = m.rack[id]; if (!(n > 0)) { delete m.rack[id]; continue; } if (!Craft.add('bag', id, n)) { say(Craft.FULL + ' - free a slot first'); break; }
       delete m.rack[id]; got++; const k = id.split(/[:_]/).pop(); say(id.startsWith('tether:') ? `🪢 +${num(n)} m ${NM(k)} Ledge Tether` : `🔗 +${num(n)} ${NM(k)} Wren's Tether`); }
     if (got && typeof save === 'function') save(); if (!Object.keys(m.rack).length) m.capped = false; return got; }
 
