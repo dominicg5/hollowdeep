@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='0067441b';
+<script>window.HD_BUILD='f825d4c3';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 0067441b</div>
-<script src="assets/vendor/three.min.js?v=0067441b"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build f825d4c3</div>
+<script src="assets/vendor/three.min.js?v=f825d4c3"></script>
 <script>
 'use strict';
 
@@ -950,6 +950,10 @@ const QUALITY = (() => { const P = { high: { name: 'high', dpr: 2, shadowMap: 20
 const HD_MEM = { freedMB: 0 };
 function hdFreeAfterUpload(t) { if (!t || !t.isTexture) return t; const prev = t.onUpdate; t.onUpdate = function (tx) { if (prev) prev.call(this, tx); tx.onUpdate = prev || null; const im = tx.image;
   if (im && typeof HTMLCanvasElement !== 'undefined' && im instanceof HTMLCanvasElement && im.width > 1) { HD_MEM.freedMB += im.width * im.height * 4 / 1048576; im.width = im.height = 1; } }; return t; }
+/* (t577u) iOS memory: a static mesh nothing raycasts or reads back (terrain tiles, crevice walls, ore-field ground) keeps its vertex arrays in RAM after the GPU
+   has them. On a phone, let them go once uploaded (bounds computed first, for culling). Rebuilt meshes make new geometry, so they're unaffected. */
+function hdFreeGeo(g) { if (!g || !g.isBufferGeometry || typeof QUALITY === 'undefined' || QUALITY.name !== 'mobile') return g; if (!g.boundingSphere) g.computeBoundingSphere(); if (!g.boundingBox) g.computeBoundingBox();
+  const f = function () { if (this.array) { HD_MEM.geoMB = (HD_MEM.geoMB || 0) + this.array.byteLength / 1048576; this.array = null; } }; for (const k in g.attributes) g.attributes[k].onUpload(f); if (g.index) g.index.onUpload(f); return g; }
 /* =====================================================================
    HOLLOWDEEP — playable prototype
    All tunable numbers live in CONFIG. Times are in GAME hours/minutes;
@@ -8080,7 +8084,7 @@ const M3 = (() => {
       for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const s0 = (y0 + j) * N1 + (x0 + i), d = j * nx + i; P[d * 3] = fp.getX(s0); P[d * 3 + 1] = fp.getY(s0); P[d * 3 + 2] = fp.getZ(s0); Nn[d * 3] = fn.getX(s0); Nn[d * 3 + 1] = fn.getY(s0); Nn[d * 3 + 2] = fn.getZ(s0); UV[d * 2] = fu.getX(s0); UV[d * 2 + 1] = fu.getY(s0); M[d] = g.m[s0]; }
       for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, c, d, b); } // PlaneGeometry's own split (a-c-b, c-d-b), so meshH matches
       const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(P, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(Nn, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(UV, 2)); geo.setAttribute('aMt', new THREE.BufferAttribute(M, 1)); geo.setIndex(idx); geo.computeBoundingSphere(); geo.computeBoundingBox();
-      const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
+      hdFreeGeo(geo); const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.name = 'terrainTile'; out.push(mesh); }
     full.dispose(); return out; }
   /* ---------- crevices: every crack on the map is a real cut - the ground is masked away over it (tK) and rock walls with strata drop into darkness ---------- */
   const CRV = { mesh: null, maskCv: null, tex: null, win: null, depth: [] };
@@ -8114,7 +8118,7 @@ const M3 = (() => {
         const endHere = i === n - 1 || hollowDist(c.pts[i + 1][0], c.pts[i + 1][1]) < 30; if (prev < 0 || endHere) for (let q = 1; q + 1 < m / 2; q++) { const a0 = base + q, b0 = base + q + 1, c0 = base + m - 1 - q, d0 = base + m - 2 - q; idx.push(a0, b0, c0, b0, d0, c0); } /* end caps: a rock wall closes each end of the cut (no open, see-through ends) */
         prev = base; } }
     const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
-    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Group(); CRV.mesh.name = 'crevices'; for (const g of splitGeo(geo, CRV_CELL)) { g.computeBoundingSphere(); const m = new THREE.Mesh(g, mat); m.name = 'creviceChunk'; m.receiveShadow = true; m.castShadow = true; CRV.mesh.add(m); } geo.dispose(); /* the walls shade their own depths */ scene.add(CRV.mesh);
+    const mat = new THREE.MeshLambertMaterial({ map: strataTex(), vertexColors: true, side: THREE.DoubleSide }); mat.polygonOffset = true; mat.polygonOffsetFactor = -1; mat.polygonOffsetUnits = -2; CRV.mesh = new THREE.Group(); CRV.mesh.name = 'crevices'; for (const g of splitGeo(geo, CRV_CELL)) { g.computeBoundingSphere(); hdFreeGeo(g); const m = new THREE.Mesh(g, mat); m.name = 'creviceChunk'; m.receiveShadow = true; m.castShadow = true; CRV.mesh.add(m); } geo.dispose(); /* the walls shade their own depths */ scene.add(CRV.mesh);
     CRV.maskCv = document.createElement('canvas'); CRV.maskCv.width = CRV.maskCv.height = QUALITY.name === 'mobile' ? 1024 : 2048; /* (t577u iOS memory: 4 MB not 16 on a phone) */ CRV.tex = new THREE.CanvasTexture(CRV.maskCv); CRV.tex.flipY = false; CRV.tex.generateMipmaps = false; CRV.tex.minFilter = THREE.LinearFilter; CRV.win = null; }
   /* perf (draw calls): a crevice chunk is only drawn where it can show - inside the ground-cut window (outside it the uncut ground covers the walls; margin for the
      lips) and nearer than the fog's far plane (past it a chunk is pure fog colour). Coarser cells (2400 u) also halve the chunks a view touches. */
@@ -8158,7 +8162,7 @@ const M3 = (() => {
     const geo = new THREE.PlaneGeometry(2 * g.half, 2 * g.half, g.N, g.N); geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position; // after rotation: x right, z = map y (row iy -> z = -half + iy*step)
     for (let i = 0; i < pos.count; i++) pos.setY(i, g.h[i]);
-    geo.setAttribute('aMt', new THREE.BufferAttribute(g.m, 1)); geo.computeVertexNormals();
+    geo.setAttribute('aMt', new THREE.BufferAttribute(g.m, 1)); geo.computeVertexNormals(); hdFreeGeo(geo);
     const mesh = new THREE.Mesh(geo, terrainMat); mesh.castShadow = QUALITY.groundShadow; mesh.receiveShadow = true; mesh.frustumCulled = false; return mesh;
   }
 
@@ -8931,7 +8935,7 @@ diffuseColor *= sdc;
     if (CLB.grp) { const k = 0.75 + 0.25 * Math.sin(t * 1.6); CLB.grp.children.forEach((o) => { if (o.isMesh) o.material.opacity = k; else if (o.isSprite) { o.material.opacity = 0.75 + 0.25 * Math.sin(t * 2.2); const sc = 120 * Math.max(0.8, Math.min(4, 0.5 / Math.max(0.05, cam.z))); o.scale.set(sc, sc, 1); } }); } }
 
   /* ---------- build ---------- */
-  function supported() { try { const c = document.createElement('canvas'); return !!(window.THREE && (c.getContext('webgl2') || c.getContext('webgl'))); } catch (e) { return false; } }
+  function supported() { try { const c = document.createElement('canvas'), gl = window.THREE && (c.getContext('webgl2') || c.getContext('webgl')); if (gl) { try { const x = gl.getExtension('WEBGL_lose_context'); if (x) x.loseContext(); } catch (e) {} } /* (t577u: the probe's context let go, not kept as a 3rd WebGL context) */ return !!gl; } catch (e) { return false; } }
   function init(wrap, onProgress) {
     if (st.ok || st.building || !supported() || window.NO3D || location.protocol === 'file:') return st.ok; // file:// pages taint WebGL textures: use the 2D painter there
     st.building = true; const prog = onProgress || (() => {});
@@ -12731,6 +12735,8 @@ const Explore = (() => {
   function hAt(x, y) { const ob = onBridge(x, y, 0); if (ob) return deckH(ob[0], ob[1]); if (NV.root) { const [i, j] = cellOf(x, y), k = j * NV.nx + i; if (NV.root[k]) return rootH(x, y); } return mH(x, y); }
   function rootH(x, y) { const fx = clamp((x - REG.X0) / C, 0, NV.nx - 1.001), fy = clamp((y - REG.Y0) / C, 0, NV.ny - 1.001), i = fx | 0, j = fy | 0, u = fx - i, v = fy - j, H = NV.h, n = NV.nx, k = j * n + i; return (H[k] * (1 - u) + H[k + 1] * u) * (1 - v) + (H[k + n] * (1 - u) + H[k + n + 1] * u) * v; } // on a root's back: the nav surface
   // ---- the nav grid: walk / climb / blocked cells from the terrain heightfield, bridge decks walkable
+  // (t577u iOS memory) the A* visit stamps are Uint16 (4.25 MB each, not 8.5): when the stamp would pass 65535 both are cleared and it restarts at 1
+  function nvStamp() { let t = (NV.stamp || 0) + 1; if (t > 65535) { if (NV.mark) NV.mark.fill(0); if (NV.closed) NV.closed.fill(0); t = 1; } return (NV.stamp = t); }
   function build() { if (NV.built && !(NV.solids === 0 && M3.models === 'ready')) return NV; NV.built = false; /* (re)built once the house models are in, so houses are always solid */ const t0 = performance.now(), nx = Math.round((REG.X1 - REG.X0) / C) + 1, ny = Math.round((REG.Y1 - REG.Y0) / C) + 1, N = nx * ny, h = new Float32Array(N), cls = new Uint8Array(N); NV.nx = nx; NV.ny = ny;
     for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) h[j * nx + i] = mH(REG.X0 + i * C, REG.Y0 + j * C);
     // the Lumen Tree's great roots lie across the rim: where a root rests on the ground its back is the walking surface (she runs up it from where it
@@ -12827,11 +12833,11 @@ const Explore = (() => {
     for (let R = 1; R < Math.max(nx, ny); R++) { let best = -1, bd = 1e18; for (let j = j0 - R; j <= j0 + R; j++) for (let i = i0 - R; i <= i0 + R; i++) { if (Math.max(Math.abs(i - i0), Math.abs(j - j0)) !== R || i < 0 || j < 0 || i >= nx || j >= ny) continue; const k = j * nx + i; if (!ok(k)) continue; const d = (i - i0) ** 2 + (j - j0) ** 2; if (d < bd) { bd = d; best = k; } } if (best >= 0) return best; } return -1; }
   // A* over the grid: running ground costs 1 per metre, climbing 3.5x plus height gained; diagonal moves never cut a blocked corner
   function plan(sx, sy, tx, ty) { build(); const { nx, ny, cls, h, comp } = NV, s = nearest(sx, sy), sc = comp[s]; tx = clamp(tx, REG.X0, REG.X1); ty = clamp(ty, REG.Y0, REG.Y1); const g = nearest(tx, ty, sc); if (s < 0 || g < 0) return null;
-    const snapped = Math.hypot(cxy(g)[0] - tx, cxy(g)[1] - ty) > C * 0.75, N = NV.N, gs = NV.gs || (NV.gs = new Float32Array(N)), par = NV.par || (NV.par = new Int32Array(N)), mark = NV.mark || (NV.mark = new Uint32Array(N)); const stamp = (NV.stamp = (NV.stamp || 0) + 1);
+    const snapped = Math.hypot(cxy(g)[0] - tx, cxy(g)[1] - ty) > C * 0.75, N = NV.N, gs = NV.gs || (NV.gs = new Float32Array(N)), par = NV.par || (NV.par = new Int32Array(N)), mark = NV.mark || (NV.mark = new Uint16Array(N)); const stamp = nvStamp();
     const [gx, gy] = [g % nx, (g / nx) | 0], H = (k) => { const dx = Math.abs(k % nx - gx), dy = Math.abs(((k / nx) | 0) - gy); return (dx + dy + (Math.SQRT2 - 2) * Math.min(dx, dy)) * C; };
     let hk = new Float64Array(1024), hn = new Int32Array(1024), hl = 0; const push = (f, n) => { if (hl >= hk.length) { const a = new Float64Array(hk.length * 2), b = new Int32Array(hk.length * 2); a.set(hk); b.set(hn); hk = a; hn = b; } let k = hl++; while (k > 0) { const p = (k - 1) >> 1; if (hk[p] <= f) break; hk[k] = hk[p]; hn[k] = hn[p]; k = p; } hk[k] = f; hn[k] = n; };
     const pop = () => { const n = hn[0], lf = hk[--hl], ln = hn[hl]; let k = 0; for (;;) { const a = 2 * k + 1, b = a + 1; let m = -1; if (a < hl) m = a; if (b < hl && hk[b] < hk[a]) m = b; if (m < 0 || hk[m] >= lf) break; hk[k] = hk[m]; hn[k] = hn[m]; k = m; } hk[k] = lf; hn[k] = ln; return n; };
-    mark[s] = stamp; gs[s] = 0; par[s] = -1; push(H(s), s); const closed = NV.closed || (NV.closed = new Uint32Array(N)); let found = false, it = 0;
+    mark[s] = stamp; gs[s] = 0; par[s] = -1; push(H(s), s); const closed = NV.closed || (NV.closed = new Uint16Array(N)); let found = false, it = 0;
     while (hl) { const n = pop(); if (closed[n] === stamp) continue; closed[n] = stamp; it++; if (n === g) { found = true; break; } const i = n % nx, j = (n / nx) | 0;
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { if (!di && !dj) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= nx || b >= ny) continue; const m = b * nx + a; if (!cls[m] || closed[m] === stamp) continue; if (di && dj && (!cls[j * nx + a] || !cls[b * nx + i])) continue;
         const L = (di && dj ? Math.SQRT2 : 1) * C, cl = cls[m] === 2 || cls[n] === 2, dh = Math.abs(h[m] - h[n]), c = L * (cl ? 3.5 : 1) + dh * (cl ? 1.2 : 0.5), ng = gs[n] + c; if (mark[m] !== stamp || ng < gs[m]) { mark[m] = stamp; gs[m] = ng; par[m] = n; push(ng + H(m), m); } } }
@@ -13496,7 +13502,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
           P.push(x, Math.max(mH(x, y), mH(x + 5, y), mH(x - 5, y), mH(x, y + 5), mH(x, y - 5)) + 0.9, y); UV.push(x / (WS * 7), y / (WS * 7)); const pk = 1 - smoothstepJS(sp.R * 0.3, sp.R * 0.7, rr), gh = oreGrass(sp, x, y), al = al0 * (1 - gh), gm = 1 - smoothstepJS(0.2, 0.75, al), cr = tn[0] * (1 - 0.2 * pk), cg = tn[1] * (1 - 0.24 * pk), cb = tn[2] * (1 - 0.3 * pk); /* packed earth in the middle, gravel round it, grass-flecked dirt at the rim */ CC.push(cr + (0.7 - cr) * gm * 0.55, cg + (0.82 - cg) * gm * 0.55, cb + (0.36 - cb) * gm * 0.55, al); AL.push(al); }
         for (let j = 0; j < NG; j++) for (let i = 0; i < NG; i++) { const a = j * (NG + 1) + i, b = a + NG + 1; if (AL[a] + AL[a + 1] + AL[b] + AL[b + 1] < 0.01) continue; I.push(a, b, a + 1, a + 1, b, b + 1); }
       const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(CC, 4)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I); g.computeVertexNormals();
-      const dm = new THREE.Mesh(g, dmat); dm.receiveShadow = true; dm.renderOrder = 1; dm.name = 'ore_ground'; ORE.fields[fi].add(dm); ORE.grounds.push(dm); ORE.ground = dm; }); }
+      const dm = new THREE.Mesh(typeof hdFreeGeo === 'function' ? hdFreeGeo(g) : g, dmat); dm.receiveShadow = true; dm.renderOrder = 1; dm.name = 'ore_ground'; ORE.fields[fi].add(dm); ORE.grounds.push(dm); ORE.ground = dm; }); }
     for (const type of ['copper', 'tin', 'coal']) { const L = ORE_LOOK[type], mat = new THREE.MeshPhongMaterial({ color: L.col, fog: false /* the map's fog is tuned for map distances and greys out everything at her scale */, vertexColors: true, emissive: new THREE.Color(L.em).multiplyScalar(0.5), specular: new THREE.Color(L.spec).multiplyScalar(1.6), shininess: type === 'coal' ? 90 : 48, flatShading: true });
       const GB = oreGeo(type, true), GS = oreGeo(type, false); ORE.spots.forEach((sp, fi) => { for (const [big, list] of [[true, ORE.nodes.filter((n) => n.fi === fi && n.type === type && n.hero && !n.boulder)], [false, ORE.nodes.filter((n) => n.fi === fi && n.type === type && !n.hero && !n.boulder).concat(ORE.deco.filter((d) => d.fi === fi && d.type === type))]]) { if (!list.length) continue; const m = new THREE.InstancedMesh(big ? GB : GS, mat, Math.max(1, list.length)); m.count = list.length;
         list.forEach((n, i) => { const gy = mH(n.x, n.y), q = n.cliff ? tiltQ(n.x, n.y, n.rot) : (E.set(0, n.rot, 0), Q.setFromEuler(E).clone()); const ds = n.spot ? n.s : decoTall(n) ? Math.min(n.s * 3.2, WS * 1.7) : Math.min(n.s * 1.6, WS * 0.75); /* (mining_large_copper) about one copper cluster in four stands tall, chest-to-head high, and is solid */ /* (mining_large_*) the loose clusters read knee-high, but stay under waist height - they are not solids */ Sc.setScalar(ds * (n.cliff ? 0.8 : 1)); M4.compose(Pp.set(n.x, gy - ds * 0.05, n.y), q, Sc); m.setMatrixAt(i, M4); n.top = gy + n.s * 1.1; });
@@ -13617,7 +13623,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
       if (check && !tetherOK(x, y, ends)) return Infinity; const h1 = mH(x, y); len += Math.hypot(L / n, h1 - h0); h0 = h1; } return len; }
   function tetherLength(pts) { let L = 0; for (let q = 1; q < pts.length; q++) L += tetherLeg(pts[q - 1], pts[q], null, false); return L; }
   function tetherPlan(sx, sy, tx, ty) { build(); const { nx, ny, N, h, tb } = NV, ends = [[sx, sy], [tx, ty]], [si, sj] = cellOf(sx, sy), [gi, gj] = cellOf(tx, ty), s = sj * nx + si, g = gj * nx + gi;
-    const gs = NV.gs || (NV.gs = new Float32Array(N)), par = NV.par || (NV.par = new Int32Array(N)), mark = NV.mark || (NV.mark = new Uint32Array(N)), closed = NV.closed || (NV.closed = new Uint32Array(N)), stamp = (NV.stamp = (NV.stamp || 0) + 1);
+    const gs = NV.gs || (NV.gs = new Float32Array(N)), par = NV.par || (NV.par = new Int32Array(N)), mark = NV.mark || (NV.mark = new Uint16Array(N)), closed = NV.closed || (NV.closed = new Uint16Array(N)), stamp = nvStamp();
     const H = (k) => Math.hypot((k % nx - gi) * C, (((k / nx) | 0) - gj) * C, h[k] - h[g]), ok = (k) => tb[k] || ends.some((p) => { const [x, y] = cxy(k); return Math.hypot(x - p[0], y - p[1]) < WS * 8; });
     const heap = NV.ph || (NV.ph = pathHeap()); heap.clear(); gs[s] = 0; par[s] = -1; mark[s] = stamp; heap.push(H(s), s); let found = false;
     while (heap.n) { const k = heap.pop(); if (closed[k] === stamp) continue; closed[k] = stamp; if (k === g) { found = true; break; } const i = k % nx, j = (k / nx) | 0;
