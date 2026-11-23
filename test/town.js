@@ -10,7 +10,7 @@ const SITES = { guide_hut: [-5217, 8498], general_store: [-5517, 7915], rope_mak
   const R = await p.evaluate((SITES) => { const T = Town, E = Explore, o = {}; T.build(); E.build(); T.tick();
     o.bld = T.BLD.length; o.paths = T.paths([]).length; o.cols = T.cols().length; o.meshes = T.ST.g ? T.ST.g.children.filter((m) => m.isMesh && m.geometry && m.geometry.attributes.position && m.geometry.attributes.position.count).length : 0;
     o.sites = {}; for (const id in SITES) { const [x, y] = SITES[id]; const hm = [123.4, 5]; const c = T.carve(x, y, hm); o.sites[id] = { hit: T.hit(x, y, 40), carved: c[0] !== hm[0] || c[1] !== hm[1], over: T.hOver(x, y), cls: E.clsAt(x, y) }; }
-    const P = E.allPaths(); o.nearPath = {}; for (const id in SITES) { const [x, y] = SITES[id]; let d = 1e9; for (const f of P) for (let k = 1; k + 1 < f.length; k += 2) d = Math.min(d, Math.hypot(f[k] - x, f[k + 1] - y)); o.nearPath[id] = Math.round(d); }
+    const P = E.allPaths ? E.allPaths() : []; /* t569u: no worn paths any more */ o.nearPath = {}; for (const id in SITES) { const [x, y] = SITES[id]; let d = 1e9; for (const f of P) for (let k = 1; k + 1 < f.length; k += 2) d = Math.min(d, Math.hypot(f[k] - x, f[k + 1] - y)); o.nearPath[id] = Math.round(d); }
     return o; }, SITES);
   let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
   console.log(JSON.stringify(R));

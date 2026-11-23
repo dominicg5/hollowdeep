@@ -1,4 +1,4 @@
-// paths & bridges audit (tolerances: bridge tilt <= 6.5 deg, end mismatch flagged when tilt > 4 deg, abutment step <= 0.75 m, <= 2 of 135 deck-edge samples touching the bank): dead ends, unbridged crevice crossings, bridge end-height mismatch / tilt / terrain penetration / abutment steps,
+// bridges audit (t569u: the worn paths are gone, so the path counts are 0; the bridge checks still run) - was: paths & bridges audit (tolerances: bridge tilt <= 6.5 deg, end mismatch flagged when tilt > 4 deg, abutment step <= 0.75 m, <= 2 of 135 deck-edge samples touching the bank): dead ends, unbridged crevice crossings, bridge end-height mismatch / tilt / terrain penetration / abutment steps,
 // bridges that cross neither water nor a crevice, zigzags + doubling back, redundant parallel paths, paths running onto the Lumen Tree's door apron.
 // REPORT=1 prints every offender; OUT=file.json writes the counts + offenders; STRICT=0 only reports.
 const { chromium } = require('playwright-core');
@@ -7,7 +7,7 @@ const URL = (process.env.URL || 'http://localhost:8765/index.html') + (process.e
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true })).newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   await p.goto(URL); await p.waitForTimeout(1000); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 240000 }); await p.waitForFunction(() => Explore.on && Explore.ORE.spots && typeof Mosby !== 'undefined' && Mosby.MS.at, null, { timeout: 180000 }).catch(() => {}); await p.waitForTimeout(3000);
-  const R = await p.evaluate(() => { const E = Explore, WS = E.WS, NV = E.build(), P = E.allPaths().filter((f) => f.length >= 5), out = { paths: P.length, segs: 0, dead: [], crevX: [], brMis: [], brTilt: [], brPen: [], brStep: [], brUnneeded: [], zig: [], back: [], par: [], apron: [] };
+  const R = await p.evaluate(() => { const E = Explore, WS = E.WS, NV = E.build(), P = (E.allPaths ? E.allPaths() : []).filter((f) => f.length >= 5), out = { paths: P.length, segs: 0, dead: [], crevX: [], brMis: [], brTilt: [], brPen: [], brStep: [], brUnneeded: [], zig: [], back: [], par: [], apron: [] };
     const pts = (f) => { const a = []; for (let i = 1; i + 1 < f.length; i += 2) a.push([f[i], f[i + 1]]); return a; }, PL = P.map(pts); PL.forEach((a) => (out.segs += a.length - 1));
     const segD = (x, y, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)); return Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t); };
     const lineD = (x, y, L, skip) => { let d = 1e9; for (let i = 0; i + 1 < L.length; i++) { if (skip && skip(i)) continue; d = Math.min(d, segD(x, y, L[i], L[i + 1])); } return d; };

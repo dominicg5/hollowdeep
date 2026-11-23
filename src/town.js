@@ -103,14 +103,10 @@ const Town = (() => {
       for(const a of q.remove)if(Math.hypot(lx-a[0],lz-a[1])<p+1.2)return true;
     } return false; } if (!near(x,y,(pad||0)+40))return false;const [px,py]=P2(x,y);return inPoly(OUT,px,py)||edgeD(px,py)*K<(pad||0)+WS*3; }
 
-  // ---- the connecting footpath: out of the main street's land end, round the town's south-east corner, onto the nearest worn path
-  let PTH = null;
-  function anchors() { const o = []; if (SITE) for (const B of BLD) { const q = SITE_PLAN[B.id]; o.push(local(B, ...q.door), local(B, ...q.approach[0])); } return o; }
-  function paths(base) { return []; } // t438u: no village trunk, door branches, yards or forecourts
 
   // site modules: move one building (with its plinth, solids, props and keeper spot) to any world point and facing; the town rebuilds on the next frame
   function setSite(id, x, y, yaw) { const B = BLD.find((q) => q.id === id); if (!B) return false; B.wx = x; B.wy = y; if (yaw != null) B.wyaw = yaw; delete SH[id]; PADS = null; COLS = null; if (Town.rebuild) Town.rebuild(); if (typeof Explore !== 'undefined' && Explore.NV) { Explore.NV.built = false; Explore.NV.tidy = null; } return true; } // (the walk grid is rebuilt on the next plan; the terrain mesh under a moved pad is re-carved when its chunk is next rebuilt)
-  return { setSite, SITE, SITE_PLAN, VALLEY, local, anchors, siteH, WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, paths, PCOL, near, inEntry,
+  return { setSite, SITE, SITE_PLAN, VALLEY, local, siteH, WS, K, SU, T, FIELD, UPPER, ENTRIES, entryAt, stairCoord, LV, STEP, RUN, BAND, STAIRS, W2, P2, OUT, BB, BLD, LOTS, SQ, GATE, GATE_IN, inPoly, edgeD, tIdx, lvlPx, carve, hOver, nat, place, npcSpot, cols, hit, PCOL, near, inEntry,
     nav, resetCols: () => { COLS = null; }, get skip() { return SKIP; }, set skip(v) { SKIP = v; } };
 })();
 /* ---- the town's meshes: painted canvas textures (one per material), geometry merged per material ---- */

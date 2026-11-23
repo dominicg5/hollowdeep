@@ -493,10 +493,8 @@ function generateCity() {
   for (let i = 0; i < (CITY.water ? 9 : 0); i++) { const a = (i / 9) * TAU + rnd() * 0.3, r = lakeR(a); const x = W.lake.x + Math.cos(a) * (r - 20), y = W.lake.y + Math.sin(a) * (r - 20); const p = { type: 'pier', x, y, r: 36, a: a + Math.PI, layer: 1, seed: rnd(), region: 0 }; W.piers.push(p); W.objs.push(p); }
 
   if (typeof GRAND !== 'undefined') GRAND.fit(); // the Lumen Tree's streams, falls and lake: clear the water, re-house anyone standing in it
-  // last terrain pass done: anyone whose plot ended up on steep ground (the later set pieces reshape the land after the rings were placed) moves to the nearest flat plot
-  if (typeof M3 !== 'undefined' && M3.ground) for (const h of W.homes) { if (h.isPlayer || (M3.ground(h.x, h.y).slope <= 0.33 && !onRoute(h.x, h.y, h.size))) continue; // (and off Art's valley routes R1-R4: no home stands on a tread)
-    for (let t = 0; t < 90; t++) { const a = t * 2.39996, d = 40 + t * 14, x = h.x + Math.cos(a) * d, y = h.y + Math.sin(a) * d; if (M3.ground(x, y).slope > 0.3 || onRoute(x, y, h.size) || hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < h.size + 8 || isWet(x, y, 8)) continue;
-      if (W.homes.some((o) => o !== h && Math.hypot(o.x - x, o.y - y) < (o.size + h.size) * 1.15)) continue; h.x = x; h.y = y; break; } }
+  // last terrain pass done (t569u, Dominic): a pre-placed house not on flat grassland (see houseGround) - or on a valley route's tread - is deleted, not moved
+  // (the pass itself, dropBadHomes, runs after the Volcanic Forge's afterGen below)
   // Spatial index for drawing & hit tests
   if (typeof Mosby !== 'undefined' && Mosby.trailHit) W.objs = W.objs.filter((o) => o.type !== 'tree' || !Mosby.trailHit(o.x, o.y, o.r || 20)); // no tree in the giant's trail (his legs / shell never meet one)
   W.bucket = 256; W.buckets = new Map();
@@ -512,6 +510,7 @@ function generateCity() {
   W.genMs = Math.round(performance.now() - t0);
   W.ready = true;
   if (typeof FORGE !== 'undefined') FORGE.afterGen(); // the Volcanic Forge: rival homes off the works, paths round the cone, trees off the scorched ground (after generation, never in it)
+  dropBadHomes(); relocatePlayer(true);
 }
 // ring radius for a rim-proximity percentile q (0 = deepest delver, on the lip; 1 = shallowest, far out in the lowlands)
 // every home is a Ledge (like a portaledge), named after its owner
@@ -527,6 +526,21 @@ function ringR(k, a, u) { const hr = hollowR(a), pr = plateauR(a);
 function onRoute(x, y, r) { if (typeof M3 === 'undefined' || !M3.vrNear) return false; const q = M3.vrNear(x, y); return !!q && q.d < M3.VR.skirt + r * 1.1 + 8; } // a home's footprint (~size) plus her body clear of a valley route's tread and skirt
 function ringGround(x, y, k) { if (typeof M3 === 'undefined' || !M3.ground) return true; const g = M3.ground(x, y); if (g.slope > 0.33 || onRoute(x, y, 40)) return false;
   return k <= 1 ? g.h > CITY.summitH - 90 : g.h < CITY.summitH * 0.72; }
+/* t569u/t570u (Dominic): a house stands only on flat ground (any ground type) - every sample of a grid over its footprint under 15 deg of slope (t572u; was 5), off the
+   mining ground (ore fields, quarries) and off the volcanic / blackened zone round Theus's forge. Returns { ok, why } (why: 'slope' | 'mine' | 'scorch'). */
+const HOUSE_SLOPE = Math.tan(15 * Math.PI / 180); // t572u (Dominic): 15 deg
+function houseGround(x, y, r) { if (typeof M3 === 'undefined' || !M3.ground || !M3.heightAt) return { ok: true };
+  const N = Math.max(3, Math.ceil(r / 12)), st = r / N, QY = W.objs ? W.objs.filter((o) => o.type === 'quarry' && Math.hypot(o.x - x, o.y - y) < o.r + r + 10) : null; // a full grid over the footprint disc, samples <= ~2 m apart
+  for (let j = -N; j <= N; j++) for (let i = -N; i <= N; i++) { if (i * i + j * j > N * N) continue; const px = x + i * st, py = y + j * st;
+    if (typeof FORGE !== 'undefined' && ((FORGE.scorched && FORGE.scorched(px, py, 40)) || (FORGE.keepOut && FORGE.keepOut(px, py, 0)))) return { ok: false, why: 'scorch' }; // the volcanic / blackened zone round Theus
+    const b = biomeAt(px, py); if (Math.max(b.coal || 0, b.copper || 0, b.tin || 0) > 0.5 || (QY && QY.some((q) => Math.hypot(q.x - px, q.y - py) < q.r))) return { ok: false, why: 'mine' }; // an ore field or a quarry
+    if (M3.ground(px, py).slope >= HOUSE_SLOPE) return { ok: false, why: 'slope' }; }
+  return { ok: true }; }
+// delete (never move) every pre-placed house not on flat grassland - run once the forge and the post-generation regrades have reshaped the land
+function dropBadHomes() { if (typeof M3 === 'undefined' || !M3.ground) return; const inTown = (h) => typeof Town !== 'undefined' && Town.hit && Town.hit(h.x, h.y, 0) ? 1 : 0, n0 = W.homes.length, t0 = W.homes.filter(inTown).length;
+  const by = { slope: 0, mine: 0, scorch: 0, route: 0 }, bad = W.homes.filter((h) => { if (h.isPlayer) return false; if (onRoute(h.x, h.y, h.size)) { by.route++; return true; } const g = houseGround(h.x, h.y, h.size * 0.75); if (!g.ok) by[g.why]++; return !g.ok; }); if (bad.length) { const B = new Set(bad); W.homes = W.homes.filter((h) => !B.has(h));
+    if (W.buckets) for (const L of W.buckets.values()) for (let i = L.length - 1; i >= 0; i--) if (B.has(L[i])) L.splice(i, 1); W.rankOf = null; }
+  W.homeStats = { by, before: n0, after: W.homes.length, townBefore: t0, townAfter: W.homes.filter(inTown).length }; W.homesDropped = bad.length; }
 /* ---- the Heartwood: one colossal upright tree growing out of the Hollow's inner wall, its roots gripping the lip. ---- */
 const HW_H = 8600, HW_R0 = 1250;
 function makeHeartwood() { let best = null, bd = -1;
@@ -553,6 +567,9 @@ function ringLabel(h) { return 'Ring ' + h.ring; }
 function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P) return false;
   /* a home moved by Mosby (S.home, saved) stays where he set it down; while a paid move is under way the house rides on his back (P.away: the plot stands empty) */
   const HS = typeof S !== 'undefined' && S && S.homeAt, away = !!(typeof S !== 'undefined' && S && S.mosbyTrip && !S.mosbyTrip.done && S.mosbyTrip.home);
+  /* t569u: a saved home on ground that is not flat grassland (see houseGround) is deleted - not moved anywhere; S.homeDeleted keeps the plot empty until Mosby sets a new one down */
+  if (HS && isFinite(HS.x) && isFinite(HS.y) && !away && W.homeAtChk !== HS) { W.homeAtChk = HS; if (!houseGround(HS.x, HS.y, P.size * 0.62).ok) { S.homeDeleted = { x: Math.round(HS.x), y: Math.round(HS.y), t: Date.now() }; W.homeAtDropped = (W.homeAtDropped || 0) + 1; try { save(); } catch (e) {} } }
+  if (typeof S !== 'undefined' && S && S.homeDeleted) { if (!P.away) { P.away = true; W.playerMoves = (W.playerMoves || 0) + 1; return true; } return false; } // deleted: no house stands (Mosby can set a new one down)
   if (HS && isFinite(HS.x) && isFinite(HS.y)) { const mv = P.x !== HS.x || P.y !== HS.y || !!P.away !== away || (P.elev == null ? null : P.elev) !== (HS.elev == null ? null : HS.elev); P.deepest = d; if (!mv && !force) return false;
     if (typeof HomeMove !== 'undefined') HomeMove.clearPlot(HS.x, HS.y, 70); moveHome(P, HS.x, HS.y); P.elev = HS.elev == null ? null : HS.elev; P.away = away; P.region = regionAt(P.x, P.y); W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }
   if (!!P.away !== away) { P.away = away; if (!force && P.deepest === d) { W.playerMoves = (W.playerMoves || 0) + 1; return true; } }
@@ -562,7 +579,7 @@ function relocatePlayer(force) { const P = W.player, d = playerDeepest(); if (!P
   let spot = null;
   for (let k = 0; k < 500 && !spot; k++) { const a = regionAngle(7) + (rr() - 0.5) * (0.5 + k * 0.02), u = rr(), [x, y] = polar(ringR(ring, a, u), a), rad = P.size * 0.62;
     if (hollowDist(x, y) < 150 || underHeartwood(x, y) || chasmDist(x, y) < rad + 8 || (k < 400 && !ringGround(x, y, ring))) continue;
-    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (typeof GRAND !== 'undefined' && GRAND.wet(x, y, rad + 60)) || (typeof FORGE !== 'undefined' && FORGE.keepOut(x, y, rad + 20))) continue; spot = [x, y]; }
+    if (W.homes.some((h) => !h.isPlayer && Math.hypot(h.x - x, h.y - y) < (h.size + P.size) * 0.62) || (typeof GRAND !== 'undefined' && GRAND.wet(x, y, rad + 60)) || (typeof FORGE !== 'undefined' && FORGE.keepOut(x, y, rad + 20)) || (k < 450 && !houseGround(x, y, rad).ok)) continue; spot = [x, y]; }
   if (!spot) { W.rankOf = null; return false; }
   moveHome(P, spot[0], spot[1]); P.ang = Math.atan2(-P.y, -P.x); P.region = regionAt(P.x, P.y); P.ring = ring;
   W.rankOf = null; W.playerMoves = (W.playerMoves || 0) + 1; return true; }

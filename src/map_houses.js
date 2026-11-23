@@ -568,8 +568,7 @@ const HOUSE_KIT = (() => {
       for (let j = 0; j < m; j++) B.i.push(b0, b0 + 1 + j, b0 + 2 + j); if (!lod && r() < 0.45) floretPlain(B, cx, 0.05, cz, 0.06, r() < 0.5 ? [2.6, 2.5, 2.4] : [2.6, 1.7, 2.0]); }
     return B.geo(); }
   function rockGeo(lod, seed, kind) { const B = TBuilder(), r = rng(seed), d = lod ? 1 : 3;
-    if (kind === 'stack') { boulder(B, 0, 0.0, 0, 0.5, 0.36, 0.46, d, seed, true); boulder(B, 0.03, 0.46, 0.0, 0.36, 0.24, 0.32, d, seed + 1, true); boulder(B, 0.0, 0.76, 0.02, 0.22, 0.17, 0.2, d, seed + 2, true); }
-    else if (kind === 'cracked') { boulder(B, -0.2, 0, 0, 0.38, 0.62, 0.42, d, seed, true); boulder(B, 0.22, 0, 0.04, 0.36, 0.72, 0.4, d, seed + 3, true); boulder(B, 0.02, 0, 0.3, 0.3, 0.4, 0.26, d, seed + 5, true); }
+    if (kind === 'cracked') { boulder(B, -0.2, 0, 0, 0.38, 0.62, 0.42, d, seed, true); boulder(B, 0.22, 0, 0.04, 0.36, 0.72, 0.4, d, seed + 3, true); boulder(B, 0.02, 0, 0.3, 0.3, 0.4, 0.26, d, seed + 5, true); }
     else if (kind === 'angular') { boulder(B, 0, 0, 0, 0.45, 1.0, 0.4, lod ? 0 : 1, seed, true); boulder(B, 0.36, 0, 0.18, 0.28, 0.45, 0.26, lod ? 0 : 1, seed + 7, true); }
     else if (kind === 'flat') boulder(B, 0, -0.05, 0, 0.75, 0.38, 0.62, d, seed, true);
     else if (kind === 'half') boulder(B, 0, -0.2, 0, 0.6, 0.5, 0.5, d, seed, false);
@@ -598,7 +597,7 @@ const HOUSE_KIT = (() => {
       bJuniper: T((l) => bush(l, 1205, { tint: [0.5, 0.72, 0.72], hue: 4, extra: [[[0.42, 0.5, 0.95], 26, 0.09]], R: [0.5, 0.28, 0.46] })), bRose: T((l) => bush(l, 1207, { tint: [0.72, 0.86, 0.66], extra: [[[2.7, 1.5, 1.6], 30, 0.2], [[2.7, 1.9, 2.0], 14, 0.15]] })),
       bBramble: T((l) => bush(l, 1209, { tint: [0.7, 0.82, 0.62], stems: 7, ncl: 6, R: [0.48, 0.3, 0.46], extra: [[[0.28, 0.2, 0.35], 30, 0.1], [[2.6, 2.5, 2.4], 12, 0.1]] })), bGorse: T((l) => bush(l, 1211, { tint: [0.62, 0.78, 0.46], hue: 2, ncl: 10, R: [0.42, 0.4, 0.4], C: [0, 0.4, 0], extra: [[[2.6, 2.0, 0.3], 60, 0.13]] })),
       bFern: T((l) => fernGeo(l, 1213, [0.62, 0.86, 0.36], 13, 0.8)), bHeather: T((l) => heatherGeo(l, 1215)), bScrub: T((l) => bush(l, 1217, { tint: [0.84, 0.74, 0.46], stems: 5, ncl: 6, R: [0.4, 0.26, 0.38], peb: 2 })), bSilver: T((l) => fernGeo(l, 1219, [0.8, 0.92, 0.84], 28, 0.95, ROCK, 1.2)),
-      rMossy: T((l) => rockGeo(l, 1301, 'mossy')), rCracked: T((l) => rockGeo(l, 1303, 'cracked')), rStack: T((l) => rockGeo(l, 1305, 'stack')), rLichen: T((l) => rockGeo(l, 1307, 'lichen')), rHalf: T((l) => rockGeo(l, 1309, 'half')), rFlat: T((l) => rockGeo(l, 1311, 'flat')),
+      rMossy: T((l) => rockGeo(l, 1301, 'mossy')), rCracked: T((l) => rockGeo(l, 1303, 'cracked')), rLichen: T((l) => rockGeo(l, 1307, 'lichen')), rHalf: T((l) => rockGeo(l, 1309, 'half')), rFlat: T((l) => rockGeo(l, 1311, 'flat')),
       rOre: T((l) => rockGeo(l, 1313, 'ore')), rAngular: T((l) => rockGeo(l, 1315, 'angular')), rScree: T((l) => rockGeo(l, 1317, 'scree')), rCoal: T((l) => rockGeo(l, 1321, 'coal')), rRust: T((l) => rockGeo(l, 1323, 'rust')), pCrystalCu: T((l) => crystalGeo(l, 1701, [1.5, 0.62, 0.3])), pCrystalSn: T((l) => crystalGeo(l, 1703, [0.95, 1.05, 1.25])), pCart: T((l) => cartGeo(l)), rSlag: T((l) => rockGeo(l, 1319, 'slag')),
       pReeds: T((l) => reedsGeo(l, 1401, false)), pCattail: T((l) => reedsGeo(l, 1403, true)), pLily: T((l) => lilyGeo(l, 1405)), pTrack: T((l) => trackGeo(l)), pLantern: T((l) => lanternGeo(l)) }; }
   function trees() { if (!treeAtlas) treeAtlas = paintTreeAtlas(); const mat = new THREE.MeshLambertMaterial({ map: treeAtlas, vertexColors: true, side: THREE.DoubleSide, alphaTest: 0.5 });

@@ -10,9 +10,10 @@ const HomeMove = (() => {
   function footR() { const P = playerSolid(); if (P) return Math.hypot(Math.max(-P.b[0], P.b[1]), Math.max(-P.b[2], P.b[3])) * P.w; const H = W.player; return typeof homeW === 'function' ? homeW(H) * 0.6 : 60; }
   function loopD(x, y) { if (typeof Mosby === 'undefined' || !Mosby.GLOOP) return 1e9; const L = Mosby.GLOOP; let m = 1e9; for (let i = 0; i < L.length; i++) { const a = L[i], b = L[(i + 1) % L.length], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)); m = Math.min(m, Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t)); } return m; }
   function ground(x, y, R) { let lo = 1e9, hi = -1e9; for (let a = 0; a < 12; a++) for (const f of [0.45, 1]) { const g = M3.meshH(x + Math.cos(a * 0.5236) * R * f, y + Math.sin(a * 0.5236) * R * f); lo = Math.min(lo, g); hi = Math.max(hi, g); } const c = M3.meshH(x, y); return { lo: Math.min(lo, c), hi: Math.max(hi, c) }; }
-  // can a house be set down here? flat enough (<= 2.5 m of apron), dry, solid ground clear of crevices, other houses, the town, ore fields, the Lumen Tree,
+  // can a house be set down here? flat ground (every footprint sample under 15 deg, not mining ground or the forge's volcanic / scorched zone; houseGround), flat enough (<= 2.5 m of apron), dry, solid ground clear of crevices, other houses, the town, ore fields, the Lumen Tree,
   // and the giant's own loop (his feet), and somewhere she can walk
   function check(x, y) { const WS = WSf(), R = footR() + WS * 2, why = (t) => ({ ok: false, why: t });
+    { const G = typeof houseGround === 'function' ? houseGround(x, y, R) : { ok: true }; if (!G.ok) return why(G.why === 'slope' ? 'flat' : G.why); } // t569u: flat ground first, so its reason is never masked
     if (Math.hypot(x, y) > CITY.R - 1600 || (typeof hollowDist === 'function' && hollowDist(x, y) < 150)) return why('edge');
     if (loopD(x, y) < WS * 50 + R) return why('giant');
     for (const h of M3.solids()) { if (h.player) continue; const r = Math.hypot(Math.max(-h.b[0], h.b[1]), Math.max(-h.b[2], h.b[3])) * h.w; if (Math.hypot(h.x - x, h.y - y) < R + r + WS * 3) return why('house'); }
@@ -25,7 +26,7 @@ const HomeMove = (() => {
     for (const s of (Explore.ORE && Explore.ORE.spots) || []) if (Math.hypot(s.x - x, s.y - y) < (s.r || WS * 20) + R) return why('ore');
     if (typeof GRAND !== 'undefined' && GRAND.door && Math.hypot(GRAND.door.x - x, GRAND.door.y - y) < WS * 160) return why('tree');
     return { ok: true, elev: g.hi, lo: g.lo, R }; }
-  const WHY = { edge: 'too near the edge of things', tree: 'too close to the Lumen Tree', chasm: 'too near the drop', water: 'too wet for a house', crevice: 'cracked ground \u2014 it would split', ground: 'no ground to stand it on', slope: 'too steep for a house', house: 'too close to a neighbour', town: 'inside the town', ore: 'on an ore field', giant: 'right on the big fellow\u2019s walk' };
+  const WHY = { flat: 'needs flat ground \u2014 too steep or ridged', mine: 'needs flat ground \u2014 this is mining ground', scorch: 'needs flat ground \u2014 volcanic, scorched earth', edge: 'too near the edge of things', tree: 'too close to the Lumen Tree', chasm: 'too near the drop', water: 'too wet for a house', crevice: 'cracked ground \u2014 it would split', ground: 'no ground to stand it on', slope: 'too steep for a house', house: 'too close to a neighbour', town: 'inside the town', ore: 'on an ore field', giant: 'right on the big fellow\u2019s walk' };
   // the trees, bushes and rocks standing on the new plot are cleared (the old plot keeps its bare clearing)
   function clearPlot(x, y, R) { const keep = (o) => Math.hypot(o.x - x, o.y - y) > R + 10 || o.type === 'home' || o.isPlayer; if (W.objs) { const drop = W.objs.filter((o) => !keep(o)); if (drop.length) { W.objs = W.objs.filter(keep); W.birchXT = null; if (W.buckets) for (const L of W.buckets.values()) for (let i = L.length - 1; i >= 0; i--) if (drop.includes(L[i])) L.splice(i, 1); } }
     if (W.birchXT && W.birchXT.list) W.birchXT.list = W.birchXT.list.filter(keep); }
@@ -38,7 +39,7 @@ const HomeMove = (() => {
   // Confirm: the house goes up onto his back (the plot empties, the door and its ports go with it)
   function depart() { if (W.player) W.player.away = true; refreshAll(); return true; }
   // arrival: the house itself is set down where she picked; saved
-  function arrive(T) { if (!T || !T.home) return false; const c = T.home; S.homeAt = { x: c.x, y: c.y, elev: c.elev, lo: c.lo, t: Date.now() }; clearPlot(c.x, c.y, (c.R || footR()) + WSf() * 2); if (W.player) W.player.away = false; refreshAll(); if (typeof MosbyTalk !== 'undefined' && MosbyTalk.step === 'sent') MosbyTalk.close(); try { save(); } catch (e) {} return true; }
+  function arrive(T) { if (!T || !T.home) return false; const c = T.home; S.homeAt = { x: c.x, y: c.y, elev: c.elev, lo: c.lo, t: Date.now() }; delete S.homeDeleted; clearPlot(c.x, c.y, (c.R || footR()) + WSf() * 2); if (W.player) W.player.away = false; refreshAll(); if (typeof MosbyTalk !== 'undefined' && MosbyTalk.step === 'sent') MosbyTalk.close(); try { save(); } catch (e) {} return true; }
   /* on load: the apron goes back under a moved house once the models are in */
   { const iv = setInterval(() => { if (typeof M3 === 'undefined' || M3.models !== 'ready' || !M3.scene) return; clearInterval(iv); if (typeof S !== 'undefined' && S && S.homeAt) apron(); }, 1000); }
   return { check, WHY, footR, loopD, depart, arrive, apron, clearPlot, refreshAll, get apronMesh() { return ST.apron; } };
