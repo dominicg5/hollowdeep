@@ -230,6 +230,7 @@ const Skills = (() => {
   }
   function skillLine(skill) {
     const L = level(skill), xp = xpOf(skill), a = xpToReach(L), b = xpToReach(L + 1);
+    if (L >= SKILL_SHOW_CEILING) return NAMES[skill] + ' ' + SKILL_SHOW_CEILING + ' · MAX · ' + fmtXp(xp) + ' XP'; // at the cap: no 'to Lv 301'
     return NAMES[skill] + ' ' + L + ' · ' + fmtXp(xp - a) + ' / ' + fmtXp(b - a) + ' XP';
   }
   function uiLine() { return skillLine('mining') + ' · ' + skillLine('smithing'); }
@@ -262,6 +263,7 @@ const Skills = (() => {
   function skillState(skill) {
     const L = level(skill), xp = xpOf(skill), a = xpToReach(L), b = xpToReach(L + 1), need = Math.max(0, b - a), into = Math.max(0, xp - a);
     const pct = need > 0 ? Math.round((100 * into) / need) : 100, u = nextUnlock(skill, L);
+    if (L >= SKILL_SHOW_CEILING) return { skill, name: NAMES[skill], icon: SKILL_ICONS[skill], level: SKILL_SHOW_CEILING, max: true, xp, into: 0, need: 0, pct: 100, total: xp, next: u.next, then: u.then }; // the level cap (Lv 300): a full bar, 'Lv 300 · MAX', total XP kept
     return { skill, name: NAMES[skill], icon: SKILL_ICONS[skill], level: L, xp, into, need, pct, total: xp, next: u.next, then: u.then };
   }
 
@@ -339,7 +341,7 @@ const Skills = (() => {
       + `<div class="skId"><button type="button" class="skName" data-sk-detail="${st.skill}">${esc(st.name)}</button><div class="skTotalMob">Total ${fmtXp(st.total)} XP</div>`
       + `<div class="skMedal" aria-label="Level ${st.level}"><small>LV</small><b>${st.level}</b></div></div>`
       + `<div class="skProg"><div class="skBar skBar-${st.skill}"><i style="width:${Math.max(0, Math.min(100, st.pct))}%"></i></div>`
-      + `<div class="skProgMeta"><span>${fmtXp(st.into)} / ${fmtXp(st.need)} XP</span><span class="skPctDesk">${st.pct}%</span><span class="skPctMob">${st.pct}% to Lv ${st.level + 1}</span></div></div>`
+      + `<div class="skProgMeta">${st.max ? `<span class="skMax">Lv ${st.level} · MAX</span><span class="skPctDesk">${fmtXp(st.total)} XP</span><span class="skPctMob">${fmtXp(st.total)} XP</span>` : `<span>${fmtXp(st.into)} / ${fmtXp(st.need)} XP</span><span class="skPctDesk">${st.pct}%</span><span class="skPctMob">${st.pct}% to Lv ${st.level + 1}</span>`}</div></div>`
       + `<div class="skTotal"><b>${fmtXp(st.total)}</b><small>XP</small></div>`
       + chipHTML(st) + `</article>`;
   }
@@ -401,7 +403,7 @@ const Skills = (() => {
       + `<button type="button" data-sk-tab="tethercraft"${skill === 'tethercraft' ? ' class="on"' : ''}>Tethercraft</button></div>`
       + `<button type="button" class="kX skClose" data-sk="close" aria-label="Close">✕</button></div>`
       + `<div class="skSum"><div class="skIco" aria-hidden="true"><img src="${itemSrc(st.icon)}" alt=""></div>`
-      + `<div class="skSumId"><div class="skName">${esc(st.name)}</div><div class="skSumMeta"><span>Total ${fmtXp(st.total)} XP</span><span>${fmtXp(st.into)} / ${fmtXp(st.need)} XP · ${st.pct}%</span></div>`
+      + `<div class="skSumId"><div class="skName">${esc(st.name)}</div><div class="skSumMeta"><span>Total ${fmtXp(st.total)} XP</span><span>${st.max ? `Lv ${st.level} · MAX` : `${fmtXp(st.into)} / ${fmtXp(st.need)} XP · ${st.pct}%`}</span></div>`
       + `<div class="skBar skBar-${st.skill}"><i style="width:${Math.max(0, Math.min(100, st.pct))}%"></i></div></div>`
       + medalHTML(st.level) + `</div>`
       + `<div class="skUnlocks" data-sk-list="${skill}">${body}</div>`

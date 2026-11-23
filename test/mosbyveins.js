@@ -1,0 +1,97 @@
+// (Dominic, giant_shell_ores_top_v6) Mosby's shell veins, his head and the Lumen Crystal crown: coal / tin / copper veins on the walkable top of his shell
+// (clear of his glyphs and glints, solid, one mesh) mined with the field's own logic (pickaxe reach, a full backpack); she climbs down his front rim onto his
+// head and back up (her own Rappel / Stop / Ascend on the face, the locked climb pace); the Lumen Crystal on his head: 'Unlock Lv 300' below, mined at 300,
+// 1 Lumen Crystal per 60 minutes of her active mining (kept in S.mosbyLumen), none for idle time; all only while he stands still (his walk waits for her).
+// Also: a skill at its level cap shows a full bar, 'Lv 300 · MAX' and its total XP.     SHOT=dir node test/mosbyveins.js -> the three renders
+const { chromium } = require('playwright-core');
+const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
+let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
+(async () => {
+  const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+  await p.goto(URL + '?t=' + Date.now(), { timeout: 90000, waitUntil: 'commit' }); await p.waitForTimeout(1000); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
+  await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 240000 }).catch(() => {}); await p.waitForFunction(() => Explore.on && Mosby.GM.g, null, { timeout: 90000 }).catch(() => {});
+  await p.evaluate(async () => { for (let i = 0; i < 120 && M3.models !== 'ready'; i++) await new Promise((r) => setTimeout(r, 1000)); await new Promise((r) => setTimeout(r, 1200)); });
+  await p.evaluate(() => { window.__frame = (n, dt) => { for (let i = 0; i < (n || 1); i++) { Mosby.gTick(dt || 1 / 30); Explore.tick(dt || 1 / 30); } }; window.__toasts = []; const t0 = window.toast; window.toast = function (m) { __toasts.push(String(m)); return t0.apply(this, arguments); };
+    window.__lastToast = (re) => __toasts.some((m) => re.test(m)); try { const d = document.getElementById('devClaimBtn'); if (d) d.remove(); } catch (e) {} });
+  // camera helpers for the renders: the game's own explore camera turned (8 headings) to the one that sees all the targets unblocked; or a still camera above his shell
+  await p.evaluate(() => { window.__aim = (pts, d, tilt) => { const E = Explore.EX, P = E.par, rc = new THREE.Raycaster(); let best = null; for (let k = 0; k < 8; k++) { E.az = k * Math.PI / 4; E.d = d; E.tilt = tilt; Explore.tick(1 / 60); M3.render(0, CityMap.cam); const C = M3.camera; let sc = 0; { const cp = P.worldToLocal(C.position.clone()), H = MosbyVeins.field(), y1 = H.at(cp.x, cp.z), y2 = Math.abs(cp.x) < 40 && Math.abs(cp.z) < 40 ? MosbyRide.hy(cp.x, cp.z) : NaN, top = Math.max(isFinite(y1) ? y1 : -1e9, isFinite(y2) ? y2 : -1e9); if (cp.y < top + 3) sc += 50; } /* not inside his shell or head */
+      for (const q of pts) { const w = P.localToWorld(q.clone()), n = w.clone().project(C); if (n.z > 1 || Math.abs(n.x) > 0.8 || Math.abs(n.y) > 0.75) { sc += 10; continue; } rc.set(C.position, w.clone().sub(C.position).normalize()); rc.camera = C; const h = rc.intersectObject(Mosby.GM.g, true).find((i) => i.object.isMesh && i.object !== Mosby.GM.g); if (h && h.distance < C.position.distanceTo(w) - Explore.WS * 1.5) sc += 3; sc += Math.abs(n.x) + Math.abs(n.y); }
+      if (!best || sc < best[1]) best = [k, sc]; } E.az = best[0] * Math.PI / 4; Explore.tick(1 / 60); return best; };
+    window.__still = (from, at) => { const R = M3.renderer, P = Explore.EX.par, c = new THREE.PerspectiveCamera(50, 16 / 9, 1, 60000), sz = R.getSize(new THREE.Vector2()), pr = R.getPixelRatio(); c.position.copy(P.localToWorld(from.clone())); c.lookAt(P.localToWorld(at.clone())); c.updateMatrixWorld(true);
+      R.setPixelRatio(1); R.setSize(1280, 720, false); R.render(M3.scene, c); const url = R.domElement.toDataURL('image/png'); R.setPixelRatio(pr); R.setSize(sz.x, sz.y, false); return url; }; });
+  const shot = async (name) => { if (!SHOT) return; await p.evaluate(() => { document.querySelectorAll('#toasts .toast').forEach((t) => t.remove()); const d = document.getElementById('devClaimBtn'); if (d) d.style.display = 'none'; }); await p.waitForTimeout(900); await p.screenshot({ path: SHOT + '/' + name, timeout: 180000 }); };
+  // ---- aboard (as in mosbyride.js) and the veins on his shell
+  const r1 = await p.evaluate(() => { const G0 = Mosby.GM, WS = Explore.WS, o = {}; S.mosbyTrip = null; S.mosbyRide = null; S.skills = S.skills || {}; S.skills.mining = Skills.xpToReach(20); S.mosbyLumen = null; const sc = Mosby.gScale(), Lp = Mosby.gLoop().L;
+    let sF = 0; for (let q = 0; q < Lp; q += WS * 20) { const pt = Mosby.gAt(q), h0 = M3.meshH(pt[0], pt[1]); let mx = 0; for (const [u, v] of [[1, 1], [1, -1], [-1, 1], [-1, -1], [2, 0], [-2, 0], [0, 2], [0, -2]]) mx = Math.max(mx, Math.abs(M3.meshH(pt[0] + u * 2.5 * sc, pt[1] + v * 2.5 * sc) - h0)); if (mx < WS * 1.0 && !isWet(pt[0], pt[1], WS * 60)) { sF = q; break; } }
+    G0.hold = false; G0.s = sF; Mosby.gTick(0.01); G0.hold = true; const m = Mosby.gMeet(G0.at.x + WS * 200, G0.at.y), k = Explore.reach(m[0], m[1]); Explore.enter(k[0], k[1]); for (let i = 0; i < 5; i++) Explore.tick(1 / 30);
+    Mosby.talkTap(); const dlg = document.getElementById('mosDlg'); dlg.querySelector('.mdWell').click(); const rb = dlg.querySelector('[data-a=ride]'); if (rb) rb.click(); dlg.querySelector('.mdWell').click(); G0.hold = true; __frame(10); o.on = MosbyRide.on;
+    const MV = MosbyVeins, u = MosbyRide.um(), V = MV.veins, cnt = {}; for (const v of V) cnt[v.type] = (cnt[v.type] || 0) + 1; o.cnt = cnt; o.n = V.length;
+    let inside = true, glyph = 1e9, glint = 1e9, sides = 0, sp = 1e9; for (const v of V) { for (let a = 0; a < 6.28; a += 0.5) if (!MosbyRide.clampM(v.x + Math.cos(a) * (v.r + 1), v.z + Math.sin(a) * (v.r + 1))[2]) inside = false; const P = new THREE.Vector3(v.x * u, v.y * u, v.z * u);
+      for (const g of Mosby.GLY) glyph = Math.min(glyph, (P.distanceTo(g.P) - g.R) / u - v.r); for (const [az, s, R] of Mosby.GLINT.spirals) glint = Math.min(glint, (P.distanceTo(Mosby.dome(az, s)) - R) / u - v.r); for (const [az, s] of Mosby.GLINT.dots) glint = Math.min(glint, P.distanceTo(Mosby.dome(az, s)) / u - v.r);
+      if (Math.hypot(v.x, v.z) > Math.min(...MosbyRide.region().rmax) / u) sides++; for (const w of V) if (w !== v) sp = Math.min(sp, Math.hypot(v.x - w.x, v.z - w.z)); }
+    o.inside = inside; o.glyph = +glyph.toFixed(2); o.glint = +glint.toFixed(2); o.sides = sides; o.sp = +sp.toFixed(1);
+    const vm = MV.MV.vmesh, cm = MV.MV.cmesh; o.vm = !!vm && vm.parent === G0.shell && vm.material === Explore.ORE.kit.rockM; o.cm = !!cm && cm.parent === G0.head; o.cmTex = !!(cm && cm.material.map);
+    let man = 0; G0.g.traverse((x) => { if (/rope|anchor|ring|dish|tether/i.test(x.name || '')) man++; }); o.man = man;
+    let added = 0; for (const x of [vm, cm]) if (x && x.isMesh && !Array.isArray(x.material) && !x.castShadow && x.children.length === 0) added++; o.calls = added; return o; });
+  console.log(JSON.stringify(r1));
+  ok(r1.on && r1.n === 7 && r1.cnt.coal === 3 && r1.cnt.tin === 2 && r1.cnt.copper === 2, `on his shell: 7 veins fused into the top plates (coal ${r1.cnt.coal}, tin ${r1.cnt.tin}, copper ${r1.cnt.copper})`);
+  ok(r1.inside && r1.glyph > 0 && r1.glint > 0 && r1.sp >= 5, `only on the walkable crown with a metre to spare (sides clean), never over a glyph (${r1.glyph} m clear) or a glint swirl / dot (${r1.glint} m clear), ${r1.sp} m apart`);
+  ok(r1.vm && r1.cm && !r1.cmTex && r1.man === 0, 'the veins reuse the field veins\' rock + material (one mesh on his shell); the Lumen crystals are procedural on his head (no texture); no rope / anchor / ring / dish');
+  ok(r1.calls === 2, `draw calls added: ${r1.calls} (one merged veins mesh, one crystal mesh, single material, no shadow pass)`);
+  if (SHOT) { await p.evaluate(() => { const G = CharView.st.gnd; G.x = 0; G.z = 2; G.y = MosbyRide.hy(0, 2); __frame(3); return __aim(MosbyVeins.veins.map((v) => new THREE.Vector3(v.x, v.y, v.z)), 55, 0.95); }); await shot('mosby_shell_top_ores.png'); }
+  // ---- a shell vein: reach + full backpack first; tapped while he walks, he stops (his walk waits while she mines); mined with the field's own strikes; solid
+  const r2 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, o = {}; const v = MV.veins.find((x) => x.type === 'coal');
+    const pr = Skills.pickReaches; Skills.pickReaches = () => false; o.weak = MV.veinGo(v); Skills.pickReaches = pr; const cf = Craft.fits; Craft.fits = () => false; o.full = MV.veinGo(v); Craft.fits = cf; o.fullT = __lastToast(/Backpack full/);
+    GM.hold = false; __frame(20); const s0 = GM.s; __frame(10); o.walking = GM.s !== s0; __toasts.length = 0; o.go = MV.veinGo(v); o.stopT = __lastToast(/Mosby stops/); const s1 = GM.s, b0 = Craft.get('bag', 'ore:coal');
+    for (let i = 0; i < 600 && MV.MV.task; i++) __frame(1); for (let i = 0; i < 1500 && Craft.get('bag', 'ore:coal') === b0; i++) __frame(1); o.ore = Craft.get('bag', 'ore:coal') - b0; o.still = GM.s === s1; o.act = CharView.an.act;
+    G.mine = false; __frame(3); G.x = v.x; G.z = v.z + 0.1; __frame(2); o.push = +(Math.hypot(G.x - v.x, G.z - v.z) - v.r).toFixed(2); GM.hold = true; return o; });
+  console.log(JSON.stringify(r2));
+  ok(r2.weak === 'ore-weak' && r2.full === 'bag-full' && r2.fullT, 'the field\'s checks first: a weak pickaxe (\'Needs a stronger pickaxe\'), a full backpack (blocked, its toast)');
+  ok(r2.walking && r2.go === 'ore' && r2.stopT && r2.still && r2.ore > 0, `tapping a vein while he walks: he stops first; she mines it with the field's strikes (+${r2.ore} coal), he stays still meanwhile`);
+  ok(r2.push >= 0.3, `the veins are solid (she stands ${r2.push} m off the rock)`);
+  // ---- climb down his front rim onto his head (Rappel / Stop / Ascend on the way), his walk waits while she is there; Lv 300 lock; the crystal hour
+  const r3 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, CV = CharView, o = {}; GM.hold = false; __frame(2); __toasts.length = 0; o.go = MV.headGo({}); const s0 = GM.s; let climb = 0, maxV = 0, ps = null;
+    for (let i = 0; i < 400 && MV.st === 'shell'; i++) __frame(1); const sA = MV.MV.s; for (let i = 0; i < 150; i++) { __frame(1); if (CV.an.act === 'climb') climb++; } o.climbAnim = climb; o.vClimb = +((MV.MV.s - sA) / 5).toFixed(2);
+    const sp = CV.climbSpeeds(); o.lockDown = +sp.down.toFixed(2); o.btn = document.querySelector('#mvRap [data-mv=rappel]') ? 'Rappel' : null; o.hop = (document.getElementById('exHopBtn') || {}).style ? document.getElementById('exHopBtn').style.display : '?';
+    document.querySelector('#mvRap [data-mv=rappel]').click(); o.st1 = MV.st; for (let i = 0; i < 55; i++) __frame(1); o.st2 = MV.st; const a = MV.MV.s; __frame(30); o.vRap = +((MV.MV.s - a)).toFixed(2); o.line = !!(MV.MV.line && MV.MV.line.visible);
+    document.querySelector('#mvRap [data-mv=stop]').click(); o.st3 = MV.st; const h = MV.MV.s; __frame(15); o.hangStill = MV.MV.s === h; o.btns = [...document.querySelectorAll('#mvRap [data-mv]')].map((x) => x.textContent).join('+');
+    document.querySelector('#mvRap [data-mv=ascend]').click(); for (let i = 0; i < 200 && MV.st !== 'face'; i++) __frame(1); o.backToPin = MV.st === 'face' && Math.abs(MV.MV.s - MV.MV.pinS) < 0.05; o.lineOff = !MV.MV.line.visible;
+    MV.MV.task = { head: true }; const H = MV.field(); MV.MV.sT = H.sMax; for (let i = 0; i < 1800 && MV.st !== 'head'; i++) __frame(1); o.st4 = MV.st; o.onHead = H.inZone(G.x, G.z); o.still = GM.s === s0; o.holdRaw = GM.holdRaw(); o.hold = GM.hold;
+    __frame(3); o.hint0 = (document.getElementById('mvLumen') || {}).textContent; __toasts.length = 0; o.lock = MV.crystalGo(); o.lockT = __lastToast(/Lumen Crystal: Unlock Lv 300/); return o; });
+  console.log(JSON.stringify(r3));
+  ok(r3.go === 'head' && r3.climbAnim > 100 && r3.vClimb > 0.1 && r3.vClimb < r3.lockDown, `she climbs down the front of his shell with her wall climb (${r3.climbAnim} climb frames, ${r3.vClimb} m/s on average; Hop off hidden: '${r3.hop}')`);
+  ok(r3.btn === 'Rappel' && r3.st1 === 'anchor' && r3.st2 === 'rappel' && Math.abs(r3.vRap - r3.lockDown) < 0.1 && r3.line, `her own Rappel on the face: pins her own tether, rappels at the locked ${r3.lockDown} m/s (${r3.vRap} m in 1 s)`);
+  ok(r3.st3 === 'hang' && r3.hangStill && r3.btns === 'Ascend+Rappel' && r3.backToPin && r3.lineOff, 'Stop holds her on the rope (Ascend + Rappel); Ascend takes her back up to her pin, then the tether comes out (no fixed anchor)');
+  ok(r3.st4 === 'head' && r3.onHead && r3.still && !r3.holdRaw && r3.hold, `on his head; he was let go (hold off) the whole way, yet stood still: his walk waits for her`);
+  ok(/Unlock Lv 300/.test(r3.hint0 || '') && r3.lock === 'lumen-locked' && r3.lockT, `below Mining 300 the Lumen Crystal shows 'Unlock Lv 300' (hint '${r3.hint0}', toast)`);
+  const r4 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, o = {}; S.skills.mining = Skills.xpToReach(300); o.lv = Skills.level('mining'); o.go = MV.crystalGo(); for (let i = 0; i < 600 && MV.MV.task; i++) __frame(1); for (let i = 0; i < 120; i++) __frame(1);
+    o.act = CharView.an.act; { const c = Explore.EX.par.worldToLocal(MV.MV.cmesh.getWorldPosition(new THREE.Vector3())); o.dist = +Math.hypot(G.x - c.x, G.z - c.z).toFixed(2); o.task = !!MV.MV.task; o.goal = !!G.goal; o.mining = MV.MV.mining && MV.MV.mining.type; } o.active = MV.lumenActive(); o.ms = Math.round(S.mosbyLumen.ms); o.hint = document.getElementById('mvLumen').textContent; o.bar = document.querySelector('#mvLumen i').style.width; return o; });
+  console.log(JSON.stringify(r4));
+  ok(r4.lv === 300 && r4.go === 'lumen' && r4.act === 'mine' && r4.active && r4.ms > 1000 && r4.ms <= 4100, `at Mining 300 she mines the Lumen Crystal; her active mining time counts (${r4.ms} ms in 4 s)`);
+  ok(/next crystal in 5\d:\d\d/.test(r4.hint) && parseFloat(r4.bar) > 0, `the hint shows '${r4.hint}' with a progress bar (${r4.bar})`);
+  if (SHOT) { await p.evaluate(() => { const G = CharView.st.gnd, c = Explore.EX.par.worldToLocal(MosbyVeins.MV.cmesh.getWorldPosition(new THREE.Vector3())); return __aim([c.clone().add(new THREE.Vector3(0, 1.2, 0)), new THREE.Vector3(G.x, G.y + 1, G.z)], 14, 0.32); }); await shot('mosby_head_crystals.png'); }
+  const r5 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, o = {}; G.mine = true; CharView.an.act = 'mine'; const c0 = S.crystals || 0; S.mosbyLumen.ms = 0;
+    for (let i = 0; i < 3599; i++) MV.lumenStep(1); o.at59 = (S.crystals || 0) - c0; for (let i = 0; i < 2; i++) MV.lumenStep(1); o.at60 = (S.crystals || 0) - c0; o.got = S.mosbyLumen.got;
+    let saved = false; save(); for (let i = 0; i < localStorage.length; i++) if (/mosbyLumen/.test(localStorage.getItem(localStorage.key(i)) || '')) saved = true; o.saved = saved;
+    G.mine = false; const c1 = S.crystals; for (let i = 0; i < 7200; i++) MV.lumenStep(1); o.idle = S.crystals - c1; G.mine = true; S.skills.mining = Skills.xpToReach(299); for (let i = 0; i < 7200; i++) MV.lumenStep(1); o.below = S.crystals - c1; S.skills.mining = Skills.xpToReach(300); G.mine = false; return o; });
+  console.log(JSON.stringify(r5));
+  ok(r5.at59 === 0 && r5.at60 === 1 && r5.saved, `60 minutes of her mining on it gives exactly 1 Lumen Crystal (0 at 59:59), kept in the save (got crystal per hour)`);
+  ok(r5.idle === 0 && r5.below === 0, 'idle time gives none (2 h standing by it: 0), nor does time below Mining 300');
+  // ---- back up onto his shell; then his walk goes on
+  const r6 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, o = {}; o.go = MV.shellGo({}); let mid = 0; for (let i = 0; i < 2400 && MV.st !== 'shell'; i++) { __frame(1); if (MV.st === 'face' && MV.MV.s < MV.field().sMax * 0.55 && !mid) { mid = 1; break; } } o.mid = mid; return o; });
+  if (SHOT) { await p.evaluate(() => { const G = CharView.st.gnd, c = Explore.EX.par.worldToLocal(MosbyVeins.MV.cmesh.getWorldPosition(new THREE.Vector3())); return __aim([new THREE.Vector3(G.x, G.y + 1, G.z), c], 30, 0.35); }); await shot('mosby_climb_to_head.png'); }
+  const r7 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, o = {}; for (let i = 0; i < 2400 && MV.st !== 'shell'; i++) __frame(1); for (let i = 0; i < 30; i++) __frame(1); o.st = MV.st; o.inside = MosbyRide.clampM(G.x, G.z)[2]; o.busy = MV.busy(); o.hop = document.getElementById('exHopBtn').style.display;
+    const s0 = GM.s; __frame(60); o.moves = GM.s !== s0; GM.hold = true; return o; });
+  console.log(JSON.stringify(r7));
+  ok(r6.mid && r7.st === 'shell' && r7.inside && !r7.busy && r7.hop !== 'none', `she climbs back up onto the top of his shell (Hop off back)`);
+  ok(r7.moves, 'once she is back on top and done, his walk goes on (move-safety: the move waits)');
+  // ---- a skill at its level cap: full bar, 'Lv 300 · MAX', total XP (got skill max)
+  const r8 = await p.evaluate(async () => { const o = {}; S.skills.mining = Skills.xpToReach(300) + 12345; const st = Skills.skillState('mining'); o.st = [st.level, st.max, st.pct]; o.line = Skills.skillLine('mining'); Skills.screen(true); await new Promise((r) => setTimeout(r, 600));
+    const row = document.querySelector('.skRow[data-sk="mining"]'); o.txt = row ? row.textContent.replace(/\s+/g, ' ') : ''; o.w = row ? row.querySelector('.skBar i').style.width : ''; S.skills.mining = Skills.xpToReach(299); const s2 = Skills.skillState('mining'); o.below = [s2.level, !!s2.max]; Skills.screen(false); return o; });
+  console.log(JSON.stringify(r8));
+  ok(r8.st.join() === '300,true,100' && /Lv 300 · MAX/.test(r8.txt) && !/Lv 301/.test(r8.txt) && r8.w === '100%' && /357\.1B|357,100,510,734/.test(r8.txt) && /300 · MAX/.test(r8.line), `Mining at its cap: full bar, 'Lv 300 · MAX', total XP kept (${r8.txt.slice(0, 90)}…) (got skill max)`);
+  ok(r8.below.join() === '299,false', 'below the cap the bar is unchanged (Lv 299 → 300)');
+  ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
+  console.log(fails ? fails + ' FAILED' : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
+})();
