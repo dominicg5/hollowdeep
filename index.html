@@ -909,7 +909,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='a5dffaa0';
+<script>window.HD_BUILD='7bf9c508';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -931,8 +931,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a5dffaa0</div>
-<script src="assets/vendor/three.min.js?v=a5dffaa0"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7bf9c508</div>
+<script src="assets/vendor/three.min.js?v=7bf9c508"></script>
 <script>
 'use strict';
 
@@ -1716,13 +1716,16 @@ const Skills = (() => {
     const L = miningLevel == null ? 1 : miningLevel;
     return (3600 / SWING_S) * swingBonus(pickTier) * onTask * yieldChance(oreId, pickTier) * levelSpeedBonus(L, o.unlock) * ((opt && opt.upg) || 1); // opt.upg: Theus's pickaxe tier multiplier (character pickaxe only; drills never pass it)
   }
-  // ---- Theus's pickaxe tiers (Dominic: on the item): one tiered pickaxe per kind (Craft 'tool:tpick_<kind>', its tier S.tpicks[kind] while it exists; none = T0); tier N multiplies its mining rate by 2^N;
+  // ---- Theus's pickaxe tiers (Dominic: on the item): one tiered pickaxe per kind (Craft 'tool:tpick_<kind>', its tier S.tpicks[kind] while it exists; none = T0); tier N multiplies its mining rate by 1.5^N;
   //      the step to tier N costs 20 x 2^(N-1) pickaxes of the same kind (20, 40 ... 10240), consumed
   const PICK_TIER_MAX = 10;
   const pickUpgCost = (n) => (n >= 1 && n <= PICK_TIER_MAX ? 20 * Math.pow(2, n - 1) : 0);
   function pickUpgTier(kind) { return typeof Craft !== 'undefined' && Craft.pickTier ? Craft.pickTier(kind) : 0; }
-  const pickUpgMult = (kind) => Math.pow(2, pickUpgTier(kind));
-  function equippedPickMult() { return typeof Craft !== 'undefined' && Craft.equippedPickTierN ? Math.pow(2, Craft.equippedPickTierN()) : 1; } // the pickaxe in her hand: its own tier (plain = T0)
+  // (Dominic: +50% per tier) tier N = x1.5^N (T10 ~x57.7); labels show one decimal where not whole (x1.5, x2.3, x3.4 ...)
+  const PICK_TIER_STEP = 1.5, tierMult = (t) => Math.pow(PICK_TIER_STEP, Math.max(0, t || 0));
+  const multLabel = (m) => 'x' + (Math.abs(m - Math.round(m)) < 1e-9 ? String(Math.round(m)) : m.toFixed(1));
+  const pickUpgMult = (kind) => tierMult(pickUpgTier(kind));
+  function equippedPickMult() { return typeof Craft !== 'undefined' && Craft.equippedPickTierN ? tierMult(Craft.equippedPickTierN()) : 1; } // the pickaxe in her hand: its own tier (plain = T0)
   // the character's real ore/h with the equipped pickaxe (its tier multiplier included)
   function equippedOrePerHour(oreId, miningLevel) { return characterOrePerHour(oreId, equippedPickTier(), miningLevel == null ? level('mining') : miningLevel, { upg: equippedPickMult() }); }
   // ore from one landed swing: the yield chance x the multiplier, the fraction rolled (so x1 is the old one-or-none)
@@ -1797,10 +1800,10 @@ const Skills = (() => {
     const i = BIT_KEYS.indexOf(grade); return i < 0 ? 0 : i;
   }
   // ore reach (Dominic): a pickaxe mines every ore at or below its grade plus exactly one ore above it (plain and tiered alike; drills / tethers keep their own rules).
-  // Ore order: Copper/Tin, Coal, Iron, Gold, Mithril, Runite, Lumenite, Ember Onyx. The Stickaxe is not a graded pickaxe: Copper/Tin only.
+  // Ore order: Copper/Tin, Coal, Iron, Gold, Mithril, Runite, Lumenite, Ember Onyx. The Stickaxe (not a graded pickaxe) mines Copper/Tin plus Coal.
   const ORE_RANK = { copper: 0, tin: 0, coal: 1, iron: 2, gold: 3, mithril: 4, runite: 5, lumenite: 6, onyx: 7 };
   const PICK_RANK = { bronze: 0, iron: 2, steel: 2, gold: 3, mithril: 4, rune: 5, lumen: 6, onyx: 7 };
-  function pickReachRank(grade) { const r = PICK_RANK[grade]; return r == null ? 0 : Math.min(7, r + 1); }
+  function pickReachRank(grade) { const r = PICK_RANK[grade]; return r == null ? 1 : Math.min(7, r + 1); } // (Dominic: the Stickaxe mines Copper/Tin plus Coal)
   function pickReaches(grade, oreId) { const o = ORE_RANK[oreId]; return o != null && o <= pickReachRank(grade); }
   function oreReachBest(grade) { const r = pickReachRank(grade); return ORE_ORDER.filter((id) => ORE_RANK[id] <= r).pop() || 'copper'; } // the best (highest) ore that pickaxe reaches
   const oreName = (id) => (ORES[id] ? ORES[id].name : id);
@@ -2130,7 +2133,7 @@ const Skills = (() => {
     clampXp, xpToReach, xpForLevel, levelFromXp, migrate, xp: xpOf, level, addXp, oreOf, oreUnlock, oreXp,
     yieldChance, levelSpeedBonus, swingBonus, characterOrePerHour, drillOrePerHour, characterXpPerHour, drillXpPerHour,
     bestPickTier, bestAct, tessDrillQuestDone, slotsUnlocked, nextSlotLevel, hoursToLevel, bitBurn, BIT_BURN, bitTier, pickTierFromGrade,
-    equippedPickTier, PICK_TIER_MAX, pickUpgCost, pickUpgTier, pickUpgMult, equippedPickMult, equippedOrePerHour, oreFromStrike, PICK_KINDS: BIT_KEYS, pickReaches, pickReachRank, oreReachBest, oreName, ORE_RANK, awardMine, awardCraft, awardMill, fmtXp, skillLine, uiLine, hopperHours, NAMES,
+    equippedPickTier, PICK_TIER_MAX, PICK_TIER_STEP, tierMult, multLabel, pickUpgCost, pickUpgTier, pickUpgMult, equippedPickMult, equippedOrePerHour, oreFromStrike, PICK_KINDS: BIT_KEYS, pickReaches, pickReachRank, oreReachBest, oreName, ORE_RANK, awardMine, awardCraft, awardMill, fmtXp, skillLine, uiLine, hopperHours, NAMES,
     nextUnlock, skillState, itemSrc, unlockEntries, openDetail,
     get onDetail() { return onDetail; }, set onDetail(fn) { onDetail = fn; },
     get detailSkill() { return detailSkill; },
@@ -2847,6 +2850,7 @@ const Craft = (() => {
     const where = (st.menu && st.menu.w) === 'vault' ? 'Vault' : 'Backpack';
     o.push(['Held', (it.unit === 'm' ? fmtN(c) + ' m' : '×' + fmtN(c)) + ' in ' + where]);
     const tn = TIER_N(it); if (tn) o.push(['Tier', tn]);
+    if (it.tiered && typeof Skills !== 'undefined' && Skills.multLabel) { const t = pickTier(it.grade); o.push(['Upgrade', 'T' + t + ' \u00b7 ' + Skills.multLabel(Skills.tierMult(t)) + ' mining']); }
     if (it.kind && KIND_N[it.kind]) o.push(['Kind', KIND_N[it.kind]]);
     if (it.kind === 'tool' && EQUIP[it.tool]) o.push(['Slot', EQUIP[it.tool][2]]);
     if (it.kind === 'bit' && typeof Explore !== 'undefined' && Explore.BITS) { const b = Explore.BITS.find((q) => q.k === it.grade); if (b) { o.push(['Rate', '1/3 of your ore/h on that ore']); o.push(['Burn', b.burn + ' coal/h']); const need = Explore.bitPushNeed && Explore.bitPushNeed(it.grade); if (need) o.push(['Push strand', 'Needs ' + need.name + ' Ledge Tether (' + need.burn + ' coal/h)']); } }
@@ -15014,13 +15018,13 @@ const Theus = (() => {
     first2: { face: 'talking', say: "Don't mind the singed eyebrows. I have loved fire since I was a wee infant, no bigger than your backpack.", next: 'first3' },
     first3: { face: 'pleased', say: 'My mother found me nose-first in the coals, grinning. Burnt my fingers more times than I can count, and I never once stopped reaching.', next: 'first4' },
     first4: { face: 'talking', say: 'Now I keep the fire of the deep, and it keeps my hammer honest. Here is how it works with me.', next: 'first5' },
-    first5: { face: 'talking', say: 'Bring me pickaxes of one kind and I fold them into one. Every tier, twice the bite.', next: 'first6' },
+    first5: { face: 'talking', say: 'Bring me pickaxes of one kind and I fold them into one. Every tier, half again the bite.', next: 'first6' },
     first6: { face: 'idle', say: 'Mind this, though. I fold only one of each kind. Sell it, and that one starts over from nothing.', next: 'first7' },
     first7: { face: 'pleased', say: 'Here, take this. Every miner starts somewhere. Bronze bites soft, but it bites.', next: '@gift' },
     hello: { face: 'idle', say: 'Up on my anvil, are you? Mind the bar \u2014 it bites.', next: 'menu' },
     menu: { face: 'talking', say: 'The fire is hot and my hammer is idle. What do you want, little miner?', btn: [['Upgrade pickaxe', 'upgrade', 'blue'], ['Who are you?', 'who', 'cream'], ['Goodbye', 'bye', 'cream']] },
     who: { face: 'talking', say: 'Theus. The old songs say Prometheus \u2014 I carried fire up out of the deep, and I kept it.', next: 'who2' },
-    who2: { face: 'idle', say: 'Bring me pickaxes of one kind and I fold them into one. Every tier, twice the bite. I fold only one of each kind: sell it, and that one starts over from nothing.', next: 'menu' },
+    who2: { face: 'idle', say: 'Bring me pickaxes of one kind and I fold them into one. Every tier, half again the bite. I fold only one of each kind: sell it, and that one starts over from nothing.', next: 'menu' },
     deal: { face: 'pleased', say: 'Good. Show me what you have brought.', next: '@up' },
     bye: { face: 'idle', say: 'Go on, then. The forge will still be burning.', end: true } };
   function go(id) { if (id === '@gift') { gift(); return go('menu'); } if (id === '@up') return openUp(); if (id === '@close') return close(); const s = STEPS[id]; if (!s) return close(); ST.step = Object.assign({ id }, s); const d = el(); d.classList.remove('hidden'); d.querySelector('.tPort').style.backgroundImage = face(s.face); d.querySelector('.tWell p').textContent = s.say;
@@ -15035,7 +15039,7 @@ const Theus = (() => {
   const KINDS = () => (typeof Skills !== 'undefined' && Skills.PICK_KINDS) || ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'];
   const tierOf = (k) => Skills.pickUpgTier(k);
   const bestOre = (k) => Skills.oreReachBest(k); // the best ore that pickaxe can reach (its grade + one above)
-  const oreH = (k, t) => { const id = bestOre(k); return Skills.characterOrePerHour(id, KINDS().indexOf(k), Skills.level('mining'), { upg: Math.pow(2, t) }); };
+  const oreH = (k, t) => { const id = bestOre(k); return Skills.characterOrePerHour(id, KINDS().indexOf(k), Skills.level('mining'), { upg: Skills.tierMult(t) }); };
   // the upgrade itself: consume the pickaxes, raise the tier, save
   // the upgrade (Dominic: the tier lives on the item): the first one turns one plain pickaxe into the kind's single tiered pickaxe (T1) and consumes the T1 cost too;
   // later ones raise that item's tier. Payment is always plain pickaxes of the same kind (the tiered one is its own item and is never taken).
@@ -15044,15 +15048,15 @@ const Theus = (() => {
     const dest = t > 0 ? null : Craft.fits('bag', T) ? 'bag' : Craft.fits('vault', T) ? 'vault' : ''; if (dest === '') { if (typeof toast === 'function') toast('No free slot for it: clear a backpack or vault slot'); return { ok: false, why: 'full' }; }
     if (!Craft.take('tool:pick_' + k, n)) return { ok: false, why: 'short', need: n, have: have(k) }; S.tpicks = S.tpicks || {};
     if (dest) Craft.add(dest, T, 1); /* (Dominic: into the backpack, not equipped) */ S.tpicks[k] = t + 1; if (typeof save === 'function') save(); return { ok: true, tier: t + 1, cost: n, made: dest || null }; }
-  const LINES = ['Ha! Feel the weight of that.', 'Folded and true. It will bite deeper now.', 'Twice the bite. Go and use it.', 'The fire liked those.', 'Good iron sings. Hear it?'];
+  const LINES = ['Ha! Feel the weight of that.', 'Folded and true. It will bite deeper now.', 'Half again the bite. Go and use it.', 'The fire liked those.', 'Good iron sings. Hear it?'];
   function upHTML() { const ks = KINDS(); if (!ST.sel || !ks.includes(ST.sel)) ST.sel = (typeof S !== 'undefined' && ks.includes(S.pickGrade)) ? S.pickGrade : ks.find((k) => have(k) > 0) || ks[0]; const k = ST.sel, t = tierOf(k), max = t >= Skills.PICK_TIER_MAX, c = max ? 0 : need(k, t), h = have(k), short = !max && h < c, ore = bestOre(k), oreNm = Skills.oreName(ore);
     const list = ks.map((q) => { const tq = tierOf(q); return `<button class="uK${q === k ? ' on' : ''}" data-k="${q}">${ico(q)}<span>${NAME(q)}</span><b class="thBadge${tq >= Skills.PICK_TIER_MAX ? ' max' : ''}">T${tq}</b></button>`; }).join('');
-    const say = ST.flash ? ST.flash : max ? 'That one is finished. Nothing left in it to fold.' : short ? `Bring me more ${NAME(k)}s. ${c} of them, all the same kind.` : t === 0 ? `${c} of those. One I fold into yours for good, the rest feed it.` : `${c} of those and I will make it bite twice as hard.`;
-    const det = max ? `<div class="uMast">Mastered</div><div class="uRow"><span>Multiplier</span><b>x${Math.pow(2, t)}</b></div><div class="uRow"><span>Ore/h (${oreNm})</span><b>${fmt(oreH(k, t))}</b></div>`
-      : `<div class="uRow"><span>Next tier</span><b>T${t + 1} \u00b7 x${Math.pow(2, t)} \u2192 x${Math.pow(2, t + 1)}</b></div><div class="uRow"><span>Requires ${fmt(c)} x ${NAME(k)}${t === 0 ? '<small class="uNote">One becomes your T1 pickaxe.</small>' : ''}</span></div><div class="uRow"><span>Owned / required</span><b class="${short ? 'short' : ''}" data-v="own">${fmt(h)} / ${fmt(c)}</b></div>
+    const say = ST.flash ? ST.flash : max ? 'That one is finished. Nothing left in it to fold.' : short ? `Bring me more ${NAME(k)}s. ${c} of them, all the same kind.` : t === 0 ? `${c} of those. One I fold into yours for good, the rest feed it.` : `${c} of those and I will make it bite half again as hard.`;
+    const det = max ? `<div class="uMast">Mastered</div><div class="uRow"><span>Multiplier</span><b>${Skills.multLabel(Skills.tierMult(t))}</b></div><div class="uRow"><span>Ore/h (${oreNm})</span><b>${fmt(oreH(k, t))}</b></div>`
+      : `<div class="uRow"><span>Next tier</span><b>T${t + 1} \u00b7 ${Skills.multLabel(Skills.tierMult(t))} \u2192 ${Skills.multLabel(Skills.tierMult(t + 1))}</b></div><div class="uRow"><span>Requires ${fmt(c)} x ${NAME(k)}${t === 0 ? '<small class="uNote">One becomes your T1 pickaxe.</small>' : ''}</span></div><div class="uRow"><span>Owned / required</span><b class="${short ? 'short' : ''}" data-v="own">${fmt(h)} / ${fmt(c)}</b></div>
         <div class="uRow"><span>Ore/h (${oreNm})</span><b>${fmt(oreH(k, t))} \u2192 ${fmt(oreH(k, t + 1))}</b></div><button class="thB uGo" data-a="go"${short ? ' disabled' : ''}>Upgrade</button>`;
     return `<div class="uBox"><span class="uC1"></span><span class="uC2"></span><h3>Theus's Forge</h3><button class="uX" data-a="x" aria-label="Close">\u2715</button><div class="uParch"><div class="uSay"><i style="background-image:${face(ST.flash ? 'pleased' : 'talking')}"></i><span>${say}</span></div>
-      <div class="uMain"><div class="uList">${list}</div><div class="uDet"><div class="uHead"><div class="uIco">${ico(k)}${t > 0 ? `<b class="cxtb">T${t}</b>` : ''}<div class="uFx"></div></div><div><div class="uNm">${NAME(k)}</div><div class="uCur">${t > 0 ? `Tier ${t} \u00b7 x${Math.pow(2, t)} \u00b7 ${S.pickEqT === k && S.pickGrade === k ? 'equipped' : 'not equipped'}` : 'No tiered pickaxe yet \u00b7 T0'}<br>${fmt(h)} plain owned</div></div></div>${det}</div></div>
+      <div class="uMain"><div class="uList">${list}</div><div class="uDet"><div class="uHead"><div class="uIco">${ico(k)}${t > 0 ? `<b class="cxtb">T${t}</b>` : ''}<div class="uFx"></div></div><div><div class="uNm">${NAME(k)}</div><div class="uCur">${t > 0 ? `Tier ${t} \u00b7 ${Skills.multLabel(Skills.tierMult(t))} \u00b7 ${S.pickEqT === k && S.pickGrade === k ? 'equipped' : 'not equipped'}` : 'No tiered pickaxe yet \u00b7 T0'}<br>${fmt(h)} plain owned</div></div></div>${det}</div></div>
       <div class="uPips">${Array.from({ length: Skills.PICK_TIER_MAX }, (_, i) => `<i class="${i < t ? 'on' : ''}"></i>`).join('')}</div></div></div>`; }
   function render() { const u = ST.up; if (!u) return; u.innerHTML = upHTML(); }
   function fx() { const f = ST.up && ST.up.querySelector('.uFx'); if (!f) return; let h = '<span class="hm">\u{1F528}</span>'; for (let i = 0; i < 14; i++) { const a = (i / 14) * 6.283 + Math.random() * 0.3, r = 34 + Math.random() * 26; h += `<i class="sp" style="--dx:${(Math.cos(a) * r).toFixed(0)}px;--dy:${(Math.sin(a) * r).toFixed(0)}px;animation-delay:${(0.45 + Math.random() * 0.1).toFixed(2)}s"></i>`; } f.innerHTML = h; }
@@ -15076,7 +15080,7 @@ const Theus = (() => {
   function exHTML() { if (typeof S === 'undefined' || !S) return ''; const E = exState(), mine = KINDS().filter((k) => Craft.have(Craft.TPICK(k)) > 0), c = XS.conf;
     let h = `<div class="thEx" id="thEx"><h3 style="margin:12px 0 2px">\u26cf\ufe0f Tiered pickaxes</h3><div class="dim small">Traded only between players, at the seller's price. The shop never buys or sells them. You can hold one tiered pickaxe of each kind.</div>`;
     if (XS.msg) h += `<div class="thExMsg ${XS.msg[0]}" role="status">${XS.msg[1]}</div>`;
-    h += E.ai.map((o) => `<div class="thExRow">${icoT(o.k, o.tier)}<span class="thExN"><b>${NAME(o.k)} (T${o.tier})</b><small>${o.seller} \u00b7 x${Math.pow(2, o.tier)} mining</small></span><button class="btn small" data-act="extbuy" data-id="${o.id}">Buy ${n0(o.price)} \ud83c\udfee</button></div>`).join('') || '<div class="dim small">No tiered pickaxes listed right now.</div>';
+    h += E.ai.map((o) => `<div class="thExRow">${icoT(o.k, o.tier)}<span class="thExN"><b>${NAME(o.k)} (T${o.tier})</b><small>${o.seller} \u00b7 ${Skills.multLabel(Skills.tierMult(o.tier))} mining</small></span><button class="btn small" data-act="extbuy" data-id="${o.id}">Buy ${n0(o.price)} \ud83c\udfee</button></div>`).join('') || '<div class="dim small">No tiered pickaxes listed right now.</div>';
     h += `<h4 style="margin:10px 0 4px">List yours</h4>`;
     if (mine.length) { const sel = c ? c.k : mine[0], sug = (k) => Math.round(Craft.sellP('tool:pick_' + k) * (1 + 20 * (Math.pow(2, Craft.pickTier(k)) - 1)) * 0.6);
       h += `<div class="wrapgap thExList"><select id="thExK" aria-label="Tiered pickaxe">${mine.map((k) => `<option value="${k}"${k === sel ? ' selected' : ''}>${NAME(k)} (T${Craft.pickTier(k)})</option>`).join('')}</select><input id="thExP" type="number" min="1" step="1" value="${c ? c.price : sug(sel)}" style="width:92px" aria-label="Price in Lumen"> \ud83c\udfee <button class="btn" data-act="extlist">List</button></div>`;
