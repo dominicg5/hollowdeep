@@ -485,10 +485,10 @@ const CityMap = (() => {
       <tbody id="boardPin">${row(W.player, me, true)}</tbody><tbody><tr><td colspan="4"><hr style="margin:4px 0"></td></tr>${B.slice(0, 100).map((h, i) => row(h, i)).join('')}</tbody></table>
       ${me >= 100 ? `<div class="dim small">… you are #${me + 1} of ${B.length}</div>` : ''}${btnRow('<button class="btn" data-act="mapgohome">🏠 Fly to my home</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
-  /* ---------- the Exchange: a free player market, resources for gold coins at player-set prices (simple order-book stub). (Dominic: gold coins; old Lumen prices x10) ---------- */
+  /* ---------- the Exchange: a free player market, resources for gold coins at player-set prices (simple order-book stub). (Dominic: gold is the only free-to-play currency) ---------- */
   const EX_RES = ['stone', 'timber', 'moss', 'iron', 'coal', 'steel', 'amber', 'obsidian'], EX_BASE = { stone: 4, timber: 4.5, moss: 6, iron: 9, coal: 8, steel: 22, amber: 30, obsidian: 35 }; // gold per unit
   const GOLD = () => (typeof Craft !== 'undefined' && Craft.gold ? Craft.gold() : (S.gold == null ? (S.gold = 2500) : S.gold)), CI = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
-  function exState() { if (!S.exchange) S.exchange = { bought: {}, mine: [], nextId: 1, gold: 1 }; const e = S.exchange; if (!e.gold) { e.gold = 1; for (const m of e.mine || []) m.price = Math.round(m.price * 10); } return e; }
+  function exState() { if (!S.exchange) S.exchange = { bought: {}, mine: [], nextId: 1 }; return S.exchange; } // (prices are gold; no conversion from old Lumen prices)
   function exListings() { const day = Math.floor(gTime() / (6 * HOUR)), rr = mulberry32(day * 977 + 5), out = [], ex = exState(), AI = W.homes.filter((h) => !h.isPlayer);
     for (let i = 0; i < 14; i++) { const k = EX_RES[Math.floor(rr() * EX_RES.length)], h = AI[Math.floor(rr() * AI.length)], qty = 10 * (1 + Math.floor(rr() * 12)), price = Math.max(1, Math.round(EX_BASE[k] * (0.7 + rr() * 0.8))), id = day + ':' + i;
       if (!ex.bought[id]) out.push({ id, k, seller: h.owner, qty, price }); }

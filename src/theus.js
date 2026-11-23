@@ -144,7 +144,7 @@ const Theus = (() => {
   const XS = { msg: null, conf: null };
   const lum = () => Craft.gold(), CO = () => Craft.COIN, n0 = (v) => Math.round(v).toLocaleString('en-US');
   const ownMsg = (k) => `You already have a tiered ${NAME(k)}. You can only hold one of each kind.`;
-  function exState() { const E = S.tpEx || (S.tpEx = { ai: null, mine: [], next: 1, gold: 1 }); if (!E.gold) { E.gold = 1; for (const o of [...(E.ai || []), ...(E.mine || [])]) o.price = Math.round(o.price * Craft.COIN_RATE); } /* (old Lumen prices -> gold, x10) */ if (!E.ai) { const AI = (typeof W !== 'undefined' && W.homes ? W.homes.filter((h) => !h.isPlayer) : []), who = (i) => (AI.length ? AI[(i * 7 + 3) % AI.length].owner : ['Brannoc', 'Ysolde', 'Tamsin', 'Orrin', 'Mabry'][i]);
+  function exState() { const E = S.tpEx || (S.tpEx = { ai: null, mine: [], next: 1 }); /* (prices are gold; no conversion from old Lumen prices) */ if (!E.ai) { const AI = (typeof W !== 'undefined' && W.homes ? W.homes.filter((h) => !h.isPlayer) : []), who = (i) => (AI.length ? AI[(i * 7 + 3) % AI.length].owner : ['Brannoc', 'Ysolde', 'Tamsin', 'Orrin', 'Mabry'][i]);
       const plain = (k) => (typeof Craft !== 'undefined' ? Craft.sellP('tool:pick_' + k) : 10);
       E.ai = [['bronze', 3], ['iron', 2], ['steel', 4], ['gold', 2], ['mithril', 1]].map(([k, t], i) => ({ id: 'ai' + (i + 1), k, tier: t, seller: who(i), price: Math.max(10, Math.round(plain(k) * (1 + 20 * (Math.pow(2, t) - 1)) * (0.55 + 0.1 * i) / 10) * 10) })); } return E; }
   const slotFor = (id) => (Craft.fits('bag', id) ? 'bag' : null); // (Dominic: the backpack only; full -> blocked)

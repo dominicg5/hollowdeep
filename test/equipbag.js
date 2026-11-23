@@ -20,7 +20,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     S.backpack[P('steel')] = 2; S.pickGrade = 'steel'; S.pickEqT = null; const g0 = S.backpack['ingot:gold'] || 0, r0 = S.backpack['ingot:rune'] || 0, i0 = S.backpack['ingot:iron'] || 0; C.migrateWinch(); C.migrateWorn();
     o.migW = [S.winchMigrated.winch.join(), S.backpack['ingot:gold'] - g0, S.backpack['ingot:rune'] - r0, S.backpack['ingot:iron'] - i0, 'tool:lifeline_gold' in S.backpack, 'tool:lifeline_iron' in S.backpack, 'lifeline_rune' in S.ledgeVault.gear];
     // a save that already ran winch v1 still holds Iron copies of the old anvil winch (backpack, vault, an Exchange listing): v2 drops them all with the ingot refund
-    { const ex = S.exchange || (S.exchange = { bought: {}, mine: [], nextId: 1, gold: 1 }), m0 = (ex.mine || []).slice(); ex.mine = [{ k: 'tool:lifeline_iron', qty: 1, price: 50 }, { k: 'stone', qty: 10, price: 4 }];
+    { const ex = S.exchange || (S.exchange = { bought: {}, mine: [], nextId: 1 }), m0 = (ex.mine || []).slice(); ex.mine = [{ k: 'tool:lifeline_iron', qty: 1, price: 50 }, { k: 'stone', qty: 10, price: 4 }];
       S.winchV = 1; S.backpack['tool:lifeline_iron'] = 1; S.ledgeVault.gear.lifeline_iron = 1; const j0 = S.backpack['ingot:iron'] || 0; C.migrateWinch(); const d = S.winchMigrated.v2;
       o.migV2 = [S.winchV, d.dropped.iron, d.refund['ingot:iron'], S.backpack['ingot:iron'] - j0, Object.keys(S.backpack).concat(Object.keys(S.ledgeVault.gear)).some((k) => /lifeline_/.test(k)), ex.mine.map((m) => m.k).join()]; ex.mine = m0; }
     o.migE = [C.get('bag', C.CLIMB_BASE), C.get('bag', C.TLINK_BASE), C.get('bag', C.WINCH_BASE), C.get('bag', P('steel')), C.worn().pick, S.wornMigrated.pick, C.have(C.CLIMB_BASE), C.have(P('steel'))];
@@ -56,9 +56,16 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.upSpare = [up3.ok, C.get('vault', P('steel')), C.worn().pick, C.get('bag', Craft.TPICK('steel'))];
     // mining with a full backpack: she stops and the message shows
     fill(); const got = Explore.mineGive('gold', 3); o.mine = [got, /Backpack full/.test(last())];
+    // ---- gold only: no Lumen -> gold rate anywhere; old saves' listings keep their numbers (no x10); the x10-era prices hard-coded at their gold values
+    { const tp0 = S.tpEx, ex0 = S.exchange; S.tpEx = { ai: [{ id: 'ai1', k: 'bronze', tier: 2, seller: 'X', price: 100 }], mine: [{ id: 'm1', k: 'iron', tier: 1, price: 7 }], next: 2 }; S.exchange = { bought: {}, mine: [{ k: 'stone', qty: 5, price: 3 }], nextId: 2 };
+      Theus.exState(); try { CityMap.exchangeCard(); } catch (e) {} try { closeModalQuiet(); } catch (e) {}
+      o.gold = ['COIN_RATE' in C, S.tpEx.ai[0].price, S.tpEx.mine[0].price, S.exchange.mine[0].price, C.sellP(P('gold')), C.buyP(P('gold')), C.sellP('tool:tpick_gold'), C.sellP('ore:onyx'), C.buyP('ingot:onyx')]; S.tpEx = tp0; S.exchange = ex0; }
     o.gridEq = (C.bagHTML(false).match(/class="cxs[^"]* eq[ "]/g) || []).length; save(); return o; });
   ok(R.migW.join() === 'gold,iron,rune,30,36,6,false,false,false', `winch migration: the old anvil winch (Gold x2, Iron x1, Rune x1) dropped; ingots back (Gold ${R.migW[1]}, Rune ${R.migW[2]}, Iron ${R.migW[3]}); recorded in S.winchMigrated`);
   ok(R.migV2.join() === '2,3,18,18,false,stone', `winch v2 on a v1 save: Iron copies in the backpack, vault and an Exchange listing dropped, 3 x 6 Iron ingots back, other listings kept (${R.migV2.join(',')}) (got no ledge winch)`);
+  ok(R.gold.join() === 'false,100,7,3,11552,16606,11552,656,51842', `gold only: no COIN_RATE; old Theus / Exchange listings keep their gold numbers (no x10); shop prices fixed at their gold values (Gold Pickaxe 11552 / 16606) (${R.gold.join(',')})`);
+  { const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8'), w = src.match(/S\.crystals\s*(\+=|-=|=(?!=))[^;]*/g) || [], init = (src.match(/\bcrystals:\s*[^,}]+/g) || []);
+    ok(!/COIN_RATE/.test(src) && w.length === 1 && /^S\.crystals = crystals\(\) - p$/.test(w[0]) && init.length > 0 && init.every((q) => /:\s*0$/.test(q)), `no rate in the build; Lumen Crystals have no in-game source: the one write to S.crystals is the skin purchase (${w.join(' | ')}), new saves start at ${init.join(', ')} (got gold only)`); }
   ok(R.gridEq === 0, 'no equipped highlight in the backpack grid');
   ok(R.migE.join() === '0,0,0,1,tool:pick_steel,bag,1,2', `equipped migration: climbing picks / tether / winch out of the backpack, one Steel pickaxe moved to her hand (${R.migE.join(',')})`);
   ok(R.winch.join() === ',gear:winch_iron,Iron Winch,false,true,1' && R.winchShop.join() === 'false,false,false,false', `only the Iron Winch exists, always worn; no recipe, shop, sell, anvil or unlock entry (${R.winch.join(',')} / ${R.winchShop.join(',')}) (got iron winch)`);
