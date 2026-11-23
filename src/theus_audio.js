@@ -39,7 +39,9 @@ const TheusAudio = (() => {
   function musicTick() { if (!A.ctx || !A.started) return; const act = Object.values(Z).filter((z) => { try { return z.active(); } catch (e) { return false; } }).sort((a, b) => b.prio - a.prio); let want = null;
     for (const z of act) { if (A.buf[z.track]) { want = z; break; } get(z.track); if (z.id === A.cur) { want = z; break; } } /* (a higher zone still loading: the current one keeps playing until it's ready) */
     const id = want ? want.id : null; if (id === A.cur) { if (id && !A.src[id] && A.buf[want.track]) startTrack(want); return; } if (A.cur) stopTrack(A.cur); A.cur = id; if (want && A.buf[want.track]) startTrack(want); }
-  function start() { if (A.started) return; if (!ctx()) return; A.started = true; get(Z.overworld.track).then(() => musicTick()); } /* the first tap: the audio starts up and the overworld loop is fetched (once, kept in memory) */
+  function start() { if (A.started) return; if (!ctx()) return; A.started = true; get(Z.overworld.track).then(() => musicTick()); get('pick_hit_A'); get('pick_hit_B'); } /* the first tap: the audio starts up; the overworld loop and the two pick hits are fetched (once, kept in memory) */
+  // (Dominic t359u) her pickaxe on ore / crystal: A and B in turn, +-4% pitch, one per visible impact (CharView calls this on the frame the pick head lands)
+  function pickHit() { const C = A.ctx, k = A.pk = A.pk ? 0 : 1, name = k ? 'pick_hit_A' : 'pick_hit_B', b = A.buf[name]; if (!C || !A.started || !b) return 0; const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; s.playbackRate.value = 1 + (Math.random() * 2 - 1) * 0.04; g.gain.value = 0.8; s.connect(g); g.connect(A.master); s.start(); A.plays.push([name, +s.playbackRate.value.toFixed(3), typeof CharView !== 'undefined' ? +(CharView.an && CharView.an.mu || 0).toFixed(3) : null]); if (A.plays.length > 20) A.plays.shift(); return 1; } /* the first tap: the audio starts up and the overworld loop is fetched (once, kept in memory) */
   function update(dOv) { const d = dOv != null ? dOv : A.dOv != null ? A.dOv : dist(); /* (A.dOv: a test pins her distance) */ A.lastD = d; const inside = d < AUDIO_R; if (inside && !A.ctx) ctx(); if (inside) { get('theus_swing_whoosh'); get('theus_thunder_strike_D'); } if (inside !== A.inside) A.inside = inside; musicTick(); return inside; }
   function play(name, offset, d) { const C = A.ctx, b = A.buf[name], g0 = fall(d != null ? d : A.dOv != null ? A.dOv : dist()); if (!C || !b || g0 <= 0) return 0; const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = g0; s.connect(g); g.connect(A.master); s.start(0, Math.max(0, Math.min(b.duration - 0.01, offset || 0))); A.plays.push([name, +g0.toFixed(3)]); if (A.plays.length > 20) A.plays.shift(); return g0; }
   // FORGE: lateBy = how far past the swing's start this frame is (s), so the crack still lands LEAD s before contact
@@ -48,6 +50,6 @@ const TheusAudio = (() => {
   function setVol(v) { A.vol = Math.max(0, Math.min(1, +v || 0)); if (A.master) A.master.gain.value = A.mute ? 0 : A.vol; }
   function setMute(m) { A.mute = !!m; if (A.master) A.master.gain.value = A.mute ? 0 : A.vol; }
   if (typeof window !== 'undefined') setInterval(() => { try { update(); } catch (e) {} }, 250);
-  return { A, Z, zone, AUDIO_R, fmt, get, update, musicTick, start, fall, swing, hit, dist, setVol, setMute, get inside() { return A.inside; } };
+  return { A, Z, zone, AUDIO_R, fmt, get, update, musicTick, start, pickHit, fall, swing, hit, dist, setVol, setMute, get inside() { return A.inside; } };
 })();
 const GameMusic = TheusAudio; /* (the general music module: zones + priority; TheusAudio is the same object) */

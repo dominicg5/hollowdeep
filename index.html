@@ -910,7 +910,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='a64cc580';
+<script>window.HD_BUILD='4cff3c6f';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -932,8 +932,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a64cc580</div>
-<script src="assets/vendor/three.min.js?v=a64cc580"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 4cff3c6f</div>
+<script src="assets/vendor/three.min.js?v=4cff3c6f"></script>
 <script>
 'use strict';
 
@@ -11021,7 +11021,7 @@ const CharView = (() => {
     f.dt = dt; solveLimbs(c, f);
     { const T = an.act === 'climb' ? an.tv : null, wv = !!T && T.pose && (T.k === 'ascend' || T.k === 'coil' || (T.k === 'draw' && T.t < 0.3)); if (c.built.winch && c.built.winch.parent !== c.B.hips) { c.B.hips.add(c.built.winch); const ws = 0.85 * 1.3; c.built.winch.scale.setScalar(ws); c.built.winch.rotation.set(0, Math.PI, 0); c.built.winch.position.set(0, -0.044 * (ws - 0.85), 0.158 + 0.002 * (ws - 0.85)); /* (Dominic: ~30% bigger; scaled about the strap's belt loop so it stays on the harness) */ } tetherRope(c, T); if (c.built.winch) { c.built.winch.visible = !!T && (T.clipped || wv) && !(T.k === 'draw' && T.t > 0.3); if (T && T.pose && dt > 0) { const py = T.P.y, v = c._tvy === undefined ? 0 : (py - c._tvy) / dt; c._tvy = py; T.feed = clamp(Math.abs(v) / 2.2, 0, 1); c.built.winchDrum.rotation.x -= dt * v * 22; } else c._tvy = undefined; }
       const cg = c.built.tethers && c.built.tethers[0] && c.built.tethers[0].grp; if (cg) { const out = !!T && T.clipped && T.pose ? (T.k === 'coil' ? 1 - ss(0.2, 0.95, T.t / TV.coilT) : 1) : 0; cg.scale.setScalar(1 - 0.42 * out); } }
-    if (an.hit) { an.hit = false; const pk = built.pick; pk.updateMatrixWorld(true); const p = pk.localToWorld(V(MINE_SPIKE * 0.24, 0.7, 0)); p.y = 0.004; spawnDebris(p, pk.userData.grade !== 'stick'); } updDebris(dt);
+    if (an.hit) { an.hit = false; if (typeof GameMusic !== 'undefined' && st.explore && st.gnd && st.gnd.mine && ((typeof Explore !== 'undefined' && Explore.ORE && Explore.ORE.mining) || (typeof MosbyVeins !== 'undefined' && MosbyVeins.MV.mining && MosbyVeins.MV.mining.type === 'lumen'))) GameMusic.pickHit(); /* her pick lands on ore or his crystal: one hit sound per drawn impact (Mining 300's extra strikes add none) */ const pk = built.pick; pk.updateMatrixWorld(true); const p = pk.localToWorld(V(MINE_SPIKE * 0.24, 0.7, 0)); p.y = 0.004; spawnDebris(p, pk.userData.grade !== 'stick'); } updDebris(dt);
     // blinks (random, sometimes double), held shut through a sigh
     if (t > an.blinkAt) { an.blink = 0.0001; an.blinkAt = t + 2 + Math.random() * 3.8; if (Math.random() < 0.2) an.dbl = true; }
     let lid = 1; if (an.blink > 0) { an.blink += dt; const b = an.blink / 0.16; lid = b < 0.5 ? 1 - b * 2 : (b - 0.5) * 2; if (b >= 1) { an.blink = an.dbl ? -0.12 : 0; an.dbl = false; } } else if (an.blink < 0) { an.blink += dt; if (an.blink >= 0) an.blink = 0.0001; }
@@ -15330,7 +15330,9 @@ const TheusAudio = (() => {
   function musicTick() { if (!A.ctx || !A.started) return; const act = Object.values(Z).filter((z) => { try { return z.active(); } catch (e) { return false; } }).sort((a, b) => b.prio - a.prio); let want = null;
     for (const z of act) { if (A.buf[z.track]) { want = z; break; } get(z.track); if (z.id === A.cur) { want = z; break; } } /* (a higher zone still loading: the current one keeps playing until it's ready) */
     const id = want ? want.id : null; if (id === A.cur) { if (id && !A.src[id] && A.buf[want.track]) startTrack(want); return; } if (A.cur) stopTrack(A.cur); A.cur = id; if (want && A.buf[want.track]) startTrack(want); }
-  function start() { if (A.started) return; if (!ctx()) return; A.started = true; get(Z.overworld.track).then(() => musicTick()); } /* the first tap: the audio starts up and the overworld loop is fetched (once, kept in memory) */
+  function start() { if (A.started) return; if (!ctx()) return; A.started = true; get(Z.overworld.track).then(() => musicTick()); get('pick_hit_A'); get('pick_hit_B'); } /* the first tap: the audio starts up; the overworld loop and the two pick hits are fetched (once, kept in memory) */
+  // (Dominic t359u) her pickaxe on ore / crystal: A and B in turn, +-4% pitch, one per visible impact (CharView calls this on the frame the pick head lands)
+  function pickHit() { const C = A.ctx, k = A.pk = A.pk ? 0 : 1, name = k ? 'pick_hit_A' : 'pick_hit_B', b = A.buf[name]; if (!C || !A.started || !b) return 0; const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; s.playbackRate.value = 1 + (Math.random() * 2 - 1) * 0.04; g.gain.value = 0.8; s.connect(g); g.connect(A.master); s.start(); A.plays.push([name, +s.playbackRate.value.toFixed(3), typeof CharView !== 'undefined' ? +(CharView.an && CharView.an.mu || 0).toFixed(3) : null]); if (A.plays.length > 20) A.plays.shift(); return 1; } /* the first tap: the audio starts up and the overworld loop is fetched (once, kept in memory) */
   function update(dOv) { const d = dOv != null ? dOv : A.dOv != null ? A.dOv : dist(); /* (A.dOv: a test pins her distance) */ A.lastD = d; const inside = d < AUDIO_R; if (inside && !A.ctx) ctx(); if (inside) { get('theus_swing_whoosh'); get('theus_thunder_strike_D'); } if (inside !== A.inside) A.inside = inside; musicTick(); return inside; }
   function play(name, offset, d) { const C = A.ctx, b = A.buf[name], g0 = fall(d != null ? d : A.dOv != null ? A.dOv : dist()); if (!C || !b || g0 <= 0) return 0; const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = g0; s.connect(g); g.connect(A.master); s.start(0, Math.max(0, Math.min(b.duration - 0.01, offset || 0))); A.plays.push([name, +g0.toFixed(3)]); if (A.plays.length > 20) A.plays.shift(); return g0; }
   // FORGE: lateBy = how far past the swing's start this frame is (s), so the crack still lands LEAD s before contact
@@ -15339,7 +15341,7 @@ const TheusAudio = (() => {
   function setVol(v) { A.vol = Math.max(0, Math.min(1, +v || 0)); if (A.master) A.master.gain.value = A.mute ? 0 : A.vol; }
   function setMute(m) { A.mute = !!m; if (A.master) A.master.gain.value = A.mute ? 0 : A.vol; }
   if (typeof window !== 'undefined') setInterval(() => { try { update(); } catch (e) {} }, 250);
-  return { A, Z, zone, AUDIO_R, fmt, get, update, musicTick, start, fall, swing, hit, dist, setVol, setMute, get inside() { return A.inside; } };
+  return { A, Z, zone, AUDIO_R, fmt, get, update, musicTick, start, pickHit, fall, swing, hit, dist, setVol, setMute, get inside() { return A.inside; } };
 })();
 const GameMusic = TheusAudio; /* (the general music module: zones + priority; TheusAudio is the same object) */
 /* ===== Hitch a ride on Mosby (Dominic: "an option to hitch a ride on his back ... you have to interact with him to get off ... which will drop you in the
