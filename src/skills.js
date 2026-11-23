@@ -1,8 +1,8 @@
 /* Mining and Smithing: one shared XP curve, no max level (Lv 300 is the practical ceiling).
-   Numbers follow /workspace/mining_design/v7.py. Post-120 growth is a PLACEHOLDER (Dominic hasn't decided). */
+   Numbers follow /workspace/mining_design/v7.py. Post-120 growth is LOCKED at 3% (Dominic, 2026-11-23: x1.5 tiers + 3% is "the perfect balance", about 3.5 years 120->300). */
 const Skills = (() => {
   const SKILL_XP_SCALE = 5.55;
-  // PLACEHOLDER: Dominic hasn't decided growth after Lv 120. Each level currently costs 3% more than the previous.
+  // LOCKED (Dominic, 2026-11-23): each level past 120 costs 3% more than the previous.
   const SKILL_POST_120_GROWTH = 1.03;
   const SKILL_SHOW_CEILING = 300;
   const LEVEL_SPEED_K = 0.005; // ore/h × (1 + K × levels above that ore's unlock), uncapped
