@@ -990,7 +990,7 @@ const CharView = (() => {
       const Qr = new THREE.Quaternion().setFromRotationMatrix(_m).multiply(_q.setFromEuler(new THREE.Euler(-0.12, 0, -0.06))); if (gp) Qr.slerp(gp.Q, wP); if (gc) Qr.slerp(gc.Q, wC);
       B.hdR.parent.getWorldQuaternion(_q2); B.hdR.quaternion.copy(_q2.invert().multiply(Qr)); B.hdR.updateMatrixWorld(true);
       const g = Math.max(wP, wC, f.rope ? f.rope.w : 0); B.knR.rotation.x = lerp(0.32, 1.3, g); B.tpR.rotation.x = lerp(0.42, 1.25, g); B.thumbR.rotation.set(lerp(0.3, 1.05, g), 0, lerp(-0.6, -0.35, g)); }
-    const placeT = (obj, hand, o, q) => { if (!obj) return; obj.position.copy(hand.worldToLocal(o.clone())); hand.getWorldQuaternion(_q2); obj.quaternion.copy(_q2.invert().multiply(q)); };
+    const placeT = (obj, hand, o, q) => { if (!obj) return; hand = obj.parent || hand; /* (t593u: a stowed tool may hang off the chest while swords fill her hands) */ obj.position.copy(hand.worldToLocal(o.clone())); hand.getWorldQuaternion(_q2); obj.quaternion.copy(_q2.invert().multiply(q)); };
     placeT(c.built.pick, B.hdR, pOw, pQw); if (c.built.climb) placeT(c.built.climb.R, B.hdR, cT.R.o, cT.R.q);
     // left arm: hangs relaxed (palm toward the thigh, thumb forward, elbow straight back so the upper arm has no twist), or reaches up so the
     // finger tips scratch the cheek (elbow swinging down and out, palm toward the face). Hand frame: -y = finger direction, +z = the back of the hand.
@@ -1527,7 +1527,9 @@ const CharView = (() => {
     for (const k of ['R', 'L']) { const want = SWG[k], cur = b.swords[k], sig = want ? want.g + ':' + want.t : ''; if (cur && cur.userData.sig === sig) continue;
       if (cur) { if (cur.parent) cur.parent.remove(cur); dropObj(cur); b.swords[k] = null; }
       if (want) { const sw = makeSword(want.g, want.t), s = k === 'R' ? 1 : -1; sw.userData.sig = sig; sw.position.copy(PALM); sw.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0, -1, 0), V(s, 0, 0), V(0, 0, s))); sw.visible = false; rig.B['hd' + k].add(sw); b.swords[k] = sw; } }
-    const any = !!(SWG.R || SWG.L); if (any && st.tool !== 'none') setTool('none', true); else if (!any && st.tool === 'none') setTool(typeof S !== 'undefined' && S && S.toolMode === 'climb' ? 'climb' : 'pick', true);
+    const any = !!(SWG.R || SWG.L); // (t593u) swords in hand: the stowed pickaxe / climbing picks hang off the chest (their back / hip pose, untouched by the arms); back to the hands after
+    for (const [o, h] of [[b.pick, 'R'], [b.climb && b.climb.R, 'R'], [b.climb && b.climb.L, 'L']]) { const to = any ? rig.B.chest : rig.B['hd' + h]; if (o && o.parent !== to) { rig.root.updateMatrixWorld(true); to.attach(o); } }
+    if (any && st.tool !== 'none') setTool('none', true); else if (!any && st.tool === 'none') setTool(typeof S !== 'undefined' && S && S.toolMode === 'climb' ? 'climb' : 'pick', true);
     if (!any) SWG.at = null; if (wrap) wrap.classList.toggle('sw', any); }
   const swOwned = (g) => g !== 'stick' && typeof Craft !== 'undefined' && Craft.swordOwned && Craft.swordOwned(g);
   // equip a sword (grade + tier) in hand k ('L' | 'R'), or clear it (g = null). A sword she owns at its own tier is a real equip (saved); anything else is a preview.

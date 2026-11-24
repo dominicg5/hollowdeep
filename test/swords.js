@@ -37,13 +37,16 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const runs = [];
   for (let i = 0; i < 4; i++) { await tap(i % 2 ? '#swAtk' : '#pvPanel [data-swatk]');
     runs.push(await p.evaluate(async () => { const r = CharView.rig, sw = r.built.swords, V = (x, y, z) => new THREE.Vector3(x, y, z), name = CharView.sw.at && CharView.sw.at.name, P = { R: [], L: [] }; let bad = 0;
-      const t0 = Date.now(); while (CharView.sw.at && Date.now() - t0 < 20000) { for (const k of ['R', 'L']) { const tp = r.root.worldToLocal(sw[k].localToWorld(V(0, 0.5, 0))); if (![tp.x, tp.y, tp.z].every(Number.isFinite)) bad++; P[k].push([tp.x, tp.y, tp.z]); } await new Promise((res) => setTimeout(res, 40)); }
-      const rs = (a) => Array.from({ length: 20 }, (_, i) => a[Math.min(a.length - 1, Math.round(i / 19 * (a.length - 1)))] || [0, 0, 0]); P.R = rs(P.R); P.L = rs(P.L); // (the whole swing, resampled to 20 points in swing time) const span = (a) => Math.max(...[0, 1, 2].map((c) => Math.max(...a.map((q) => q[c])) - Math.min(...a.map((q) => q[c]))));
-      return { name, bad, spanR: +span(P.R).toFixed(2), spanL: +span(P.L).toFixed(2), P: P.R }; })); await p.waitForTimeout(150); }
+      const ch = r.B.chest, pk = r.built.pick, rel = () => { const q = ch.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(pk.getWorldQuaternion(new THREE.Quaternion())), d = pk.getWorldPosition(V(0, 0, 0)); return { q, p: ch.worldToLocal(d) }; }, k0 = rel(); let pkAng = 0, pkPos = 0;
+      const t0 = Date.now(); while (CharView.sw.at && Date.now() - t0 < 20000) { { const k1 = rel(); pkAng = Math.max(pkAng, k0.q.angleTo(k1.q) * 57.3); pkPos = Math.max(pkPos, k0.p.distanceTo(k1.p)); } for (const k of ['R', 'L']) { const tp = r.root.worldToLocal(sw[k].localToWorld(V(0, 0.5, 0))); if (![tp.x, tp.y, tp.z].every(Number.isFinite)) bad++; P[k].push([tp.x, tp.y, tp.z]); } await new Promise((res) => setTimeout(res, 40)); }
+      const rs = (a) => Array.from({ length: 20 }, (_, i) => a[Math.min(a.length - 1, Math.round(i / 19 * (a.length - 1)))] || [0, 0, 0]); P.R = rs(P.R); P.L = rs(P.L); /* (the whole swing, resampled to 20 points in swing time) */
+      const span = (a) => Math.max(...[0, 1, 2].map((c) => Math.max(...a.map((q) => q[c])) - Math.min(...a.map((q) => q[c]))));
+      return { name, bad, pkAng: +pkAng.toFixed(2), pkPos: +pkPos.toFixed(4), pkPar: pk.parent === ch, spanR: +span(P.R).toFixed(2), spanL: +span(P.L).toFixed(2), P: P.R }; })); await p.waitForTimeout(150); }
   const names = runs.map((q) => q.name), dist = (a, b) => a.P.reduce((s, q, j) => Math.max(s, Math.hypot(q[0] - b.P[j][0], q[1] - b.P[j][1], q[2] - b.P[j][2])), 0);
   let minD = 9; for (let i = 0; i < 4; i++) for (let j = i + 1; j < 4; j++) minD = Math.min(minD, dist(runs[i], runs[j]));
   ok(new Set(names).size >= 3 && runs.every((q) => q.bad === 0 && q.spanR > 0.4), 'Attack: ' + names.join(', ') + ' (each press the next swing; blade tip sweeps ' + runs.map((q) => q.spanR).join('/') + ' m)');
   ok(minD > 0.2, 'the swings follow different paths (closest pair differs by ' + minD.toFixed(2) + ' m at some moment)');
+  ok(runs.every((q) => q.pkPar && q.pkAng < 2 && q.pkPos < 0.01), 'stowed pickaxe stays strapped to her back: hung off the chest, not a hand; its pose relative to the torso holds through all 4 swings + the off-hand cuts (max drift ' + runs.map((q) => q.pkAng + '° / ' + q.pkPos + ' m').join(', ') + ')');
   ok(runs.every((q) => q.spanL > 0.3), 'dual wield: the left sword cuts too, a beat later (' + runs.map((q) => q.spanL).join('/') + ' m)');
   // a sword she owns at its own tier is a real equip (saved); a preview never touches the save
   const O = await p.evaluate(async () => { Craft.add('bag', 'tool:sword_gold', 1); S.tswords = { gold: 4 }; const t = (s) => document.querySelector(s).click(); const w = () => new Promise((r) => setTimeout(r, 120));
