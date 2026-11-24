@@ -13,7 +13,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st.ok, null, { timeout: 200000 }).catch(() => {});
   const r = await p.evaluate(async () => { const V = CharView, st = V.st, HM = V.HM, o = {}, sim = (n) => V.sim(1 / 30, n);
     try { closeModalQuiet(); } catch (e) {} document.querySelector('nav#tabs [data-tab=home]').click(); st.paused = true; sim(30); if (HM.mode !== 'in') V.setHomeMode('in'); sim(20);
-    const G = () => st.gnd, K = HM.sk;
+    const G = () => st.gnd, K = HM.sk; let iaRing = null; const devP = Combat.DEV_POINTS; Combat.DEV_POINTS = 0; /* (t638u's dev grant off: these checks count 1 point per level) */
     // the room: built, visible inside, solid walls, the door gone
     o.room = { ok: !!K, vis: K && K.g.visible, walls: K && ['front', 'back', 'left', 'right', 'ceil'].every((k) => K.walls[k] && K.walls[k].isObject3D), branches: K && Object.keys(HM.skBranch || {}).join(), braid: K && K.braid.children.filter((m) => m.isMesh).length };
     { const R = new THREE.Box3(); K.g.updateMatrixWorld(true); const box = (m) => R.setFromObject(m).clone(); const f = box(K.walls.back), l = box(K.walls.left), rt = box(K.walls.right), hb = new THREE.Box3().setFromObject(HM.room);
@@ -25,10 +25,28 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // the tree hovers and bobs, the braid starts under it and ends at the Tether Orb's globe table
     { const y0 = K.F.position.y; sim(20); const y1 = K.F.position.y; const P = HM.skBraidPts, a = P[0], z = P[P.length - 1], t = V.HMP.table;
       o.tree = { hover: +y0.toFixed(3), bob: +Math.abs(y1 - y0).toFixed(3), braid0: Math.hypot(a.x - K.T.position.x, a.z - K.T.position.z), braidEnd: +Math.hypot(z.x - t.x, z.z - t.z).toFixed(2), endY: z.y }; }
+    // t628u-t636u: the tree reworked - the Lumenite sword's crystal material, no bottom crystal, no dais, no glow ring, cold fog, a slow spin + drift; the braid stays joined
+    { const F = K.F, T = K.T, W = (o) => o.getWorldPosition(new THREE.Vector3()), t0 = HM.t, a0 = F.rotation.y; let trunk = null; F.traverse((m) => { if (!trunk && m.isMesh && m.geometry.type === 'LatheGeometry') trunk = m; });
+      const knot = () => { F.updateMatrixWorld(true); return F.localToWorld(new THREE.Vector3(0, V.HM.skRootY, 0)); }, strand0 = () => { const m = K.braid.children.find((q) => q.isMesh), P = m.geometry.attributes.position; return new THREE.Vector3(P.getX(0), P.getY(0), P.getZ(0)); };
+      let maxD = 0, minK = 9, maxGap = 0; const fogOp = []; for (let i = 0; i < 40; i++) { sim(15); maxD = Math.max(maxD, Math.hypot(F.position.x, F.position.z)); const kp = knot(); minK = Math.min(minK, kp.y); maxGap = Math.max(maxGap, kp.distanceTo(strand0())); fogOp.push(K.fog.filter((f) => f.sp.material.opacity > 0.05).length); }
+      const dt = HM.t - t0; let da = F.rotation.y - a0; while (da < 0) da += Math.PI * 2;
+      const big = []; T.traverse((m) => { if (m.isMesh && /Cylinder|Torus/.test(m.geometry.type) && m.geometry.parameters && ((m.geometry.parameters.radiusTop || 0) > 0.9 || (m.geometry.parameters.radius || 0) > 0.9)) big.push(m.geometry.type); });
+      let lowShard = false; { const ty = W(trunk).y; F.traverse((m) => { if (m.isMesh && m.geometry.type === 'OctahedronGeometry' && W(m).y < ty) lowShard = true; }); }
+      const I2 = V.IA.list.find((x) => x.key === 'stree'); iaRing = I2 && I2.ringM.visible;
+      o.tree2 = { mat: trunk && trunk.material.customProgramCacheKey && trunk.material.customProgramCacheKey(), op: trunk && trunk.material.opacity, tr: trunk && trunk.material.transparent, big, lowShard, ring: iaRing, fog: K.fog.length, fogOn: Math.min(...fogOp),
+        spin: +(da / dt * 60 / (Math.PI * 2)).toFixed(3), drift: +maxD.toFixed(3), knotY: +minK.toFixed(3), gap: +maxGap.toFixed(3), obs: HM.obs.find((q) => Math.abs(q.x - T.position.x) < 1e-6 && Math.abs(q.z - T.position.z) < 1e-6) }; }
+    // t637u: the tree grows with spent points - the whole tree with all points spent (of 300), each branch with its own; eased; the knot stays on the tether at every size
+    { const sk0 = JSON.parse(JSON.stringify(S.skill || {})), sc = () => [+K.GR.scale.x.toFixed(3), +HM.skBranch.combat.scale.x.toFixed(3), +HM.skBranch.production.scale.x.toFixed(3), +HM.skBranch.beasts.scale.x.toFixed(3), K.grow.combat.tipSh.filter((L) => L[0].visible).length];
+      const gap = () => { K.F.updateMatrixWorld(true); const kp = K.F.localToWorld(new THREE.Vector3(0, HM.skRootY, 0)), m = K.braid.children.find((q) => q.isMesh), P = m.geometry.attributes.position; return +kp.distanceTo(new THREE.Vector3(P.getX(0), P.getY(0), P.getZ(0))).toFixed(3); };
+      S.skill = {}; sim(90); const g0 = sc(), gap0 = gap(); S.skill = {}; for (const n of Combat.NODES) if (n.branch === 'combat') S.skill[n.id] = n.max; sim(2); const gMid = sc(); sim(120); const g1 = sc(), gap1 = gap();
+      S.skill = sk0; sim(90); o.grow = { g0, gMid, g1, gap0, gap1, spent: Combat.branchSpent('combat', { skill: Object.fromEntries(Combat.NODES.filter((n) => n.branch === 'combat').map((n) => [n.id, n.max])) }) }; }
+    // the braid climbs the Tether Orb's table round its rim (never through it); no plaque; the corridor's vault arches up; no floating labels over the stations
+    { const P = HM.skBraidPts, t = V.HMP.table, mid = P.filter((q) => q.y > 0.5 && q.y < 0.645 && Math.hypot(q.x - t.x, q.z - t.z) < 1.2), vb = new THREE.Box3().setFromObject(K.walls.corr[2]);
+      o.misc = { rim: mid.map((q) => +Math.hypot(q.x - t.x, q.z - t.z).toFixed(2)), plaque: !!HM.skPlaque, vault: [+vb.min.y.toFixed(2), +(2.05 - 0.5).toFixed(2)] }; }
     // walking: tap the tree from the front door -> she paths through the walkway (always on floor), arrives, the Skill Tree opens
-    const I = V.IA.list.find((x) => x.key === 'stree'); V.IA.opened = null; let f = 0, off = 0, corr = 0, minR = 9; G().x = HM.dx; G().z = HM.FZ - 0.75; I.tap();
-    while (V.IA.opened !== 'stree' && f < 900) { sim(1); f++; const g = G(); if (!g.inb(g.x, g.z)) off++; if (g.z < HM.BZ && g.z > -3.9) corr++; minR = Math.min(minR, Math.hypot(g.x - K.T.position.x, g.z - K.T.position.z)); }
-    o.walk = { f, off, corr, minR: +minR.toFixed(2), at: [+G().x.toFixed(2), +G().z.toFixed(2)], opened: V.IA.opened, ui: !!document.querySelector('#skillTree.on') };
+    const I = V.IA.list.find((x) => x.key === 'stree'); V.IA.opened = null; let f = 0, off = 0, corr = 0, minR = 9, labs = 0; G().x = HM.dx; G().z = HM.FZ - 0.75; I.tap();
+    while (V.IA.opened !== 'stree' && f < 900) { sim(1); f++; const g = G(); if (!g.inb(g.x, g.z)) off++; if (g.z < HM.BZ && g.z > -3.9) corr++; minR = Math.min(minR, Math.hypot(g.x - K.T.position.x, g.z - K.T.position.z)); labs += V.IA.list.filter((x) => x.key !== 'door' && x.label.visible).length; }
+    o.walk = { f, off, corr, labs, minR: +minR.toFixed(2), at: [+G().x.toFixed(2), +G().z.toFixed(2)], opened: V.IA.opened, ui: !!document.querySelector('#skillTree.on') };
     try { SkillTree.close(); } catch (e) {}
     // floor taps: into the room's far corner from the house, back out to the bed side; every frame on the floor, never through a wall
     const tapAt = (x, z) => { const q = V.homeScreen(new THREE.Vector3(x, 0, z)); return V.homeTap(q.x, q.y); };
@@ -40,8 +58,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // solid: the walk pad can't push her through the corridor walls, the room walls or into the dais
     o.pad = {}; for (const [k, x, z, d] of [['corridor', -2.72, -3.4, 'l'], ['corridor2', -2.72, -3.4, 'r'], ['roomFront', -2.0, -12.0, 'u'], ['roomSide', -7.2, -8.0, 'l'], ['dais', -2.5, -6.6, 'd']]) { walkTo(x, z); G().path = null; sim(2); V.setClimbDir(d); let off3 = 0, dmin = 9; for (let i = 0; i < 90; i++) { sim(1); if (!G().inb(G().x, G().z)) off3++; dmin = Math.min(dmin, Math.hypot(G().x - K.T.position.x, G().z - K.T.position.z)); } V.setClimbDir('stop'); sim(2); o.pad[k] = { off3, at: [+G().x.toFixed(2), +G().z.toFixed(2)], dmin: +dmin.toFixed(2) }; }
     // the camera stays in the house while she is through the walkway: the house's back half (furnace, anvil ...), ceiling and corridor are cut away, and come back
-    { walkTo(-2.5, -6.6); G().path = null; sim(6); const fv = HM.furnace.visible && HM.anvil.visible, cut = [HM.furnace.visible, HM.anvil.visible, HM.ceil ? HM.ceil.visible : false, K.walls.corr.every((m) => m.visible)];
-      walkTo(-1.5, 1.0); sim(6); o.cut = { inRoom: cut, back: [HM.furnace.visible, HM.anvil.visible, HM.walls.back.visible, K.walls.corr.every((m) => m.visible)] }; }
+    { /* (a lit fixture such as the furnace is cut mesh by mesh, so its lights stay: count its meshes actually drawn - the mesh and every parent visible) */
+      const shown = (obj) => { let n = 0; obj.traverse((m) => { if (!m.isMesh) return; for (let q = m; q; q = q.parent) if (!q.visible) return; n++; }); return n > 0; };
+      walkTo(-2.5, -6.6); G().path = null; sim(6); const cut = [shown(HM.furnace), shown(HM.anvil), HM.ceil ? HM.ceil.visible : false, K.walls.corr.every((m) => m.visible)];
+      walkTo(-1.5, 1.0); sim(6); o.cut = { inRoom: cut, back: [shown(HM.furnace), shown(HM.anvil), HM.walls.back.visible, K.walls.corr.every((m) => m.visible)] }; }
     // the screen
     const q = (s) => document.querySelector('#skillTree ' + s), qa = (s) => [...document.querySelectorAll('#skillTree ' + s)], click = (s) => { const e = q(s); if (e && !e.disabled) { e.click(); return true; } return false; };
     const box = (e) => { const R = e.getBoundingClientRect(); return { w: R.width, h: R.height, l: R.left, r: R.right, t: R.top, b: R.bottom }; };
@@ -74,15 +94,27 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(r.size.w > r.size.house[0] && r.size.d > r.size.house[1], `much larger than the house ${JSON.stringify(r.size)}`);
     ok(!r.door.obs && !r.arch.through && r.arch.beside, `the old door is gone: an open walkway through the back wall ${JSON.stringify([r.door, r.arch])}`);
     ok(r.tree.hover > 0.4 && r.tree.bob > 0.005 && r.tree.braid0 < 0.05 && r.tree.braidEnd < 0.2 && r.tree.endY > 0.7, `the tree hovers and bobs; the braid runs from under it to the Tether Orb ${JSON.stringify(r.tree)}`);
-    ok(r.walk.opened === 'stree' && r.walk.ui && r.walk.off === 0 && r.walk.corr > 0 && r.walk.minR > 1.6, `tap the tree from the front door: she walks through the walkway (always on the floor, not into the dais) and the Skill Tree opens ${JSON.stringify(r.walk)}`);
+    { const q = r.tree2; ok(q.mat === 'swordCrys' && q.tr && q.op < 1, `the tree uses the Lumenite sword's crystal material, slightly see-through ${JSON.stringify([q.mat, q.op])}`);
+      ok(!q.big.length && !q.lowShard && !q.ring, `no stone dais, no glow ring, no crystal under the trunk ${JSON.stringify([q.big, q.lowShard, q.ring])}`);
+      ok(q.fog >= 12 && q.fogOn >= 6, `cold fog: ${q.fog} sprites, at least ${q.fogOn} showing at any time`);
+      ok(q.spin > 60 / 90 - 0.01 && q.spin < 60 / 60 + 0.01, `a slow full turn: ${q.spin} turns / min (one per 60-90 s)`);
+      ok(q.drift > 0.05 && q.drift <= 0.41, `a gentle drift within 0.4 m of the centre (max ${q.drift} m)`);
+      ok(q.gap < 0.12 && q.knotY > 0.05, `the root braid's knot stays on the tether while it spins, bobs and drifts (max gap ${q.gap} m, knot >= ${q.knotY} m up)`);
+      ok(q.obs && q.obs.r >= 0.85, 'she still walks round the roots (obstacle r ' + (q.obs && q.obs.r) + ')'); }
+    ok(r.misc.rim.length >= 1 && r.misc.rim.every((d) => d >= 0.5) && !r.misc.plaque && r.misc.vault[0] >= r.misc.vault[1] - 0.01, `the braid goes round the table's rim, not through it; no plaque; the corridor vault arches up ${JSON.stringify(r.misc)}`);
+    { const q = r.grow, full = 0.3 + 0.7 * (1 - Math.pow(1 - q.spent / 300, 2)); ok(q.g0[0] <= 0.31 && q.g0[1] <= 0.26 && q.g0[4] === 1 && q.g1[1] > 0.99 && Math.abs(q.g1[0] - full) < 0.01 && q.g1[4] === 6 && q.g1[2] <= 0.26 && q.g1[3] <= 0.26,
+      `the tree grows with points: sapling at 0 (tree ${q.g0[0]}, Combat branch ${q.g0[1]}, 1 crystal per tip); Combat maxed -> branch ${q.g1[1]}, tree ${q.g1[0]} (${q.spent}/300 spent), 6 crystals; Production / Tether Beasts dormant (${q.g1[2]}, ${q.g1[3]})`);
+      ok(q.gMid[1] > q.g0[1] + 0.01 && q.gMid[1] < 0.9, `the growth eases in (Combat branch ${q.gMid[1]} two frames after spending)`);
+      ok(q.gap0 < 0.12 && q.gap1 < 0.12, `the root knot stays on the tether at sapling and full size (gaps ${q.gap0}, ${q.gap1} m)`); }
+    ok(r.walk.opened === 'stree' && r.walk.ui && r.walk.off === 0 && r.walk.corr > 0 && r.walk.minR > 1.0 && r.walk.labs === 0, `tap the tree from the front door: she walks through the walkway (always on the floor, not into the dais) and the Skill Tree opens; no floating labels on the way ${JSON.stringify(r.walk)}`);
     ok(r.taps.every((t) => t.plan && t.bad === 0), `paths between the house and the room's corners stay on the floor ${JSON.stringify(r.taps)}`);
     ok(r.floorTap.hit && !r.floorTap.pend && r.floorTap.off2 === 0 && Math.hypot(r.floorTap.at[0] + 6, r.floorTap.at[1] + 10.5) < 0.3, `a floor tap inside the room walks her there ${JSON.stringify(r.floorTap)}`);
-    ok(Object.values(r.pad).every((x) => x.off3 === 0 && x.dmin > 1.6), `the walk pad can't take her through walls or into the dais ${JSON.stringify(r.pad)}`);
+    ok(Object.values(r.pad).every((x) => x.off3 === 0 && x.dmin > 1.0), `the walk pad can't take her through walls or into the tree's roots ${JSON.stringify(r.pad)}`);
     ok(!r.cut.inRoom.some(Boolean) && r.cut.back.every(Boolean), `cutaway of the house while she is in the room, restored after ${JSON.stringify(r.cut)}`);
     ok(r.ov.view === 'tree' && r.ov.title === 'Skill Tree' && r.ov.lumen && r.ov.pts === r.ov.left && r.ov.left === 26, `tree screen: lumenite tree, points from the combat module ${JSON.stringify(r.ov)}`);
     ok(JSON.stringify(r.ov.br.map((x) => [x[0], x[2]])) === JSON.stringify([['combat', false], ['production', true], ['beasts', true]]) && /Production/.test(r.ov.br[1][1]) && /Tether Beasts/.test(r.ov.br[2][1]) && !r.ov.mining && r.ov.production === 'tree' && r.ov.beasts === 'tree', `branches: Combat open; Production (not Mining) and Tether Beasts locked and blank`);
     ok(!r.ov.stats && !r.cb.stats, 'no combat stats panel, no Combat level badge');
-    ok(r.cb.view === 'combat' && r.cb.nodes.length === 12 && r.cb.subs.join() === 'MIGHT,VITALITY,SPOILS' && r.cb.hb === 'locked', `Combat: 12 nodes in Might / Vitality / Spoils, heavy blow locked ${JSON.stringify(r.cb)}`);
+    ok(r.cb.view === 'combat' && r.cb.nodes.length === 13 && r.cb.nodes.includes('boss_lure') && r.cb.subs.join() === 'MIGHT,VITALITY,SPOILS' && r.cb.hb === 'locked', `Combat: 13 nodes in Might / Vitality / Spoils (Boss Lure beside Beast lure), heavy blow locked ${JSON.stringify(r.cb)}`);
     ok(r.k === '3' && JSON.stringify(r.str) === JSON.stringify([3, 23, 23, '3']), `spend 3 in Strength ${JSON.stringify(r.str)}`);
     ok(r.hbLocked[0] && r.hbLocked[1] === 'req' && r.hbLocked[2], `heavy blow needs 20 in Might ${JSON.stringify(r.hbLocked)}`);
     ok(r.k2 === '17' && JSON.stringify(r.str2) === JSON.stringify([20, 20, 6]) && r.hbState === 'available' && JSON.stringify(r.hb) === JSON.stringify([1, 5, 'maxed']), `20 in Might unlocks heavy blow, 5 points ${JSON.stringify([r.k2, r.str2, r.hbState, r.hb])}`);

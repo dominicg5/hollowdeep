@@ -18,6 +18,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.tier = near(C.tierMult(0), 1) && near(C.tierMult(1), 1.75) && near(C.tierMult(10), 8.5) && near(C.pairStats('onyx', 10).str, 136) && near(C.pairStats('onyx', 10).hp, 221) && near(C.pairStats('mithril', 4).acc, 28) && C.pairStats('stick', 10).str === 2;
     // base player + level scaling (no swords, no tree)
     const fresh = () => { const s = { combat: { xp: 0 }, skill: {} }; return s; };
+    // t638u: the dev grant - 300 points to spend on any save while DEV_POINTS is on, without touching Combat XP / level; off, it's 1 point per level again
+    { const d = fresh(); C.setLevel(4, d); const xp0 = JSON.stringify(d.combat); o.dev = [C.DEV_POINTS, C.pointsTotal(d), C.level(d), JSON.stringify(d.combat) === xp0, C.pointsTotal(S), C.branchMax('combat'), C.branchMax('production')]; }
+    const dev0 = C.DEV_POINTS; C.DEV_POINTS = 0; o.devOff = [C.DEV_POINTS, C.pointsTotal((() => { const d = fresh(); C.setLevel(4, d); return d; })())]; /* (the level-based checks below run with the grant off) */
     const s1 = fresh(), b1 = C.playerStats(s1, { L: null, R: null });
     const s300 = fresh(); C.setLevel(300, s300); const b300 = C.playerStats(s300, { L: null, R: null });
     o.base = { l1: [b1.level, b1.str, b1.hp, b1.acc], l300: [b300.level, b300.str, b300.hp, b300.acc] };
@@ -29,7 +32,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     let mono = true, prev = -1, maxP = 0; for (let a = 0; a <= 5000; a += 5) { const h = C.hitChance(a, 0); if (h < prev - 1e-12) mono = false; prev = h; maxP = Math.max(maxP, h); }
     o.hit = { h25: C.hitChance(25, 0), h50: C.hitChance(100, 100), h55: C.hitChance(55, 0), h100: C.hitChance(100, 0), huge: C.hitChance(1e6, 0), maxP };
     o.hitOk = near(C.hitChance(25, 0), 0.25) && near(C.hitChance(100, 100), 0.5) && C.hitChance(55, 0) < 0.55 && C.hitChance(55, 0) > 0.53 && C.hitChance(100, 0) < 0.6 && C.hitChance(100, 0) > 0.59 && C.hitChance(1e6, 0) <= 0.6 && maxP <= 0.6 && mono
-      && Math.abs((C.hitChance(50.01, 0) - C.hitChance(49.99, 0)) / 0.0002 - 0.01) < 1e-4; // slope 1 per 100 Acc on both sides of 50%: no kink
+      && Math.abs((C.hitChance(50, 0) - C.hitChance(49.99, 0)) / 0.01 - 0.01) < 1e-5 && Math.abs((C.hitChance(50.01, 0) - C.hitChance(50, 0)) / 0.01 - 0.01) < 1e-5; // slope 0.01 per Acc (1 per 100) just below and just above 50%: no kink (t627u: the old check divided a 0.02-Acc step by 0.0002)
     // damage: hit = full Strength; miss = 0..Strength; heavy blow every 5th swing; boss slayer
     const seq = (...v) => { let i = 0; return () => v[i++ % v.length]; };
     const st = { str: 10, acc: 1e6 }, hitD = C.rollDamage(st, { rng: seq(0) }), missLo = C.rollDamage({ str: 10, acc: 0 }, { rng: seq(0.99, 0) }), missHi = C.rollDamage({ str: 10, acc: 0 }, { rng: seq(0.99, 0.999) });
@@ -46,6 +49,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const costs = { heavy_blow: 5, quick_mend: 2, second_wind: 3, victory_breath: 3, ward: 3 }, costOk = Object.entries(costs).every(([k, v]) => C.NODE[k].cost === v && C.NODE[k].max === 1);
     const maxes = { strength: 40, vigor: 50, haste: 15, boss_slayer: 10, lifesteal: 10, fortune: 15, beast_lure: 10 }, maxOk = Object.entries(maxes).every(([k, v]) => C.NODE[k].max === v);
     o.tree = { capS, caps, req19, req20, guard, budget, costOk, maxOk, ids: C.NODES.map((x) => x.id).join(',') };
+    { const bl = C.NODE.boss_lure, be = C.NODE.beast_lure, ids = C.NODES.map((x) => x.id), q = fresh(); C.setLevel(300, q); q.skill = { boss_lure: 10 }; const qs = C.playerStats(q, { L: null, R: null });
+      o.boss = { ids: ids.slice(-2), node: bl && [bl.name, bl.sub, bl.max, bl.cost, bl.per && bl.per.bossBeastMult], base: C.BOSS_BEAST_BASE, c0: C.bossBeastChance(0.01), c10: C.bossBeastChance(0.01, qs), beast10: C.beastChance(0.01, qs) };
+      o.boss.ok = !!bl && ids.indexOf('boss_lure') === ids.indexOf('beast_lure') + 1 && bl.sub === 'spoils' && bl.max === be.max && bl.cost === be.cost && near(bl.per.bossBeastMult, be.per.beastMult / 2) && near(C.BOSS_BEAST_BASE, 0.1) && near(o.boss.c0, 0.001) && near(o.boss.c10, 0.001 * 1.05) && near(o.boss.beast10, 0.01); }
     o.treeOk = capS && caps && req19 && req20 && guard && budget && costOk && maxOk;
     // node effects
     const e = fresh(); C.setLevel(300, e); e.skill = { haste: 15, boss_slayer: 10, lifesteal: 10, quick_mend: 1, fortune: 15, beast_lure: 10, ward: 1 }; const es = C.playerStats(e, { L: null, R: null });
@@ -67,6 +73,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // item inspection shows sword stats + the unlock level
     const gid = 'tool:sword_gold'; let insp = ''; try { insp = JSON.stringify(Craft.itemStats(gid, 1)) + ' ' + Craft.itemBlurb(gid); } catch (err) { insp = 'ERR ' + err.message; }
     o.insp = insp; o.inspOk = /Pair \(L\+R\)/.test(insp) && /Combat Lv 45/.test(insp) && /Str 2\.5/.test(insp);
+    C.DEV_POINTS = dev0;
     return o;
   });
   ok(R.tables && R.stickOne && R.unlock, 'grade tables: pair totals at T0, each sword carries half, stick in one spot, unlock levels');
@@ -75,6 +82,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.exampleOk, 'Lv 300 + T10 Ember Onyx pair + maxed Might = 277 Str / 681 HP / 136 Acc ' + JSON.stringify(R.example));
   ok(R.hitOk, 'hit chance: Acc / (Def + 100), linear to 50%, eased toward the 60% cap, never past it ' + JSON.stringify(R.hit));
   ok(R.dmgOk, 'damage: a hit deals full Str, a miss 0..Str; Heavy blow 1.5x on every 5th swing; Boss slayer ' + JSON.stringify(R.dmg));
+  ok(R.boss && R.boss.ok, 'Boss Lure (t633u): a Spoils node beside Beast lure, same max + cost, half its per-rank bonus; bossBeastChance = base x BOSS_BEAST_BASE (1/10) x Boss Lure ' + JSON.stringify(R.boss));
+  ok(R.dev[0] === 300 && R.dev[1] === 300 && R.dev[2] === 4 && R.dev[3] && R.dev[4] === 300 && R.devOff.join() === '0,4' && R.dev[5] === 176 && R.dev[6] === 0, `dev grant (t638u): DEV_POINTS 300 gives 300 points without changing Combat XP / level; set to 0 it's 1 per level again ${JSON.stringify([R.dev, R.devOff])}`);
   ok(R.treeOk, 'skill tree: node caps, costs, 20-in-Might prerequisites, the point budget, removal protects prerequisites ' + JSON.stringify(R.tree));
   ok(R.fxOk, 'node effects: Haste, Boss slayer, Lifesteal, Quick mend regen 4%, Fortune, Beast lure; no regen in combat ' + JSON.stringify(R.fx));
   ok(R.healOk, 'healing: Ward shield 10%, lifesteal + Victory breath capped at 15% of max HP per fight, Second wind once and outside the cap ' + JSON.stringify(R.heal));

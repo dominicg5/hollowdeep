@@ -18,7 +18,7 @@ const SkillTree = (() => {
   const SUB = [['might', 'Might'], ['vitality', 'Vitality'], ['spoils', 'Spoils']];
   const SHAPE = { heavy_blow: 'seed', quick_mend: 'bud', second_wind: 'bud', victory_breath: 'bud', ward: 'bud' };
   // node map (content space, Art's layout: Might left column, Vitality right, Spoils bottom row; 96 px between stacked nodes)
-  const POS = { strength: [94, 70], vigor: [94, 166], haste: [94, 262], heavy_blow: [94, 358], boss_slayer: [94, 454], lifesteal: [291, 70], quick_mend: [291, 166], second_wind: [291, 262], victory_breath: [291, 358], ward: [291, 454], fortune: [140, 590], beast_lure: [250, 590] };
+  const POS = { strength: [94, 70], vigor: [94, 166], haste: [94, 262], heavy_blow: [94, 358], boss_slayer: [94, 454], lifesteal: [291, 70], quick_mend: [291, 166], second_wind: [291, 262], victory_breath: [291, 358], ward: [291, 454], fortune: [92, 590], beast_lure: [195, 590], boss_lure: [298, 590] };
   const U = { view: 'tree', sel: null, k: 1 };
   const esc2 = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const node = (id) => api.node(id);
@@ -45,7 +45,7 @@ const SkillTree = (() => {
       <div class="stArt">${treeSvg('ov')}<div class="stTags">${tags}</div></div><p class="stFoot">The tree grows as you spend points</p>`; }
   function viewCombat() { const N = api.nodes().filter((n) => POS[n.id]); let lines = '';
     const col = (ids) => { for (let i = 0; i < ids.length - 1; i++) { const a = POS[ids[i]], b = POS[ids[i + 1]]; lines += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}"/>`; } };
-    col(['strength', 'vigor', 'haste', 'heavy_blow', 'boss_slayer']); col(['lifesteal', 'quick_mend', 'second_wind', 'victory_breath', 'ward']); lines += '<path d="M94 454 C 120 520, 140 540, 140 590 M291 454 C 270 520, 250 540, 250 590 M140 590 L250 590"/>';
+    col(['strength', 'vigor', 'haste', 'heavy_blow', 'boss_slayer']); col(['lifesteal', 'quick_mend', 'second_wind', 'victory_breath', 'ward']); lines += '<path d="M94 454 C 94 520, 92 540, 92 590 M291 454 C 291 520, 298 540, 298 590 M92 590 L298 590"/>';
     const nodes = N.map((n) => { const s = stateOf(n), r = api.st(n.id).ranks, [x, y] = POS[n.id], lk = s === 'locked';
       return `<button class="stN ${s}${U.sel === n.id ? ' sel' : ''}" type="button" data-st="node" data-id="${n.id}" data-state="${s}" style="left:${x}px;top:${y}px"><img src="${A}node_${SHAPE[n.id] || 'leaf'}_${s}.webp" alt="" draggable="false"><span class="stNp"><b>${esc2(n.name)}</b><small${lk ? ' class="no"' : ''}>${lk ? esc2(reqTxt(n)) : `${r}/${n.max}`}</small></span></button>`; }).join('');
     const heads = `<span class="stSub" style="left:94px;top:6px">MIGHT</span><span class="stSub" style="left:291px;top:6px">VITALITY</span><span class="stSub" style="left:195px;top:530px">SPOILS</span>`;

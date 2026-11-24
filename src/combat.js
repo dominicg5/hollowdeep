@@ -48,6 +48,8 @@ const Combat = (() => {
     { id: 'ward', branch: 'combat', sub: 'vitality', name: 'Ward', max: 1, cost: 3, req: null, text: 'Start each fight with a shield of 10% HP (3 points)', flag: 'ward' },
     { id: 'fortune', branch: 'combat', sub: 'spoils', name: 'Fortune', max: 15, cost: 1, req: null, text: '+2% coin drops per point', per: { coinMult: 0.02 } },
     { id: 'beast_lure', branch: 'combat', sub: 'spoils', name: 'Beast lure', max: 10, cost: 1, req: null, text: '+1% tether beast drop chance per point (multiplies each creature\u2019s base chance)', per: { beastMult: 0.01 } },
+    // t633u (Dominic): a boss's beast version is much rarer than a normal creature's; until he gives numbers, beast lure's max + cost at half its per-rank bonus
+    { id: 'boss_lure', branch: 'combat', sub: 'spoils', name: 'Boss Lure', max: 10, cost: 1, req: null, text: '+0.5% chance per point to capture a boss\u2019s beast version (multiplies its much smaller base chance)', per: { bossBeastMult: 0.005 } },
   ];
   const NODE = Object.fromEntries(NODES.map((n) => [n.id, n]));
   const alloc = (s) => { s = sv(s); return (s && s.skill) || {}; };
@@ -55,9 +57,15 @@ const Combat = (() => {
   const subSpent = (sub, s, except) => NODES.reduce((a, n) => a + (n.sub === sub && n.id !== except ? ranks(n.id, s) * n.cost : 0), 0);
   // what a prerequisite counts: points in the sub-branch's open nodes (the gated nodes don't count toward each other, so no loop can hold them up)
   const reqSpent = (sub, s) => NODES.reduce((a, n) => a + (n.sub === sub && !n.req ? ranks(n.id, s) * n.cost : 0), 0);
-  const pointsTotal = (s) => level(s); // 1 skill point per Combat level
+  // DEV (t638u, Dominic testing): while DEV_POINTS is on (> 0) every save has that many skill points to spend instead of 1 per Combat level; his Combat XP and
+  // level are untouched. Turn it off later by setting it to 0 here (or Combat.DEV_POINTS = 0 at run time).
+  let DEV_POINTS = 300;
+  const pointsTotal = (s) => (DEV_POINTS > 0 ? DEV_POINTS : level(s)); // 1 skill point per Combat level (unless the dev grant is on)
   const pointsSpent = (s) => NODES.reduce((a, n) => a + ranks(n.id, s) * n.cost, 0);
   const pointsLeft = (s) => pointsTotal(s) - pointsSpent(s);
+  // points spent in one branch, and the most that branch can take (the Skill Tree room's tree grows with these; t637u)
+  const branchSpent = (b, s) => NODES.reduce((a, n) => a + (n.branch === b ? ranks(n.id, s) * n.cost : 0), 0);
+  const branchMax = (b) => NODES.reduce((a, n) => a + (n.branch === b ? n.max * n.cost : 0), 0);
   function reqMet(id, s) { const n = NODE[id]; if (!n || !n.req) return true; return Object.entries(n.req).every(([sub, need]) => reqSpent(sub, s) >= need); }
   // why a point can't go in ('max' | 'points' | 'req' | 'unknown'), or '' when it can
   function whyNot(id, s) { const n = NODE[id]; if (!n) return 'unknown'; if (ranks(id, s) >= n.max) return 'max'; if (!reqMet(id, s)) return 'req'; if (pointsLeft(s) < n.cost) return 'points'; return ''; }
@@ -71,16 +79,16 @@ const Combat = (() => {
   function nodeState(id, s) { const n = NODE[id]; if (!n) return null; const r = ranks(id, s), why = whyNot(id, s); return { id, branch: n.branch, sub: n.sub, name: n.name, text: n.text, max: n.max, cost: n.cost, req: n.req, ranks: r, maxed: r >= n.max, reqMet: reqMet(id, s), canAdd: !why, why, canRemove: canRemove(id, s) }; }
   const treeState = (s) => ({ level: level(s), points: pointsTotal(s), spent: pointsSpent(s), left: pointsLeft(s), nodes: NODES.map((n) => nodeState(n.id, s)), subSpent: { might: subSpent('might', s), vitality: subSpent('vitality', s), spoils: subSpent('spoils', s) } });
   // the summed effects of an allocation
-  function applyNodes(s) { const e = { str: 0, hp: 0, atkSpeed: 0, bossDmg: 0, lifesteal: 0, coinMult: 0, beastMult: 0, heavyBlow: false, quickMend: false, secondWind: false, victoryBreath: false, ward: false };
+  function applyNodes(s) { const e = { str: 0, hp: 0, atkSpeed: 0, bossDmg: 0, lifesteal: 0, coinMult: 0, beastMult: 0, bossBeastMult: 0, heavyBlow: false, quickMend: false, secondWind: false, victoryBreath: false, ward: false };
     for (const n of NODES) { const r = ranks(n.id, s); if (!r) continue; if (n.per) for (const [k, v] of Object.entries(n.per)) e[k] += v * r; if (n.flag) e[n.flag] = true; } return e; }
 
   // ---- player stats: level + both swords + the tree. swords = { L: { g, t }, R: { g, t } } (defaults to her saved swords); a missing hand counts nothing ----
-  function equippedSwords(s) { s = sv(s); const o = {}; for (const k of ['L', 'R']) { const g = s && s['sword' + k]; o[k] = g && SWORD_PAIR[g] ? { g, t: g === 'stick' ? 0 : clampT(s.tswords && s.tswords[g]) } : null; } return o; }
+  function equippedSwords(s) { s = sv(s); const o = {}; for (const k of ['L', 'R']) { const g = s && s['sword' + k]; const dt = s && s['swordT' + k]; /* (t629u: Try gear, the dev tool, saves the tier it equipped) */ o[k] = g && SWORD_PAIR[g] ? { g, t: g === 'stick' ? 0 : clampT(dt != null ? dt : s.tswords && s.tswords[g]) } : null; } return o; }
   function playerStats(s, swords, opt) { s = sv(s); const L = (opt && opt.level) || level(s), W = swords || equippedSwords(s), E = applyNodes(s), sw = { str: 0, acc: 0, hp: 0 };
     for (const k of ['L', 'R']) { const h = W[k]; if (!h) continue; const q = swordStats(h.g, h.t); sw.str += q.str; sw.acc += q.acc; sw.hp += q.hp; }
     const str = BASE_STR + Math.floor(L / 3) + sw.str + E.str, hp = BASE_HP + L + sw.hp + E.hp;
     return { level: L, str: Math.round(str), hp: Math.round(hp), acc: Math.round(sw.acc), atkSpeed: 1 + E.atkSpeed, regen: E.quickMend ? REGEN_MEND : REGEN, regenInCombat: 0,
-      lifesteal: E.lifesteal, bossDmg: E.bossDmg, heavyBlow: E.heavyBlow, secondWind: E.secondWind, victoryBreath: E.victoryBreath, ward: E.ward, coinMult: 1 + E.coinMult, beastMult: 1 + E.beastMult,
+      lifesteal: E.lifesteal, bossDmg: E.bossDmg, heavyBlow: E.heavyBlow, secondWind: E.secondWind, victoryBreath: E.victoryBreath, ward: E.ward, coinMult: 1 + E.coinMult, beastMult: 1 + E.beastMult, bossBeastMult: 1 + E.bossBeastMult,
       swords: { L: W.L ? Object.assign({ g: W.L.g, t: W.L.t }, swordStats(W.L.g, W.L.t)) : null, R: W.R ? Object.assign({ g: W.R.g, t: W.R.t }, swordStats(W.R.g, W.R.t)) : null, pair: sw } }; }
 
   // ---- hit + damage ----
@@ -102,6 +110,9 @@ const Combat = (() => {
   // spoils
   const coinDrop = (base, stats) => base * ((stats && stats.coinMult) || 1);
   const beastChance = (base, stats) => base * ((stats && stats.beastMult) || 1);
+  // a boss's beast version: BOSS_BEAST_BASE x the normal creature's base chance (placeholder 1/10 until Dominic gives numbers), times Boss Lure
+  const BOSS_BEAST_BASE = 0.1;
+  const bossBeastChance = (base, stats) => base * BOSS_BEAST_BASE * ((stats && stats.bossBeastMult) || 1);
 
   // ---- still to come (Dominic: stub only, nothing invented) ----
   const creature = (depth) => null; // creature HP / Defense per depth: not designed yet
@@ -110,6 +121,7 @@ const Combat = (() => {
 
   return { LV_MAX, BASE_HP, BASE_STR, STICK_PAIR, SWORD_PAIR, SWORD_UNLOCK, TIER_STEP, HIT_CAP, HIT_EASE, REGEN, REGEN_MEND, HEAL_CAP, GRADES, BRANCHES, NODES, NODE, BEAST_SLOT_LEVELS,
     tierMult, pairStats, swordStats, fmt, swordUnlock, canEquip, migrate, level, levelFromXp, addXp, setLevel, xpTo,
-    ranks, subSpent, reqSpent, pointsTotal, pointsSpent, pointsLeft, reqMet, whyNot, canAdd, addPoint, canRemove, removePoint, resetTree, nodeState, treeState, applyNodes,
-    equippedSwords, playerStats, hitChance, rollDamage, swingTime, newFight, fightHeal, fightDealt, fightKill, fightHurt, regenPerSec, coinDrop, beastChance, creature, beastSlots };
+    get DEV_POINTS() { return DEV_POINTS; }, set DEV_POINTS(v) { DEV_POINTS = Math.max(0, Math.floor(+v || 0)); },
+    ranks, subSpent, reqSpent, pointsTotal, pointsSpent, pointsLeft, branchSpent, branchMax, reqMet, whyNot, canAdd, addPoint, canRemove, removePoint, resetTree, nodeState, treeState, applyNodes,
+    equippedSwords, playerStats, hitChance, rollDamage, swingTime, newFight, fightHeal, fightDealt, fightKill, fightHurt, regenPerSec, coinDrop, beastChance, BOSS_BEAST_BASE, bossBeastChance, creature, beastSlots };
 })();

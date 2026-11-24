@@ -78,14 +78,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await new Promise((r) => setTimeout(r, 600)); const a0 = up(); CharView.swAttack(); let mx = 0; const t0 = Date.now(); while (CharView.sw.at && Date.now() - t0 < 20000) { mx = Math.max(mx, up()); await new Promise((r) => setTimeout(r, 40)); }
     await new Promise((r) => setTimeout(r, 2500)); return { a0: +a0.toFixed(1), swing: +mx.toFixed(1), rest: +up().toFixed(1), big: +fl.material.uniforms.uBig.value.toFixed(3) }; });
   ok(WH.swing > 25 && WH.rest < 8 && WH.big < 0.9, 'Ember Onyx flames whip behind the blade mid-swing and ease back to licking upright at rest, at the halved size ' + JSON.stringify(WH));
-  // a sword she owns at its own tier is a real equip (saved); a preview never touches the save
-  const O = await p.evaluate(async () => { Craft.add('bag', 'tool:sword_gold', 1); S.tswords = { gold: 4 }; const t = (s) => document.querySelector(s).click(); const w = () => new Promise((r) => setTimeout(r, 120));
-    /* (combat design) at Combat Lv 1 the Gold sword (Lv 45) is locked: holding it is only a preview, the save keeps no Gold sword; at Lv 45 it equips for real */ const lv0 = Combat.level();
-    t('#pvPanel [data-swg="gold"]'); await w(); t('#pvPanel [data-swt="4"]'); await w(); t('#pvPanel [data-swh="L"]'); await w(); const lock = { lv: lv0, L: S.swordL || null, real: CharView.sw.L && CharView.sw.L.real, h: document.querySelector('#pvPanel .pvh').textContent }; Combat.setLevel(45);
-    t('#pvPanel [data-swh="R"]'); await w(); const a = S.swordR, h = document.querySelector('#pvPanel .pvh small').textContent;
-    t('#pvPanel [data-swg="iron"]'); await w(); t('#pvPanel [data-swt="2"]'); await w(); t('#pvPanel [data-swh="R"]'); await w(); return { lock, a, h, b: S.swordR, now: CharView.sw.R }; });
-  ok(O.lock.lv === 1 && O.lock.L !== 'gold' && O.lock.real === false && /Unlock Lv 45/.test(O.lock.h) && /This sword: Str 10 · Acc 10 · HP 16 · Pair/.test(O.lock.h), 'sword equip lock (combat design): at Combat Lv 1 her own Gold sword (Lv 45) only previews ("Unlock Lv 45", save untouched); the viewer shows each sword\'s Str / Acc / HP and the pair ' + JSON.stringify(O.lock));
-  ok(O.a === 'gold' && !/preview/.test(O.h) && O.b === 'gold' && O.now.g === 'iron', 'owned Gold sword T4 equips for real (saved); an Iron T2 preview leaves the save alone ' + JSON.stringify(O));
+  // t629u (Dominic): Try gear is a DEV TOOL - whatever sword he tries is really equipped (saved, counted by Combat at the tried tier), past the Combat-level
+  // locks, with no 'preview only'; the locks themselves stay in Combat.canEquip for normal equipping
+  const O = await p.evaluate(async () => { Craft.add('bag', 'tool:sword_gold', 1); S.tswords = { gold: 4 }; const t = (s) => document.querySelector(s).click(); const w = () => new Promise((r) => setTimeout(r, 120)); let toasts = 0; const t0 = window.toast; window.toast = (...a) => { toasts++; return t0 && t0(...a); };
+    const lv0 = Combat.level(); t('#pvPanel [data-swg="gold"]'); await w(); t('#pvPanel [data-swt="4"]'); await w(); t('#pvPanel [data-swh="L"]'); await w();
+    const lock = { lv: lv0, L: S.swordL || null, TL: S.swordTL, real: CharView.sw.L && CharView.sw.L.real, h: document.querySelector('#pvPanel .pvh').textContent, canEquip: Combat.canEquip('gold'), eq: Combat.equippedSwords().L };
+    t('#pvPanel [data-swg="iron"]'); await w(); t('#pvPanel [data-swt="2"]'); await w(); t('#pvPanel [data-swh="R"]'); await w(); const b = { R: S.swordR, TR: S.swordTR, eq: Combat.equippedSwords().R, pair: Combat.playerStats().swords.pair };
+    t('#pvPanel [data-swclr]'); await w(); const clr = [S.swordL || null, S.swordR || null]; window.toast = t0; return { lock, b, clr, toasts }; });
+  ok(O.lock.lv === 1 && O.lock.L === 'gold' && O.lock.TL === 4 && O.lock.real === true && !/preview/i.test(O.lock.h) && /This sword: Str 10 · Acc 10 · HP 16 · Pair/.test(O.lock.h) && !O.lock.canEquip && O.lock.eq && O.lock.eq.g === 'gold' && O.lock.eq.t === 4 && O.toasts === 0, 'Try gear (dev tool): at Combat Lv 1 the Gold T4 sword (Lv 45) is really equipped and saved, no preview-only toast; Combat still says it is locked for normal equipping ' + JSON.stringify(O.lock));
+  ok(O.b.R === 'iron' && O.b.TR === 2 && O.b.eq && O.b.eq.g === 'iron' && O.b.eq.t === 2 && O.b.pair.str > 0 && O.clr.join() === ',', 'an Iron T2 she does not own equips too, counted by Combat at T2; Put away clears the save ' + JSON.stringify([O.b, O.clr]));
   await tap('#pvPanel [data-swclr]'); await p.waitForTimeout(1600);
   const C = await p.evaluate(() => ({ sw: CharView.sw, R: CharView.rig.built.swords.R, L: CharView.rig.built.swords.L, tool: CharView.st.tool, cls: document.getElementById('charWrap').classList.contains('sw') }));
   ok(!C.sw.R && !C.sw.L && !C.R && !C.L && C.tool !== 'none' && !C.cls, 'Put away: hands empty, pickaxe back ' + JSON.stringify({ tool: C.tool }));
@@ -95,6 +96,12 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const E = await p.evaluate(() => { const W = window.__W, R = CharView.renderer; return { solo: CharView.solo, rig: CharView.rig === W.rig, sw: !!CharView.rig.built.swords, mem: [R.info.memory.geometries, R.info.memory.textures], mem0: W.mem0 }; });
   ok(!E.solo && E.rig && !E.sw, 'closed: back to her world self, no swords in the world');
   ok(E.mem[0] <= E.mem0[0] && E.mem[1] <= E.mem0[1], 'texture cleanup on close: geometries / textures ' + JSON.stringify(E.mem0) + ' -> ' + JSON.stringify(E.mem));
+  // t640 (Dominic): a Try gear sword stays equipped after leaving the character screen - the real slots, saved like a normal equip, never reverted on close
+  const KP = await p.evaluate(() => { const sv = JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}'), e = Combat.equippedSwords(); return { S: [S.swordR, S.swordTR, S.swordL, S.swordTL], saved: [sv.swordR, sv.swordTR, sv.swordL, sv.swordTL], eq: [e.R && e.R.g, e.R && e.R.t, e.L && e.L.g, e.L && e.L.t] }; });
+  await p.evaluate(() => setTab('char')); await p.waitForTimeout(1500);
+  const KB = await p.evaluate(() => { const w = CharView.sw; return { solo: CharView.solo, R: w.R && [w.R.g, w.R.t], L: w.L && [w.L.g, w.L.t], S: [S.swordR, S.swordTR, S.swordL, S.swordTL] }; }); await p.evaluate(() => setTab('city')); await p.waitForTimeout(800);
+  ok(KP.S.join() === 'onyx,10,lumen,10' && KP.saved.join() === 'onyx,10,lumen,10' && KP.eq.join() === 'onyx,10,lumen,10' && KB.solo && KB.R && KB.R.join() === 'onyx,10' && KB.L && KB.L.join() === 'lumen,10' && KB.S.join() === 'onyx,10,lumen,10',
+    'Try gear swords stay equipped after closing the character screen (on the map: S, the saved game and Combat all still have Onyx T10 / Lumen T10; back on the character screen they are still in her hands) ' + JSON.stringify([KP, KB]));
   ok(!errs.length, 'no page errors ' + errs.slice(0, 3).join(' | '));
   console.log(fails ? `${fails} FAILED` : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
 })();

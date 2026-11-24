@@ -61,14 +61,16 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // buying: blocked before the gold is taken; taking from the vault: blocked
     S.gold = 100000; o.buy = [C.buy(P('bronze'), 1), S.gold]; const vt = C.get('vault', 'ore:tin'); o.wd = [C.move('vault', 'bag', 'ore:tin', 5), C.get('vault', 'ore:tin') - vt];
     // Theus: gift pending while full (not to the vault), given on the next talk once there is room; a tiered pickaxe needs backpack room
+    // (t591u, Dominic: Theus never takes pickaxes from the vault - payment is what she carries, loose or as a vault note, so the upgrade checks below pay with a note)
+    const NT = (g) => C.noteDef(P(g)), notes = (g) => C.noteCount(P(g)), setNote = (g, n) => { C.add('bag', NT(g), n - notes(g)); };
     S.theusMet = false; S.theusGiftDue = 0; const gv = C.get('vault', P('bronze')), gb = C.have(P('bronze')); o.gift = [Theus.gift(), !!S.theusGiftDue, C.get('vault', P('bronze')) - gv, C.have(P('bronze')) - gb, !!S.theusMet];
     C.add('bag', P('rune'), -1); Theus.open(); Theus.close(); o.gift2 = [!!S.theusGiftDue, C.have(P('bronze')) - gb];
-    fill(); C.add('vault', P('gold'), 25); S.tpicks = S.tpicks || {}; delete S.tpicks.gold; const up = Theus.upgrade('gold'); o.upFull = [up.ok, up.why, C.get('vault', P('gold'))];
+    fill(); C.add('bag', P('rune'), -1); setNote('gold', 25); fill(); S.tpicks = S.tpicks || {}; delete S.tpicks.gold; const up = Theus.upgrade('gold'); o.upFull = [up.ok, up.why, notes('gold')]; /* (25 Gold carried as a note, enough to pay; the new tiered one has no slot) */
     // the equipped plain pickaxe is never payment, except as the one being upgraded (T0 -> T1 with one short: it becomes the tiered one, still in her hand)
-    C.take(P('gold'), C.spare(P('gold'))); C.add('vault', P('gold'), 20); C.add('bag', P('rune'), -1); C.add('bag', P('gold'), 1); C.equip(P('gold')); const up2 = Theus.upgrade('gold');
-    o.upHand = [up2.ok, C.get('vault', P('gold')), C.worn().pick, Craft.pickTier('gold'), S.pickEqT];
-    C.take(Craft.TPICK('steel'), C.spare(Craft.TPICK('steel'))); delete S.tpicks.steel; C.add('vault', P('steel'), 21); C.add('bag', P('rune'), -2); C.add('bag', P('steel'), 1); C.equip(P('steel')); const up3 = Theus.upgrade('steel');
-    o.upSpare = [up3.ok, C.get('vault', P('steel')), C.worn().pick, C.get('bag', Craft.TPICK('steel'))];
+    C.take(P('gold'), C.spare(P('gold'))); setNote('gold', 20); C.add('bag', P('rune'), -1); C.add('bag', P('gold'), 1); C.equip(P('gold')); const up2 = Theus.upgrade('gold');
+    o.upHand = [up2.ok, notes('gold'), C.worn().pick, Craft.pickTier('gold'), S.pickEqT];
+    C.take(Craft.TPICK('steel'), C.spare(Craft.TPICK('steel'))); delete S.tpicks.steel; C.add('bag', P('rune'), -2); setNote('steel', 21); C.add('bag', P('steel'), 1); C.equip(P('steel')); const up3 = Theus.upgrade('steel');
+    o.upSpare = [up3.ok, notes('steel'), C.worn().pick, C.get('bag', Craft.TPICK('steel'))];
     // mining with a full backpack: she stops and the message shows
     fill(); const got = Explore.mineGive('gold', 3); o.mine = [got, /Backpack full/.test(last())];
     // ---- gold only: no Lumen -> gold rate anywhere; old saves' listings keep their numbers (no x10); the x10-era prices hard-coded at their gold values
@@ -98,7 +100,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.craft.join() === '0,true,0,0', `smelting into a full backpack: blocked, ingredients kept (${R.craft.join(',')})`);
   ok(R.buy[0] === 0 && R.buy[1] === 100000 && R.wd[0] === 0 && R.wd[1] === 0, `full backpack: buying the Bronze Pickaxe blocked before any gold is taken; taking from the vault blocked`);
   ok(R.gift.join() === 'false,true,0,0,true' && R.gift2.join() === 'false,1', `Theus's gift: pending while full (not to the vault), given on the next talk once a slot is free (${R.gift.join(',')} / ${R.gift2.join(',')})`);
-  ok(R.upFull.join() === 'false,full,25', `Theus: no backpack room for a new tiered pickaxe -> blocked, nothing paid`);
+  ok(R.upFull.join() === 'false,full,25', `Theus: no backpack room for a new tiered pickaxe -> blocked, nothing paid (${R.upFull.join(',')})`);
   ok(R.upHand.join() === 'true,0,tool:tpick_gold,1,gold' && R.upSpare.join() === 'true,0,tool:pick_steel,1', `the equipped pickaxe pays only as the one being upgraded (Gold: 20 + the one in hand -> tiered in hand); with 21 spare the one in hand stays (${R.upSpare.join(',')})`);
   ok(R.mine.join() === '0,true', `mining into a full backpack: nothing added, she stops with "Backpack full" (got full backpack block)`);
   if (SHOT) {
@@ -122,6 +124,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const cols = []; w.traverse((q) => { if (!q.isMesh) return; const c = q.geometry.attributes.color; if (c) for (let i = 0; i < c.count; i += 3) cols.push('#' + new THREE.Color(c.getX(i), c.getY(i), c.getZ(i)).getHexString()); else for (const m of [].concat(q.material)) if (m && m.color) cols.push('#' + m.color.getHexString()); }); const col = cols.includes('#55585e') ? '#55585e' : [...new Set(cols)].join('/'); /* (Art: dark forged iron like the iron pickaxe binding) */ return { vis: w.visible, grade: w.userData.grade, col, k: CharView.an.tv && CharView.an.tv.k, x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; });
   ok(W.vis && W.grade === 'iron' && W.col === '#55585e' && W.k === 'ascend', `her hip winch is the Iron Winch (${JSON.stringify(W)}), shown while ascending`);
   if (SHOT) await p.screenshot({ path: OUT + 'winch_iron_ascend_closeup.png', clip: { x: Math.max(0, Math.min(390 - 300, W.x - 150)), y: Math.max(0, W.y - 170), width: 300, height: 340 } });
+  await p.evaluate(() => setTab('city')); await p.waitForTimeout(1500); /* (the map's backpack sheet lives in the map's HUD: back to the map from the Character tab first) */
   const BS = await p.evaluate(async () => { const o = {}, fr = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); if (!Craft.order('bag').some(Boolean)) Craft.add('bag', 'ore:copper', 5); Craft.sheet(true); await fr(); const el = document.getElementById('bagSheet'), m = () => { const c = el.querySelector('.cxs.full .cxsv'), r = c ? c.getBoundingClientRect() : { width: 0 }; return [Math.round(el.getBoundingClientRect().height), Math.round(r.width)]; };
     o.before = m(); o.slots = el.querySelectorAll('.cxs').length; o.vh = innerHeight; el.querySelector('.cxs.full').click(); await fr(); o.menu = !!el.querySelector('.cxmenu'); o.after = m(); Craft.sheet(false); return o; });
   ok(BS.slots === BS.slots && BS.slots >= 20 && BS.menu && BS.before[0] >= 0.55 * BS.vh && Math.abs(BS.before[0] - BS.after[0]) <= 2 && BS.before[1] === BS.after[1] && BS.before[1] >= 30, `map backpack sheet opens in the big-icon layout (sheet ${BS.before[0]} px of ${BS.vh}, icons ${BS.before[1]} px) and stays the same when an item is tapped (${BS.after.join('/')}); ${BS.slots} slots, item menu opens (got big backpack icons)`);
