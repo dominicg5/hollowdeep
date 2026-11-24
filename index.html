@@ -921,7 +921,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='913691ce';
+<script>window.HD_BUILD='d1be61fa';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -943,8 +943,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 913691ce</div>
-<script src="assets/vendor/three.min.js?v=913691ce"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build d1be61fa</div>
+<script src="assets/vendor/three.min.js?v=d1be61fa"></script>
 <script>
 'use strict';
 
@@ -10072,8 +10072,33 @@ const CharView = (() => {
     const pl = new THREE.PointLight(0xff5a28, 0.35, 0.8, 2); head.add(pl); px.userData.light = pl;
     { const s0 = sites.length; for (let i = 0; i < s0; i++) { const [p, o] = sites[i]; sites.push([p.clone().add(V((r() - 0.5) * 0.014, 0.006, (r() - 0.5) * 0.014)), o]); } } // two licks per site
     const fl = flamePoints(sites); fl.material.uniforms.uBig.value = 1.3; /* embers */ px.add(fl); const rb = flameRibbons(licks); px.add(rb); px.userData.ribbons = rb; px.userData.fx.push(rb); px.userData.flames = fl; px.userData.veins = veinM; px.userData.fx.push(fl); return px; }
-  function makePickaxe(grade, tier) { const key = GRADES[grade] ? grade : 'stick', G = GRADES[key], T = G.tier, px = new THREE.Group(); px.name = 'pickaxe'; px.userData.grade = key; px.userData.fx = []; if (G.stick) return makeStickaxe(px); if (G.onyx) return onyxTint(onyxShard(px, G), tier == null ? onyxTierNow() : tier); const lt = T === 6 ? Math.max(0, Math.min(10, Math.floor((tier == null ? pickTierNow(key) : tier) || 0))) : 0; if (T === 6) { px.userData.tier = lt; px.userData.tierCol = LUMEN_TIER_HEX[lt]; }
-    const metal = G.shine ? new THREE.MeshPhongMaterial({ color: G.head, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }) : toon(G.head, null, G.emissive ? { emissive: G.emissive } : {}), bindM = toon(G.bind), wood = toon(0, fabric(G.handle, { seed: 23, weave: T >= 4 ? 0.03 : 0.06 })), wrapM = toon(0, fabric(G.wrap || 0x4b3020, { seed: 25, weave: 0.22 }));
+  /* ---------- (Art's tier_ladders sheets, card t387s1456) Bronze..Rune pickaxes change with their tier the way Lumenite / Ember Onyx do: only the blade + socket
+     material (and Rune's rune glow) change; handle, wraps, collars and bindings never do; T0 is today's look untouched. One data table drives every grade:
+     col = blade colour per tier, spec / shin = Phong highlight colour + sharpness T1 -> T10, vein = vein colour (T8-T10, one small shared canvas per grade + tier),
+     glowK = a faint self-lit glow from T7, spk = sparkle glints (the shared sparkle Points). Built once per pick; nothing allocated per frame. */
+  const lerpHexes = (a, b, n) => { const A = new THREE.Color(a), B = new THREE.Color(b); return Array.from({ length: n }, (_, i) => A.clone().lerp(B, i / (n - 1)).getHex()); };
+  const TIER_LOOK = {
+    bronze: { col: [0xb07f45, 0xb48348, 0xb8874b, 0xbc8b4e, 0xc08f51, 0xc49354, 0xc89757, 0xcc9b5a, 0xd09f5d, 0xd2a35f, 0xd4a560], spec: [0x4a3420, 0xffdcaa], shin: [24, 120], vein: 0x6a3f1c, spk: (t) => t >= 6 ? 2 * (t - 5) : 0, spkCol: 0xffd9a0 },
+    iron: { col: [0x80858d, 0x848990, 0x888d94, 0x8c9198, 0x90959c, 0x9499a0, 0x989da4, 0x9ca1a8, 0xa0a5ac, 0xa4a9b0, 0xa8adb4], spec: [0x2a2d32, 0xffffff], shin: [12, 150], vein: 0x2a3038, damascus: true, spk: (t) => t >= 6 ? 2 * (t - 5) : 0, spkCol: 0xf4f8ff },
+    steel: { col: [0x9aa4ae, 0xc9c39a, 0xd9c27a, 0xd6a95a, 0xb9824a, 0x9a5f5a, 0x7a4c8a, 0x5a4ca8, 0x3f5cc0, 0x3a6cd0, 0x2f80e0], spec: [0xd8e2ec, 0xe0f0ff], shin: [60, 120], vein: 0x1a2448, glowK: 0.22, spk: (t) => t >= 8 ? 3 * (t - 6) : 0, spkCol: 0x8fc4ff },
+    gold: { col: [0xe6b640, 0xe8b73c, 0xeab838, 0xecb934, 0xeeba30, 0xf0bb2e, 0xf0bc32, 0xf0bc34, 0xf0bc36, 0xf0bc38, 0xf0bc38], spec: [0x806020, 0xfff2b8], shin: [30, 130], vein: 0x9a5a10, emis: 0x2a1c00, spk: (t) => t >= 4 ? 2 * (t - 3) : 0, spkCol: 0xffe27a },
+    mithril: { col: lerpHexes(0x9cc0e6, 0x1f4fd0, 11), spec: [0xe8f6ff, 0xf4faff], shin: [90, 150], emis: 0x14243a, glowK: 0.12, spk: (t) => 4 * t, spkCol: 0x6db6ff },
+    rune: { col: [0x3b424c].concat(lerpHexes(0x7a56c8, 0x232066, 10)), ease: [0, 0.4, 0.7, 0.9], spec: [0x3a3550, 0xc8b8ff], shin: [30, 90], glow: lerpHexes(0xb48cff, 0xffcf5a, 11), spk: (t) => t === 10 ? 22 : 0, spkCol: 0xffcf5a },
+  };
+  const VEIN_TEX = {}; // one small procedural vein / Damascus map per grade + tier (128 px), made the first time it is shown
+  function veinTex(g, t) { const k = g + t; if (VEIN_TEX[k]) return VEIN_TEX[k]; const L = TIER_LOOK[g], a = (t - 7) / 3 * 0.85, c = new THREE.Color(L.vein), r = prng(900 + t * 7 + g.length);
+    const tx = cv(128, 128, (x, w, h) => { x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h); x.strokeStyle = `rgba(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)},${a.toFixed(2)})`; x.lineCap = 'round';
+      if (L.damascus) { x.lineWidth = 1.6; for (let i = 0; i < 18; i++) { x.beginPath(); for (let j = 0; j <= 32; j++) { const u = j / 32 * w, y = (i + 0.5) * h / 18 + Math.sin(u * 0.09 + i * 0.7) * 5 + Math.sin(u * 0.23 + i) * 2; if (j) x.lineTo(u, y); else x.moveTo(u, y); } x.stroke(); } }
+      else for (let i = 0; i < 7 + 3 * (t - 8); i++) { let px = r() * w, py = r() * h, an = r() * TAU; x.lineWidth = 0.8 + r() * 1.2; x.beginPath(); x.moveTo(px, py); for (let j = 0; j < 14; j++) { an += (r() - 0.5) * 0.9; px += Math.cos(an) * 6; py += Math.sin(an) * 6; x.lineTo(px, py); } x.stroke(); } });
+    tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.repeat.set(5, 5); return (VEIN_TEX[k] = tx); }
+  function tierHeadMat(g, t, G) { const L = TIER_LOOK[g], f = t / 10; let col = new THREE.Color(L.col[t]); if (L.ease && t < L.ease.length) col = new THREE.Color(L.col[0]).lerp(col, L.ease[t]);
+    const em = new THREE.Color(L.emis != null ? L.emis : G.emissive || 0); if (L.glowK && t >= 7) em.add(col.clone().multiplyScalar(L.glowK * (t - 6) / 4));
+    return new THREE.MeshPhongMaterial({ color: col, specular: new THREE.Color(L.spec[0]).lerp(new THREE.Color(L.spec[1]), f), shininess: L.shin[0] + (L.shin[1] - L.shin[0]) * f, emissive: em, map: L.vein && t >= 8 ? veinTex(g, t) : null }); }
+  function tierFx(px, head, g, t, mid) { const L = TIER_LOOK[g], n = L.spk(t); if (L.glow) { const gc = L.glow[t]; if (px.userData.runeM) px.userData.runeM.color.setHex(gc); if (px.userData.light) { px.userData.light.color.setHex(gc); px.userData.light.intensity = 0.22 + 0.02 * t; } }
+    if (!n) return; const r = prng(77 + t), sp = [], seed = []; for (let i = 0; i < n; i++) { const [x, y] = mid(r(), r()); sp.push(x + (r() - 0.5) * 0.04, y + head.position.y + (r() - 0.5) * 0.05, (r() - 0.5) * 0.06); seed.push(r()); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3)); sg.setAttribute('aSeed', new THREE.Float32BufferAttribute(seed, 1)); const spk = new THREE.Points(sg, SPARK_MAT(L.spkCol)); spk.material.uniforms.uCol.value.multiplyScalar(0.8 + 0.05 * t); spk.frustumCulled = false; spk.renderOrder = 5; px.add(spk); px.userData.fx.push(spk); }
+  function makePickaxe(grade, tier) { const key = GRADES[grade] ? grade : 'stick', G = GRADES[key], T = G.tier, px = new THREE.Group(); px.name = 'pickaxe'; px.userData.grade = key; px.userData.fx = []; if (G.stick) return makeStickaxe(px); if (G.onyx) return onyxTint(onyxShard(px, G), tier == null ? onyxTierNow() : tier); const lt = T === 6 ? Math.max(0, Math.min(10, Math.floor((tier == null ? pickTierNow(key) : tier) || 0))) : 0; if (T === 6) { px.userData.tier = lt; px.userData.tierCol = LUMEN_TIER_HEX[lt]; } const tt = TIER_LOOK[key] ? Math.max(0, Math.min(10, Math.floor((tier == null ? pickTierNow(key) : tier) || 0))) : 0; if (TIER_LOOK[key]) px.userData.tier = tt;
+    const metal = G.shine ? new THREE.MeshPhongMaterial({ color: G.head, specular: G.shine, shininess: G.shin || 60, emissive: G.emissive || 0 }) : toon(G.head, null, G.emissive ? { emissive: G.emissive } : {}), headM = tt ? tierHeadMat(key, tt, G) : metal, bindM = toon(G.bind), wood = toon(0, fabric(G.handle, { seed: 23, weave: T >= 4 ? 0.03 : 0.06 })), wrapM = toon(0, fabric(G.wrap || 0x4b3020, { seed: 25, weave: 0.22 }));
     // handle
     if (G.onyx) part(px, twistedHandle(1.04, 0.0165), toon(G.handle), [0, 0.22, 0]); else part(px, cyl(0.016, 0.0138, 1.04, T >= 4 ? 14 : 10), wood, [0, 0.22, 0]);
     // grip: rope (bronze) > plain leather (iron) > spiral leather strap (steel+) > cross-wrapped (mithril+)
@@ -10093,9 +10118,9 @@ const CharView = (() => {
     if (T === 4) { top = (x) => 0.036 - 0.27 * Math.pow((x + 0.01) / 0.31, 2); thick = (u) => 0.004 + 0.034 * Math.pow(Math.sin(Math.PI * u), 1.5); x0 = -0.32; x1 = 0.31; D = 0.015; bev = 0.006; }
     if (T === 5) { thick = (u) => u < 0.5 ? 0.056 + 0.045 * Math.pow((0.5 - u) * 2, 2) : 0.006 + 0.05 * Math.sin(Math.PI * Math.pow(u, 0.9)); D = 0.028; bev = 0.008; }
     const u2x = (u) => x0 + (x1 - x0) * u, mid = (u, f = 0.5) => { const x = u2x(u); return [x, top(x) - thick(u) * f]; }, faceZ = D / 2 + bev;
-    if (T !== 6) part(head, extrudeHead(bladeShape(top, thick, x0, x1), D, bev), metal);
+    if (T !== 6) part(head, extrudeHead(bladeShape(top, thick, x0, x1), D, bev), headM);
     // socket, collars, rivets, langets
-    part(head, rbox(T ? 0.048 : 0.04, T ? 0.078 : 0.06, T ? 0.048 : 0.04, T ? 0.01 : 0.006), T === 6 ? toon(0x2b3038) : metal);
+    part(head, rbox(T ? 0.048 : 0.04, T ? 0.078 : 0.06, T ? 0.048 : 0.04, T ? 0.01 : 0.006), T === 6 ? toon(0x2b3038) : headM);
     if (T >= 1) { for (const y of T >= 2 ? [-0.048, 0.044] : [-0.048]) part(head, new THREE.TorusGeometry(0.024, 0.0055, 6, 18), T >= 3 ? bindM : metal, [0, y, 0], [Math.PI / 2, 0, 0]);
       for (const sz of [-1, 1]) for (const [rx, ry] of [[-0.012, 0.018], [0.012, 0.018], [-0.012, -0.018], [0.012, -0.018]]) part(head, ell(0.0045, 0.0045, 0.003, 8, 6), T >= 3 ? bindM : toon(0x4a4d52), [rx, ry, sz * 0.0245], null, null, { ink: false }); }
     if (T >= 3) for (const sz of [-1, 1]) part(head, rbox(0.026, 0.14, 0.005, 0.002), bindM, [0, -0.11, sz * 0.0195]);
@@ -10109,7 +10134,7 @@ const CharView = (() => {
       for (const [a, b, d] of [[0.06, 0.34, 1], [0.66, 0.94, -1]]) { L.push(Array.from({ length: 9 }, (_, i) => mid(a + (b - a) * i / 8, 0.5))); for (let k = 0; k < 3; k++) { const [x, y] = mid(a + (b - a) * (k + 0.5) / 3, 0.5); L.push(spiral(x, y + 0.009 * (k % 2 ? -1 : 1), 0.009, 1.2, d * (k % 2 ? -1 : 1), 12)); } }
       faceLines(head, L, fil, faceZ, 0.0012); part(head, ell(0.011, 0.011, 0.011, 10, 8), toon(0x9fd8ff, null, { emissive: 0x2a6a9a }), [0, 0.05, 0]); }
     // rune: carved glowing runes and inset gems
-    if (T === 5) { const rm = new THREE.MeshBasicMaterial({ map: runeTex(), color: G.glow, transparent: true, depthWrite: false });
+    if (T === 5) { const rm = new THREE.MeshBasicMaterial({ map: runeTex(), color: G.glow, transparent: true, depthWrite: false }); px.userData.runeM = rm;
       for (const side of [-1, 1]) { const sg = new THREE.Group(); sg.rotation.y = side < 0 ? Math.PI : 0; head.add(sg);
         for (const u of [0.18, 0.78]) { const [x, y] = mid(u, 0.5), sl = (top(x + 0.01) - top(x - 0.01)) / 0.02, m = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.026), rm); m.position.set(side * x, y, faceZ + 0.0008); m.rotation.z = Math.atan(side * sl); sg.add(m); } }
       const gem = new THREE.MeshBasicMaterial({ color: 0xc9a2ff }); for (const sz of [-1, 1]) { const g = new THREE.Mesh(new THREE.OctahedronGeometry(0.011, 0), gem); g.position.set(0, 0, sz * 0.026); g.scale.set(1, 1.3, 0.5); head.add(g); }
@@ -10130,6 +10155,7 @@ const CharView = (() => {
       if (lt) { spk.material.uniforms.uCol.value.multiplyScalar(1 + 0.07 * lt); px.userData.fl = 1 + 0.05 * lt; } // (tiers: +8 glints, +7% brightness, +5% twinkle speed each)
       if (lt === 10) { px.userData.pulse = 1; const tp = [], ts = []; for (let i = 0; i < 24; i++) { const [x, y] = mid(r(), r()); tp.push(x + (r() - 0.5) * 0.09, y + head.position.y + (r() - 0.5) * 0.1, (r() - 0.5) * 0.1); ts.push(r()); }
         const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(tp, 3)); tg.setAttribute('aSeed', new THREE.Float32BufferAttribute(ts, 1)); const tk = new THREE.Points(tg, SPARK_MAT(0x2fe8d8)); tk.frustumCulled = false; tk.renderOrder = 5; px.add(tk); px.userData.fx.push(tk); } }
+    if (tt) tierFx(px, head, key, tt, mid);
     if (G.onyx) { onyxDetail(px, head, top, thick); px.userData.fx.push(px.userData.flames);
       const thorn = toon(0x221d26), rg = new THREE.MeshBasicMaterial({ color: 0xff3a1c });
       for (let i = 0; i < 10; i++) { const u = 0.1 + i * 0.089, [x] = mid(u, 0), y = top(x), sl = (top(x + 0.01) - top(x - 0.01)) / 0.02; part(head, new THREE.ConeGeometry(0.0075, 0.03 - Math.abs(u - 0.5) * 0.02, 5), thorn, [x, y + 0.008, 0], [0, 0, Math.atan(sl) + (x < 0 ? 0.35 : -0.35)]); }
@@ -11087,16 +11113,19 @@ const CharView = (() => {
     const fill = new THREE.DirectionalLight(0xf0f0f4, 0.16); fill.position.set(-2.2, 1.2, 1.4); sc.add(fill); const rim = new THREE.DirectionalLight(0xffffff, 0.3); rim.position.set(-1.6, 2.2, -2.6); sc.add(rim);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(1.25, 64), new THREE.MeshBasicMaterial({ color: 0xdedbd5 })); disc.rotation.x = -Math.PI / 2; sc.add(disc);
     const sh = new THREE.Mesh(new THREE.CircleGeometry(1.0, 48), new THREE.ShadowMaterial({ opacity: 0.3, color: 0x2a2622 })); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.002; sh.receiveShadow = true; sc.add(sh); sc.userData.floor = [disc, sh]; return sc; }
+  // every texture first uploaded while the screen is open (the map is paused, so only this renderer uploads): three hooks a 'dispose' listener on first upload
+  function soloTrack(on) { const P = THREE.EventDispatcher.prototype; if (on) { if (SOLO.ael) return; const ael = SOLO.ael = P.addEventListener, set = SOLO.tex = new Set(); P.addEventListener = function (type, fn) { if (type === 'dispose' && this.isTexture) set.add(this); return ael.call(this, type, fn); }; return set; }
+    const set = SOLO.tex || new Set(); if (SOLO.ael) P.addEventListener = SOLO.ael; SOLO.ael = null; SOLO.tex = null; return set; }
   const pickSig = (pk) => pk ? pk.userData.grade + ':' + (pk.userData.onyxT || pk.userData.tier || 0) : '';
   function soloOn() { if (SOLO.on || !R) return; if (st.tree) { treeMode(false); setAnim('idle'); } if (st.home) { homeMode(false); setAnim('idle'); } if (st.ledge) { ledgeMode(false); setAnim('idle'); }
     SOLO.w = { rig, built, scene, FLOOR, st: Object.assign({}, st), an: Object.assign({}, an) }; SOLO.sc = soloStage(); scene = SOLO.sc; FLOOR = SOLO.sc.userData.floor; for (const o of [DEB.pts, DEB.puff]) if (o) scene.add(o);
     rig = null; built = {}; Object.assign(st, { explore: false, gnd: null, play: false, pg: null, anim: 'idle', yaw: 0, yawV: 0, tool: typeof S !== 'undefined' && S && S.toolMode === 'climb' ? 'climb' : 'pick' }); Object.assign(an, { eq: null, act: null, cl: null, tv: null });
-    SOLO.on = true; PV.g = null; if (wrap) wrap.classList.add('solo'); document.body.classList.add('cvSolo'); pvBind(); document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', b.dataset.anim === 'idle')); const cc = document.getElementById('charClimb'); if (cc) cc.classList.add('off'); }
-  function soloOff() { if (!SOLO.on) return; const w = SOLO.w, vis = st.visible, sex = rig && rig.sex; SOLO.on = false; PV.g = null; if (wrap) wrap.classList.remove('solo', 'pv'); document.body.classList.remove('cvSolo');
-    if (showPick) showPick = null; for (const o of [DEB.pts, DEB.puff]) if (o) { if (o.geometry) o.geometry.dispose(); w.scene.add(o); } dropObj(SOLO.sc); SOLO.sc = null; for (const c of [_headTex, _lidCache]) for (const k in c) if (c[k] && c[k].isTexture) c[k].dispose(); /* (the face / eye / lid maps live in the head shader's own uniforms, not on the material) */
+    SOLO.on = true; PV.g = null; soloTrack(true); if (wrap) wrap.classList.add('solo'); document.body.classList.add('cvSolo'); pvBind(); document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', b.dataset.anim === 'idle')); const cc = document.getElementById('charClimb'); if (cc) cc.classList.add('off'); }
+  function soloOff() { if (!SOLO.on) return; const w = SOLO.w, vis = st.visible, sex = rig && rig.sex; SOLO.on = false; const upl = soloTrack(false); PV.g = null; if (wrap) wrap.classList.remove('solo', 'pv'); document.body.classList.remove('cvSolo');
+    if (showPick) showPick = null; for (const o of [DEB.pts, DEB.puff]) if (o) { if (o.geometry) o.geometry.dispose(); w.scene.add(o); } dropObj(SOLO.sc); SOLO.sc = null; for (const c of [_headTex, _lidCache]) for (const k in c) if (c[k] && c[k].isTexture) c[k].dispose(); for (const t of upl) if (!(t.image && t.image.width <= 1)) t.dispose(); /* (the face / eye / lid maps live in the head shader's own uniforms, not on the material) */
     scene = w.scene; FLOOR = w.FLOOR; rig = w.rig; built = w.built; for (const k of Object.keys(st)) if (!(k in w.st)) delete st[k]; Object.assign(st, w.st, { visible: vis }); for (const k of Object.keys(an)) if (!(k in w.an)) delete an[k]; Object.assign(an, w.an); SOLO.w = null;
     if (!rig || typeof S === 'undefined' || !S) return; const b = rig.built; // real gear changed on the screen: her world self takes it
-    if (pickSig(b.pick) !== pickSig({ userData: { grade: GRADES[S.pickGrade] ? S.pickGrade : 'stick', tier: S.pickGrade === 'onyx' || S.pickGrade === 'lumen' ? pickTierNow(S.pickGrade) : 0 } })) setPick(S.pickGrade);
+    if (pickSig(b.pick) !== pickSig({ userData: { grade: GRADES[S.pickGrade] ? S.pickGrade : 'stick', tier: S.pickGrade === 'stick' ? 0 : pickTierNow(S.pickGrade) } })) setPick(S.pickGrade);
     if (b.climb && S.climbGrade && b.climb.R.userData.grade !== S.climbGrade) setClimb(S.climbGrade); if (b.tethers && b.tethers[0] && S.tetherGrade && b.tethers[0].grp.userData.grade !== S.tetherGrade) setTether(S.tetherGrade);
     if (sex && sex !== rig.sex && st.explore && typeof Explore !== 'undefined' && Explore.on) Explore.exit(); } // (a new body: the map puts her back in at the same spot)
   function pvIco(g, t) { const id = 'tool:pick_' + g; return (typeof itemIco === 'function' && itemIco(g === 'stick' ? id : id + '@t' + t)) || (typeof Craft !== 'undefined' && Craft.svgIco ? Craft.svgIco(id) : ''); }
