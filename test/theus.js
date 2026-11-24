@@ -192,7 +192,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // Ember Onyx flame ladder: the built pickaxe's crack / flame colour per tier; the one in her hand follows the tiered pickaxe she holds; icons tint
     { o.ember = []; for (let t = 0; t <= 10; t++) { const px = CharView.makePickaxe('onyx', t); o.ember.push([t, px.userData.tierCol, t ? '#' + px.userData.light.color.getHexString() : px.userData.tierCol, px.userData.fx.length]); px.traverse((q) => { if (q.geometry) q.geometry.dispose(); }); }
       setT('onyx', 5); Craft.equip(T('onyx')); const pk = () => CharView.rig && CharView.rig.built.pick; o.emberHand = [pk() && pk().userData.tierCol]; Craft.equip(P('bronze')); o.emberHand.push(pk() && pk().userData.tierCol);
-      o.emberIco = [Craft.onyxFilter(0), !!Craft.onyxFilter(5), /filter:hue-rotate/.test(Craft.bagHTML(false)) || /filter:hue-rotate/.test(Craft.tintIco('<i style="x"></i>', 5))]; setT('onyx', 0); }
+      o.emberIco = [itemIco('tool:pick_onyx@t0') === itemIco('tool:pick_onyx') ? '' : 'x', /items_onyx_tiers/.test(itemIco('tool:pick_onyx@t5')), !/hue-rotate/.test(Craft.bagHTML(false)) && typeof Craft.tintIco === 'undefined']; setT('onyx', 0); }
     return o; }));
   console.log('GEAR ' + JSON.stringify([R.cg0, R.cgShop, R.gold, R.exGold, R.cgMig, R.sk0, R.sk1, R.sk2, R.speeds, R.ember, R.emberHand, R.emberIco]));
   ok(R.cg0.join() === '1,1,iron,bronze,false,false,false,false', `climbing gear: everyone has Iron Climbing Picks + Bronze Climbing Tether (look iron / bronze); no smithing recipe, no mill job, no skill unlock for other grades`);
@@ -207,7 +207,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const HEX = ['#ff4a1c', '#ff6a1a', '#ff8f1f', '#ffb52e', '#ffe08a', '#c8f4ff', '#5fdcff', '#3aa0ff', '#3f5cff', '#7a4dff', '#b04bff'];
   const near = (a, b) => [1, 3, 5].every((i) => Math.abs(parseInt(a.substr(i, 2), 16) - parseInt(b.substr(i, 2), 16)) <= 1);
   ok(R.ember.every(([t, c, l]) => c === HEX[t] && near(l, HEX[t])) && R.ember[10][3] === R.ember[9][3] + 1, `Ember Onyx flame colour per tier matches the ladder (T0 ${R.ember[0][1]} ... T5 ${R.ember[5][1]} ... T10 ${R.ember[10][1]} + violet sparks) (got ember flames)`);
-  ok(R.emberHand.join() === '#c8f4ff,' && R.emberIco[0] === '' && R.emberIco[1] && R.emberIco[2], `in her hand: tiered Ember Onyx T5 -> ${R.emberHand[0]}; icons tinted per tier (T0 untouched)`);
+  ok(R.emberHand.join() === '#c8f4ff,' && R.emberIco[0] === '' && R.emberIco[1] && R.emberIco[2], `in her hand: tiered Ember Onyx T5 -> ${R.emberHand[0]}; painted tier icons, no tint (T0 = atlas cell)`);
   if (SHOT) {
     const shot = async (f, setup, sel, block) => { await p.evaluate(([setup, sel, block]) => { (0, eval)(setup)(); const e = sel && document.querySelector(sel); if (e) e.scrollIntoView({ block }); }, [setup.toString(), sel, block]); await p.waitForTimeout(900); await p.screenshot({ path: OUT + f }); };
     // the forge: tiered Bronze T5 -> T6 needs 640; 630 plain in the vault + 13 in the pack, one of them in her hand -> "642 (vault 630 · pack 12) / 640"
@@ -222,7 +222,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await shot('lumen_crystal_skin_shop.png', () => { Craft.st.menu = null; try { closeModalQuiet(); } catch (e) {} S.crystals = 420; Craft.skins().climb.steel = 1; Craft.st.tab = 'skins'; Craft.open('exchange'); }, '#modalBody h2', 'start');
     await shot('exchange_gold_coins.png', () => { Craft.st.tab = 'skins'; try { closeModalQuiet(); } catch (e) {} CityMap.exchangeCard(); }, '#modalBody #thEx', 'end');
     // the Ember Onyx icon ladder T0..T10 (backpack slot look with the T badge)
-    await shot('ember_onyx_tier_icons.png', () => { try { closeModalQuiet(); } catch (e) {} const ic = itemIco('tool:pick_onyx'); let h = ''; for (let t = 0; t <= 10; t++) h += `<div class="cxs full">${Craft.tintIco(ic, t)}${t ? `<b class="cxtb">T${t}</b>` : '<b class="cxtb">T0</b>'}</div>`;
+    await shot('ember_onyx_tier_icons.png', () => { try { closeModalQuiet(); } catch (e) {} const ic = itemIco('tool:pick_onyx'); let h = ''; for (let t = 0; t <= 10; t++) h += `<div class="cxs full">${itemIco('tool:pick_onyx@t' + t)}${t ? `<b class="cxtb">T${t}</b>` : '<b class="cxtb">T0</b>'}</div>`;
       openModal(`<div class="cxp cxgrid kKit"><div class="kPanel kLeather"><div class="row between kHead"><h2>Ember Onyx tiers</h2></div><div class="cxg cxg-bag">${h}</div><div class="kFoot">T0 plain · T1-T10 tiered (Theus)</div></div></div>`, 'cx-bag'); }, '#modalBody .cxg', 'center');
     // in her hand (Character tab): T0, T5, T10, stitched side by side
     await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('char'); }); await p.waitForTimeout(2500);

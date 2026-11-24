@@ -73,9 +73,10 @@ const ICONS = {
   }
 };
 function itemIco(id) {
-  // (Art's Lumenite tier icons) tool:pick_lumen@t1..@t10 live in a small 10x1 sheet, fetched by the browser only when one is first shown; T0 stays in the atlas
-  const lt = /^tool:pick_lumen@t(\d+)$/.exec(id);
-  if (lt) { const t = Math.max(0, Math.min(10, +lt[1])); if (t) return '<i class="cxsv cxico cxlt" style="--ix:' + (t - 1) + ';--iy:0" aria-hidden="true"></i>'; id = 'tool:pick_lumen'; }
+  // (Art's painted pickaxe tier icons) tool:pick_<grade>@t1..@t10: one 10x1 sheet per grade (assets/ui/icons/items_<grade>_tiers.webp), a CSS background, so the
+  // browser fetches a grade's sheet only the first time one of its tiered icons is shown; @t0 is the pick's own atlas cell
+  const pt = /^tool:pick_(\w+)@t(\d+)$/.exec(id);
+  if (pt) { const t = Math.max(0, Math.min(10, +pt[2])); id = 'tool:pick_' + pt[1]; if (t && ICONS.map[id] != null) return '<i class="cxsv cxico cxpt" style="--ix:' + (t - 1) + ';--iy:0;background-image:url(assets/ui/icons/items_' + pt[1] + '_tiers.webp)" aria-hidden="true"></i>'; }
   const i = ICONS.map[id];
   if (i == null) return null;
   const ix = i % ICONS.cols, iy = (i / ICONS.cols) | 0;
