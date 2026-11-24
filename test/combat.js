@@ -6,7 +6,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
-  await p.goto(URL + '?t=' + Date.now(), { timeout: 90000, waitUntil: 'commit' }); await p.waitForFunction(() => typeof Combat !== 'undefined' && typeof S !== 'undefined', null, { timeout: 120000 });
+  await p.goto(URL + '?t=' + Date.now(), { timeout: 90000, waitUntil: 'commit' }); await p.waitForFunction(() => typeof Combat !== 'undefined' && typeof S !== 'undefined' && S && S.combat, null, { timeout: 120000 });
   const R = await p.evaluate(() => {
     const C = Combat, o = {}, near = (a, b, e = 1e-9) => Math.abs(a - b) <= e;
     // tables
