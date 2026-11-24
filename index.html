@@ -900,7 +900,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='2f0d86fe';
+<script>window.HD_BUILD='28946eb4';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -922,8 +922,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 2f0d86fe</div>
-<script src="assets/vendor/three.min.js?v=2f0d86fe"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 28946eb4</div>
+<script src="assets/vendor/three.min.js?v=28946eb4"></script>
 <script>
 'use strict';
 
@@ -10453,7 +10453,7 @@ const CharView = (() => {
     const Z = P.map(([w, f, kind]) => { if (kind === 1) return 0; const h = lens(w, f)[0]; return h * (1 + (r() - 0.5) * (kind === 2 ? o.jit * 0.4 : o.jit)); });
     const tris = swTri(P).filter(([a, b, c]) => { const [A, B, C] = [P[a], P[b], P[c]], ok = (x, y) => inside(x, y); return ok((A[0] + B[0] + C[0]) / 3, (A[1] + B[1] + C[1]) / 3) && ok((A[0] + B[0]) / 2 * 0.98 + C[0] * 0.02, (A[1] + B[1]) / 2 * 0.98 + C[1] * 0.02) && ok((B[0] + C[0]) / 2 * 0.98 + A[0] * 0.02, (B[1] + C[1]) / 2 * 0.98 + A[1] * 0.02) && ok((C[0] + A[0]) / 2 * 0.98 + B[0] * 0.02, (C[1] + A[1]) / 2 * 0.98 + B[1] * 0.02); });
     const pos = [], uv = [], ln = [], K = o.k; for (const [a0, b0, c0] of tris) { const [A, B, C] = [P[a0], P[b0], P[c0]], ccw = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]) > 0;
-      for (const sd of [1, -1]) { const ord = (sd > 0) === ccw ? [a0, b0, c0] : [a0, c0, b0]; for (const i of ord) { const [w, f] = P[i], L = lens(w, f); pos.push(w * K, o.y0 + f * K, sd * Z[i] * K); uv.push(f / 100, 1 - (224 + w / o.span * 448) / 1024); /* (the face spans the atlas' full width: Art's whole painting, tip at u = 1) */ ln.push(P[i][2] === 1 ? Math.sign(L[1]) || 1 : L[1], f / 100); } } }
+      for (const sd of [1, -1]) { const ord = (sd > 0) === ccw ? [a0, b0, c0] : [a0, c0, b0]; for (const i of ord) { const [w, f] = P[i], L = lens(w, f); pos.push(w * K, o.y0 + f * K, sd * Z[i] * K); const wu = o.remap ? o.remap[0] + (P[i][2] === 1 ? Math.sign(L[1]) || 1 : L[1]) * o.remap[1] : w; uv.push(f / 100, 1 - (224 + wu / o.span * 448) / 1024); /* (the face spans the atlas' full width: Art's whole painting, tip at u = 1) */ ln.push(P[i][2] === 1 ? Math.sign(L[1]) || 1 : L[1], f / 100); } } }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setAttribute('aL', new THREE.Float32BufferAttribute(ln, 2)); g.computeVertexNormals();
     g.userData.hAt = (w, f) => lens(w, f)[0]; return g; }
   // a soft additive glow ribbon around a blade outline, lying in the blade plane (Lumenite: the light spread along every edge, not a blob in the middle)
@@ -10476,11 +10476,20 @@ const CharView = (() => {
     m.customProgramCacheKey = () => 'swordCrys'; return m; }
   // Ember Onyx outline, hand-drawn from Art's front ortho (Art's units: blade 100 = 1.25x the standard blade). Spine on -w. Body knapped along both edges; from ~62
   // up it splits into three: the long spine tooth (to 100), the shorter middle tooth (to ~95) and the short serrated edge strand (to ~78), as in the callout's front view
-  const ONYX_POLY = [[-3.85, 0], [5.3, 0], [5.45, 6], [5.25, 12], [5.5, 19], [5.4, 26], [5.65, 33], [5.55, 40], [5.8, 47], [5.7, 53], [6.2, 58], [6.6, 61.5], [7.05, 64.5],
-    [7.25, 68.5], [7.0, 71.5], [6.3, 73.5], [5.3, 75.5], [4.6, 78.5],
-    [4.25, 83.5], [3.7, 89.5], [2.85, 95.3], [1.95, 90], [1.1, 84], [0.45, 78], [0.0, 73.5], [-0.45, 69.8],
-    [-1.15, 72.5], [-1.5, 77.5], [-1.85, 84], [-2.35, 91], [-2.75, 96], [-3.05, 100], [-3.4, 95], [-3.55, 90], [-3.75, 84], [-3.65, 77], [-3.9, 70], [-3.8, 62],
-    [-3.95, 54], [-3.85, 46], [-4.0, 38], [-3.9, 30], [-4.0, 22], [-3.9, 14], [-3.95, 7]];
+  /* (Dominic t621u, his sketch hd-sword-notes/onyx_blade_ref_t621.jpg) the Ember Onyx blade: a curved falchion / scimitar - narrow ricasso with a notch each side just
+     above the guard, widening to the upper third, a long convex back sweeping up into one hooked point (top right, edge side), a spur + notch on the back a third
+     down from the tip. Traced from the sketch (13.3 px / unit, blade 100 units, w + = edge side). ONYX_BAND = the inner line of the bevel band along the concave
+     cutting edge (it glows in the tier colour); ONYX_GASH = the slash marks, the triangular chip by the spur and the notches (t622u: they glow the same colour). */
+  const ONYX_POLY = [[-4.29, 0], [4.51, 0], [3.76, 3.01], [3.01, 6.02], [2.86, 12.03], [3.23, 19.55], [3.98, 24.81], [4.74, 27.44], [5.86, 29.62], [3.98, 30.83], [3.01, 32.33],
+    [2.63, 36.09], [2.56, 42.11], [2.71, 49.62], [3.23, 57.14], [4.21, 64.66], [5.86, 72.18], [8.5, 79.7], [11.88, 87.22], [15.64, 92.48], [19.4, 96.24], [23.53, 100],
+    [19.4, 98.5], [15.64, 97.37], [11.88, 95.86], [8.87, 94.36], [5.11, 91.35], [0.6, 87.22], [-2.41, 83.46], [-4.66, 79.7], [-7.29, 75.19], [-9.17, 70.68], [-10.83, 66.17],
+    [-12.18, 62.41], [-13.31, 58.65], [-14.59, 55.49], [-13.31, 54.51], [-12.18, 52.78], [-11.28, 53.98], [-10.53, 52.63], [-9.92, 50.38], [-8.42, 47.37], [-6.17, 42.11],
+    [-4.66, 37.59], [-3.76, 33.83], [-1.8, 31.95], [-3.01, 31.2], [-3.16, 27.07], [-3.46, 19.55], [-3.68, 12.03], [-4.06, 4.51]];
+  const ONYX_BAND = [[0.23, 0], [-0.53, 4.51], [-0.9, 12.03], [-0.3, 19.55], [0.23, 27.07], [-0.53, 34.59], [-1.65, 42.11], [-3.01, 49.62], [-2.78, 57.14], [-2.03, 64.66], [-0.53, 72.18],
+    [2.11, 79.7], [6.62, 87.22], [11.88, 91.73], [17.89, 95.49], [22.41, 99.25]];
+  const ONYX_GASH = { lines: [[[-2.56, 81.8], [-1.05, 78.95], [0.23, 76.32]], [[0.75, 75.56], [2.11, 72.18], [3.46, 68.27]], [[-6.17, 82.71], [-4.96, 83.46]],
+    [[-14.2, 55.3], [-13.31, 54.51], [-12.18, 53.1], [-11.28, 53.7], [-10.7, 52.8]], [[-3.5, 33.6], [-2.1, 31.95], [-2.9, 31.4]], [[4.6, 27.6], [5.5, 29.55], [4.1, 30.6]]],
+    tri: [[-5.41, 63.16], [-8.57, 57.14], [-6.77, 51.28]] };
   const ONYX_GUARD = [[-5.3, 0], [5.3, 0], [5.5, 0.35], [10.3, 0.55], [11.9, 2.55], [11.5, 3.0], [5.5, 2.95], [5.3, 3.4], [-5.3, 3.4], [-5.5, 2.95], [-11.5, 3.0], [-11.9, 2.55], [-10.3, 0.55], [-5.5, 0.35]];
   /* (t604u-t606u) Ember Onyx, rebuilt by hand to Art's callouts. Every Art dimension is in the Onyx sheet's own units (its blade = 100 = 1.25 standard), so the whole
      sword scales by 1.25 - the old build scaled only the blade's length, which made the blade skinny and the guard / grip / pommel undersized. Blade: the hand outline
@@ -10488,9 +10497,24 @@ const CharView = (() => {
      projected on. Grip: black wrap (Art's tile) with six raised gold rings and gold collars. Pommel: 8-sided faceted obsidian between two gold rings. Torch jet 9.4. */
   function makeOnyxSword(sw, t) { const d = SW_DET.onyx, S1 = 1.25, K = SW_K * S1, Y = (u) => SW_GB + u * K, tx = swTex('onyx'), r = prng(61), em = new THREE.Color(ONYX_TIER_HEX[t]), tn = swTint('onyx', t);
     const base = { M: new THREE.Matrix3().multiplyScalar(1.45), off: V(0.015, 0.012, 0.014), em, spec: new THREE.Color(0x4a4250), shin: 35, s0: 0.9 }, mat = swMat(tx, base), matF = swMat(tx, Object.assign({ flat: 1 }, base));
-    const gold = new THREE.MeshPhongMaterial({ color: 0x8a5530, specular: 0xd89a60, shininess: 55 }), y0 = Y(3.0); sw.userData.blade = 100 * K; sw.userData.y0 = y0; sw.userData.bw = 11.2 * K;
+    const gold = new THREE.MeshPhongMaterial({ color: 0x8a5530, specular: 0xd89a60, shininess: 55 }), y0 = Y(3.0); sw.userData.blade = 100 * K; sw.userData.y0 = y0; sw.userData.bw = 15.5 * K; sw.userData.shape = ONYX_POLY; sw.userData.shK = K;
     const ink = (m) => { m.add(new THREE.Mesh(m.geometry, OUT_SW)); return m; }, mesh = (geo, m) => part(sw, geo, m, null, null, null, { ink: false });
-    const bg = swFacet(ONYX_POLY, { T: [3.4, 2.9, 2.11], gs: 2.6, bs: 1.25, rs: 1.5, jit: 0.25, seed: 23, k: K, y0, span: d.span, pw: 0.55, cap: 0.8 }); mesh(bg, matF);
+    const bg = swFacet(ONYX_POLY, { T: [3.4, 2.9, 2.11], gs: 2.6, bs: 1.25, rs: 1.5, jit: 0.25, seed: 23, k: K, y0, span: d.span, pw: 0.55, cap: 0.8, remap: [1.2, 5.2] }); mesh(bg, matF); // (t621u: Art's stone painting laid across each slice, so the wider curve never samples past it)
+    /* (t621u / t622u) the cutting-edge bevel band and the gashes / chip / notches glow in the tier colour (ONYX_TIER_HEX[t]): vertex-coloured strips lying on both
+       knapped faces (z from the lens height, a hair proud of the facets), hot at the edge, darker toward the band's inner line; one mesh, one draw call */
+    const hz = (w, f) => (bg.userData.hAt(w, f) * 1.14 + 0.08) * K, eC = new THREE.Color(ONYX_TIER_HEX[t]), eH = eC.clone().lerp(new THREE.Color(t === 10 ? 0xd8e8ff : 0xffffff), 0.22), eD = eC.clone().multiplyScalar(0.22); const eHot = eH.clone().lerp(new THREE.Color(1, 1, 0.9), 0.35);
+    const gp = [], gc = [], gi = [], gv = (w, f, sd, c) => { gp.push(w * K, y0 + f * K, sd * hz(w, f)); gc.push(c.r, c.g, c.b); return gp.length / 3 - 1; };
+    const bandW = (f) => { for (let i = 1; i < ONYX_BAND.length; i++) { const [w0, f0] = ONYX_BAND[i - 1], [w1, f1] = ONYX_BAND[i]; if (f <= f1) return w0 + (w1 - w0) * (f - f0) / (f1 - f0); } return ONYX_BAND[ONYX_BAND.length - 1][0]; };
+    for (const sd of [-1, 1]) { const NC = 4, rows = []; for (let f = 0.4; f < 99.7; f += f > 90 ? 0.6 : 1.4) { const R0 = swRuns(ONYX_POLY, f); if (!R0.length) continue; const we = R0[R0.length - 1][1] - 0.04, wi = Math.min(bandW(f), we - 0.3), row = [];
+        for (let j = 0; j <= NC; j++) { const u = j / NC; row.push(gv(wi + (we - wi) * u, f, sd, eD.clone().lerp(eH, Math.pow(u, 1.6)))); } rows.push(row); }
+      for (let i = 1; i < rows.length; i++) for (let j = 0; j < NC; j++) gi.push(rows[i - 1][j], rows[i - 1][j + 1], rows[i][j + 1], rows[i - 1][j], rows[i][j + 1], rows[i][j]);
+      for (const L of ONYX_GASH.lines) { const ids = []; for (let i = 0; i < L.length; i++) { const [w, f] = L[i], [pw, pf] = L[Math.max(0, i - 1)], [nw, nf] = L[Math.min(L.length - 1, i + 1)], tl = Math.hypot(nw - pw, nf - pf) || 1, nx = -(nf - pf) / tl * 0.5, ny = (nw - pw) / tl * 0.5;
+          ids.push([gv(w + nx, f + ny, sd, eC), gv(w, f, sd, eHot), gv(w - nx, f - ny, sd, eC)]); }
+        for (let i = 1; i < ids.length; i++) for (let j = 0; j < 2; j++) gi.push(ids[i - 1][j], ids[i - 1][j + 1], ids[i][j + 1], ids[i - 1][j], ids[i][j + 1], ids[i][j]); }
+      { const T = ONYX_GASH.tri, cw = (T[0][0] + T[1][0] + T[2][0]) / 3, cf = (T[0][1] + T[1][1] + T[2][1]) / 3, c0 = gv(cw, cf, sd, eD.clone().lerp(eH, 0.35)), cr = T.map(([w, f]) => gv(w, f, sd, eH));
+        for (let i = 0; i < 3; i++) gi.push(c0, cr[i], cr[(i + 1) % 3]); } }
+    { const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3)); eg.setAttribute('color', new THREE.Float32BufferAttribute(gc, 3)); eg.setIndex(gi);
+      const em2 = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }); em2.userData.tinted = 1; const eM = new THREE.Mesh(eg, em2); eM.name = 'onyxEdge'; sw.add(eM); sw.userData.edge = eM; }
     const gd = 4.5 * K, bev = 0.45 * K, gg = new THREE.ExtrudeGeometry(new THREE.Shape(ONYX_GUARD.map(([x, y]) => new THREE.Vector2(x * K, Y(y)))), { depth: gd - 2 * bev, bevelEnabled: true, bevelThickness: bev, bevelSize: bev * 0.7, bevelOffset: -bev * 0.7, bevelSegments: 1, curveSegments: 1 });
     gg.translate(0, 0, -(gd - 2 * bev) / 2); { const P = gg.attributes.position, U = gg.attributes.uv; for (let i = 0; i < P.count; i++) { const x = P.getX(i) / K, y = (P.getY(i) - SW_GB) / K; P.setZ(i, P.getZ(i) * (1 - 0.8 * Math.max(0, Math.min(1, (Math.abs(x) - 4) / 7.9)))); U.setXY(i, ...swUvG(d.gUV[0] + x / d.gUV[2], d.gUV[1] - y * 0.97 / d.gUV[2])); } }
     gg.computeVertexNormals(); ink(mesh(gg, matF));
@@ -10503,15 +10527,18 @@ const CharView = (() => {
     L([[-26.5, 3.6], [-26.7, 3.75], [-27.5, 3.75], [-27.7, 3.2], [-28.1, 2.4]], gold, { seg: 20, cap: 1 });
     // flame licks off the ember cracks on both faces (sitting on the knapped surface), a blowtorch jet out of the pommel; onyxTint moves cracks / flames / torch with the tier
     const sites = [], torchM = new THREE.MeshBasicMaterial({ color: 0xff8a2a }), torchC = new THREE.MeshBasicMaterial({ color: 0xffd08a }), yb = Y(-28.1), tl = 9.4 * K;
-    for (const [f, x] of d.sites) for (const z of [-1, 1]) sites.push([V(x * K, y0 + f * K, z * (bg.userData.hAt(x, f) + 0.25) * K), V(0, 0, z)]);
+    // (t621u) ember tongues re-seated on the new blade: along the glowing edge band, on the gashes and the chip, both faces
+    for (let f = 3; f < 97; f += 3.2) { const R0 = swRuns(ONYX_POLY, f), we = R0[R0.length - 1][1], wm = (Math.min(bandW(f), we - 0.3) + we) / 2; for (const z of [-1, 1]) sites.push([V(wm * K, y0 + f * K, z * (bg.userData.hAt(wm, f) + 0.25) * K), V(0, 0, z)]); }
+    for (const [w, f] of ONYX_GASH.lines.flat().concat(ONYX_GASH.tri)) for (const z of [-1, 1]) sites.push([V(w * K, y0 + f * K, z * (bg.userData.hAt(w, f) + 0.25) * K), V(0, 0, z)]);
     part(sw, new THREE.ConeGeometry(0.0095, tl, 8), torchM, [0, yb - tl / 2, 0], [Math.PI, 0, 0], null, { ink: false, shadow: false }); part(sw, new THREE.ConeGeometry(0.0047, tl * 0.6, 6), torchC, [0, yb - tl * 0.3, 0], [Math.PI, 0, 0], null, { ink: false, shadow: false });
     // (t612u) the pickaxe's energy: its two-per-site ember tongues at the same size (uBig 1.3), plus its big curling flame licks (flameRibbons, the same shader)
     // rooted along the spine edge, up the ember seam between the teeth and off the edge strand, tallest low on the blade like the pick's core licks; a warm glow at the guard
     { const s0 = sites.length; for (let i = 0; i < s0; i++) { const [p, o] = sites[i]; sites.push([p.clone().add(V((r() - 0.5) * 0.012, 0.006, (r() - 0.5) * 0.008)), o]); } }
     const ts = []; for (let i = 0; i < 6; i++) ts.push([V((r() - 0.5) * 0.006, yb - tl * (0.6 + r() * 0.4), (r() - 0.5) * 0.006), V(0, -1, 0)]);
     const licks = [], at = (w, f) => V(w * K, y0 + f * K, 0);
-    for (const [f, H, Wd] of [[8, 0.11, 0.03], [27, 0.09, 0.025], [46, 0.075, 0.021], [65, 0.055, 0.016], [83, 0.04, 0.012]]) licks.push([at(-3.9, f), V(-0.55, 1, 0).normalize(), H, Wd]);
-    for (const [w, f, H, Wd] of [[0.6, 30, 0.065, 0.019], [-0.4, 66, 0.05, 0.015], [6.2, 55, 0.04, 0.013]]) for (const z of [-1, 1]) licks.push([at(w, f).setZ(z * (bg.userData.hAt(w, f) + 0.3) * K), V(0, 1, z * 0.5).normalize(), H, Wd]);
+    // (t621u) the same licks, re-seated: along the curved back (its outer line at each height), up the glowing edge band and off the gashes
+    for (const [f, H, Wd] of [[8, 0.11, 0.03], [27, 0.09, 0.025], [46, 0.075, 0.021], [65, 0.055, 0.016], [83, 0.04, 0.012]]) licks.push([at(swRuns(ONYX_POLY, f)[0][0] + 0.1, f), V(-0.55, 1, 0).normalize(), H, Wd]);
+    for (const [w, f, H, Wd] of [[1.6, 30, 0.065, 0.019], [0.6, 66, 0.05, 0.015], [-0.6, 78, 0.04, 0.013]]) for (const z of [-1, 1]) licks.push([at(w, f).setZ(z * (bg.userData.hAt(w, f) + 0.3) * K), V(0, 1, z * 0.5).normalize(), H, Wd]);
     for (const z of [-1, 1]) licks.push([V(0, y0 + 2 * K, z * 0.012), V(0, 1, z * 0.3).normalize(), 0.11, 0.03]);
     // (t613u) Dominic: about half that flame size down the blade - the licks' height + width and the ember tongues (uBig 1.3 -> 0.65) halved, same licking motion.
     // The pommel's torch tongues are their own Points (sw.userData.hiltFx) so they keep burning while the sword is sheathed (t616u)
@@ -10526,8 +10553,15 @@ const CharView = (() => {
   /* (Dominic t615u) on her back, not the pack: both scabbards lie flat against her back (its surface is at z ~-0.12 to -0.13 in chest space), parallel, 0.1 apart, leaning
      a touch back toward the bottom to clear her hips; the pack moves back off her by PACK_PUSH while any sheath is on so they sit between her and the pack */
   const SHEATH_AT = { R: { p: [0.07, 0.2, -0.153], rz: -0.45, rx: 0.035 }, L: { p: [0.16, 0.156, -0.153], rz: -0.45, rx: 0.035 } }, PACK_PUSH = 0.05; // chest space: +x her left, +z forward
-  function makeSheath(sw) { const u = sw.userData, [bc, fc] = SH_FIT[u.grade] || SH_FIT.bronze, g = new THREE.Group(); g.name = 'sheath'; g.userData.fx = [];
+  function makeSheath(sw, flip) { const u = sw.userData, [bc, fc] = SH_FIT[u.grade] || SH_FIT.bronze, g = new THREE.Group(); g.name = 'sheath'; g.userData.fx = []; g.userData.flip = !!(flip && u.shape);
     const L = u.blade + 0.012, w = u.bw + 0.014, th = 0.026, body = new THREE.MeshPhongMaterial({ color: bc, specular: 0x2a2420, shininess: 18 }), fit = new THREE.MeshPhongMaterial({ color: fc, specular: 0xfff0d8, shininess: 60 }), strap = new THREE.MeshPhongMaterial({ color: 0x2e2018, specular: 0x201810, shininess: 10 });
+    /* (t621u) a curved blade (Ember Onyx) gets a scabbard cut to its own outline: the blade's slice-by-slice hull padded 1.3 units, extruded to the same depth, a throat,
+       two straps and a chape at the hooked point, all in the same leather / metal; flip = the hook points to her right (the right-hand sheath, so it clears the left one) */
+    if (u.shape) { const K = u.shK, sx = g.userData.flip ? -1 : 1, pad = 1.3, lo = [], hi = []; for (let f = 0; f <= 100; f += f >= 92 ? 2 : 4) { const R0 = swRuns(u.shape, Math.min(99.9, Math.max(0.1, f))); if (!R0.length) continue; lo.push([R0[0][0] - pad, f]); hi.push([R0[R0.length - 1][1] + pad, f]); }
+      const tip = u.shape.reduce((a, q) => (q[1] > a[1] ? q : a)), pts = lo.concat([[tip[0] + pad * 0.7, 100 + pad]], hi.reverse()).map(([x, f]) => new THREE.Vector2(sx * x * K, -f * K)); if (sx < 0) pts.reverse();
+      const bv = 0.003, eg = new THREE.ExtrudeGeometry(new THREE.Shape(pts), { depth: th - 2 * bv, bevelEnabled: true, bevelThickness: bv, bevelSize: bv, bevelSegments: 1, curveSegments: 1 }); eg.translate(0, 0, -(th - 2 * bv) / 2); part(g, eg, body, null, null, null, { ink: true }); g.userData.hull = pts.map((v) => [v.x, v.y]); g.userData.th = th;
+      const band = (f, h, m, k) => { const R0 = swRuns(u.shape, f), a = R0[0][0] - pad - 0.4, b = R0[R0.length - 1][1] + pad + 0.4; part(g, new THREE.BoxGeometry((b - a) * K, h, th * k), m, [sx * (a + b) / 2 * K, -f * K - h / 2 + (f ? 0 : 0.0), 0]); };
+      band(0.5, 0.03, fit, 1.14); band(30, 0.02, strap, 1.2); band(62, 0.02, strap, 1.2); part(g, new THREE.SphereGeometry(0.011, 8, 6), fit, [sx * tip[0] * K, -(100 + pad * 0.6) * K, 0], null, [1, 1, 1.3]); return g; }
     const cyl = (r0, r1, h, y, m, k = 1) => part(g, new THREE.CylinderGeometry(r0, r1, h, 12), m, [0, y, 0], null, [w, 1, th * k]);
     cyl(0.5, 0.33, L, -L / 2, body); cyl(0.54, 0.53, 0.03, -0.015, fit, 1.14); cyl(0.5, 0.49, 0.02, -L * 0.3, strap, 1.2); cyl(0.46, 0.45, 0.02, -L * 0.62, strap, 1.2); cyl(0.35, 0.12, 0.055, -L - 0.012, fit, 1.05);
     return g; }
@@ -11651,8 +11685,8 @@ const CharView = (() => {
   // (t607u) each equipped sword gets its sheath on her back; sheathed (SWG.sh) it rides in it, hilt up over the left shoulder; drawn, the sheath stays (empty)
   function swHolster() { if (!rig) return; const b = rig.built; b.sheaths = b.sheaths || { R: null, L: null }; holsterPack(b);
     for (const k of ['R', 'L']) { const sw = b.swords && b.swords[k]; let sh = b.sheaths[k]; if (sh && (!sw || sh.userData.sig !== sw.userData.sig)) { if (sh.parent) sh.parent.remove(sh); dropObj(sh); sh = b.sheaths[k] = null; }
-      if (sw && !sh) { sh = makeSheath(sw); sh.userData.sig = sw.userData.sig; const A = SHEATH_AT[k]; sh.position.set(...A.p); sh.rotation.set(A.rx, 0, A.rz); rig.B.chest.add(sh); b.sheaths[k] = sh; }
-      if (!sw) continue; const hf = sw.userData.hiltFx || []; sw.traverse((o) => { if ((o.isPoints || o === sw.userData.glow || o === sw.userData.ribbons) && !hf.includes(o)) o.visible = !SWG.sh; }); /* (blade flames / glow / sparks stay in the scabbard; the hilt's own effects - the Onyx torch tongues (t616u), crystal / gem / rune glows (meshes) - keep going) */ if (SWG.sh) { if (sw.parent !== sh) sh.add(sw); sw.position.set(0, sw.userData.y0, 0); sw.quaternion.setFromEuler(new THREE.Euler(Math.PI, 0, 0)); sw.visible = true; }
+      if (sw && !sh) { sh = makeSheath(sw, k === 'R'); sh.userData.sig = sw.userData.sig; const A = SHEATH_AT[k]; sh.position.set(...A.p); sh.rotation.set(A.rx, 0, A.rz); rig.B.chest.add(sh); b.sheaths[k] = sh; }
+      if (!sw) continue; const hf = sw.userData.hiltFx || []; sw.traverse((o) => { if ((o.isPoints || o === sw.userData.glow || o === sw.userData.ribbons) && !hf.includes(o)) o.visible = !SWG.sh; }); /* (blade flames / glow / sparks stay in the scabbard; the hilt's own effects - the Onyx torch tongues (t616u), crystal / gem / rune glows (meshes) - keep going) */ if (SWG.sh) { if (sw.parent !== sh) sh.add(sw); sw.position.set(0, sw.userData.y0, 0); sw.quaternion.setFromEuler(new THREE.Euler(Math.PI, sh.userData.flip ? Math.PI : 0, 0)); sw.visible = true; }
       else if (sw.parent !== rig.B['hd' + k]) { rig.B['hd' + k].add(sw); sw.position.copy(sw.userData.hp[0]); sw.quaternion.copy(sw.userData.hp[1]); sw.visible = false; } } }
   function holsterPack(b) { const pk = b.pack; if (!pk) return; if (pk.userData.z0 == null) pk.userData.z0 = pk.position.z; pk.position.z = pk.userData.z0 - (b.swords && (b.swords.R || b.swords.L) ? PACK_PUSH : 0); }
   function swSheathe(on) { if (!SOLO.on || !rig || !(SWG.R || SWG.L)) return; SWG.sh = !!on; if (on) { SWG.at = null; SWG.q = 0; } swHolster(); pvDraw(); }
