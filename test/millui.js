@@ -13,7 +13,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.seed = { bronze: Craft.get('bag', 'tether:bronze'), mithril: Craft.get('bag', 'tether:mithril'), vaultIron: Craft.get('vault', 'tether:iron') };
     o.skill = { name: Skills.NAMES.tethercraft, lv: Skills.level('tethercraft'), levels: Skills.TETHER_LEVELS.join(','), icon: Skills.SKILL_ICONS.tethercraft };
     o.anvil = { tlink: Craft.SMITH.filter((r) => /^tool:tlink_/.test(r.out)).length, life: Craft.SMITH.some((r) => /lifeline|winch/.test(r.out) || r.tool === 'lifeline') };
-    Craft.st.acat = 'pick'; Craft.open('anvil'); o.anvil.rows = [...document.querySelectorAll('#modalBody .cxr.rec')].map((e) => e.dataset.out); o.anvil.sub = document.querySelectorAll('#modalBody [data-cx=atool]').length; closeModalQuiet();
+    Craft.st.acat = 'pick'; Craft.open('anvil'); o.anvil.rows = [...document.querySelectorAll('#modalBody .smGrid .smC')].map((e) => e.dataset.out); o.anvil.sub = document.querySelectorAll('#modalBody [data-cx=atool]').length; closeModalQuiet();
     // queue math: 20 Steel spools at Lv 42 = 20 x 35.0 s
     S.mill = null; M.st(); S.skills.tethercraft = X(42); Craft.add('bag', 'ingot:steel', 80); o.q = M.queue('braid', 'steel', 20); o.unit = M.unitLen('braid', 'steel'); o.left = M.queueLeft(); o.steelLeft = Craft.have('ingot:steel');
     // refund on cancel: 3 spools done of 20 -> 17 x 4 ingots back
