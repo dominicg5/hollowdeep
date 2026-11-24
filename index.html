@@ -900,7 +900,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='f66428cb';
+<script>window.HD_BUILD='2f0d86fe';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -922,8 +922,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build f66428cb</div>
-<script src="assets/vendor/three.min.js?v=f66428cb"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 2f0d86fe</div>
+<script src="assets/vendor/three.min.js?v=2f0d86fe"></script>
 <script>
 'use strict';
 
@@ -10344,9 +10344,9 @@ const CharView = (() => {
   const OUT_SW = OUT.clone(); OUT_SW.uniforms = { uW: { value: 0.0022 }, uC: OUT.uniforms.uC };
   // one Phong material per sword: atlas colour x tier recolour (mask), atlas normal (height baked), glow from the colour alpha
   function swMat(tx, o) { const m = new THREE.MeshPhongMaterial({ map: tx.c, normalMap: tx.n, specular: o.spec, shininess: o.shin, emissive: o.emis || 0, flatShading: !!o.flat });
-    const U = m.userData.U = { uM: { value: o.M || new THREE.Matrix3() }, uOff: { value: o.off || V(0, 0, 0) }, uEm: { value: o.em || new THREE.Color(0) }, uS0: { value: o.s0 ?? 0.3 }, uVein: { value: o.vein || null }, uVO: { value: o.vein ? 1 : 0 }, uFill: { value: o.fill || new THREE.Color(0) }, uFO: { value: o.fill ? 1 : 0 }, uRune: { value: tx.r || null }, uRO: { value: tx.r ? 1 : 0 }, uRc: { value: o.rec || new THREE.Color(0) }, uRK: { value: o.rec ? 1 : 0 } };
+    const U = m.userData.U = { uM: { value: o.M || new THREE.Matrix3() }, uOff: { value: o.off || V(0, 0, 0) }, uEm: { value: o.em || new THREE.Color(0) }, uS0: { value: o.s0 ?? 0.3 }, uVein: { value: o.vein || null }, uVO: { value: o.vein ? 1 : 0 }, uFill: { value: o.fill || new THREE.Color(0) }, uFO: { value: o.fill ? 1 : 0 }, uRune: { value: tx.r || null }, uRO: { value: tx.r ? 1 : 0 }, uRc: { value: o.rec || new THREE.Color(0) }, uRK: { value: o.rec ? 1 : 0 }, uLT: { value: o.lt ? 1 : 0 } };
     m.onBeforeCompile = (s) => { Object.assign(s.uniforms, U); s.fragmentShader = s.fragmentShader
-      .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nuniform mat3 uM; uniform vec3 uOff; uniform vec3 uEm; uniform float uS0; uniform sampler2D uVein; uniform float uVO; uniform vec3 uFill; uniform float uFO; uniform sampler2D uRune; uniform float uRO; uniform vec3 uRc; uniform float uRK; vec4 swC; vec4 swN; float swT;')
+      .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nuniform mat3 uM; uniform vec3 uOff; uniform vec3 uEm; uniform float uS0; uniform sampler2D uVein; uniform float uVO; uniform vec3 uFill; uniform float uFO; uniform sampler2D uRune; uniform float uRO; uniform vec3 uRc; uniform float uRK; uniform float uLT; vec4 swC; vec4 swN; float swT;')
       .replace('#include <map_fragment>', 'swC = texture2D(map, vUv); swN = texture2D(normalMap, vUv); swT = clamp((swN.a - 0.2) / 0.8, 0.0, 1.0);'
       /* (t611u) Rune: the glyph band comes from its own full-resolution strip (Art's 1024 px blade map) so the symbols stay sharp */
       + 'if (uRO > 0.5 && vUv.x < 0.5 && vUv.y > 0.5) { float swc = vUv.x * 1024.0, swr = (1.0 - vUv.y) * 1024.0, sv = (swr - 132.0) / 112.0; if (swc < 864.0 && sv > 0.0 && sv < 1.0) swC = mix(swC, texture2D(uRune, vec2(swc / 864.0, 1.0 - sv)), smoothstep(0.0, 0.08, sv) * smoothstep(1.0, 0.92, sv)); }'
@@ -10356,6 +10356,8 @@ const CharView = (() => {
       /* (t613u) Rune: the blade takes the rune pickaxe's tier ladder exactly - its blade colour (TIER_LOOK.rune.col, eased like tierHeadMat) times the painting's own
          light / dark detail (0.25 = the painted metal's mean luminance), and the glyphs (atlas + rune_r strip, emissive mask = 1 - alpha) its rune glow colour */
       + 'if (uRK > 0.5 && vUv.x < 0.5 && vUv.y > 0.5) { float l = dot(swC.rgb, vec3(0.299, 0.587, 0.114)) / 0.25, gm = clamp((1.0 - swC.a) * 1.6, 0.0, 1.0); swR = mix(uRc * clamp(l, 0.25, 2.2), uEm * clamp(0.55 + 0.5 * l, 0.0, 1.4), gm); swT = max(swT, gm); }'
+      /* (t620u) Lumenite hilt: the teal swirl painted on the grip wrap / hilt (the teal pixels of the hilt atlas) takes the blade's own tier recolour (uM / uOff) */
+      + 'if (uLT > 0.5 && !(vUv.x < 0.5 && vUv.y > 0.5)) { float tq = smoothstep(0.05, 0.16, 0.5 * (swC.g + swC.b) - swC.r) * smoothstep(0.08, 0.2, swC.b); swT = max(swT, tq); }'
       + ' if (uVO > 0.5) swR *= texture2D(uVein, vUv * vec2(6.0, 3.0)).rgb; diffuseColor.rgb *= mix(swC.rgb, swR, swT);')
       .replace('#include <specularmap_fragment>', 'float specularStrength = mix(uS0, 1.0, swT);')
       .replace('#include <normal_fragment_maps>', 'vec3 mapN = swN.xyz * 2.0 - 1.0; mapN.xy *= normalScale; normal = perturbNormal2Arb(-vViewPosition, normal, mapN, faceDirection);')
@@ -10535,7 +10537,7 @@ const CharView = (() => {
     const d = SW_DET[g], G = GRADES[g], kind = { mithril: 'dia', rune: 'rune', lumen: 'crys', onyx: 'onyx' }[g] || 'falc', ky = SW_K * (g === 'onyx' ? 1.25 : 1), y0 = SW_GB + (d.gtop - 0.4) * SW_K, tx = swTex(g), r = prng(61);
     const TL = TIER_LOOK[g], hm = TL ? tierHeadMat(g, t, G) : null, tn = swTint(g, t), em = g === 'rune' ? new THREE.Color(TL.glow[t]) : g === 'lumen' ? lumenCol(0x2ad4e4, t).multiplyScalar(0.9) : g === 'onyx' ? new THREE.Color(ONYX_TIER_HEX[t]) : new THREE.Color(0);
     const base = hm ? { spec: hm.specular, shin: hm.shininess, emis: hm.emissive, vein: hm.map, s0: 0.3 } : g === 'lumen' ? { spec: new THREE.Color(0xffffff), shin: 95, s0: 0.45 } : { spec: new THREE.Color(0x8a7c90), shin: 60, s0: 0.85 };
-    const SW_FILL = { bronze: 0x986e42, iron: 0x76787c, steel: 0x8c9095, gold: 0xbe8c32 }; if (SW_FILL[g]) base.fill = new THREE.Color(SW_FILL[g]); if (g === 'rune') base.rec = hm.color.clone();
+    if (g === 'lumen') base.lt = 1; const SW_FILL = { bronze: 0x986e42, iron: 0x76787c, steel: 0x8c9095, gold: 0xbe8c32 }; if (SW_FILL[g]) base.fill = new THREE.Color(SW_FILL[g]); if (g === 'rune') base.rec = hm.color.clone();
     const mat = swMat(tx, Object.assign({ M: tn.M, off: tn.off, em }, base)), matF = kind === 'crys' || kind === 'onyx' ? swMat(tx, Object.assign({ M: tn.M, off: tn.off, em, flat: 1 }, base)) : mat; if (hm) hm.dispose();
     sw.userData.blade = 100 * ky; sw.userData.y0 = y0; sw.userData.bw = Math.max(...d.st.flat().map((q) => q[2] - q[1])) * SW_K;
     const ink = (m) => { m.add(new THREE.Mesh(m.geometry, OUT_SW)); return m; }, mesh = (geo, m, o = {}) => part(sw, geo, m, null, null, null, { ink: false, shadow: o.shadow });
@@ -10557,9 +10559,13 @@ const CharView = (() => {
     for (const s of segs) { if (s.rows.length < 2) continue; ink(mesh(swLathe(s.rows.map((q) => [q[0], q[1]]), s.z ? (x, y, u, v) => swUvT(u, v) : pl(hUV), { seg: s.z ? 20 : 18 }), mat)); }
     const pUV = [d.pUV[0], d.pUV[1], d.pUV[2], d.pUV[3]], pm = g === 'lumen' ? null : ink(mesh(swLathe(d.pom, pl(pUV), { seg: 18, cap: 1, capT: 1, zs: g === 'rune' ? 0.6 : 0 }), mat));
     if (g === 'lumen') { ink(mesh(swLathe([[-19, 4.2], [-19.3, 4.9], [-20.9, 4.9], [-21.3, 4.4]], () => swUvG(d.gUV[0], d.gUV[1] - 2 / d.gUV[2]), { seg: 18 }), mat)); // brass ferrule cap holding a chunky faceted crystal (~1.0 x 0.9)
-      const cm = new THREE.MeshPhongMaterial({ color: lumenCol(0x5fe2ee, t), emissive: lumenCol(0x1d93ad, t), specular: 0xffffff, shininess: 160, flatShading: true, transparent: true, opacity: 0.93 }), cg = new THREE.IcosahedronGeometry(1, 1);
+      /* (t620u) the pommel crystal takes the blade's colour: the painted blade crystal's mean (0.38, 0.66, 0.68) through the blade's tier recolour (swTint matrix), at the crystal's
+         brightness, plus the blade's own tier emissive (lumenCol) - the same two terms the blade is lit with */
+      const bt = (k, w = 0) => { const v = V(0.38, 0.66, 0.68).applyMatrix3(tn.M).add(tn.off).multiplyScalar(k); return new THREE.Color().setRGB(...[v.x, v.y, v.z].map((x) => Math.max(0, Math.min(1, x)))).lerp(new THREE.Color(1, 1, 1), w); };
+     
+      const cm = new THREE.MeshPhongMaterial({ color: bt(1.37), emissive: lumenCol(0x1d93ad, t), specular: 0xffffff, shininess: 160, flatShading: true, transparent: true, opacity: 0.93 }), cg = new THREE.IcosahedronGeometry(1, 1);
       { const P = cg.attributes.position, rr = prng(5); for (let i = 0; i < P.count; i++) { const k = 1 + (Math.sin(P.getX(i) * 9.1 + P.getY(i) * 5.3) * 0.5) * 0.08; P.setXYZ(i, P.getX(i) * k, P.getY(i) * k, P.getZ(i) * k); } void rr; cg.computeVertexNormals(); }
-      part(sw, cg, cm, [0, SW_GB - 25.1 * SW_K, 0], [0.3, 0.4, 0], [5.4 * SW_K, 4.6 * SW_K, 5.4 * SW_K]); part(sw, new THREE.OctahedronGeometry(2.2 * SW_K, 0), new THREE.MeshBasicMaterial({ color: lumenCol(0xbffcff, t) }), [0, SW_GB - 25.1 * SW_K, 0], null, null, { ink: false }); }
+      part(sw, cg, cm, [0, SW_GB - 25.1 * SW_K, 0], [0.3, 0.4, 0], [5.4 * SW_K, 4.6 * SW_K, 5.4 * SW_K]); part(sw, new THREE.OctahedronGeometry(2.2 * SW_K, 0), new THREE.MeshBasicMaterial({ color: bt(1.45, 0.55) }), [0, SW_GB - 25.1 * SW_K, 0], null, null, { ink: false }); }
     // detail bits
     const pr = (k) => { const y = d.pom.reduce((a, q) => a + q[0], 0) / d.pom.length; let best = d.pom[0]; for (const q of d.pom) if (Math.abs(q[0] - y) < Math.abs(best[0] - y)) best = q; return k ? best[1] : y; }, Y = (y) => SW_GB + y * SW_K;
     if (g === 'iron') { const rv = new THREE.MeshPhongMaterial({ color: 0x7c828a, specular: 0xd0d6de, shininess: 70 }), hw = (st) => (st[1] + st[2]) / 2, s0 = d.st[0][2];
