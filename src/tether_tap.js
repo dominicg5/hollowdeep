@@ -29,9 +29,7 @@ const TetherTap = (() => {
   function canTeleport(T) { return distToStrand(T) <= TAP_M; }
   function vaultRow(T, near) {
     if (T.kind !== 'drop') return '';
-    return near
-      ? `<button class="tbVault" data-act="vault"><span>🔒</span><b>Open vault</b><small>Deposit and withdraw at the Ledge vault</small></button>`
-      : `<button class="tbVault dis" disabled data-act="vault"><span>🔒</span><b>Open vault</b><small>Walk closer to the tether to open the vault</small></button>`; }
+    return `<button class="tbVault" data-act="vault"><span>🔒</span><b>Open vault</b><small>Remote access to the Ledge vault</small></button>`; /* (t598u: no strand-distance limit for vault access; teleport keeps its range limit) */ }
   function el() { if (ST.el) return ST.el; const d = document.createElement('div'); d.id = 'tetherBub'; d.className = 'kKit hidden'; d.setAttribute('role', 'dialog'); (document.getElementById('cityWrap') || document.body).appendChild(d);
     for (const e of ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup']) d.addEventListener(e, (ev) => ev.stopPropagation());
     d.addEventListener('click', (e) => { e.stopPropagation(); const b = e.target.closest('button'); if (!b || b.disabled || b.classList.contains('dis') || b.hasAttribute('disabled')) return; if (b.dataset.k === 'close') return close(); if (b.dataset.act === 'vault') return openVault(ST.T); if (b.dataset.k) go(b.dataset.k); }); return (ST.el = d); }
@@ -45,7 +43,7 @@ const TetherTap = (() => {
     x = Math.max(8, Math.min(P.width - w - 8, x)); d.style.left = x + 'px'; d.style.top = y + 'px'; d.classList.toggle('below', !up); d.style.setProperty('--tx', Math.max(18, Math.min(w - 18, sx - x)) + 'px'); return true; }
   function close() { if (ST.el) ST.el.classList.add('hidden'); ST.T = null; }
   function go(key) { close(); if (typeof Explore !== 'undefined' && Explore.teleportTo) Explore.teleportTo(key); }
-  function openVault(T) { T = T || ST.T; close(); if (!T || T.kind !== 'drop' || !canTeleport(T)) return false; /* (t591u vault rule: within TAP_M of this drop tether, re-checked on every take) */ if (typeof CharView !== 'undefined' && CharView.openVault) return CharView.openVault(() => canTeleport(T)); return false; }
+  function openVault(T) { T = T || ST.T; close(); if (!T || T.kind !== 'drop') return false; /* (t598u, Dominic: a remote vault access feature - any distance from this drop tether; the transfer screen still has to be open for every take) */ if (typeof CharView !== 'undefined' && CharView.openVault) return CharView.openVault(() => true); return false; }
   // Explore.tap calls this after ore / town folk / doors and before a plain walk: only a tap squarely on the rope opens the bubble; a miss closes it and lets the walk through (drags / pans never reach here)
   function tap(sx, sy) { close(); const H = hitAt(sx, sy); if (!H) return null; open(H.T, sx, sy); return 'tether'; }
   return { HIT, NEAR_M, TAP_M, hitAt, routes, options, distToStrand, canTeleport, open, close, tap, go, openVault, get T() { return ST.T; }, get el() { return ST.el; } };

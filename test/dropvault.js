@@ -1,5 +1,5 @@
 // Drop tether tap menu: Open vault (next to teleport) opens the same Ledge vault window as at home
-// (CharView.openVault: straight to Backpack ⇄ Vault for full in/out). Only within TAP_M of the strand;
+// (CharView.openVault: straight to Backpack ⇄ Vault for full in/out). t598u: at any distance (remote vault access); teleport stays within TAP_M;
 // the backpack sheet never shows vault items. The rope hit radius stays 22 px.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html';
@@ -50,14 +50,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const disabled = !!(v && (v.disabled || v.classList.contains('dis')));
       const hint = v ? v.textContent : '';
       if (v) v.click();
-      const opened = typeof ui !== 'undefined' && ui.modal === 'vault';
+      const opened = typeof ui !== 'undefined' && ui.modal === 'cx-xfer' && !!document.querySelector('#modalBody [data-cxv=xfer]');
       TetherTap.close();
       try { closeModalQuiet(); } catch (e) {}
       return { dist: +TetherTap.distToStrand(T).toFixed(2), disabled, hint, opened, can: TetherTap.canTeleport(T) };
     });
     console.log(JSON.stringify({ far }));
-    ok(far.dist > 8 && !far.can && far.disabled && !far.opened, `farther than 8 m (${far.dist} m) the menu still opens but Open vault is disabled`);
-    ok(/Walk closer to the tether to open the vault/.test(far.hint), 'disabled vault row shows the walk-closer hint');
+    ok(far.dist > 8 && !far.can && !far.disabled && far.opened, `t598u: farther than 8 m (${far.dist} m) Open vault still works (remote vault access, no strand distance limit) and opens the transfer screen; teleport keeps its range (can ${far.can})`);
+    ok(/Open vault/.test(far.hint) && !/Walk closer/.test(far.hint), `no walk-closer hint on the vault row any more (${far.hint})`);
 
     const near = await standNear();
     const menu = await p.evaluate(() => {

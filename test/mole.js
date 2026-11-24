@@ -1,4 +1,4 @@
-// Mole pet (t591u: Fetch is Ledge Tether coils only, the one remote vault draw): in Explore it is out beside her and only follows; it hauls (backpack ore -> nearest Ledge Tether -> vault, looping) only when tasked with the Haul
+// Mole pet (t598u: Fetch reaches any vault item): in Explore it is out beside her and only follows; it hauls (backpack ore -> nearest Ledge Tether -> vault, looping) only when tasked with the Haul
 // button, stops when told, and a loaded save never auto-starts hauling; leaving Explore hides it
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html';
@@ -26,10 +26,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     stopVia(); Craft.add('bag', id, 4); T(90); out.stop = { on: Mole.on, haul: Mole.haul, vis: M.g.visible, st: M.st, bag: Craft.get('bag', id), label: lbl() };
     // a save that says hauling (or an old 'on' save) never auto-starts it: leave and come back
     S.mole.haul = true; S.mole.on = true; Explore.exit(); M3.render(0, CityMap.cam); out.exit = { vis: M.g.visible }; const k2 = Explore.reach(h2[0], h2[1]); Explore.enter(k2[0], k2[1]); T(90); out.reload = { haul: Mole.haul, saved: JSON.parse(JSON.stringify(S.mole)).haul, bag: Craft.get('bag', id), st: M.st, on: Mole.on };
-    // (t591u vault rule) a fetch is a remote vault take: his Fetch list offers Ledge Tether coils only, and a fetch never takes other vault items
+    // (t598u) a fetch is a permitted remote vault withdrawal: any vault item
     { const tid = 'tether:iron', cv0 = Craft.get('vault', id); Craft.add('vault', tid, 40); const tv0 = Craft.get('vault', tid), tb0 = Craft.get('bag', tid); Mole.openScreen(); const kb = document.querySelector('#modalBody [data-mo=kind][data-v=fetch]'); if (kb) kb.click();
       const ids = [...document.querySelectorAll('#modalBody [data-mo=item]')].map((e) => e.dataset.id); closeModalQuiet(); Mole.setTask('fetch', [id, tid], 'door'); let g = 0; while (Mole.M.fetch && g < 30 * 120) { T(1); g++; } T(30 * 20); Mole.untask();
-      out.fetch = { ids: ids.join(), listed: ids.length > 0 && ids.every((q) => q.startsWith('tether:')), copperKept: Craft.get('vault', id) === cv0, tetherOut: tv0 - Craft.get('vault', tid), tetherBag: Craft.get('bag', tid) - tb0 };
+      out.fetch = { ids: ids.join(), listed: ids.includes(id) && ids.includes(tid), copperOut: cv0 - Craft.get('vault', id), tetherOut: tv0 - Craft.get('vault', tid), tetherBag: Craft.get('bag', tid) - tb0 };
       const left = Craft.get('vault', tid); if (left) Craft.tetherDraw(() => Craft.add('vault', tid, -left)); const lb = Craft.get('bag', tid) - tb0; if (lb > 0) Craft.add('bag', tid, -lb); }
     Craft.add('bag', id, -4); Explore.exit(); return out; });
   console.log(JSON.stringify(r));
@@ -43,6 +43,6 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(r.stop.on && !r.stop.haul && r.stop.vis && r.stop.st === 'follow' && r.stop.bag === 4 && /none/.test(r.stop.label), 'Stop task: it stops and just follows ' + JSON.stringify(r.stop));
   ok(!r.exit.vis, 'leaving Explore hides it');
   ok(!r.reload.haul && r.reload.saved === false && r.reload.bag === 4 && r.reload.on, 'a save that said hauling does not auto-start it (saved haul = false) ' + JSON.stringify(r.reload));
-  ok(r.fetch.listed && r.fetch.copperKept, '(t591u) Fetch from vault lists Ledge Tether coils only, and a fetch never takes other vault items (copper stays in the vault) ' + JSON.stringify(r.fetch));
+  ok(r.fetch.listed && r.fetch.copperOut > 0, '(t598u) Fetch from vault lists any vault item and fetches it (copper leaves the vault) ' + JSON.stringify(r.fetch));
   ok(!errs.length, 'no page errors ' + errs.join(' | ')); await b.close(); console.log(fails ? fails + ' FAIL' : 'ALL PASS'); process.exit(fails ? 1 : 0);
 })();

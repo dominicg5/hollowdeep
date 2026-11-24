@@ -8,7 +8,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html';
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
 // ---- static audit
 const SRC = path.join(__dirname, '..', 'src'), PAT = [/add\('vault',\s*[^,]+,\s*-/, /S\.res\.(iron|coal|steel)\s*-=/, /S\.res\[[^\]]+\]\s*-=/, /move\('vault'/, /delete v\.(gear|ores|ingots|coils)\b/, /v\.(gear|ores|ingots|coils)\[[^\]]+\]\s*(-=|--)/, /--v\.(gear|ores|ingots|coils)\[/];
-const GUARD = /tetherDraw|VAULT-OK|vaultRes\(|k === 'iron' \|\| k === 'coal'/; const bad = [];
+const GUARD = /tetherDraw|moleDraw|VAULT-OK|vaultRes\(|k === 'iron' \|\| k === 'coal'/; const bad = [];
 for (const f of fs.readdirSync(SRC).filter((f) => f.endsWith('.js') && f !== 'craft.js')) fs.readFileSync(path.join(SRC, f), 'utf8').split('\n').forEach((l, i) => { if (PAT.some((r) => r.test(l)) && !GUARD.test(l)) bad.push(f + ':' + (i + 1) + ' ' + l.trim().slice(0, 90)); });
 ok(!bad.length, `no unguarded remote vault take outside craft.js's gate (${bad.length ? bad.join(' | ') : 'none'})`);
 (async () => {
@@ -28,8 +28,9 @@ ok(!bad.length, `no unguarded remote vault take outside craft.js's gate (${bad.l
     // physically at a vault: each opener's own range check, re-checked on every take. A drop tether at her feet (TetherTap's TAP_M range), Ambrose's talk range, the house Vault
     const WS = Explore.WS, h = Explore.here(), T0 = { kind: 'drop', name: 'test drop', pts: [[h[0], h[1]], [h[0] + WS, h[1]]] }, atV = () => TetherTap.openVault(T0);
     C.open('xfer'); o.noRange = [C.atVault(), C.move('vault', 'bag', 'ore:copper', 1)]; try { closeModalQuiet(); } catch (e) {}
-    o.drop = [atV(), C.atVault()]; T0.pts.forEach((q) => { q[0] += WS * 50; }); o.drop.push(C.atVault(), C.move('vault', 'bag', 'ore:copper', 1), ui.modal); T0.pts.forEach((q) => { q[0] -= WS * 50; }); try { closeModalQuiet(); } catch (e) {}
+    o.drop = [atV(), C.atVault()]; T0.pts.forEach((q) => { q[0] += WS * 50; }); o.drop.push(C.atVault(), C.move('vault', 'bag', 'ore:copper', 1), ui.modal); C.move('bag', 'vault', 'ore:copper', 1); /* (t598u: a Tether's Open vault is remote access, no distance limit) */ T0.pts.forEach((q) => { q[0] -= WS * 50; }); try { closeModalQuiet(); } catch (e) {}
     const amb = { x: h[0] + WS * 2, y: h[1], o: { name: 'Ambrose', role: 'Bank' } }; Town.folk.ST.talk = amb; Town.folk.act('vault'); o.bank = [ui.modal, C.atVault()]; amb.x += WS * 50; o.bank.push(C.atVault()); try { closeModalQuiet(); } catch (e) {}
+    { const v = C.get('vault', 'ore:copper'); o.mole = [C.moleDraw(() => C.add('vault', 'ore:copper', -1)), C.get('vault', 'ore:copper') === v - 1]; C.add('vault', 'ore:copper', 1); } // (t598u: the Mole may fetch any vault item)
     o.home = CharView.homeVaultNear(); o.untouched2 = snap() === s1;
     // at the vault: Withdraw as note
     atV(); await new Promise((q) => setTimeout(q, 200)); o.atVault = C.atVault(); o.gauge = document.querySelectorAll('#modalBody .kGauge').length; const sh = document.querySelector('#modal .sheet').getBoundingClientRect(); o.top = [Math.round(sh.top), getComputedStyle(document.getElementById('modal')).alignItems];
@@ -49,8 +50,9 @@ ok(!bad.length, `no unguarded remote vault take outside craft.js's gate (${bad.l
   ok(!R.atVault && !R.make && R.take === false && R.move === 0 && R.add === 0 && R.equip === false && R.theus === false && R.build === false && !R.sell && r.untouched && r.blocked > 0, `away from the vault nothing comes out of it: furnace ${R.make}, take ${R.take}, move ${R.move}, add ${R.add}, equip ${R.equip}, Theus ${R.theus}, building cost ${R.build}, market sale ${R.sell}; vault unchanged ${r.untouched} (${r.blocked} blocked)`);
   ok(r.draw === -10 && r.drawLeft === 10 && r.drawOre === 0 && r.drawOreLeft === 60, `the Ledge Tether draw is the one exception, and it takes Ledge Tether coils only (tether ${r.draw}, ore ${r.drawOre}, ore left ${r.drawOreLeft})`);
   ok(r.noRange.join() === 'false,0', `the transfer screen alone is not enough: opened with no vault in reach, nothing comes out (${r.noRange})`);
-  ok(r.drop.join() === 'true,true,false,0,cx-xfer', `at a drop tether's Open vault she can take out; 50 m away with the screen still open she can't (${r.drop})`);
+  ok(r.drop.join() === 'true,true,true,1,cx-xfer', `(t598u) a drop tether's Open vault is remote vault access: withdrawals work, also 50 m from the strand (${r.drop})`);
   ok(r.bank.join() === 'cx-xfer,true,false', `Ambrose's vault: within his talk range yes, out of it no (${r.bank})`);
+  ok(r.mole && r.mole.join() === '-1,true', `(t598u) the Mole fetch is a permitted remote withdrawal for any item (${r.mole})`);
   ok(r.home === false && r.untouched2, `the house Vault's range check is false out in the field (${r.home}); the vault is still untouched (${r.untouched2})`);
   ok(r.atVault && r.gauge === 0, `at the vault screen: no slot counter (${r.gauge} gauges)`);
   ok(r.N === 2000 && r.scroller && r.rendered > 0 && r.rendered < 200 && r.last && r.rendered2 < 200, `2000 vault slots, only the rows in view drawn (${r.rendered} then ${r.rendered2} slots in the page; slot 2000 shows when scrolled to: ${r.last})`);
