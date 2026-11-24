@@ -1,4 +1,4 @@
-// Pickaxe tiers (was lumen_tiers.js): Lumenite 3D tiers + Art's painted tier icons for all eight grades. Lumenite pickaxe tiers (Dominic; Mia's lumenite_pick_tiers sheet): T0 is today's pick unchanged; only the crystal head (shards, core gems), its glow and light take the
+// Pickaxe tiers (was lumen_tiers.js; OLD_URL = the previous build for the T0-unchanged check): Lumenite 3D tiers + Art's painted tier icons for all eight grades. Lumenite pickaxe tiers (Dominic; Mia's lumenite_pick_tiers sheet): T0 is today's pick unchanged; only the crystal head (shards, core gems), its glow and light take the
 // tier colour (handle / wrap / cyan binding identical at every tier); glints grow +8 per tier and get brighter + faster; T10 pulses and adds teal sparks; icons: every grade's T1..T10 are Art's painted cells (one lazy 10x1 sheet per grade), T0 the atlas cell, no CSS tint.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html';
@@ -29,6 +29,22 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(GR.every((g) => R.ic[g].slice(1).every((c, i) => /cxpt/.test(c[0]) && c[1] === 'items_' + g + '_tiers' && c[3] === '1000% 100%' && c[4] === 'none' && Math.abs(parseFloat(c[2]) - i * 100 / 9) < 0.01)), 'T1..T10 = Art\'s painted cells for every grade, no tint');
   ok(!R.pre.length && GR.every((g) => sheet.filter((q) => q[0] === g).length === 1), 'sheets lazy (none before an icon shows), each fetched once: ' + sheet.map((q) => q[0] + ' ' + q[1]).join(', '));
   ok(R.bag[0] && R.bag[1] && !R.bag[2] && R.gone.every((x) => x === 'undefined'), 'backpack T5 Ember Onyx uses its painted cell; tintIco / onyxFilter / lumenFilter gone ' + JSON.stringify([R.bag, R.gone]));
+  // (Art's tier_ladders, t387s1456) Bronze..Rune 3D tiers: T0 identical to the previous build, handle + bindings identical at every tier, head / glow / veins / sparkles by tier
+  const FP = () => { const G = ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx', 'stick'], hx = (c) => (c && c.getHexString ? c.getHexString() : '-');
+    const fp = (g, t) => { const px = CharView.makePickaxe(g, t), head = px.children.find((c) => c.isGroup && Math.abs(c.position.y - 0.68) < 1e-6), out = { head: [], rest: [], pts: [], map: 0, light: px.userData.light ? hx(px.userData.light.color) : '-', rune: px.userData.runeM ? hx(px.userData.runeM.color) : '-' };
+      px.traverse((o) => { if (o.isPoints) { out.pts.push(o.geometry.attributes.position.count); return; } if (!o.isMesh) return; let h = false; for (let q = o; q; q = q.parent) if (q === head) h = true; const m = [].concat(o.material)[0] || {};
+        const f = [m.type, hx(m.color), hx(m.emissive), hx(m.specular), m.shininess != null ? +m.shininess.toFixed(2) : '-', m.map ? (m.map.image ? m.map.image.width : 1) : 0, o.geometry.attributes.position.count].join('/'); if (h) { out.head.push(f); if (m.map && t >= 8 && m.map.image && m.map.image.width === 128) out.map++; /* (the vein canvas; Rune's rune decal is 256) */ } else out.rest.push(f); });
+      px.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); return out; };
+    const o = {}; for (const g of G) o[g] = Array.from({ length: g === 'stick' ? 1 : 11 }, (_, t) => fp(g, t)); return o; };
+  const NEW = await p.evaluate(FP); let OLD = null;
+  if (process.env.OLD_URL) { const q = await (await b.newContext({ viewport: { width: 390, height: 844 } })).newPage(); await q.goto(process.env.OLD_URL + '?t=' + Date.now(), { timeout: 90000, waitUntil: 'commit' }); await q.waitForFunction(() => typeof CharView !== 'undefined' && CharView.makePickaxe, null, { timeout: 120000 }); OLD = await q.evaluate(FP); }
+  const GT = ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune'], J = JSON.stringify;
+  const F0 = (x) => J([x.head, x.rest, x.pts, x.light]); ok(OLD && Object.keys(NEW).every((g) => F0(NEW[g][0]) === F0(OLD[g][0])), 'every grade\'s T0 identical to the previous build (' + (OLD ? Object.keys(NEW).filter((g) => F0(NEW[g][0]) !== F0(OLD[g][0])).join(',') || 'all 9 match' : 'OLD_URL not set') + ')');
+  ok(GT.every((g) => NEW[g].every((x) => J(x.rest) === J(NEW[g][0].rest))), 'Bronze..Rune: handle, wraps and bindings identical at every tier (Ember Onyx\'s handle cracks are tier-lit by design)');
+  ok(GT.every((g) => NEW[g].slice(1).every((x) => J(x.head) !== J(NEW[g][0].head))) && GT.every((g) => NEW[g].every((x, t) => x.head.length === NEW[g][0].head.length)), 'Bronze..Rune: T1..T10 heads take their tier look (same parts as T0)');
+  ok(['bronze', 'iron', 'steel', 'gold'].every((g) => NEW[g].every((x, t) => t >= 8 ? x.map > 0 : x.map === 0)) && NEW.mithril.every((x) => !x.map) && NEW.rune.every((x) => !x.map), 'veins on T8..T10 only (bronze / iron Damascus / steel / gold)');
+  ok(NEW.mithril.every((x, t) => (x.pts[0] || 0) === 4 * t) && NEW.rune[10].pts[0] === 22 && NEW.rune[10].rune === 'ffcf5a' && NEW.rune[0].rune === 'b48cff' && NEW.rune[10].light === 'ffcf5a', 'mithril blue sparkles 4/tier; rune glow b48cff -> ffcf5a, gold motes at T10 ' + J([NEW.mithril.map((x) => x.pts[0] || 0), NEW.rune.map((x) => x.rune)]));
+  console.log('steel heads: ' + NEW.steel.map((x) => x.head[0].split('/')[1]).join(' ') + ' | rune: ' + NEW.rune.map((x) => x.head[0].split('/')[1]).join(' '));
   ok(!errs.length, 'no page errors ' + errs.slice(0, 2).join(' | '));
   console.log(fails ? `${fails} FAILED` : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
 })();
