@@ -42,7 +42,7 @@ const CityMap = (() => {
   function show() {
     if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Ledgeville art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
     if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } autoView(); }
-  function hide() { devSave(); if (typeof Explore !== 'undefined') Explore.exit(); if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
+  function hide(keepPlay) { devSave(); if (!keepPlay && typeof Explore !== 'undefined') Explore.exit(); /* (keepPlay: the Character tab; the walk on the map just pauses) */ if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
 
   /* ---------- camera ---------- */
   const kpx = () => cam.z * dpr;

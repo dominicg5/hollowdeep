@@ -357,7 +357,7 @@ function rerender(force) {
   renderResbar();
   document.querySelectorAll('nav#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === ui.tab));
   // Capital / Hollow / Outposts / Raids / Training are dormant (no tab buttons; their views and systems stay so saves keep working and setTab() can still reach them)
-  if (ui.tab === 'char' || ui.tab === 'ledge' || ui.tab === 'home' || ui.tab === 'tree') { $('#view').style.display = 'none'; CityMap.hide(); CharView.show(ui.tab === 'char' ? null : ui.tab); return; }
+  if (ui.tab === 'char' || ui.tab === 'ledge' || ui.tab === 'home' || ui.tab === 'tree') { $('#view').style.display = 'none'; CityMap.hide(ui.tab === 'char'); CharView.show(ui.tab === 'char' ? null : ui.tab); return; } // (t584u: the Character tab sets her world self aside instead of taking her off the map)
   CharView.hide();
   if (ui.tab === 'city') { $('#view').style.display = 'none'; CityMap.show(); return; }
   $('#view').style.display = ''; CityMap.hide();
