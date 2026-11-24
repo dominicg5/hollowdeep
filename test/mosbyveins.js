@@ -130,15 +130,15 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   // ---- back up onto his shell; then his walk goes on
   const r6 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, o = {}; o.go = MV.shellGo({}); let mid = 0; for (let i = 0; i < 2400 && MV.st !== 'shell'; i++) { __frame(1); if (MV.st === 'face' && G.exC && CharView.an.act === 'climb' && MV.MV.s > MV.field().sSad + 1 && !mid) { mid = 1; break; } } o.mid = mid; return o; });
   if (SHOT) { await p.evaluate(() => { const G = CharView.st.gnd; return __aim([new THREE.Vector3(G.x, G.y + 0.5, G.z - 1), new THREE.Vector3(G.x, G.y + 1.5, G.z + 1)], 7, 0.15); }); await shot('mosby_neck_climb.png'); }
-  const r7 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, o = {}; for (let i = 0; i < 2400 && MV.st !== 'shell'; i++) __frame(1); for (let i = 0; i < 30; i++) __frame(1); o.st = MV.st; o.inside = MosbyRide.clampM(G.x, G.z)[2]; o.busy = MV.busy(); o.hop = document.getElementById('exHopBtn').style.display;
+  const r7 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, o = {}; for (let i = 0; i < 2400 && MV.st !== 'shell'; i++) __frame(1); for (let i = 0; i < 30; i++) __frame(1); o.st = MV.st; o.inside = MosbyRide.clampM(G.x, G.z)[2]; o.busy = MV.busy(); o.hop = (() => { const e = document.getElementById('exHopBtn'); return e ? getComputedStyle(e).display : 'none'; })();
     const s0 = GM.s; __frame(60); o.moves = GM.s !== s0; GM.hold = true; return o; });
   console.log(JSON.stringify(r7));
-  ok(r6.mid && r7.st === 'shell' && r7.inside && !r7.busy && r7.hop !== 'none', `she climbs back up onto the top of his shell (Hop off back)`);
+  ok(r6.mid && r7.st === 'shell' && r7.inside && !r7.busy && r7.hop === 'none', `she climbs back up onto the top of his shell (no Hop off button: ${r7.hop})`);
   ok(r7.moves, 'back on top, he is still walking');
   // ---- he never pauses: his menu aboard (Hop off) doesn't hold him; after Hop off he walks on; going off to mine near him lets his talk go. No Ledge Tethers on him.
   const r9 = await p.evaluate(() => { const GM = Mosby.GM, G = CharView.st.gnd, o = {}; GM.hold = false; __toasts.length = 0;
     o.needOn = (Explore.dropNeed('tether:bronze') || {}).err; o.makeOn = (Explore.dropCreate('tether:bronze') || {}).err; o.toastOn = __lastToast(/No Ledge Tethers on Mosby/); o.footprint = MosbyVeins.onHim(GM.at.x, GM.at.y);
-    const s0 = GM.s; document.getElementById('exHopBtn').click(); o.menu = MosbyTalk.step; __frame(30); o.walkMenu = GM.s !== s0 && !GM.hold;
+    const s0 = GM.s; MosbyTalk.open(); o.menu = MosbyTalk.step; __frame(30); o.walkMenu = GM.s !== s0 && !GM.hold;
     const hb = document.querySelector('#mosDlg [data-a=hopoff]'); if (hb) hb.click(); o.off = !MosbyRide.on; const s1 = GM.s; __frame(30); o.walkOff = GM.s !== s1 && !GM.hold;
     const G2 = CharView.st.gnd; MosbyTalk.open(); o.held = GM.hold; G2.mine = true; __frame(2); o.talkGone = !MosbyTalk.step && !GM.hold; const s2 = GM.s; __frame(20); o.walkMine = GM.s !== s2; G2.mine = false;
     const fx = S.mosbyDropFix, rm = Explore.dropRemove, L = (S.drops = S.drops || { list: [], nid: 1 }).list, p0 = Mosby.gAt(Mosby.gLoop().L * 0.37), far = [GM.at.x + Explore.WS * 3000, GM.at.y + Explore.WS * 3000];

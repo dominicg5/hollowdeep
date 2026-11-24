@@ -1,5 +1,5 @@
 // Drop tether tap menu: Open vault (next to teleport) opens the same Ledge vault window as at home
-// (CharView.openVault, then Backpack ⇄ Vault for full in/out). Only within TAP_M of the strand;
+// (CharView.openVault: straight to Backpack ⇄ Vault for full in/out). Only within TAP_M of the strand;
 // the backpack sheet never shows vault items. The rope hit radius stays 22 px.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html';
@@ -79,10 +79,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const b0 = Craft.get('bag', 'ingot:iron'), v0 = Craft.get('vault', 'ingot:iron');
       TetherTap.el.querySelector('.tbVault').click();
       await new Promise((r) => setTimeout(r, 150));
-      const overview = ui.modal === 'vault' && !!document.querySelector('#modalBody [data-cx=xfer]') && !TetherTap.T;
-      const xbtn = document.querySelector('#modalBody [data-cx=xfer]');
-      if (xbtn) xbtn.click();
-      await new Promise((r) => setTimeout(r, 200));
+      const overview = ui.modal === 'cx-xfer' && !!document.querySelector('#modalBody [data-cxv=xfer]') && !document.querySelector('#modalBody .vsec') && !TetherTap.T; /* (t588u) straight to the exchange, no overview panel */
       const root = document.querySelector('[data-cxv=xfer]');
       const bagSlot = root && root.querySelector('.cxs[data-w=bag][data-id="ingot:iron"]');
       if (bagSlot) bagSlot.click();
@@ -104,7 +101,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       return { b0, v0, overview, xfer: ui.modal === 'cx-xfer' || !!root, afterDep, sheetAfterDep, afterWd, sheetAfterWd };
     });
     console.log(JSON.stringify(xfer));
-    ok(xfer.overview, 'Open vault closes the bubble and opens the Ledge vault window');
+    ok(xfer.overview, 'Open vault closes the bubble and opens the Backpack ⇄ Vault exchange directly (no overview panel)');
     ok(xfer.xfer, 'Backpack ⇄ Vault is the same transfer screen as at the Ledge');
     ok(xfer.b0 === 1 && xfer.afterDep.bag === 0 && xfer.afterDep.vault === xfer.v0 + 1, `deposit moves one iron ingot bag → vault (${xfer.afterDep.bag} / ${xfer.afterDep.vault})`);
     ok(!xfer.sheetAfterDep, 'the backpack sheet does not show the item while it is in the vault');

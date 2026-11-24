@@ -1,7 +1,7 @@
 // (Dominic) hitch a ride on Mosby: 'Hitch a ride' in his talk menu puts her on his shell (no platform: "I like his shell too much"); she walks about on
 // the shell itself, following its curvature, kept to the gentle top (an invisible boundary where it gets steeper than 30 deg); she stays on through a long
 // walk and his turns (pinned to the shell, no sliding, never past the boundary), taps on the ground / sky / the map never take her off (and still let go of
-// his dialogue), a tap on him or the 'Hop off' button opens his menu, 'Hop off' lands her on safe flat dry ground within ~15 m of his flank; a reload while
+// his dialogue), a tap on him opens his menu (no on-screen Hop off button, t423s1651), 'Hop off' lands her on safe flat dry ground within ~15 m of his flank; a reload while
 // riding puts her back on his shell.   SHOT=dir node test/mosbyride.js  -> dir/mosby-ride-shell.png
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '';
@@ -24,13 +24,13 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.talk = Mosby.talkTap(); o.s0 = MosbyTalk.step; const dlg = document.getElementById('mosDlg'); dlg.querySelector('.mdWell').click(); o.s1 = MosbyTalk.step; o.btns = [...dlg.querySelectorAll('.mdB')].map((x) => x.textContent);
     const rb = dlg.querySelector('[data-a=ride]'); if (rb) rb.click(); o.s2 = MosbyTalk.step; o.on = MosbyRide.on; o.ride = !!Explore.EX.ride; o.save = JSON.parse(JSON.stringify(S.mosbyRide || null));
     const h = Explore.here(); o.offC = Math.hypot(h[0] - G.at.x, h[1] - G.at.y) / WS; o.shellR = Mosby.B.rx * G.g.scale.x / WS; const gp = Explore.EX.par.localToWorld(new THREE.Vector3(CharView.st.gnd.x, CharView.st.gnd.y, CharView.st.gnd.z)); o.above = (gp.y - M3.meshH(gp.x, gp.z)) / WS; o.dev0 = __dev();
-    const Rg = MosbyRide.region(), u = MosbyRide.um(); o.top = [Math.min(...Rg.rmax) / u, Math.max(...Rg.rmax) / u]; o.surf0 = __surf(); o.btn = (() => { const e = document.getElementById('exHopBtn'); return !!e && e.style.display !== 'none'; })(); dlg.querySelector('.mdWell').click(); o.closed = MosbyTalk.step; o.held = G.hold; return o; });
+    const Rg = MosbyRide.region(), u = MosbyRide.um(); o.top = [Math.min(...Rg.rmax) / u, Math.max(...Rg.rmax) / u]; o.surf0 = __surf(); o.btn = (() => { const e = document.getElementById('exHopBtn'); return !!e && getComputedStyle(e).display !== 'none'; })(); dlg.querySelector('.mdWell').click(); o.closed = MosbyTalk.step; o.held = G.hold; return o; });
   console.log(JSON.stringify(r1));
   ok(r1.s0 === 'hello' && r1.s1 === 'from' && r1.btns.includes('Hitch a ride'), `his talk menu offers 'Hitch a ride' (${r1.btns.join(' / ')})`);
   ok(r1.s2 === 'rideon' && r1.on && r1.ride && r1.save && r1.save.on, 'Hitch a ride puts her on his back (riding state saved)');
   ok(r1.offC < r1.shellR * 0.6 && r1.above > 25, `she is up on his shell: ${r1.offC.toFixed(1)} m from his middle, ${r1.above.toFixed(0)} m above the ground`);
   ok(r1.top[0] > 5, `the walkable top of his shell (up to 30 deg) reaches ${r1.top[0].toFixed(1)}-${r1.top[1].toFixed(1)} m out from the crown`);
-  ok(r1.dev0 < 0.02 && r1.surf0 != null && Math.abs(r1.surf0) < 0.35, `standing on the shell itself (feet ${r1.surf0 == null ? '?' : (r1.surf0 * 100).toFixed(0)} cm off the carved surface), pinned to it (${(r1.dev0 * 100).toFixed(1)} cm)`); ok(r1.btn, "a 'Hop off' button shows while riding"); ok(!r1.closed && !r1.held, 'closing his dialogue lets him walk on (she stays aboard)');
+  ok(r1.dev0 < 0.02 && r1.surf0 != null && Math.abs(r1.surf0) < 0.35, `standing on the shell itself (feet ${r1.surf0 == null ? '?' : (r1.surf0 * 100).toFixed(0)} cm off the carved surface), pinned to it (${(r1.dev0 * 100).toFixed(1)} cm)`); ok(!r1.btn, "no 'Hop off' button while riding (t423s1651: a tap on his side opens his menu with Hop off)"); ok(!r1.closed && !r1.held, 'closing his dialogue lets him walk on (she stays aboard)');
   // ---- walking on the shell: a tap on the walkable top walks her there over its curve; a walk past the 30 deg boundary stops at it
   const r2 = await p.evaluate(async () => { const E = Explore.EX, G = CharView.st.gnd, o = {}; E.d = 9; E.tilt = 0.45; Mosby.GM.hold = true; __frame(6); const el = M3.renderer.domElement; let sp = null, target = null, bd = 0;
     /* candidate spots on the walkable top (6-14 m round the crown), projected to the screen; classify only those (cheap) */
@@ -75,12 +75,12 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ExMap.open(); const far = Explore.reach(Mosby.GM.at.x + Explore.WS * 400, Mosby.GM.at.y + Explore.WS * 300); ExMap.tapAt(far[0], far[1]); for (let i = 0; i < 60; i++) __frame(1); o.afterMap = MosbyRide.on; o.mapPath = !!G.path; if (ExMap.close) ExMap.close(); ExMap.cancel && ExMap.cancel();
     o.goTo = Explore.goTo(far[0], far[1]); o.tele = Explore.teleportTo('door'); o.afterTele = MosbyRide.on;
     if (body) { MosbyTalk.close(); [E.az, E.d, E.tilt] = bodyCam; __frame(2); o.bodyK = MosbyRide.classify(body[0], body[1]).k; /* the camera where his body was found (the map and teleport steps moved it) */ Explore.tap(body[0], body[1]); /* from a closed menu, as she would */ o.bodyDlg = MosbyTalk.step; o.bodyBtns = [...document.querySelectorAll('#mosDlg .mdB')].map((x) => x.textContent); MosbyTalk.close(); }
-    document.getElementById('exHopBtn').click(); o.btnDlg = MosbyTalk.step; o.stillOn = MosbyRide.on; return o; });
+    o.btnShown = (() => { const e = document.getElementById('exHopBtn'); return !!e && getComputedStyle(e).display !== 'none'; })(); o.stillOn = MosbyRide.on; return o; });
   console.log(JSON.stringify(r4));
   ok(r4.found.ground && r4.afterGround && r4.afterGround.on && !r4.afterGround.trip && r4.groundStill, 'a tap on the ground does not take her off (no walk, no trip)');
   ok(r4.dlgOpen === 'aboard' && r4.afterGround && r4.afterGround.dlg === null, 'tap-fix holds while riding: a tap elsewhere closes his dialogue and does not re-select him');
   ok(!r4.found.sky || r4.afterSky, 'a tap on the sky does not take her off'); ok(r4.afterMap && !r4.mapPath && r4.goTo === null, 'the pull-out map cannot walk her off him'); ok(r4.tele === false && r4.afterTele, 'no teleporting away while riding');
-  ok(r4.found.body && r4.bodyDlg === 'aboard' && r4.bodyBtns.includes('Hop off'), `a tap on Mosby opens his menu with 'Hop off' (${(r4.bodyBtns || []).join(' / ')})`); ok(r4.btnDlg === 'aboard' && r4.stillOn, "the 'Hop off' button opens the same menu (still aboard until she picks Hop off)");
+  ok(r4.found.body && r4.bodyDlg === 'aboard' && r4.bodyBtns.includes('Hop off'), `a tap on Mosby opens his menu with 'Hop off' (${(r4.bodyBtns || []).join(' / ')})`); ok(!r4.btnShown && r4.stillOn, "no 'Hop off' button on screen (still aboard until she picks Hop off in his menu)");
   // ---- the shot: her standing on his shell
   if (SHOT) { await p.evaluate(() => { MosbyTalk.close(); const E = Explore.EX, G = CharView.st.gnd, Rg = MosbyRide.region(), u = MosbyRide.um(); G.x = Rg.sx / u + 3; G.z = Rg.sz / u - 2; G.y = MosbyRide.hy(G.x, G.z); G.face = 2.4; E.d = 42; E.tilt = 0.3; E.az = 2.2; Mosby.GM.hold = false; __frame(40); /* he is walking */ }); await p.waitForTimeout(1500); await p.screenshot({ path: SHOT + '/mosby-ride-shell.png', timeout: 180000 }); }
   // ---- reload while riding: back on his shell
@@ -92,7 +92,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const r6 = await p.evaluate(() => { const GM = Mosby.GM, WS = Explore.WS; GM.hold = true; MosbyTalk.open(); const btn = document.querySelector('#mosDlg [data-a=hopoff]'); if (btn) btn.click(); const h = Explore.here(), o = { on: MosbyRide.on, ride: !!Explore.EX.ride, saved: S.mosbyRide, exp: Explore.on };
     const a = GM.yaw, dx = h[0] - GM.at.x, dy = h[1] - GM.at.y, lx = dx * Math.cos(a) - dy * Math.sin(a), lz = dx * Math.sin(a) + dy * Math.cos(a), s = GM.g.scale.x; o.fromMid = Math.hypot(dx, dy) / WS; o.ell = (lx / (Mosby.B.rx * s)) ** 2 + (lz / (Mosby.B.rz * s)) ** 2;
     o.flank = (Math.hypot(dx, dy) - Mosby.B.rx * s) / WS; o.safe = MosbyRide.safe(h[0], h[1]); o.wet = isWet(h[0], h[1], 0); const h0 = M3.meshH(h[0], h[1]); let mx = 0; for (let k = 0; k < 8; k++) { const q = k / 8 * Math.PI * 2; mx = Math.max(mx, Math.abs(M3.meshH(h[0] + Math.cos(q) * WS * 2, h[1] + Math.sin(q) * WS * 2) - h0)); } o.slope = Math.atan(mx / (WS * 2)) * 180 / Math.PI;
-    let foot = 1e9; for (const c of GM.col || []) foot = Math.min(foot, (Math.hypot(c.x - h[0], c.y - h[1]) - c.r) / WS); o.foot = foot; const G = CharView.st.gnd; o.onGround = G ? Math.abs(G.y - G.hy(G.x, G.z)) < 0.5 : false; o.btn = (() => { const e = document.getElementById('exHopBtn'); return !!e && e.style.display !== 'none'; })(); return o; });
+    let foot = 1e9; for (const c of GM.col || []) foot = Math.min(foot, (Math.hypot(c.x - h[0], c.y - h[1]) - c.r) / WS); o.foot = foot; const G = CharView.st.gnd; o.onGround = G ? Math.abs(G.y - G.hy(G.x, G.z)) < 0.5 : false; o.btn = (() => { const e = document.getElementById('exHopBtn'); return !!e && getComputedStyle(e).display !== 'none'; })(); return o; });
   console.log(JSON.stringify(r6));
   ok(!r6.on && !r6.ride && !r6.saved && r6.exp, "'Hop off' takes her down (riding state cleared)"); ok(!r6.btn, "the 'Hop off' button goes away");
   ok(r6.ell > 1 && r6.flank <= 15.5 && r6.foot > 1, `she lands beside him, not under him: ${r6.flank.toFixed(1)} m out from his flank, ${r6.foot.toFixed(1)} m from his nearest foot`);

@@ -20,15 +20,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(s0.sheetBag && !s0.sheetVault, 'the backpack sheet shows carried items only, never vault tethers or vault ore');
   await p.evaluate(() => Craft.sheet(false));
 
-  const x0 = await p.evaluate(async () => { CharView.openVault(); await new Promise((r) => setTimeout(r, 150)); const btn = document.querySelector('#modalBody [data-cx=xfer]');
-    if (btn) btn.click(); await new Promise((r) => setTimeout(r, 200));
+  const x0 = await p.evaluate(async () => { CharView.openVault(); await new Promise((r) => setTimeout(r, 200)); /* (t588u) the vault opens straight on Backpack ⇄ Vault */
     const root = document.querySelector('[data-cxv=xfer]'); const slot = root && root.querySelector('.cxs[data-w=vault][data-id="tether:mithril"]');
     if (slot) slot.click(); await new Promise((r) => setTimeout(r, 150));
     const menu = document.querySelector('#modalBody .cxmenu');
     return { modal: ui.modal, xfer: !!(root), menu: menu && menu.textContent.replace(/\s+/g, ' '), drop: !!document.querySelector('#modalBody .cxdrop'),
       mv: menu ? [...menu.querySelectorAll('[data-cx=mv]')].map((b) => b.textContent.trim()) : [] }; });
   console.log(JSON.stringify(x0));
-  ok(x0.modal === 'cx-xfer' && x0.xfer, 'the vault overview opens Backpack ⇄ Vault');
+  ok(x0.modal === 'cx-xfer' && x0.xfer, 'opening the vault shows Backpack ⇄ Vault directly');
   ok(!x0.drop && /m in Vault/.test(x0.menu || '') && x0.mv.some((t) => /All → Backpack/.test(t)), 'tapping a vault tether opens the transfer menu (length / all), not the drop-tether confirm');
   await shot('vault-xfer-tether.png');
 

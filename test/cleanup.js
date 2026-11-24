@@ -1,5 +1,5 @@
 // t569u cleanup + house placement rule (Dominic): no worn paths / trails (meshes, decals, terrain dips, map lines), no stacked-rock props, no plank walk
-// (scaffolding) on the cliff ledge, while the cliffs, climbs, caves, ledge trees, doors and bridges stay; houses only on flat grassland (< 15 deg across the
+// (scaffolding) on the cliff ledge; (t586u) no cliff-wall block formations, climbs, caves or ledge trees either; doors and bridges stay; houses only on flat grassland (< 15 deg across the
 // footprint, not mining ground or the forge's volcanic / scorched zone) - pre-placed ones on bad ground are deleted, a saved spot on bad ground is dropped.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html';
@@ -11,7 +11,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html';
     M3.scene.traverse((m) => { if (!m.isMesh) return; if (m.name) names[m.name] = (names[m.name] || 0) + 1; if (m.userData.path) { if (/^vrTread_/.test(m.name)) tread.push(m.name); else pathMeshes++; } });
     o.api = ['allPaths', 'genPaths', 'genBridgeWays', 'ledgeSpur', 'WAYS'].filter((k) => k in E).concat(['setPaths', 'pathDip'].filter((k) => k in M3)); o.pathMeshes = pathMeshes; o.tread = tread.sort();
     o.stack = M3.colliders().filter((c) => c.key === 'p_rStack').length + (M3.imStats ? M3.imStats().filter((q) => q[0] === 'rStack' || q[0] === 'p_rStack').length : 0);
-    o.walk = ['cliff_walk', 'cliff_rope', 'cliff_shelf'].map((k) => names[k] || 0); o.climbs = names.cliff_climb || 0; o.ledge = E.ORE.ledgeX; o.cliffs = E.ORE.cliffs.length; o.caves = ['cave0', 'cave1', 'cave2'].filter((k) => { let f = false; M3.scene.traverse((m) => { if (m.name === k) f = true; }); return f; }).length;
+    o.walk = ['cliff_walk', 'cliff_rope', 'cliff_shelf'].map((k) => names[k] || 0); o.climbs = names.cliff_climb || 0; o.cliffMesh = Object.keys(names).filter((k) => /^cliff_|^cave/.test(k)).map((k) => k + ':' + names[k]); o.cliffs = E.ORE.cliffs.length; o.cliffCols = M3.colliders().concat(...E.ORE.cliffs.map((c) => c.blk || [])).filter((c) => /^(cliff|ledgeTree)$/.test(c.key)).length; o.gone = ['caves', 'caveHit', 'genCaves', 'CAV'].filter((k) => k in E); o.steps = !!E.ORE.stepM === !!(E.NV && E.NV.steps && E.NV.steps.length); o.caves = ['cave0', 'cave1', 'cave2'].filter((k) => { let f = false; M3.scene.traverse((m) => { if (m.name === k) f = true; }); return f; }).length;
     o.doors = !!(typeof GRAND !== 'undefined' && GRAND.door) && (names.ledgeDoorOnHouse || 0) + 0 >= 0; o.bridges = E.BRIDGES.filter((q) => q.a && q.a[0] < 1e6).length; o.cross = E.BRIDGES.filter((q) => /cross5[012]/.test(q.id)).map((q) => q.id + ':' + (q.a[0] < 1e6 ? 'ok' : 'gone'));
     // the rule
     let sc = null; for (let x = 8000; x <= 10200 && !sc; x += 40) for (let y = 5000; y <= 7000 && !sc; y += 40) if (FORGE.scorched(x, y, 0)) sc = [x, y];
@@ -25,7 +25,7 @@ const URL = process.env.URL || 'http://localhost:8765/index.html';
   let bad = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) bad++; };
   ok(!R.api.length, 'no path API left (' + R.api.join(',') + ')'); ok(R.pathMeshes === 0, 'no worn-path meshes (' + R.pathMeshes + ')'); ok(R.tread.join() === 'vrTread_E-basin,vrTread_forge-switchback', 'only the E-basin scramble + forge switchback treads remain: ' + R.tread);
   ok(R.stack === 0, 'no stacked-rock props or colliders (' + R.stack + ')'); ok(R.walk.every((n) => !n), 'no plank walk / rope rail / stone shelf on the cliff ledge ' + R.walk);
-  ok(R.climbs === 3 && R.cliffs > 0 && R.caves === 3 && R.ledge.trees > 0 && R.ledge.tongues > 0, `cliffs ${R.cliffs}, climbs ${R.climbs}, caves ${R.caves}, ledge trees ${R.ledge.trees} / tongues ${R.ledge.tongues} kept`);
+  ok(R.climbs === 0 && R.cliffs === 0 && R.caves === 0 && !R.cliffMesh.length && !R.cliffCols && !R.gone.length, `no cliff-wall formations, climbs or caves (walls ${R.cliffs}, climbs ${R.climbs}, caves ${R.caves}, meshes ${R.cliffMesh}, colliders ${R.cliffCols}, API ${R.gone})`); ok(R.steps, 'the summit step stones stay');
   ok(R.bridges > 0 && R.cross.length === 3 && R.cross.every((q) => /ok$/.test(q)), `bridges kept (${R.bridges}; ${R.cross})`);
   ok(R.rule.scorch === 'scorch' && R.rule.mine === 'mine' && R.rule.slope === 'slope', 'houseGround rejects scorched / mining / sloped ground ' + JSON.stringify(R.rule));
   ok(R.rule.chkMine === 'mine' && /^(flat|mine|scorch)$/.test(R.rule.chkSlope) && /flat ground/.test(R.rule.msg), 'Mosby move check uses the rule');
