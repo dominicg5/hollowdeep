@@ -286,7 +286,7 @@ const CharView = (() => {
     px.userData.veinCol = C.clone(); if (px.userData.veins) px.userData.veins.color.copy(C);
     if (px.userData.light) px.userData.light.color.copy(C); if (px.userData.glow) px.userData.glow.material.map = onyxGlowTex(t);
     const fl = px.userData.flames, rb = px.userData.ribbons, grow = 1 + 0.035 * t;
-    if (fl) { const u = fl.material.uniforms; u.uC1.value.copy(C).multiplyScalar(0.85); u.uC2.value.copy(hot); u.uBig.value *= grow; }
+    for (const f of [fl, px.userData.torch]) if (f) { const u = f.material.uniforms; u.uC1.value.copy(C).multiplyScalar(0.85); u.uC2.value.copy(hot); u.uBig.value *= grow; }
     if (rb) { const u = rb.material.uniforms; u.uR1.value.copy(C).multiplyScalar(0.75); u.uR2.value.copy(C).lerp(hot, 0.5).multiplyScalar(0.55); u.uR3.value.copy(hot).multiplyScalar(0.5); u.uH.value = grow; }
     px.userData.fl = 1 + 0.04 * t; px.userData.sparkRGB = hot; // flicker rate (updatePickFx) and the impact sparks
     if (t === 10) { const bx = new THREE.Box3().setFromObject(px), r = prng(13), sp = [], seed = []; for (let i = 0; i < 28; i++) { sp.push(bx.min.x + r() * (bx.max.x - bx.min.x), bx.max.y - r() * (bx.max.y - bx.min.y) * 0.4 + 0.02, (r() - 0.5) * 0.09); seed.push(r()); }
@@ -480,7 +480,16 @@ const CharView = (() => {
       const sites = []; for (let i = 0; i < 18; i++) { const p = vc.getPointAt((i + 0.5) / 18); if (Math.abs(p.y) < 0.06) continue; sites.push([p, V(p.x - cur.getPointAt((i + 0.5) / 18).x, 0, p.z).normalize()]); } for (let i = 0; i < 8; i++) { const p = bl.getPointAt((i + 0.5) / 8); sites.push([p.clone().setZ(faceZ), V(0, 0, 1)]); sites.push([p.clone().setZ(-faceZ), V(0, 0, -1)]); }
       const fl = flamePoints(sites); px.add(fl); px.userData.fx.push(fl); px.userData.flames = fl; }
     return px; }
-  function updatePickFx(pk, t) { if (!pk) return; pk.getWorldQuaternion(_q2); _q2.invert(); const RR = st.explore && typeof M3 !== 'undefined' && M3.renderer ? M3.renderer : R; /* (map fix) size the points for the canvas actually drawing her */ for (const fx of pk.userData.fx) { const u = fx.material.uniforms; u.uTime.value = t * (pk.userData.fl || 1); u.uUp.value.set(0, 1, 0).applyQuaternion(_q2); u.uScale.value = RR ? RR.domElement.height / 2 : 400; }
+  /* (Dominic t614u) Ember Onyx flames whip around with the swing: the blade's world velocity (sampled two-thirds up the blade) gives a trail vector opposite the motion,
+     eased in fast and out slow; updatePickFx bends the flames' "up" toward it and stretches them with speed, then they settle back into the normal licking.
+     A few vector ops per frame per sword, no extra geometry or draw calls. Returns the trail in the sword's local frame (scaled: 1 = as strong as world-up). */
+  const _wp = new THREE.Vector3(), _wv = new THREE.Vector3();
+  function swWhip(sw, t) { const ud = sw.userData, P = sw.localToWorld(_wp.set(0, (ud.y0 || 0) + (ud.blade || 0.5) * 0.66, 0)), sc = sw.getWorldScale(_wv).x || 1, dt = t - (ud.wt ?? t); ud.wt = t;
+    const W = ud.wTr || (ud.wTr = new THREE.Vector3()), tg = _wv.set(0, 0, 0); if (ud.wP && dt > 0.001 && dt < 0.25 && sw.visible) tg.subVectors(ud.wP, P).multiplyScalar(0.55 / (dt * sc)).clampLength(0, 2.6);
+    ud.wP = (ud.wP || new THREE.Vector3()).copy(P); W.lerp(tg, 1 - Math.exp(-(dt > 0 ? dt : 0) * (tg.lengthSq() > W.lengthSq() ? 16 : 5)));
+    return W.lengthSq() > 1e-4 ? _wv.copy(W).applyQuaternion(_q2) : null; }
+  function updatePickFx(pk, t) { if (!pk) return; pk.getWorldQuaternion(_q2); _q2.invert(); const RR = st.explore && typeof M3 !== 'undefined' && M3.renderer ? M3.renderer : R; /* (map fix) size the points for the canvas actually drawing her */ const ud = pk.userData, wv = ud.whip ? swWhip(pk, t) : null; for (const fx of ud.fx) { const u = fx.material.uniforms; u.uTime.value = t * (ud.fl || 1); u.uUp.value.set(0, 1, 0).applyQuaternion(_q2); u.uScale.value = RR ? RR.domElement.height / 2 : 400;
+      if (ud.whip && ud.whip.includes(fx)) { const s = wv ? 1 + Math.min(1, wv.length() * 0.45) : 1; if (wv) u.uUp.value.add(wv).normalize(); if (u.uH) { if (fx.userData.b0 == null) fx.userData.b0 = u.uH.value; u.uH.value = fx.userData.b0 * s; } else { if (fx.userData.b0 == null) fx.userData.b0 = u.uBig.value; u.uBig.value = fx.userData.b0 * s; } } }
     if (pk.userData.veins) { if (pk.userData.veinCol) pk.userData.veins.color.copy(pk.userData.veinCol).multiplyScalar(0.9 + 0.1 * Math.sin(t * 5.3 * (pk.userData.fl || 1))); else pk.userData.veins.color.setRGB(1, 0.18 + 0.06 * Math.sin(t * 5.3), 0.07); }
     if (pk.userData.pulse) { const pp = 0.5 + 0.5 * Math.sin(t * 2.1); if (pk.userData.glow) pk.userData.glow.material.opacity = 0.55 + 0.4 * pp; if (pk.userData.light) pk.userData.light.intensity = 0.3 + 0.25 * pp; return; } // (Lumenite T10: a slow neon-red breath)
     if (pk.userData.glow) { const pg = 0.8 + 0.2 * Math.sin(t * 2.4) + 0.05 * Math.sin(t * 13); pk.userData.glow.material.opacity = 0.75 * pg; }
@@ -502,15 +511,19 @@ const CharView = (() => {
   const OUT_SW = OUT.clone(); OUT_SW.uniforms = { uW: { value: 0.0022 }, uC: OUT.uniforms.uC };
   // one Phong material per sword: atlas colour x tier recolour (mask), atlas normal (height baked), glow from the colour alpha
   function swMat(tx, o) { const m = new THREE.MeshPhongMaterial({ map: tx.c, normalMap: tx.n, specular: o.spec, shininess: o.shin, emissive: o.emis || 0, flatShading: !!o.flat });
-    const U = m.userData.U = { uM: { value: o.M || new THREE.Matrix3() }, uOff: { value: o.off || V(0, 0, 0) }, uEm: { value: o.em || new THREE.Color(0) }, uS0: { value: o.s0 ?? 0.3 }, uVein: { value: o.vein || null }, uVO: { value: o.vein ? 1 : 0 }, uFill: { value: o.fill || new THREE.Color(0) }, uFO: { value: o.fill ? 1 : 0 }, uRune: { value: tx.r || null }, uRO: { value: tx.r ? 1 : 0 } };
+    const U = m.userData.U = { uM: { value: o.M || new THREE.Matrix3() }, uOff: { value: o.off || V(0, 0, 0) }, uEm: { value: o.em || new THREE.Color(0) }, uS0: { value: o.s0 ?? 0.3 }, uVein: { value: o.vein || null }, uVO: { value: o.vein ? 1 : 0 }, uFill: { value: o.fill || new THREE.Color(0) }, uFO: { value: o.fill ? 1 : 0 }, uRune: { value: tx.r || null }, uRO: { value: tx.r ? 1 : 0 }, uRc: { value: o.rec || new THREE.Color(0) }, uRK: { value: o.rec ? 1 : 0 } };
     m.onBeforeCompile = (s) => { Object.assign(s.uniforms, U); s.fragmentShader = s.fragmentShader
-      .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nuniform mat3 uM; uniform vec3 uOff; uniform vec3 uEm; uniform float uS0; uniform sampler2D uVein; uniform float uVO; uniform vec3 uFill; uniform float uFO; uniform sampler2D uRune; uniform float uRO; vec4 swC; vec4 swN; float swT;')
+      .replace('#include <map_pars_fragment>', '#include <map_pars_fragment>\nuniform mat3 uM; uniform vec3 uOff; uniform vec3 uEm; uniform float uS0; uniform sampler2D uVein; uniform float uVO; uniform vec3 uFill; uniform float uFO; uniform sampler2D uRune; uniform float uRO; uniform vec3 uRc; uniform float uRK; vec4 swC; vec4 swN; float swT;')
       .replace('#include <map_fragment>', 'swC = texture2D(map, vUv); swN = texture2D(normalMap, vUv); swT = clamp((swN.a - 0.2) / 0.8, 0.0, 1.0);'
       /* (t611u) Rune: the glyph band comes from its own full-resolution strip (Art's 1024 px blade map) so the symbols stay sharp */
       + 'if (uRO > 0.5 && vUv.x < 0.5 && vUv.y > 0.5) { float swc = vUv.x * 1024.0, swr = (1.0 - vUv.y) * 1024.0, sv = (swr - 132.0) / 112.0; if (swc < 864.0 && sv > 0.0 && sv < 1.0) swC = mix(swC, texture2D(uRune, vec2(swc / 864.0, 1.0 - sv)), smoothstep(0.0, 0.08, sv) * smoothstep(1.0, 0.92, sv)); }'
       /* (t610u) Bronze - Gold: the pale untinted bleed the spine bevel and point sampled now takes the grade's own blade metal and its tier tint */
       + 'if (uFO > 0.5 && vUv.x < 0.5 && vUv.y > 0.5) { float k = 1.0 - smoothstep(0.3, 0.55, swN.a); swC.rgb = mix(swC.rgb, uFill * (0.8 + 0.4 * dot(swC.rgb, vec3(0.333))), k); swT = max(swT, k); }'
-      + 'vec3 swR = clamp(uM * swC.rgb + uOff, 0.0, 1.6); if (uVO > 0.5) swR *= texture2D(uVein, vUv * vec2(6.0, 3.0)).rgb; diffuseColor.rgb *= mix(swC.rgb, swR, swT);')
+      + 'vec3 swR = clamp(uM * swC.rgb + uOff, 0.0, 1.6);'
+      /* (t613u) Rune: the blade takes the rune pickaxe's tier ladder exactly - its blade colour (TIER_LOOK.rune.col, eased like tierHeadMat) times the painting's own
+         light / dark detail (0.25 = the painted metal's mean luminance), and the glyphs (atlas + rune_r strip, emissive mask = 1 - alpha) its rune glow colour */
+      + 'if (uRK > 0.5 && vUv.x < 0.5 && vUv.y > 0.5) { float l = dot(swC.rgb, vec3(0.299, 0.587, 0.114)) / 0.25, gm = clamp((1.0 - swC.a) * 1.6, 0.0, 1.0); swR = mix(uRc * clamp(l, 0.25, 2.2), uEm * clamp(0.55 + 0.5 * l, 0.0, 1.4), gm); swT = max(swT, gm); }'
+      + ' if (uVO > 0.5) swR *= texture2D(uVein, vUv * vec2(6.0, 3.0)).rgb; diffuseColor.rgb *= mix(swC.rgb, swR, swT);')
       .replace('#include <specularmap_fragment>', 'float specularStrength = mix(uS0, 1.0, swT);')
       .replace('#include <normal_fragment_maps>', 'vec3 mapN = swN.xyz * 2.0 - 1.0; mapN.xy *= normalScale; normal = perturbNormal2Arb(-vViewPosition, normal, mapN, faceDirection);')
       .replace('#include <emissivemap_fragment>', 'totalEmissiveRadiance = totalEmissiveRadiance * swT + uEm * (1.0 - swC.a) * 1.25;'); };
@@ -629,8 +642,8 @@ const CharView = (() => {
   // Ember Onyx outline, hand-drawn from Art's front ortho (Art's units: blade 100 = 1.25x the standard blade). Spine on -w. Body knapped along both edges; from ~62
   // up it splits into three: the long spine tooth (to 100), the shorter middle tooth (to ~95) and the short serrated edge strand (to ~78), as in the callout's front view
   const ONYX_POLY = [[-3.85, 0], [5.3, 0], [5.45, 6], [5.25, 12], [5.5, 19], [5.4, 26], [5.65, 33], [5.55, 40], [5.8, 47], [5.7, 53], [6.2, 58], [6.6, 61.5], [7.05, 64.5],
-    [7.25, 68.5], [7.0, 73], [6.7, 77.6], [6.25, 74.4], [6.0, 75.2], [5.8, 71.2], [5.45, 72.0], [5.15, 67.5], [4.75, 64.2],
-    [4.25, 70], [4.35, 77], [4.1, 83.5], [3.65, 89.5], [2.85, 95.3], [1.95, 90], [1.1, 84], [0.45, 78], [0.0, 73.5], [-0.45, 69.8],
+    [7.25, 68.5], [7.0, 71.5], [6.3, 73.5], [5.3, 75.5], [4.6, 78.5],
+    [4.25, 83.5], [3.7, 89.5], [2.85, 95.3], [1.95, 90], [1.1, 84], [0.45, 78], [0.0, 73.5], [-0.45, 69.8],
     [-1.15, 72.5], [-1.5, 77.5], [-1.85, 84], [-2.35, 91], [-2.75, 96], [-3.05, 100], [-3.4, 95], [-3.55, 90], [-3.75, 84], [-3.65, 77], [-3.9, 70], [-3.8, 62],
     [-3.95, 54], [-3.85, 46], [-4.0, 38], [-3.9, 30], [-4.0, 22], [-3.9, 14], [-3.95, 7]];
   const ONYX_GUARD = [[-5.3, 0], [5.3, 0], [5.5, 0.35], [10.3, 0.55], [11.9, 2.55], [11.5, 3.0], [5.5, 2.95], [5.3, 3.4], [-5.3, 3.4], [-5.5, 2.95], [-11.5, 3.0], [-11.9, 2.55], [-10.3, 0.55], [-5.5, 0.35]];
@@ -660,19 +673,24 @@ const CharView = (() => {
     // (t612u) the pickaxe's energy: its two-per-site ember tongues at the same size (uBig 1.3), plus its big curling flame licks (flameRibbons, the same shader)
     // rooted along the spine edge, up the ember seam between the teeth and off the edge strand, tallest low on the blade like the pick's core licks; a warm glow at the guard
     { const s0 = sites.length; for (let i = 0; i < s0; i++) { const [p, o] = sites[i]; sites.push([p.clone().add(V((r() - 0.5) * 0.012, 0.006, (r() - 0.5) * 0.008)), o]); } }
-    for (let i = 0; i < 6; i++) sites.push([V((r() - 0.5) * 0.006, yb - tl * (0.6 + r() * 0.4), (r() - 0.5) * 0.006), V(0, -1, 0)]);
+    const ts = []; for (let i = 0; i < 6; i++) ts.push([V((r() - 0.5) * 0.006, yb - tl * (0.6 + r() * 0.4), (r() - 0.5) * 0.006), V(0, -1, 0)]);
     const licks = [], at = (w, f) => V(w * K, y0 + f * K, 0);
-    for (const [f, H, Wd] of [[8, 0.22, 0.06], [27, 0.18, 0.05], [46, 0.15, 0.042], [65, 0.11, 0.032], [83, 0.08, 0.024]]) licks.push([at(-3.9, f), V(-0.55, 1, 0).normalize(), H, Wd]);
-    for (const [w, f, H, Wd] of [[0.6, 30, 0.13, 0.038], [-0.4, 66, 0.1, 0.03], [6.2, 55, 0.08, 0.026]]) for (const z of [-1, 1]) licks.push([at(w, f).setZ(z * (bg.userData.hAt(w, f) + 0.3) * K), V(0, 1, z * 0.5).normalize(), H, Wd]);
-    for (const z of [-1, 1]) licks.push([V(0, y0 + 2 * K, z * 0.012), V(0, 1, z * 0.3).normalize(), 0.22, 0.06]);
-    const fl = flamePoints(sites); fl.material.uniforms.uBig.value = 1.3; sw.add(fl); const rb = flameRibbons(licks); sw.add(rb); Object.assign(sw.userData, { flames: fl, ribbons: rb }); sw.userData.fx.push(fl, rb);
-    const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial('rgba(255,140,60,1)', 'rgba(255,60,20,.25)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); gl.scale.set(0.16, 0.16, 1); gl.position.set(0, y0 + 4 * K, 0); sw.add(gl); sw.userData.glow = gl;
+    for (const [f, H, Wd] of [[8, 0.11, 0.03], [27, 0.09, 0.025], [46, 0.075, 0.021], [65, 0.055, 0.016], [83, 0.04, 0.012]]) licks.push([at(-3.9, f), V(-0.55, 1, 0).normalize(), H, Wd]);
+    for (const [w, f, H, Wd] of [[0.6, 30, 0.065, 0.019], [-0.4, 66, 0.05, 0.015], [6.2, 55, 0.04, 0.013]]) for (const z of [-1, 1]) licks.push([at(w, f).setZ(z * (bg.userData.hAt(w, f) + 0.3) * K), V(0, 1, z * 0.5).normalize(), H, Wd]);
+    for (const z of [-1, 1]) licks.push([V(0, y0 + 2 * K, z * 0.012), V(0, 1, z * 0.3).normalize(), 0.11, 0.03]);
+    // (t613u) Dominic: about half that flame size down the blade - the licks' height + width and the ember tongues (uBig 1.3 -> 0.65) halved, same licking motion.
+    // The pommel's torch tongues are their own Points (sw.userData.hiltFx) so they keep burning while the sword is sheathed (t616u)
+    const fl = flamePoints(sites); fl.material.uniforms.uBig.value = 0.65; sw.add(fl); const rb = flameRibbons(licks); sw.add(rb); const tf = flamePoints(ts); tf.material.uniforms.uBig.value = 0.65; sw.add(tf);
+    Object.assign(sw.userData, { flames: fl, ribbons: rb, torch: tf, hiltFx: [tf], whip: [fl, rb, tf] }); sw.userData.fx.push(fl, rb, tf);
+    const gl = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial('rgba(255,140,60,1)', 'rgba(255,60,20,.25)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); gl.scale.set(0.11, 0.11, 1); gl.position.set(0, y0 + 4 * K, 0); sw.add(gl); sw.userData.glow = gl;
     onyxTint(sw, t); sw.userData.veins = null; void tn; return sw; }
   /* (Dominic t607u) back sheaths: one plain, solid scabbard per equipped sword - a tapered body in the grade's leather, a throat, a strap band and a chape in its
-     metal - strapped across the outside of her pack on the LEFT (the stowed pickaxe rides on her right), mouths up behind the left shoulder so the hilts stick out
+     metal - on her back between her and the pack (t615u), mouths up behind the left shoulder (the stowed pickaxe rides on her right) so the hilts stick out
      over it, the two side by side at slightly different slants (no crossing, no pick, pack, hat or hair in the way). Parented to the chest: rigid on her torso. */
   const SH_FIT = { stick: [0x5e4028, 0xa08050], bronze: [0x4a3020, 0xb07a3a], iron: [0x3a3430, 0x7c828a], steel: [0x2e3440, 0xb8c4cc], gold: [0x5a2a1e, 0xd8a838], mithril: [0x22304a, 0xbcd8f0], rune: [0x2a2240, 0x9a78e8], lumen: [0x1e3a40, 0xb08040], onyx: [0x1a1418, 0x8a5530] };
-  const SHEATH_AT = { R: { p: [0.1, 0.2, -0.36], rz: -0.42 }, L: { p: [0.165, 0.17, -0.398], rz: -0.55 } }; // chest space: +x her left, +z forward (the pack's back face is at z -0.33)
+  /* (Dominic t615u) on her back, not the pack: both scabbards lie flat against her back (its surface is at z ~-0.12 to -0.13 in chest space), parallel, 0.1 apart, leaning
+     a touch back toward the bottom to clear her hips; the pack moves back off her by PACK_PUSH while any sheath is on so they sit between her and the pack */
+  const SHEATH_AT = { R: { p: [0.07, 0.2, -0.153], rz: -0.45, rx: 0.035 }, L: { p: [0.16, 0.156, -0.153], rz: -0.45, rx: 0.035 } }, PACK_PUSH = 0.05; // chest space: +x her left, +z forward
   function makeSheath(sw) { const u = sw.userData, [bc, fc] = SH_FIT[u.grade] || SH_FIT.bronze, g = new THREE.Group(); g.name = 'sheath'; g.userData.fx = [];
     const L = u.blade + 0.012, w = u.bw + 0.014, th = 0.026, body = new THREE.MeshPhongMaterial({ color: bc, specular: 0x2a2420, shininess: 18 }), fit = new THREE.MeshPhongMaterial({ color: fc, specular: 0xfff0d8, shininess: 60 }), strap = new THREE.MeshPhongMaterial({ color: 0x2e2018, specular: 0x201810, shininess: 10 });
     const cyl = (r0, r1, h, y, m, k = 1) => part(g, new THREE.CylinderGeometry(r0, r1, h, 12), m, [0, y, 0], null, [w, 1, th * k]);
@@ -684,7 +702,7 @@ const CharView = (() => {
     const d = SW_DET[g], G = GRADES[g], kind = { mithril: 'dia', rune: 'rune', lumen: 'crys', onyx: 'onyx' }[g] || 'falc', ky = SW_K * (g === 'onyx' ? 1.25 : 1), y0 = SW_GB + (d.gtop - 0.4) * SW_K, tx = swTex(g), r = prng(61);
     const TL = TIER_LOOK[g], hm = TL ? tierHeadMat(g, t, G) : null, tn = swTint(g, t), em = g === 'rune' ? new THREE.Color(TL.glow[t]) : g === 'lumen' ? lumenCol(0x2ad4e4, t).multiplyScalar(0.9) : g === 'onyx' ? new THREE.Color(ONYX_TIER_HEX[t]) : new THREE.Color(0);
     const base = hm ? { spec: hm.specular, shin: hm.shininess, emis: hm.emissive, vein: hm.map, s0: 0.3 } : g === 'lumen' ? { spec: new THREE.Color(0xffffff), shin: 95, s0: 0.45 } : { spec: new THREE.Color(0x8a7c90), shin: 60, s0: 0.85 };
-    const SW_FILL = { bronze: 0x986e42, iron: 0x76787c, steel: 0x8c9095, gold: 0xbe8c32 }; if (SW_FILL[g]) base.fill = new THREE.Color(SW_FILL[g]);
+    const SW_FILL = { bronze: 0x986e42, iron: 0x76787c, steel: 0x8c9095, gold: 0xbe8c32 }; if (SW_FILL[g]) base.fill = new THREE.Color(SW_FILL[g]); if (g === 'rune') base.rec = hm.color.clone();
     const mat = swMat(tx, Object.assign({ M: tn.M, off: tn.off, em }, base)), matF = kind === 'crys' || kind === 'onyx' ? swMat(tx, Object.assign({ M: tn.M, off: tn.off, em, flat: 1 }, base)) : mat; if (hm) hm.dispose();
     sw.userData.blade = 100 * ky; sw.userData.y0 = y0; sw.userData.bw = Math.max(...d.st.flat().map((q) => q[2] - q[1])) * SW_K;
     const ink = (m) => { m.add(new THREE.Mesh(m.geometry, OUT_SW)); return m; }, mesh = (geo, m, o = {}) => part(sw, geo, m, null, null, null, { ink: false, shadow: o.shadow });
@@ -1792,11 +1810,12 @@ const CharView = (() => {
     WK.n++; }
   // put the wanted swords in her hands (Character screen rig only); the sword's grip centre on the palm, blade along the thumb side, edge toward the knuckles
   // (t607u) each equipped sword gets its sheath on her back; sheathed (SWG.sh) it rides in it, hilt up over the left shoulder; drawn, the sheath stays (empty)
-  function swHolster() { if (!rig) return; const b = rig.built; b.sheaths = b.sheaths || { R: null, L: null };
+  function swHolster() { if (!rig) return; const b = rig.built; b.sheaths = b.sheaths || { R: null, L: null }; holsterPack(b);
     for (const k of ['R', 'L']) { const sw = b.swords && b.swords[k]; let sh = b.sheaths[k]; if (sh && (!sw || sh.userData.sig !== sw.userData.sig)) { if (sh.parent) sh.parent.remove(sh); dropObj(sh); sh = b.sheaths[k] = null; }
-      if (sw && !sh) { sh = makeSheath(sw); sh.userData.sig = sw.userData.sig; const A = SHEATH_AT[k]; sh.position.set(...A.p); sh.rotation.set(0, 0, A.rz); rig.B.chest.add(sh); b.sheaths[k] = sh; }
-      if (!sw) continue; sw.traverse((o) => { if (o.isPoints || o === sw.userData.glow || o === sw.userData.ribbons) o.visible = !SWG.sh; }); /* (blade flames / glow / sparks stay in the scabbard) */ if (SWG.sh) { if (sw.parent !== sh) sh.add(sw); sw.position.set(0, sw.userData.y0, 0); sw.quaternion.setFromEuler(new THREE.Euler(Math.PI, 0, 0)); sw.visible = true; }
+      if (sw && !sh) { sh = makeSheath(sw); sh.userData.sig = sw.userData.sig; const A = SHEATH_AT[k]; sh.position.set(...A.p); sh.rotation.set(A.rx, 0, A.rz); rig.B.chest.add(sh); b.sheaths[k] = sh; }
+      if (!sw) continue; const hf = sw.userData.hiltFx || []; sw.traverse((o) => { if ((o.isPoints || o === sw.userData.glow || o === sw.userData.ribbons) && !hf.includes(o)) o.visible = !SWG.sh; }); /* (blade flames / glow / sparks stay in the scabbard; the hilt's own effects - the Onyx torch tongues (t616u), crystal / gem / rune glows (meshes) - keep going) */ if (SWG.sh) { if (sw.parent !== sh) sh.add(sw); sw.position.set(0, sw.userData.y0, 0); sw.quaternion.setFromEuler(new THREE.Euler(Math.PI, 0, 0)); sw.visible = true; }
       else if (sw.parent !== rig.B['hd' + k]) { rig.B['hd' + k].add(sw); sw.position.copy(sw.userData.hp[0]); sw.quaternion.copy(sw.userData.hp[1]); sw.visible = false; } } }
+  function holsterPack(b) { const pk = b.pack; if (!pk) return; if (pk.userData.z0 == null) pk.userData.z0 = pk.position.z; pk.position.z = pk.userData.z0 - (b.swords && (b.swords.R || b.swords.L) ? PACK_PUSH : 0); }
   function swSheathe(on) { if (!SOLO.on || !rig || !(SWG.R || SWG.L)) return; SWG.sh = !!on; if (on) { SWG.at = null; SWG.q = 0; } swHolster(); pvDraw(); }
   function swAttach() { if (!rig || !SOLO.on) return; const b = rig.built; b.swords = b.swords || { R: null, L: null };
     for (const k of ['R', 'L']) { const want = SWG[k], cur = b.swords[k], sig = want ? want.g + ':' + want.t : ''; if (cur && cur.userData.sig === sig) continue;
