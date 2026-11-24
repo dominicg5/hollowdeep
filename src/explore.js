@@ -790,7 +790,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function drillStep(dt) { const D = drillState(); if (!D) return; const h = dt / 3600e3, hs = CharView.homeState ? CharView.homeState() : null;
     for (const d of D.list) { if (d.camp) d.tier = (CharView.LG && CharView.LG.dg) || d.tier; if (d.port && hs && !d.camp && !hs.ports[d.port]) d.port = null; /* unplugged at the door */ const b = bitOf(d.tier), wired = !!d.port;
       const caps = wired ? drillCaps(d) : null;
-      if (wired && caps && caps.push > 0 && S.res && S.res.coal > 0) { const inc = Math.min(caps.push * h, S.res.coal, Math.max(0, DRILL.TANK - d.coal)); S.res.coal -= inc; d.coal += inc; } // coal arrives at the push rate; no instant top-up
+      if (wired && caps && caps.push > 0 && S.res && S.res.coal > 0) { const inc = Math.min(caps.push * h, S.res.coal, Math.max(0, DRILL.TANK - d.coal)); S.res.coal -= inc; d.coal += inc; } // coal arrives at the push rate; no instant top-up (VAULT-OK: the Ledge Tether draw, the one remote vault take)
       const okBit = d.tier && b && b.min >= (ORE_MIN[d.type] || 0), flow = okBit ? drillFlow(d) : null, wantH = flow ? flow.oreH : 0, wantBurn = flow ? flow.coalH : 0;
       if (!okBit || (wantH <= 0 && wantBurn <= 0) || (!wired && d.hop >= DRILL.HOP)) { d.on = false; continue; }
       const run = wantBurn > 0 ? Math.min(h, d.coal / wantBurn) : 0; d.on = run > 0; if (!d.on) continue; d.coal = Math.max(0, d.coal - wantBurn * run); if (d.coal < 1e-6) d.on = false; d.acc += wantH * run; const n = Math.floor(d.acc); if (!n) continue; d.acc -= n; d.mined = (d.mined || 0) + n;
@@ -811,7 +811,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     const pl = drillPlace(n); if (pl.err === 'range') { if (typeof toast === 'function') toast('Move the stand — that vein is outside the drill\'s pitch range (−60° to +15°)'); return null; }
     const standId = takeStandPref(opt.stand); if (!standId) { if (typeof toast === 'function') toast('Need a drill stand'); return null; }
     const bit = takeBitPref(opt.bit || D.bit || 'mithril'); if (!bit) { giveBack(standId, true); if (typeof toast === 'function') toast('Need a drill bit'); return null; }
-    const fill = Math.min(DRILL.FILL, Math.floor(S.res.coal || 0)); S.res.coal -= fill;
+    const fill = Math.min(DRILL.FILL, Craft.get('bag', 'ore:coal')); if (fill > 0) Craft.add('bag', 'ore:coal', -fill); /* (t591u: the first fill comes from the backpack, never the vault) */
     const d = { id: 'd' + D.nid++, node: i, spot: n.spot.id, type: n.type, name: ORE_LOOK[n.type].name + ' drill #' + (D.nid - 1), tier: bit, stand: 'drill', coal: fill, hop: 0, acc: 0, port: null, len: 0, t: S.gameTime, yaw: pl.yaw, pitch: pl.pitch, sx: pl.x, sy: pl.y };
     D.bit = bit; D.list.push(d); syncLeft(D); drillHud(); if (typeof save === 'function') save(); return d; }
   // a landed strike's ore goes to the backpack, as much as fits (500 per slot); when it is full she stops with a clear message (the rest of that strike stays in the rock)
@@ -884,7 +884,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
   function drillAct(d, k, v) { if (!d) return; if (k === 'x' || v === 'x') { if (DRILL.view) { DRILL.view = ''; drillUseUI(); return; } return drillClose(); }
     if (v === 'swap') DRILL.view = 'swap'; else if (v === 'tset') DRILL.view = 'tether'; else if (v === 'back') DRILL.view = '';
     else if (k === 'bit') drillSwapBit(d, v); else if (k === 'pitch') drillPitch(d, v === '+' || v === '1' ? 1 : -1);
-    else if (v === 'fuel') { const f = Math.min(DRILL.TANK - d.coal, Math.floor(S.res.coal || 0), DRILL.FILL); S.res.coal -= f; d.coal += f; }
+    else if (v === 'fuel') { const f = Math.min(DRILL.TANK - d.coal, Craft.get('bag', 'ore:coal'), DRILL.FILL); if (f > 0) { Craft.add('bag', 'ore:coal', -f); d.coal += f; } else if (typeof toast === 'function') toast('No coal in the backpack'); } /* (t591u: backpack coal only) */
     else if (v === 'collect') { const got = Craft.add('bag', 'ore:' + d.type, d.hop); if (got) { if (typeof Skills !== 'undefined') Skills.awardMine(d.type, got); d.hop = 0; } else if (typeof toast === 'function') toast(BAG_FULL.replace(' to keep mining', '')); }
     else if (v === 'wire') drillWire(d, !d.port); else if (v === 'takebit') drillTakeBit(d);
     else if (v === 'up') { if (drillPickUp(d) === false) return false; return drillClose(); }

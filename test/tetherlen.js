@@ -62,7 +62,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // leave her with a short coil that cannot cover the route
     for (const id of Object.keys(Craft.ITEMS)) if (Craft.ITEMS[id].kind === 'teth') {
       const b = Craft.get('bag', id), v = Craft.get('vault', id);
-      if (b) Craft.add('bag', id, -b); if (v) Craft.add('vault', id, -v);
+      if (b) Craft.add('bag', id, -b); if (v) Craft.tetherDraw(() => Craft.add('vault', id, -v)); /* (test setup: away from the vault screen only a tether draw takes from the vault) */
     }
     Craft.add('bag', 'tether:mithril', 100);
     const owned = Object.keys(Craft.ITEMS).filter((id) => Craft.ITEMS[id].kind === 'teth').reduce((a, id) => a + Craft.have(id), 0);

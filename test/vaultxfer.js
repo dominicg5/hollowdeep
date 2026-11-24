@@ -20,7 +20,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(s0.sheetBag && !s0.sheetVault, 'the backpack sheet shows carried items only, never vault tethers or vault ore');
   await p.evaluate(() => Craft.sheet(false));
 
-  const x0 = await p.evaluate(async () => { CharView.openVault(); await new Promise((r) => setTimeout(r, 200)); /* (t588u) the vault opens straight on Backpack ⇄ Vault */
+  const x0 = await p.evaluate(async () => { const WS = Explore.WS, h = Explore.here(); TetherTap.openVault({ kind: 'drop', name: 'test drop', pts: [[h[0], h[1]], [h[0] + WS, h[1]]] }); await new Promise((r) => setTimeout(r, 200)); /* (t588u) the vault opens straight on Backpack ⇄ Vault; (t591u) opened through a real vault access point (a drop tether at her feet, within its range) so withdrawals are allowed */
     const root = document.querySelector('[data-cxv=xfer]'); const slot = root && root.querySelector('.cxs[data-w=vault][data-id="tether:mithril"]');
     if (slot) slot.click(); await new Promise((r) => setTimeout(r, 150));
     const menu = document.querySelector('#modalBody .cxmenu');

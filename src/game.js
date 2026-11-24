@@ -204,7 +204,9 @@ function storageCap() { const c = CONFIG.storage; return Math.floor(c.base * Mat
 function protectedShare() { const c = CONFIG.storage; return clamp(c.protectBase + c.protectPerLevel * (S.buildings.storehouse - 1) + CONFIG.vault.protectPerLevel * (S.buildings.vault || 0), 0, 0.85); }
 function addRes(k, n) { S.res[k] = clamp((S.res[k] || 0) + n, 0, storageCap()); }
 function canAfford(cost) { return Object.keys(cost).every((k) => (S.res[k] || 0) >= cost[k] - 1e-9); }
-function pay(cost) { if (!canAfford(cost)) return false; for (const k in cost) S.res[k] -= cost[k]; return true; }
+// (t591u, Dominic: the vault rule) iron ore, coal and steel live in the Ledge Vault (S.res): no remote cost, sale, raid or building may take them away
+const vaultRes = (k) => k === 'iron' || k === 'coal' || k === 'steel';
+function pay(cost) { if (!canAfford(cost)) return false; if (Object.keys(cost).some((k) => vaultRes(k) && cost[k] > 0)) { toast('🔒 That needs vault stock: take it out at the vault first'); return false; } for (const k in cost) S.res[k] -= cost[k]; return true; }
 function liftReach() { return Math.min(CONFIG.lift.maxReach, S.buildings.lift + 1); }      // deepest layer outposts can anchor
 function expeditionReach() { return Math.min(CONFIG.layers.length, liftReach() + 1); }       // hero can scout one layer deeper
 function liftCapacity() { return CONFIG.lift.capacityPerLevel * S.buildings.lift; }
@@ -581,9 +583,10 @@ function marketBuy(k, lot, mult) {
   addRes(k, lot); toast(`🏪 Bought ${lot} ${CONFIG.resources[k].icon} for ${price} 👑`); return true;
 }
 function marketSell(k, lot, mult) {
+  if (vaultRes(k)) return toast('🔒 Sell vault stock from the vault');
   if ((S.res[k] || 0) < lot) return toast(`You need ${lot} ${CONFIG.resources[k].name}`);
   const gain = Math.floor(CONFIG.market.prices[k] * lot * mult);
-  S.res[k] -= lot; addRes('crowns', gain); toast(`🏪 Sold ${lot} ${CONFIG.resources[k].icon} for ${gain} 👑`); return true;
+  S.res[k] -= lot; /* VAULT-OK: vault stock refused above */ addRes('crowns', gain); toast(`🏪 Sold ${lot} ${CONFIG.resources[k].icon} for ${gain} 👑`); return true;
 }
 
 function scheduleNextRaid() { const [a, b] = CONFIG.raids.intervalHours; S.nextRaidAt = S.gameTime + rand(a, b) * HOUR; }
@@ -612,7 +615,7 @@ function aiRaid() {
   const stars = starsFor(atk / def), lost = {}, gained = {};
   if (stars > 0) {
     const share = R.lootPct * stars / 3, prot = protectedShare();
-    for (const k of ['crowns', 'stone', 'lumen', 'steel', 'timber']) { const n = Math.floor(S.res[k] * (1 - prot) * share); if (n > 0) { lost[k] = n; S.res[k] -= n; } }
+    for (const k of ['crowns', 'stone', 'lumen', 'timber']) /* (steel is vault stock: never looted) */ { const n = Math.floor(S.res[k] * (1 - prot) * share); if (n > 0) { lost[k] = n; S.res[k] -= n; /* VAULT-OK: no vault stock in this list */ } }
   } else {
     gained.crowns = Math.round(40 + atk * 1.5); gained.stone = Math.round(atk); grantLoot(gained); S.stats.defended++;
   }
@@ -632,7 +635,7 @@ function step(dt) {
   const press = Math.min(S.res.moss, H.mossPress * lv * h); if (press > 0) { S.res.moss -= press; addRes('lumen', press / 3); }
   if (S.buildings.forge > 0) {
     const n = Math.min(CONFIG.forgePerLevel * S.buildings.forge * h, S.res.iron / 2, S.res.coal);
-    if (n > 0) { S.res.iron -= 2 * n; S.res.coal -= n; addRes('steel', n); }
+    if (n > 0 && false) { /* (t591u: the old forge building no longer turns vault iron + coal into steel remotely) */ }
   }
   if (heroHome()) gainXp(CONFIG.trainingPerLevel.sparXp * S.buildings.training * h);
   if (S.build && S.gameTime >= S.build.end) {
