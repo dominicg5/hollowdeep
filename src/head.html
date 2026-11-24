@@ -152,6 +152,8 @@ body.cvSolo #cityWrap{display:none}
 #charWrap.solo.pv #pvPanel{display:block;position:absolute;left:8px;right:8px;bottom:8px;z-index:4;padding:8px;border-radius:14px;background:rgba(255,248,236,.95);box-shadow:0 4px 14px rgba(0,0,0,.25)}#charWrap.solo.pv #charPick,#charWrap.solo.pv #charHint{display:none}
 #pvPanel .pvh{display:flex;align-items:center;gap:8px;margin-bottom:6px;color:#4a2e1a;font:600 14px system-ui}#pvPanel .pvh .ic{width:44px;height:44px;flex:none;display:block}#pvPanel .pvh .ic>*{width:44px;height:44px}#pvPanel .pvh b{flex:1;min-width:0}#pvPanel .pvh small{display:block;font-weight:400;font-size:11px;opacity:.75}
 #pvPanel .pvh button{height:40px;border:0;border-radius:12px;background:#4a2e1a;color:#ffe9c4;font:600 12px system-ui;padding:0 10px;flex:none}
+#swAtk{display:none}#charWrap.solo.sw #swAtk{display:block;position:absolute;top:168px;left:12px;z-index:3;height:44px;border:0;border-radius:18px;background:#8a2a1e;color:#ffe9c4;font:700 14px system-ui;padding:0 16px;cursor:pointer}
+#pvPanel .pvk,#pvPanel .pva{display:grid;gap:4px;margin-bottom:6px}#pvPanel .pvk{grid-template-columns:1fr 1fr}#pvPanel .pva{grid-template-columns:repeat(4,1fr);margin:6px 0 0}#pvPanel .pvk button,#pvPanel .pva button{min-height:44px;min-width:0;border:1px solid rgba(74,46,26,.25);border-radius:10px;background:#fff8ec;color:#4a2e1a;font:600 12px system-ui;padding:2px;cursor:pointer}#pvPanel .pva button:disabled{opacity:.35}#pvPanel [data-swatk]{background:#8a2a1e;color:#ffe9c4}
 #pvPanel .pvg{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:6px}#pvPanel .pvt{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
 #pvPanel .pvg button,#pvPanel .pvt button{min-height:44px;min-width:0;border:1px solid rgba(74,46,26,.25);border-radius:10px;background:#fff8ec;color:#4a2e1a;font:600 12px system-ui;padding:2px;cursor:pointer}#pvPanel button.on{background:#4a2e1a;color:#ffe9c4}#pvPanel .pvt button:disabled{opacity:.35}
 #charWrap{position:fixed;left:0;right:0;top:96px;bottom:64px;z-index:5;overflow:hidden;background:#e9c99a}#charWrap.hidden{display:none}
@@ -385,7 +387,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 
 /* Art's inventory atlas + HUD / map / drill icons */
 .cxsv.cxico{display:block;aspect-ratio:1/1;background-image:url(assets/ui/icons/items.webp);background-repeat:no-repeat;background-size:calc(var(--icols,9)*100%) calc(var(--irows,8)*100%);background-position:calc(var(--ix)*100% / (var(--icols,9) - 1)) calc(var(--iy)*100% / (var(--irows,8) - 1));filter:none}
-.cxsv.cxico.cxpt{background-size:1000% 100%;background-position:calc(var(--ix)*100% / 9) 0}
+.cxsv.cxico.cxpt{background-size:1000% 100%;background-position:calc(var(--ix)*100% / 9) 0}.cxsv.cxico.cxst{background-size:1100% 100%;background-position:calc(var(--ix)*100% / 10) 0}
 .kKit .cxct,#bagSheet .cxct{left:50%;right:auto;bottom:3px;transform:translateX(-50%);padding:0 5px;border-radius:6px;background:linear-gradient(#fcf2da,#e6cfa0);color:#2a160a;font:700 10.5px Georgia,serif;line-height:15px;text-shadow:none;white-space:nowrap;box-shadow:0 0 0 1px #8a6234,0 1px 2px rgba(0,0,0,.5)}
 .kKit .cxct.m,#bagSheet .cxct.m{background:linear-gradient(#e7f3c8,#c5d98a);box-shadow:0 0 0 1px #5a7a32,0 1px 2px rgba(0,0,0,.5)}
 #exBagBtn,#exMapBtn,#exSkillsBtn,#drillHud .dh{width:64px;height:64px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none;font-size:0;padding:0}
@@ -870,7 +872,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
   </div>
   <div id="cityWrap"></div>
   <div id="charWrap" class="hidden"><canvas id="charCanvas" aria-label="Your character"></canvas>
-    <button id="pvBtn" type="button" aria-label="Try any pickaxe (preview only)">⛏️ Try pickaxes</button><div id="pvPanel" aria-label="Pickaxe viewer: preview only"></div>
+    <button id="pvBtn" type="button" aria-label="Try any pickaxe or sword (preview only)">⛏️⚔️ Try gear</button><button id="swAtk" type="button" aria-label="Attack with the sword in hand">⚔️ Attack</button><div id="pvPanel" aria-label="Pickaxe viewer: preview only"></div>
     <div id="charTop"><b>Your Character</b><div id="charSex"><button data-sex="m">Male</button><button data-sex="f">Female</button></div></div>
     <div id="charAnim" role="tablist" aria-label="Animation preview"><button data-anim="idle" class="on">Idle</button><button data-anim="run">Run</button><button data-anim="mine">Mine</button><button data-anim="climb">Climb</button><button data-anim="play" title="Playground: tap the ground or the wall to move there">Playground</button></div>
     <div id="charClimb" class="off" aria-label="Movement: tap to move"><div class="gait"><button data-gait="walk" title="Walk on the ground">Walk</button><button data-gait="run" class="on" title="Run on the ground">Run</button></div><button data-dir="stop" class="auto" title="Stop where you are (holds you mid-rope too)">Stop</button><div class="tvb" data-m="go"><button data-tv="go" title="Anchor the Tether and rappel down">Rappel</button></div><div class="cnote" aria-live="polite"></div></div>

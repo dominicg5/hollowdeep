@@ -20,6 +20,10 @@ const Craft = (() => {
   const FULL = '🎒 Backpack full'; const fullMsg = (m) => { if (typeof toast === 'function') toast(m || FULL); return false; };
   // Theus's tiered pickaxe (Dominic: the tier lives on the item): one per kind at most, its own id (never a plain pickaxe, never payment); its tier is S.tpicks[kind] while it exists
   TIERS.forEach(([k, n, c], i) => { ITEMS['tool:tpick_' + k] = { name: n + ' Pickaxe (tiered)', short: n, emoji: '⛏️', col: c, kind: 'tool', tool: 'pick', tier: i, grade: k, tiered: true }; });
+  // swords (Dominic via Art): one per grade, its tier lives on the item (S.tswords[grade], T0..T10). Held in either hand from the Character screen.
+  // Stat plan (design only, not wired yet): a sword tier step = the pickaxe tier step +50%; strength + accuracy come from the sword, defence from an off-hand shield.
+  TIERS.forEach(([k, n, c], i) => { ITEMS['tool:sword_' + k] = { name: n + ' Sword', short: n, emoji: '🗡️', col: c, kind: 'tool', tool: 'sword', tier: i, grade: k, sword: true }; });
+  const SWORD_STAT_PLAN = { tierStepK: 1.5, sword: ['strength', 'accuracy'], shield: ['defence'] };
   for (const [k, n, c] of TIERS) ITEMS['tether:' + k] = { name: n + ' Ledge Tether', short: n + ' Tether', emoji: '🪢', col: c, kind: 'teth', tool: 'lifeline', unit: 'm', grade: k }; // coils measured in metres: lay drop tethers, upgrade / swap strands (Tether Orb)
   // drill split: one Drill Stand (no material tiers) plus a swappable bit (8 tiers). The old 'drill:mithril' id is kept only so a leftover count still migrates; it is not seeded or shown once empty.
   const STAND_ID = 'stand:drill', STAND_OLD = ['stand:timber', 'stand:iron', 'stand:brass', 'stand:lumenite'];
@@ -359,5 +363,7 @@ const Craft = (() => {
     else if (a === 'buy') { if (buy(id, 1) && typeof toast === 'function') toast(`💠 Bought ${nm(id)}`); }
     else if (a === 'skwear') { if (skinWear(t.dataset.kind, t.dataset.g) && typeof toast === 'function') toast(`✨ Wearing ${SKIN_NAME(t.dataset.kind, t.dataset.g)}`); }
     refresh(); });
-  return { SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  function swordTier(g) { return typeof S !== 'undefined' && S && S.tswords ? Math.max(0, Math.min(10, Math.floor(S.tswords[g] || 0))) : 0; }
+  const swordOwned = (g) => have('tool:sword_' + g) > 0;
+  return { SWORD_STAT_PLAN, swordTier, swordOwned, SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();
