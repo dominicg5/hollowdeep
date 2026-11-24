@@ -21,9 +21,9 @@ const Craft = (() => {
   // Theus's tiered pickaxe (Dominic: the tier lives on the item): one per kind at most, its own id (never a plain pickaxe, never payment); its tier is S.tpicks[kind] while it exists
   TIERS.forEach(([k, n, c], i) => { ITEMS['tool:tpick_' + k] = { name: n + ' Pickaxe (tiered)', short: n, emoji: '⛏️', col: c, kind: 'tool', tool: 'pick', tier: i, grade: k, tiered: true }; });
   // swords (Dominic via Art): one per grade, its tier lives on the item (S.tswords[grade], T0..T10). Held in either hand from the Character screen.
-  // Stat plan (design only, not wired yet): a sword tier step = the pickaxe tier step +50%; strength + accuracy come from the sword, defence from an off-hand shield.
   TIERS.forEach(([k, n, c], i) => { ITEMS['tool:sword_' + k] = { name: n + ' Sword', short: n, emoji: '🗡️', col: c, kind: 'tool', tool: 'sword', tier: i, grade: k, sword: true }; });
-  const SWORD_STAT_PLAN = { tierStepK: 1.5, sword: ['strength', 'accuracy'], shield: ['defence'] };
+  // (the stat plan stub is replaced by the combat engine: src/combat.js holds the grade / tier tables, Combat.SWORD_PAIR / TIER_STEP / SWORD_UNLOCK)
+  const SWORD_STAT_PLAN = { get pair() { return typeof Combat !== 'undefined' ? Combat.SWORD_PAIR : null; }, get tierStep() { return typeof Combat !== 'undefined' ? Combat.TIER_STEP : null; }, get unlock() { return typeof Combat !== 'undefined' ? Combat.SWORD_UNLOCK : null; } };
   for (const [k, n, c] of TIERS) ITEMS['tether:' + k] = { name: n + ' Ledge Tether', short: n + ' Tether', emoji: '🪢', col: c, kind: 'teth', tool: 'lifeline', unit: 'm', grade: k }; // coils measured in metres: lay drop tethers, upgrade / swap strands (Tether Orb)
   // drill split: one Drill Stand (no material tiers) plus a swappable bit (8 tiers). The old 'drill:mithril' id is kept only so a leftover count still migrates; it is not seeded or shown once empty.
   const STAND_ID = 'stand:drill', STAND_OLD = ['stand:timber', 'stand:iron', 'stand:brass', 'stand:lumenite'];
@@ -283,6 +283,8 @@ const Craft = (() => {
     o.push(['Held', (it.unit === 'm' ? fmtN(c) + ' m' : '×' + fmtN(c)) + ' in ' + where]);
     const tn = it.climbGear ? '' : TIER_N(it); if (tn) o.push(['Tier', tn]); if (it.climbGear) o.push(['Look', SKIN_NAME(it.tool === 'climb' ? 'climb' : 'tlink', S[it.tool === 'climb' ? 'climbGrade' : 'tetherGrade'] || SKIN_BASE[it.tool === 'climb' ? 'climb' : 'tlink'])]);
     if (it.tiered && typeof Skills !== 'undefined' && Skills.multLabel) { const t = pickTier(it.grade); o.push(['Upgrade', 'T' + t + ' \u00b7 ' + Skills.multLabel(Skills.tierMult(t)) + ' mining']); }
+    if (it.sword && typeof Combat !== 'undefined') { const t = it.grade === 'stick' ? 0 : swordTier(it.grade), a = Combat.fmt(Combat.swordStats(it.grade, t)), p = Combat.fmt(Combat.pairStats(it.grade, t)); // (combat design) per sword + the L + R pair
+      o.push(['Sword T' + t, 'Str ' + a.str + ' \u00b7 Acc ' + a.acc + ' \u00b7 HP ' + a.hp]); o.push(['Pair (L+R)', 'Str ' + p.str + ' \u00b7 Acc ' + p.acc + ' \u00b7 HP ' + p.hp]); o.push(['Equip', 'Combat Lv ' + Combat.swordUnlock(it.grade) + (Combat.canEquip(it.grade) ? '' : ' (\ud83d\udd12 locked)')]); }
     if (it.kind && KIND_N[it.kind]) o.push(['Kind', KIND_N[it.kind]]);
     if (it.kind === 'tool' && EQUIP[it.tool]) o.push(['Slot', EQUIP[it.tool][2]]);
     if (it.kind === 'bit' && typeof Explore !== 'undefined' && Explore.BITS) { const b = Explore.BITS.find((q) => q.k === it.grade); if (b) { o.push(['Rate', '1/3 of your ore/h on that ore']); o.push(['Burn', b.burn + ' coal/h']); const need = Explore.bitPushNeed && Explore.bitPushNeed(it.grade); if (need) o.push(['Push strand', 'Needs ' + need.name + ' Ledge Tether (' + need.burn + ' coal/h)']); } }
@@ -291,6 +293,7 @@ const Craft = (() => {
   function itemBlurb(id, w) {
     const it = ITEMS[id] || {}; const req = it.kind === 'tool' && it.tool === 'pick' ? ` Mining Lv ${pickNeed(id)} to equip${pickLocked(id) && !equipped(id) ? ` (🔒 Unlock Lv ${pickNeed(id)})` : ''}.` : '';
     if (req) return (it.tiered ? 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Ledgeville Exchange (the shop will not buy it).' : 'Equip it to mine ore out on the map.') + req;
+    if (it.sword) return 'Hold two in the Character screen (\u2694\ufe0f Swords): each sword carries half its grade\u2019s Strength / Accuracy / HP, the pair sums them. Combat Lv ' + (typeof Combat !== 'undefined' ? Combat.swordUnlock(it.grade) : 1) + ' to equip.';
     if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then swap or pick up the bit at the drill itself.';
     if (it.kind === 'teth') return 'The same braid as the door tethers. Lay a drop tether from the backpack on the map, or use the coil to upgrade a strand.';
     if (it.kind === 'bit') return 'Fits any placed stand. Swap or pick it up at the drill itself.';
@@ -480,5 +483,5 @@ const Craft = (() => {
     refresh(); });
   function swordTier(g) { return typeof S !== 'undefined' && S && S.tswords ? Math.max(0, Math.min(10, Math.floor(S.tswords[g] || 0))) : 0; }
   const swordOwned = (g) => have('tool:sword_' + g) > 0;
-  return { recLv, recLocked, noteList, noteCancel, atVault, VBLOCK, tetherDraw, moleDraw, isNote, noteOf, noteDef, noteCount, carried, takeCarried, SWORD_STAT_PLAN, swordTier, swordOwned, SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, BATCH_MS, BQ, JOB, batchStart, batchStop, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { itemStats, itemBlurb, recLv, recLocked, noteList, noteCancel, atVault, VBLOCK, tetherDraw, moleDraw, isNote, noteOf, noteDef, noteCount, carried, takeCarried, SWORD_STAT_PLAN, swordTier, swordOwned, SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, BATCH_MS, BQ, JOB, batchStart, batchStop, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();

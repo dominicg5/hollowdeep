@@ -80,8 +80,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(WH.swing > 25 && WH.rest < 8 && WH.big < 0.9, 'Ember Onyx flames whip behind the blade mid-swing and ease back to licking upright at rest, at the halved size ' + JSON.stringify(WH));
   // a sword she owns at its own tier is a real equip (saved); a preview never touches the save
   const O = await p.evaluate(async () => { Craft.add('bag', 'tool:sword_gold', 1); S.tswords = { gold: 4 }; const t = (s) => document.querySelector(s).click(); const w = () => new Promise((r) => setTimeout(r, 120));
-    t('#pvPanel [data-swg="gold"]'); await w(); t('#pvPanel [data-swt="4"]'); await w(); t('#pvPanel [data-swh="R"]'); await w(); const a = S.swordR, h = document.querySelector('#pvPanel .pvh small').textContent;
-    t('#pvPanel [data-swg="iron"]'); await w(); t('#pvPanel [data-swt="2"]'); await w(); t('#pvPanel [data-swh="R"]'); await w(); return { a, h, b: S.swordR, now: CharView.sw.R }; });
+    /* (combat design) at Combat Lv 1 the Gold sword (Lv 45) is locked: holding it is only a preview, the save keeps no Gold sword; at Lv 45 it equips for real */ const lv0 = Combat.level();
+    t('#pvPanel [data-swg="gold"]'); await w(); t('#pvPanel [data-swt="4"]'); await w(); t('#pvPanel [data-swh="L"]'); await w(); const lock = { lv: lv0, L: S.swordL || null, real: CharView.sw.L && CharView.sw.L.real, h: document.querySelector('#pvPanel .pvh').textContent }; Combat.setLevel(45);
+    t('#pvPanel [data-swh="R"]'); await w(); const a = S.swordR, h = document.querySelector('#pvPanel .pvh small').textContent;
+    t('#pvPanel [data-swg="iron"]'); await w(); t('#pvPanel [data-swt="2"]'); await w(); t('#pvPanel [data-swh="R"]'); await w(); return { lock, a, h, b: S.swordR, now: CharView.sw.R }; });
+  ok(O.lock.lv === 1 && O.lock.L !== 'gold' && O.lock.real === false && /Unlock Lv 45/.test(O.lock.h) && /This sword: Str 10 · Acc 10 · HP 16 · Pair/.test(O.lock.h), 'sword equip lock (combat design): at Combat Lv 1 her own Gold sword (Lv 45) only previews ("Unlock Lv 45", save untouched); the viewer shows each sword\'s Str / Acc / HP and the pair ' + JSON.stringify(O.lock));
   ok(O.a === 'gold' && !/preview/.test(O.h) && O.b === 'gold' && O.now.g === 'iron', 'owned Gold sword T4 equips for real (saved); an Iron T2 preview leaves the save alone ' + JSON.stringify(O));
   await tap('#pvPanel [data-swclr]'); await p.waitForTimeout(1600);
   const C = await p.evaluate(() => ({ sw: CharView.sw, R: CharView.rig.built.swords.R, L: CharView.rig.built.swords.L, tool: CharView.st.tool, cls: document.getElementById('charWrap').classList.contains('sw') }));

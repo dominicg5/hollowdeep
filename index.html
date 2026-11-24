@@ -900,7 +900,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='a1dfb819';
+<script>window.HD_BUILD='237ca4fd';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -922,8 +922,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a1dfb819</div>
-<script src="assets/vendor/three.min.js?v=a1dfb819"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 237ca4fd</div>
+<script src="assets/vendor/three.min.js?v=237ca4fd"></script>
 <script>
 'use strict';
 
@@ -1107,6 +1107,7 @@ function newState() {
     res: Object.assign({}, CONFIG.start), buildings, build: null,
     hero: { level: 1, xp: 0, task: null },
     skills: { mining: 0, smithing: 0 },
+    combat: { xp: 0 }, skill: {}, // Combat level XP (Lv 1) and skill-tree allocations { nodeId: points } (src/combat.js)
     taps: { days: {}, total: 0, marks: 0 },
     pets: [{ uid: 1, id: 'pup', level: 1 }], slots: [1, null],
     outposts: [{ uid: 2, type: 'strider', name: 'Longstep', layer: 1, vein: 'l1gold', state: 'anchored', anchoredSince: 0, stock: {}, module: null, ship: 'all', move: null, dark: false }],
@@ -1599,7 +1600,7 @@ function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.sav
 function clearRaids(s) { if (CONFIG.raidsEnabled) return s; s.pendingReveal = null; s.lastRaid = null; s.nextRaidAt = 1e15; s.shieldUntil = 0;
   if (s.hero && s.hero.task && s.hero.task.type === 'raid') s.hero.task = null; return s; }
 function load() {
-  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); if (s.home && (s.home.tv || 0) < 2) { s.home.ports = {}; s.home.tv = 2; } /* migration: clear the old test Ledge Tethers on the door (only real, routed tethers stay) */ const out = clearRaids(Object.assign(d, s)); if (typeof Skills !== 'undefined') Skills.migrate(out); else if (!out.skills) out.skills = { mining: 0, smithing: 0 }; return out; } catch (e) { return null; }
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); if (s.home && (s.home.tv || 0) < 2) { s.home.ports = {}; s.home.tv = 2; } /* migration: clear the old test Ledge Tethers on the door (only real, routed tethers stay) */ const out = clearRaids(Object.assign(d, s)); if (typeof Skills !== 'undefined') Skills.migrate(out); else if (!out.skills) out.skills = { mining: 0, smithing: 0 }; if (typeof Combat !== 'undefined') Combat.migrate(out); /* (combat design: Combat level XP + skill tree points; old saves start at Lv 1, no points spent) */ return out; } catch (e) { return null; }
 }
 function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }
 /* Mining and Smithing: one shared XP curve, no max level (Lv 300 is the practical ceiling).
@@ -2140,6 +2141,121 @@ const Skills = (() => {
     get view() { return ui.view; },
     screen, screenOn
   };
+})();
+/* Combat stats engine (Dominic's combat + weapon stats design, approved; relayed by Art). Data + pure functions only: no creatures or combat loop exist yet.
+   The Skill Tree UI (another worker) reads NODES / BRANCHES / nodeState / canAdd / addPoint / removePoint / pointsLeft from here; every number lives in this file.
+   Player: 10 HP + 1 per Combat level, Strength 1 + 1 per 3 levels (Lv 300: 310 HP, 101 Str). Accuracy comes only from the swords. Always two swords (L + R):
+   each carries HALF its grade's pair values, so a matched pair sums to the full value. Tiers: +75% of the grade base per tier (T10 = 8.5x). */
+const Combat = (() => {
+  const LV_MAX = 300, BASE_HP = 10, BASE_STR = 1;
+  // pair totals at T0 [Strength, Accuracy, HP]. STICK is still being settled (Dominic): this one line is the place to change it.
+  const STICK_PAIR = [2, 2, 0];
+  const SWORD_PAIR = { stick: STICK_PAIR, bronze: [2, 2, 2], iron: [3, 3, 4], steel: [4, 4, 6], gold: [5, 5, 8], mithril: [7, 7, 11], rune: [9, 9, 15], lumen: [12, 12, 20], onyx: [16, 16, 26] };
+  const SWORD_UNLOCK = { stick: 1, bronze: 1, iron: 20, steel: 30, gold: 45, mithril: 70, rune: 100, lumen: 160, onyx: 220 }; // Combat level to equip
+  const TIER_STEP = 0.75, TIER_MAX = 10; // +75% of the grade base per tier, linear: T10 = 8.5x
+  const HIT_CAP = 0.6, HIT_EASE = 0.5; // hit chance = acc / (def + 100); linear up to 50%, then eases into the 60% cap
+  const REGEN = 0.02, REGEN_MEND = 0.04, HEAL_CAP = 0.15; // out of combat %max HP / s (none in combat); in-fight healing cap (Second wind excluded)
+  const GRADES = Object.keys(SWORD_PAIR);
+  const clampT = (t) => Math.max(0, Math.min(TIER_MAX, Math.floor(+t || 0)));
+  const tierMult = (t) => 1 + TIER_STEP * clampT(t);
+  // one grade + tier as a PAIR total (rounded); a single sword is half of it (unrounded halves, so L + R of the same grade sum to the pair exactly)
+  function pairStats(g, t) { const b = SWORD_PAIR[g] || SWORD_PAIR.stick, m = g === 'stick' ? 1 : tierMult(t); return { str: b[0] * m, acc: b[1] * m, hp: b[2] * m }; }
+  function swordStats(g, t) { const p = pairStats(g, t); return { str: p.str / 2, acc: p.acc / 2, hp: p.hp / 2 }; }
+  const r1 = (x) => Math.round(x * 10) / 10, fmt = (s) => ({ str: r1(s.str), acc: r1(s.acc), hp: r1(s.hp) });
+  const swordUnlock = (g) => SWORD_UNLOCK[g] || 1;
+  const canEquip = (g, lv) => (lv == null ? level() : lv) >= swordUnlock(g);
+
+  // ---- Combat level / XP (S.combat = { xp }) on the shared Skills XP curve, Lv 1..300 ----
+  const sv = (s) => s || (typeof S !== 'undefined' ? S : null);
+  function migrate(s) { s = sv(s); if (!s) return s; if (!s.combat || typeof s.combat !== 'object') s.combat = { xp: 0 }; s.combat.xp = Math.max(0, Math.floor(+s.combat.xp || 0));
+    if (!s.skill || typeof s.skill !== 'object' || Array.isArray(s.skill)) s.skill = {}; for (const k of Object.keys(s.skill)) { const n = NODE[k]; if (!n) { delete s.skill[k]; continue; } s.skill[k] = Math.max(0, Math.min(n.max, Math.floor(+s.skill[k] || 0))); }
+    return s; }
+  const xpTo = (L) => (typeof Skills !== 'undefined' && Skills.xpToReach ? Skills.xpToReach(L) : (L - 1) * 100);
+  function levelFromXp(xp) { if (typeof Skills !== 'undefined' && Skills.levelFromXp) return Math.min(LV_MAX, Skills.levelFromXp(xp)); return Math.min(LV_MAX, 1 + Math.floor((xp || 0) / 100)); }
+  function level(s) { s = sv(s); return s && s.combat ? levelFromXp(s.combat.xp) : 1; }
+  function addXp(n, s) { s = migrate(s); if (!s) return 1; const b = level(s); s.combat.xp += Math.max(0, Math.floor(+n || 0)); const a = level(s); if (a > b && typeof toast === 'function') toast('⚔️ Combat level ' + a); return a; }
+  function setLevel(L, s) { s = migrate(s); if (!s) return; L = Math.max(1, Math.min(LV_MAX, L | 0)); s.combat.xp = Math.ceil(xpTo(L)); return level(s); } // (tests / dev)
+
+  // ---- skill tree: Combat branch (Might / Vitality / Spoils). cost = points per rank; req = { sub: points already in that sub-branch's open (ungated) nodes } ----
+  const BRANCHES = [{ id: 'combat', name: 'Combat', subs: [{ id: 'might', name: 'Might' }, { id: 'vitality', name: 'Vitality' }, { id: 'spoils', name: 'Spoils' }] },
+    { id: 'production', name: 'Production', subs: [], stub: true }]; // (Production: still to come)
+  const NODES = [
+    { id: 'strength', branch: 'combat', sub: 'might', name: 'Strength', max: 40, cost: 1, req: null, text: '+1 Strength per point', per: { str: 1 } },
+    { id: 'vigor', branch: 'combat', sub: 'might', name: 'Vigor', max: 50, cost: 1, req: null, text: '+3 HP per point', per: { hp: 3 } },
+    { id: 'haste', branch: 'combat', sub: 'might', name: 'Haste', max: 15, cost: 1, req: null, text: '+1% attack speed per point', per: { atkSpeed: 0.01 } },
+    { id: 'heavy_blow', branch: 'combat', sub: 'might', name: 'Heavy blow', max: 1, cost: 5, req: { might: 20 }, text: 'Every 5th swing deals 1.5x damage (5 points; needs 20 points in Might)', flag: 'heavyBlow' },
+    { id: 'boss_slayer', branch: 'combat', sub: 'might', name: 'Boss slayer', max: 10, cost: 1, req: { might: 20 }, text: '+2% damage vs bosses per point (needs 20 points in Might)', per: { bossDmg: 0.02 } },
+    { id: 'lifesteal', branch: 'combat', sub: 'vitality', name: 'Lifesteal', max: 10, cost: 1, req: null, text: 'Heal 1% of the damage you deal per point', per: { lifesteal: 0.01 } },
+    { id: 'quick_mend', branch: 'combat', sub: 'vitality', name: 'Quick mend', max: 1, cost: 2, req: null, text: 'Out-of-combat regen 2% \u2192 4% max HP per second (2 points)', flag: 'quickMend' },
+    { id: 'second_wind', branch: 'combat', sub: 'vitality', name: 'Second wind', max: 1, cost: 3, req: null, text: 'Once per fight, heal 20% HP when you drop below 25% (3 points)', flag: 'secondWind' },
+    { id: 'victory_breath', branch: 'combat', sub: 'vitality', name: 'Victory breath', max: 1, cost: 3, req: null, text: 'Heal 5% HP on each kill (3 points)', flag: 'victoryBreath' },
+    { id: 'ward', branch: 'combat', sub: 'vitality', name: 'Ward', max: 1, cost: 3, req: null, text: 'Start each fight with a shield of 10% HP (3 points)', flag: 'ward' },
+    { id: 'fortune', branch: 'combat', sub: 'spoils', name: 'Fortune', max: 15, cost: 1, req: null, text: '+2% coin drops per point', per: { coinMult: 0.02 } },
+    { id: 'beast_lure', branch: 'combat', sub: 'spoils', name: 'Beast lure', max: 10, cost: 1, req: null, text: '+1% tether beast drop chance per point (multiplies each creature\u2019s base chance)', per: { beastMult: 0.01 } },
+  ];
+  const NODE = Object.fromEntries(NODES.map((n) => [n.id, n]));
+  const alloc = (s) => { s = sv(s); return (s && s.skill) || {}; };
+  const ranks = (id, s) => Math.max(0, Math.min(NODE[id] ? NODE[id].max : 0, Math.floor(+alloc(s)[id] || 0)));
+  const subSpent = (sub, s, except) => NODES.reduce((a, n) => a + (n.sub === sub && n.id !== except ? ranks(n.id, s) * n.cost : 0), 0);
+  // what a prerequisite counts: points in the sub-branch's open nodes (the gated nodes don't count toward each other, so no loop can hold them up)
+  const reqSpent = (sub, s) => NODES.reduce((a, n) => a + (n.sub === sub && !n.req ? ranks(n.id, s) * n.cost : 0), 0);
+  const pointsTotal = (s) => level(s); // 1 skill point per Combat level
+  const pointsSpent = (s) => NODES.reduce((a, n) => a + ranks(n.id, s) * n.cost, 0);
+  const pointsLeft = (s) => pointsTotal(s) - pointsSpent(s);
+  function reqMet(id, s) { const n = NODE[id]; if (!n || !n.req) return true; return Object.entries(n.req).every(([sub, need]) => reqSpent(sub, s) >= need); }
+  // why a point can't go in ('max' | 'points' | 'req' | 'unknown'), or '' when it can
+  function whyNot(id, s) { const n = NODE[id]; if (!n) return 'unknown'; if (ranks(id, s) >= n.max) return 'max'; if (!reqMet(id, s)) return 'req'; if (pointsLeft(s) < n.cost) return 'points'; return ''; }
+  const canAdd = (id, s) => !whyNot(id, s);
+  function addPoint(id, s) { s = migrate(s); if (!s || !canAdd(id, s)) return false; s.skill[id] = ranks(id, s) + 1; if (s === (typeof S !== 'undefined' ? S : null) && typeof save === 'function') save(); return true; }
+  // a point comes out only if no node still needs it (taking it would drop a sub-branch below a prerequisite another allocated node relies on)
+  function canRemove(id, s) { if (ranks(id, s) <= 0) return false; const n = NODE[id]; if (n.req) return true; return NODES.every((m) => m.id === id || !ranks(m.id, s) || !m.req || !(n.sub in m.req) || reqSpent(n.sub, s) - n.cost >= m.req[n.sub]); }
+  function removePoint(id, s) { s = migrate(s); if (!s || !canRemove(id, s)) return false; s.skill[id] = ranks(id, s) - 1; if (!s.skill[id]) delete s.skill[id]; if (s === (typeof S !== 'undefined' ? S : null) && typeof save === 'function') save(); return true; }
+  function resetTree(s) { s = migrate(s); if (s) s.skill = {}; }
+  // one node's full state for the tree UI
+  function nodeState(id, s) { const n = NODE[id]; if (!n) return null; const r = ranks(id, s), why = whyNot(id, s); return { id, branch: n.branch, sub: n.sub, name: n.name, text: n.text, max: n.max, cost: n.cost, req: n.req, ranks: r, maxed: r >= n.max, reqMet: reqMet(id, s), canAdd: !why, why, canRemove: canRemove(id, s) }; }
+  const treeState = (s) => ({ level: level(s), points: pointsTotal(s), spent: pointsSpent(s), left: pointsLeft(s), nodes: NODES.map((n) => nodeState(n.id, s)), subSpent: { might: subSpent('might', s), vitality: subSpent('vitality', s), spoils: subSpent('spoils', s) } });
+  // the summed effects of an allocation
+  function applyNodes(s) { const e = { str: 0, hp: 0, atkSpeed: 0, bossDmg: 0, lifesteal: 0, coinMult: 0, beastMult: 0, heavyBlow: false, quickMend: false, secondWind: false, victoryBreath: false, ward: false };
+    for (const n of NODES) { const r = ranks(n.id, s); if (!r) continue; if (n.per) for (const [k, v] of Object.entries(n.per)) e[k] += v * r; if (n.flag) e[n.flag] = true; } return e; }
+
+  // ---- player stats: level + both swords + the tree. swords = { L: { g, t }, R: { g, t } } (defaults to her saved swords); a missing hand counts nothing ----
+  function equippedSwords(s) { s = sv(s); const o = {}; for (const k of ['L', 'R']) { const g = s && s['sword' + k]; o[k] = g && SWORD_PAIR[g] ? { g, t: g === 'stick' ? 0 : clampT(s.tswords && s.tswords[g]) } : null; } return o; }
+  function playerStats(s, swords, opt) { s = sv(s); const L = (opt && opt.level) || level(s), W = swords || equippedSwords(s), E = applyNodes(s), sw = { str: 0, acc: 0, hp: 0 };
+    for (const k of ['L', 'R']) { const h = W[k]; if (!h) continue; const q = swordStats(h.g, h.t); sw.str += q.str; sw.acc += q.acc; sw.hp += q.hp; }
+    const str = BASE_STR + Math.floor(L / 3) + sw.str + E.str, hp = BASE_HP + L + sw.hp + E.hp;
+    return { level: L, str: Math.round(str), hp: Math.round(hp), acc: Math.round(sw.acc), atkSpeed: 1 + E.atkSpeed, regen: E.quickMend ? REGEN_MEND : REGEN, regenInCombat: 0,
+      lifesteal: E.lifesteal, bossDmg: E.bossDmg, heavyBlow: E.heavyBlow, secondWind: E.secondWind, victoryBreath: E.victoryBreath, ward: E.ward, coinMult: 1 + E.coinMult, beastMult: 1 + E.beastMult,
+      swords: { L: W.L ? Object.assign({ g: W.L.g, t: W.L.t }, swordStats(W.L.g, W.L.t)) : null, R: W.R ? Object.assign({ g: W.R.g, t: W.R.t }, swordStats(W.R.g, W.R.t)) : null, pair: sw } }; }
+
+  // ---- hit + damage ----
+  function hitChance(acc, def) { const raw = Math.max(0, +acc || 0) / (Math.max(0, +def || 0) + 100); if (raw <= HIT_EASE) return raw; return HIT_CAP - (HIT_CAP - HIT_EASE) * Math.exp(-(raw - HIT_EASE) / (HIT_CAP - HIT_EASE)); } // (C1: slope 1 at 50%, never quite 60%)
+  // one swing: a hit deals full Strength, otherwise a random whole value 0..Strength. opt: { def, swing (1-based count this fight), boss, rng }
+  function rollDamage(stats, opt = {}) { const rng = opt.rng || Math.random, p = hitChance(stats.acc, opt.def || 0), hit = rng() < p, str = Math.max(0, Math.round(stats.str || 0));
+    let dmg = hit ? str : Math.floor(rng() * (str + 1)); let k = 1; if (stats.heavyBlow && opt.swing && opt.swing % 5 === 0) k *= 1.5; if (opt.boss && stats.bossDmg) k *= 1 + stats.bossDmg; dmg = Math.round(dmg * k);
+    return { hit, dmg, chance: p, heavy: k > 1 && !!stats.heavyBlow && opt.swing % 5 === 0 }; }
+  const swingTime = (base, stats) => base / ((stats && stats.atkSpeed) || 1); // seconds per swing at her attack speed
+
+  // ---- one fight's healing / shield bookkeeping (in-fight healing capped at 15% of max HP per fight; Second wind is outside the cap) ----
+  function newFight(stats) { const max = stats.hp; return { max, hp: max, shield: stats.ward ? Math.round(max * 0.1) : 0, healed: 0, cap: Math.round(max * HEAL_CAP * 100) / 100, swWind: false, stats, swings: 0 }; }
+  function fightHeal(F, amt, kind) { if (F.hp <= 0) return 0; let a = Math.max(0, +amt || 0); if (kind !== 'secondWind') { a = Math.min(a, Math.max(0, F.cap - F.healed)); } a = Math.min(a, F.max - F.hp); if (kind !== 'secondWind') F.healed += a; F.hp += a; return a; }
+  function fightDealt(F, dmg) { return F.stats.lifesteal ? fightHeal(F, dmg * F.stats.lifesteal, 'lifesteal') : 0; }
+  function fightKill(F) { return F.stats.victoryBreath ? fightHeal(F, F.max * 0.05, 'victory') : 0; }
+  function fightHurt(F, dmg) { let d = Math.max(0, +dmg || 0); const s = Math.min(F.shield, d); F.shield -= s; d -= s; F.hp = Math.max(0, F.hp - d); let wind = 0;
+    if (F.hp > 0 && F.stats.secondWind && !F.swWind && F.hp < F.max * 0.25) { F.swWind = true; wind = fightHeal(F, F.max * 0.2, 'secondWind'); } return { absorbed: s, taken: d, wind, dead: F.hp <= 0 }; }
+  const regenPerSec = (stats, inCombat) => (inCombat ? 0 : stats.regen * stats.hp);
+  // spoils
+  const coinDrop = (base, stats) => base * ((stats && stats.coinMult) || 1);
+  const beastChance = (base, stats) => base * ((stats && stats.beastMult) || 1);
+
+  // ---- still to come (Dominic: stub only, nothing invented) ----
+  const creature = (depth) => null; // creature HP / Defense per depth: not designed yet
+  const BEAST_SLOT_LEVELS = [1, 100, 220]; // Tether Beast party slots (max 3); the Tether Beast skill itself is still to come
+  const beastSlots = (lv) => BEAST_SLOT_LEVELS.filter((q) => (lv == null ? level() : lv) >= q).length;
+
+  return { LV_MAX, BASE_HP, BASE_STR, STICK_PAIR, SWORD_PAIR, SWORD_UNLOCK, TIER_STEP, HIT_CAP, HIT_EASE, REGEN, REGEN_MEND, HEAL_CAP, GRADES, BRANCHES, NODES, NODE, BEAST_SLOT_LEVELS,
+    tierMult, pairStats, swordStats, fmt, swordUnlock, canEquip, migrate, level, levelFromXp, addXp, setLevel, xpTo,
+    ranks, subSpent, reqSpent, pointsTotal, pointsSpent, pointsLeft, reqMet, whyNot, canAdd, addPoint, canRemove, removePoint, resetTree, nodeState, treeState, applyNodes,
+    equippedSwords, playerStats, hitChance, rollDamage, swingTime, newFight, fightHeal, fightDealt, fightKill, fightHurt, regenPerSec, coinDrop, beastChance, creature, beastSlots };
 })();
 
 /* =====================================================================
@@ -2729,9 +2845,9 @@ const Craft = (() => {
   // Theus's tiered pickaxe (Dominic: the tier lives on the item): one per kind at most, its own id (never a plain pickaxe, never payment); its tier is S.tpicks[kind] while it exists
   TIERS.forEach(([k, n, c], i) => { ITEMS['tool:tpick_' + k] = { name: n + ' Pickaxe (tiered)', short: n, emoji: '⛏️', col: c, kind: 'tool', tool: 'pick', tier: i, grade: k, tiered: true }; });
   // swords (Dominic via Art): one per grade, its tier lives on the item (S.tswords[grade], T0..T10). Held in either hand from the Character screen.
-  // Stat plan (design only, not wired yet): a sword tier step = the pickaxe tier step +50%; strength + accuracy come from the sword, defence from an off-hand shield.
   TIERS.forEach(([k, n, c], i) => { ITEMS['tool:sword_' + k] = { name: n + ' Sword', short: n, emoji: '🗡️', col: c, kind: 'tool', tool: 'sword', tier: i, grade: k, sword: true }; });
-  const SWORD_STAT_PLAN = { tierStepK: 1.5, sword: ['strength', 'accuracy'], shield: ['defence'] };
+  // (the stat plan stub is replaced by the combat engine: src/combat.js holds the grade / tier tables, Combat.SWORD_PAIR / TIER_STEP / SWORD_UNLOCK)
+  const SWORD_STAT_PLAN = { get pair() { return typeof Combat !== 'undefined' ? Combat.SWORD_PAIR : null; }, get tierStep() { return typeof Combat !== 'undefined' ? Combat.TIER_STEP : null; }, get unlock() { return typeof Combat !== 'undefined' ? Combat.SWORD_UNLOCK : null; } };
   for (const [k, n, c] of TIERS) ITEMS['tether:' + k] = { name: n + ' Ledge Tether', short: n + ' Tether', emoji: '🪢', col: c, kind: 'teth', tool: 'lifeline', unit: 'm', grade: k }; // coils measured in metres: lay drop tethers, upgrade / swap strands (Tether Orb)
   // drill split: one Drill Stand (no material tiers) plus a swappable bit (8 tiers). The old 'drill:mithril' id is kept only so a leftover count still migrates; it is not seeded or shown once empty.
   const STAND_ID = 'stand:drill', STAND_OLD = ['stand:timber', 'stand:iron', 'stand:brass', 'stand:lumenite'];
@@ -2991,6 +3107,8 @@ const Craft = (() => {
     o.push(['Held', (it.unit === 'm' ? fmtN(c) + ' m' : '×' + fmtN(c)) + ' in ' + where]);
     const tn = it.climbGear ? '' : TIER_N(it); if (tn) o.push(['Tier', tn]); if (it.climbGear) o.push(['Look', SKIN_NAME(it.tool === 'climb' ? 'climb' : 'tlink', S[it.tool === 'climb' ? 'climbGrade' : 'tetherGrade'] || SKIN_BASE[it.tool === 'climb' ? 'climb' : 'tlink'])]);
     if (it.tiered && typeof Skills !== 'undefined' && Skills.multLabel) { const t = pickTier(it.grade); o.push(['Upgrade', 'T' + t + ' \u00b7 ' + Skills.multLabel(Skills.tierMult(t)) + ' mining']); }
+    if (it.sword && typeof Combat !== 'undefined') { const t = it.grade === 'stick' ? 0 : swordTier(it.grade), a = Combat.fmt(Combat.swordStats(it.grade, t)), p = Combat.fmt(Combat.pairStats(it.grade, t)); // (combat design) per sword + the L + R pair
+      o.push(['Sword T' + t, 'Str ' + a.str + ' \u00b7 Acc ' + a.acc + ' \u00b7 HP ' + a.hp]); o.push(['Pair (L+R)', 'Str ' + p.str + ' \u00b7 Acc ' + p.acc + ' \u00b7 HP ' + p.hp]); o.push(['Equip', 'Combat Lv ' + Combat.swordUnlock(it.grade) + (Combat.canEquip(it.grade) ? '' : ' (\ud83d\udd12 locked)')]); }
     if (it.kind && KIND_N[it.kind]) o.push(['Kind', KIND_N[it.kind]]);
     if (it.kind === 'tool' && EQUIP[it.tool]) o.push(['Slot', EQUIP[it.tool][2]]);
     if (it.kind === 'bit' && typeof Explore !== 'undefined' && Explore.BITS) { const b = Explore.BITS.find((q) => q.k === it.grade); if (b) { o.push(['Rate', '1/3 of your ore/h on that ore']); o.push(['Burn', b.burn + ' coal/h']); const need = Explore.bitPushNeed && Explore.bitPushNeed(it.grade); if (need) o.push(['Push strand', 'Needs ' + need.name + ' Ledge Tether (' + need.burn + ' coal/h)']); } }
@@ -2999,6 +3117,7 @@ const Craft = (() => {
   function itemBlurb(id, w) {
     const it = ITEMS[id] || {}; const req = it.kind === 'tool' && it.tool === 'pick' ? ` Mining Lv ${pickNeed(id)} to equip${pickLocked(id) && !equipped(id) ? ` (🔒 Unlock Lv ${pickNeed(id)})` : ''}.` : '';
     if (req) return (it.tiered ? 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Ledgeville Exchange (the shop will not buy it).' : 'Equip it to mine ore out on the map.') + req;
+    if (it.sword) return 'Hold two in the Character screen (\u2694\ufe0f Swords): each sword carries half its grade\u2019s Strength / Accuracy / HP, the pair sums them. Combat Lv ' + (typeof Combat !== 'undefined' ? Combat.swordUnlock(it.grade) : 1) + ' to equip.';
     if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then swap or pick up the bit at the drill itself.';
     if (it.kind === 'teth') return 'The same braid as the door tethers. Lay a drop tether from the backpack on the map, or use the coil to upgrade a strand.';
     if (it.kind === 'bit') return 'Fits any placed stand. Swap or pick it up at the drill itself.';
@@ -3188,7 +3307,7 @@ const Craft = (() => {
     refresh(); });
   function swordTier(g) { return typeof S !== 'undefined' && S && S.tswords ? Math.max(0, Math.min(10, Math.floor(S.tswords[g] || 0))) : 0; }
   const swordOwned = (g) => have('tool:sword_' + g) > 0;
-  return { recLv, recLocked, noteList, noteCancel, atVault, VBLOCK, tetherDraw, moleDraw, isNote, noteOf, noteDef, noteCount, carried, takeCarried, SWORD_STAT_PLAN, swordTier, swordOwned, SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, BATCH_MS, BQ, JOB, batchStart, batchStop, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { itemStats, itemBlurb, recLv, recLocked, noteList, noteCancel, atVault, VBLOCK, tetherDraw, moleDraw, isNote, noteOf, noteDef, noteCount, carried, takeCarried, SWORD_STAT_PLAN, swordTier, swordOwned, SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, BATCH_MS, BQ, JOB, batchStart, batchStop, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();
 /* generated by art/pack.py */
 const ART_MANIFEST = {"v":1794699487,"atlases":3,"s":{"sp_pass_0":[0,0,0,857,836,952,929],"sp_falls_0":[0,859,0,801,660,942,777],"civ_lift":[0,1662,0,210,642,210,642],"home2_7":[0,0,838,400,499,400,499],"home3_7":[0,402,838,400,499,400,499],"home_7":[0,804,838,400,499,400,499],"home2_5":[0,1206,838,330,428,330,428],"home3_5":[0,1538,838,330,428,330,428],"home_5":[0,0,1339,330,428,330,428],"home2_6":[0,332,1339,360,416,360,416],"home3_6":[0,694,1339,360,416,360,416],"home_6":[0,1056,1339,360,416,360,416],"landmarks_2":[0,1418,1339,361,414,451,517],"home2_4":[1,0,0,270,405,270,405],"home3_4":[1,272,0,270,405,270,405],"home_4":[1,544,0,270,405,270,405],"civic_vault_2":[1,816,0,323,377,404,471],"landmarks_0":[1,1141,0,297,374,371,467],"sp_outpost_0":[1,1440,0,423,344,769,625],"home2_3":[1,0,407,300,337,300,337],"home3_3":[1,302,407,300,337,300,337],"home_3":[1,604,407,300,337,300,337],"creatures_3":[1,906,407,356,335,593,558],"mtn_7":[1,1264,407,284,299,284,299],"mtn_0":[1,1550,407,283,290,283,290],"mtn_3":[1,0,746,289,284,289,284],"home2_2":[1,291,746,300,270,300,270],"home3_2":[1,593,746,300,270,300,270],"home_2":[1,895,746,300,270,300,270],"mtn_1":[1,1197,746,291,267,291,267],"landmarks_1":[1,1490,746,300,260,375,325],"mtn_8":[1,0,1032,298,257,298,257],"mtn_2":[1,300,1032,301,254,301,254],"home2_1":[1,603,1032,250,253,250,253],"home3_1":[1,855,1032,250,253,250,253],"home_1":[1,1107,1032,250,253,250,253],"mtn_6":[1,1359,1032,297,251,297,251],"mtn_5":[1,1658,1032,294,229,294,229],"civ_market":[1,0,1291,200,228,400,456],"mtn_4":[1,202,1291,286,222,286,222],"home2_0":[1,490,1291,230,216,230,216],"home3_0":[1,722,1291,230,216,230,216],"home_0":[1,954,1291,230,216,230,216],"hollow_bits_2":[1,1186,1291,120,196,200,326],"hollow_bits_7":[1,1308,1291,117,193,195,321],"hollow_bits_8":[1,1427,1291,175,188,291,313],"props_0":[1,1604,1291,145,184,264,335],"p_forest_5":[1,1751,1291,148,181,269,329],"hollow_bits_0":[1,0,1521,176,179,293,298],"props2_6":[1,178,1521,161,177,292,321],"hollow_bits_6":[1,341,1521,170,176,283,294],"hollow_bits_1":[1,513,1521,172,173,286,289],"props_2":[1,687,1521,128,172,233,312],"props2_8":[1,817,1521,80,169,145,308],"props_7":[1,899,1521,41,169,75,308],"props_8":[1,942,1521,125,169,227,307],"p_forest_1":[1,1069,1521,109,168,198,305],"p_forest_4":[1,1180,1521,155,164,281,299],"hollow_bits_3":[1,1337,1521,186,163,310,272],"p_forest_0":[1,1525,1521,176,162,320,295],"p_forest_3":[1,1703,1521,152,162,277,295],"props2_7":[1,1857,1521,111,162,201,294],"p_forest_2":[1,0,1702,111,161,201,292],"props2_2":[1,113,1702,157,155,285,282],"props2_3":[1,272,1702,130,154,237,280],"hollow_bits_4":[1,404,1702,74,151,123,252],"props2_0":[1,480,1702,172,151,312,274],"props2_4":[1,654,1702,150,144,272,261],"p_forest_6":[1,806,1702,157,142,286,259],"props2_5":[1,965,1702,108,140,197,254],"yard_4":[1,1075,1702,112,138,225,277],"yard_5":[1,1189,1702,102,138,205,277],"props2_1":[1,1293,1702,183,136,332,247],"props_6":[1,1478,1702,150,136,273,247],"hollow_bits_5":[1,1630,1702,217,134,361,224],"props_3":[1,1849,1702,146,133,266,242],"props_4":[1,0,1865,144,130,261,237],"p_forest_7":[1,146,1865,138,129,250,235],"yard_8":[1,286,1865,114,126,227,252],"yard_0":[1,402,1865,152,124,304,249],"yard_6":[1,556,1865,129,124,258,248],"yard_2":[1,687,1865,161,121,322,242],"yard_7":[1,850,1865,160,118,319,237],"p_forest_8":[1,1012,1865,85,116,154,210],"props_5":[1,1099,1865,144,116,262,210],"props_1":[1,1245,1865,125,114,227,208],"yard_3":[1,1372,1865,134,114,269,229],"people_15":[1,1508,1865,57,99,127,221],"people_11":[1,1567,1865,46,97,103,215],"people_8":[1,1615,1865,47,96,104,214],"people_9":[1,1664,1865,45,96,101,214],"people_14":[1,1711,1865,40,95,88,212],"people_10":[1,1753,1865,56,94,124,209],"people_12":[1,1811,1865,59,94,131,210],"people_13":[1,1872,1865,40,94,88,208],"people_2":[1,1914,1865,71,94,158,210],"yard_1":[2,0,0,126,94,252,188],"people_4":[2,128,0,55,92,122,205],"people_5":[2,185,0,38,92,84,205],"people_3":[2,225,0,51,91,113,202],"people_7":[2,278,0,56,91,125,202],"people_6":[2,336,0,52,87,115,194],"people_0":[2,390,0,55,84,123,187],"people_1":[2,447,0,52,83,116,184],"creatures_1":[2,501,0,46,79,122,207],"creatures_0":[2,549,0,62,72,164,189],"creatures_2":[2,613,0,93,71,246,188],"creatures_6":[2,708,0,54,70,142,185],"creatures_5":[2,764,0,71,60,186,157],"creatures_4":[2,837,0,84,56,222,147]}};
@@ -11537,7 +11656,7 @@ const CharView = (() => {
   function soloOn() { if (SOLO.on || !R) return; if (st.tree) { treeMode(false); setAnim('idle'); } if (st.home) { homeMode(false); setAnim('idle'); } if (st.ledge) { ledgeMode(false); setAnim('idle'); }
     SOLO.w = { rig, built, scene, FLOOR, st: Object.assign({}, st), an: Object.assign({}, an) }; SOLO.sc = soloStage(); scene = SOLO.sc; FLOOR = SOLO.sc.userData.floor; for (const o of [DEB.pts, DEB.puff]) if (o) scene.add(o);
     rig = null; built = {}; Object.assign(st, { explore: false, gnd: null, play: false, pg: null, anim: 'idle', yaw: 0, yawV: 0, tool: typeof S !== 'undefined' && S && S.toolMode === 'climb' ? 'climb' : 'pick' }); Object.assign(an, { eq: null, act: null, cl: null, tv: null });
-    SOLO.on = true; PV.g = null; Object.assign(SWG, { R: null, L: null, w: 0, at: null, q: 0, dirty: true, sh: false }); if (typeof S !== 'undefined' && S) for (const k of ['R', 'L']) { const g = S['sword' + k]; if (g && swOwned(g)) SWG[k] = { g, t: Craft.swordTier(g), real: true }; } soloTrack(true); if (wrap) wrap.classList.add('solo'); document.body.classList.add('cvSolo'); pvBind(); document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', b.dataset.anim === 'idle')); const cc = document.getElementById('charClimb'); if (cc) cc.classList.add('off'); }
+    SOLO.on = true; PV.g = null; Object.assign(SWG, { R: null, L: null, w: 0, at: null, q: 0, dirty: true, sh: false }); if (typeof S !== 'undefined' && S) for (const k of ['R', 'L']) { const g = S['sword' + k]; if (g && swOwned(g) && !swLock(g)) SWG[k] = { g, t: Craft.swordTier(g), real: true }; } soloTrack(true); if (wrap) wrap.classList.add('solo'); document.body.classList.add('cvSolo'); pvBind(); document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', b.dataset.anim === 'idle')); const cc = document.getElementById('charClimb'); if (cc) cc.classList.add('off'); }
   function soloOff() { if (!SOLO.on) return; const w = SOLO.w, vis = st.visible, sex = rig && rig.sex; SOLO.on = false; const upl = soloTrack(false); PV.g = null; Object.assign(SWG, { R: null, L: null, w: 0, at: null, q: 0, dirty: false, sh: false }); if (wrap) wrap.classList.remove('solo', 'pv', 'sw'); document.body.classList.remove('cvSolo');
     if (showPick) showPick = null; for (const o of [DEB.pts, DEB.puff]) if (o) { if (o.geometry) o.geometry.dispose(); w.scene.add(o); } dropObj(SOLO.sc); SOLO.sc = null; for (const k in SW_TEX) delete SW_TEX[k]; for (const c of [_headTex, _lidCache]) for (const k in c) if (c[k] && c[k].isTexture) c[k].dispose(); for (const t of upl) if (!(t.image && t.image.width <= 1)) t.dispose(); /* (the face / eye / lid maps live in the head shader's own uniforms, not on the material) */
     scene = w.scene; FLOOR = w.FLOOR; rig = w.rig; built = w.built; for (const k of Object.keys(st)) if (!(k in w.st)) delete st[k]; Object.assign(st, w.st, { visible: vis }); for (const k of Object.keys(an)) if (!(k in w.an)) delete an[k]; Object.assign(an, w.an); SOLO.w = null;
@@ -11548,8 +11667,11 @@ const CharView = (() => {
   function pvIco(g, t) { const id = 'tool:pick_' + g; return (typeof itemIco === 'function' && itemIco(g === 'stick' ? id : id + '@t' + t)) || (typeof Craft !== 'undefined' && Craft.svgIco ? Craft.svgIco(id) : ''); }
   const PV_K = () => `<div class="pvk"><button type="button" data-pvk="pick" class="${PV.kind !== 'sword' ? 'on' : ''}">⛏️ Pickaxes</button><button type="button" data-pvk="sword" class="${PV.kind === 'sword' ? 'on' : ''}">⚔️ Swords</button></div>`;
   function swIco(g, t) { return (typeof itemIco === 'function' && itemIco('tool:sword_' + g + (g === 'stick' ? '' : '@t' + t))) || '<span style="font-size:30px;line-height:44px">🗡️</span>'; }
+  // (combat design) the inspected sword's stats: each sword carries half its grade's pair values, the L + R pair sums them; its Combat unlock level
+  function swStatLine(g, t) { if (typeof Combat === 'undefined') return ''; const a = Combat.fmt(Combat.swordStats(g, t)), P = Combat.playerStats(null, { L: SWG.L, R: SWG.R }).swords.pair, lk = swLock(g), q = (o) => `Str ${o.str} · Acc ${o.acc} · HP ${o.hp}`;
+    return `<small class="swst">⚔️ This sword: ${q(a)} · Pair (L+R): ${q(Combat.fmt(P))}${lk ? ` · 🔒 Unlock Lv ${lk}` : ` · Combat Lv ${Combat.swordUnlock(g)}`}</small>`; }
   function swDraw(p) { const g = PV.sg || 'bronze', t = g === 'stick' ? 0 : PV.st || 0, nm = (k) => k === 'stick' ? 'Stick' : k === 'onyx' ? 'Onyx' : GRADES[k].name, lab = (h) => h ? nm(h.g) + (h.g === 'stick' ? '' : ' T' + h.t) : '—', on = (h) => h && h.g === g && h.t === t ? 'on' : '';
-    p.innerHTML = PV_K() + `<div class="pvh"><span class="ic">${swIco(g, t)}</span><b>${g === 'stick' ? 'Stick sword' : GRADES[g].name + ' Sword T' + t}<small>Left: ${lab(SWG.L)} · Right: ${lab(SWG.R)}${swOwned(g) && t === Craft.swordTier(g) ? '' : ' · preview only'}</small></b></div>`
+    p.innerHTML = PV_K() + `<div class="pvh"><span class="ic">${swIco(g, t)}</span><b>${g === 'stick' ? 'Stick sword' : GRADES[g].name + ' Sword T' + t}<small>Left: ${lab(SWG.L)} · Right: ${lab(SWG.R)}${swOwned(g) && t === Craft.swordTier(g) && !swLock(g) ? '' : ' · preview only'}</small>${swStatLine(g, t)}</b></div>`
       + `<div class="pvg">${SW_G.map((k) => `<button type="button" data-swg="${k}" class="${k === g ? 'on' : ''}">${nm(k)}</button>`).join('')}</div>`
       + `<div class="pvt">${Array.from({ length: 11 }, (_, i) => `<button type="button" data-swt="${i}" class="${i === t ? 'on' : ''}"${g === 'stick' && i ? ' disabled' : ''}>T${i}</button>`).join('')}</div>`
       + `<div class="pva"><button type="button" data-swh="L" class="${on(SWG.L)}">✋ Left hand</button><button type="button" data-swh="R" class="${on(SWG.R)}">Right hand ✋</button><button type="button" data-swsh${SWG.R || SWG.L ? '' : ' disabled'}>${SWG.sh ? 'Draw' : 'Sheathe'}</button><button type="button" data-swclr${SWG.R || SWG.L ? '' : ' disabled'}>Put away</button><button type="button" data-swatk${SWG.R || SWG.L ? '' : ' disabled'}>⚔️ Attack</button></div>`; }
@@ -11725,11 +11847,12 @@ const CharView = (() => {
     if (any && st.tool !== 'none') setTool('none', true); else if (!any && st.tool === 'none') setTool(typeof S !== 'undefined' && S && S.toolMode === 'climb' ? 'climb' : 'pick', true);
     if (!any) SWG.at = null; if (wrap) wrap.classList.toggle('sw', any); }
   const swOwned = (g) => g !== 'stick' && typeof Craft !== 'undefined' && Craft.swordOwned && Craft.swordOwned(g);
+  const swLock = (g) => typeof Combat !== 'undefined' && !Combat.canEquip(g) ? Combat.swordUnlock(g) : 0; // the Combat level still needed to equip grade g (0 = unlocked)
   // equip a sword (grade + tier) in hand k ('L' | 'R'), or clear it (g = null). A sword she owns at its own tier is a real equip (saved); anything else is a preview.
   function swEquip(k, g, t) { if (!SOLO.on || !rig || (k !== 'L' && k !== 'R')) return; const cur = SWG[k];
     if (g && cur && cur.g === g && cur.t === t) g = null; // tapping the same hand again puts it away
     if (g && PV.g) { PV.g = null; setPick(S.pickGrade); }
-    if (g) SWG.sh = false; SWG[k] = g ? { g: SW_G.includes(g) ? g : 'stick', t: g === 'stick' ? 0 : Math.max(0, Math.min(10, t | 0)) } : null; if (SWG[k]) SWG[k].real = swOwned(SWG[k].g) && SWG[k].t === Craft.swordTier(SWG[k].g);
+    if (g) SWG.sh = false; SWG[k] = g ? { g: SW_G.includes(g) ? g : 'stick', t: g === 'stick' ? 0 : Math.max(0, Math.min(10, t | 0)) } : null; if (SWG[k]) { const own = swOwned(SWG[k].g) && SWG[k].t === Craft.swordTier(SWG[k].g), lk = swLock(SWG[k].g); SWG[k].real = own && !lk; if (own && lk && typeof toast === 'function') toast('🔒 Unlock Lv ' + lk + ' (Combat) to equip the ' + GRADES[SWG[k].g].name + ' Sword · preview only'); } // (combat design: a sword equips for real only at its Combat level)
     if (typeof S !== 'undefined' && S && ((SWG[k] && SWG[k].real) || (!SWG[k] && cur && cur.real))) { S['sword' + k] = SWG[k] ? SWG[k].g : null; if (typeof save === 'function') save(); } // (only her own swords touch the save)
     swAttach(); pvDraw(); }
   // equip: 'pick' (pickaxe in hand) or 'climb' (the climbing picks, one per hand); the switch animates through an.tau
