@@ -900,7 +900,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='9e7163a9';
+<script>window.HD_BUILD='a1dfb819';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -922,8 +922,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 9e7163a9</div>
-<script src="assets/vendor/three.min.js?v=9e7163a9"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a1dfb819</div>
+<script src="assets/vendor/three.min.js?v=a1dfb819"></script>
 <script>
 'use strict';
 
@@ -11630,12 +11630,12 @@ const CharView = (() => {
      tools/work_anim/bake.js - not hand-keyed:
      - anvil ('hammer'): Theus's own forge strike ("the same hammer motion as Theus"), read from src/volcanic_forge.js: his upper-arm / forearm angles in one
        vertical plane through the shoulder, his abduction curve and strikeBody() twist / fold / knee flex / weight shift / shoulder roll, his 1.6 s strike
-       window played in her 1 s. The impact pose is solved here for the anvil (his two-bone solve, elbow above the line); her left hand steadies the work
+       window played in her 1 s. The impact pose is solved here for the anvil (his two-bone solve; t625u: elbow below the line, a full-arm swing from the shoulder on his timing); her left hand steadies the work
        on the anvil with his tong tremor on impact.
      - furnace ('reach'): Quaternius UAL2 Farm_PlantSeed (CC0, see CREDITS.md): she sinks at the knees, folds at the waist, puts her right hand in low and
        draws it back out. Hips / waist go in before the legs are solved (feet stay planted, the knees bend), the arms after. */
   const WK_DATA = {"N": 31, "K": 8000, "clips": {"hammer": {"F": 13, "s": 100, "b": "QAYAANAgAABgIgAAuAcAAAAAAAAAAAAAAABmBgAA6SAAAEciAADaBwoA+P8AAAAAAwD9/80GAAAuIQAAAiIAADUIJQDk/wAAAAAJAPX/YgcAAJEhAACfIQAAuQhNAMb/AAAAABMA6f8VCAAACSIAACchAABYCX0Aov8AAAAAHwDa/9QIAACIIgAAqCAAAAEKsAB8/wAAAAAsAMv/jQkAAAQjAAAsIAAApgrhAFf/AAAAADgAvP8wCgAAcCMAAMAfAAA2Cw0BNv8AAAAAQwCv/6oKAADBIwAAbx8AAKILLQEe/wAAAABLAKb/6goAAOwjAABEHwAA2ws/ARH/AAAAAFAAoP8LCwAAJSQAAAsfAADgC0ABEP8AAAAAUACg/zULAAB7JAAAtR4AAOALQAEQ/wAAAABQAKD/RwkOAIsiBACEHgAA4AsSAWP/CAAMAD4Asv+bAzYAShsUAIAcBgDgC3oAeAAkADIAAQDv/wQAUACkDy4ASBQbAPwJ1f+kAUIAXAC//zEAAABQAAAAUAAAAFAAAACI/zACUABwAKD/UAAAAFAAAABQAAAAUAAAAIj/MAJQAHAAoP9QAIwAUAB1AVAARf9QAAAAiP8wAlAAcACg/1AA7wBQAHwCUADC/lAAJwCK/ygCTwBuAKH/TwDwAFAAgAJQAMD+UADDAJD/CQJKAGgAp/9KAPAAUACAAlAAwP5QALkBm//XAUMAXgCv/0MADAI4AA0FRQAWBUUA5wKp/5YBOgBRALr/OgA2Ax8A7AotAKwTLQAuBLn/TQEwAEMAx/8wACIEDABTERMAkyMTAG0Fyf8AASUAMwDU/yUApAQBAHkVAgDfLQIAgwbZ/7UAGgAkAOH/GgC+BAAAQBYAAHIuAABQB+j/cAAQABYA7f8QAAEFAAAWGAAAWSwAALQH9P84AAgACwD2/wgAZAUAAMwaAABAKQAAuAf8/xEAAgADAP3/AgDMBQAAph0AAP4lAAC4BwAAAAAAAAAAAAAAAB8GAADmHwAAayMAALgHAAAAAAAAAAAAAAAAQAYAANAgAABgIgAAuAcAAAAAAAAAAAAAAAA="}, "reach": {"F": 20, "s": 1, "b": "AAAAAAAAAAAAAAAAAAAAALD45OTF/HEBCgPu4KAIRuMwAVcLzQHv4tUABQCHAC4AFQBi/0MCVQBU+Xzldf3f/8MC3+DpCIzjPgF9CUsBQeL2AhMA6wGmAEQAf/5+BRoAMvoG5vL+yPy+AffgjQjz4zQBtwZnAHzh8AUkAO8DVQF1AHX+Ngbr/xT7i+V4AEf6SABI4e8HmOQKAQUGSwBW4U4JNwBUBiIClACY/y0Gr/8d/F/kpAA2+CMAveFgB3zl8v+PBVsBR+GaDEYA3wj1ApMAmgEaBkz/Dv0N5Jr/u/U+AYPi7QaU5gH+rARyA0vhXQ9OAE4LtANzAB4E/AXV/rz9MObY/WvyTgMN5JsGxueD+4sDXgac4SYRSwBiDUwEQwDNBtMFWf4r/s7q0vvJ7kUGr+ZqBvHooPhnAuIJdOKwEToA2A6wBBUAUAmnBej9bf5F7g76RewQCYfpWgYH6rT1bQFjDczj6xExAGsP1QQAAFELgAWQ/WL+ku+2+Uzqqwmz63YG8+qS86QA1g8R5SISMgBtD9YEAAB1DGkFXf0y/jft+/rK5wkHiu26BovrHfLU/1MR/uVOEjMAbQ/WBAAAnwxeBUz90/316zr8FOfeBRbu+AbX6/3wCP9AEqfmcBI0AG0P1gQAAJ8MXAVJ/TL9t+0Y/avndQZ87fMGHOy077b+VRN754oSNQBtD9YEAACfDFwFSv1a/C/vgQDn5fEEie+4Bm/sUO7e/ooUeuidEjUAbQ/WBAAAnwxeBUz9Xfto7VoIWOLxApn2iwbP7AntHP+eFXPpqhI1AG0P1gQAAJ8MYQVQ/ef6ReoZD4zhPQJc+YcGLu0B7E7/cxZF6rESNQBtD9YEAACgDGMFU/0G+8DoOxDW4WkA2PeRBobtLOuU/x4X+uq2EjYAbQ/WBAAAoAxjBVP97/p16fMPVuJn/zH2pAbU7YHq5v+oF5TrtxI2AG0P1gQAAJ8MWwVI/fD6AepMDbnjRf7Q8rcGFO776UEAExgU7LgSNgBtD9YEAACfDF4FTP0Y+/TqTwaN6BD/XevgBk7ulOmQAGgYfeyfETAALg/GBAkAmwxeBU/9AftY7IT/3/BMBP/kGgdL7nHp5gB/GJ7sUg4tAIoNVwQ+ACoMIAVW/aT5vOvo+1L4FgjP4pIH7+yO6rQBYRdW684JLwDFCosDfQAiC7sEpP2y+M/pfPoH/H4IMeJbCInqIe38AuoU+eg2BTYAeweDApcAqwkxBBf+iPmT54z5OPvYCGniFgnq5+HwqQRbEW/mpwE9AEEEcAF7APAHhgOY/lr6DObk+BL6Dwmv4n4JvuVE9YEGMw1u5DIAPQCfAYwAOwAXBsQCEv97+tTlXPmw+zgIKeKBCVnkgPkzCCoJReMUADAAJQANAAYARAT7AXX/E/qZ5f36AP4ABmbhTQmv4738fAkSBtniBQAUAAAAAAAAAJwCOwG8/6T5VuWr+3j/4QQj4RoJc+OJ/jwKXATM4gAAAwAAAAAAAABCAZoA5v8v+R7lNPyJAPkDAuHjCFbj6P/PCgwD1uIAAAAAAAAAAAAAWAAqAPv/1fj25Jr8NgFPA/PgtAhJ49YAMgslAufiAAAAAAAAAAAAAAAAAAAAALD45OTF/HEBCgPu4KAIRuMwAVcLzQHv4g=="}}};
-  const WK = { w: 0, kind: null, clip: null, u: 0, n: 0, item: 0, fr: null, ww: 0, hip: 0, imp: null, ham: null, tool0: null, tl: null }; let WKC = null;
+  const WK = { w: 0, kind: null, clip: null, u: 0, n: 0, item: 0, fr: null, ww: 0, hip: 0, imp: null, ham: null, tool0: null, tl: null, anc: null, moved: null }; let WKC = null;
   // (t603u) her smithing hammer: Theus's forge hammer (volcanic_forge.js: a 25-long tapered haft with a leather wrap at the butt, a 5 x 9 x 5 iron head with brass /
   // dark bands) scaled to her by her arm against his (0.46 / 36). Frame like the swords: +y along the haft to the head, the origin at her grip (his fist: 17% up
   // from the butt), the head's striking axis along x. In her right hand only while an anvil batch runs; the pickaxe (and climbing picks) hang off her chest meanwhile.
@@ -11659,7 +11659,18 @@ const CharView = (() => {
   function wkPhase(J) { return clamp(((typeof performance !== 'undefined' ? performance.now() : Date.now()) - J.t0) / (Craft.BATCH_MS || 1000), 0, 1); }
   const WDEG = Math.PI / 180, wkE = (x, y, z) => _q.setFromEuler(new THREE.Euler(x, y, z));
   // (before the legs) the body: hips down / forward and turned, the waist folded, the right shoulder rolled
-  function workBody(c, f) { if (c !== rig) return; const J = wkJob(), dt = Math.min(f.dt || 0, 0.1); WK.w = clamp(WK.w + (J ? dt : -dt) / 0.25, 0, 1); WK.fr = null;
+  // (t625u, Dominic: "if someone moves away from the furnace or anvil it should automatically cancel the action") a batch started with her at the station
+  // is cancelled - the same as the pill's Cancel: what's made stays, the rest of the ingredients were never taken - as soon as she is sent anywhere (a tap on
+  // the floor or another thing, the walk pad, a door / leaving the room, a mount) or ends up more than WK_AWAY from where she stood. A batch started away from
+  // her stations (no anchor) is left alone.
+  const WK_AWAY = 0.25;
+  function wkGuard(J) { const G = st.gnd, inRoom = st.home && HM.mode === 'in';
+    if (!J) { WK.anc = null; return J; }
+    if (!WK.anc) { const I = IA.list.find((x) => x.key === J.kind); WK.anc = { on: !!(inRoom && G && I && Math.hypot(G.x - I.spot.x, G.z - I.spot.z) < 0.35), G, x: G ? G.x : 0, z: G ? G.z : 0 }; return J; }
+    const A = WK.anc; if (!A.on || !st.home) return J; /* (another tab is not a move: the job runs on) */
+    const why = !inRoom ? 'left' : st.gnd !== A.G || !G ? 'mount' : G.goal || G.path ? 'walk' : G.mv > 0.2 ? 'pad' : Math.hypot(G.x - A.x, G.z - A.z) > WK_AWAY ? 'away' : null;
+    if (!why) return J; WK.anc = null; WK.moved = why; Craft.batchStop('moved'); return null; }
+  function workBody(c, f) { if (c !== rig) return; const J = wkGuard(wkJob()), dt = Math.min(f.dt || 0, 0.1); WK.w = clamp(WK.w + (J ? dt : -dt) / 0.25, 0, 1); WK.fr = null;
     if (J) { WK.kind = J.kind; WK.clip = J.kind === 'anvil' ? 'hammer' : 'reach'; WK.u = wkPhase(J); WK.item = J.done; } wkTool(J ? (WK.clip === 'hammer' ? 'hammer' : 'bare') : WK.w > 0 ? WK.tl || null : null); /* (the hammer leaves her hand once the arm has blended back) */ if (WK.w <= 0 || !WK.clip) return;
     const fr = wkFrame(WK.clip, WK.u), w = ss(0, 1, WK.w), B = c.B, y0 = B.hips.position.y; WK.fr = fr; WK.ww = w;
     if (WK.clip === 'reach') { const LL = c.LT + c.LS; B.hips.position.y -= fr[0] * LL * 0.75 * w; B.hips.position.z += fr[1] * LL * w; B.hips.quaternion.multiply(wkE(fr[2] * w, fr[3] * w, fr[4] * w)); B.spine.quaternion.multiply(wkE(fr[5] * w, fr[6] * w, fr[7] * w)); }
@@ -11672,21 +11683,28 @@ const CharView = (() => {
     if (WK.clip === 'reach') { const AL = L1 + L2; for (const [k, o] of [['R', 8], ['L', 14]]) arm(k, B['ua' + k].getWorldPosition(V(0, 0, 0)).addScaledVector(toW(fr[o], fr[o + 1], fr[o + 2]), AL), toW(fr[o + 3], fr[o + 4], fr[o + 5])); }
     else { const Sa = B.uaR.getWorldPosition(V(0, 0, 0)), T = st.home && HM.anvilBody ? HM.anvilBody.localToWorld(V(ANVIL_HIT.x, ANVIL_HIT.y, ANVIL_HIT.z)) : Sa.clone().add(toW(-0.1, -0.7, 0.5)), UP = V(0, 1, 0), fw = T.clone().sub(Sa).setY(0);
       if (fw.lengthSq() < 1e-6) fw.copy(toW(0, 0, 1)).setY(0); fw.normalize();
-      // her impact pose for this anvil, Theus's own solve: the hammer head lands flat on the face (the strike spot), the fist 17% up the haft, the wrist one fist
-      // back along the forearm, the elbow above the line, the wrist angle >= 150 deg (his units scaled to her: haft 25, head 9, fist 4.3)
-      const Lh = HAM_LH * sc, GR = HAM_GR, hd = 9 * HAM_S * sc, fist = 4.3 * HAM_S * sc, ta = T.clone().sub(Sa).dot(fw), tb = T.y - Sa.y; let e = -35 * WDEG, aU = -50 * WDEG, th = 150 * WDEG;
-      for (let it = 0; it < 12; it++) { th = Math.max(150 * WDEG, Math.PI + e); const da = e + Math.PI - th, Gp = [ta - Math.cos(da) * (1 - GR) * Lh - Math.sin(da) * hd / 2, tb - Math.sin(da) * (1 - GR) * Lh + Math.cos(da) * hd / 2], Wp = [Gp[0] - Math.cos(e) * fist, Gp[1] - Math.sin(e) * fist];
-        const dd = clamp(Math.hypot(Wp[0], Wp[1]), Math.abs(L1 - L2) + 0.01 * sc, (L1 + L2) * 0.985), an = Math.atan2(Wp[1], Wp[0]); aU = an + Math.acos(clamp((L1 * L1 + dd * dd - L2 * L2) / (2 * L1 * dd), -1, 1)); e += 0.5 * (Math.atan2(Wp[1] - Math.sin(aU) * L1, Wp[0] - Math.cos(aU) * L1) - e); } /* (half steps: with her shorter arm his plain update flips between two poses; damped it settles with the face on the spot) */
-      WK.imp = [aU / WDEG, e / WDEG, Math.max(150, 180 + e / WDEG)]; const kU = (fr[0] + fr[1] * WK.imp[0]) * WDEG, kE = (fr[2] + fr[3] * WK.imp[1]) * WDEG, kT = (fr[4] + fr[5] * WK.imp[2]) * WDEG;
+      // (t625u, Dominic: "the full arm should be swinging ... it looks like her arm is breaking at the elbow") her own full-arm strike on Theus's timing. His keys
+      // swing almost only the forearm and her impact solve put the elbow above the line, so the elbow passed straight and bent backwards (the upper arm rolled
+      // 180 deg in one frame). Now the swing is driven from the shoulder: cocked, the upper arm is raised high with the elbow flexed (hammer up over her
+      // shoulder); it comes down and the elbow opens toward the strike. The elbow only ever flexes (EL0..EL1 deg about its own hinge, never past straight), and the
+      // impact pose is the elbow-below-the-line branch of the same two-bone solve. His e_a track (forearm cock, 116.7 at the top, 0 on impact) sets the timing.
+      const Lh = HAM_LH * sc, GR = HAM_GR, hd = 9 * HAM_S * sc, fist = 4.3 * HAM_S * sc, ta = T.clone().sub(Sa).dot(fw), tb = T.y - Sa.y, EL0 = 5 * WDEG, EL1 = 150 * WDEG; let e = 0, aU = -40 * WDEG, th = 150 * WDEG;
+      for (let it = 0; it < 16; it++) { th = Math.max(150 * WDEG, Math.PI + e); const da = e + Math.PI - th, Gp = [ta - Math.cos(da) * (1 - GR) * Lh - Math.sin(da) * hd / 2, tb - Math.sin(da) * (1 - GR) * Lh + Math.cos(da) * hd / 2], Wp = [Gp[0] - Math.cos(e) * fist, Gp[1] - Math.sin(e) * fist];
+        const dd = clamp(Math.hypot(Wp[0], Wp[1]), Math.abs(L1 - L2) + 0.01 * sc, (L1 + L2) * 0.995), an = Math.atan2(Wp[1], Wp[0]); aU = an - Math.acos(clamp((L1 * L1 + dd * dd - L2 * L2) / (2 * L1 * dd), -1, 1)); e += 0.5 * (clamp(Math.atan2(Wp[1] - Math.sin(aU) * L1, Wp[0] - Math.cos(aU) * L1), aU + EL0, aU + EL1) - e); }
+      WK.imp = [aU / WDEG, e / WDEG, Math.max(150, 180 + e / WDEG)];
+      const ck = clamp(fr[2] / 116.7, 0, 1.05), cs = ck * ck * (3 - 2 * ck), aC = 50 * WDEG, fC = 70 * WDEG, fI = clamp(e - aU, EL0, EL1); /* (cocked: upper arm 50 deg above level - ~140 deg up from hanging - elbow flexed 70 deg, so the forearm sits where his does and the hammer rides up over her shoulder) */
+      const kU = aU + (aC - aU) * cs, kE = kU + clamp(fI + (fC - fI) * cs, EL0, EL1), kT = (fr[4] + fr[5] * WK.imp[2]) * WDEG;
       const q = new THREE.Quaternion().setFromAxisAngle(fw, fr[6] * WDEG), dv = (a) => fw.clone().multiplyScalar(Math.cos(a)).addScaledVector(UP, Math.sin(a));
-      const E = dv(kU).multiplyScalar(L1), Wr = E.clone().addScaledVector(dv(kE), L2), dH = dv(kE + Math.PI - kT); E.applyQuaternion(q); Wr.applyQuaternion(q); dH.applyQuaternion(q); /* (his abduction: the arm rolls out to her right about the swing direction) */
-      arm('R', Sa.clone().add(Wr), E.clone().sub(Wr.clone().multiplyScalar(0.5)).normalize());
+      const E = dv(kU).multiplyScalar(L1), Wr = E.clone().addScaledVector(dv(kE), L2), dH = dv((fr[2] + fr[3] * WK.imp[1]) * WDEG + Math.PI - kT), /* (the haft keeps his angle through the swing - the same as hers on impact) */ pl = dv(Math.atan2(Wr.dot(UP), Wr.dot(fw)) - Math.PI / 2); E.applyQuaternion(q); Wr.applyQuaternion(q); dH.applyQuaternion(q); pl.applyQuaternion(q); /* (his abduction: the arm rolls out to her right about the swing direction; the pole is the elbow's side of the shoulder-wrist line, so the hinge never flips) */
+      { const e0 = B.faR.getWorldPosition(V(0, 0, 0)).sub(Sa), l0 = B.hdR.getWorldPosition(V(0, 0, 0)).sub(Sa).normalize(); e0.addScaledVector(l0, -e0.dot(l0)); if (e0.lengthSq() > 1e-8 && w < 1) pl.multiplyScalar(w).addScaledVector(e0.normalize(), 1 - w).normalize(); } /* (blending in / out the elbow eases from the side it is on, no roll) */
+      arm('R', Sa.clone().add(Wr), pl);
       // his grip: the hand closed round the haft, thumb toward the head (hand x along the haft), the back of the fist toward the elbow side
       if (WK.ham) { const wr = B.hdR.getWorldPosition(V(0, 0, 0)), yv = B.faR.getWorldPosition(V(0, 0, 0)).sub(wr).normalize(), xv = dH.clone().normalize(); yv.addScaledVector(xv, -yv.dot(xv)); if (yv.lengthSq() < 1e-6) yv.copy(UP); yv.normalize();
         _m.makeBasis(xv, yv, V(0, 0, 0).crossVectors(xv, yv)); const Qh = new THREE.Quaternion().setFromRotationMatrix(_m); B.hdR.parent.getWorldQuaternion(_q2); const Ql = _q2.invert().multiply(Qh); B.hdR.quaternion.slerp(Ql, w); B.hdR.updateMatrixWorld(true);
         B.knR.rotation.x = lerp(B.knR.rotation.x, 1.3, w); B.tpR.rotation.x = lerp(B.tpR.rotation.x, 1.25, w); B.thumbR.rotation.set(lerp(B.thumbR.rotation.x, 1.05, w), 0, lerp(B.thumbR.rotation.z, -0.35, w)); }
       const x = -0.8 + 1.6 * WK.u, trem = x >= 0 && x < 0.35 ? Math.sin(x * 70) * Math.exp(-x / 0.08) : 0; /* (his tong tremor on impact) */
-      arm('L', T.clone().add(toW(0.17 * sc, (0.03 + 0.012 * trem) * sc, 0.04 * sc)), toW(0.7, -0.4, -0.5).normalize()); }
+      { const SL = B.uaL.getWorldPosition(V(0, 0, 0)), tL = T.clone().add(toW(0.17 * sc, (0.03 + 0.012 * trem) * sc, 0.04 * sc)), dL = tL.clone().sub(SL), mL = 0.44 * sc; if (dL.length() > mL) tL.copy(SL).addScaledVector(dL.normalize(), mL); /* (t625u: from the spot further back the steadying hand stops just short of the work rather than locking the elbow straight) */
+        arm('L', tL, toW(0.7, -0.4, -0.5).normalize()); } }
     WK.n++; }
   // put the wanted swords in her hands (Character screen rig only); the sword's grip centre on the palm, blade along the thumb side, edge toward the knuckles
   // (t607u) each equipped sword gets its sheath on her back; sheathed (SWG.sh) it rides in it, hilt up over the left shoulder; drawn, the sheath stays (empty)
@@ -12576,7 +12594,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
   // (t603u) her anvil spot 0.62 in front (was 0.72) and the strike spot on the face's near half toward her hammer side (anvil-body local; the face top is y 0.528):
   // from her right shoulder that is ~0.56 forward / 0.47 down, inside the reach of Theus's solve with the 0.32 m haft, so the head lands flat on the face
   // (checked by the same solve offline: contact error 0). Before, at 0.72 and the face centre, the head stopped ~0.12 short in the air.
-  const ANVIL_SPOT = 0.62, ANVIL_HIT = V(0.12, 0.528, 0.06);
+  const ANVIL_SPOT = 0.75, /* (t625u: was 0.62 - a step back so the full-arm strike lands with the elbow nearly open in front of her) */ ANVIL_HIT = V(0.12, 0.528, 0.06);
   const FURN_SPOT = 1.6, /* t623u: backed out (was 1.22) so her head, chest, knees and toes stay clear of the arch, jambs, sill and step through the whole deep bend - only her hands reach toward the mouth */ FURN_MOUTH = { x: 0.4, y0: 0.3, y1: 0.8, z0: 0.54, z1: 0.8 };
   function furnishSmithing(g) { const r = prng(91), iron = toon(0x3c3e42), ironL = toon(0x5a5d62), wood = toon(0x6e4426), woodD = toon(0x4e301b), bark = toon(0x5a3d24), ring = toon(0xb8936a);
     const st0 = stoneTex(15, [100, 95, 88], 30); st0.repeat.set(4, 2); const stM = toon(0xffffff, st0), st1 = stoneTex(16, [104, 98, 92], 40); st1.repeat.set(3, 1); const stB = toon(0xffffff, st1), stones = [toon(0x77716a), toon(0x6a645d), toon(0x837c73)];
