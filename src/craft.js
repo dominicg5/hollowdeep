@@ -182,15 +182,16 @@ const Craft = (() => {
   function take(id, n) { if (spare(id) < n) return false; const a = Math.min(get('bag', id), n); add('bag', id, -a); if (n - a && !add('vault', id, -(n - a))) { add('bag', id, a); return false; } return true; } // (backpack first; the vault only inside tetherDraw)
   function move(from, to, id, n, asNote) { if (from !== 'bag' && !vaultOK(id)) { if (typeof ui !== 'undefined' && ui.modal === 'cx-xfer' && typeof toast === 'function') toast('🔒 Stand at the vault to take things out'); return 0; } if (asNote === undefined) asNote = from === 'vault' && to === 'bag' && st.note; const nid = asNote && from === 'vault' && noteable(id) ? noteDef(id) : null, tid = nid || id, rid = to === 'vault' && isNote(id) ? noteOf(id) : tid;
     n = Math.min(Math.floor(n), get(from, id), room(to, rid)); if (n <= 0) return 0; add(from, id, -n); add(to, rid, n); return n; } // (withdraw as note: the stack leaves as one note; a note deposited is its items again)
+  function smLocked(r) { return !!r && (SMELT.includes(r) || SMITH.includes(r)) && recLocked(r); } // (furnace / anvil recipes under their Smithing level)
   function canMake(r, x) { return Object.keys(r.in).every((k) => spare(k) >= r.in[k] * x); }
   // (t591u + t592u, Dominic) how many the furnace / anvil can actually make: the backpack's ingredients AND backpack room for the output, made one at a time
   // (each one needs room before its ingredients are taken, as make() does). No fixed cap, never the vault. When the output has room for the lot it is just the
   // ingredient count; otherwise it is played out on a copy of the backpack (used-up ingredients can free a slot) and the real backpack is put back untouched.
-  function maxMake(r) { let c = Infinity; for (const k in r.in) c = Math.min(c, Math.floor(get('bag', k) / r.in[k])); if (!(c > 0) || !ITEMS[r.out]) return 0; if (room('bag', r.out) >= c) return c;
+  function maxMake(r) { if (smLocked(r)) return 0; let c = Infinity; for (const k in r.in) c = Math.min(c, Math.floor(get('bag', k) / r.in[k])); if (!(c > 0) || !ITEMS[r.out]) return 0; if (room('bag', r.out) >= c) return c;
     const b0 = bag(), o0 = S.bagOrder; S.backpack = Object.assign({}, b0); S.bagOrder = Array.isArray(o0) ? o0.slice() : o0; let n = 0;
     try { for (let g = 0; n < c && g < 1e5; g++) { if (room('bag', r.out) >= c - n) { n = c; break; } if (!fits('bag', r.out, 1)) break; for (const k in r.in) add('bag', k, -r.in[k]); add('bag', r.out, 1); n++; } } finally { S.backpack = b0; S.bagOrder = o0; }
     return n; }
-  function make(r, x, dest) { if (x <= 0 || !canMake(r, x)) return 0; if (!fits(dest === 'vault' ? 'vault' : 'bag', r.out, x)) return fullMsg(dest === 'vault' ? '🔒 Vault full' : FULL), 0; /* (room checked before any ingredient is taken) */ for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
+  function make(r, x, dest) { if (x <= 0 || !canMake(r, x)) return 0; if (smLocked(r)) { if (typeof toast === 'function') toast('Unlock Lv ' + recLv(r)); return 0; } /* (t624u: the Smithing lock holds on every crafting path, not just the screens) */ if (!fits(dest === 'vault' ? 'vault' : 'bag', r.out, x)) return fullMsg(dest === 'vault' ? '🔒 Vault full' : FULL), 0; /* (room checked before any ingredient is taken) */ for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
   // (Dominic) gold is the only free-to-play currency: everything is bought and sold for gold coins (S.gold, Mosby's fare purse). Lumen Crystals are premium only
   // (in-game purchase, 'Coming soon'); nothing in play gives them, and they buy looks only.
   const gold = () => { if (S.gold == null) S.gold = 2500; return Math.floor(S.gold); }, lum = gold;
@@ -366,7 +367,7 @@ const Craft = (() => {
   // recipe grid, the backpack ingredients, the quantity and Start. Backpack only (from and into the backpack, as before); locked recipes say "Unlock Lv N".
   const SMA = 'assets/ui/smithing/';
   const recG = (r) => String(r.out).replace(/^ingot:|^tool:pick_/, '');
-  const recLv = (r) => (typeof Skills !== 'undefined' && Skills.BAR_LEVELS ? Skills.BAR_LEVELS[recG(r)] || 1 : 1); // (Smithing unlocks, same levels for bars and pickaxes)
+  const recLv = (r) => (typeof Skills !== 'undefined' && Skills.smithLevel ? Skills.smithLevel(recG(r)) : 1); // (t624u: Skills.SMITH_LEVELS, one table for a grade's bar and its pickaxe)
   const recLocked = (r) => typeof Skills !== 'undefined' && typeof Skills.level === 'function' && Skills.level('smithing') < recLv(r);
   const smIco = (id) => (typeof itemIco === 'function' && itemIco(id)) || ico(id);
   const smShort = (r) => { const t = TIERS.find((q) => q[0] === recG(r)); return t ? (t[0] === 'onyx' ? 'Onyx' : t[1]) : nm(r.out); };
@@ -414,10 +415,10 @@ const Craft = (() => {
     Object.assign(JOB, { on: true, kind, i, n, done: 0, t0: tNow(), last: null }); BQ.k = null; BQ.q = false; JOB.tm = setTimeout(batchStep, BATCH_MS);
     if (stationUp() && typeof closeModalQuiet === 'function') closeModalQuiet(); /* (t600u / t434: close the window, back to the game view with her working; progress only in the pill) */ refresh(); hudOn(); return true; }
   function batchStep() { if (!JOB.on) return; JOB.tm = 0; /* (t600u: the window is closed while she works; the job runs on until done, Cancel or short) */ const r = recOf(JOB.kind, JOB.i);
-    if (!r || !(maxMake(r) > 0) || !make(r, 1, 'bag')) return batchStop('short'); JOB.done++; if (typeof save === 'function') save();
+    if (r && recLocked(r)) return batchStop('locked'); if (!r || !(maxMake(r) > 0) || !make(r, 1, 'bag')) return batchStop('short'); JOB.done++; if (typeof save === 'function') save();
     if (JOB.done >= JOB.n) return batchStop('done'); JOB.t0 = tNow(); JOB.tm = setTimeout(batchStep, BATCH_MS); refresh(); hudTick(); }
   function batchStop(why) { if (!JOB.on) return false; if (JOB.tm) clearTimeout(JOB.tm); JOB.tm = 0; JOB.on = false; const r = recOf(JOB.kind, JOB.i); JOB.last = { why, done: JOB.done, n: JOB.n, out: r && r.out };
-    if (typeof toast === 'function' && r) toast(`${JOB.kind === 'furnace' ? '🔥' : '⚒️'} ${JOB.done}× ${nm(r.out)} → Backpack${why === 'done' ? '' : why === 'short' ? ' (out of ingredients or backpack room)' : ' (stopped)'}`);
+    if (typeof toast === 'function' && r) toast(`${JOB.kind === 'furnace' ? '🔥' : '⚒️'} ${JOB.done}× ${nm(r.out)} → Backpack${why === 'done' ? '' : why === 'short' ? ' (out of ingredients or backpack room)' : why === 'locked' ? ' (Unlock Lv ' + recLv(r) + ')' : ' (stopped)'}`);
     refresh(); hudTick(); return true; }
   if (typeof document !== 'undefined') document.addEventListener('input', (e) => { const t = e.target; if (!t.classList || !t.classList.contains('cxbn')) return; const r = recOf(BQ.k, BQ.i); if (!r) return; const cap = maxMake(r); BQ.n = clampN(t.value, cap);
     const sv = t.closest('.smS'); if (!sv) return; const F = BQ.k === 'furnace', g = sv.querySelector('.smGs'); if (g && cap > 0) g.textContent = `${fmtN(BQ.n)} ${F ? smShort(r) : smShort(r) + ' pickaxe' + (BQ.n === 1 ? '' : 's')} · ${fmtN(BQ.n * BATCH_MS / 1000)}s · to backpack`;
@@ -479,5 +480,5 @@ const Craft = (() => {
     refresh(); });
   function swordTier(g) { return typeof S !== 'undefined' && S && S.tswords ? Math.max(0, Math.min(10, Math.floor(S.tswords[g] || 0))) : 0; }
   const swordOwned = (g) => have('tool:sword_' + g) > 0;
-  return { noteList, noteCancel, atVault, VBLOCK, tetherDraw, moleDraw, isNote, noteOf, noteDef, noteCount, carried, takeCarried, SWORD_STAT_PLAN, swordTier, swordOwned, SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, BATCH_MS, BQ, JOB, batchStart, batchStop, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+  return { recLv, recLocked, noteList, noteCancel, atVault, VBLOCK, tetherDraw, moleDraw, isNote, noteOf, noteDef, noteCount, carried, takeCarried, SWORD_STAT_PLAN, swordTier, swordOwned, SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, BATCH_MS, BQ, JOB, batchStart, batchStop, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
 })();

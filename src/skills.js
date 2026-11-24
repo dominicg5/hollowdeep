@@ -26,13 +26,15 @@ const Skills = (() => {
   };
   // Best-ore search matches v7.py (Tin shares Copper's numbers and is omitted there).
   const ORE_ORDER = ['copper', 'coal', 'iron', 'gold', 'mithril', 'runite', 'lumenite', 'onyx'];
-  const BAR_LEVELS = { bronze: 1, iron: 20, steel: 25, gold: 40, mithril: 55, rune: 70, lumen: 100, onyx: 125 };
+  // (Dominic t624u) ONE Smithing unlock table per grade: that grade's bar (furnace) and its pickaxe (anvil) unlock at the same level, all the way up.
+  const SMITH_LEVELS = { bronze: 1, iron: 20, steel: 25, gold: 40, mithril: 55, rune: 70, lumen: 100, onyx: 125 }, BAR_LEVELS = SMITH_LEVELS;
+  const smithLevel = (g) => SMITH_LEVELS[g] || 1;
   const SMELT_XP = { bronze: 12, iron: 30, steel: 55, gold: 135, mithril: 370, rune: 870, lumen: 1995, onyx: 6075 };
   const ANVIL_XP = { bronze: 18, iron: 45, steel: 80, gold: 205, mithril: 555, rune: 1310, lumen: 2990, onyx: 9110 };
   // Tethercraft (Dominic): the Tether Mill rolls ingots into braid spools / Wren's Tethers; hard unlock levels per grade (same curve as Mining & Smithing)
   const TETHER_LEVELS = [1, 20, 25, 40, 55, 70, 100, 125];
   const SKILL_KEYS = ['mining', 'smithing', 'tethercraft'];
-  const TOOL_OFFSETS = { tlink: 0, climb: 2, pick: 3, bit: 5 }; // make level = bar + offset
+  const TOOL_OFFSETS = { tlink: 0, climb: 2, pick: 0, bit: 5 }; // make level = bar + offset (t624u: a pickaxe at its bar's level, SMITH_LEVELS)
   const PICK_USE_LEVELS = [1, 10, 20, 35, 50, 65, 95, 120]; // Mining level to use a pick/bit of that tier (table only; current gating is unchanged)
   const BIT_KEYS = ['bronze', 'iron', 'steel', 'gold', 'mithril', 'rune', 'lumen', 'onyx'];
 
@@ -522,7 +524,7 @@ const Skills = (() => {
 
   return {
     SKILL_XP_SCALE, SKILL_POST_120_GROWTH, SKILL_SHOW_CEILING, LEVEL_SPEED_K, DRILL_RATE_DIV, SWING_S, ON_TASK,
-    YIELD_PER_TIER, SKILL_XP_MAX, DRILL_SLOT_LEVELS, ORES, ORE_ORDER, BAR_LEVELS, BAR_NAMES, UNLOCK_ORES, SKILL_ICONS, SMELT_XP, ANVIL_XP, TOOL_OFFSETS, TETHER_LEVELS, SKILL_KEYS,
+    YIELD_PER_TIER, SKILL_XP_MAX, DRILL_SLOT_LEVELS, ORES, ORE_ORDER, BAR_LEVELS, SMITH_LEVELS, smithLevel, BAR_NAMES, UNLOCK_ORES, SKILL_ICONS, SMELT_XP, ANVIL_XP, TOOL_OFFSETS, TETHER_LEVELS, SKILL_KEYS,
     PICK_USE_LEVELS, INPUT_TIMEOUT_MS: 0, // no 60 s input timeout; character XP is the same active or AFK
     clampXp, xpToReach, xpForLevel, levelFromXp, migrate, xp: xpOf, level, addXp, oreOf, oreUnlock, oreXp,
     yieldChance, levelSpeedBonus, swingBonus, characterOrePerHour, drillOrePerHour, characterXpPerHour, drillXpPerHour,
