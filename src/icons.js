@@ -76,6 +76,7 @@ function itemIco(id) {
   // (Art's painted pickaxe tier icons) tool:pick_<grade>@t1..@t10: one 10x1 sheet per grade (assets/ui/icons/items_<grade>_tiers.webp), a CSS background, so the
   // browser fetches a grade's sheet only the first time one of its tiered icons is shown; @t0 is the pick's own atlas cell
   // swords (Art's sword tier icons): one 11-cell sheet per grade, T0..T10, loaded only when a sword icon is drawn
+  if (/^tool:sword_stick(?:@t\d+)?$/.test(id)) return '<i class="cxsv cxico cxs1" style="background-image:url(assets/ui/icons/item_sword_stick.webp)" aria-hidden="true"></i>'; // (Art's starter stick sword icon, no tiers)
   const sw = /^tool:sword_(bronze|iron|steel|gold|mithril|rune|lumen|onyx)(?:@t(\d+))?$/.exec(id);
   if (sw) { const t = Math.max(0, Math.min(10, +(sw[2] || 0))); return '<i class="cxsv cxico cxst" style="--ix:' + t + ';--iy:0;background-image:url(assets/ui/icons/items_' + sw[1] + '_sword_tiers.webp)" aria-hidden="true"></i>'; }
   const pt = /^tool:pick_(\w+)@t(\d+)$/.exec(id);

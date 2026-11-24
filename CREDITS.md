@@ -20,3 +20,10 @@ While a furnace or anvil batch runs, Wren hammers at the anvil or reaches her ha
 |---|---|---|---|
 | Anvil hammering | `TreeChopping_Loop` | Universal Animation Library 2 [Standard], https://quaternius.com/packs/universalanimationlibrary2.html | CC0 1.0 |
 | Furnace reach in / out | `Interact` (the left hand; the right hand is its mirror half a loop later) | Universal Animation Library [Standard], https://quaternius.com/packs/universalanimationlibrary.html | CC0 1.0 |
+
+## Sword swing animation (Character screen Attack)
+- Source: **Universal Animation Library 2 — Standard (free tier)** by Quaternius — https://quaternius.com/packs/universalanimationlibrary2.html
+  (download: https://quaternius.itch.io/universal-animation-library-2, file `Universal Animation Library 2[Standard].zip`, fetched Nov 24 2026).
+- License: **CC0 1.0 Universal (Public Domain Dedication)** — https://creativecommons.org/publicdomain/zero/1.0/ (as stated in the pack's License.txt). Credit not required; given anyway.
+- Clips used: `Sword_Regular_A` + `Sword_Regular_A_Rec`, `Sword_Regular_B` + `Sword_Regular_B_Rec`, `Sword_Regular_C`, `Sword_Dash` (in-place export `UAL2_Standard.glb`).
+- Processing: retargeted to the game's procedural rig (pelvis / upper-spine turns, feet, knee and elbow directions, fist path and blade direction), resampled to 15 fps and quantized to Int16, baked into `src/char3d.js` (`SW_ANIM`). No mesh, texture or raw animation file is shipped.
