@@ -42,7 +42,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   console.log('ui', JSON.stringify(ui));
   const a2 = await snap();
   console.log('unplugged', JSON.stringify(a2));
-  ok(ui.had && ui.plug && /Main · free/.test(ui.port || ''), 'Tether Settings Unplug frees the main port (Plug in / Main · free)');
+  ok(ui.had && ui.plug && /^M\s?Plug in$/.test(ui.port || ''), 'Tether Settings Unplug frees the main port (M · Plug in; no status text, t662u) ' + ui.port);
   ok(!a2.ports.includes('c') && !a2.door && !a2.main && a2.cords.length === 0 && a2.plugs === 0, 'the rope is gone from the world, the lists and the map');
   ok(!ui.cards.some((t) => /House door tether|Hanging Camp/.test(t)) && !ui.tp.some((t) => /Ledge door|Hanging Camp/.test(t)), 'Tether Settings and Teleportation no longer list the main line');
   ok(a2.saved && !a2.saved.ports.c, 'the free port is written to the save');

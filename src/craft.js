@@ -273,7 +273,7 @@ const Craft = (() => {
   function gridsHTML(inModal, xfer) {
     let h = `<div class="cxp cxgrid kKit" data-cxv="${xfer ? 'xfer' : 'bag'}"><div class="kPanel kLeather"><div class="row between kHead"><h2>Backpack</h2>${xfer ? '' : gauge(used('bag'), BAG_N)}${inModal && !xfer ? '<button class="kX" data-cx="close" aria-label="Close">✕</button>' : ''}</div>`;
     h += (xfer ? '' : `<div class="dim kSub">What Wren carries. Tap an item for its options.${typeof Skills !== 'undefined' ? ' · ' + Skills.uiLine() : ''}</div>`) + gridHTML('bag') + (xfer ? '' : '<div class="kFoot">Ores, coal and bars stack to 500 per slot. Drill stands and bits stack to 12. Ledge Tether length stacks in one slot. Other tools take one slot each.</div>') + '</div>';
-    if (xfer) h += `<div class="kSwap"><span class="kPlate">⇄</span><small>Tap to move a stack · hold for more (equip, move some). Backpack: ores, coal and bars 500 per slot, drill stands and bits 12, Ledge Tether length in one slot, other tools one slot each. The vault stacks everything in one slot. Withdraw as note: a whole stack comes out as one note (one slot); deposit the note to get the items back.</small></div><div class="kPanel kLeather"><div class="row between kHead"><h2>Ledge Vault</h2><button class="btn sm ${st.note ? 'alt' : 'ghost'} cxnoteT" data-cx="note" aria-pressed="${st.note ? 'true' : 'false'}">📜 Withdraw as note${st.note ? ': on' : ''}</button></div>` + gridHTML('vault') + '</div>';
+    if (xfer) h += `<div class="kSwap"><span class="kPlate">⇄</span></div><div class="kPanel kLeather"><div class="row between kHead"><h2>Ledge Vault</h2><button class="btn sm ${st.note ? 'alt' : 'ghost'} cxnoteT" data-cx="note" aria-pressed="${st.note ? 'true' : 'false'}">📜 Withdraw as note${st.note ? ': on' : ''}</button></div>` + gridHTML('vault') + '</div>';
     h += st.menu && (xfer || st.menu.w === 'bag') ? menuHTML() : ''; return h + (inModal && xfer ? '<button class="btn ghost kBtn kCream" data-cx="close">Close</button>' : '') + '</div>'; }
   const TIER_N = (it) => { if (!it) return ''; if (it.tier != null && TIERS[it.tier]) return TIERS[it.tier][1]; const g = it.grade || it.stand; const T = g && TIERS.find((q) => q[0] === g); return T ? T[1] : (it.short || g || ''); };
   const KIND_N = { ore: 'Ore', ingot: 'Ingot', tool: 'Tool', teth: 'Ledge Tether', stand: 'Drill stand', bit: 'Drill bit', drill: 'Drill' };
@@ -305,9 +305,10 @@ const Craft = (() => {
     if (it.kind === 'ingot') return w === 'bag' ? 'Smelted metal, ready to smith. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : 'Stored in the Ledge vault.';
     return w === 'bag' ? 'Carried in the backpack. Move it to the vault at the Ledge (Backpack ⇄ Vault).' : 'Stored in the Ledge vault.';
   }
+  // (t662u, Dominic: no descriptive text on the vault screen) from the Backpack ⇄ Vault screen (menu.x) only the name and the count; no blurb
   function infoHead(id, c, blurb) {
-    const stats = itemStats(id, c).map(([k, v]) => `<small>${esc(k)}</small><b>${esc(v)}</b>`).join('');
-    return `<div class="cxmh">${pic(id)}<div class="cxmd"><b>${esc(nm(id))}</b><div class="cxsts">${stats}</div>${blurb ? `<p class="cxds">${blurb}</p>` : ''}</div></div>`;
+    const X = !!(st.menu && st.menu.x), stats = itemStats(id, c).slice(0, X ? 1 : 99).map(([k, v]) => `<small>${esc(k)}</small><b>${esc(v)}</b>`).join('');
+    return `<div class="cxmh">${pic(id)}<div class="cxmd"><b>${esc(nm(id))}</b><div class="cxsts">${stats}</div>${blurb && !X ? `<p class="cxds">${blurb}</p>` : ''}</div></div>`;
   }
   // (Dominic) Drop: any backpack item can be thrown away for good from its tap menu, after a confirm (how many, for a stack); what she has equipped is not in the
   // backpack, so it can't be dropped until it is unequipped
@@ -332,7 +333,7 @@ const Craft = (() => {
   function drillMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.drillNear ? Explore.drillNear() : { err: 'explore' }, ok = !X.err && c > 0, it = ITEMS[id];
     const near = X.err === 'explore' ? `<div class="cxnear dim">Set it up out on the map: open 🧭 Explore, then pick a stand from 🎒 Bag.</div>` : X.err ? `<div class="cxnear none">⛔ No ore within 5 s walk <small>(${X.R} m at your run speed)</small></div>`
       : `<div class="cxnear">${pic('ore:' + X.type)}<span><b>${esc(X.name)} ore</b><small>${X.m} m away · ${X.s} s walk</small></span></div>`;
-    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}">${infoHead(id, c, 'Place the stand, then swap or pick up the bit at the drill itself.')}${near}` +
+    return `<div class="cxmenu cxdrill" data-w="${st.menu && st.menu.w || 'bag'}" data-id="${id}">${infoHead(id, c, 'Place the stand, then swap or pick up the bit at the drill itself.')}${st.menu && st.menu.x ? '' : near}` +
       `<div class="cxacts"><button class="btn alt cxdset" data-cx="dset" ${ok ? '' : 'disabled'}>🛠️ Set up at nearest ore</button><button class="btn sm ghost" data-cx="mclose">Cancel</button></div></div>`; }
   // the Mithril Ledge Tether coil: 'Create a drop Ledge tether here?' - the length the rope needs from the Ledge door to her spot vs what is left on the coil
   function dropMenuHTML(id, c) { const X = typeof Explore !== 'undefined' && Explore.dropNeed ? Explore.dropNeed(id) : { err: 'explore' }, ok = !X.err && X.ok;
