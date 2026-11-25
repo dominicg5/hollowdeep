@@ -3159,78 +3159,52 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
       add('back', part(g, rbox(W, 0.2, 0.2, 0.03), beamD, [xc, H - 0.1, R.Z0 + 0.1])); add('left', part(g, rbox(0.2, 0.2, D, 0.03), beamD, [R.X0 + 0.1, H - 0.1, zc])); add('right', part(g, rbox(0.2, 0.2, D, 0.03), beamD, [R.X1 - 0.1, H - 0.1, zc])); }
     // (t635u / t636u: no stone dais and no glow ring - the tree hovers over the room's flagstones in a pool of cold fog)
     const T = new THREE.Group(); T.position.set(R.tx, 0, R.tz); g.add(T);
-    // the tree (F hovers, bobs and very slowly turns; t628u / t634u; t643 rebuilt to Art's crystal concept below): the Lumenite sword's crystal material (swCrys: faceted, slightly see-through, fresnel glow),
-    // a twisting lumenite trunk; the red / blue / yellow of the three branches runs down it in spiral bands and, under the trunk, the bands braid into the tether
-    const F = new THREE.Group(); F.position.y = 0.62; T.add(F); const up = V(0, 1, 0);
-    // (t637u: the tree grows with spent points - GR scales the whole tree about the root knot, so the braid's clasp and the tether never move; each branch
-    // scales about where it leaves the trunk. GT holds the tree with its origin back at the trunk's base)
+    // (crown_v3, Dominic t486s1972: "Send the fuller tree to dev to drop into the game"; t488u: stagger branches 360°)
+    // Art's createCrystalTree is the 9 crowns, braided limbs and trunk. Our claw roots are built into that same wood mesh
+    // (includeRoots: 'claws') because they hug the base better than Art's stand-in flares. Our tether, fog and room stay.
+    const F = new THREE.Group(); F.position.y = 0.55; T.add(F);
     const GR = new THREE.Group(); GR.position.y = R.yK; F.add(GR); const GT = new THREE.Group(); GT.position.y = -R.yK; GR.add(GT);
     const crysTx = HM.skTx || (HM.skTx = { c: cv(128, 128, (x, w, h) => { const q = prng(628); x.fillStyle = '#bfefff'; x.fillRect(0, 0, w, h); for (let i = 0; i < 70; i++) { x.fillStyle = q() < 0.5 ? `rgba(255,255,255,${0.15 + q() * 0.3})` : `rgba(120,200,235,${0.1 + q() * 0.25})`; x.fillRect(q() * w, q() * h, 2 + q() * 5, 10 + q() * 40); } }),
       n: cv(4, 4, (x, w, h) => { x.fillStyle = 'rgb(128,128,255)'; x.fillRect(0, 0, w, h); }) });
+    crysTx.c.wrapS = crysTx.c.wrapT = THREE.RepeatWrapping;
     const crys = (tint, em) => { const M = new THREE.Matrix3().set(tint[0], 0, 0, 0, tint[1], 0, 0, 0, tint[2]); return swCrys(crysTx, { M, off: V(0, 0, 0), em: new THREE.Color(em) }); };
-    const lumM = crys([1, 1, 1], lumenCol(0x2ad4e4, 0).multiplyScalar(0.9));
-    const seg = (par, a, b, r0, r1, m, s = 6) => { const d = b.clone().sub(a), L = d.length(), mesh = part(par, new THREE.CylinderGeometry(r1, r0, L, s, 1), m, [0, 0, 0], null, null, { ink: false, shadow: false }); mesh.position.copy(a).addScaledVector(d, 0.5); mesh.quaternion.setFromUnitVectors(up, d.normalize()); return mesh; };
-    const shard = (par, p, dir, len, w, m) => { const s = part(par, new THREE.OctahedronGeometry(1, 0), m, [0, 0, 0], null, [w, len, w], { ink: false, shadow: false }); s.position.copy(p).addScaledVector(dir, len * 0.8); s.quaternion.setFromUnitVectors(up, dir.clone().normalize()); return s; };
+    const crysTube = (tint, em, op) => { const m = crys(tint, em); m.flatShading = true; m.specular = new THREE.Color(0x262c34); m.shininess = 26; m.opacity = op; m.userData.U.uEm.value.multiplyScalar(1.55); m.userData.U.uGl.value = 1.65; m.customProgramCacheKey = () => 'swordCrysTube'; return m; };
     const glow = (par, p, col, sz) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial(col, col.replace(/[\d.]+\)$/, '0)')), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); sp.position.copy(p); sp.scale.setScalar(sz); sp.renderOrder = 4; par.add(sp); return sp; };
-    // (t643: Art's crystal tree, approved) three equal braided crystal strands - red Combat, yellow Tether Beasts, blue Production - each the Lumenite
-    // sword's crystal (swCrys) tinted its colour: twisted together from the roots up to the crown split (~0.47 H), then one strand into each branch:
-    // red sweeps left, yellow rises through the centre as the leader, blue sweeps right (as seen from the walkway, the tree's rest pose). Under the trunk
-    // the strands splay out as roots and twist back in to the root knot, where the big three-colour tether starts.
-    const YE = R.yK, YS = 1.5, TURNS = 2.5, RH0 = 0.12, NS = 6;
-    const vtube = (par, pts, segs, rf, m) => { const cur = new THREE.CatmullRomCurve3(pts), geo = new THREE.TubeGeometry(cur, segs, 1, NS, false), P = geo.attributes.position, c = V(0, 0, 0), v = V(0, 0, 0);
-      for (let i = 0; i < P.count; i++) { const t = Math.floor(i / (NS + 1)) / segs; cur.getPointAt(t, c); v.set(P.getX(i), P.getY(i), P.getZ(i)).sub(c); const k = rf(t); P.setXYZ(i, c.x + v.x * k, c.y + v.y * k, c.z + v.z * k); }
-      geo.computeVertexNormals(); return part(par, geo, m, [0, 0, 0], null, null, { ink: false, shadow: false }); };
-    // [key, colour, emissive, tint, sprite rgba, strand phase, crown centre, limb via-points (from the split)]
-    const BR = [['combat', 0xff4a5a, 0xc0182c, [1.3, 0.34, 0.4], 'rgba(255,70,90,0.8)', 0, V(-1.12, YS + 1.05, 0.05), [V(-0.32, YS + 0.32, 0), V(-0.74, YS + 0.78, 0.03)]],
-      ['production', 0x4aa8ff, 0x1450c8, [0.38, 0.72, 1.25], 'rgba(70,150,255,0.8)', 2 * TAU / 3, V(1.12, YS + 1.05, 0.05), [V(0.32, YS + 0.32, 0), V(0.74, YS + 0.78, 0.03)]],
-      ['beasts', 0xffd24a, 0xb07800, [1.3, 1.02, 0.3], 'rgba(255,205,70,0.8)', TAU / 3, V(0, YS + 1.75, -0.05), [V(0.04, YS + 0.55, 0.06), V(0, YS + 1.2, 0)]]];
+    const YE = R.yK, hash01 = (ring, side) => { let n = (Math.imul(ring, 374761393) + Math.imul(side, 668265263)) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n >>> 0) % 100000) / 100000; };
+    const BR = [
+      ['combat', 0xd42a22, 0xb02010, [1.3, 0.30, 0.20], 'rgba(212,42,34,0.8)'],
+      ['production', 0x2f86f0, 0x0c3c9c, [0.20, 0.84, 1.25], 'rgba(47,134,240,0.8)'],
+      ['beasts', 0xf3b52a, 0xa86400, [1.3, 0.78, 0.26], 'rgba(243,181,42,0.8)']];
     const glows = [], mats = [], grow = {}; HM.skBranch = {}; HM.skCrown = {}; HM.skBush = {}; const MAT = {};
-    const strandAt = (ph, y) => { const a = ph + Math.PI + TAU * TURNS * (y / YS), rr = RH0 * (1 - 0.15 * y / YS); return V(Math.cos(a) * rr, y, Math.sin(a) * rr); }; /* (phase 0 ends at -x on the split) */
-    for (const [k, col, em, tint, rgba, ph, C, via] of BR) { const m = crys(tint, em); MAT[k] = m; mats.push([new THREE.MeshBasicMaterial({ color: col }), new THREE.Color(col)]);
-      // trunk strand: knot -> roots (splay out, then in) -> braided helix up to the split
-      const a0 = ph + Math.PI, pts = [V(Math.cos(a0 + 1.2) * 0.03, YE, Math.sin(a0 + 1.2) * 0.03)];
-      for (const [y, r0, da] of [[YE + 0.1, 0.13, 0.9], [YE + 0.2, 0.3, 0.55], [YE + 0.31, 0.33, 0.2], [-0.05, 0.2, 0.05]]) pts.push(V(Math.cos(a0 + da) * r0, y, Math.sin(a0 + da) * r0));
-      for (let y = 0.05; y <= YS + 1e-6; y += 0.075) pts.push(strandAt(ph, y)); pts.push(strandAt(ph, YS));
-      const tm = vtube(GT, pts, 140, (t) => lerp(0.06, 0.1, ss(0, 0.25, t)) * (1 - 0.25 * ss(0.3, 1, t)), m); tm.name = 'skStrand:' + k;
-      for (const s of [-1, 1]) { const p = V(Math.cos(a0 + 0.55) * 0.3, YE + 0.2, Math.sin(a0 + 0.55) * 0.3), d = V(Math.cos(a0 + 0.55 + s * 0.5), -0.75, Math.sin(a0 + 0.55 + s * 0.5)).normalize(); shard(GT, p, d, 0.2, 0.05, m).name = 'skRootTip'; } /* (root tips, splayed out) */
-      // the branch: from the split along its limb to the crown (scales with the branch's points, about the split)
-      const S0 = strandAt(ph, YS), BP = new THREE.Group(); BP.name = 'branch:' + k; BP.position.copy(S0); GT.add(BP); const B = new THREE.Group(); B.position.copy(S0).negate(); BP.add(B); HM.skBranch[k] = BP; HM.skCrown[k] = C.clone();
-      part(GT, new THREE.IcosahedronGeometry(0.085, 0), m, [S0.x, S0.y, S0.z], null, null, { ink: false, shadow: false }); /* (a knuckle where the strand leaves the trunk) */
-      const lm = vtube(B, [S0, ...via, C], 60, (t) => lerp(0.075, 0.035, t), m); lm.name = 'skLimb:' + k;
-      // (t645u, Dominic: "make each branch with at least a bushel of crystals ... build the branches exactly like the image Art gave you and make that the starting size")
-      // the crown: a full bushel of crystal leaves at the limb's end, as in Art's painting (a rounded, leafy cluster: red and blue sweep out left / right, yellow
-      // is the tall centre leader). Its own group (CG, about the crown centre): at 0 points it is Art's size with every base crystal (tipSh[0]); points grow it
-      // bigger (SK_GROW.bush1) and add the outer shells (tipSh[1..4]) - it never shrinks below Art's size.
-      const CG = new THREE.Group(); CG.name = 'skBush:' + k; CG.position.copy(C); B.add(CG); HM.skBush[k] = CG;
-      const lead = k === 'beasts', Rr = lead ? 0.36 : 0.4, ey = lead ? 1.25 : 0.92, out = lead ? V(0, 1, 0) : V(Math.sign(C.x), 0.3, 0).normalize(), tipSh = [[], [], [], [], []], rn = prng(643 + col % 97);
-      const ell = (u, r) => V(u.x * r, u.y * r * ey, u.z * r);
-      for (let i = 0; i < 3; i++) { const a = i * TAU / 3 + rn() * 0.8, e = ell(V(Math.cos(a) * 0.6, 0.45, Math.sin(a) * 0.6), Rr * 0.7); vtube(CG, [ell(V(0, -0.75, 0), Rr), ell(V(0, -0.3, 0), Rr).lerp(e, 0.4), e], 12, (t) => lerp(0.034, 0.014, t), m).name = 'skTwig:' + k; } /* (the limb forks inside the bushel) */
-      const leaf = (G, u, r, l0, l1) => { const at = ell(u, r), dd = u.clone().addScaledVector(out, 0.3).add(V(0, 0.22, 0)).normalize(), s = shard(CG, at, dd, l0 + rn() * (l1 - l0), 0.05 + rn() * 0.028, m); s.scale.z *= 0.42; s.rotateY(rn() * Math.PI); tipSh[G].push(s); };
-      const N0 = 84; for (let j = 0; j < N0; j++) { const yy = lerp(1, -0.6, (j + 0.5) / N0), rr = Math.sqrt(1 - yy * yy), a = j * 2.39996; leaf(0, V(Math.cos(a) * rr, yy, Math.sin(a) * rr), Rr * (0.6 + 0.25 * rn()), 0.1, yy > 0.55 ? 0.24 : 0.2); }
-      for (let j = 0; j < 16; j++) leaf(0, V(rn() - 0.5, rn() - 0.3, rn() - 0.5).normalize(), Rr * 0.3 * rn(), 0.12, 0.2); /* (a dense core: no see-through hole in the middle) */
-      for (let G = 1; G <= 4; G++) for (let j = 0; j < 18; j++) { const yy = lerp(1, -0.5, rn()), rr = Math.sqrt(1 - yy * yy), a = rn() * TAU; leaf(G, V(Math.cos(a) * rr, yy, Math.sin(a) * rr), Rr * (0.82 + 0.2 * rn()), 0.12, 0.24); }
-      glows.push(glow(CG, V(0, 0.15, 0), rgba, 1.7)); glows.push(glow(B, via[1], rgba, 0.6)); grow[k] = { BP, CG, C: C.clone(), out, tipSh, s: -1 }; }
-    // the root knot: the three roots twist into the tether here (a lumenite collar hides the join while the tree turns)
-    HM.skRootY = YE; part(F, new THREE.IcosahedronGeometry(0.13, 1), lumM, [0, YE + 0.02, 0], null, [1, 0.8, 1], { ink: false, shadow: false });
+    for (const [k, col, em, tint, rgba] of BR) { const mTether = crysTube(tint, em, 0.92); MAT[k + 'Tether'] = mTether; mats.push([mTether, new THREE.Color(col)]); }
+    const art = CrystalCrown.createCrystalTree({ includeTrunk: true, includeRoots: 'claws', halo: true, glow: true, points: { combat: 0, production: 0, beasts: 0 } });
+    art.name = 'crystalTree'; GT.add(art); CrystalCrown.setBloom(art, true);
+    for (const k of ['combat', 'production', 'beasts']) { const set = art.userData.sets[k], C = V(...art.userData.layout[k].C);
+      HM.skBush[k] = set; HM.skBranch[k] = set; HM.skCrown[k] = C; grow[k] = { s: -1, set, C: C.clone() }; }
+    glow(F, V(0, YE - 0.05, 0), 'rgba(255,240,220,0.45)', 0.75); // soft glow at the trunk / tether seam
+    HM.skRootY = YE;
     // cold fog (t635u): dense, low and rolling - sprites rise off the trunk, sink and roll out along the floor, pooling round the base (cheap: ~18 sprites, one texture)
     const fogTx = cv(128, 128, (x, w, h) => { const q = prng(635); for (let i = 0; i < 26; i++) { const cx = 64 + (q() - 0.5) * 60, cy = 64 + (q() - 0.5) * 36, rr = 18 + q() * 30, gr = x.createRadialGradient(cx, cy, 0, cx, cy, rr); gr.addColorStop(0, 'rgba(214,232,242,0.22)'); gr.addColorStop(1, 'rgba(214,232,242,0)'); x.fillStyle = gr; x.fillRect(0, 0, w, h); } });
     fogTx.wrapS = fogTx.wrapT = THREE.ClampToEdgeWrapping; const fog = [];
-    for (let i = 0; i < 18; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fogTx, color: 0xd6e8f2, transparent: true, depthWrite: false, opacity: 0, fog: false })); sp.renderOrder = 3; sp.raycast = () => {}; /* (fog never takes a tap: the floor under it stays tappable) */ T.add(sp); fog.push({ sp, a: i / 18 * TAU + r() * 0.3, ph: r(), sp0: 0.028 + r() * 0.02, far: 1.4 + r() * 1.3, rot: (r() - 0.5) * 0.4 }); }
+    for (let i = 0; i < 18; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fogTx, color: 0xd6e8f2, transparent: true, depthWrite: false, opacity: 0, fog: false })); sp.renderOrder = 3; sp.raycast = () => {}; T.add(sp); fog.push({ sp, a: i / 18 * TAU + r() * 0.3, ph: r(), sp0: 0.028 + r() * 0.02, far: 1.4 + r() * 1.3, rot: (r() - 0.5) * 0.4 }); }
     const lt = new THREE.PointLight(0xd8f4ff, 0.8, 10, 1.4); lt.position.set(0, 3.6, 1.6); T.add(lt); (HM.inLights = HM.inLights || []).push(lt);
-    // the braided tether: three strands round a centre line from under the tree to the Tether Orb's table, glowing red / blue / yellow
-    const t = HMP.table, ax = R.AX + 0.36, K0 = V(R.tx, 0.62 + R.yK, R.tz), ctr = [K0.clone(), V(R.tx, 0.14, R.tz + 0.45), V(R.tx + 0.04, 0.1, R.tz + 1.0), V(R.tx + 0.1, 0.07, R.tz + 1.7), V(ax - 0.1, 0.07, R.Z1 - 1.2), V(ax, 0.07, R.Z1 - 0.2), V(ax, 0.07, HM.BZ + 0.05),
+    // the braided tether: three crystal strands from under the tree to the Tether Orb; starts as wide as the trunk and feathers down
+    const t = HMP.table, ax = R.AX + 0.36, K0 = V(R.tx, 0.55 + R.yK, R.tz), ctr = [K0.clone(), V(R.tx, 0.14, R.tz + 0.45), V(R.tx + 0.04, 0.1, R.tz + 1.0), V(R.tx + 0.1, 0.07, R.tz + 1.7), V(ax - 0.1, 0.07, R.Z1 - 1.2), V(ax, 0.07, R.Z1 - 0.2), V(ax, 0.07, HM.BZ + 0.05),
       V(ax - 0.1, 0.07, -2.1), V(-2.55, 0.07, -1.55), V(-1.95, 0.07, -1.05), V(-1.0, 0.07, -0.98), V(-0.2, 0.07, -0.78), V(t.x + 0.2, 0.07, t.z - 0.62), V(t.x + 0.34, 0.07, t.z - 0.34), V(t.x + 0.28, 0.3, t.z - 0.28), V(t.x + 0.39, 0.6, t.z - 0.39), V(t.x + 0.4, 0.71, t.z - 0.4), V(t.x + 0.24, 0.7, t.z - 0.24), V(t.x + 0.16, 0.77, t.z - 0.16), V(t.x + 0.12, 0.84, t.z - 0.12)]; /* (t628u: up the back-right leg, out round the tabletop's rim and in to the cradle, like the main Ledge Tether on the left legs - never through the table) */
-    const cc = new THREE.CatmullRomCurve3(ctr, false, 'catmullrom', 0.25), Lc = cc.getLength(), M = Math.ceil(Lc * 24), cp = cc.getSpacedPoints(M), rb = 0.042, rs = 0.032, TP = (d) => lerp(1.8, 1, ss(0, 2.4, d)); /* (Dominic: the main tether starts big where the roots twist into it and feathers down to the smaller braid that runs to the Tether Orb) */
-    const strands = [[], [], []]; let S0 = V(1, 0, 0); for (let k = 0; k <= M; k++) { const T0 = cp[Math.min(M, k + 1)].clone().sub(cp[Math.max(0, k - 1)]).normalize(); S0.addScaledVector(T0, -S0.dot(T0)); if (S0.lengthSq() < 1e-6) S0 = V(0, 0, 1).cross(T0); S0.normalize(); const U0 = T0.clone().cross(S0);
-      for (let i = 0; i < 3; i++) { const ph = i / 3 * TAU + k / M * Lc * 16; const rk = rb * TP(k / M * Lc); strands[i].push(cp[k].clone().addScaledVector(S0, Math.cos(ph) * rk).addScaledVector(U0, Math.sin(ph) * rk)); } }
+    const cc = new THREE.CatmullRomCurve3(ctr, false, 'catmullrom', 0.25), Lc = cc.getLength(), M = Math.ceil(Lc * 24), cp = cc.getSpacedPoints(M), rb = 0.042, rs = 0.032, TP = (d) => lerp(2.6, 1, ss(0.35, 3.0, d)); /* (Dominic / Art fix_v1: starts as wide as the trunk and feathers to the smaller braid by ~3 m) */
+    const strands = [[], [], []], trunkPh = [0, 2 * TAU / 3, TAU / 3]; let S0f = V(1, 0, 0), phAcc = 0; for (let k = 0; k <= M; k++) { const T0 = cp[Math.min(M, k + 1)].clone().sub(cp[Math.max(0, k - 1)]).normalize();
+      if (k === 0) { S0f = V(1, 0, 0); } S0f.addScaledVector(T0, -S0f.dot(T0)); if (S0f.lengthSq() < 1e-6) S0f = V(0, 0, 1).cross(T0); S0f.normalize(); const U0 = T0.clone().cross(S0f);
+      const d = k / M * Lc; if (k > 0) phAcc += 16 * (Lc / M) / Math.max(0.2, TP(d));
+      for (let i = 0; i < 3; i++) { const phs = trunkPh[i] + Math.PI + phAcc, rk = rb * TP(d); strands[i].push(cp[k].clone().addScaledVector(S0f, Math.cos(phs) * rk).addScaledVector(U0, Math.sin(phs) * rk)); } }
     const braid = new THREE.Group(); braid.name = 'skillBraid'; g.add(braid); HM.skBraidPts = ctr;
     const DEF = [], LD = 1.6; /* (t636u: the tether's first LD metres ease from the drifting, bobbing root knot into its fixed run along the floor) */
-    for (let i = 0; i < 3; i++) { const m = mats[i][0].clone(); m.color.copy(mats[i][1]); const TS = M * 2, geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strands[i]), TS, rs, 5, false), tm = part(braid, geo, m, [0, 0, 0], null, null, { ink: false, shadow: false }); tm.userData.base = mats[i][1].clone(); tm.frustumCulled = false;
-      const P = geo.attributes.position, idx = [], w = []; { const cu = geo.parameters.path, c = V(0, 0, 0), q = V(0, 0, 0); for (let v = 0; v < P.count; v++) { const ring = Math.floor(v / 6); cu.getPointAt(ring / TS, c); q.set(P.getX(v), P.getY(v), P.getZ(v)).sub(c).multiplyScalar(TP(ring / TS * Lc)).add(c); P.setXYZ(v, q.x, q.y, q.z); } geo.computeVertexNormals(); } for (let v = 0; v < P.count; v++) { const ring = Math.floor(v / 6), d = ring / TS * Lc; if (d < LD) { idx.push(v); w.push(1 - ss(0, LD, d)); } } DEF.push({ P, base: Float32Array.from(P.array), idx, w }); }
-    for (let k = 1; k < 9; k++) { const q = cc.getPointAt(k / 9); glows.push(glow(braid, q.clone().add(V(0, 0.04, 0)), ['rgba(255,80,100,0.5)', 'rgba(80,160,255,0.5)', 'rgba(255,210,80,0.5)'][k % 3], 0.5)); }
+    const BK = ['combat', 'production', 'beasts'];
+    for (let i = 0; i < 3; i++) { const m = MAT[BK[i] + 'Tether']; const TS = M * 2, sides = 7, Nvr = sides + 1, geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strands[i]), TS, rs, sides, false), tm = part(braid, geo, m, [0, 0, 0], null, null, { ink: false, shadow: false }); tm.userData.base = mats[i][1].clone(); tm.frustumCulled = false;
+      const P = geo.attributes.position, Uv = geo.attributes.uv, idx = [], w = [], aL = new Float32Array(P.count * 2); { const cu = geo.parameters.path, c = V(0, 0, 0), q = V(0, 0, 0); for (let v = 0; v < P.count; v++) { const ring = Math.floor(v / Nvr), side0 = (v % Nvr) === sides ? 0 : (v % Nvr), t = ring / TS; cu.getPointAt(t, c); q.set(P.getX(v), P.getY(v), P.getZ(v)).sub(c); const rad = q.length() * TP(t * Lc) * (1 + 0.16 * (hash01(ring, side0) - 0.5)); q.setLength(Math.max(1e-5, rad)).add(c); P.setXYZ(v, q.x, q.y, q.z); const th = (side0 / sides) * TAU; aL[v * 2] = 0.65 * Math.sin(th); aL[v * 2 + 1] = 0.4 * t * Lc; if (Uv) Uv.setX(v, Uv.getX(v) * Lc / 0.6); } geo.setAttribute('aL', new THREE.BufferAttribute(aL, 2)); geo.computeVertexNormals(); } for (let v = 0; v < P.count; v++) { const ring = Math.floor(v / Nvr), d = ring / TS * Lc; if (d < LD) { idx.push(v); w.push(1 - ss(0, LD, d)); } } DEF.push({ P, base: Float32Array.from(P.array), idx, w }); }
+    for (let k = 1; k < 9; k++) { const q = cc.getPointAt(k / 9); glows.push(glow(braid, q.clone().add(V(0, 0.04, 0)), ['rgba(224,64,46,0.5)', 'rgba(31,120,216,0.5)', 'rgba(240,178,62,0.5)'][k % 3], 0.5)); }
     // she can't walk through the roots
     HM.obs.push({ x: R.tx, z: R.tz, r: R.obsR }); /* (the roots, the knot and the fog's heart, wherever the tree drifts; the branches are above her head) */
-    HM.sk = { g, T, F, GR, grow, gs: -1, walls, glows, mats, braid, light: lt, glow0: glows.map((s) => s.material.opacity), fog, DEF, K0 }; return g; }
+    HM.sk = { g, T, F, GR, grow, art, gs: -1, walls, glows, mats, braid, light: lt, glow0: glows.map((s) => s.material.opacity), fog, DEF, K0 }; return g; }
   // near-wall culling for the Skill Tree room (as the house's): a wall the camera is at or beyond is cut away; the ceiling only while the camera is under it
   function skillRoomCull(cp, nw) { const K = HM.sk; if (!K) return; const R = SKR, W = K.walls, on = HM.mode === 'in'; K.g.visible = on; if (!on) return;
     const vis = { front: cp.z < R.Z1 - nw, back: cp.z > R.Z0 + nw, left: cp.x > R.X0 + nw, right: cp.x < R.X1 - nw };
@@ -3246,14 +3220,16 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
   // the bob + glow pulse (cheap: a handful of scalars per frame)
   // the tree grows with spent skill points (t637u; t644u: only the branches - the trunk, roots and tether join are always full size): each branch with the
   // points in its branch (Production / Tether Beasts have none yet, so stay small and dormant); more crystals open at the tips as a branch fills. Eased.
-  const SK_GROW = { tree0: 0.3, bush1: 1.3, push: 0.18, ease: 5 }, skEaseOut = (f) => 1 - (1 - f) * (1 - f);
+  const SK_GROW = { tree0: 0.3, bush1: 1.12, push: 0.25, pushLead: 0.10, ease: 5 }, skEaseOut = (f) => 1 - (1 - f) * (1 - f);
   function skGrowTarget() { const C = typeof Combat !== 'undefined' ? Combat : null, o = { tree: 0, br: {} }; if (!C) return o; const sv = typeof S !== 'undefined' ? S : null;
     o.tree = clamp(C.pointsSpent(sv) / (C.LV_MAX || 300), 0, 1); for (const b of ['combat', 'production', 'beasts']) { const mx = C.branchMax ? C.branchMax(b) : 0; o.br[b] = mx ? clamp(C.branchSpent(b, sv) / mx, 0, 1) : 0; } return o; }
   function skillGrowTick(K, t) { const g = skGrowTarget(), k = K.gs < 0 ? 1 : 1 - Math.exp(-Math.max(0, t - (K.gt || t)) * SK_GROW.ease); K.gt = t;
     K.gs = 1; K.GR.scale.setScalar(1); /* (t644u, Dominic: the trunk - braided strands, roots and the tether join - is always full size; only the branches grow) */
-    for (const b in K.grow) { const q = K.grow[b], f = g.br[b] || 0; q.s = q.s < 0 ? f : q.s + (f - q.s) * k; const e = skEaseOut(q.s); q.BP.scale.setScalar(1); q.CG.scale.setScalar(lerp(1, SK_GROW.bush1, e)); q.CG.position.copy(q.C).addScaledVector(q.out, SK_GROW.push * e); /* (t645u: no dormant shrink - Art's size at 0 points, the bushel grows bigger with points and leans out so the three never merge) */ const n = 1 + Math.round(4 * q.s); q.tipSh.forEach((L, j) => { for (const m of L) m.visible = j < n; }); } }
+    const pts = {}; for (const b in K.grow) { const q = K.grow[b], f = g.br[b] || 0; q.s = q.s < 0 ? f : q.s + (f - q.s) * k; pts[b] = q.s; }
+    if (K.art && K.art.userData.setPoints) K.art.userData.setPoints(pts); }
+
   function skillRoomTick() { const K = HM.sk; if (!K || !K.g.visible) return; const t = HM.t || 0; skillGrowTick(K, t); const R = SKR, dx = R.drift * (0.62 * Math.sin(t * 0.071 + 1.3) + 0.38 * Math.sin(t * 0.163 + 4.1)), dz = R.drift * (0.62 * Math.sin(t * 0.057 + 2.2) + 0.38 * Math.sin(t * 0.137 + 0.4)), dy = (1 + Math.sin(t * 1.25)) * 0.035; /* (bobs up from its rest height only, so the big tether start never dips into the floor) */
-    /* (t636u: a slow wandering drift, smooth sums of sines, <= SKR.drift from the centre) */ K.F.position.set(dx, 0.62 + dy, dz); K.F.rotation.y = (t * SK_SPIN) % TAU; /* (t634u: one full turn every 75 s, about the axis through the root knot, so the tether never tears) */
+    /* (t636u: a slow wandering drift, smooth sums of sines, <= SKR.drift from the centre) */ K.F.position.set(dx, 0.55 + dy, dz); K.F.rotation.y = (t * SK_SPIN) % TAU; /* (t634u: one full turn every 75 s, about the axis through the root knot, so the tether never tears) */
     for (const D of K.DEF) { const A = D.P.array, B = D.base; for (let j = 0; j < D.idx.length; j++) { const v = D.idx[j] * 3, w = D.w[j]; A[v] = B[v] + dx * w; A[v + 1] = B[v + 1] + dy * w; A[v + 2] = B[v + 2] + dz * w; } D.P.needsUpdate = true; }
     for (const f of K.fog) { const u = (t * f.sp0 + f.ph) % 1, rr = 0.25 + f.far * Math.sqrt(u), a = f.a + u * 0.8; f.sp.position.set(dx * (1 - u) + Math.cos(a) * rr, lerp(0.95, 0.16, ss(0, 0.45, u)) + 0.05 * Math.sin(t * 0.4 + f.a), dz * (1 - u) + Math.sin(a) * rr);
       const sc = lerp(0.7, 2.6, Math.sqrt(u)); f.sp.scale.set(sc * 1.5, sc * 0.75, 1); f.sp.material.opacity = 0.55 * Math.sin(Math.PI * u) ** 0.8; f.sp.material.rotation = f.rot * t; }
