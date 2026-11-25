@@ -75,6 +75,10 @@ const Combat = (() => {
   function canRemove(id, s) { if (ranks(id, s) <= 0) return false; const n = NODE[id]; if (n.req) return true; return NODES.every((m) => m.id === id || !ranks(m.id, s) || !m.req || !(n.sub in m.req) || reqSpent(n.sub, s) - n.cost >= m.req[n.sub]); }
   function removePoint(id, s) { s = migrate(s); if (!s || !canRemove(id, s)) return false; s.skill[id] = ranks(id, s) - 1; if (!s.skill[id]) delete s.skill[id]; if (s === (typeof S !== 'undefined' ? S : null) && typeof save === 'function') save(); return true; }
   function resetTree(s) { s = migrate(s); if (s) s.skill = {}; }
+  // the player's Reset in the Skill Tree (t643u, Dominic): every point back. Free for now - RESET_COST is the one place its price (gold) goes later
+  const RESET_COST = 0;
+  const canReset = (s) => { s = sv(s); return !!s && pointsSpent(s) > 0 && (RESET_COST <= 0 || (+s.gold || 0) >= RESET_COST); };
+  function resetPaid(s) { s = migrate(s); if (!s || !canReset(s)) return 0; const n = pointsSpent(s); if (RESET_COST > 0) s.gold = (+s.gold || 0) - RESET_COST; s.skill = {}; if (s === (typeof S !== 'undefined' ? S : null) && typeof save === 'function') save(); return n; }
   // one node's full state for the tree UI
   function nodeState(id, s) { const n = NODE[id]; if (!n) return null; const r = ranks(id, s), why = whyNot(id, s); return { id, branch: n.branch, sub: n.sub, name: n.name, text: n.text, max: n.max, cost: n.cost, req: n.req, ranks: r, maxed: r >= n.max, reqMet: reqMet(id, s), canAdd: !why, why, canRemove: canRemove(id, s) }; }
   const treeState = (s) => ({ level: level(s), points: pointsTotal(s), spent: pointsSpent(s), left: pointsLeft(s), nodes: NODES.map((n) => nodeState(n.id, s)), subSpent: { might: subSpent('might', s), vitality: subSpent('vitality', s), spoils: subSpent('spoils', s) } });
@@ -122,6 +126,6 @@ const Combat = (() => {
   return { LV_MAX, BASE_HP, BASE_STR, STICK_PAIR, SWORD_PAIR, SWORD_UNLOCK, TIER_STEP, HIT_CAP, HIT_EASE, REGEN, REGEN_MEND, HEAL_CAP, GRADES, BRANCHES, NODES, NODE, BEAST_SLOT_LEVELS,
     tierMult, pairStats, swordStats, fmt, swordUnlock, canEquip, migrate, level, levelFromXp, addXp, setLevel, xpTo,
     get DEV_POINTS() { return DEV_POINTS; }, set DEV_POINTS(v) { DEV_POINTS = Math.max(0, Math.floor(+v || 0)); },
-    ranks, subSpent, reqSpent, pointsTotal, pointsSpent, pointsLeft, branchSpent, branchMax, reqMet, whyNot, canAdd, addPoint, canRemove, removePoint, resetTree, nodeState, treeState, applyNodes,
+    ranks, subSpent, reqSpent, pointsTotal, pointsSpent, pointsLeft, branchSpent, branchMax, reqMet, whyNot, canAdd, addPoint, canRemove, removePoint, resetTree, RESET_COST, canReset, resetPaid, nodeState, treeState, applyNodes,
     equippedSwords, playerStats, hitChance, rollDamage, swingTime, newFight, fightHeal, fightDealt, fightKill, fightHurt, regenPerSec, coinDrop, beastChance, BOSS_BEAST_BASE, bossBeastChance, creature, beastSlots };
 })();

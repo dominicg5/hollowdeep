@@ -4,7 +4,7 @@
    Nothing is computed here: the level share is Combat.playerStats with no swords and an empty tree, the swords share is playerStats' own pair sum,
    the tree share is Combat.applyNodes, the total is Combat.playerStats. ---------- */
 const CombatStats = (() => {
-  const A = 'assets/ui/', T = 'assets/ui/skill_tree/';
+  const A = 'assets/ui/', T = 'assets/ui/skill_tree_crystal/';
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const num = (v) => (Math.round(v * 10) / 10).toString();
   const cap = (g) => g.charAt(0).toUpperCase() + g.slice(1);
@@ -27,7 +27,7 @@ const CombatStats = (() => {
       `#combatStats .csTop{display:flex;align-items:center;gap:10px}#combatStats .csIc{width:44px;height:44px;flex:none;background:url(${A}combat_stats_128.webp) center/100% 100% no-repeat}#combatStats h2{flex:1;margin:0;font:400 22px "Bree Serif",Georgia,serif;color:#ffe2a8;text-shadow:0 1px 0 #2b1a10}`,
       `#combatStats .csX{width:44px;height:44px;flex:none;border:0;background:url(${T}btn_close.webp) center/100% 100% no-repeat;cursor:pointer}`,
       '#combatStats .csLv{margin:8px 2px 10px;font-size:13px;opacity:.95}',
-      `#combatStats .csCard{padding:8px 10px;border-radius:10px;color:#2b1a10;background:url(${T}parchment_panel.webp) center/100% 100% no-repeat,#efdcb0}#combatStats table{width:100%;border-collapse:collapse}#combatStats th,#combatStats td{padding:7px 4px;text-align:right;font-size:14px}#combatStats thead th{font:600 11px Alegreya,Georgia,serif;letter-spacing:.05em;text-transform:uppercase;opacity:.8}#combatStats tbody th{text-align:left;font:400 16px "Bree Serif",Georgia,serif}#combatStats tbody tr+tr{border-top:1px solid rgba(74,46,26,.2)}#combatStats td b{font:400 18px "Bree Serif",Georgia,serif;color:#7a1c14}`,
+      `#combatStats .csCard{padding:8px 10px;border-radius:10px;color:#2b1a10;background:url(${A}combat_stats_parchment.webp) center/100% 100% no-repeat,#efdcb0}#combatStats table{width:100%;border-collapse:collapse}#combatStats th,#combatStats td{padding:7px 4px;text-align:right;font-size:14px}#combatStats thead th{font:600 11px Alegreya,Georgia,serif;letter-spacing:.05em;text-transform:uppercase;opacity:.8}#combatStats tbody th{text-align:left;font:400 16px "Bree Serif",Georgia,serif}#combatStats tbody tr+tr{border-top:1px solid rgba(74,46,26,.2)}#combatStats td b{font:400 18px "Bree Serif",Georgia,serif;color:#7a1c14}`,
       '#combatStats .csNote{margin:12px 2px 6px;font-size:13px;line-height:1.4}#combatStats .csNote b{color:#ffd27a}#combatStats .csFoot{margin:0 2px;font-size:11px;opacity:.75}'].join('');
     document.head.appendChild(e); }
   function el() { let e = document.getElementById('combatStats'); if (!e) { e = document.createElement('div'); e.id = 'combatStats'; e.setAttribute('role', 'dialog'); e.setAttribute('aria-label', 'Combat stats'); document.body.appendChild(e);
