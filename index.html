@@ -901,7 +901,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='3e8855be';
+<script>window.HD_BUILD='f66c7bfb';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -923,8 +923,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 3e8855be</div>
-<script src="assets/vendor/three.min.js?v=3e8855be"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build f66c7bfb</div>
+<script src="assets/vendor/three.min.js?v=f66c7bfb"></script>
 <script>
 'use strict';
 
@@ -10081,15 +10081,17 @@ const CityMap = (() => {
   }
   return { minimapBase: () => buildMinimapBase(), mapView, mapViewSave, setView, autoView, climbCard, boardModal, exchangeCard, exListings, show, hide, onAct, flyTo, focusHome, cam, st, is3d, w2sUp: (x, y, up) => w2s(x, y, up), zoomAt, rotTilt, get fps() { return fps; }, w2s, s2w, handleTap, get tiles() { return tiles.size; }, homeCard, marketCard, currentRumor: () => currentRumor };
 })();
-/* ===== The Lumen Mushroom (t653u, Dominic): the Attack Playground's practice target in the Character view.
-   Model: "Mushnub" from Quaternius' Ultimate Monsters pack (CC0 1.0, rigged + animated; see CREDITS.md), shipped alone as assets/models/mushnub.glb
-   (67 KB, from poly.pizza's single-model download - no pack zip in the repo). Its body shape, rig and clips are untouched; only the colours change at load:
-   a glowing lumenite cyan cap (#66d8ff, like the Lumen Tree mushrooms), a cream stem (#eedcbc) and its own sleepy side eyes (Art's concept,
-   mia/concepts/creatures/mushnub/mushnub_lumen_concept.png). Clips used: Idle (loop), HitRecieve (a hit), Death (at 0 HP, then it respawns). ===== */
+/* ===== Creatures: the data table (t661). One entry per creature; src/creatures/creatures.js loads, builds and animates any entry the same way,
+   so a new creature is a new row here + its GLB under assets/models/creatures/. Stats are PLACEHOLDERS (Dominic: "easy placeholder values").
+   Combat XP per kill = 4 x creature HP (Art's rule); the Combat XP per-level curve is still a placeholder. str is stored only: no creature
+   counterattacks exist yet, nothing reads it. ===== */
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
-// LUMEN MUSHROOM STATS - PLACEHOLDERS (Dominic: "easy placeholder values"). Edit here: everything the playground fight reads comes from this block.
+// LUMEN MUSHROOM - the Attack Playground's practice target (t653u). Model: "Mushnub" from Quaternius' Ultimate Monsters (CC0 1.0, see CREDITS.md),
+// shipped alone as assets/models/creatures/mushnub.glb (67 KB, no pack zip). Body, rig and clips untouched; recoloured at load: a glowing lumenite
+// cyan cap (#66d8ff), a cream stem (#eedcbc), its own sleepy side eyes (Art's concept mia/concepts/creatures/mushnub/mushnub_lumen_concept.png).
 const LUMEN_MUSHROOM = {
+  id: 'lumen_mushroom',
   name: 'Lumen Mushroom',
   hp: 8,            // max HP (Art's stats, Dominic t655)
   str: 1,           // Strength - STORED ONLY: no creature counterattacks exist yet, nothing reads this
@@ -10097,42 +10099,61 @@ const LUMEN_MUSHROOM = {
   xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp. The Combat XP per-level curve is still a placeholder.
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground
+  icon: '🍄',
+  model: 'assets/models/creatures/mushnub.glb',
+  clips: { idle: 'Idle', hit: 'HitRecieve', death: 'Death' },   // (the pack's own clip names, "CharacterArmature|" stripped)
+  // recolour: the first rule whose test matches a GLB material name wins; part names the material (tag 'lumen_mushroom:<part>')
+  look: [
+    { test: /Secondary/, part: 'cap', color: 0x66d8ff, emissive: 0x2fb8f0, glow: 0.55 },
+    { test: /Main/, part: 'stem', color: 0xeedcbc, emissive: 0x3a3428, glow: 0.25 },
+    { test: /Eye_White/, part: 'eyeWhite', color: 0xeef1f6 },
+    { test: /./, part: 'eyeBlack', color: 0x141518 },
+  ],
 };
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
-const LumenMushroom = (() => {
-  const URL = 'assets/models/mushnub.glb', COL = { cap: 0x66d8ff, capGlow: 0x2fb8f0, stem: 0xeedcbc, eyeW: 0xeef1f6, eyeB: 0x141518 };
-  const ST = { gl: null, bin: null, p: null, err: null };
+const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM };
+/* ===== Creatures: loading, building and animating any CREATURE_DATA entry (src/creatures/data.js) (t661).
+   Public API (the Attack Playground in char3d.js uses only this):
+     Creatures.get(id)        -> its data row (stats, model, clips, look)
+     Creatures.load(id)       -> Promise: fetches + parses its GLB once (cached)
+     Creatures.make(id)       -> one instance { id, def, root (Group, feet at y 0, facing +z), model, mixer, clips, names, play(name, once), mats } or null until loaded
+     Creatures.ready(id) / Creatures.error(id)
+   A minimal GLB reader covers what the Quaternius creature files hold: nodes, one skin, one mesh of several primitives, LINEAR rotation / translation /
+   scale clips, tightly packed buffers. ===== */
+const Creatures = (() => {
   const CT = { 5121: Uint8Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array }, NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 };
-  // ---- minimal GLB reader: what this one file holds (nodes, one skin, one mesh of 4 primitives, LINEAR rotation / translation clips; tightly packed buffers)
-  function acc(i) { const g = ST.gl, a = g.accessors[i], bv = g.bufferViews[a.bufferView], T = CT[a.componentType], n = NC[a.type], off = ST.bin.byteOffset + (bv.byteOffset || 0) + (a.byteOffset || 0);
-    return { arr: new T(ST.bin.buffer.slice(off, off + a.count * n * T.BYTES_PER_ELEMENT)), n }; }
-  function load() { if (ST.p) return ST.p; ST.p = fetch(URL).then((r) => { if (!r.ok) throw new Error('mushnub ' + r.status); return r.arrayBuffer(); }).then((ab) => { const dv = new DataView(ab); let o = 12;
-      while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) ST.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) ST.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
-      if (!ST.gl || !ST.bin) throw new Error('mushnub: bad glb'); return true; }).catch((e) => { ST.err = String(e); ST.p = null; throw e; }); return ST.p; }
-  const mat = (name) => { const cap = /Secondary/.test(name), stem = /Main/.test(name), white = /Eye_White/.test(name);
-    const m = new THREE.MeshLambertMaterial({ color: cap ? COL.cap : stem ? COL.stem : white ? COL.eyeW : COL.eyeB }); if (cap) { m.emissive.setHex(COL.capGlow); m.emissiveIntensity = 0.55; } else if (stem) { m.emissive.setHex(0x3a3428); m.emissiveIntensity = 0.25; }
-    m.name = 'lumenMush:' + (cap ? 'cap' : stem ? 'stem' : white ? 'eyeWhite' : 'eyeBlack'); return m; };
-  // one mushroom: { root (Group, feet at y 0, facing +z), mixer, clips, play(name, once), mats }; call LumenMushroom.load() first
-  function make() { const g = ST.gl; if (!g) return null; const nodes = g.nodes.map((n, i) => { const isJ = g.skins[0].joints.includes(i), o = isJ ? new THREE.Bone() : new THREE.Object3D(); o.name = n.name || 'n' + i;
+  const ST = {}; // id -> { gl, bin, p, err }
+  const get = (id) => CREATURE_DATA[id] || null, st = (id) => ST[id] || (ST[id] = { gl: null, bin: null, p: null, err: null });
+  function acc(S, i) { const g = S.gl, a = g.accessors[i], bv = g.bufferViews[a.bufferView], T = CT[a.componentType], n = NC[a.type], off = S.bin.byteOffset + (bv.byteOffset || 0) + (a.byteOffset || 0);
+    return { arr: new T(S.bin.buffer.slice(off, off + a.count * n * T.BYTES_PER_ELEMENT)), n }; }
+  function load(id) { const D = get(id); if (!D) return Promise.reject(new Error('no creature ' + id)); const S = st(id); if (S.p) return S.p;
+    S.p = fetch(D.model).then((r) => { if (!r.ok) throw new Error(id + ' ' + r.status); return r.arrayBuffer(); }).then((ab) => { const dv = new DataView(ab); let o = 12;
+      while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) S.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) S.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
+      if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
+  function mat(D, name) { const L = (D.look || []).find((r) => r.test.test(name)) || { part: 'body', color: 0xcccccc }, m = new THREE.MeshLambertMaterial({ color: L.color });
+    if (L.emissive != null) { m.emissive.setHex(L.emissive); m.emissiveIntensity = L.glow == null ? 1 : L.glow; } m.name = D.id + ':' + L.part; return m; }
+  function make(id) { const D = get(id), S = ST[id]; if (!D || !S || !S.gl) return null; const g = S.gl, J = (g.skins && g.skins[0] && g.skins[0].joints) || [];
+    const nodes = g.nodes.map((n, i) => { const o = J.includes(i) ? new THREE.Bone() : new THREE.Object3D(); o.name = n.name || 'n' + i;
       if (n.translation) o.position.fromArray(n.translation); if (n.rotation) o.quaternion.fromArray(n.rotation); if (n.scale) o.scale.fromArray(n.scale); return o; });
     g.nodes.forEach((n, i) => (n.children || []).forEach((c) => nodes[i].add(nodes[c])));
-    const model = new THREE.Group(); model.name = 'lumenMushroomModel'; for (const i of g.scenes[g.scene || 0].nodes) model.add(nodes[i]); model.updateMatrixWorld(true);
-    const sk = g.skins[0], ibm = acc(sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]), inv = bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16)), skel = new THREE.Skeleton(bones, inv), mats = [];
-    g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { const a = acc(A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n)); };
-        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(p.indices).arr, 1));
-        const m = mat(g.materials[p.material].name), sm = new THREE.SkinnedMesh(geo, m); sm.name = 'lumenMush:' + m.name.split(':')[1]; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
-    model.updateMatrixWorld(true); model.traverse((o) => { if (o.isSkinnedMesh) o.bind(skel, o.matrixWorld); });
-    const clips = {}; for (const an of g.animations || []) { const tracks = []; for (const ch of an.channels) { const s = an.samplers[ch.sampler], t = acc(s.input).arr, v = acc(s.output).arr, nm = nodes[ch.target.node].name;
+    const model = new THREE.Group(); model.name = D.id + 'Model'; for (const i of g.scenes[g.scene || 0].nodes) model.add(nodes[i]); model.updateMatrixWorld(true);
+    let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
+    const mats = [];
+    g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n)); };
+        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
+        const m = mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
+    model.updateMatrixWorld(true); if (skel) model.traverse((o) => { if (o.isSkinnedMesh) o.bind(skel, o.matrixWorld); });
+    const clips = {}; for (const an of g.animations || []) { const tracks = []; for (const ch of an.channels) { const s = an.samplers[ch.sampler], t = acc(S, s.input).arr, v = acc(S, s.output).arr, nm = nodes[ch.target.node].name;
         if (ch.target.path === 'rotation') tracks.push(new THREE.QuaternionKeyframeTrack(nm + '.quaternion', t, v)); else if (ch.target.path === 'translation') tracks.push(new THREE.VectorKeyframeTrack(nm + '.position', t, v)); else if (ch.target.path === 'scale') tracks.push(new THREE.VectorKeyframeTrack(nm + '.scale', t, v)); }
       const k = an.name.replace(/^.*\|/, ''); clips[k] = new THREE.AnimationClip(k, -1, tracks); }
-    // feet on the ground, LUMEN_MUSHROOM.height tall (measured in the bind pose)
-    const bb = new THREE.Box3(); model.traverse((o) => { if (o.isSkinnedMesh) { o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
-    const h = Math.max(1e-4, bb.max.y - bb.min.y), k = LUMEN_MUSHROOM.height / h; model.scale.setScalar(k); model.position.y = -bb.min.y * k;
-    const root = new THREE.Group(); root.name = 'lumenMushroom'; root.add(model); const mixer = new THREE.AnimationMixer(model); let cur = null;
+    // feet on the ground, D.height tall (measured in the bind pose)
+    const bb = new THREE.Box3(); model.traverse((o) => { if (o.isMesh) { o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
+    const h = Math.max(1e-4, bb.max.y - bb.min.y), k = (D.height || 1) / h; model.scale.setScalar(k); model.position.y = -bb.min.y * k;
+    const root = new THREE.Group(); root.name = D.id; root.add(model); const mixer = new THREE.AnimationMixer(model); let cur = null;
     const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); if (cur && cur !== a) cur.fadeOut(0.12); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); cur = a; return a; };
-    play('Idle'); return { root, model, mixer, clips, play, mats, names: Object.keys(clips) }; }
-  return { load, make, ST, URL, COL, get ready() { return !!ST.gl; } };
+    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips) }; }
+  return { get, load, make, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
 })();
 /* ============================================================
    CHARACTER TAB: the player's delver on a warm little stage.
@@ -11906,29 +11927,30 @@ const CharView = (() => {
   function swDir(a, b, s) { _sq2.setFromUnitVectors(a, b); return a.clone().applyQuaternion(_sq.identity().slerp(_sq2, s)); }
   function swStart() { const N = SWINGS.length, v = SWG.n++ % N, both = !!(SWG.R && SWG.L), v2 = (v + 1) % N, lag = both ? 0.24 : 0; return { v, v2, lead: SWG.R ? 'R' : 'L', lag, t: 0, T: Math.max(SWINGS[v].T, both ? lag + SWINGS[v2].T : 0), name: SWINGS[v].name }; }
   /* (t653u, Dominic: "change the attack button in character view to attack playground and drop the mushroom character that we will call 'Lumen Mushroom'
-     and we will test attacking him there") The Attack Playground: the first Attack Playground press drops a Lumen Mushroom (src/lumen_mushroom.js; its
-     placeholder HP / Defense are the LUMEN_MUSHROOM block there) on the Character view's floor, turns her to face it and pulls the camera back; every
+     and we will test attacking him there") The Attack Playground: the first Attack Playground press drops a Lumen Mushroom (src/creatures/; its
+     placeholder stats are the LUMEN_MUSHROOM row in src/creatures/data.js) on the Character view's floor in front of her (she is not turned) and pulls the camera back; every
      swing that reaches it rolls Combat.rollDamage with her real stats (Combat.playerStats) against its Defense: a damage number pops up, it flinches
-     (HitRecieve), and at 0 HP it plays Death and pops back up after LUMEN_MUSHROOM.respawnS. Closing the Character view clears it. */
-  const PGA = { on: false, mob: null, hp: 0, dead: 0, n: 0, log: [], kills: 0, dist0: null, hud: null, AT: [0.38, 0, 0.95], REACH: 1.7 };
+     (HitRecieve), and at 0 HP it plays Death and pops back up after its respawnS. Closing the Character view clears it. */
+  const PGA = { id: 'lumen_mushroom', on: false, mob: null, hp: 0, dead: 0, n: 0, log: [], kills: 0, dist0: null, hud: null, AT: [0.38, 0, 0.95], REACH: 1.7 };
+  const pgaC = () => Creatures.get(PGA.id); // (t661) the target's data row: src/creatures/data.js, built through the Creatures API (src/creatures/creatures.js)
   function pgaHud() { const w = wrap || document.getElementById('charWrap'); if (!w) return; let h = PGA.hud; if (!PGA.on) { if (h) h.remove(); PGA.hud = null; return; }
-    if (!h) { h = PGA.hud = document.createElement('div'); h.id = 'pgaHud'; h.setAttribute('role', 'status'); w.appendChild(h); } const C = LUMEN_MUSHROOM, f = Math.max(0, PGA.hp) / C.hp;
-    h.dataset.hp = PGA.hp; h.dataset.state = !PGA.mob ? (LumenMushroom.ST.err ? 'error' : 'loading') : PGA.dead > 0 ? 'dead' : 'alive';
-    h.innerHTML = `<b>🍄 ${C.name}</b><span class="pgaBar"><i style="width:${(f * 100).toFixed(1)}%"></i></span><small>${!PGA.mob ? (LumenMushroom.ST.err ? 'could not load' : 'loading…') : PGA.dead > 0 ? 'Defeated - back in ' + Math.ceil(PGA.dead) + ' s' : `HP ${PGA.hp} / ${C.hp} · DEF ${C.def}`}</small>`; }
-  function pgaOpen() { if (PGA.on || !SOLO.on || !scene) return; PGA.on = true; PGA.hp = LUMEN_MUSHROOM.hp; PGA.dead = 0; PGA.n = 0; PGA.log = []; PGA.dist0 = st.dist; st.dist = Math.max(st.dist, 5.4); { const y = st.yaw, fw = [Math.sin(y), Math.cos(y)], sd = [Math.cos(y), -Math.sin(y)]; PGA.AT = [fw[0] * 0.95 + sd[0] * 0.38, 0, fw[1] * 0.95 + sd[1] * 0.38]; } /* (in front of her, a little to one side; she is not turned, so nothing about her own pose changes) */ pgaHud();
-    const sc0 = scene; LumenMushroom.load().then(() => { if (!PGA.on || !SOLO.on || scene !== sc0) return; const m = LumenMushroom.make(); if (!m) return; m.root.position.set(...PGA.AT); m.root.rotation.y = Math.atan2(-PGA.AT[0], -PGA.AT[2]); scene.add(m.root); PGA.mob = m;
-      m.mixer.addEventListener('finished', (e) => { if (PGA.mob === m && PGA.dead <= 0 && e.action.getClip().name === 'HitRecieve') m.play('Idle'); }); pgaHud(); }).catch(() => pgaHud()); }
+    if (!h) { h = PGA.hud = document.createElement('div'); h.id = 'pgaHud'; h.setAttribute('role', 'status'); w.appendChild(h); } const C = pgaC(), f = Math.max(0, PGA.hp) / C.hp;
+    h.dataset.hp = PGA.hp; h.dataset.state = !PGA.mob ? (Creatures.error(PGA.id) ? 'error' : 'loading') : PGA.dead > 0 ? 'dead' : 'alive';
+    h.innerHTML = `<b>🍄 ${C.name}</b><span class="pgaBar"><i style="width:${(f * 100).toFixed(1)}%"></i></span><small>${!PGA.mob ? (Creatures.error(PGA.id) ? 'could not load' : 'loading…') : PGA.dead > 0 ? 'Defeated - back in ' + Math.ceil(PGA.dead) + ' s' : `HP ${PGA.hp} / ${C.hp} · DEF ${C.def}`}</small>`; }
+  function pgaOpen() { if (PGA.on || !SOLO.on || !scene) return; PGA.on = true; PGA.hp = pgaC().hp; PGA.dead = 0; PGA.n = 0; PGA.log = []; PGA.dist0 = st.dist; st.dist = Math.max(st.dist, 5.4); { const y = st.yaw, fw = [Math.sin(y), Math.cos(y)], sd = [Math.cos(y), -Math.sin(y)]; PGA.AT = [fw[0] * 0.95 + sd[0] * 0.38, 0, fw[1] * 0.95 + sd[1] * 0.38]; } /* (in front of her, a little to one side; she is not turned, so nothing about her own pose changes) */ pgaHud();
+    const sc0 = scene; Creatures.load(PGA.id).then(() => { if (!PGA.on || !SOLO.on || scene !== sc0) return; const m = Creatures.make(PGA.id); if (!m) return; m.root.position.set(...PGA.AT); m.root.rotation.y = Math.atan2(-PGA.AT[0], -PGA.AT[2]); scene.add(m.root); PGA.mob = m;
+      m.mixer.addEventListener('finished', (e) => { if (PGA.mob === m && PGA.dead <= 0 && e.action.getClip().name === pgaC().clips.hit) m.play(pgaC().clips.idle); }); pgaHud(); }).catch(() => pgaHud()); }
   function pgaClose() { if (!PGA.on) return; PGA.on = false; const m = PGA.mob; PGA.mob = null; if (m) { m.mixer.stopAllAction(); if (m.root.parent) m.root.parent.remove(m.root); dropObj(m.root); for (const q of m.mats) q.dispose(); }
     if (PGA.dist0 != null) st.dist = PGA.dist0; PGA.dist0 = null; pgaHud(); const w = wrap || document.getElementById('charWrap'); if (w) w.querySelectorAll('.pgaNum').forEach((e) => e.remove()); }
-  function pgaNum(txt, cls) { const m = PGA.mob, w = wrap || document.getElementById('charWrap'); if (!m || !w || !R || !cam) return; const p = m.root.position.clone().add(V(0, LUMEN_MUSHROOM.height + 0.12, 0)).project(cam), cr = R.domElement.getBoundingClientRect(), wr = w.getBoundingClientRect();
+  function pgaNum(txt, cls) { const m = PGA.mob, w = wrap || document.getElementById('charWrap'); if (!m || !w || !R || !cam) return; const p = m.root.position.clone().add(V(0, pgaC().height + 0.12, 0)).project(cam), cr = R.domElement.getBoundingClientRect(), wr = w.getBoundingClientRect();
     const e = document.createElement('div'); e.className = 'pgaNum ' + (cls || ''); e.textContent = txt; e.style.left = (cr.left - wr.left + (p.x + 1) / 2 * cr.width).toFixed(0) + 'px'; e.style.top = (cr.top - wr.top + (1 - p.y) / 2 * cr.height).toFixed(0) + 'px'; w.appendChild(e); setTimeout(() => e.remove(), 1000); }
   function pgaHit() { const m = PGA.mob; if (!m || PGA.dead > 0 || !rig) return null; const hp0 = rig.root.position, d = Math.hypot(m.root.position.x - hp0.x, m.root.position.z - hp0.z), fw = V(Math.sin(st.yaw), 0, Math.cos(st.yaw)), to = V(m.root.position.x - hp0.x, 0, m.root.position.z - hp0.z).normalize();
     if (d > PGA.REACH || fw.dot(to) < 0.3) return null; /* (out of reach, or she has been turned away from it) */
-    const r = Combat.rollDamage(Combat.playerStats(), { def: LUMEN_MUSHROOM.def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift();
+    const r = Combat.rollDamage(Combat.playerStats(), { def: pgaC().def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift();
     pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss');
-    if (PGA.hp <= 0) { PGA.dead = LUMEN_MUSHROOM.respawnS; PGA.kills++; m.play('Death', true); if (LUMEN_MUSHROOM.xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(LUMEN_MUSHROOM.xp); if (typeof save === 'function') save(); pgaNum('+' + LUMEN_MUSHROOM.xp + ' Combat XP', 'info'); } } else if (r.dmg > 0) m.play('HitRecieve', true); pgaHud(); return r; }
+    if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.kills++; m.play(pgaC().clips.death, true); if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } } else if (r.dmg > 0) m.play(pgaC().clips.hit, true); pgaHud(); return r; }
   function pgaTick(dt) { if (!PGA.on) return; const m = PGA.mob; if (!m) return; m.mixer.update(dt); const A = SWG.at; if (A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; pgaHit(); }
-    if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; if (PGA.dead <= 0) { PGA.dead = 0; PGA.hp = LUMEN_MUSHROOM.hp; m.play('Idle'); m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
+    if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; if (PGA.dead <= 0) { PGA.dead = 0; PGA.hp = pgaC().hp; m.play(pgaC().clips.idle); m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
     else if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); }
   function pgaAttack() { if (!rig || !(SWG.R || SWG.L)) return false; pgaOpen(); return swAttack(); }
   function swAttack() { if (!rig || !(SWG.R || SWG.L)) return false; if (SWG.sh) { SWG.sh = false; swSaveSh(); swHolster(); pvDraw(); } /* (sheathed: Attack draws first) */ if (SWG.at) SWG.q = 1; else SWG.at = swStart(); return true; }
@@ -13820,7 +13842,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
     const G = st.gnd; if (!G) return false; let x = q.x, z = q.z; const L = Math.hypot(x, z); if (L > TR.RW) { x *= TR.RW / L; z *= TR.RW / L; } navTo(G, x, z, () => { st.pg = null; }); pgMark({ x: G.goal.x, z: G.goal.z, y: trHeight(G.goal.x, G.goal.z) }); st.pg = { home: true, tree: true }; return true; }
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
-  return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { return { on: PGA.on, ready: !!PGA.mob, hp: PGA.hp, max: LUMEN_MUSHROOM.hp, def: LUMEN_MUSHROOM.def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, get sw() { return { R: SWG.R, L: SWG.L, w: SWG.w, n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
+  return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { return { on: PGA.on, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, get sw() { return { R: SWG.R, L: SWG.L, w: SWG.w, n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */
 const Explore = (() => {

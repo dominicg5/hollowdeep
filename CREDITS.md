@@ -32,6 +32,6 @@ While a furnace or anvil batch runs, Wren works one loop per item. These motions
 
 | Used for | Asset | License |
 |---|---|---|
-| The Lumen Mushroom practice target in the Character view's Attack Playground (`assets/models/mushnub.glb`; recoloured at load: lumenite cyan cap #66d8ff, cream stem #eedcbc; clips Idle / HitRecieve / Death) | **Mushnub** from **Ultimate Monsters** by **Quaternius** — https://quaternius.com/packs/ultimatemonsters.html (single model from https://poly.pizza/m/LWKmS30Xxl) | **CC0 1.0** (public domain) — https://creativecommons.org/publicdomain/zero/1.0/ |
+| The Lumen Mushroom practice target in the Character view's Attack Playground (`assets/models/creatures/mushnub.glb`; recoloured at load: lumenite cyan cap #66d8ff, cream stem #eedcbc; clips Idle / HitRecieve / Death) | **Mushnub** from **Ultimate Monsters** by **Quaternius** — https://quaternius.com/packs/ultimatemonsters.html (single model from https://poly.pizza/m/LWKmS30Xxl) | **CC0 1.0** (public domain) — https://creativecommons.org/publicdomain/zero/1.0/ |
 
 CC0 needs no attribution; recorded for provenance. Lumen colouring: Art's concept (mushnub_lumen_concept.png).
