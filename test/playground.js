@@ -42,6 +42,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const K = await p.evaluate(() => { let n = 0, r = null; const hits = []; while (CharView.pga.hp > 0 && n < 400) { r = CharView.pgaHit(); n++; if (r) hits.push(r.dmg); } const g = CharView.pga, h = document.getElementById('pgaHud');
     let death = false; g.mob && CharView.pga.mob; return { n, hp: g.hp, dead: g.dead, kills: g.kills, st: h.dataset.state, hud: h.textContent, after: CharView.pgaHit(), xp: (S.combat && S.combat.xp) || 0, sum: hits.reduce((a, x) => a + x, 0) }; });
   ok(K.hp === 0 && K.dead > 0 && K.kills === 1 && K.st === 'dead' && /Defeated/.test(K.hud) && K.after === null, `at 0 HP it dies (${K.n} more hits, ${K.sum} damage): Death plays, "${K.hud}", no more hits land while it is down`);
+  // (combat SFX, Art's pack, Dominic 9:01 AM) Sfx fires on the swing (shout + swoosh) and on each landed hit; random variants, never one clip twice in a row
+  const SX = await p.evaluate(() => { const L = Sfx.log.slice(), T = Sfx.TABLE, seq = {}; for (const e of L) { const k = e.cat.startsWith('hit') ? 'hit' : e.cat; (seq[k] = seq[k] || []).push(e.name); }
+    const rep = (a) => a.some((x, i) => i && x === a[i - 1]); const pool = []; for (let i = 0; i < 300; i++) pool.push(Sfx.play('swoosh')); const hp = []; for (let i = 0; i < 300; i++) hp.push(Sfx.hit({ crit: i % 7 === 0 }));
+    const c1 = Sfx.hit({ crit: true }), c2 = Sfx.hit({ crit: true });
+    return { cats: [...new Set(L.map((e) => e.cat))], shout: (seq.shout_m || []).length + (seq.shout_f || []).length, sw: (seq.swoosh || []).length, hits: (seq.hit || []).length, landed: CharView.pga.log.filter((x) => x.hit || x.dmg > 0).length,
+      rep: Object.values(seq).some(rep), rep2: rep(pool) || rep(hp), uniq: new Set(pool).size, uniqH: new Set(hp).size, crit: [c1, c2], ext: T.ext, sexOk: (CharView.rig.sex === 'f' ? 'shout_f' : 'shout_m') }; });
+  ok(SX.shout >= 1 && SX.sw >= 1 && SX.cats.includes(SX.sexOk) && SX.hits === SX.landed && SX.hits >= 1, `combat SFX: the swing played a ${SX.sexOk} shout + swoosh (${SX.shout} shouts, ${SX.sw} swooshes) and every landed hit played a hit (${SX.hits} of ${SX.landed})`);
+  ok(!SX.rep && !SX.rep2 && SX.uniq === 6 && SX.uniqH === 6 && SX.crit[0] === 'hit_06' && SX.crit[1] !== 'hit_06' && SX.ext === 'mp3', `combat SFX: random picks, no back-to-back repeats (all 6 swooshes, all 6 hits used; crit gets hit_06 and a 2nd crit in a row alternates: ${SX.crit}); MP3 only`);
   ok(K.xp - L0.xp0 === 32, `the kill awards Combat XP = 4 x its HP (${L0.xp0} -> ${K.xp})`);
   await p.waitForFunction(() => CharView.pga.dead === 0 && CharView.pga.hp === CharView.pga.max, null, { timeout: 60000 }).catch(() => {});
   const R2 = await p.evaluate(() => ({ g: CharView.pga, st: document.getElementById('pgaHud').dataset.state, nums: window.__nums.slice(-3) }));

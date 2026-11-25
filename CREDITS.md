@@ -35,3 +35,16 @@ While a furnace or anvil batch runs, Wren works one loop per item. These motions
 | The Lumen Mushroom practice target in the Character view's Attack Playground (`assets/models/creatures/mushnub.glb`; recoloured at load: lumenite cyan cap #66d8ff, cream stem #eedcbc; clips Idle / HitRecieve / Death) | **Mushnub** from **Ultimate Monsters** by **Quaternius** — https://quaternius.com/packs/ultimatemonsters.html (single model from https://poly.pizza/m/LWKmS30Xxl) | **CC0 1.0** (public domain) — https://creativecommons.org/publicdomain/zero/1.0/ |
 
 CC0 needs no attribution; recorded for provenance. Lumen colouring: Art's concept (mushnub_lumen_concept.png).
+
+## Combat sound effects (sword swings and hits, `src/sfx.js`)
+
+Art's combat SFX pack (Dominic approved, Nov 25 2026). Shipped as MP3 only in `assets/audio/sfx/`, lightly edited (trim, fade, EQ, pitch) from these CC0 recordings:
+
+| Files | Source | Licence |
+|---|---|---|
+| `swoosh_01`–`06` (blade through the air) | **Iwan "qubodup" Gabovitch**, bamboo-stick weapon swishes — https://opengameart.org/content/swish-bamboo-stick-weapon-swhoshes | CC0 1.0 |
+| `shout_male_01`–`04` (her attack effort, male) | **HaelDB**, "Male Grunt/Yelling sounds" — https://opengameart.org/content/male-gruntyelling-sounds (dual-licensed OGA-BY 3.0 / CC0; the CC0 grant is used) | CC0 1.0 |
+| `shout_female_01`–`04` (her attack effort, female) | **Cici Fyre**, Female RPG Voice Starter Pack — https://opengameart.org/content/female-rpg-voice-starter-pack | CC0 1.0 |
+| `hit_01`–`06` (sword on creature, the v3 "lower schwing + ting" set; `hit_06` is the crit) | **Jan Schupke (Vehicle Music)**, Tinysized SFX Library (`knife-unsheathe-02`, `handsaw-knife-scrape-02`, `metal-knife-scrape-01`/`03`, `sword-clash-05`) — https://opengameart.org/content/fantasy-sound-effects-tinysized-sfx, plus original procedural schwing / ting layers made for Hollowdeep | CC0 1.0 |
+
+CC0 (https://creativecommons.org/publicdomain/zero/1.0/) needs no attribution; recorded for provenance.

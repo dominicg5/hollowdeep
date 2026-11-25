@@ -1772,7 +1772,7 @@ const CharView = (() => {
     return F; }
   function swEnv(i, t) { const C = SW_ANIM.clips[i]; return t <= 0 || t >= C.T ? 0 : ss(0, C.bi, t) * (1 - ss(C.T - 0.3, C.T, t)); }
   function swDir(a, b, s) { _sq2.setFromUnitVectors(a, b); return a.clone().applyQuaternion(_sq.identity().slerp(_sq2, s)); }
-  function swStart() { const N = SWINGS.length, v = SWG.n++ % N, both = !!(SWG.R && SWG.L), v2 = (v + 1) % N, lag = both ? 0.24 : 0; return { v, v2, lead: SWG.R ? 'R' : 'L', lag, t: 0, T: Math.max(SWINGS[v].T, both ? lag + SWINGS[v2].T : 0), name: SWINGS[v].name }; }
+  function swStart() { const N = SWINGS.length, v = SWG.n++ % N, both = !!(SWG.R && SWG.L), v2 = (v + 1) % N, lag = both ? 0.24 : 0; if (typeof Sfx !== 'undefined') Sfx.swing({ f: (rig && rig.sex) === 'f', T: SWINGS[v].T, lag: both ? lag : null, T2: both ? SWINGS[v2].T : null }); return { v, v2, lead: SWG.R ? 'R' : 'L', lag, t: 0, T: Math.max(SWINGS[v].T, both ? lag + SWINGS[v2].T : 0), name: SWINGS[v].name }; }
   /* (t653u, Dominic: "change the attack button in character view to attack playground and drop the mushroom character that we will call 'Lumen Mushroom'
      and we will test attacking him there") The Attack Playground: the first Attack Playground press drops a Lumen Mushroom (src/creatures/; its
      placeholder stats are the LUMEN_MUSHROOM row in src/creatures/data.js) on the Character view's floor in front of her (she is not turned) and pulls the camera back; every
@@ -1815,7 +1815,7 @@ const CharView = (() => {
   function pgaRel() { const m = PGA.mob, G = st.gnd; if (!m || !G || !G.arena) return null; const dx = m.root.position.x - G.x, dz = m.root.position.z - G.z, d = Math.hypot(dx, dz); return { d, dot: d > 1e-6 ? (Math.sin(G.face) * dx + Math.cos(G.face) * dz) / d : 1, dx, dz }; }
   function pgaHit() { const m = PGA.mob; if (!m || PGA.dead > 0 || !rig || PGA.ko > 0) return null; const q = pgaRel(); if (!q) return null;
     if (q.d > PGA.REACH || q.dot < 0.3) return null; /* (out of reach, or she has been turned away from it) */
-    const r = Combat.rollDamage(Combat.playerStats(), { def: pgaC().def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift(); if (r.dmg > 0) Combat.fightDealt(pgaMe(), r.dmg);
+    const r = Combat.rollDamage(Combat.playerStats(), { def: pgaC().def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift(); if (r.dmg > 0) Combat.fightDealt(pgaMe(), r.dmg);
     pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); PGA.hunt = true; /* (GD-19: hit, it hunts her until she is past its leash) */
     if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.kills++; PGA.eng = false; PGA.hunt = false; PGA.bite = 0; PGA.once = 0; PGA.anim = 'death'; m.play(pgaC().clips.death, true); Combat.fightKill(pgaMe()); if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } }
     else if (r.dmg > 0) pgaOnce('hit'); pgaHud(); return r; }
@@ -2020,7 +2020,7 @@ const CharView = (() => {
   // (t686u) she fights: sheathed swords come out (a creature tapped / attacked, or a provoked one turning on her). Attack draws them too (swAttack).
   function swDrawFight() { if (!rig || !(SWG.R || SWG.L) || !SWG.sh) return false; SWG.sh = false; swSaveSh(); swHolster(); pvDraw(); return true; }
   function swSheathe(on) { if (!SOLO.on || !rig || !(SWG.R || SWG.L)) return; SWG.sh = !!on; swSaveSh(); if (on) { SWG.at = null; SWG.q = 0; } swHolster(); pvDraw(); }
-  function swAttach() { if (!rig) return; const b = rig.built; b.swords = b.swords || { R: null, L: null };
+  function swAttach() { if (!rig) return; if ((SWG.R || SWG.L) && typeof Sfx !== 'undefined') Sfx.warm(); const b = rig.built; b.swords = b.swords || { R: null, L: null };
     for (const k of ['R', 'L']) { const want = SWG[k], cur = b.swords[k], sig = want ? want.g + ':' + want.t : ''; if (cur && cur.userData.sig === sig) continue;
       if (cur) { if (cur.parent) cur.parent.remove(cur); dropObj(cur); b.swords[k] = null; }
       if (want) { const sw = makeSword(want.g, want.t), s = k === 'R' ? 1 : -1; sw.userData.sig = sig; sw.position.copy(PALM); sw.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0, -1, 0), V(s, 0, 0), V(0, 0, s))); sw.userData.hp = [sw.position.clone(), sw.quaternion.clone()]; sw.visible = false; rig.B['hd' + k].add(sw); b.swords[k] = sw; } }

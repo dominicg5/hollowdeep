@@ -932,7 +932,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='28cd3aec';
+<script>window.HD_BUILD='4912f771';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -954,8 +954,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 28cd3aec</div>
-<script src="assets/vendor/three.min.js?v=28cd3aec"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 4912f771</div>
+<script src="assets/vendor/three.min.js?v=4912f771"></script>
 <script>
 'use strict';
 
@@ -10649,6 +10649,44 @@ void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position, 1.0); float 
 
   root.CrystalCrown = { createCrystalCrown, createCrystalBranch, createBraid: (pts, o) => { const B = new Builder(); createBraid(B, pts, o); return new THREE.Mesh(B.geo(), makeCrystalMaterial({ color: 0xffffff })); }, createCrystalTree, createCrownSet, makeCrystalMaterial, leafGeometry, setBloom, TREE_LAYOUT };
 })(typeof window !== 'undefined' ? window : globalThis);
+/* ===== Sfx: combat sound effects (Dominic, Art's chat 9:01 AM: "all variations of noises utilized in random fashion so it's not in a specific ordered sequence")
+   - SFX_TABLE (below) is the one data table: each category's files and volume. Art's CC0 pack (/workspace/mia/audio/combat_sfx, credits in CREDITS.md).
+   - shout: her attack effort, only the moment a sword swing starts (male / female set by her sex); swoosh: the blade through the air, ~9 dB under shout / hit;
+     hit: a sword landing on a creature (hit_v3), hit_06 is the crit (the game's Heavy blow); normal hits pick from the rest (consecutive crits alternate with a normal impact to avoid repeats).
+   - Random variant each time, never the same clip twice in a row in a category. MP3 only (plays on every iPhone Safari; no second format downloaded).
+   - Lazy: nothing is fetched until a sword is equipped / first played; Web Audio, resumed on the first tap. Public API: Sfx.swing(opt), Sfx.hit(opt), Sfx.play(cat),
+     Sfx.warm(), Sfx.vol / Sfx.mute, Sfx.log (what fired: test hook), Sfx.TABLE. ===== */
+const SFX_TABLE = {
+  base: 'assets/audio/sfx/', ext: 'mp3',
+  shout_m: { files: ['shout_male_01', 'shout_male_02', 'shout_male_03', 'shout_male_04'], db: 0 },
+  shout_f: { files: ['shout_female_01', 'shout_female_02', 'shout_female_03', 'shout_female_04'], db: 0 },
+  swoosh: { files: ['swoosh_01', 'swoosh_02', 'swoosh_03', 'swoosh_04', 'swoosh_05', 'swoosh_06'], db: -9, at: 0.3 }, // at: fraction of the swing when the blade sweeps
+  hit: { files: ['hit_01', 'hit_02', 'hit_03', 'hit_04', 'hit_05'], db: 0 },
+  hit_crit: { files: ['hit_06'], db: 0 }
+};
+const Sfx = (() => {
+  const T = SFX_TABLE, A = { ctx: null, out: null, buf: {}, load: {}, last: {}, vol: 0.8, mute: false, log: [], fetches: 0 };
+  function ctx() { if (A.ctx) return A.ctx; const C = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext); if (!C) return null; try { A.ctx = new C(); } catch (e) { return null; } A.out = A.ctx.createGain(); A.out.gain.value = A.mute ? 0 : A.vol; A.out.connect(A.ctx.destination); return A.ctx; }
+  const resume = () => { if (A.ctx && A.ctx.state !== 'running') A.ctx.resume().catch(() => {}); };
+  if (typeof window !== 'undefined') for (const e of ['pointerdown', 'touchend', 'keydown']) window.addEventListener(e, () => { ctx(); resume(); }, { capture: true, passive: true }); /* (iOS: unlocked by the first tap) */
+  function get(name) { if (A.buf[name]) return Promise.resolve(A.buf[name]); if (A.load[name]) return A.load[name]; const C = ctx(); if (!C || typeof fetch === 'undefined') return Promise.resolve(null); A.fetches++;
+    return (A.load[name] = fetch(T.base + name + '.' + T.ext).then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
+      .then((ab) => new Promise((ok, no) => C.decodeAudioData(ab, ok, no))).then((b) => (A.buf[name] = b)).catch(() => { delete A.load[name]; return null; })); }
+  function warm() { for (const k in T) if (T[k] && T[k].files) T[k].files.forEach(get); }
+  // A uniform random pick from every variant except the previous one. Crit prefers hit_06, but consecutive crits alternate with a normal impact (never repeat hit_06).
+  function pick(cat) { const lane = cat === 'hit_crit' ? 'hit' : cat; let F = T[cat].files.filter((f) => f !== A.last[lane]);
+    if (!F.length && cat === 'hit_crit') F = T.hit.files; return F[Math.floor(Math.random() * F.length)]; }
+  function play(cat, delay) { const D = T[cat]; if (!D || !D.files) return null; const name = pick(cat); A.last[cat === 'hit_crit' ? 'hit' : cat] = name; A.log.push({ cat, name, delay: delay || 0 }); if (A.log.length > 200) A.log.shift();
+    if (A.mute || (typeof document !== 'undefined' && document.hidden)) return name; const C = ctx(); if (!C) return name;
+    const when = C.currentTime + Math.max(0, delay || 0); /* cold buffers are warmed, never played late over the next action */
+    get(name).then((b) => { if (!b || C.state !== 'running' || C.currentTime > when + 0.08 || A.mute || document.hidden) return; const s = C.createBufferSource(), g = C.createGain(); s.buffer = b; g.gain.value = Math.pow(10, (D.db || 0) / 20); s.connect(g); g.connect(A.out); s.start(Math.max(C.currentTime, when)); s.onended = () => { s.disconnect(); g.disconnect(); }; });
+    return name; }
+  // a sword swing starts: her shout now, the blade's swoosh as it sweeps (dual wield: one per blade); opt { f: female, T: swing seconds, lag, T2 }
+  function swing(opt) { opt = opt || {}; const out = [play(opt.f ? 'shout_f' : 'shout_m')], at = T.swoosh.at; out.push(play('swoosh', (opt.T || 0.6) * at)); if (opt.lag != null && opt.T2) out.push(play('swoosh', opt.lag + opt.T2 * at)); return out; }
+  function hit(opt) { return play(opt && opt.crit ? 'hit_crit' : 'hit'); }
+  return { TABLE: T, swing, hit, play, warm, pick, get log() { return A.log; }, get fetches() { return A.fetches; },
+    get vol() { return A.vol; }, set vol(v) { A.vol = +v || 0; if (A.out) A.out.gain.value = A.mute ? 0 : A.vol; }, get mute() { return A.mute; }, set mute(m) { A.mute = !!m; if (A.out) A.out.gain.value = A.mute ? 0 : A.vol; } };
+})();
 /* ============================================================
    CHARACTER TAB: the player's delver on a warm little stage.
    Procedural, stylised (Ghibli-ish) male and female delvers from concept/char-male.jpg and char-female.jpg,
@@ -12423,7 +12461,7 @@ const CharView = (() => {
     return F; }
   function swEnv(i, t) { const C = SW_ANIM.clips[i]; return t <= 0 || t >= C.T ? 0 : ss(0, C.bi, t) * (1 - ss(C.T - 0.3, C.T, t)); }
   function swDir(a, b, s) { _sq2.setFromUnitVectors(a, b); return a.clone().applyQuaternion(_sq.identity().slerp(_sq2, s)); }
-  function swStart() { const N = SWINGS.length, v = SWG.n++ % N, both = !!(SWG.R && SWG.L), v2 = (v + 1) % N, lag = both ? 0.24 : 0; return { v, v2, lead: SWG.R ? 'R' : 'L', lag, t: 0, T: Math.max(SWINGS[v].T, both ? lag + SWINGS[v2].T : 0), name: SWINGS[v].name }; }
+  function swStart() { const N = SWINGS.length, v = SWG.n++ % N, both = !!(SWG.R && SWG.L), v2 = (v + 1) % N, lag = both ? 0.24 : 0; if (typeof Sfx !== 'undefined') Sfx.swing({ f: (rig && rig.sex) === 'f', T: SWINGS[v].T, lag: both ? lag : null, T2: both ? SWINGS[v2].T : null }); return { v, v2, lead: SWG.R ? 'R' : 'L', lag, t: 0, T: Math.max(SWINGS[v].T, both ? lag + SWINGS[v2].T : 0), name: SWINGS[v].name }; }
   /* (t653u, Dominic: "change the attack button in character view to attack playground and drop the mushroom character that we will call 'Lumen Mushroom'
      and we will test attacking him there") The Attack Playground: the first Attack Playground press drops a Lumen Mushroom (src/creatures/; its
      placeholder stats are the LUMEN_MUSHROOM row in src/creatures/data.js) on the Character view's floor in front of her (she is not turned) and pulls the camera back; every
@@ -12466,7 +12504,7 @@ const CharView = (() => {
   function pgaRel() { const m = PGA.mob, G = st.gnd; if (!m || !G || !G.arena) return null; const dx = m.root.position.x - G.x, dz = m.root.position.z - G.z, d = Math.hypot(dx, dz); return { d, dot: d > 1e-6 ? (Math.sin(G.face) * dx + Math.cos(G.face) * dz) / d : 1, dx, dz }; }
   function pgaHit() { const m = PGA.mob; if (!m || PGA.dead > 0 || !rig || PGA.ko > 0) return null; const q = pgaRel(); if (!q) return null;
     if (q.d > PGA.REACH || q.dot < 0.3) return null; /* (out of reach, or she has been turned away from it) */
-    const r = Combat.rollDamage(Combat.playerStats(), { def: pgaC().def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift(); if (r.dmg > 0) Combat.fightDealt(pgaMe(), r.dmg);
+    const r = Combat.rollDamage(Combat.playerStats(), { def: pgaC().def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift(); if (r.dmg > 0) Combat.fightDealt(pgaMe(), r.dmg);
     pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); PGA.hunt = true; /* (GD-19: hit, it hunts her until she is past its leash) */
     if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.kills++; PGA.eng = false; PGA.hunt = false; PGA.bite = 0; PGA.once = 0; PGA.anim = 'death'; m.play(pgaC().clips.death, true); Combat.fightKill(pgaMe()); if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } }
     else if (r.dmg > 0) pgaOnce('hit'); pgaHud(); return r; }
@@ -12671,7 +12709,7 @@ const CharView = (() => {
   // (t686u) she fights: sheathed swords come out (a creature tapped / attacked, or a provoked one turning on her). Attack draws them too (swAttack).
   function swDrawFight() { if (!rig || !(SWG.R || SWG.L) || !SWG.sh) return false; SWG.sh = false; swSaveSh(); swHolster(); pvDraw(); return true; }
   function swSheathe(on) { if (!SOLO.on || !rig || !(SWG.R || SWG.L)) return; SWG.sh = !!on; swSaveSh(); if (on) { SWG.at = null; SWG.q = 0; } swHolster(); pvDraw(); }
-  function swAttach() { if (!rig) return; const b = rig.built; b.swords = b.swords || { R: null, L: null };
+  function swAttach() { if (!rig) return; if ((SWG.R || SWG.L) && typeof Sfx !== 'undefined') Sfx.warm(); const b = rig.built; b.swords = b.swords || { R: null, L: null };
     for (const k of ['R', 'L']) { const want = SWG[k], cur = b.swords[k], sig = want ? want.g + ':' + want.t : ''; if (cur && cur.userData.sig === sig) continue;
       if (cur) { if (cur.parent) cur.parent.remove(cur); dropObj(cur); b.swords[k] = null; }
       if (want) { const sw = makeSword(want.g, want.t), s = k === 'R' ? 1 : -1; sw.userData.sig = sig; sw.position.copy(PALM); sw.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(V(0, -1, 0), V(s, 0, 0), V(0, 0, s))); sw.userData.hp = [sw.position.clone(), sw.quaternion.clone()]; sw.visible = false; rig.B['hd' + k].add(sw); b.swords[k] = sw; } }
