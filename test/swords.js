@@ -113,19 +113,23 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   // (t651u) the map: her world self wears the save's swords, sheathed or drawn per the Sheathe / Draw state; (t652u) every slot swaps cleanly in any order;
   // running puts everything in her hands away (visual only), and the right tool comes back when she stops
   const MP = await p.evaluate(async () => { const wait = (ms) => new Promise((r) => setTimeout(r, ms)), o = {}, r = () => CharView.rig, b = () => r().built, B = () => r().B;
+    // (her map frames run slowly under the software renderer: every wait counts her own animation frames, not wall time)
+    const frames = async (n, max = 30000) => { const f0 = CharView.st.frames, t0 = Date.now(); while (CharView.st.frames - f0 < n && Date.now() - t0 < max) await wait(50); };
+    const until = async (fn, max = 30000) => { const t0 = Date.now(); while (!fn() && Date.now() - t0 < max) await wait(60); return fn(); };
     const where = (x) => (!x ? null : x.parent === B().hdR ? 'hdR' : x.parent === B().hdL ? 'hdL' : x.parent === B().chest ? 'chest' : x.parent && /sheath|stickRest/.test(x.parent.name) ? 'sheath' : x.parent ? x.parent.name || '?' : 'none');
     const swords = () => { let n = 0; r().root.traverse((m) => { if (m.name === 'sword') n++; }); return n; }, sheaths = () => { let n = 0; r().root.traverse((m) => { if (m.name === 'sheath' || m.name === 'stickRest') n++; }); return n; };
     const snap = () => { const w = b().swords || {}; return { R: w.R ? w.R.userData.sig : null, L: w.L ? w.L.userData.sig : null, wR: where(w.R), wL: where(w.L), pick: where(b().pick), n: swords(), sh: sheaths(), held: CharView.sw.held, tool: CharView.st.tool }; };
-    const set = async (R, TR, L, TL, sh) => { Object.assign(S, { swordR: R, swordTR: TR, swordL: L, swordTL: TL }); if (sh != null) S.swSh = sh; save(); await wait(900); return snap(); };
+    const set = async (R, TR, L, TL, sh) => { Object.assign(S, { swordR: R, swordTR: TR, swordL: L, swordTL: TL }); if (sh != null) S.swSh = sh; save(); await frames(4); await until(() => !CharView.sw.seq); await frames(2); return snap(); };
     o.solo = CharView.solo; o.drawn = await set('onyx', 10, 'lumen', 10, false); o.sheathed = await set('onyx', 10, 'lumen', 10, true);
     o.none = await set(null, null, null, null); o.one = await set('iron', 3, null, null, false); o.swap = await set('gold', 5, null, null); o.both = await set('gold', 5, 'stick', 0);
     Craft.add('bag', 'tool:sword_bronze', 1); o.normal = await set('bronze', null, 'stick', 0); o.toPick = await set(null, null, null, null);
     // running: sheathed swords + the pickaxe in hand; she runs 6 m; then stops
-    await set('onyx', 10, 'lumen', 10, true); await wait(1500); o.idle0 = snap(); const G = CharView.worldGnd; o.gnd = !!G;
-    if (G) { const x = G.x + 6, z = G.z; G.path = [{ x, z }]; G.pi = 0; G.goal = { x, z, fit: true, done: () => {} }; G.gBest = 1e9; G.stall = 0; await wait(700); o.run = Object.assign(snap(), { run: CharView.sw.run, eff: CharView.sw.eff }); await wait(900); o.run2 = Object.assign(snap(), { run: CharView.sw.run });
-      for (let i = 0; i < 40 && CharView.sw.run; i++) await wait(150); await wait(2200); o.stop = Object.assign(snap(), { run: CharView.sw.run });
-      S.swSh = false; save(); await wait(1200); o.stopDrawn = snap(); const x2 = G.x - 6; G.path = [{ x: x2, z }]; G.pi = 0; G.goal = { x: x2, z, fit: true, done: () => {} }; G.gBest = 1e9; G.stall = 0; await wait(700); o.runDrawn = Object.assign(snap(), { run: CharView.sw.run, eff: CharView.sw.eff });
-      for (let i = 0; i < 40 && CharView.sw.run; i++) await wait(150); await wait(1500); o.back = snap(); }
+    await set('onyx', 10, 'lumen', 10, true); await until(() => CharView.sw.held === 'pick' && !CharView.sw.seq); o.idle0 = snap(); const G = CharView.worldGnd; o.gnd = !!G;
+    const go = (dx) => { const x = G.x + dx, z = G.z; G.path = [{ x, z }]; G.pi = 0; G.goal = { x, z, fit: true, done: () => {} }; G.gBest = 1e9; G.stall = 0; };
+    if (G) { go(6); await until(() => CharView.sw.run); o.run = Object.assign(snap(), { run: CharView.sw.run, eff: CharView.sw.eff }); await until(() => CharView.sw.held === 'none' || !CharView.sw.run); o.run2 = Object.assign(snap(), { run: CharView.sw.run });
+      await until(() => !CharView.sw.run); await until(() => CharView.sw.held === 'pick' && !CharView.sw.seq); o.stop = Object.assign(snap(), { run: CharView.sw.run });
+      S.swSh = false; save(); await frames(4); o.stopDrawn = snap(); go(-6); await until(() => CharView.sw.run); o.runDrawn = Object.assign(snap(), { run: CharView.sw.run, eff: CharView.sw.eff });
+      await until(() => !CharView.sw.run); await frames(4); o.back = snap(); }
     o.saved = (() => { const sv = JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}'); return [sv.swordR, sv.swordTR, sv.swordL, sv.swordTL, sv.swSh]; })(); return o; });
   { const q = MP; ok(!q.solo && q.drawn.R === 'onyx:10' && q.drawn.L === 'lumen:10' && q.drawn.wR === 'hdR' && q.drawn.wL === 'hdL' && q.drawn.pick === 'chest' && q.drawn.sh === 2 && q.drawn.n === 2, 'map (t651u): the equipped swords show on her, drawn: in her hands, the pickaxe on her back ' + JSON.stringify(q.drawn));
     ok(q.sheathed.wR === 'sheath' && q.sheathed.wL === 'sheath' && q.sheathed.pick === 'hdR' && q.sheathed.n === 2, 'map: Sheathe state - both swords in their sheaths on her back, her pickaxe back in her hand ' + JSON.stringify(q.sheathed));

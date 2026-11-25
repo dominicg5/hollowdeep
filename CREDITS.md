@@ -27,3 +27,11 @@ While a furnace or anvil batch runs, Wren works one loop per item. These motions
 - License: **CC0 1.0 Universal (Public Domain Dedication)** — https://creativecommons.org/publicdomain/zero/1.0/ (as stated in the pack's License.txt). Credit not required; given anyway.
 - Clips used: `Sword_Regular_A` + `Sword_Regular_A_Rec`, `Sword_Regular_B` + `Sword_Regular_B_Rec`, `Sword_Regular_C`, `Sword_Dash` (in-place export `UAL2_Standard.glb`).
 - Processing: retargeted to the game's procedural rig (pelvis / upper-spine turns, feet, knee and elbow directions, fist path and blade direction), resampled to 15 fps and quantized to Int16, baked into `src/char3d.js` (`SW_ANIM`). No mesh, texture or raw animation file is shipped.
+
+## Lumen Mushroom (Attack Playground target)
+
+| Used for | Asset | License |
+|---|---|---|
+| The Lumen Mushroom practice target in the Character view's Attack Playground (`assets/models/mushnub.glb`; recoloured at load: lumenite cyan cap #66d8ff, cream stem #eedcbc; clips Idle / HitRecieve / Death) | **Mushnub** from **Ultimate Monsters** by **Quaternius** — https://quaternius.com/packs/ultimatemonsters.html (single model from https://poly.pizza/m/LWKmS30Xxl) | **CC0 1.0** (public domain) — https://creativecommons.org/publicdomain/zero/1.0/ |
+
+CC0 needs no attribution; recorded for provenance. Lumen colouring: Art's concept (mushnub_lumen_concept.png).
