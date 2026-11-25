@@ -901,7 +901,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='7d012b77';
+<script>window.HD_BUILD='4ad13965';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -923,8 +923,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7d012b77</div>
-<script src="assets/vendor/three.min.js?v=7d012b77"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 4ad13965</div>
+<script src="assets/vendor/three.min.js?v=4ad13965"></script>
 <script>
 'use strict';
 
@@ -11832,7 +11832,7 @@ const CharView = (() => {
       { const tg = [hand ? -0.04 * Math.sign(C.up) * e : 0.1 * e, (hand ? 0.055 : 0.035) * ms * e, 0.013 * ms * e * (hand ? 1 : -1)], hs = an.hcl || (an.hcl = [0, 0, 0]), kk = 1 - Math.exp(-dt * 4); for (let q = 0; q < 3; q++) hs[q] += (tg[q] - hs[q]) * kk;
         hrx -= w * (0.24 - hs[0]); hry += w * hs[1]; hrz += w * hs[2]; } nrx -= w * 0.08; }
     else if (an.cl && !an.act) { an.cl = null; if (an.tv) { an.tv = null; markTether(); } }
-    { const P = an.act === 'climb' && f.climb ? f.climb.P : null, G = st.gnd; c.root.position.set(G ? G.x : P ? P.x : 0, G && G.hy ? G.y || 0 : P && !G ? P.y : 0, G ? G.z : 0).applyAxisAngle(V(0, 1, 0), st.yaw); if (G) c.root.rotation.y = st.yaw + G.face; c.root.rotation.order = 'YXZ'; c.root.rotation.x = G && G.exLeanS ? G.exLeanS : 0; if (G && G.exOff) c.root.position.add(G.exOff); /* Explore: leaned onto the rock face, the wall plane on the slope */ if (st.ledge) { if (LP.on) c.root.position.add(LP.off); else c.root.position.copy(LG.char); } const wl = c.wall; if (wl) { wl.visible = !st.ledge && (an.act === 'climb' || (!!G && !G.home)); wl.rotation.y = st.yaw; if (wl.visible && wl.userData.tiles) { const q = G ? V(G.x, 0, 0) : P || V(0, 0, 0); for (const t of wl.userData.tiles) t.visible = Math.abs(t.userData.c.x - q.x) < 3.9 && Math.abs(t.userData.c.y - q.y + 0.6) < 3.9; } for (const fl of FLOOR) fl.visible = !wl.visible && !st.home && !st.ledge; } }
+    { const P = an.act === 'climb' && f.climb ? f.climb.P : null, G = st.gnd; c.root.position.set(G ? G.x : P ? P.x : 0, G && G.hy ? G.y || 0 : P && !G ? P.y : 0, G ? G.z : 0).applyAxisAngle(V(0, 1, 0), st.yaw); if (G) c.root.rotation.y = st.yaw + G.face; c.root.rotation.order = 'YXZ'; c.root.rotation.x = G && G.exLeanS ? G.exLeanS : 0; if (G && G.exOff) c.root.position.add(G.exOff); /* Explore: leaned onto the rock face, the wall plane on the slope */ if (st.ledge) { if (LP.on) c.root.position.add(LP.off); else c.root.position.copy(LG.char); } const wl = c.wall; if (wl) { wl.visible = !st.ledge && (an.act === 'climb' || (!!G && !G.home)); wl.rotation.y = st.yaw; if (wl.visible && wl.userData.tiles) { const q = G ? V(G.x, 0, 0) : P || V(0, 0, 0); for (const t of wl.userData.tiles) t.visible = Math.abs(t.userData.c.x - q.x) < 3.9 && Math.abs(t.userData.c.y - q.y + 0.6) < 3.9; } for (const fl of FLOOR) fl.visible = !wl.visible && !st.home && !st.ledge && !PGA.arena; /* (GD-12: the arena replaces the studio disc) */ } }
     if (fid === 'sigh') { const s1 = Math.sin(Math.PI * ss(0.05, 0.45, u)), s2 = Math.sin(Math.PI * ss(0.4, 0.95, u)); cx += 0.085 * s1 - 0.08 * s2; shY += 0.03 * s1 - 0.04 * s2; nrx += 0.14 * s2; hrx += 0.15 * s2; hy -= 0.012 * s2; f.sighDrop = s2; }
     // apply: hips, spine, chest, neck, head
     const E = (k, x, y, z) => { B[k].quaternion.copy(c.restQ[k]).multiply(_q.setFromEuler(new THREE.Euler(x, y, z))); };
