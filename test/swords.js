@@ -91,6 +91,24 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await tap('#pvPanel [data-swclr]'); await p.waitForTimeout(1600);
   const C = await p.evaluate(() => ({ sw: CharView.sw, R: CharView.rig.built.swords.R, L: CharView.rig.built.swords.L, tool: CharView.st.tool, cls: document.getElementById('charWrap').classList.contains('sw') }));
   ok(!C.sw.R && !C.sw.L && !C.R && !C.L && C.tool !== 'none' && !C.cls, 'Put away: hands empty, pickaxe back ' + JSON.stringify({ tool: C.tool }));
+  // (GD-18, Dominic) unequipped while running stays unequipped once she stops: nothing the run put away comes back (one gear function decides what she shows).
+  // The Attack Playground is open by now, so she runs the way she does there: a tap-walk across the arena (elsewhere the view's Run / Idle buttons)
+  { const wf = (f, a) => p.waitForFunction(f, a, { timeout: 120000 }).catch(() => {});
+    const runGo = () => p.evaluate(() => { const G = CharView.st.gnd; if (CharView.pga.on && G && G.arena) { const L = Math.hypot(G.x, G.z); return CharView.pgaWalk(L > 0.5 ? -G.x / L * 5 : 5, L > 0.5 ? -G.z / L * 5 : 0) ? 'walk' : 'none'; } document.querySelector('#charAnim [data-anim="run"]').click(); return 'button'; });
+    const runEnd = (how) => how === 'button' ? p.evaluate(() => document.querySelector('#charAnim [data-anim="idle"]').click()) : null;
+    await tap('#pvPanel [data-swg="bronze"]'); await tap('#pvPanel [data-swt="0"]'); await tap('#pvPanel [data-swh="R"]'); await wf(() => CharView.sw.R && !CharView.sw.seq);
+    const how = await runGo(); await wf(() => CharView.sw.run && CharView.sw.eff);
+    const R0 = await p.evaluate(() => { const b = CharView.rig.built, w = CharView.sw; return { had: !!(w.R && b.swords.R), run: w.run, eff: w.eff, inSheath: !!(b.swords.R && b.sheaths && b.sheaths.R && b.swords.R.parent === b.sheaths.R) }; });
+    await tap('#pvPanel [data-swclr]'); await runEnd(how); await wf(() => !CharView.sw.run && !CharView.sw.seq && CharView.sw.held === 'pick');
+    const R1 = await p.evaluate(() => { const b = CharView.rig.built; return { run: CharView.sw.run, save: [S.swordR || null, S.swordL || null], sw: [!!CharView.sw.R, !!CharView.sw.L], mesh: [!!b.swords.R, !!b.swords.L], sheath: [!!(b.sheaths && b.sheaths.R), !!(b.sheaths && b.sheaths.L)], held: CharView.sw.held }; });
+    ok(R0.had && R0.run && R0.inSheath && !R1.run && R1.save.join() === ',' && !R1.sw[0] && !R1.sw[1] && !R1.mesh[0] && !R1.mesh[1] && !R1.sheath[0] && !R1.sheath[1], 'GD-18: a sword put away while she runs (' + how + ') is still gone after she stops (no blade, no scabbard, save cleared) ' + JSON.stringify([R0, R1]));
+    await p.evaluate(() => { Craft.add('bag', 'tool:pick_bronze', 1); Craft.equip('tool:pick_bronze'); }); await wf(() => !CharView.sw.seq && CharView.rig.built.pick.userData.grade === 'bronze');
+    const how2 = await runGo(); await wf(() => CharView.sw.run && CharView.sw.held === 'none' && !CharView.sw.seq);
+    const P0 = await p.evaluate(() => { const ub = document.querySelector('#charPick [data-unequip]'); if (ub) ub.click(); return { run: CharView.sw.run, ub: !!ub, worn: Craft.worn().pick, look: CharView.rig.built.pick.userData.grade }; });
+    await runEnd(how2); await wf(() => !CharView.sw.run && !CharView.sw.seq && CharView.sw.held === 'pick');
+    const P1 = await p.evaluate(() => ({ run: CharView.sw.run, worn: Craft.worn().pick, grade: S.pickGrade, look: CharView.rig.built.pick.userData.grade, bag: Craft.get('bag', 'tool:pick_bronze') }));
+    ok(P0.run && P0.ub && P0.worn === null && P0.look === 'stick' && !P1.run && P1.worn === null && P1.grade === 'stick' && P1.look === 'stick' && P1.bag === 1, 'GD-18: a pickaxe unequipped mid-run stays in the backpack after she stops - the Stickaxe comes out, not the old pickaxe ' + JSON.stringify([P0, P1]));
+    await p.evaluate(() => Craft.add('bag', 'tool:pick_bronze', -1)); }
   // leave with swords in both hands (Onyx T10 + Lumen T10): closing must release everything
   // (t649u) the Stick sword has no scabbard: sheathed, the bare stick rests on her back at the same spot (an empty mount, no sheath mesh), shown whole (t650u: nothing to hide)
   await tap('#pvPanel [data-swg="stick"]'); await tap('#pvPanel [data-swh="R"]'); await p.waitForTimeout(300);
@@ -127,9 +145,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await set('onyx', 10, 'lumen', 10, true); await until(() => !CharView.sw.seq); await frames(4); o.idle0 = snap(); const G = CharView.worldGnd; o.gnd = !!G;
     const go = (dx) => { const x = G.x + dx, z = G.z; G.path = [{ x, z }]; G.pi = 0; G.goal = { x, z, fit: true, done: () => {} }; G.gBest = 1e9; G.stall = 0; };
     if (G) { go(6); await until(() => CharView.sw.run); o.run = Object.assign(snap(), { run: CharView.sw.run, eff: CharView.sw.eff }); await until(() => CharView.sw.held === 'none' || !CharView.sw.run); o.run2 = Object.assign(snap(), { run: CharView.sw.run });
-      await until(() => !CharView.sw.run); await until(() => !CharView.sw.seq); await frames(4); o.stop = Object.assign(snap(), { run: CharView.sw.run });
+      await until(() => !CharView.sw.run, 120000); await until(() => !CharView.sw.seq); await frames(4); o.stop = Object.assign(snap(), { run: CharView.sw.run });
       S.swSh = false; save(); await frames(4); o.stopDrawn = snap(); go(-6); await until(() => CharView.sw.run); o.runDrawn = Object.assign(snap(), { run: CharView.sw.run, eff: CharView.sw.eff });
-      await until(() => !CharView.sw.run); await frames(4); o.back = snap(); }
+      await until(() => !CharView.sw.run, 120000); await until(() => !CharView.sw.seq); await frames(4); o.back = Object.assign(snap(), { run: CharView.sw.run, gx: +G.x.toFixed(2), mv: +(G.mv || 0).toFixed(2) }); }
     o.saved = (() => { const sv = JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}'); return [sv.swordR, sv.swordTR, sv.swordL, sv.swordTL, sv.swSh]; })(); return o; });
   { const q = MP; ok(!q.solo && q.drawn.R === 'onyx:10' && q.drawn.L === 'lumen:10' && q.drawn.wR === 'hdR' && q.drawn.wL === 'hdL' && q.drawn.pick === 'chest' && q.drawn.sh === 2 && q.drawn.n === 2, 'map (t651u): the equipped swords show on her, drawn: in her hands, the pickaxe on her back ' + JSON.stringify(q.drawn));
     ok(q.sheathed.wR === 'sheath' && q.sheathed.wL === 'sheath' && q.sheathed.pick === 'hdR' && q.sheathed.n === 2, 'map: Sheathe state - both swords in their sheaths on her back, her pickaxe back in her hand ' + JSON.stringify(q.sheathed));

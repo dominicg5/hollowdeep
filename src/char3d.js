@@ -1571,7 +1571,7 @@ const CharView = (() => {
     // equip sequencer: stow the tool in hand, then draw the wanted one (each a dedicated motion, not a reverse playback)
     if (!an.eq) an.eq = { held: st.tool === 'climb' ? 'climb' : st.tool === 'none' ? 'none' : 'pick', seq: null, t: 0 };
     { const runNow = st.gnd ? !st.gnd.exC && st.gnd.mv > 0.15 : st.anim === 'run'; an.rf = runNow ? 0.35 : Math.max(0, (an.rf || 0) - dt); SWG.run = st.gnd ? an.rf > 0 : runNow; /* (the Character view's Run button: no hold) */ /* (t652u, Dominic: running, she puts everything in her hands away - swords to their sheaths, the pickaxe to its back loop, the climbing picks to the hips; visual only, the save keeps the gear; a short hold so a stutter-step doesn't juggle them) */
-      const Q = an.eq, wantT = SWG.run || swHold() ? 'none' : an.tv && an.tv.free ? 'none' : st.play ? (st.gnd && st.gnd.mine ? 'pick' : st.gnd && !st.wantClimb && !(st.pg && st.pg.ph === 'draw') ? st.tool : 'climb') : st.tool; if (!Q.seq && Q.held !== wantT) { Q.seq = Q.held === 'pick' ? 'pickStow' : Q.held === 'climb' ? 'climbStow' : wantT === 'pick' ? 'pickDraw' : 'climbDraw'; Q.t = 0; }
+      const Q = an.eq, wantT = gearNow().tool; if (!Q.seq && Q.held !== wantT) { Q.seq = Q.held === 'pick' ? 'pickStow' : Q.held === 'climb' ? 'climbStow' : wantT === 'pick' ? 'pickDraw' : 'climbDraw'; Q.t = 0; }
       if (Q.seq) { Q.t += dt / SEQ_T[Q.seq]; if (Q.t >= 1) { const dn = Q.seq; Q.seq = null; Q.t = 0; Q.held = /Stow$/.test(dn) ? 'none' : dn === 'pickDraw' ? 'pick' : 'climb'; if (Q.held === 'none' && wantT !== 'none') { Q.seq = wantT === 'pick' ? 'pickDraw' : 'climbDraw'; } } }
       st.toolPh = Q.seq ? 1.1 : Q.held === 'climb' ? TOOL_T : 0; st.toolSeq = Q.seq; f.eq = { held: Q.held, seq: Q.seq, t: Q.t }; }
     // Playground: at the wall foot she draws the climbing picks, then mounts (a wall tap, or walking into the wall)
@@ -1983,14 +1983,27 @@ const CharView = (() => {
     swTools(); }
   // (t651u/t652u) the hands: drawn swords fill them (the pickaxe and climbing picks hang on her back / hips); in the Character view any sword does (its own panel
   // flow); on the map only drawn ones - sheathed (or put away to run, mine, climb or work) the pickaxe / climbing picks go back to her hands. Safe to call any time.
-  function swHold() { const any = !!(SWG.R || SWG.L); return SOLO.on ? any : any && !swEff(); }
+  function swHold() { return gearNow().hold; }
   function swTools() { if (!rig) return; const b = rig.built, hold = swHold(), any = !!(SWG.R || SWG.L); if (WK.tl) return; /* (a smithing job owns the hands until it ends) */
     for (const [o, h] of [[b.pick, 'R'], [b.climb && b.climb.R, 'R'], [b.climb && b.climb.L, 'L']]) { const to = hold ? rig.B.chest : rig.B['hd' + h]; if (o && o.parent !== to) { rig.root.updateMatrixWorld(true); to.attach(o); o.userData.hc = hold ? 1 : null; o.userData.lk = null; } }
     if (SOLO.on) { if (any && st.tool !== 'none') setTool('none', true); else if (!any && st.tool === 'none') setTool(typeof S !== 'undefined' && S && S.toolMode === 'climb' ? 'climb' : 'pick', true); if (wrap) wrap.classList.toggle('sw', any); }
     /* (on the map Explore.tick owns her tool mode every frame - 'none' walking / standing, 'pick' mining, 'climb' on a wall - so it is never touched here) */
     if (!any) SWG.at = null; }
   // sheathed for the eye: the Sheathe button (SWG.sh, saved as S.swSh), running (SWG.run), or - on the map - a tool action (mining, climbing, the climbing picks out, a smithing job)
-  function swEff() { return !!(SWG.sh || SWG.run || SWG.act); }
+  function swEff() { return gearNow().eff; }
+  // (GD-18, Dominic: "unequipped while running, it must stay unequipped after she stops") ONE place decides what she shows, every frame, from the live gear only
+  // (the save's swords / pickaxe as SWG and S hold them now) plus what she is doing: no earlier item is remembered anywhere, so the end of a run has nothing to restore.
+  //   any  - a sword is equipped; eff - swords sheathed for the eye (Sheathe, running, or a tool action on the map); hold - swords fill her hands (tools on her back);
+  //   tool - the tool the equip sequencer should have in hand: none while running or holding swords, else the mode (mining 'pick', a wall 'climb', the view's own st.tool)
+  function gearNow() { const any = !!(SWG.R || SWG.L), eff = !!(SWG.sh || SWG.run || SWG.act), hold = SOLO.on ? any : any && !eff;
+    const tool = SWG.run || hold ? 'none' : an.tv && an.tv.free ? 'none' : st.play ? (st.gnd && st.gnd.mine ? 'pick' : st.gnd && !st.wantClimb && !(st.pg && st.pg.ph === 'draw') ? st.tool : 'climb') : st.tool;
+    return { any, eff, hold, tool, run: !!SWG.run }; }
+  // the run just ended (or began): re-read the live gear so nothing put away meanwhile comes back - a sword cleared from the save stays off her, the pickaxe mesh is
+  // whatever S.pickGrade says now (the Stickaxe after an unequip), unless the Character view's Try gear preview is showing one on purpose
+  function gearSync() { if (!rig || typeof S === 'undefined' || !S) return; let ch = false;
+    for (const k of ['R', 'L']) if (SWG[k] && !S['sword' + k]) { SWG[k] = null; ch = true; }
+    if (ch) { SWG.at = null; SWG.q = 0; swAttach(); }
+    if (!PV.g && rig.built.pick && pickSig(rig.built.pick) !== pickSig({ userData: { grade: GRADES[S.pickGrade] ? S.pickGrade : 'stick', tier: S.pickGrade === 'stick' ? 0 : pickTierNow(S.pickGrade) } })) setPick(S.pickGrade); }
   function swSaveSh() { if (typeof S !== 'undefined' && S) { S.swSh = !!SWG.sh; if (typeof save === 'function') save(); } }
   // the equipped sword in hand k from the save: a Try gear sword at its tried tier (t629u), else a real one she owns and may equip, at its own tier
   function swFromSave(k) { if (typeof S === 'undefined' || !S) return null; const g = S['sword' + k]; if (!g || !SW_G.includes(g)) return null; const dt = S['swordT' + k];
@@ -2000,7 +2013,7 @@ const CharView = (() => {
   function swWorld() { if (!rig || typeof S === 'undefined' || !S) return; SWG.sh = !!S.swSh; SWG.act = !!(st.tool === 'climb' || WK.tl || st.play || an.tv || (st.gnd && (st.gnd.mine || st.gnd.exC)) || st.anim === 'climb' || st.anim === 'mine' || st.tree || st.home || st.ledge);
     const bs = rig.built.swords || {}; let ch = false; for (const k of ['R', 'L']) { const w = swFromSave(k), cur = SWG[k], sig = w ? w.g + ':' + w.t : '', cs = cur ? cur.g + ':' + cur.t : ''; if (sig !== cs) { SWG[k] = w; ch = true; } if (sig ? !(bs[k] && bs[k].userData.sig === sig) : !!bs[k]) ch = true; }
     if (ch) { SWG.at = null; SWG.q = 0; swAttach(); } }
-  function swTick() { if (!SOLO.on) swWorld(); const e = swEff(); if (e !== SWG.eff0) { SWG.eff0 = e; if (e) { SWG.at = null; SWG.q = 0; } if (rig && rig.built.swords) { swHolster(); swTools(); } } }
+  function swTick() { if (!SOLO.on) swWorld(); if (SWG.run !== SWG.run0) { const r0 = SWG.run0; SWG.run0 = SWG.run; if (r0 !== undefined) gearSync(); } const e = swEff(); if (e !== SWG.eff0) { SWG.eff0 = e; if (e) { SWG.at = null; SWG.q = 0; } if (rig && rig.built.swords) { swHolster(); swTools(); } } }
   const swOwned = (g) => g !== 'stick' && typeof Craft !== 'undefined' && Craft.swordOwned && Craft.swordOwned(g);
   const swLock = (g) => typeof Combat !== 'undefined' && !Combat.canEquip(g) ? Combat.swordUnlock(g) : 0; // the Combat level still needed to equip grade g (0 = unlocked)
   // equip a sword (grade + tier) in hand k ('L' | 'R'), or clear it (g = null). A sword she owns at its own tier is a real equip (saved); anything else is a preview.
