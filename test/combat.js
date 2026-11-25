@@ -92,7 +92,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.hitOk, 'hit chance: Acc / (Def + 100), linear to 50%, eased toward the 60% cap, never past it ' + JSON.stringify(R.hit));
   ok(R.dmgOk, 'damage: a hit deals full Str, a miss 0..Str; Heavy blow 1.5x on every 5th swing; Boss slayer ' + JSON.stringify(R.dmg));
   ok(R.boss && R.boss.ok, 'Boss Lure (t633u): a Spoils node beside Beast lure, same max + cost, half its per-rank bonus; bossBeastChance = base x BOSS_BEAST_BASE (1/10) x Boss Lure ' + JSON.stringify(R.boss));
-  ok(R.dev[0] === 300 && R.dev[1] === 300 && R.dev[2] === 4 && R.dev[3] && R.dev[4] === 300 && R.devOff.join() === '0,4' && R.dev[5] === 176 && R.dev[6] === 0, `dev grant (t638u): DEV_POINTS 300 gives 300 points without changing Combat XP / level; set to 0 it's 1 per level again ${JSON.stringify([R.dev, R.devOff])}`);
+  ok(R.dev[0] === 300 && R.dev[1] === 300 && R.dev[2] === 4 && R.dev[3] && R.dev[4] === 300 && R.devOff.join() === '0,4' && R.dev[5] === 211 /* (GD-15: + Guard 25 + Parry 10) */ && R.dev[6] === 0, `dev grant (t638u): DEV_POINTS 300 gives 300 points without changing Combat XP / level; set to 0 it's 1 per level again ${JSON.stringify([R.dev, R.devOff])}`);
   ok(R.treeOk, 'skill tree: node caps, costs, 20-in-Might prerequisites, the point budget, removal protects prerequisites ' + JSON.stringify(R.tree));
   ok(R.fxOk, 'node effects: Haste, Boss slayer, Lifesteal, Quick mend regen 4%, Fortune, Beast lure; no regen in combat ' + JSON.stringify(R.fx));
   ok(R.healOk, 'healing: Ward shield 10%, lifesteal + Victory breath capped at 15% of max HP per fight, Second wind once and outside the cap ' + JSON.stringify(R.heal));
