@@ -8,7 +8,7 @@
 // LUMEN MUSHROOM STATS - PLACEHOLDERS (Dominic: "easy placeholder values"). Edit here: everything the playground fight reads comes from this block.
 const LUMEN_MUSHROOM = {
   name: 'Lumen Mushroom',
-  hp: 100,          // max HP
+  hp: 10,           // max HP (Dominic t654u)
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground

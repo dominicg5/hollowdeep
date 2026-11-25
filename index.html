@@ -901,7 +901,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='5f0abaed';
+<script>window.HD_BUILD='1101a50d';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -923,8 +923,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 5f0abaed</div>
-<script src="assets/vendor/three.min.js?v=5f0abaed"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 1101a50d</div>
+<script src="assets/vendor/three.min.js?v=1101a50d"></script>
 <script>
 'use strict';
 
@@ -10091,7 +10091,7 @@ const CityMap = (() => {
 // LUMEN MUSHROOM STATS - PLACEHOLDERS (Dominic: "easy placeholder values"). Edit here: everything the playground fight reads comes from this block.
 const LUMEN_MUSHROOM = {
   name: 'Lumen Mushroom',
-  hp: 100,          // max HP
+  hp: 10,           // max HP (Dominic t654u)
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground
