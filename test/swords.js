@@ -99,15 +99,22 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await tap('#pvPanel [data-swg="bronze"]'); await tap('#pvPanel [data-swt="0"]'); await tap('#pvPanel [data-swh="R"]'); await wf(() => CharView.sw.R && !CharView.sw.seq);
     const how = await runGo(); await wf(() => CharView.sw.run && CharView.sw.eff);
     const R0 = await p.evaluate(() => { const b = CharView.rig.built, w = CharView.sw; return { had: !!(w.R && b.swords.R), run: w.run, eff: w.eff, inSheath: !!(b.swords.R && b.sheaths && b.sheaths.R && b.swords.R.parent === b.sheaths.R) }; });
-    await tap('#pvPanel [data-swclr]'); await runEnd(how); await wf(() => !CharView.sw.run && !CharView.sw.seq && CharView.sw.held === 'pick');
+    await tap('#pvPanel [data-swclr]'); await runEnd(how); await wf(() => !CharView.sw.run && !CharView.sw.seq && CharView.sw.held === 'none' && CharView.sw.tw); // (GD-27: the stowed pickaxe stays stowed)
     const R1 = await p.evaluate(() => { const b = CharView.rig.built; return { run: CharView.sw.run, save: [S.swordR || null, S.swordL || null], sw: [!!CharView.sw.R, !!CharView.sw.L], mesh: [!!b.swords.R, !!b.swords.L], sheath: [!!(b.sheaths && b.sheaths.R), !!(b.sheaths && b.sheaths.L)], held: CharView.sw.held }; });
     ok(R0.had && R0.run && R0.inSheath && !R1.run && R1.save.join() === ',' && !R1.sw[0] && !R1.sw[1] && !R1.mesh[0] && !R1.mesh[1] && !R1.sheath[0] && !R1.sheath[1], 'GD-18: a sword put away while she runs (' + how + ') is still gone after she stops (no blade, no scabbard, save cleared) ' + JSON.stringify([R0, R1]));
     await p.evaluate(() => { Craft.add('bag', 'tool:pick_bronze', 1); Craft.equip('tool:pick_bronze'); }); await wf(() => !CharView.sw.seq && CharView.rig.built.pick.userData.grade === 'bronze');
     const how2 = await runGo(); await wf(() => CharView.sw.run && CharView.sw.held === 'none' && !CharView.sw.seq);
     const P0 = await p.evaluate(() => { const ub = document.querySelector('#charPick [data-unequip]'); if (ub) ub.click(); return { run: CharView.sw.run, ub: !!ub, worn: Craft.worn().pick, look: CharView.rig.built.pick.userData.grade }; });
-    await runEnd(how2); await wf(() => !CharView.sw.run && !CharView.sw.seq && CharView.sw.held === 'pick');
-    const P1 = await p.evaluate(() => ({ run: CharView.sw.run, worn: Craft.worn().pick, grade: S.pickGrade, look: CharView.rig.built.pick.userData.grade, bag: Craft.get('bag', 'tool:pick_bronze') }));
-    ok(P0.run && P0.ub && P0.worn === null && P0.look === 'stick' && !P1.run && P1.worn === null && P1.grade === 'stick' && P1.look === 'stick' && P1.bag === 1, 'GD-18: a pickaxe unequipped mid-run stays in the backpack after she stops - the Stickaxe comes out, not the old pickaxe ' + JSON.stringify([P0, P1]));
+    await runEnd(how2); await wf(() => !CharView.sw.run && !CharView.sw.seq && CharView.sw.held === 'none' && CharView.sw.tw);
+    const P1 = await p.evaluate(() => ({ held: CharView.sw.held, tw: CharView.sw.tw, run: CharView.sw.run, worn: Craft.worn().pick, grade: S.pickGrade, look: CharView.rig.built.pick.userData.grade, bag: Craft.get('bag', 'tool:pick_bronze') }));
+    ok(P0.run && P0.ub && P0.worn === null && P0.look === 'stick' && !P1.run && P1.held === 'none' && P1.tw && P1.worn === null && P1.grade === 'stick' && P1.look === 'stick' && P1.bag === 1, 'GD-18: a pickaxe unequipped mid-run stays in the backpack after she stops - the Stickaxe comes out, not the old pickaxe ' + JSON.stringify([P0, P1]));
+    // GD-27 (Dominic t693u): after the run stops her tool stays put away (no pickaxe flash a moment later); only an explicit action brings it back - the Pickaxe button here
+    const T0 = await p.evaluate(() => ({ held: CharView.sw.held, want: CharView.sw.want, tw: CharView.sw.tw, saved: S.toolsStowed, rule: CharView.sw.pose.RUN_STOWS_TOOLS, f: CharView.st.frames }));
+    await wf((f) => CharView.st.frames > f + 40, T0.f); const T1 = await p.evaluate(() => ({ held: CharView.sw.held, seq: CharView.sw.seq, want: CharView.sw.want }));
+    await p.evaluate(() => { const b = document.querySelector('#charEquip [data-tool=pick]'); if (b) b.click(); else CharView.setTool('pick'); }); await wf(() => CharView.sw.held === 'pick' && !CharView.sw.seq);
+    const T2 = await p.evaluate(() => ({ held: CharView.sw.held, tw: CharView.sw.tw, saved: S.toolsStowed }));
+    ok(T0.rule === true && T0.held === 'none' && T0.want === 'none' && T0.tw && T0.saved === true && T1.held === 'none' && !T1.seq && T1.want === 'none' && T2.held === 'pick' && !T2.tw && T2.saved === false,
+      'GD-27: once the run stops her pickaxe stays put away (40 frames later still stowed, no draw queued), the Pickaxe button brings it back ' + JSON.stringify([T0, T1, T2]));
     await p.evaluate(() => Craft.add('bag', 'tool:pick_bronze', -1)); }
   // leave with swords in both hands (Onyx T10 + Lumen T10): closing must release everything
   // (t649u) the Stick sword has no scabbard: sheathed, the bare stick rests on her back at the same spot (an empty mount, no sheath mesh), shown whole (t650u: nothing to hide)
@@ -158,6 +165,20 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(q.stop && !q.stop.run && q.stop.held === 'none' && q.stop.tool === 'none' && q.stop.wR === 'sheath' && q.stop.pick === 'hdR', 'she stops: nothing pulled out (no pickaxe flash), swords still sheathed ' + JSON.stringify(q.stop));
     ok(q.stopDrawn && q.stopDrawn.wR === 'hdR' && q.runDrawn.run && q.runDrawn.wR === 'sheath' && q.runDrawn.wL === 'sheath' && q.back.wR === 'sheath' && q.back.wL === 'sheath' && !q.back.run && q.back.pick === 'hdR', 'GD-25 (t686u): drawn swords - running sheathes them and they stay sheathed after she stops (only combat draws them again) ' + JSON.stringify([q.stopDrawn && q.stopDrawn.wR, q.runDrawn, q.back]));
     ok(q.saved.join() === 'onyx,10,lumen,10,true', 'GD-25: the run saves the Sheathe state, the equipped swords are kept ' + q.saved.join()); }
+  // GD-27 (Dominic t693u): in his Ledge, stopping a run used to draw the pickaxe again. Now it stays put away there too (frame-counted waits, not wall time);
+  // the Portaledges' vein (mining = an explicit tool action) is what brings it back
+  { const LD = await p.evaluate(async () => { const wait = (ms) => new Promise((r) => setTimeout(r, ms)), until = async (fn, max = 60000) => { const t0 = Date.now(); while (!fn() && Date.now() - t0 < max) await wait(60); return fn(); };
+      const frames = async (n, max = 60000) => { const f0 = CharView.st.frames, t0 = Date.now(); while (CharView.st.frames - f0 < n && Date.now() - t0 < max) await wait(50); };
+      const o = {}; setTab('home'); await until(() => CharView.st.home && CharView.st.gnd); CharView.setTool('pick'); await until(() => CharView.sw.held === 'pick' && !CharView.sw.seq); o.in = { held: CharView.sw.held, tw: CharView.sw.tw };
+      const G = CharView.st.gnd, B = CharView.homeState && CharView.homeState(), x0 = G.x, z0 = G.z, tx = x0 > 0 ? x0 - 2.2 : x0 + 2.2; CharView.navTo(G, tx, z0, null);
+      o.ran = await until(() => CharView.sw.run, 30000); o.mid = { held: CharView.sw.held, want: CharView.sw.want };
+      await until(() => !CharView.sw.run, 60000); await until(() => !CharView.sw.seq); await frames(45);
+      o.stop = { held: CharView.sw.held, seq: CharView.sw.seq, want: CharView.sw.want, tw: CharView.sw.tw, moved: +Math.hypot(G.x - x0, G.z - z0).toFixed(2), saved: S.toolsStowed };
+      setTab('ledge'); await until(() => CharView.st.ledge && CharView.st.gnd && CharView.st.gnd.mine, 60000); await until(() => CharView.sw.held === 'pick' && !CharView.sw.seq, 60000);
+      o.mine = { held: CharView.sw.held, tw: CharView.sw.tw, act: CharView.sw.toolAct }; setTab('city'); return o; });
+    ok(LD.in.held === 'pick' && LD.ran && LD.mid.want === 'none' && LD.stop.moved > 1 && LD.stop.held === 'none' && !LD.stop.seq && LD.stop.want === 'none' && LD.stop.tw && LD.stop.saved === true,
+      'GD-27: in the Ledge a run stows her pickaxe and it stays stowed once she stops (45 frames later, no draw queued) ' + JSON.stringify(LD.in) + ' ' + JSON.stringify(LD.stop));
+    ok(LD.mine.held === 'pick' && !LD.mine.tw && LD.mine.act, 'GD-27: mining the Portaledges vein (an explicit tool action) brings the pickaxe back ' + JSON.stringify(LD.mine)); }
   ok(!errs.length, 'no page errors ' + errs.slice(0, 3).join(' | '));
   console.log(fails ? `${fails} FAILED` : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
 })();

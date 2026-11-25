@@ -428,7 +428,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #skillsSheet .skId{grid-area:id;min-width:0;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;align-items:center;column-gap:8px}
 #skillsSheet .skName{grid-column:1;grid-row:1;font:400 20px/1.15 "Bree Serif",Georgia,serif;color:#2b1a10}
 #skillsSheet .skTotalMob{grid-column:1;grid-row:2;margin:0;font:400 13px/1.2 system-ui,sans-serif;color:#3a2414}
-#skillsSheet .skMedal{grid-column:2;grid-row:1 / span 2;width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#fbf2da,#dcc79a 70%);box-shadow:0 0 0 7px #c48a3a,0 0 0 9px #2b1a10,inset 0 0 0 1px #2b1a10;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+#skillsSheet .skMedal{grid-column:2;grid-row:1 / span 2;width:56px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
 #skillsSheet .skMedal small{font:700 8px system-ui,sans-serif;color:#7a5a3a;letter-spacing:.06em}
 #skillsSheet .skMedal b{font:400 18px/1 "Bree Serif",Georgia,serif;color:#2b1a10}
 #skillsSheet .skTotal{display:none}
@@ -473,7 +473,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skId{display:contents}
   #skillsSheet .skName{grid-column:2;grid-row:1;align-self:end;font-size:34px;line-height:1}
   #skillsSheet .skTotalMob{display:none}
-  #skillsSheet .skMedal{grid-column:2;grid-row:2;align-self:start;justify-self:center;width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10;margin:0}
+  #skillsSheet .skMedal{grid-column:2;grid-row:2;align-self:start;justify-self:center;width:64px;height:64px;margin:0}
   #skillsSheet .skMedal small{font-size:9px}#skillsSheet .skMedal b{font-size:22px}
   #skillsSheet .skProg{display:contents}
   #skillsSheet .skBar{grid-column:3;grid-row:1;align-self:end;height:22px;width:100%;max-width:340px}
@@ -513,7 +513,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skRow{flex:1 1 0;height:auto;min-height:0}
   #skillsSheet .skRow.skLock{flex:0.75 1 0;height:auto}
   #skillsSheet .skIco{width:56px;height:56px}
-  #skillsSheet .skMedal{width:48px;height:48px;box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skMedal{width:48px;height:48px}
   #skillsSheet .skName{font-size:24px}
   #skillsSheet .skBar{height:16px}
   #skillsSheet .skList{gap:8px}
@@ -550,11 +550,11 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #skillsSheet .skPrize span{position:relative;font:700 11px/1.2 system-ui,sans-serif;letter-spacing:.04em;color:#2b1a10;background:linear-gradient(#ecc976,#9a6c2c);border-radius:8px;padding:5px 10px;box-shadow:0 0 0 2px #2b1a10}
 #skillsSheet .skGroup{display:grid;grid-template-columns:56px 1fr;column-gap:8px;align-items:start;margin:6px 0}
 #skillsSheet .skTl{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
-#skillsSheet .skTl .skMedal{width:48px;height:48px;box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+#skillsSheet .skTl .skMedal{width:48px;height:48px}
 #skillsSheet .skTl .skMedal b{font-size:16px}
-#skillsSheet .skGroup-locked .skTl .skMedal{box-shadow:0 0 0 6px #b8ad98,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+#skillsSheet .skGroup-locked .skTl .skMedal{}
 #skillsSheet .skGroup-locked .skTl .skMedal b,#skillsSheet .skGroup-locked .skTl .skMedal small{color:#4e463c}
-#skillsSheet .skGroup-next .skTl .skMedal{box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,0 0 10px 2px rgba(79,182,182,.7)}
+#skillsSheet .skGroup-next .skTl .skMedal{}
 #skillsSheet .skToGo{font:400 10px/1.15 "Bree Serif",Georgia,serif;color:#0f5a5a;text-align:center}
 #skillsSheet .skEntries{display:grid;grid-template-columns:1fr;gap:8px;min-width:0}
 #skillsSheet .skCard{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:linear-gradient(#f4e8c8,#dcc79a);box-shadow:0 0 0 2px #8c6428;min-width:0;position:relative}
@@ -591,9 +591,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skSum .skName{font-size:32px}
   #skillsSheet .skSumMeta{font-size:16px}
   #skillsSheet .skSum .skBar{height:20px}
-  #skillsSheet .skSum .skMedal{width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skSum .skMedal{width:64px;height:64px}
   #skillsSheet .skGroup{grid-template-columns:76px 1fr;column-gap:12px;margin:8px 0}
-  #skillsSheet .skTl .skMedal{width:60px;height:60px;box-shadow:0 0 0 7px #c48a3a,0 0 0 9px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skTl .skMedal{width:60px;height:60px}
   #skillsSheet .skTl .skMedal b{font-size:20px}
   #skillsSheet .skToGo{font-size:13px}
   #skillsSheet .skEntries{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -636,8 +636,39 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skSum .skIco{width:72px;height:72px}
   #skillsSheet .skSum .skName{font-size:32px}
   #skillsSheet .skSum .skBar{height:20px}
-  #skillsSheet .skSum .skMedal{width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skSum .skMedal{width:64px;height:64px}
   #skillsSheet .skToGo{max-width:76px;font-size:12px}
+}
+/* (t695s, Dominic approved) skill book v2: Combat is the fourth row; brass heater-shield level badge (Art, level_badge/ option A) with the live number on its face;
+   no corner caps, no skill-list pill, no footer pill; the phone sheet sits inside the safe area above nav#tabs with all four rows on screen */
+#skillsSheet .skCap,#skillsSheet .skTag,#skillsSheet .skFoot,#skillsSheet .skFootBar{display:none!important}
+#skillsSheet .skMedal,#skillsSheet .skTl .skMedal,#skillsSheet .skSum .skMedal,#skillsSheet .skGroup-locked .skTl .skMedal,#skillsSheet .skGroup-next .skTl .skMedal{--bs:56px;width:var(--bs);height:var(--bs);border-radius:0;box-shadow:none;background:url(assets/ui/skills/badge_shield_168.png) center/contain no-repeat;display:flex;align-items:center;justify-content:center;flex:none;overflow:visible}
+#skillsSheet .skMedal small{display:none}
+#skillsSheet .skMedal b,#skillsSheet .skTl .skMedal b{font:400 calc(var(--bs) * .43)/1 "Bree Serif",Georgia,serif;color:#2b1a10;transform:translateY(calc(var(--bs) * .045))}
+#skillsSheet .skMedal[data-d="2"] b{font-size:calc(var(--bs) * .37)}#skillsSheet .skMedal[data-d="3"] b{font-size:calc(var(--bs) * .285)}
+#skillsSheet .skTl .skMedal{--bs:48px}
+#skillsSheet .skGroup-locked .skTl .skMedal{filter:grayscale(.55) brightness(.9)}
+#skillsSheet .skGroup-locked .skTl .skMedal b{color:#4e463c}
+#skillsSheet .skGroup-next .skTl .skMedal{filter:drop-shadow(0 0 5px rgba(79,182,182,.85))}
+#skillsSheet .skBar-combat i{background:linear-gradient(180deg,#ffb08a,#a02428)}
+#skillsSheet .skCardTag-tree,#skillsSheet .skCardTag-stat{background:#a02428}#skillsSheet .skCardTag-rule{background:#7a4a22}
+#skillsSheet .skEndNote span + span{margin-top:4px}
+@media (max-width:899px){
+  #skillsSheet{top:calc(env(safe-area-inset-top) + 8px);bottom:calc(env(safe-area-inset-bottom) + 60px + 8px)}
+  #skillsSheet .skList{gap:5px}
+  #skillsSheet .skRow{padding:8px 10px;row-gap:4px}
+  #skillsSheet .skBar,#skillsSheet .skSum .skBar{height:12px}
+  #skillsSheet .skTabs{gap:5px}
+  #skillsSheet .skTabs button{font-size:14px;padding:0 4px;white-space:nowrap}
+}
+@media (max-width:899px) and (max-height:680px){
+  #skillsSheet .skMedal{--bs:44px}
+  #skillsSheet .skTl .skMedal{--bs:40px}
+}
+@media (min-width:900px){
+  #skillsSheet .skMedal,#skillsSheet .skSum .skMedal{--bs:80px}
+  #skillsSheet .skTl .skMedal{--bs:56px}
+  #skillsSheet .skTabs button{min-width:120px}
 }
 #exMap .exmTop button[data-exm=close]{width:40px;height:40px;border:0;border-radius:0;background:url(assets/ui/icons/btn_close_idle.webp) center/contain no-repeat;color:transparent;box-shadow:none}
 #exMap .exmTop button[data-exm=close]:active{background-image:url(assets/ui/icons/btn_close_pressed.webp)}
@@ -901,7 +932,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='7603431c';
+<script>window.HD_BUILD='fa14a44f';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -923,8 +954,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7603431c</div>
-<script src="assets/vendor/three.min.js?v=7603431c"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build fa14a44f</div>
+<script src="assets/vendor/three.min.js?v=fa14a44f"></script>
 <script>
 'use strict';
 
@@ -1617,7 +1648,9 @@ const Skills = (() => {
   const SKILL_XP_MAX = Number.MAX_SAFE_INTEGER;
   // Slot 1 (Mining 5) is also tied to Tess's drill quest if a quest system exists; there is none, so it is just the level.
   const DRILL_SLOT_LEVELS = [5, 10, 20, 35, 50, 65, 75, 85, 90];
-  const NAMES = { mining: 'Mining', smithing: 'Smithing', tethercraft: 'Tethercraft' };
+  const NAMES = { mining: 'Mining', smithing: 'Smithing', tethercraft: 'Tethercraft', combat: 'Combat' };
+  // (t695s, Dominic) the skill book's fourth row: Combat. Its XP lives in S.combat.xp (src/combat.js) on this same curve, Lv 1-300; it is not one of SKILL_KEYS (mining XP awards never touch it).
+  const BOOK_KEYS = ['mining', 'smithing', 'tethercraft', 'combat'], COMBAT_MAX = 300, COMBAT_TICK = 3; // +1 Strength & +1 Defense every COMBAT_TICK levels (combat.js)
 
   const ORES = {
     copper: { name: 'Copper', unlock: 1, xp: 10, yield: 0.35 },
@@ -1687,8 +1720,8 @@ const Skills = (() => {
     s.skills.tethercraft = clampXp(s.skills.tethercraft);
     return s;
   }
-  function xpOf(skill) { migrate(); return (typeof S !== 'undefined' && S && S.skills && S.skills[skill]) || 0; }
-  function level(skill) { return levelFromXp(xpOf(skill)); }
+  function xpOf(skill) { if (skill === 'combat') return (typeof S !== 'undefined' && S && S.combat && clampXp(+S.combat.xp || 0)) || 0; migrate(); return (typeof S !== 'undefined' && S && S.skills && S.skills[skill]) || 0; }
+  function level(skill) { const L = levelFromXp(xpOf(skill)); return skill === 'combat' ? Math.min(COMBAT_MAX, L) : L; }
   function addXp(skill, amount) {
     migrate();
     if (!S.skills || SKILL_KEYS.indexOf(skill) < 0) return 0;
@@ -1849,7 +1882,8 @@ const Skills = (() => {
 
   const BAR_NAMES = { bronze: 'Bronze', iron: 'Iron', steel: 'Steel', gold: 'Gold', mithril: 'Mithril', rune: 'Rune', lumen: 'Lumen', onyx: 'Ember Onyx' };
   const UNLOCK_ORES = ['copper', 'tin', 'coal', 'iron', 'gold', 'mithril', 'runite', 'lumenite', 'onyx'];
-  const SKILL_ICONS = { mining: 'tool:pick_mithril', smithing: 'ingot:steel', tethercraft: 'tether:mithril' };
+  const SKILL_ICONS = { mining: 'tool:pick_mithril', smithing: 'ingot:steel', tethercraft: 'tether:mithril', combat: 'skill:combat' }; // (combat: Art's leather book with crossed swords, skill__combat.png)
+  const COMBAT_SWORD = 'skill:combat_sword'; // (a steel sword thumbnail for the Strength & Defense rows)
   const itemSrc = (id) => id ? 'assets/ui/items/' + String(id).replace(/:/g, '__') + '.png' : 'assets/ui/items/map_drill.png';
 
   // Soonest unlock above L. Mining: ores + drill slots (ore wins a tie). If the soonest is not an ore, also return the next ore as "then".
@@ -1859,6 +1893,8 @@ const Skills = (() => {
     if (skill === 'mining') {
       for (const id of UNLOCK_ORES) { const o = ORES[id]; if (o && o.unlock > L) cand.push({ level: o.unlock, kind: 'ore', name: o.name + ' ore', id: 'ore:' + id }); }
       DRILL_SLOT_LEVELS.forEach((lv, i) => { if (lv > L) cand.push({ level: lv, kind: 'slot', name: 'Drill slot ' + (i + 1), id: null }); });
+    } else if (skill === 'combat') {
+      const n = (Math.floor(L / COMBAT_TICK) + 1) * COMBAT_TICK; if (n <= COMBAT_MAX) cand.push({ level: n, kind: 'stat', name: '+1 Strength & Defense', id: COMBAT_SWORD });
     } else if (skill === 'tethercraft') {
       BIT_KEYS.forEach((k, i) => { if (TETHER_LEVELS[i] > L) cand.push({ level: TETHER_LEVELS[i], kind: 'roll', name: (BAR_NAMES[k] || k) + ' braid', id: 'tether:' + k }); });
     } else {
@@ -1871,13 +1907,13 @@ const Skills = (() => {
   function skillState(skill) {
     const L = level(skill), xp = xpOf(skill), a = xpToReach(L), b = xpToReach(L + 1), need = Math.max(0, b - a), into = Math.max(0, xp - a);
     const pct = need > 0 ? Math.round((100 * into) / need) : 100, u = nextUnlock(skill, L);
-    if (L >= SKILL_SHOW_CEILING) return { skill, name: NAMES[skill], icon: SKILL_ICONS[skill], level: SKILL_SHOW_CEILING, max: true, xp, into: 0, need: 0, pct: 100, total: xp, next: u.next, then: u.then }; // the level cap (Lv 300): a full bar, 'Lv 300 · MAX', total XP kept
+    if (L >= (skill === 'combat' ? COMBAT_MAX : SKILL_SHOW_CEILING)) return { skill, name: NAMES[skill], icon: SKILL_ICONS[skill], level: SKILL_SHOW_CEILING, max: true, xp, into: 0, need: 0, pct: 100, total: xp, next: u.next, then: u.then }; // the level cap (Lv 300): a full bar, 'Lv 300 · MAX', total XP kept
     return { skill, name: NAMES[skill], icon: SKILL_ICONS[skill], level: L, xp, into, need, pct, total: xp, next: u.next, then: u.then };
   }
 
   // Detail screen: stand gates and milestone perks are Page proposals, so this list only uses tables already in Skills.
-  const TYPE_ORDER = { ore: 0, bar: 0, roll: 0, slot: 1, use: 2, make: 2 };
-  const TYPE_TAG = { ore: 'ORE', bar: 'BAR', roll: 'MILL', slot: 'DRILL SLOT', use: 'TOOL USE', make: 'TOOL MAKE' };
+  const TYPE_ORDER = { ore: 0, bar: 0, roll: 0, slot: 1, use: 2, make: 2, tree: 0, rule: 1, stat: 2 };
+  const TYPE_TAG = { ore: 'ORE', bar: 'BAR', roll: 'MILL', slot: 'DRILL SLOT', use: 'TOOL USE', make: 'TOOL MAKE', tree: 'TREE', rule: 'RULE', stat: 'STAT' };
   const TOOL_MAKE = [
     { key: 'pick', name: 'pickaxe', icon: (k) => 'tool:pick_' + k },
     { key: 'bit', name: 'drill bit', icon: () => 'tool:bit' } // (the winch is fixed Iron: no Ledge Tether tool is made)
@@ -1898,6 +1934,12 @@ const Skills = (() => {
         const k = BIT_KEYS[i]; if (!k) return;
         E.push({ level: lv, kind: 'use', name: (BAR_NAMES[k] || k) + ' pick & bit', id: 'tool:pick_' + k });
       });
+    } else if (skill === 'combat') { // (SPEC: continuous rules, stated once at Lv 1 - no card per level or per stat tick, no prize titles)
+      E.push({ level: 1, kind: 'tree', name: 'Combat (red) skill-tree branch opens', id: SKILL_ICONS.combat });
+      E.push({ level: 1, kind: 'rule', name: '+1 HP and 1 skill point each level', id: SKILL_ICONS.combat });
+      E.push({ level: 1, kind: 'rule', name: '+1 Strength & Defense every ' + COMBAT_TICK + ' levels', id: COMBAT_SWORD });
+      const L = level('combat'), n = (Math.floor(L / COMBAT_TICK) + 1) * COMBAT_TICK; // only the NEXT tick, once
+      if (n <= COMBAT_MAX) E.push({ level: n, kind: 'stat', name: '+1 Strength & +1 Defense', id: COMBAT_SWORD });
     } else if (skill === 'tethercraft') {
       BIT_KEYS.forEach((k, i) => { const tn = BAR_NAMES[k] || k, lv = TETHER_LEVELS[i];
         E.push({ level: lv, kind: 'roll', name: tn + ' braid', id: 'tether:' + k });
@@ -1928,7 +1970,7 @@ const Skills = (() => {
   }
 
   let onDetail = null, detailSkill = null;
-  const ui = { on: false, pin: null, view: 'list', detail: 'mining', listPos: { mining: 0, smithing: 0, tethercraft: 0 }, hist: false };
+  const ui = { on: false, pin: null, view: 'list', detail: 'mining', listPos: { mining: 0, smithing: 0, tethercraft: 0, combat: 0 }, hist: false };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   function pinSkillsScroll(on) {
@@ -1947,36 +1989,32 @@ const Skills = (() => {
   function rowHTML(st) {
     return `<article class="skRow" data-sk="${st.skill}"><button type="button" class="skIco" data-sk-detail="${st.skill}" aria-label="${esc(st.name)} details"><img src="${itemSrc(st.icon)}" alt=""></button>`
       + `<div class="skId"><button type="button" class="skName" data-sk-detail="${st.skill}">${esc(st.name)}</button><div class="skTotalMob">Total ${fmtXp(st.total)} XP</div>`
-      + `<div class="skMedal" aria-label="Level ${st.level}"><small>LV</small><b>${st.level}</b></div></div>`
+      + medalHTML(st.level) + `</div>`
       + `<div class="skProg"><div class="skBar skBar-${st.skill}"><i style="width:${Math.max(0, Math.min(100, st.pct))}%"></i></div>`
       + `<div class="skProgMeta">${st.max ? `<span class="skMax">Lv ${st.level} · MAX</span><span class="skPctDesk">${fmtXp(st.total)} XP</span><span class="skPctMob">${fmtXp(st.total)} XP</span>` : `<span>${fmtXp(st.into)} / ${fmtXp(st.need)} XP</span><span class="skPctDesk">${st.pct}%</span><span class="skPctMob">${st.pct}% to Lv ${st.level + 1}</span>`}</div></div>`
       + `<div class="skTotal"><b>${fmtXp(st.total)}</b><small>XP</small></div>`
       + chipHTML(st) + `</article>`;
   }
-  function lockHTML() {
+  function lockHTML() { // (unused since Combat took the reserved row; kept for a future fifth skill)
     return `<article class="skRow skLock" aria-disabled="true"><div class="skIco skLockIco" aria-hidden="true"><img src="assets/ui/icons/btn_locked_idle.webp" alt=""></div>`
       + `<div class="skId"><div class="skName">Future skill</div><div class="skSub"><span class="skLockDesk">Locked · reserved</span><span class="skLockMob">Locked · empty row reserved</span></div></div>`
       + `<div class="skProg"><div class="skBar skBar-empty"></div></div><div class="skTotal"><b>—</b></div></article>`;
   }
-  function capsHTML() {
-    return `<div class="skCap skCapTL"></div><div class="skCap skCapTR"></div><div class="skCap skCapBL"></div><div class="skCap skCapBR"></div>`;
-  }
   function sheetHTML() {
-    return capsHTML()
-      + `<div class="skHead"><h2>Skills</h2><span class="skTag">Mining · Smithing · Tethercraft</span><button type="button" class="kX skClose" data-sk="close" aria-label="Close">✕</button></div>`
+    return `<div class="skHead"><h2>Skills</h2><button type="button" class="kX skClose" data-sk="close" aria-label="Close">✕</button></div>`
       + `<div class="skCols"><span>LEVEL</span><span>PROGRESS TO NEXT LEVEL</span><span>TOTAL XP</span><span>NEXT UNLOCK</span></div>`
-      + `<div class="skList">${rowHTML(skillState('mining'))}${rowHTML(skillState('smithing'))}${rowHTML(skillState('tethercraft'))}${lockHTML()}</div>`
-      + `<div class="skFootBar"><div class="skFoot"><span class="skFootDesk">Levels have no cap · XP is shared by you and your drills</span><span class="skFootMob">Levels have no cap · drills earn XP too</span></div></div>`;
+      + `<div class="skList">${BOOK_KEYS.map((k) => rowHTML(skillState(k))).join('')}</div>`; // (no corner caps, no skill-list pill, no footer pill: Dominic)
   }
+  // (t695s, Dominic approved) the brass heater-shield level badge: Art's shield (Lv baked in its crown) with the live number on its face; 1-3 digits
   function medalHTML(L) {
-    return `<div class="skMedal" aria-label="Level ${L}"><small>LV</small><b>${L}</b></div>`;
+    return `<div class="skMedal skBadge" data-d="${String(L).length}" role="img" aria-label="Level ${L}"><b>${L}</b></div>`;
   }
   function cardHTML(e, st, prize) {
     return `<article class="skCard skCard-${st}${prize ? ' skCardPrize' : ''}"><i class="skCardIco" style="background-image:url(${itemSrc(e.id)})"></i>`
       + `<span class="skCardTag skCardTag-${e.kind}">${TYPE_TAG[e.kind] || e.kind}</span>`
       + `<span class="skCardName">${esc(e.name)}</span><i class="skCardMark" aria-hidden="true"></i></article>`;
   }
-  const skKey = (s) => (s === 'smithing' || s === 'tethercraft' ? s : 'mining');
+  const skKey = (s) => (BOOK_KEYS.includes(s) ? s : 'mining');
   function detailHTML(skill) {
     skill = skKey(skill);
     const st = skillState(skill), groups = groupedUnlocks(skill), L = st.level;
@@ -1997,25 +2035,25 @@ const Skills = (() => {
         + `<div class="skEntries">${g.entries.map((e) => cardHTML(e, gst, pr)).join('')}</div></section>`;
     }
     if (!here) body += `<div class="skHere" id="skHere"><span>You are here · Lv ${L}</span></div>`;
-    const end = skill === 'mining'
+    const end = skill === 'combat'
+      ? ['Combat levels run 1–' + COMBAT_MAX + '.', 'Each level: +1 HP and 1 skill point. Every ' + COMBAT_TICK + ' levels: +1 Strength and +1 Defense (0 Defense at Lv 1, 100 at Lv ' + COMBAT_MAX + ').', 'XP comes from fighting creatures. A Lumen Mushroom gives ' + ((typeof LUMEN_MUSHROOM !== 'undefined' && LUMEN_MUSHROOM.xp) || 32) + ' Combat XP.', 'The Combat (red) branch of the crystal skill tree opens at Lv 1.']
+      : skill === 'mining'
       ? ['Levels keep going past 120 — there is no cap.', 'The speed bonus keeps growing: +0.5% speed per level above each ore\'s unlock (×1.40 on Ember Onyx at Lv 200, ×1.90 at 300).']
       : skill === 'tethercraft' ? ['Levels keep going past 125 — there is no cap.', 'Mill speed keeps growing: +0.5% per level above each grade\'s unlock.']
       : ['Levels keep going past 125 — there is no cap.', 'Further prestige rewards are proposals; there are no extra drill slots.'];
-    body += `<div class="skEndNote"><b>${esc(end[0])}</b><span>${esc(end[1])}</span></div>`;
-    const foot = skill === 'mining' ? '120+ · No level cap · speed bonus keeps growing' : skill === 'tethercraft' ? 'No level cap · mill speed keeps growing' : 'No level cap · bar &amp; tool milestones continue';
-    return capsHTML()
-      + `<div class="skDetHead"><button type="button" class="kX skBack back" data-sk="back" aria-label="Back"></button>`
+    body += `<div class="skEndNote"><b>${esc(end[0])}</b>${end.slice(1).map((x) => `<span>${esc(x)}</span>`).join('')}</div>`;
+    return `<div class="skDetHead"><button type="button" class="kX skBack back" data-sk="back" aria-label="Back"></button>`
       + `<h2>${esc(st.name)} unlocks</h2>`
       + `<div class="skTabs"><button type="button" data-sk-tab="mining"${skill === 'mining' ? ' class="on"' : ''}>Mining</button>`
       + `<button type="button" data-sk-tab="smithing"${skill === 'smithing' ? ' class="on"' : ''}>Smithing</button>`
-      + `<button type="button" data-sk-tab="tethercraft"${skill === 'tethercraft' ? ' class="on"' : ''}>Tethercraft</button></div>`
+      + `<button type="button" data-sk-tab="tethercraft"${skill === 'tethercraft' ? ' class="on"' : ''}>Tethercraft</button>`
+      + `<button type="button" data-sk-tab="combat"${skill === 'combat' ? ' class="on"' : ''}>Combat</button></div>`
       + `<button type="button" class="kX skClose" data-sk="close" aria-label="Close">✕</button></div>`
       + `<div class="skSum"><div class="skIco" aria-hidden="true"><img src="${itemSrc(st.icon)}" alt=""></div>`
       + `<div class="skSumId"><div class="skName">${esc(st.name)}</div><div class="skSumMeta"><span>Total ${fmtXp(st.total)} XP</span><span>${st.max ? `Lv ${st.level} · MAX` : `${fmtXp(st.into)} / ${fmtXp(st.need)} XP · ${st.pct}%`}</span></div>`
       + `<div class="skBar skBar-${st.skill}"><i style="width:${Math.max(0, Math.min(100, st.pct))}%"></i></div></div>`
       + medalHTML(st.level) + `</div>`
-      + `<div class="skUnlocks" data-sk-list="${skill}">${body}</div>`
-      + `<div class="skFootBar"><div class="skFoot skDetFoot">${foot}</div></div>`;
+      + `<div class="skUnlocks" data-sk-list="${skill}">${body}</div>`; // (no footer pill: the rules live in the end note)
   }
   function sheetEl() { return document.getElementById('skillsSheet'); }
   function saveListPos() {
@@ -2131,7 +2169,7 @@ const Skills = (() => {
   return {
     SKILL_XP_SCALE, SKILL_POST_120_GROWTH, SKILL_SHOW_CEILING, LEVEL_SPEED_K, DRILL_RATE_DIV, SWING_S, ON_TASK,
     YIELD_PER_TIER, SKILL_XP_MAX, DRILL_SLOT_LEVELS, ORES, ORE_ORDER, BAR_LEVELS, SMITH_LEVELS, smithLevel, BAR_NAMES, UNLOCK_ORES, SKILL_ICONS, SMELT_XP, ANVIL_XP, TOOL_OFFSETS, TETHER_LEVELS, SKILL_KEYS,
-    PICK_USE_LEVELS, INPUT_TIMEOUT_MS: 0, // no 60 s input timeout; character XP is the same active or AFK
+    PICK_USE_LEVELS, BOOK_KEYS, COMBAT_MAX, COMBAT_TICK, INPUT_TIMEOUT_MS: 0, // no 60 s input timeout; character XP is the same active or AFK
     clampXp, xpToReach, xpForLevel, levelFromXp, migrate, xp: xpOf, level, addXp, oreOf, oreUnlock, oreXp,
     yieldChance, levelSpeedBonus, swingBonus, characterOrePerHour, drillOrePerHour, characterXpPerHour, drillXpPerHour,
     bestPickTier, bestAct, tessDrillQuestDone, slotsUnlocked, nextSlotLevel, hoursToLevel, bitBurn, BIT_BURN, bitTier, pickTierFromGrade,
@@ -10126,7 +10164,7 @@ const LUMEN_MUSHROOM = {
   str: 1,           // Strength: its bite does str on a full hit, otherwise 0..str (Combat.creatureAttack, GD-15)
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
   acc: 30,          // Accuracy - PLACEHOLDER (GD-15): its full-hit chance on her = acc / (her Defense + 100), capped at 60%; otherwise 0..str
-  xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp. The Combat XP per-level curve is still a placeholder.
+  xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp, on the shared Skills curve (Skills.xpToReach, Lv 1-300).
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground
   atkS: 2,          // (GD-12) seconds between bites once it is fighting her
@@ -11788,7 +11826,7 @@ const CharView = (() => {
     // run / mine modes: ease in over ~0.25 s, and back out to idle before switching
     // equip timeline: tau runs 0 -> TOOL_T (stow the pickaxe on the back, draw the climbing picks) or back down (holster the picks, draw the pickaxe)
     // equip sequencer: stow the tool in hand, then draw the wanted one (each a dedicated motion, not a reverse playback)
-    if (!an.eq) an.eq = { held: st.tool === 'climb' ? 'climb' : st.tool === 'none' ? 'none' : 'pick', seq: null, t: 0 };
+    if (!an.eq) an.eq = { held: gearNow().tool, seq: null, t: 0 };
     { const runNow = st.gnd ? !st.gnd.exC && st.gnd.mv > 0.15 : st.anim === 'run'; an.rf = runNow ? 0.35 : Math.max(0, (an.rf || 0) - dt); SWG.run = st.gnd ? an.rf > 0 : runNow; /* (the Character view's Run button: no hold) */ /* (t652u, Dominic: running, she puts everything in her hands away - swords to their sheaths, the pickaxe to its back loop, the climbing picks to the hips; visual only, the save keeps the gear; a short hold so a stutter-step doesn't juggle them) */
       const Q = an.eq, wantT = gearNow().tool; if (!Q.seq && Q.held !== wantT) { Q.seq = Q.held === 'pick' ? 'pickStow' : Q.held === 'climb' ? 'climbStow' : wantT === 'pick' ? 'pickDraw' : 'climbDraw'; Q.t = 0; }
       if (Q.seq) { Q.t += dt / SEQ_T[Q.seq]; if (Q.t >= 1) { const dn = Q.seq; Q.seq = null; Q.t = 0; Q.held = /Stow$/.test(dn) ? 'none' : dn === 'pickDraw' ? 'pick' : 'climb'; if (Q.held === 'none' && wantT !== 'none') { Q.seq = wantT === 'pick' ? 'pickDraw' : 'climbDraw'; } } }
@@ -11977,8 +12015,8 @@ const CharView = (() => {
   // (GD-23 t684u / t686u, Dominic) sword pose + gear rules, one table: standing with swords out (waiting between attack sequences too) the blade tilts up in the
   // fist to IDLE_SWORD_PITCH_DEG from straight down (it was ~70); only the sword turns in her hand - arms, swings unchanged. RUN_SHEATHES: starting a run puts
   // the swords in their sheaths and they stay there after she stops, until she fights (taps / attacks a creature, or a provoked one fights her).
-  const SW_POSE = { IDLE_SWORD_PITCH_DEG: 100, IDLE_BLEND_S: 0.25, RUN_SHEATHES: true };
-  const SWG = { R: null, L: null, w: 0, at: null, q: 0, n: 0, ip: 0 }, SW_GUARD = { P: [0.11, -0.42, 0.1], D: [0.1, -0.32, 0.94], E: [0.25, -0.15, -1] }; // (t596u) the hold: arms relaxed at her sides, elbows a little bent, blades hanging low, tips down and forward
+  const SW_POSE = { IDLE_SWORD_PITCH_DEG: 100, IDLE_BLEND_S: 0.25, RUN_SHEATHES: true, RUN_STOWS_TOOLS: true }; // (GD-27, t693u: RUN_STOWS_TOOLS - a run puts the pickaxe / climbing picks away until an explicit tool action)
+  const SWG = { R: null, L: null, w: 0, at: null, q: 0, n: 0, ip: 0, tw: false }, SW_GUARD = { P: [0.11, -0.42, 0.1], D: [0.1, -0.32, 0.94], E: [0.25, -0.15, -1] }; // (t596u) the hold: arms relaxed at her sides, elbows a little bent, blades hanging low, tips down and forward
   SW_ANIM.clips[0].cap = Math.PI / 2; // (t596u) the slash turns her hips / chest at most ~90 deg, so it reads as a cut, not a spin
   const SWINGS = SW_ANIM.clips; // (names, lengths: one per Attack press, cycling)
   const _sq = new THREE.Quaternion(), _sq2 = new THREE.Quaternion();
@@ -12259,13 +12297,19 @@ const CharView = (() => {
   // (the save's swords / pickaxe as SWG and S hold them now) plus what she is doing: no earlier item is remembered anywhere, so the end of a run has nothing to restore.
   //   any  - a sword is equipped; eff - swords sheathed for the eye (Sheathe, running, or a tool action on the map); hold - swords fill her hands (tools on her back);
   //   tool - the tool the equip sequencer should have in hand: none while running or holding swords, else the mode (mining 'pick', a wall 'climb', the view's own st.tool)
+  //   tw   - (GD-27, Dominic t693u) a run stowed her tool and it STAYS stowed after she stops, in every area, like the swords (GD-25): only an explicit tool action
+  //          brings it back - mining (a node / vein tap that reaches it, the Mine pose), climbing (a wall tap, the draw at its foot, on the wall), a work job, or a Tool button
+  function toolStowed() { return typeof S !== 'undefined' && S ? !!S.toolsStowed : !!SWG.tw; }
+  function toolStow(on) { on = !!on; const changed = toolStowed() !== on; SWG.tw = on; if (typeof S !== 'undefined' && S) { S.toolsStowed = on; if (changed && typeof save === 'function') save(); } }
   function gearNow() { const any = !!(SWG.R || SWG.L), eff = !!(SWG.sh || SWG.run || SWG.act), hold = SOLO.on ? any : any && !eff;
-    const tool = SWG.run || hold ? 'none' : an.tv && an.tv.free ? 'none' : st.play ? (st.gnd && st.gnd.mine ? 'pick' : st.gnd && !st.wantClimb && !(st.pg && st.pg.ph === 'draw') ? st.tool : 'climb') : st.tool;
+    const toolAct = !!((st.gnd && (st.gnd.mine || st.gnd.exC)) || st.anim === 'mine' || st.wantClimb || (st.pg && (st.pg.ph === 'draw' || st.pg.ph === 'climb')) || (st.anim === 'climb' && !st.gnd) || WK.tl); if (toolAct && !SWG.run && toolStowed()) toolStow(false);
+    const tool = SWG.run || hold || toolStowed() ? 'none' : an.tv && an.tv.free ? 'none' : st.play ? (st.gnd && st.gnd.mine ? 'pick' : st.gnd && !st.wantClimb && !(st.pg && st.pg.ph === 'draw') ? st.tool : 'climb') : st.tool;
     const still = st.gnd ? (st.gnd.mv || 0) < 0.15 : st.anim === 'idle', swIdle = hold && !eff && !SWG.at && still; // (GD-23: swords out, standing, no swing playing)
-    return { any, eff, hold, tool, run: !!SWG.run, sheathed: !!SWG.sh, swIdle }; }
+    return { any, eff, hold, tool, run: !!SWG.run, sheathed: !!SWG.sh, swIdle, tw: toolStowed(), toolAct }; }
   // the run just ended (or began): re-read the live gear so nothing put away meanwhile comes back - a sword cleared from the save stays off her, the pickaxe mesh is
   // whatever S.pickGrade says now (the Stickaxe after an unequip), unless the Character view's Try gear preview is showing one on purpose
   function gearSync() { if (!rig || typeof S === 'undefined' || !S) return; let ch = false;
+    if (SWG.run && SW_POSE.RUN_STOWS_TOOLS) toolStow(true); /* (GD-27: and the tool stays stowed when she stops) */
     if (SWG.run && SW_POSE.RUN_SHEATHES && (SWG.R || SWG.L) && !SWG.sh) { SWG.sh = true; SWG.at = null; SWG.q = 0; swSaveSh(); swHolster(); pvDraw(); } /* (t686u: a run sheathes them for good - only a fight draws them again, swDrawFight) */
     for (const k of ['R', 'L']) if (SWG[k] && !S['sword' + k]) { SWG[k] = null; ch = true; }
     if (ch) { SWG.at = null; SWG.q = 0; swAttach(); }
@@ -12294,9 +12338,9 @@ const CharView = (() => {
   function setClimbDir(k) { if (k === 'auto') { st.climbAuto = !st.climbAuto; if (st.climbAuto && an.cl) an.cl.wt = 0; } else { st.climbAuto = false; st.climbDir = DIRS[k] ? k : 'stop'; } markClimb(); }
   function setGait(k) { st.gait = 'run'; /* she always runs: no walk mode */ if (typeof S !== 'undefined' && S) { S.gait = st.gait; if (typeof save === 'function') save(); } document.querySelectorAll('#charClimb [data-gait]').forEach((b) => b.classList.toggle('on', b.dataset.gait === st.gait)); }
   function markClimb() { document.querySelectorAll('#charClimb [data-dir]').forEach((b) => b.classList.toggle('on', b.dataset.dir === 'auto' ? !!st.climbAuto : !st.climbAuto && b.dataset.dir === st.climbDir)); }
-  function setTool(k, quiet) { st.tool = k === 'climb' ? 'climb' : k === 'none' ? 'none' : 'pick'; if (st.tool !== 'climb' && st.anim === 'climb' && !st.play) { st.anim = 'idle'; st.gnd = null; st.play = false; st.pg = null; if (typeof pgMark === 'function') pgMark(null); document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', b.dataset.anim === 'idle')); } if (!quiet && typeof S !== 'undefined' && S) { S.toolMode = st.tool; if (typeof save === 'function') save(); } document.querySelectorAll('#charEquip [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === st.tool)); }
+  function setTool(k, quiet) { st.tool = k === 'climb' ? 'climb' : k === 'none' ? 'none' : 'pick'; if (!quiet) toolStow(false); /* (GD-27: a Tool button is an explicit choice) */ if (st.tool !== 'climb' && st.anim === 'climb' && !st.play) { st.anim = 'idle'; st.gnd = null; st.play = false; st.pg = null; if (typeof pgMark === 'function') pgMark(null); document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', b.dataset.anim === 'idle')); } if (!quiet && typeof S !== 'undefined' && S) { S.toolMode = st.tool; if (typeof save === 'function') save(); } document.querySelectorAll('#charEquip [data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === st.tool)); }
   function setClimb(g) { if (!rig) return; const b = rig.built; for (const k of ['R', 'L']) { const old = b.climb[k], nw = makeClimbPick(g); nw.position.copy(old.position); nw.quaternion.copy(old.quaternion); old.parent.add(nw); old.parent.remove(old); old.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); b.climb[k] = nw; } markPick(); }
-  function setAnim(k) { const play = k === 'play'; if (play) k = 'climb'; if (!play) { st.play = false; st.pg = null; pgMark(null); } st.anim = k === 'run' || k === 'mine' || k === 'climb' ? k : 'idle'; if (st.anim !== 'climb') st.gnd = null; if (st.anim === 'mine' && st.tool !== 'pick') setTool('pick'); if (st.anim === 'climb') { if (st.tool !== 'climb' && !play) setTool('climb'); st.yaw = Math.PI + 0.65; st.yawV = 0; if (!st.climbDir || !st.play) st.climbDir = 'stop'; } const cc = document.getElementById('charClimb'); if (cc) cc.classList.toggle('off', st.anim !== 'climb'); markClimb(); if (play && !st.play) { st.play = true; an.tv = null; an.cl = null; if (!an.eq) an.eq = { held: 'climb', seq: null, t: 0 }; st.gnd = { x: 0, z: -1.2, face: 0, mv: 0, back: 0 }; st.climbDir = 'stop'; st.climbAuto = false; markClimb(); markTether(); const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = 'Tap the ground to move there, tap the wall to climb to it'; }
+  function setAnim(k) { const play = k === 'play'; if (play) k = 'climb'; if (!play) { st.play = false; st.pg = null; pgMark(null); } st.anim = k === 'run' || k === 'mine' || k === 'climb' ? k : 'idle'; if (st.anim !== 'climb') st.gnd = null; if (st.anim === 'mine' && st.tool !== 'pick') setTool('pick'); if (st.anim === 'climb') { if (st.tool !== 'climb' && !play) setTool('climb'); st.yaw = Math.PI + 0.65; st.yawV = 0; if (!st.climbDir || !st.play) st.climbDir = 'stop'; } const cc = document.getElementById('charClimb'); if (cc) cc.classList.toggle('off', st.anim !== 'climb'); markClimb(); if (play && !st.play) { st.play = true; an.tv = null; an.cl = null; toolStow(false); /* (GD-27: Climb is an explicit tool action) */ if (!an.eq) an.eq = { held: 'climb', seq: null, t: 0 }; st.gnd = { x: 0, z: -1.2, face: 0, mv: 0, back: 0 }; st.climbDir = 'stop'; st.climbAuto = false; markClimb(); markTether(); const nt = document.querySelector('#charClimb .cnote'); if (nt) nt.textContent = 'Tap the ground to move there, tap the wall to climb to it'; }
     document.querySelectorAll('#charAnim [data-anim]').forEach((b) => b.classList.toggle('on', st.play ? b.dataset.anim === 'play' : b.dataset.anim === st.anim)); }
   let gear = 'pick';
   function markPick() { const cp = document.getElementById('charPick'); if (!cp) return; const T = gear === 'pick' ? GRADES : gear === 'climb' ? CGRADES : TGRADES, cur = gear === 'pick' ? (rig && !PV.g ? rig.built.pick.userData.grade : S.pickGrade) : gear === 'climb' ? (rig && rig.built.climb ? rig.built.climb.R.userData.grade : S.climbGrade || 'stone') : (rig && rig.built.tethers ? rig.built.tethers[0].grp.userData.grade : S.tetherGrade || 'regular');
@@ -12799,7 +12843,7 @@ const CharView = (() => {
   function lpWalker(x, z, face) { return { ledge: true, x, z, face: face || 0, mv: 0, back: 0, cell: 0.1, bnd: Object.assign({}, LP.bnd), obs: lpObs() }; }
   function lpMineSpot() { const w = LG.cliff.localToWorld(LG.mineP.clone()), f = lpW2F(w); return { x: clamp(f.x, -LP.BX + 0.05, LP.BX - 0.05), z: LP.mineZ, w }; }
   function lpStart() { if (!LP.CL0) LP.CL0 = { BX: CL.BX, BY1: CL.BY1 }; CL.BX = LP.BX; CL.BY1 = LP.BY1; LP.on = true; st.yaw = Math.PI; st.yawV = 0; st.play = true; st.anim = 'climb'; st.pg = null; st.wantClimb = false; an.cl = null; an.tv = null; an.act = null; an.mw = 0;
-    st.climbDir = 'stop'; st.climbAuto = false; LG.g.updateMatrixWorld(true); const m = lpMineSpot(); st.gnd = lpWalker(m.x, m.z, 0); st.gnd.mine = true; an.eq = { held: 'pick', seq: null, t: 0 }; LP.tgt = null; pgMark(null); const nt = document.querySelector('#ledgeInfo small'); if (nt) nt.textContent = 'Hanging Camp: tap the deck to walk, the vein to mine, the cliff to climb · drag to orbit'; }
+    st.climbDir = 'stop'; st.climbAuto = false; LG.g.updateMatrixWorld(true); const m = lpMineSpot(); st.gnd = lpWalker(m.x, m.z, 0); st.gnd.mine = true; an.eq = { held: gearNow().tool, seq: null, t: 0 }; LP.tgt = null; pgMark(null); const nt = document.querySelector('#ledgeInfo small'); if (nt) nt.textContent = 'Hanging Camp: tap the deck to walk, the vein to mine, the cliff to climb · drag to orbit'; }
   function lpStop() { if (!LP.on) return; LP.on = false; if (LP.CL0) { CL.BX = LP.CL0.BX; CL.BY1 = LP.CL0.BY1; } st.pg = null; st.gnd = null; an.cl = null; an.tv = null; an.act = null; pgMark(null); setAnim('idle'); }
   // tap: the vein -> walk to it and mine; the cliff -> walk to its foot, draw the picks and climb to the spot; the deck -> walk there
   const CV_HOOK = {};
@@ -13690,7 +13734,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
         else if (k === 'port') HM.sel = v; else if (/^[ld][ab]$/.test(k)) setHomeStrand(k[1], k[0] === 'l' ? { grade: v } : { dir: v }); if (typeof save === 'function') save(); homeMark(); st.lastInput = clk; }); } }
     if (on && st.ledge) ledgeMode(false); st.home = !!on; if (HM.g) HM.g.visible = !!on; for (const fl of FLOOR) fl.visible = !on && !st.ledge; if (HM.bg) scene.background = on ? HM.bg : (st.ledge ? LG.bg : HM.bg0); wrap.classList.toggle('home', !!on); cam.fov = on ? 50 : st.ledge ? 34 : 26; cam.updateProjectionMatrix();
     const key = scene.children.find((o) => o.isDirectionalLight && o.castShadow); if (key && on) { Object.assign(key.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 0.5, far: 22 }); key.shadow.camera.updateProjectionMatrix(); key.position.set(2.5, 6, 5); }
-    if (on) { st.orbL = st.orb; st.orb = HM.orb || (HM.orb = { az: 0.42, el: 0.14, d: 3.6 }); st.tool = 'pick'; an.eq = { held: 'pick', seq: null, t: 0 }; an.cl = null; an.tv = null; st.play = false; st.pg = null; st.anim = 'idle'; st.yaw = 0; st.yawV = 0; const arr = typeof S !== 'undefined' && S && S.homeArrive === 'globe'; if (typeof S !== 'undefined' && S && S.homeArrive === 'in') delete S.homeArrive; setHomeMode('in'); /* the Ledge always opens inside (the old door-front scene is gone: its door menu lives on the map door) */ if (arr) { delete S.homeArrive; const t2 = HMP.table; st.gnd.x = t2.x + 0.75; st.gnd.z = t2.z + 0.55; st.gnd.face = -2.2; HM.arrived = 'globe'; HM.tgt = null; } }
+    if (on) { st.orbL = st.orb; st.orb = HM.orb || (HM.orb = { az: 0.42, el: 0.14, d: 3.6 }); st.tool = 'pick'; an.eq = { held: gearNow().tool, seq: null, t: 0 }; an.cl = null; an.tv = null; st.play = false; st.pg = null; st.anim = 'idle'; st.yaw = 0; st.yawV = 0; const arr = typeof S !== 'undefined' && S && S.homeArrive === 'globe'; if (typeof S !== 'undefined' && S && S.homeArrive === 'in') delete S.homeArrive; setHomeMode('in'); /* the Ledge always opens inside (the old door-front scene is gone: its door menu lives on the map door) */ if (arr) { delete S.homeArrive; const t2 = HMP.table; st.gnd.x = t2.x + 0.75; st.gnd.z = t2.z + 0.55; st.gnd.face = -2.2; HM.arrived = 'globe'; HM.tgt = null; } }
     else { if (st.orbL !== undefined) st.orb = st.orbL; st.gnd = null; if (key) { Object.assign(key.shadow.camera, { left: -1.2, right: 1.2, top: 2, bottom: -0.4, near: 0.5, far: 8 }); key.shadow.camera.updateProjectionMatrix(); key.position.set(1.4, 3.2, 2.6); } } }
   // tap inside the home: floor -> walk there; the door from outside -> handle opens it, a port selects it
   // ---- interactables (vault, furnace, anvil, orb, door, Lumen crystal): a soft pulsing ring + a floating tap label when Wren is near; tapping walks her up first, then opens
@@ -14010,7 +14054,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
   function treeLights(on) { if (TR._lit === on) return; TR._lit = on; HM._lit = undefined; for (const o of scene.children) { if (!o.isLight) continue; if (o.userData.base === undefined) o.userData.base = o.intensity; o.intensity = o.userData.base * (on ? 0.08 : 1); } }
   function treeMode(on) { if (!R) return; if (!!on === !!st.tree) return; if (on) { if (st.home) homeMode(false); if (st.ledge) ledgeMode(false); if (!TR.g) { TR.g = makeTree(); scene.add(TR.g); TR.bg = new THREE.Color(0x0e0704); } }
     st.tree = !!on; TR.g.visible = !!on; for (const fl of FLOOR) fl.visible = !on; treeLights(!!on); wrap.classList.toggle('tree', !!on);
-    if (on) { TR.bg0 = scene.background; TR.fog0 = scene.fog; scene.background = TR.bg; scene.fog = new THREE.Fog(0x140a05, 26, 70); cam.fov = 50; cam.far = Math.max(cam.far, 200); cam.updateProjectionMatrix(); st.orbT = st.orb; st.orb = TR.orb = { az: 0, el: 0.22, d: 9, tilt: -0.1 }; /* a level opening view down the hall to the crystal and the knotholes */ st.tool = 'pick'; an.eq = { held: 'pick', seq: null, t: 0 }; an.cl = null; an.tv = null; st.play = false; st.pg = null; st.anim = 'idle'; st.yaw = 0; st.yawV = 0; trWalker(0, TR.RW - 0.9, Math.PI); TR.tgt = null; }
+    if (on) { TR.bg0 = scene.background; TR.fog0 = scene.fog; scene.background = TR.bg; scene.fog = new THREE.Fog(0x140a05, 26, 70); cam.fov = 50; cam.far = Math.max(cam.far, 200); cam.updateProjectionMatrix(); st.orbT = st.orb; st.orb = TR.orb = { az: 0, el: 0.22, d: 9, tilt: -0.1 }; /* a level opening view down the hall to the crystal and the knotholes */ st.tool = 'pick'; an.eq = { held: gearNow().tool, seq: null, t: 0 }; an.cl = null; an.tv = null; st.play = false; st.pg = null; st.anim = 'idle'; st.yaw = 0; st.yawV = 0; trWalker(0, TR.RW - 0.9, Math.PI); TR.tgt = null; }
     else { scene.background = TR.bg0; scene.fog = TR.fog0 || null; if (st.orbT !== undefined) st.orb = st.orbT; st.gnd = null; if (PGM) PGM.visible = false; cam.fov = 26; cam.updateProjectionMatrix(); } }
   function treeTick(dt) { const t = TR.t = (TR.t || 0) + dt, G = st.gnd; iaTree(); iaTick(dt); if (G && G.hy) G.y += (G.hy(G.x, G.z) - G.y) * (st.paused && !G.mv ? 1 : 1 - Math.exp(-dt * 12));
     const p = 0.86 + 0.13 * Math.sin(t * 0.7); TR.breath = p; /* one slow breath every ~9 s, from inside the stone */ if (TR.crystalLight) TR.crystalLight.intensity = 1.0; if (TR.glow) TR.glow.material.opacity = 0.11; if (TR.crystalU) { TR.crystalU.uT.value = t; TR.crystalU.uP.value = 1; } if (TR.crystalM) TR.crystalM[3].opacity = 0.52; if (TR.floor) TR.floor.material.emissiveIntensity = 0.58; if (TR.daisTop) TR.daisTop.material.emissiveIntensity = 0.42; if (TR.veinM) TR.veinM[0].opacity = 0.56; /* the hall, dais and veins hold a steady glow - the pulse lives only inside the crystal shards */
@@ -14024,7 +14068,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
   return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { const F = PGA.on ? pgaMe() : null, q = pgaRel(); return { on: PGA.on, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null,
     arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, hunt: PGA.hunt, provoked: pgaC().aggro === 'provoked', ash: { on: ASHX.on, t: ASHX.t, u: ASHX.u, cut: ASHX.plane.constant, top: ASHX.top, bot: ASHX.bot, born: ASHX.born, n: ASHX.P ? ASHX.P.length : 0, fx: !!(ASHX.pts && ASHX.pts.parent), mats: ASHX.mats.size, hid: ASHX.hid.length, d: ashD() }, leash: pgaC().leashR, leashD: PGA.leashD, reach: pgaC().atkReach, interval: pgaInt(), clk: PGA.clk, swings: PGA.sl.map((e) => Object.assign({}, e)), anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
-    pgaScreen(x, z, y) { if (!cam || !canvas || !PGA.arena) return null; const p = V(x, y || 0, z).applyAxisAngle(V(0, 1, 0), st.yaw).project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height }; }, get sw() { return { R: SWG.R, L: SWG.L, w: SWG.w, ip: SWG.ip, idle: gearNow().swIdle, pose: Object.assign({}, SW_POSE), n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
+    pgaScreen(x, z, y) { if (!cam || !canvas || !PGA.arena) return null; const p = V(x, y || 0, z).applyAxisAngle(V(0, 1, 0), st.yaw).project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height }; }, get sw() { const gn = gearNow(); return { R: SWG.R, L: SWG.L, w: SWG.w, ip: SWG.ip, tw: gn.tw, want: gn.tool, toolAct: gn.toolAct, idle: gearNow().swIdle, pose: Object.assign({}, SW_POSE), n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */
 const Explore = (() => {
