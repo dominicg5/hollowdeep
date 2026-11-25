@@ -11,7 +11,9 @@ const Skills = (() => {
   const SKILL_XP_MAX = Number.MAX_SAFE_INTEGER;
   // Slot 1 (Mining 5) is also tied to Tess's drill quest if a quest system exists; there is none, so it is just the level.
   const DRILL_SLOT_LEVELS = [5, 10, 20, 35, 50, 65, 75, 85, 90];
-  const NAMES = { mining: 'Mining', smithing: 'Smithing', tethercraft: 'Tethercraft' };
+  const NAMES = { mining: 'Mining', smithing: 'Smithing', tethercraft: 'Tethercraft', combat: 'Combat' };
+  // (t695s, Dominic) the skill book's fourth row: Combat. Its XP lives in S.combat.xp (src/combat.js) on this same curve, Lv 1-300; it is not one of SKILL_KEYS (mining XP awards never touch it).
+  const BOOK_KEYS = ['mining', 'smithing', 'tethercraft', 'combat'], COMBAT_MAX = 300, COMBAT_TICK = 3; // +1 Strength & +1 Defense every COMBAT_TICK levels (combat.js)
 
   const ORES = {
     copper: { name: 'Copper', unlock: 1, xp: 10, yield: 0.35 },
@@ -81,8 +83,8 @@ const Skills = (() => {
     s.skills.tethercraft = clampXp(s.skills.tethercraft);
     return s;
   }
-  function xpOf(skill) { migrate(); return (typeof S !== 'undefined' && S && S.skills && S.skills[skill]) || 0; }
-  function level(skill) { return levelFromXp(xpOf(skill)); }
+  function xpOf(skill) { if (skill === 'combat') return (typeof S !== 'undefined' && S && S.combat && clampXp(+S.combat.xp || 0)) || 0; migrate(); return (typeof S !== 'undefined' && S && S.skills && S.skills[skill]) || 0; }
+  function level(skill) { const L = levelFromXp(xpOf(skill)); return skill === 'combat' ? Math.min(COMBAT_MAX, L) : L; }
   function addXp(skill, amount) {
     migrate();
     if (!S.skills || SKILL_KEYS.indexOf(skill) < 0) return 0;
@@ -243,7 +245,8 @@ const Skills = (() => {
 
   const BAR_NAMES = { bronze: 'Bronze', iron: 'Iron', steel: 'Steel', gold: 'Gold', mithril: 'Mithril', rune: 'Rune', lumen: 'Lumen', onyx: 'Ember Onyx' };
   const UNLOCK_ORES = ['copper', 'tin', 'coal', 'iron', 'gold', 'mithril', 'runite', 'lumenite', 'onyx'];
-  const SKILL_ICONS = { mining: 'tool:pick_mithril', smithing: 'ingot:steel', tethercraft: 'tether:mithril' };
+  const SKILL_ICONS = { mining: 'tool:pick_mithril', smithing: 'ingot:steel', tethercraft: 'tether:mithril', combat: 'skill:combat' }; // (combat: Art's leather book with crossed swords, skill__combat.png)
+  const COMBAT_SWORD = 'skill:combat_sword'; // (a steel sword thumbnail for the Strength & Defense rows)
   const itemSrc = (id) => id ? 'assets/ui/items/' + String(id).replace(/:/g, '__') + '.png' : 'assets/ui/items/map_drill.png';
 
   // Soonest unlock above L. Mining: ores + drill slots (ore wins a tie). If the soonest is not an ore, also return the next ore as "then".
@@ -253,6 +256,8 @@ const Skills = (() => {
     if (skill === 'mining') {
       for (const id of UNLOCK_ORES) { const o = ORES[id]; if (o && o.unlock > L) cand.push({ level: o.unlock, kind: 'ore', name: o.name + ' ore', id: 'ore:' + id }); }
       DRILL_SLOT_LEVELS.forEach((lv, i) => { if (lv > L) cand.push({ level: lv, kind: 'slot', name: 'Drill slot ' + (i + 1), id: null }); });
+    } else if (skill === 'combat') {
+      const n = (Math.floor(L / COMBAT_TICK) + 1) * COMBAT_TICK; if (n <= COMBAT_MAX) cand.push({ level: n, kind: 'stat', name: '+1 Strength & Defense', id: COMBAT_SWORD });
     } else if (skill === 'tethercraft') {
       BIT_KEYS.forEach((k, i) => { if (TETHER_LEVELS[i] > L) cand.push({ level: TETHER_LEVELS[i], kind: 'roll', name: (BAR_NAMES[k] || k) + ' braid', id: 'tether:' + k }); });
     } else {
@@ -265,13 +270,13 @@ const Skills = (() => {
   function skillState(skill) {
     const L = level(skill), xp = xpOf(skill), a = xpToReach(L), b = xpToReach(L + 1), need = Math.max(0, b - a), into = Math.max(0, xp - a);
     const pct = need > 0 ? Math.round((100 * into) / need) : 100, u = nextUnlock(skill, L);
-    if (L >= SKILL_SHOW_CEILING) return { skill, name: NAMES[skill], icon: SKILL_ICONS[skill], level: SKILL_SHOW_CEILING, max: true, xp, into: 0, need: 0, pct: 100, total: xp, next: u.next, then: u.then }; // the level cap (Lv 300): a full bar, 'Lv 300 · MAX', total XP kept
+    if (L >= (skill === 'combat' ? COMBAT_MAX : SKILL_SHOW_CEILING)) return { skill, name: NAMES[skill], icon: SKILL_ICONS[skill], level: SKILL_SHOW_CEILING, max: true, xp, into: 0, need: 0, pct: 100, total: xp, next: u.next, then: u.then }; // the level cap (Lv 300): a full bar, 'Lv 300 · MAX', total XP kept
     return { skill, name: NAMES[skill], icon: SKILL_ICONS[skill], level: L, xp, into, need, pct, total: xp, next: u.next, then: u.then };
   }
 
   // Detail screen: stand gates and milestone perks are Page proposals, so this list only uses tables already in Skills.
-  const TYPE_ORDER = { ore: 0, bar: 0, roll: 0, slot: 1, use: 2, make: 2 };
-  const TYPE_TAG = { ore: 'ORE', bar: 'BAR', roll: 'MILL', slot: 'DRILL SLOT', use: 'TOOL USE', make: 'TOOL MAKE' };
+  const TYPE_ORDER = { ore: 0, bar: 0, roll: 0, slot: 1, use: 2, make: 2, tree: 0, rule: 1, stat: 2 };
+  const TYPE_TAG = { ore: 'ORE', bar: 'BAR', roll: 'MILL', slot: 'DRILL SLOT', use: 'TOOL USE', make: 'TOOL MAKE', tree: 'TREE', rule: 'RULE', stat: 'STAT' };
   const TOOL_MAKE = [
     { key: 'pick', name: 'pickaxe', icon: (k) => 'tool:pick_' + k },
     { key: 'bit', name: 'drill bit', icon: () => 'tool:bit' } // (the winch is fixed Iron: no Ledge Tether tool is made)
@@ -292,6 +297,12 @@ const Skills = (() => {
         const k = BIT_KEYS[i]; if (!k) return;
         E.push({ level: lv, kind: 'use', name: (BAR_NAMES[k] || k) + ' pick & bit', id: 'tool:pick_' + k });
       });
+    } else if (skill === 'combat') { // (SPEC: continuous rules, stated once at Lv 1 - no card per level or per stat tick, no prize titles)
+      E.push({ level: 1, kind: 'tree', name: 'Combat (red) skill-tree branch opens', id: SKILL_ICONS.combat });
+      E.push({ level: 1, kind: 'rule', name: '+1 HP and 1 skill point each level', id: SKILL_ICONS.combat });
+      E.push({ level: 1, kind: 'rule', name: '+1 Strength & Defense every ' + COMBAT_TICK + ' levels', id: COMBAT_SWORD });
+      const L = level('combat'), n = (Math.floor(L / COMBAT_TICK) + 1) * COMBAT_TICK; // only the NEXT tick, once
+      if (n <= COMBAT_MAX) E.push({ level: n, kind: 'stat', name: '+1 Strength & +1 Defense', id: COMBAT_SWORD });
     } else if (skill === 'tethercraft') {
       BIT_KEYS.forEach((k, i) => { const tn = BAR_NAMES[k] || k, lv = TETHER_LEVELS[i];
         E.push({ level: lv, kind: 'roll', name: tn + ' braid', id: 'tether:' + k });
@@ -322,7 +333,7 @@ const Skills = (() => {
   }
 
   let onDetail = null, detailSkill = null;
-  const ui = { on: false, pin: null, view: 'list', detail: 'mining', listPos: { mining: 0, smithing: 0, tethercraft: 0 }, hist: false };
+  const ui = { on: false, pin: null, view: 'list', detail: 'mining', listPos: { mining: 0, smithing: 0, tethercraft: 0, combat: 0 }, hist: false };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   function pinSkillsScroll(on) {
@@ -341,36 +352,32 @@ const Skills = (() => {
   function rowHTML(st) {
     return `<article class="skRow" data-sk="${st.skill}"><button type="button" class="skIco" data-sk-detail="${st.skill}" aria-label="${esc(st.name)} details"><img src="${itemSrc(st.icon)}" alt=""></button>`
       + `<div class="skId"><button type="button" class="skName" data-sk-detail="${st.skill}">${esc(st.name)}</button><div class="skTotalMob">Total ${fmtXp(st.total)} XP</div>`
-      + `<div class="skMedal" aria-label="Level ${st.level}"><small>LV</small><b>${st.level}</b></div></div>`
+      + medalHTML(st.level) + `</div>`
       + `<div class="skProg"><div class="skBar skBar-${st.skill}"><i style="width:${Math.max(0, Math.min(100, st.pct))}%"></i></div>`
       + `<div class="skProgMeta">${st.max ? `<span class="skMax">Lv ${st.level} · MAX</span><span class="skPctDesk">${fmtXp(st.total)} XP</span><span class="skPctMob">${fmtXp(st.total)} XP</span>` : `<span>${fmtXp(st.into)} / ${fmtXp(st.need)} XP</span><span class="skPctDesk">${st.pct}%</span><span class="skPctMob">${st.pct}% to Lv ${st.level + 1}</span>`}</div></div>`
       + `<div class="skTotal"><b>${fmtXp(st.total)}</b><small>XP</small></div>`
       + chipHTML(st) + `</article>`;
   }
-  function lockHTML() {
+  function lockHTML() { // (unused since Combat took the reserved row; kept for a future fifth skill)
     return `<article class="skRow skLock" aria-disabled="true"><div class="skIco skLockIco" aria-hidden="true"><img src="assets/ui/icons/btn_locked_idle.webp" alt=""></div>`
       + `<div class="skId"><div class="skName">Future skill</div><div class="skSub"><span class="skLockDesk">Locked · reserved</span><span class="skLockMob">Locked · empty row reserved</span></div></div>`
       + `<div class="skProg"><div class="skBar skBar-empty"></div></div><div class="skTotal"><b>—</b></div></article>`;
   }
-  function capsHTML() {
-    return `<div class="skCap skCapTL"></div><div class="skCap skCapTR"></div><div class="skCap skCapBL"></div><div class="skCap skCapBR"></div>`;
-  }
   function sheetHTML() {
-    return capsHTML()
-      + `<div class="skHead"><h2>Skills</h2><span class="skTag">Mining · Smithing · Tethercraft</span><button type="button" class="kX skClose" data-sk="close" aria-label="Close">✕</button></div>`
+    return `<div class="skHead"><h2>Skills</h2><button type="button" class="kX skClose" data-sk="close" aria-label="Close">✕</button></div>`
       + `<div class="skCols"><span>LEVEL</span><span>PROGRESS TO NEXT LEVEL</span><span>TOTAL XP</span><span>NEXT UNLOCK</span></div>`
-      + `<div class="skList">${rowHTML(skillState('mining'))}${rowHTML(skillState('smithing'))}${rowHTML(skillState('tethercraft'))}${lockHTML()}</div>`
-      + `<div class="skFootBar"><div class="skFoot"><span class="skFootDesk">Levels have no cap · XP is shared by you and your drills</span><span class="skFootMob">Levels have no cap · drills earn XP too</span></div></div>`;
+      + `<div class="skList">${BOOK_KEYS.map((k) => rowHTML(skillState(k))).join('')}</div>`; // (no corner caps, no skill-list pill, no footer pill: Dominic)
   }
+  // (t695s, Dominic approved) the brass heater-shield level badge: Art's shield (Lv baked in its crown) with the live number on its face; 1-3 digits
   function medalHTML(L) {
-    return `<div class="skMedal" aria-label="Level ${L}"><small>LV</small><b>${L}</b></div>`;
+    return `<div class="skMedal skBadge" data-d="${String(L).length}" role="img" aria-label="Level ${L}"><b>${L}</b></div>`;
   }
   function cardHTML(e, st, prize) {
     return `<article class="skCard skCard-${st}${prize ? ' skCardPrize' : ''}"><i class="skCardIco" style="background-image:url(${itemSrc(e.id)})"></i>`
       + `<span class="skCardTag skCardTag-${e.kind}">${TYPE_TAG[e.kind] || e.kind}</span>`
       + `<span class="skCardName">${esc(e.name)}</span><i class="skCardMark" aria-hidden="true"></i></article>`;
   }
-  const skKey = (s) => (s === 'smithing' || s === 'tethercraft' ? s : 'mining');
+  const skKey = (s) => (BOOK_KEYS.includes(s) ? s : 'mining');
   function detailHTML(skill) {
     skill = skKey(skill);
     const st = skillState(skill), groups = groupedUnlocks(skill), L = st.level;
@@ -391,25 +398,25 @@ const Skills = (() => {
         + `<div class="skEntries">${g.entries.map((e) => cardHTML(e, gst, pr)).join('')}</div></section>`;
     }
     if (!here) body += `<div class="skHere" id="skHere"><span>You are here · Lv ${L}</span></div>`;
-    const end = skill === 'mining'
+    const end = skill === 'combat'
+      ? ['Combat levels run 1–' + COMBAT_MAX + '.', 'Each level: +1 HP and 1 skill point. Every ' + COMBAT_TICK + ' levels: +1 Strength and +1 Defense (0 Defense at Lv 1, 100 at Lv ' + COMBAT_MAX + ').', 'XP comes from fighting creatures. A Lumen Mushroom gives ' + ((typeof LUMEN_MUSHROOM !== 'undefined' && LUMEN_MUSHROOM.xp) || 32) + ' Combat XP.', 'The Combat (red) branch of the crystal skill tree opens at Lv 1.']
+      : skill === 'mining'
       ? ['Levels keep going past 120 — there is no cap.', 'The speed bonus keeps growing: +0.5% speed per level above each ore\'s unlock (×1.40 on Ember Onyx at Lv 200, ×1.90 at 300).']
       : skill === 'tethercraft' ? ['Levels keep going past 125 — there is no cap.', 'Mill speed keeps growing: +0.5% per level above each grade\'s unlock.']
       : ['Levels keep going past 125 — there is no cap.', 'Further prestige rewards are proposals; there are no extra drill slots.'];
-    body += `<div class="skEndNote"><b>${esc(end[0])}</b><span>${esc(end[1])}</span></div>`;
-    const foot = skill === 'mining' ? '120+ · No level cap · speed bonus keeps growing' : skill === 'tethercraft' ? 'No level cap · mill speed keeps growing' : 'No level cap · bar &amp; tool milestones continue';
-    return capsHTML()
-      + `<div class="skDetHead"><button type="button" class="kX skBack back" data-sk="back" aria-label="Back"></button>`
+    body += `<div class="skEndNote"><b>${esc(end[0])}</b>${end.slice(1).map((x) => `<span>${esc(x)}</span>`).join('')}</div>`;
+    return `<div class="skDetHead"><button type="button" class="kX skBack back" data-sk="back" aria-label="Back"></button>`
       + `<h2>${esc(st.name)} unlocks</h2>`
       + `<div class="skTabs"><button type="button" data-sk-tab="mining"${skill === 'mining' ? ' class="on"' : ''}>Mining</button>`
       + `<button type="button" data-sk-tab="smithing"${skill === 'smithing' ? ' class="on"' : ''}>Smithing</button>`
-      + `<button type="button" data-sk-tab="tethercraft"${skill === 'tethercraft' ? ' class="on"' : ''}>Tethercraft</button></div>`
+      + `<button type="button" data-sk-tab="tethercraft"${skill === 'tethercraft' ? ' class="on"' : ''}>Tethercraft</button>`
+      + `<button type="button" data-sk-tab="combat"${skill === 'combat' ? ' class="on"' : ''}>Combat</button></div>`
       + `<button type="button" class="kX skClose" data-sk="close" aria-label="Close">✕</button></div>`
       + `<div class="skSum"><div class="skIco" aria-hidden="true"><img src="${itemSrc(st.icon)}" alt=""></div>`
       + `<div class="skSumId"><div class="skName">${esc(st.name)}</div><div class="skSumMeta"><span>Total ${fmtXp(st.total)} XP</span><span>${st.max ? `Lv ${st.level} · MAX` : `${fmtXp(st.into)} / ${fmtXp(st.need)} XP · ${st.pct}%`}</span></div>`
       + `<div class="skBar skBar-${st.skill}"><i style="width:${Math.max(0, Math.min(100, st.pct))}%"></i></div></div>`
       + medalHTML(st.level) + `</div>`
-      + `<div class="skUnlocks" data-sk-list="${skill}">${body}</div>`
-      + `<div class="skFootBar"><div class="skFoot skDetFoot">${foot}</div></div>`;
+      + `<div class="skUnlocks" data-sk-list="${skill}">${body}</div>`; // (no footer pill: the rules live in the end note)
   }
   function sheetEl() { return document.getElementById('skillsSheet'); }
   function saveListPos() {
@@ -525,7 +532,7 @@ const Skills = (() => {
   return {
     SKILL_XP_SCALE, SKILL_POST_120_GROWTH, SKILL_SHOW_CEILING, LEVEL_SPEED_K, DRILL_RATE_DIV, SWING_S, ON_TASK,
     YIELD_PER_TIER, SKILL_XP_MAX, DRILL_SLOT_LEVELS, ORES, ORE_ORDER, BAR_LEVELS, SMITH_LEVELS, smithLevel, BAR_NAMES, UNLOCK_ORES, SKILL_ICONS, SMELT_XP, ANVIL_XP, TOOL_OFFSETS, TETHER_LEVELS, SKILL_KEYS,
-    PICK_USE_LEVELS, INPUT_TIMEOUT_MS: 0, // no 60 s input timeout; character XP is the same active or AFK
+    PICK_USE_LEVELS, BOOK_KEYS, COMBAT_MAX, COMBAT_TICK, INPUT_TIMEOUT_MS: 0, // no 60 s input timeout; character XP is the same active or AFK
     clampXp, xpToReach, xpForLevel, levelFromXp, migrate, xp: xpOf, level, addXp, oreOf, oreUnlock, oreXp,
     yieldChance, levelSpeedBonus, swingBonus, characterOrePerHour, drillOrePerHour, characterXpPerHour, drillXpPerHour,
     bestPickTier, bestAct, tessDrillQuestDone, slotsUnlocked, nextSlotLevel, hoursToLevel, bitBurn, BIT_BURN, bitTier, pickTierFromGrade,

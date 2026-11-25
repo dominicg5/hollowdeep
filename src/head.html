@@ -428,7 +428,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #skillsSheet .skId{grid-area:id;min-width:0;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;align-items:center;column-gap:8px}
 #skillsSheet .skName{grid-column:1;grid-row:1;font:400 20px/1.15 "Bree Serif",Georgia,serif;color:#2b1a10}
 #skillsSheet .skTotalMob{grid-column:1;grid-row:2;margin:0;font:400 13px/1.2 system-ui,sans-serif;color:#3a2414}
-#skillsSheet .skMedal{grid-column:2;grid-row:1 / span 2;width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#fbf2da,#dcc79a 70%);box-shadow:0 0 0 7px #c48a3a,0 0 0 9px #2b1a10,inset 0 0 0 1px #2b1a10;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+#skillsSheet .skMedal{grid-column:2;grid-row:1 / span 2;width:56px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
 #skillsSheet .skMedal small{font:700 8px system-ui,sans-serif;color:#7a5a3a;letter-spacing:.06em}
 #skillsSheet .skMedal b{font:400 18px/1 "Bree Serif",Georgia,serif;color:#2b1a10}
 #skillsSheet .skTotal{display:none}
@@ -473,7 +473,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skId{display:contents}
   #skillsSheet .skName{grid-column:2;grid-row:1;align-self:end;font-size:34px;line-height:1}
   #skillsSheet .skTotalMob{display:none}
-  #skillsSheet .skMedal{grid-column:2;grid-row:2;align-self:start;justify-self:center;width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10;margin:0}
+  #skillsSheet .skMedal{grid-column:2;grid-row:2;align-self:start;justify-self:center;width:64px;height:64px;margin:0}
   #skillsSheet .skMedal small{font-size:9px}#skillsSheet .skMedal b{font-size:22px}
   #skillsSheet .skProg{display:contents}
   #skillsSheet .skBar{grid-column:3;grid-row:1;align-self:end;height:22px;width:100%;max-width:340px}
@@ -513,7 +513,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skRow{flex:1 1 0;height:auto;min-height:0}
   #skillsSheet .skRow.skLock{flex:0.75 1 0;height:auto}
   #skillsSheet .skIco{width:56px;height:56px}
-  #skillsSheet .skMedal{width:48px;height:48px;box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skMedal{width:48px;height:48px}
   #skillsSheet .skName{font-size:24px}
   #skillsSheet .skBar{height:16px}
   #skillsSheet .skList{gap:8px}
@@ -550,11 +550,11 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #skillsSheet .skPrize span{position:relative;font:700 11px/1.2 system-ui,sans-serif;letter-spacing:.04em;color:#2b1a10;background:linear-gradient(#ecc976,#9a6c2c);border-radius:8px;padding:5px 10px;box-shadow:0 0 0 2px #2b1a10}
 #skillsSheet .skGroup{display:grid;grid-template-columns:56px 1fr;column-gap:8px;align-items:start;margin:6px 0}
 #skillsSheet .skTl{display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
-#skillsSheet .skTl .skMedal{width:48px;height:48px;box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+#skillsSheet .skTl .skMedal{width:48px;height:48px}
 #skillsSheet .skTl .skMedal b{font-size:16px}
-#skillsSheet .skGroup-locked .skTl .skMedal{box-shadow:0 0 0 6px #b8ad98,0 0 0 8px #2b1a10,inset 0 0 0 1px #2b1a10}
+#skillsSheet .skGroup-locked .skTl .skMedal{}
 #skillsSheet .skGroup-locked .skTl .skMedal b,#skillsSheet .skGroup-locked .skTl .skMedal small{color:#4e463c}
-#skillsSheet .skGroup-next .skTl .skMedal{box-shadow:0 0 0 6px #c48a3a,0 0 0 8px #2b1a10,0 0 10px 2px rgba(79,182,182,.7)}
+#skillsSheet .skGroup-next .skTl .skMedal{}
 #skillsSheet .skToGo{font:400 10px/1.15 "Bree Serif",Georgia,serif;color:#0f5a5a;text-align:center}
 #skillsSheet .skEntries{display:grid;grid-template-columns:1fr;gap:8px;min-width:0}
 #skillsSheet .skCard{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:linear-gradient(#f4e8c8,#dcc79a);box-shadow:0 0 0 2px #8c6428;min-width:0;position:relative}
@@ -591,9 +591,9 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skSum .skName{font-size:32px}
   #skillsSheet .skSumMeta{font-size:16px}
   #skillsSheet .skSum .skBar{height:20px}
-  #skillsSheet .skSum .skMedal{width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skSum .skMedal{width:64px;height:64px}
   #skillsSheet .skGroup{grid-template-columns:76px 1fr;column-gap:12px;margin:8px 0}
-  #skillsSheet .skTl .skMedal{width:60px;height:60px;box-shadow:0 0 0 7px #c48a3a,0 0 0 9px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skTl .skMedal{width:60px;height:60px}
   #skillsSheet .skTl .skMedal b{font-size:20px}
   #skillsSheet .skToGo{font-size:13px}
   #skillsSheet .skEntries{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -636,8 +636,39 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
   #skillsSheet .skSum .skIco{width:72px;height:72px}
   #skillsSheet .skSum .skName{font-size:32px}
   #skillsSheet .skSum .skBar{height:20px}
-  #skillsSheet .skSum .skMedal{width:64px;height:64px;box-shadow:0 0 0 8px #c48a3a,0 0 0 10px #2b1a10,inset 0 0 0 1px #2b1a10}
+  #skillsSheet .skSum .skMedal{width:64px;height:64px}
   #skillsSheet .skToGo{max-width:76px;font-size:12px}
+}
+/* (t695s, Dominic approved) skill book v2: Combat is the fourth row; brass heater-shield level badge (Art, level_badge/ option A) with the live number on its face;
+   no corner caps, no skill-list pill, no footer pill; the phone sheet sits inside the safe area above nav#tabs with all four rows on screen */
+#skillsSheet .skCap,#skillsSheet .skTag,#skillsSheet .skFoot,#skillsSheet .skFootBar{display:none!important}
+#skillsSheet .skMedal,#skillsSheet .skTl .skMedal,#skillsSheet .skSum .skMedal,#skillsSheet .skGroup-locked .skTl .skMedal,#skillsSheet .skGroup-next .skTl .skMedal{--bs:56px;width:var(--bs);height:var(--bs);border-radius:0;box-shadow:none;background:url(assets/ui/skills/badge_shield_168.png) center/contain no-repeat;display:flex;align-items:center;justify-content:center;flex:none;overflow:visible}
+#skillsSheet .skMedal small{display:none}
+#skillsSheet .skMedal b,#skillsSheet .skTl .skMedal b{font:400 calc(var(--bs) * .43)/1 "Bree Serif",Georgia,serif;color:#2b1a10;transform:translateY(calc(var(--bs) * .045))}
+#skillsSheet .skMedal[data-d="2"] b{font-size:calc(var(--bs) * .37)}#skillsSheet .skMedal[data-d="3"] b{font-size:calc(var(--bs) * .285)}
+#skillsSheet .skTl .skMedal{--bs:48px}
+#skillsSheet .skGroup-locked .skTl .skMedal{filter:grayscale(.55) brightness(.9)}
+#skillsSheet .skGroup-locked .skTl .skMedal b{color:#4e463c}
+#skillsSheet .skGroup-next .skTl .skMedal{filter:drop-shadow(0 0 5px rgba(79,182,182,.85))}
+#skillsSheet .skBar-combat i{background:linear-gradient(180deg,#ffb08a,#a02428)}
+#skillsSheet .skCardTag-tree,#skillsSheet .skCardTag-stat{background:#a02428}#skillsSheet .skCardTag-rule{background:#7a4a22}
+#skillsSheet .skEndNote span + span{margin-top:4px}
+@media (max-width:899px){
+  #skillsSheet{top:calc(env(safe-area-inset-top) + 8px);bottom:calc(env(safe-area-inset-bottom) + 60px + 8px)}
+  #skillsSheet .skList{gap:5px}
+  #skillsSheet .skRow{padding:8px 10px;row-gap:4px}
+  #skillsSheet .skBar,#skillsSheet .skSum .skBar{height:12px}
+  #skillsSheet .skTabs{gap:5px}
+  #skillsSheet .skTabs button{font-size:14px;padding:0 4px;white-space:nowrap}
+}
+@media (max-width:899px) and (max-height:680px){
+  #skillsSheet .skMedal{--bs:44px}
+  #skillsSheet .skTl .skMedal{--bs:40px}
+}
+@media (min-width:900px){
+  #skillsSheet .skMedal,#skillsSheet .skSum .skMedal{--bs:80px}
+  #skillsSheet .skTl .skMedal{--bs:56px}
+  #skillsSheet .skTabs button{min-width:120px}
 }
 #exMap .exmTop button[data-exm=close]{width:40px;height:40px;border:0;border-radius:0;background:url(assets/ui/icons/btn_close_idle.webp) center/contain no-repeat;color:transparent;box-shadow:none}
 #exMap .exmTop button[data-exm=close]:active{background-image:url(assets/ui/icons/btn_close_pressed.webp)}

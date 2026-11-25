@@ -107,13 +107,18 @@ const near = (a, b, e) => Math.abs(a - b) <= e;
     const mineInto = Skills.xpToReach(73) - Skills.xpToReach(72), smithInto = Skills.xpToReach(42) - Skills.xpToReach(41);
     S.skills.mining = Skills.xpToReach(72) + 0.62 * mineInto;
     S.skills.smithing = Skills.xpToReach(41) + 0.35 * smithInto;
+    S.combat = S.combat || {}; S.combat.xp = Skills.xpToReach(8) + 0.4 * (Skills.xpToReach(9) - Skills.xpToReach(8)); // (Art's mock: Combat Lv 8, 40% in -> 918 / 2296 XP, 14.2k total)
     const stM = Skills.skillState('mining'), stS = Skills.skillState('smithing');
     const btn = document.getElementById('exSkillsBtn'), bag = document.getElementById('exBagBtn'), map = document.getElementById('exMapBtn'), ch = document.querySelector('[data-city=vchar]');
     const before = { btn: rect(btn), bag: rect(bag), map: rect(map), ch: rect(ch), y: window.scrollY || 0, on: btn && btn.classList.contains('on') };
     btn.click();
     const sheet = document.getElementById('skillsSheet');
     const mid = { open: !!(sheet && sheet.classList.contains('on') && Skills.screenOn()), sel: btn.classList.contains('sel'), t: sheet ? sheet.textContent : '', scroll: sheet && sheet.querySelector('.skList') ? sheet.querySelector('.skList').scrollHeight - sheet.querySelector('.skList').clientHeight : 99,
-      sheet: rect(sheet), bag: rect(bag), map: rect(map), ch: rect(ch), y: window.scrollY || 0, rows: sheet ? sheet.querySelectorAll('.skRow').length : 0, locks: sheet ? sheet.querySelectorAll('.skRow.skLock').length : 0 };
+      sheet: rect(sheet), bag: rect(bag), map: rect(map), ch: rect(ch), y: window.scrollY || 0, rows: sheet ? sheet.querySelectorAll('.skRow').length : 0, locks: sheet ? sheet.querySelectorAll('.skRow.skLock').length : 0,
+      // (t695s) skill book v2: no corner caps / skill-list pill / footer pill, the brass shield badge (no ring, not a circle), the phone sheet inside the safe area above the nav
+      chrome: sheet ? sheet.querySelectorAll('.skCap,.skTag,.skFoot,.skFootBar').length : -1, combat: (() => { const r = sheet && sheet.querySelector('.skRow[data-sk=combat]'); return r ? { t: r.textContent, ico: (r.querySelector('.skIco img') || {}).src || '', bar: getComputedStyle(r.querySelector('.skBar i')).backgroundImage, rect: rect(r) } : null; })(),
+      medals: sheet ? [...sheet.querySelectorAll('.skMedal')].map((m) => { const c = getComputedStyle(m); return { br: c.borderTopLeftRadius, bs: c.boxShadow, bg: c.backgroundImage, w: m.getBoundingClientRect().width, h: m.getBoundingClientRect().height, n: m.textContent.trim(), d: m.dataset.d }; }) : [],
+      css: sheet ? (() => { const c = getComputedStyle(sheet), bar = sheet.querySelector('.skRow .skBar'), lst = sheet.querySelector('.skList'); return { top: parseFloat(c.top), bottom: parseFloat(c.bottom), bar: bar ? bar.getBoundingClientRect().height : 0, gap: lst ? getComputedStyle(lst).rowGap : '', vh: innerHeight, nav: (() => { const n = document.getElementById('tabs'); return n && n.offsetParent && n.getBoundingClientRect().height > 0 ? n.getBoundingClientRect().top : null; })() }; })() : null };
     window.scrollBy(0, 180); document.documentElement.scrollTop = 180; document.body.scrollTop = 180;
     if (sheet) sheet.scrollTop = 80; const list = sheet && sheet.querySelector('.skList'); if (list) list.scrollTop = 80;
     if (sheet) sheet.dispatchEvent(new WheelEvent('wheel', { deltaY: 240, bubbles: true, cancelable: true, view: window }));
@@ -142,12 +147,16 @@ const near = (a, b, e) => Math.abs(a - b) <= e;
     const named = { view: Skills.view, t: sheet.textContent || '' };
     const tab = sheet.querySelector('[data-sk-tab=smithing]'); if (tab) tab.click();
     const tabbed = { view: Skills.view, t: sheet.textContent || '', here: /You are here · Lv 41/.test(sheet.textContent || ''), climb: /Gold climbing picks/.test(sheet.textContent || ''), invented: /Steady Bellows|Thrifty|Masterwork|Furnace/.test(sheet.textContent || '') };
+    const ctab = sheet.querySelector('[data-sk-tab=combat]'); if (ctab) ctab.click();
+    const combatD = { view: Skills.view, t: sheet.textContent || '', tabs: [...sheet.querySelectorAll('[data-sk-tab]')].map((b) => b.textContent).join(','), cards: [...sheet.querySelectorAll('.skCard')].map((c) => c.querySelector('.skCardTag').textContent + ':' + c.querySelector('.skCardName').textContent),
+      here: /You are here · Lv 8/.test(sheet.textContent || ''), next: (sheet.querySelector('.skGroup-next') || {}).dataset?.lv, chrome: sheet.querySelectorAll('.skCap,.skFoot,.skFootBar').length, prize: sheet.querySelectorAll('.skPrize').length,
+      end: (sheet.querySelector('.skEndNote') || {}).textContent || '', tabsFit: [...sheet.querySelectorAll('[data-sk-tab]')].every((b) => b.scrollWidth <= b.clientWidth + 1 && b.getBoundingClientRect().height >= 36) };
     sheet.querySelector('[data-sk=close]').click();
     const closed = { on: Skills.screenOn(), sel: btn.classList.contains('sel'), cls: sheet.classList.contains('on'), bag: rect(bag), ch: rect(ch), y: window.scrollY || 0, openClass: document.documentElement.classList.contains('skills-open'), view: Skills.view };
     btn.click();
     const reopened = Skills.screenOn() && Skills.view === 'list';
     btn.click();
-    return { before, mid, shifted, afterHook, listed, named, tabbed, closed, reopened, stM, stS,
+    return { before, mid, shifted, afterHook, listed, named, tabbed, combatD, closed, reopened, stM, stS,
       midOk: same(mid.sheet, shifted.sheet) && same(before.bag, shifted.bag) && same(before.map, shifted.map) && same(before.ch, shifted.ch) && shifted.y === 0,
       detOk: same(before.bag, afterHook.bag) && same(before.map, afterHook.map) && same(before.ch, afterHook.ch) && afterHook.y === 0,
       afterOk: !closed.on && !closed.sel && !closed.cls && same(before.bag, closed.bag) && same(before.ch, closed.ch) && closed.y === 0 && !closed.openClass };
@@ -155,7 +164,10 @@ const near = (a, b, e) => Math.abs(a - b) <= e;
   console.log(JSON.stringify({ open: ui.mid && ui.mid.open, rows: ui.mid && ui.mid.rows, locks: ui.mid && ui.mid.locks, hooked: ui.afterHook && { hooked: ui.afterHook.hooked, view: ui.afterHook.view }, midOk: ui.midOk, detOk: ui.detOk, afterOk: ui.afterOk }));
   ok(ui.before && ui.before.on, 'the Skills HUD button is on the Character-view HUD, above Bag');
   ok(ui.mid && ui.mid.open && ui.mid.sel, 'tapping the Skills button opens the skills screen and presses the button');
-  ok(ui.mid && ui.mid.rows === 4 && ui.mid.locks === 1, `the screen shows Mining, Smithing, Tethercraft and one locked Future skill row (${ui.mid && ui.mid.rows} rows, ${ui.mid && ui.mid.locks} locked)`);
+  ok(ui.mid && ui.mid.rows === 4 && ui.mid.locks === 0 && ui.mid.combat, `the screen shows Mining, Smithing, Tethercraft and Combat (Combat took the reserved row) (${ui.mid && ui.mid.rows} rows, ${ui.mid && ui.mid.locks} locked)`);
+  { const c = ui.mid && ui.mid.combat; ok(c && /Combat/.test(c.t) && /14\.2k/.test(c.t) && /9\d\d \/ 229\d XP/.test(c.t) && /40% to Lv 9/.test(c.t) && /\+1 Strength & Defense · Lv 9/.test(c.t) && /skill__combat\.png$/.test(c.ico) && /255, 176, 138|ffb08a/i.test(c.bar), 'Combat row (t695s): book icon, shared XP curve (Lv 8, 918 / 2296 XP, 14.2k total), red bar, next unlock +1 Strength & Defense · Lv 9 ' + JSON.stringify(c)); }
+  { const M = (ui.mid && ui.mid.medals) || []; ok(M.length === 4 && M.every((m) => m.br === '0px' && m.bs === 'none' && /badge_shield_168\.png/.test(m.bg) && Math.abs(m.w - 56) < 1 && Math.abs(m.h - 56) < 1) && M[0].n === '72' && M[1].n === '41' && M[3].n === '8' && M[0].d === '2' && M[3].d === '1', 'level badges are the brass heater shield (no dotted ring, no 50% radius clipping the tip), 56 px, the live number on the face ' + JSON.stringify(M)); }
+  { const C = ui.mid && ui.mid.css; ok(ui.mid && ui.mid.chrome === 0 && C && C.top >= 8 && C.bottom >= 68 && Math.abs(C.bar - 12) < 0.6 && C.gap === '5px' && (C.nav == null || C.vh - C.bottom <= C.nav + 1), 'iPhone sheet (t695s): no corner caps, no skill-list pill, no footer pill; safe-area top + 8, bottom above the nav (safe area + 60 + 8), 12 px bars, 5 px gaps ' + JSON.stringify([ui.mid && ui.mid.chrome, C])); }
   const T = (ui.mid && ui.mid.t) || '';
   ok(ui.stM && ui.stM.level === 72 && ui.stM.pct === 62 && T.includes('Mining') && T.includes('6.2M') && T.includes('359.3k') && T.includes('579.6k') && /Drill slot 7/.test(T) && /Lumenite/.test(T), `Mining values match Skills (${ui.stM && ui.stM.pct}% · ${ui.stM && ui.stM.level} · 6.2M)`);
   ok(ui.stS && ui.stS.level === 41 && ui.stS.pct === 35 && T.includes('345.6k') && T.includes('10.9k') && T.includes('31.1k') && /Mithril bar/.test(T) && /Lv 55/.test(T), 'Smithing values match Skills (Lv 41, 345.6k total, Mithril bar · Lv 55)');
@@ -170,6 +182,10 @@ const near = (a, b, e) => Math.abs(a - b) <= e;
   ok(ui.listed && ui.listed.view === 'list' && ui.listed.rows === 4 && ui.listed.title, 'the back button returns to the Skills screen');
   ok(ui.named && ui.named.view === 'detail' && /Mining unlocks/.test(ui.named.t), 'tapping the Mining name also opens the preview');
   ok(ui.tabbed && ui.tabbed.view === 'detail' && /Smithing unlocks/.test(ui.tabbed.t) && ui.tabbed.here && ui.tabbed.climb && /345.6k/.test(ui.tabbed.t) && !ui.tabbed.invented, 'the Smithing tab shows live bars and tool makes, with You are here at Lv 41');
+  { const D2 = ui.combatD || {}; ok(D2.view === 'detail' && /Combat unlocks/.test(D2.t) && D2.tabs === 'Mining,Smithing,Tethercraft,Combat' && D2.tabsFit && D2.here && D2.next === '9' && D2.prize === 0 && D2.chrome === 0
+      && D2.cards.join('|') === 'TREE:Combat (red) skill-tree branch opens|RULE:+1 HP and 1 skill point each level|RULE:+1 Strength & Defense every 3 levels|STAT:+1 Strength & +1 Defense'
+      && /Combat levels run 1–300\./.test(D2.end) && /A Lumen Mushroom gives 32 Combat XP/.test(D2.end) && /100 at Lv 300/.test(D2.end) && !/Cave Bat|Copper Crawler/.test(D2.t),
+    'Combat unlocks: four tabs fit, the rules once at Lv 1, only the next tick (Lv 9), no prize banners, no footer, the 1–300 end note ' + JSON.stringify(D2.cards) + ' ' + D2.tabs); }
   ok(ui.afterOk, 'the close button closes the screen and leaves the HUD buttons unshifted');
   ok(ui.closed && ui.reopened === true, 'tapping the Skills button again reopens the screen, then closes it');
 
