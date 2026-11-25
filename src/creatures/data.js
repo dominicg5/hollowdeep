@@ -20,6 +20,8 @@ const LUMEN_MUSHROOM = {
   atkS: 2,          // (GD-12) seconds between bites once it is fighting her
   atkHitAt: 0.35,   // seconds into the bite clip that the bite lands
   atkReach: 1.1,    // metres: it closes to this and bites; a bite lands if she is still within atkReach + 0.35
+  aggro: 'provoked', // (GD-21, Dominic t682u) 'provoked': it leaves her alone - wanders, never bites - until she hits it; then it hunts her (leashR below).
+                    // Past the leash it gives up and is passive again (she has to hit it again). 'near' (not used yet): it also turns on her when she walks right up.
   leashR: 4,        // (GD-19) metres: once she hits it (or walks right up to it) it keeps closing in and biting until she is farther than this, then it goes back
                     // to wandering. 4 m = its bite reach (1.1 m) + ~3 m, so stepping back a little does not shake it but running off does
   walkSpd: 0.55,    // m/s, wandering and closing in
@@ -42,4 +44,17 @@ const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM };
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
 const PLAYGROUND_COMBAT = {
   ATTACK_INTERVAL_S: 3,
+  // (GD-22, Dominic t684u) at 0 HP she crumbles to ash, then the respawn plays: her colours go ash grey, a cut sweeps from the top of her head to her feet
+  // (everything above it gone) while ash and embers drift up off the cut; once she is gone the arena waits a beat, then she respawns at the centre.
+  // Cheap for iPhone: one clipping plane on her own materials and one small particle cloud - no full-screen pass, no extra render target.
+  ASH: {
+    TINT_S: 0.35,       // seconds to go ash grey (starts at once, overlaps the dissolve)
+    DISSOLVE_S: 1.7,    // seconds for the cut to sweep head to feet
+    HOLD_S: 0.5,        // seconds of empty floor (the last ash settling) before the respawn
+    PARTICLES: 140,     // ash + ember specks, shed from the cut as it passes
+    EMBER_FRAC: 0.3,    // share of the specks that glow as embers (the rest grey ash)
+    RISE_MPS: 0.55,     // how fast a speck drifts up
+    DRIFT_MPS: 0.25,    // sideways drift
+    LIFE_S: 1.1,        // a speck fades out over this
+  },
 };

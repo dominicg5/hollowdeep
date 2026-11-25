@@ -53,6 +53,10 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const W0 = await p.evaluate(() => [CharView.st.gnd.x, CharView.st.gnd.z]); const T1 = await tapAt(-2.5, -2); await p.waitForFunction(() => Math.hypot(CharView.st.gnd.x + 2.5, CharView.st.gnd.z + 2) < 0.3, null, { timeout: 20000 }).catch(() => {});
   const W1 = await p.evaluate(() => ({ x: CharView.st.gnd.x, z: CharView.st.gnd.z, eng: CharView.pga.eng }));
   ok(T1 === 'ground' && Math.hypot(W1.x + 2.5, W1.z + 2) < 0.3 && Math.hypot(W1.x - W0[0], W1.z - W0[1]) > 2 && !W1.eng, `tap the floor: she runs there (${W0.map((v) => v.toFixed(2))} -> ${W1.x.toFixed(2)}, ${W1.z.toFixed(2)})`);
+  // GD-25 (t686u): running sheathed her swords and stopping does NOT bring them back (game-clock wait, not wall time)
+  const SH0 = await p.evaluate(() => ({ sh: CharView.sw.sh, run: CharView.sw.run, clk: CharView.pga.clk })); await p.waitForFunction((c) => CharView.pga.clk > c + 1.5 && !CharView.sw.run, SH0.clk, { timeout: 60000 }).catch(() => {});
+  const SH1 = await p.evaluate(() => ({ sh: CharView.sw.sh, run: CharView.sw.run, eff: CharView.sw.eff, saved: S.swSh, rule: CharView.sw.pose.RUN_SHEATHES }));
+  ok(SH0.sh && SH1.sh && !SH1.run && SH1.saved === true && SH1.rule === true, 'GD-25: the run sheathed her swords and they stay sheathed after she stops ' + JSON.stringify([SH0, SH1]));
   // the mushroom wanders while left alone
   await p.evaluate(() => { CharView.pga.mob && (window.__mp = CharView.pga.mob.position.clone()); }); await p.waitForFunction(() => CharView.pga.mob.position.distanceTo(window.__mp) > 0.3, null, { timeout: 90000 });
   const WD = await p.evaluate(() => ({ moved: CharView.pga.mob.position.distanceTo(window.__mp), anim: CharView.pga.anim }));
@@ -61,6 +65,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => { window.__roll = Combat.rollDamage; window.__rolls = []; Combat.rollDamage = (...a) => { const r = window.__roll(...a); window.__rolls.push({ t: CharView.pga.clk, face: CharView.pga.rel.dot, v: CharView.sw.at.v }); return Object.assign({}, r, { dmg: 0 }); }; });
   const n0 = await p.evaluate(() => CharView.pga.n); const mp = await p.evaluate(() => { const m = CharView.pga.mob.position; return [m.x, m.z]; });
   const T2 = await tapAt(mp[0], mp[1], 0.4); const E1 = T2 === 'mob' && await p.evaluate(() => CharView.pga.eng);
+  const DR = await p.evaluate(() => ({ sh: CharView.sw.sh, saved: S.swSh }));
+  ok(T2 === 'mob' && !DR.sh && DR.saved === false, 'GD-25: tapping the creature to engage draws her swords ' + JSON.stringify(DR));
   await p.waitForFunction(() => CharView.pga.swings.length >= 4 && CharView.pga.swings[3].roll === 1 && !CharView.sw.at, null, { timeout: 240000 });
   const E2 = await p.evaluate(() => ({ n: CharView.pga.n, d: CharView.pga.rel.d, cfg: PLAYGROUND_COMBAT.ATTACK_INTERVAL_S, swings: CharView.pga.swings, rolls: window.__rolls }));
   ok(E1 && E2.d < 1.7 && E2.n === n0 + 4, `tap the mushroom: auto-walk and four attack animations (${E2.n - n0} rolls at ${E2.d.toFixed(2)} m)`);
@@ -76,6 +82,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => CharView.pga.leashD !== null, null, { timeout: 60000 });
   const LEASH = await p.evaluate(() => ({ d: CharView.pga.leashD, leash: CharView.pga.leash, reach: CharView.pga.reach, hunt: CharView.pga.hunt }));
   ok(LEASH.leash === 4 && LEASH.leash > LEASH.reach + 2 && LEASH.d > LEASH.leash && !LEASH.hunt, 'GD-19: 4 m data-table leash, hunt ends beyond it ' + JSON.stringify(LEASH));
+  // GD-21: after the leash it is passive again - stand right beside it for three of its attack timers: no hunt, no bites
+  const passive = () => p.evaluate(() => { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; G.goal = null; G.path = null; G.x = m.x + 0.8; G.z = m.z; CharView.pgaWalk(G.x, G.z); window.__pas = { clk: g.clk, bites: g.bites.length, T: LUMEN_MUSHROOM.atkS * 3 }; return window.__pas; });
+  const passiveRes = async () => { await p.waitForFunction(() => CharView.pga.clk > window.__pas.clk + window.__pas.T, null, { timeout: 120000 }).catch(() => {}); return p.evaluate(() => ({ hunt: CharView.pga.hunt, bites: CharView.pga.bites.length - window.__pas.bites, d: +CharView.pga.rel.d.toFixed(2), T: window.__pas.T, flag: LUMEN_MUSHROOM.aggro, provoked: CharView.pga.provoked })); };
+  await passive(); const PV1 = await passiveRes();
+  ok(PV1.flag === 'provoked' && PV1.provoked && !PV1.hunt && PV1.bites === 0 && PV1.d < 1.2, 'GD-21: once leashed back it resets to passive (beside it for ' + PV1.T + ' game s: no hunt, no bites) ' + JSON.stringify(PV1));
   // Let real damage through and tap again: it dies without any extra presses.
   await p.evaluate(() => { Combat.rollDamage = window.__roll; });
   const mp2 = await p.evaluate(() => { const m = CharView.pga.mob.position; return [m.x, m.z]; }); await tapAt(mp2[0], mp2[1], 0.4);
@@ -84,17 +95,28 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.evaluate(() => !CharView.pga.eng), 'GD-19: auto-attack continues until dead, then releases the lock');
   // it bites back on a timer: GD-15's roll (parry, then acc / (her Defense + 100), else 0..str)
   await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 30000 }).catch(() => {});
-  await p.evaluate(() => { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; G.goal = null; G.path = null; G.x = m.x + 0.8; G.z = m.z; CharView.pgaWalk(G.x, G.z); /* (stop fighting; stood right beside it, it turns on her) */ });
-  await p.waitForFunction(() => CharView.pga.bites.length >= 2, null, { timeout: 30000 }).catch(() => {});
+  await passive(); const PV2 = await passiveRes();
+  ok(!PV2.hunt && PV2.bites === 0, 'GD-21: a fresh (respawned) Lumen Mushroom is passive - she can stand beside it and it never bites ' + JSON.stringify(PV2));
+  // provoke it with one zero-damage hit while her swords are sheathed: it hunts her, bites, and its attack draws her swords (GD-25)
+  const PR = await p.evaluate(() => { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; CharView.swSheathe(true); G.face = Math.atan2(m.x - G.x, m.z - G.z); const rd = Combat.rollDamage; Combat.rollDamage = (...a) => Object.assign({}, rd(...a), { dmg: 0 }); const r = CharView.pgaHit(); Combat.rollDamage = rd; return { r: !!r, hunt: g.hunt, sh: CharView.sw.sh, b0: g.bites.length }; });
+  ok(PR.r && PR.hunt, 'GD-21: hitting it provokes it (hunt on) ' + JSON.stringify(PR));
+  await p.waitForFunction((b0) => CharView.pga.bites.length >= b0 + 2 && !CharView.sw.sh, PR.b0, { timeout: 60000 }).catch(() => {});
+  const PD = await p.evaluate(() => ({ sh: CharView.sw.sh, saved: S.swSh, hunt: CharView.pga.hunt }));
+  ok(PR.sh === true && !PD.sh && PD.saved === false && PD.hunt, 'GD-25: a provoked creature fighting her draws her sheathed swords ' + JSON.stringify(PD));
   const B = await p.evaluate(() => { const g = CharView.pga, P = Combat.playerStats(); return { bites: g.bites, me: g.me, ch: Combat.hitChance(LUMEN_MUSHROOM.acc, P.def), hud: document.getElementById('pgaHud').dataset.me }; });
   ok(B.bites.length >= 2 && B.bites.every((b) => b.parried || (Math.abs(b.chance - B.ch) < 1e-9 && b.dmg >= 0 && b.dmg <= 1 && (!b.hit || b.dmg === 1))) && B.me.hp <= B.me.max && +B.hud === Math.round(B.me.hp), `it bites back every ${'~2'} s: ${B.bites.length} bites at ${(B.ch * 100).toFixed(1)}% full-hit (acc 30 vs her Defense), 0..1 dmg; her HP ${B.me.hp} / ${B.me.max}`);
   // knocked out at 0 HP; back up at the centre with full HP, no penalty
   const KO0 = await p.evaluate(() => ({ xp: (S.combat && S.combat.xp) || 0, bag: JSON.stringify(S.backpack || {})}));
   const KO1 = await p.evaluate(() => { CharView.pgaHurt(9999); const g = CharView.pga, h = document.getElementById('pgaHud'); return { ko: g.ko, kos: g.kos, hp: g.me.hp, hud: h.dataset.ko, txt: h.textContent, tap: CharView.pgaWalk(1, 1) }; });
-  await p.waitForFunction(() => CharView.rig.root.rotation.x < -0.8, null, { timeout: 30000 }); const lean = await p.evaluate(() => CharView.rig.root.rotation.x);
-  await p.waitForFunction(() => CharView.pga.ko === 0, null, { timeout: 60000 }).catch(() => {});
+  await p.waitForFunction(() => CharView.pga.ash.u >= 0.5, null, { timeout: 30000 }).catch(() => {});
+  const AS = await p.evaluate(() => { const a = CharView.pga.ash; return { on: a.on, u: +a.u.toFixed(2), cut: a.cut, top: a.top, bot: a.bot, born: a.born, n: a.n, mats: a.mats, hid: a.hid, fx: a.fx, d: a.d, lean: CharView.rig.root.rotation.x, txt: document.getElementById('pgaHud').textContent, ko: CharView.pga.ko }; });
+  const lean = AS.lean; await p.waitForFunction(() => CharView.pga.ko === 0, null, { timeout: 60000 }).catch(() => {});
+  const AE = await p.evaluate(() => { const a = CharView.pga.ash; return { on: a.on, cut: a.cut, born: a.born }; });
+  const AD = AS.d || {}; ok(AS.on && AS.top > AS.bot && AS.cut < AS.top - 0.4 * (AS.top - AS.bot) && AS.born > 0 && AS.n === AD.PARTICLES && AS.mats > 0 && AS.fx && Math.abs(lean) < 0.05 && /Turned to ash/.test(AS.txt) && AD.DISSOLVE_S >= 1.5 && AD.DISSOLVE_S + AD.HOLD_S <= 2.5,
+    'GD-22: at 0 HP she crumbles to ash top-down (clip plane between head and feet, ash/ember particles, no fall), timings from PLAYGROUND_COMBAT.ASH ' + JSON.stringify(AS));
+  ok(!AE.on && AE.cut > 1e5, 'GD-22: the respawn ends the ash and restores her whole ' + JSON.stringify(AE));
   const KO2 = await p.evaluate(() => ({ me: CharView.pga.me, x: CharView.st.gnd.x, z: CharView.st.gnd.z, lean: CharView.rig.root.rotation.x, xp: (S.combat && S.combat.xp) || 0, bag: JSON.stringify(S.backpack || {}), hud: document.getElementById('pgaHud').dataset.ko }));
-  ok(KO1.ko > 0 && KO1.hp === 0 && KO1.hud === '1' && /Knocked out/.test(KO1.txt) && KO1.tap === false && lean < -0.8, `at 0 HP she is knocked out (falls, can't be steered): ${JSON.stringify([KO1, lean])}`);
+  ok(KO1.ko > 0 && KO1.hp === 0 && KO1.hud === '1' && /Turned to ash/.test(KO1.txt) && KO1.tap === false, `at 0 HP she is down (can't be steered): ${JSON.stringify([KO1, lean])}`);
   ok(KO2.me.hp === KO2.me.max && Math.hypot(KO2.x, KO2.z) < 0.05 && Math.abs(KO2.lean) < 1e-6 && KO2.hud === '0' && KO2.xp === KO0.xp && KO2.bag === KO0.bag, `she gets back up at the centre with full HP, no penalty (Combat XP and backpack unchanged) ${JSON.stringify(KO2)}`);
   await p.evaluate(() => setTab('city')); await p.waitForFunction(() => !CharView.pga.on);
   const C = await p.evaluate(() => ({ on: CharView.pga.on, hud: !!document.getElementById('pgaHud'), mob: !!CharView.pga.mob, arena: !!CharView.pga.arena }));
