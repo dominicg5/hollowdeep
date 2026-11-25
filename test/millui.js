@@ -19,9 +19,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     // refund on cancel: 3 spools done of 20 -> 17 x 4 ingots back
     const j = S.mill.jobs[0]; j.done = 3; j.cur = 10; o.back = M.cancel(j.id); o.steelBack = Craft.have('ingot:steel');
     // 72 h away cap (XP stubbed so the spool length stays fixed): 20000 Bronze spools at Lv 1 queued, 100 h away -> floor(259200 / 24.4) spools
-    const aw = Skills.awardMill; Skills.awardMill = () => 0; S.skills.tethercraft = 0; Craft.add('bag', 'ingot:bronze', 80000); M.queue('braid', 'bronze', 20000); const toasts = []; const t0 = window.toast; window.toast = (m) => toasts.push(m);
+    const aw = Skills.awardMill; Skills.awardMill = () => 0; S.skills.tethercraft = 0; S.mill.jobs.push({ id: S.mill.nid++, tab: 'braid', grade: 'bronze', n: 20000, done: 0, cur: 0, len: 0 }); /* (a 20000-spool job put straight on the queue: its 80000 bars can't fit in a 20-slot backpack at 500 a slot) */ const toasts = []; const t0 = window.toast; window.toast = (m) => toasts.push(m);
     S.mill.seen = Date.now() - 100 * 3600 * 1000; M.tick(); o.cap = { done: S.mill.jobs[0].done, want: Math.floor(72 * 3600 / 24.4), toast: toasts.join(' | '), rate: MILL.M.rateT, metal: MILL.M.metal };
-    window.toast = t0; Skills.awardMill = aw; M.cancel(S.mill.jobs[0].id); S.mill.rack = {};
+    window.toast = t0; Skills.awardMill = aw; S.mill.jobs = []; S.mill.rack = {};
     // XP totals: 3 Gold spools at Lv 40 + 2 Iron Wren's Tethers pay 3 x 6669 + 2 x 1464; rack fills with 300 m Gold braid + 2 tool:tlink_iron
     S.skills.tethercraft = X(40); Craft.add('bag', 'ingot:gold', 9); Craft.add('bag', 'ingot:iron', 6); const x0 = Skills.xp('tethercraft'); M.queue('braid', 'gold', 3); M.queue('climb', 'iron', 2); o.locked = M.queue('braid', 'mithril', 1);
     M.advance(3 * 47.7 + 2 * 23 + 1); o.xp = Skills.xp('tethercraft') - x0; o.xpWant = 3 * 6669 + 2 * 1464; o.rack = JSON.stringify(S.mill.rack); o.rackN = M.rackCount(); o.empty = S.mill.jobs.length;
