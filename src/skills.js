@@ -110,9 +110,9 @@ const Skills = (() => {
     const o = ORES[oreId]; if (!o) return 0;
     const onTask = opt && opt.onTask != null ? opt.onTask : ON_TASK;
     const L = miningLevel == null ? 1 : miningLevel;
-    return (3600 / SWING_S) * swingBonus(pickTier) * onTask * yieldChance(oreId, pickTier) * levelSpeedBonus(L, o.unlock) * ((opt && opt.upg) || 1); // opt.upg: Theus's pickaxe tier multiplier (character pickaxe only; drills never pass it)
+    return (3600 / SWING_S) * swingBonus(pickTier) * onTask * yieldChance(oreId, pickTier) * levelSpeedBonus(L, o.unlock) * ((opt && opt.upg) || 1); // opt.upg: Theus' pickaxe tier multiplier (character pickaxe only; drills never pass it)
   }
-  // ---- Theus's pickaxe tiers (Dominic: on the item): one tiered pickaxe per kind (Craft 'tool:tpick_<kind>', its tier S.tpicks[kind] while it exists; none = T0); tier N multiplies its mining rate by 1.5^N;
+  // ---- Theus' pickaxe tiers (Dominic: on the item): one tiered pickaxe per kind (Craft 'tool:tpick_<kind>', its tier S.tpicks[kind] while it exists; none = T0); tier N multiplies its mining rate by 1.5^N;
   //      the step to tier N costs 20 x 2^(N-1) pickaxes of the same kind (20, 40 ... 10240), consumed
   const PICK_TIER_MAX = 10;
   const pickUpgCost = (n) => (n >= 1 && n <= PICK_TIER_MAX ? 20 * Math.pow(2, n - 1) : 0);

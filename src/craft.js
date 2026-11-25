@@ -18,7 +18,7 @@ const Craft = (() => {
   // (Dominic) equipped gear lives in equipment slots, never in the backpack grid or its slot count: the base gear (always worn) and the pickaxe in her hand (S.worn.pick)
   const BASE_GEAR = [CLIMB_BASE, TLINK_BASE, WINCH_BASE], isBase = (id) => BASE_GEAR.includes(id);
   const FULL = '🎒 Backpack full'; const fullMsg = (m) => { if (typeof toast === 'function') toast(m || FULL); return false; };
-  // Theus's tiered pickaxe (Dominic: the tier lives on the item): one per kind at most, its own id (never a plain pickaxe, never payment); its tier is S.tpicks[kind] while it exists
+  // Theus' tiered pickaxe (Dominic: the tier lives on the item): one per kind at most, its own id (never a plain pickaxe, never payment); its tier is S.tpicks[kind] while it exists
   TIERS.forEach(([k, n, c], i) => { ITEMS['tool:tpick_' + k] = { name: n + ' Pickaxe (tiered)', short: n, emoji: '⛏️', col: c, kind: 'tool', tool: 'pick', tier: i, grade: k, tiered: true }; });
   // swords (Dominic via Art): one per grade, its tier lives on the item (S.tswords[grade], T0..T10). Held in either hand from the Character screen.
   TIERS.forEach(([k, n, c], i) => { ITEMS['tool:sword_' + k] = { name: n + ' Sword', short: n, emoji: '🗡️', col: c, kind: 'tool', tool: 'sword', tier: i, grade: k, sword: true }; });

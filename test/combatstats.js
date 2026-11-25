@@ -1,5 +1,5 @@
 // Combat stats (t627u, Dominic via Art card t448s1773): Art's round brass icon (crossed swords + red heart) in the Character view, a 44 px+ touch target;
-// tapping it opens a panel with Strength, HP and Accuracy split by source (level, swords, Skill Tree) and the total, plus the hit-chance note with the 60% cap.
+// tapping it opens a panel with Strength, HP and Accuracy split by source (level, swords, Skill Tree) and the total - nothing else below (t648u).
 // Every number must be the combat module's own (Combat.playerStats / applyNodes / level / hitChance / fmt): nothing recomputed. DOM checks only, no renders.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html';
@@ -26,8 +26,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.rows = ['str', 'hp', 'acc'].map((k) => ({ k, ui: ['level', 'swords', 'tree', 'total'].map((s) => cell(k, s)), combat: [r1(L0[k]), r1(sw[k]), r1(E[k] || 0), P[k]] }));
     o.match = o.rows.every((x) => JSON.stringify(x.ui) === JSON.stringify(x.combat)); o.names = [...e.querySelectorAll('tbody th')].map((t) => t.textContent);
     o.heads = [...e.querySelectorAll('thead th')].map((t) => t.textContent).filter(Boolean);
-    o.lv = +(e.querySelector('[data-cs=lv]') || {}).textContent; o.level = Combat.level();
-    const note = (e.querySelector('[data-cs=hit]') || {}).textContent || '', pc = (v) => `${Math.round(v * 1000) / 10}%`; o.note = note; o.hit = [pc(Combat.hitChance(P.acc, 0)), pc(Combat.hitChance(P.acc, 100))]; o.noteOk = /60% cap/.test(note) && note.includes(o.hit[0]) && note.includes(o.hit[1]) && /Accuracy ÷ \(Defence \+ 100\)/.test(note);
+    o.level = Combat.level(); o.kids = [...e.querySelector('.csTray').children].map((c) => c.className).join(); o.extra = !!e.querySelector('p, [data-cs=hit], [data-cs=lv], .csNote, .csFoot, .csLv'); o.top = [...e.querySelector('.csTop').children].map((c) => c.className || c.tagName).join();
     o.setup = { str: [L0.str, sw.str, E.str, P.str], hp: [L0.hp, sw.hp, E.hp, P.hp], acc: P.acc };
     const tr = e.querySelector('.csTray').getBoundingClientRect(), x = e.querySelector('[data-cs=close]').getBoundingClientRect(); o.tray = [tr.left >= 0, tr.right <= innerWidth + 0.5, tr.top >= 0, tr.bottom <= innerHeight + 0.5]; o.close = [x.width, x.height];
     return o; });
@@ -41,8 +40,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(!H && !hm, 'only in the Character view (not on the map or in the Ledge)');
   ok(q.on && q.title === 'Combat stats' && q.names.join() === 'Strength,HP,Accuracy' && q.heads.join() === 'Level,Swords,Tree,Total', `tap: the panel opens with Strength / HP / Accuracy by Level / Swords / Tree / Total ${JSON.stringify([q.names, q.heads])}`);
   ok(q.match, 'every number is the combat module\'s (playerStats / applyNodes / fmt) ' + JSON.stringify(q.rows));
-  ok(q.setup.str[2] === 5 && q.setup.hp[2] === 12 && q.setup.str[1] > 0 && q.setup.acc > 0 && q.lv === q.level && q.level === 30, 'the tree and swords shares show up (5 Strength, 12 HP from the tree; swords add Strength / Accuracy); Combat level ' + JSON.stringify([q.setup, q.lv]));
-  ok(q.noteOk, 'hit-chance note: the formula, the 60% cap, her chance from Combat.hitChance ' + JSON.stringify([q.hit, q.note]));
+  ok(q.setup.str[2] === 5 && q.setup.hp[2] === 12 && q.setup.str[1] > 0 && q.setup.acc > 0 && q.level === 30, 'the tree and swords shares show up (5 Strength, 12 HP from the tree; swords add Strength / Accuracy) ' + JSON.stringify(q.setup));
+  ok(q.kids === 'csTop,csCard' && !q.extra && q.top === 'csIc,H2,csX', 't648u: only the header (icon, title, close) and the stats table - no level line, hit-chance note or footer ' + JSON.stringify([q.kids, q.top, q.extra]));
   ok(q.tray.every(Boolean) && q.close[0] >= 44 && q.close[1] >= 44, 'the panel fits the iPhone screen; 44 px close ' + JSON.stringify([q.tray, q.close]));
   ok(c, 'close');
   ok(errs.length === 0, 'no page errors ' + errs.slice(0, 3).join(' | '));

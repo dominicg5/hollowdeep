@@ -527,7 +527,7 @@ function onRoute(x, y, r) { if (typeof M3 === 'undefined' || !M3.vrNear) return 
 function ringGround(x, y, k) { if (typeof M3 === 'undefined' || !M3.ground) return true; const g = M3.ground(x, y); if (g.slope > 0.33 || onRoute(x, y, 40)) return false;
   return k <= 1 ? g.h > CITY.summitH - 90 : g.h < CITY.summitH * 0.72; }
 /* t569u/t570u (Dominic): a house stands only on flat ground (any ground type) - every sample of a grid over its footprint under 15 deg of slope (t572u; was 5), off the
-   mining ground (ore fields, quarries) and off the volcanic / blackened zone round Theus's forge. Returns { ok, why } (why: 'slope' | 'mine' | 'scorch'). */
+   mining ground (ore fields, quarries) and off the volcanic / blackened zone round Theus' forge. Returns { ok, why } (why: 'slope' | 'mine' | 'scorch'). */
 const HOUSE_SLOPE = Math.tan(15 * Math.PI / 180); // t572u (Dominic): 15 deg
 function houseGround(x, y, r) { if (typeof M3 === 'undefined' || !M3.ground || !M3.heightAt) return { ok: true };
   const N = Math.max(3, Math.ceil(r / 12)), st = r / N, QY = W.objs ? W.objs.filter((o) => o.type === 'quarry' && Math.hypot(o.x - x, o.y - y) < o.r + r + 10) : null; // a full grid over the footprint disc, samples <= ~2 m apart

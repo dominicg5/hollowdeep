@@ -1,4 +1,4 @@
-/* ===== The game music (GameMusic: overworld valley loop by default, zones by priority) and Theus's volcano: the battle music loop and his hammer (Dominic t347u, t351s1277, t352u)
+/* ===== The game music (GameMusic: overworld valley loop by default, zones by priority) and Theus' volcano: the battle music loop and his hammer (Dominic t347u, t351s1277, t352u)
    - Music (assets/audio/theus_battle_loop): only inside the volcano radius on the approach to Theus (AUDIO_R design metres round him); fades in on entering and
      out on leaving; a Web Audio buffer loop (no <audio> gap). Lazy: fetched once, the first time she comes inside the radius.
    - Hammer: theus_swing_whoosh starts with his swing, offset so its whip crack (1.2 s in) lands just before contact; theus_thunder_strike_D on the exact frame the
@@ -29,12 +29,12 @@ const TheusAudio = (() => {
   function dist() { if (typeof FORGE === 'undefined' || !FORGE.M || !FORGE.M.built || !FORGE.M.ape || typeof Explore === 'undefined' || !Explore.on) return Infinity; const h = Explore.here && Explore.here(); if (!h) return Infinity; const p = FORGE.M.ape.position; return Math.hypot(h[0] - p.x, h[1] - p.z) / FORGE.U; }
   const fall = (d) => (d >= AUDIO_R ? 0 : 0.5 * (1 + Math.cos(Math.PI * Math.max(0, d) / AUDIO_R))); // 1 at Theus, smoothly 0 at the edge
   // ---- the music: a small priority system. Each zone names a looping track, a priority and when it's active; the highest active zone whose track is
-  // loaded plays, and a change crossfades over FADE s. The overworld (valley handpan, Dominic t355u) is priority 0 and always active; Theus's volcano radius
+  // loaded plays, and a change crossfades over FADE s. The overworld (valley handpan, Dominic t355u) is priority 0 and always active; Theus' volcano radius
   // (priority 10) overrides it; a future area or event adds GameMusic.zone('id', { track, len, prio, active }) and wins while its active() is true.
   const Z = {};
   function zone(id, o) { Z[id] = Object.assign({ id, prio: 0, vol: 0.55, len: 0, active: () => true }, o); return Z[id]; }
   zone('overworld', { track: 'valley_handpan_A_loop', len: 36.0, prio: 0, vol: 0.5 });
-  zone('mosby', { track: 'mosby_B_loop', len: 24.0, prio: 5, vol: 0.5, active: () => (A.mosbyOv != null ? A.mosbyOv : typeof MosbyRide !== 'undefined' && !!MosbyRide.on) }); /* (Dominic t358u) while she rides him: shell top, neck or head. Below Theus: if he walks into the volcano radius, Theus's music wins */
+  zone('mosby', { track: 'mosby_B_loop', len: 24.0, prio: 5, vol: 0.5, active: () => (A.mosbyOv != null ? A.mosbyOv : typeof MosbyRide !== 'undefined' && !!MosbyRide.on) }); /* (Dominic t358u) while she rides him: shell top, neck or head. Below Theus: if he walks into the volcano radius, Theus' music wins */
   zone('theus', { track: 'theus_battle_loop', len: MUSIC_LEN, prio: 10, vol: 0.55, active: () => A.inside });
   A.cur = null; A.src = {};
   // every music change is an equal-power crossfade over FADE s (never a hard cut): in = sin, out = cos of the same 0..1 sweep, so the sum of power stays level

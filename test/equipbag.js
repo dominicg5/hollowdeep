@@ -1,5 +1,5 @@
 // (Dominic) one Iron Winch for everyone; equipped gear lives in equipment slots, never in the backpack; a full backpack blocks every add (mining, unequip, crafting,
-// buying, taking from the vault, Theus's pickaxes and gift), nothing overflows to the vault by itself. SHOT=1: winch_iron_ascend_closeup, backpack_equipped_gear,
+// buying, taking from the vault, Theus' pickaxes and gift), nothing overflows to the vault by itself. SHOT=1: winch_iron_ascend_closeup, backpack_equipped_gear,
 // backpack_full_unequip, backpack_full_mining_blocked to /workspace/shots-char/final/.
 const { chromium } = require('playwright-core');
 const URL = process.env.URL || 'http://localhost:8765/index.html', SHOT = process.env.SHOT || '', OUT = '/workspace/shots-char/final/';
@@ -81,7 +81,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.gridEq = (C.bagHTML(false).match(/class="cxs[^"]* eq[ "]/g) || []).length; save(); return o; });
   ok(R.migW.join() === 'gold,iron,rune,30,36,6,false,false,false', `winch migration: the old anvil winch (Gold x2, Iron x1, Rune x1) dropped; ingots back (Gold ${R.migW[1]}, Rune ${R.migW[2]}, Iron ${R.migW[3]}); recorded in S.winchMigrated`);
   ok(R.migV2.join() === '2,3,18,18,false,stone', `winch v2 on a v1 save: Iron copies in the backpack, vault and an Exchange listing dropped, 3 x 6 Iron ingots back, other listings kept (${R.migV2.join(',')}) (got no ledge winch)`);
-  ok(R.gold.join() === 'false,100,7,3,true,true' && R.aiP === '18610/21890/474980/598970/898710' && R.sell.join() === 'false,false,false,tool:pick_iron', `gold only: no COIN_RATE; old Theus / Exchange listings keep their gold numbers (no x10); Theus's AI sellers keep their asking prices (${R.aiP}) (${R.gold.join(',')})`);
+  ok(R.gold.join() === 'false,100,7,3,true,true' && R.aiP === '18610/21890/474980/598970/898710' && R.sell.join() === 'false,false,false,tool:pick_iron', `gold only: no COIN_RATE; old Theus / Exchange listings keep their gold numbers (no x10); Theus' AI sellers keep their asking prices (${R.aiP}) (${R.gold.join(',')})`);
   ok(R.shopH === '💠 Skins' && R.shop.join() === '1,345,1,0,0,{"tool:pick_bronze":345}' && R.shopUI.join() === '1,true,false', `no set prices (Dominic) except the Bronze Pickaxe: bought for 345 gold (${R.shop.join(',')}), the only Buy row; the shop buys nothing back (no Sell, no Craft.sell / sellP / buyP); other pickaxes and ores can't be bought (got player prices) (got bronze 345)`);
   { const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'index.html'), 'utf8'), w = src.match(/S\.crystals\s*(\+=|-=|=(?!=))[^;]*/g) || [], init = (src.match(/\bcrystals:\s*[^,}]+/g) || []);
     ok(!/COIN_RATE/.test(src) && w.length === 2 && w.filter((q) => /^S\.crystals = crystals\(\) - p$/.test(q)).length === 1 && w.filter((q) => /^S\.crystals = \(S\.crystals \|\| 0\) \+ 1$/.test(q)).length === 1 && /S\.crystals = \(S\.crystals \|\| 0\) \+ 1; toastT\('💎 \+1 Lumen Crystal \(an hour of mining on Mosby/.test(src) && init.length > 0 && init.every((q) => /:\s*0$/.test(q)), `no rate in the build; Lumen Crystals have one in-play source (1 per hour of her mining on Mosby's head crystal, Mining 300): the writes to S.crystals are the skin purchase and that hourly grant (${w.join(' | ')}), new saves start at ${init.join(', ')} (got gold only)`); }
@@ -99,7 +99,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.partial.join() === '5,0', `full backpack: a partial copper stack still takes 5, a new kind (tin) takes 0`);
   ok(R.craft.join() === '0,true,0,0', `smelting into a full backpack: blocked, ingredients kept (${R.craft.join(',')})`);
   ok(R.buy[0] === 0 && R.buy[1] === 100000 && R.wd[0] === 0 && R.wd[1] === 0, `full backpack: buying the Bronze Pickaxe blocked before any gold is taken; taking from the vault blocked`);
-  ok(R.gift.join() === 'false,true,0,0,true' && R.gift2.join() === 'false,1', `Theus's gift: pending while full (not to the vault), given on the next talk once a slot is free (${R.gift.join(',')} / ${R.gift2.join(',')})`);
+  ok(R.gift.join() === 'false,true,0,0,true' && R.gift2.join() === 'false,1', `Theus' gift: pending while full (not to the vault), given on the next talk once a slot is free (${R.gift.join(',')} / ${R.gift2.join(',')})`);
   ok(R.upFull.join() === 'false,full,25', `Theus: no backpack room for a new tiered pickaxe -> blocked, nothing paid (${R.upFull.join(',')})`);
   ok(R.upHand.join() === 'true,0,tool:tpick_gold,1,gold' && R.upSpare.join() === 'true,0,tool:pick_steel,1', `the equipped pickaxe pays only as the one being upgraded (Gold: 20 + the one in hand -> tiered in hand); with 21 spare the one in hand stays (${R.upSpare.join(',')})`);
   ok(R.mine.join() === '0,true', `mining into a full backpack: nothing added, she stops with "Backpack full" (got full backpack block)`);
