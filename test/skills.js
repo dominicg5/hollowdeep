@@ -95,7 +95,7 @@ const near = (a, b, e) => Math.abs(a - b) <= e;
   ok(r.u41 && r.u41.next && r.u41.next.name === 'Mithril bar' && r.u41.next.level === 55 && !r.u41.then, 'Smithing 41 next unlock is Mithril bar at 55');
   ok(r.u1 && r.u1.next && r.u1.next.name === 'Drill slot 1' && r.u1.next.level === 5 && r.u1.then && r.u1.then.name === 'Coal ore', 'Mining 1 next unlock is Drill slot 1 at 5, then Coal ore');
   ok(r.nMine === 26 && r.kinds.mining && r.kinds.mining.every((k) => k === 'ore' || k === 'slot' || k === 'use'), `Mining detail lists ${r.nMine} live ore / drill-slot / tool-use entries`);
-  ok(r.nSmith === 40 && r.kinds.smithing && r.kinds.smithing.every((k) => k === 'bar' || k === 'make'), `Smithing detail lists ${r.nSmith} live bar / tool-make entries (no tether links: the Tether Mill rolls them)`);
+  ok(r.nSmith === 24 && /* (ae55b17: 8 bars, each with its pickaxe + drill bit; climbing picks are no longer smithed) */ r.kinds.smithing && r.kinds.smithing.every((k) => k === 'bar' || k === 'make'), `Smithing detail lists ${r.nSmith} live bar / tool-make entries (no tether links: the Tether Mill rolls them)`);
   ok(!r.invented, 'detail entries do not invent stand gates or proposed perks');
 
   // skills HUD + screen
@@ -146,7 +146,7 @@ const near = (a, b, e) => Math.abs(a - b) <= e;
     const nm = sheet.querySelector('.skName[data-sk-detail=mining]'); if (nm) nm.click();
     const named = { view: Skills.view, t: sheet.textContent || '' };
     const tab = sheet.querySelector('[data-sk-tab=smithing]'); if (tab) tab.click();
-    const tabbed = { view: Skills.view, t: sheet.textContent || '', here: /You are here · Lv 41/.test(sheet.textContent || ''), climb: /Gold climbing picks/.test(sheet.textContent || ''), invented: /Steady Bellows|Thrifty|Masterwork|Furnace/.test(sheet.textContent || '') };
+    const tabbed = { view: Skills.view, t: sheet.textContent || '', here: /You are here · Lv 41/.test(sheet.textContent || ''), climb: /Gold pickaxe/.test(sheet.textContent || ''), invented: /Steady Bellows|Thrifty|Masterwork|Furnace/.test(sheet.textContent || '') };
     const ctab = sheet.querySelector('[data-sk-tab=combat]'); if (ctab) ctab.click();
     const combatD = { view: Skills.view, t: sheet.textContent || '', tabs: [...sheet.querySelectorAll('[data-sk-tab]')].map((b) => b.textContent).join(','), cards: [...sheet.querySelectorAll('.skCard')].map((c) => c.querySelector('.skCardTag').textContent + ':' + c.querySelector('.skCardName').textContent),
       here: /You are here · Lv 8/.test(sheet.textContent || ''), next: (sheet.querySelector('.skGroup-next') || {}).dataset?.lv, chrome: sheet.querySelectorAll('.skCap,.skFoot,.skFootBar').length, prize: sheet.querySelectorAll('.skPrize').length,
