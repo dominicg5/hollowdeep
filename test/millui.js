@@ -35,7 +35,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     d.querySelector('[data-a=bye]').click(); o.intro = S.mill.intro; S.mill.rack = { 'tether:steel': 1400 }; M.talk(); o.dlg2 = d.querySelector('.tdWell p').textContent; o.btn2 = [...d.querySelectorAll('.tdBtns button')].map((x) => x.textContent).join('|');
     d.querySelector('[data-a=open]').click(); await new Promise((r) => setTimeout(r, 100)); const P = document.querySelector('#modalBody .mlP'); o.panel = !!P && ui.modal === 'mill' && !!document.querySelector('#millDlg.hidden');
     o.tiles = P ? P.querySelectorAll('.mlT').length : 0; o.locks = P ? [...P.querySelectorAll('.mlT.lock small')].map((x) => x.textContent).join(',') : ''; o.gate = P ? /gate/i.test(P.textContent) : true;
-    P.querySelector('[data-ml=tab][data-v=climb]').click(); o.climbTiles = /Wren's Tether/.test(document.querySelector('#modalBody .mlRec').textContent);
+    o.noClimbTab = !P.querySelector('[data-ml=tab][data-v=climb]'); /* (1771315: the leftover climbing-tether tab is gone - spools only) */
     document.querySelector('#modalBody [data-ml=col]').click(); o.colPanel = Craft.get('bag', 'tether:steel') >= 1400 && !Object.keys(S.mill.rack).length; MillUI.shut(); o.shut = ui.modal == null;
     return o; });
   console.log(JSON.stringify(L));
@@ -50,7 +50,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(L.join && L.five === 5 && L.sixth === false && L.appendFull === true, 'queue: 5 jobs max, the same grade + tab joins the last job (even when full)');
   ok(/hanging lines off the Ledge/.test(L.dlg1) && /Start on Bronze/.test(L.dlg3) && L.btn1 === 'Open the mill|Goodbye' && L.intro === 1, 'first visit: Brannick\'s 3 intro pages, then Open the mill / Goodbye; intro is remembered');
   ok(/cooling on the rack/.test(L.dlg2) && L.btn2 === 'Open the mill|Collect 14 spools|Goodbye', `later visits: one state line + Collect (${L.btn2})`);
-  ok(L.panel && L.tiles === 8 && L.locks === 'Unlock Lv 55,Unlock Lv 70,Unlock Lv 100,Unlock Lv 125' && !L.gate && L.climbTiles && L.colPanel && L.shut, `the mill panel: 8 grade tiles (${L.locks}), Climbing Tether tab, Collect, close`);
+  ok(L.panel && L.tiles === 8 && L.locks === 'Unlock Lv 55,Unlock Lv 70,Unlock Lv 100,Unlock Lv 125' && !L.gate && L.noClimbTab && L.colPanel && L.shut, `the mill panel: 8 grade tiles (${L.locks}), no Climbing Tether tab, Collect, close`);
   if (SHOT) {
     // mock state: Lv 42 at 63%, Gold selected x10, 87 Gold ingots left after queueing; Steel 20 at spool 15 (60%), Gold 10 waiting; 1,400 m Steel on the rack
     await p.evaluate(async () => { const X = Skills.xpToReach; S.skills.tethercraft = Math.round(X(42) + 0.63 * (X(43) - X(42))); S.mill = null; MillUI.st(); S.mill.intro = 1;
