@@ -693,6 +693,7 @@ nav#tabs button.on .tabi{transform:scale(1.12);filter:drop-shadow(0 0 6px rgba(2
 #tetherOrb .kv-set .toPort button{min-height:44px;padding:2px 8px;font-size:11.5px}
 #tetherOrb .kv-set .toSeg button{min-height:44px}
 #tetherOrb .toBack,#tetherOrb .toBack.kX{width:44px;height:44px;min-width:44px;min-height:44px}
+#tetherOrb .toRow .btn,#tetherOrb .toRow .btn.sm{min-height:44px} /* (run19: the drop tether's Take up button was 42 px) */
 .cxmenu [data-cx=equip]{background-image:url(assets/ui/icons/btn_equip_idle.webp),radial-gradient(120% 95% at 50% 22%,#6cb4e0,#21649a 55%,#153f66);background-size:28px 28px,auto;background-position:8px center,0 0;background-repeat:no-repeat;padding-left:40px}
 .cxmenu [data-cx=mclose]{background-image:url(assets/ui/icons/btn_cancel_idle.webp);background-size:28px 28px;background-position:8px center;background-repeat:no-repeat;padding-left:40px}
 #drillHud .dh{width:52px;height:52px;border:0;border-radius:0;background-color:transparent;background-repeat:no-repeat;background-position:center;background-size:contain;box-shadow:none}
@@ -950,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='3fd59948';
+<script>window.HD_BUILD='e0ed5ed6';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -972,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 3fd59948</div>
-<script src="assets/vendor/three.min.js?v=3fd59948"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build e0ed5ed6</div>
+<script src="assets/vendor/three.min.js?v=e0ed5ed6"></script>
 <script>
 'use strict';
 
