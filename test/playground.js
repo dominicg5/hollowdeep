@@ -71,11 +71,23 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(WD.moved > 0.3, `left alone it wanders (moved ${WD.moved.toFixed(2)} m, now "${WD.anim}")`);
   // GD-19: hold damage at zero for four full sequences, observing the real animation strike callbacks (not calling pgaHit).
   await p.evaluate(() => { window.__roll = Combat.rollDamage; window.__rolls = []; Combat.rollDamage = (...a) => { const r = window.__roll(...a); window.__rolls.push({ t: CharView.pga.clk, face: CharView.pga.rel.dot, v: CharView.sw.at.v }); return Object.assign({}, r, { dmg: 0 }); }; });
+  // (t698u) reproduce a retreating passive creature, not a stationary bag: real chase / swing clock and strike callbacks; no direct pgaHit call.
+  // Walk it away at 0.5 m/s (using the game clock, not wall time), then at the start of her wind-up step it 0.65 m past the ordinary reach.
+  // The committed sequence must finish AND roll once; then restore its own movement for the other sequences.
+  await p.evaluate(() => { const G = CharView.st.gnd, m = CharView.pga.mob.position; G.goal = null; G.path = null; G.x = 0; G.z = -2.5; G.face = 0; m.set(0, 0, 1.5);
+    const C = window.__ch = { prev: CharView.pga.clk, z: 1.5, speed: LUMEN_MUSHROOM.walkSpd, start: false, complete: false, maxD: 0, moved: 0, k0: CharView.pga.swings.length }; LUMEN_MUSHROOM.walkSpd = 0;
+    const step = () => { const g = CharView.pga, a = CharView.sw.at; if (!g.on) return; const dt = Math.max(0, g.clk - C.prev); C.prev = g.clk;
+      if (!C.start && a && a.lock) { C.start = true; C.z = m.z + 0.65; }
+      const e0 = g.swings[C.k0]; if (C.start && e0 && e0.done) { C.complete = true; C.roll = e0.roll; C.done = e0.done; C.chased = e0.chased; C.d0 = e0.d0; LUMEN_MUSHROOM.walkSpd = C.speed; return; }
+      const dz = Math.min(dt, 0.1) * (C.start ? 0.15 : 0.5); C.z += dz; C.moved += dz; m.z = C.z;
+      if (a && a.lock) C.maxD = Math.max(C.maxD, g.rel.d); requestAnimationFrame(step); }; requestAnimationFrame(step); });
   const n0 = await p.evaluate(() => CharView.pga.n); const mp = await p.evaluate(() => { const m = CharView.pga.mob.position; return [m.x, m.z]; });
   const T2 = await tapAt(mp[0], mp[1], 0.4); const E1 = T2 === 'mob' && await p.evaluate(() => CharView.pga.eng);
   const DR = await p.evaluate(() => ({ sh: CharView.sw.sh, saved: S.swSh }));
   ok(T2 === 'mob' && !DR.sh && DR.saved === false, 'GD-25: tapping the creature to engage draws her swords ' + JSON.stringify(DR));
   await p.waitForFunction(() => CharView.pga.swings.length >= 4 && CharView.pga.swings[3].roll === 1 && !CharView.sw.at, null, { timeout: 240000 });
+  const CH = await p.evaluate(() => window.__ch);
+  ok(CH.complete && CH.done && CH.roll === 1 && CH.chased && CH.moved > 0.1 && CH.maxD > 1.7 && CH.maxD <= 2.3, `t698u: she chases a retreating creature, commits once in reach, then FINISHES the full swing and rolls damage once despite it stepping past reach (${JSON.stringify(CH)})`);
   const E2 = await p.evaluate(() => ({ n: CharView.pga.n, d: CharView.pga.rel.d, cfg: PLAYGROUND_COMBAT.ATTACK_INTERVAL_S, swings: CharView.pga.swings, rolls: window.__rolls }));
   ok(E1 && E2.d < 1.7 && E2.n === n0 + 4, `tap the mushroom: auto-walk and four attack animations (${E2.n - n0} rolls at ${E2.d.toFixed(2)} m)`);
   ok(E2.cfg === 3 && E2.swings.length === 4 && E2.swings.every((e, i, a) => e.roll === 1 && (!i || (e.v === (a[i - 1].v + 1) % 4 && e.t - a[i - 1].t >= 2.99 && e.t - a[i - 1].t < 3.5))), 'GD-19: next style every 3 game seconds, exactly ONE roll per complete animation ' + JSON.stringify(E2.swings));
