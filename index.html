@@ -901,7 +901,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='2f67d472';
+<script>window.HD_BUILD='00c9550b';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -923,8 +923,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 2f67d472</div>
-<script src="assets/vendor/three.min.js?v=2f67d472"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 00c9550b</div>
+<script src="assets/vendor/three.min.js?v=00c9550b"></script>
 <script>
 'use strict';
 
@@ -10132,8 +10132,8 @@ const LUMEN_MUSHROOM = {
   atkS: 2,          // (GD-12) seconds between bites once it is fighting her
   atkHitAt: 0.35,   // seconds into the bite clip that the bite lands
   atkReach: 1.1,    // metres: it closes to this and bites; a bite lands if she is still within atkReach + 0.35
-  aggroS: 8,        // seconds it stays on her after she last hit it (or while she stands right beside it)
-  leashR: 5,        // metres: it gives up the chase past this and goes back to wandering
+  leashR: 4,        // (GD-19) metres: once she hits it (or walks right up to it) it keeps closing in and biting until she is farther than this, then it goes back
+                    // to wandering. 4 m = its bite reach (1.1 m) + ~3 m, so stepping back a little does not shake it but running off does
   walkSpd: 0.55,    // m/s, wandering and closing in
   icon: '🍄',
   model: 'assets/models/creatures/mushnub.glb',
@@ -10149,6 +10149,12 @@ const LUMEN_MUSHROOM = {
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
 const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM };
+
+// (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
+// seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
+const PLAYGROUND_COMBAT = {
+  ATTACK_INTERVAL_S: 3,
+};
 /* ===== Creatures: loading, building and animating any CREATURE_DATA entry (src/creatures/data.js) (t661).
    Public API (the Attack Playground in char3d.js uses only this):
      Creatures.get(id)        -> its data row (stats, model, clips, look)
@@ -11976,7 +11982,8 @@ const CharView = (() => {
      wanders or idles; tap it and she runs up and swings until it drops. It bites back on a timer (Combat.creatureAttack: GD-15 Defense / Parry, its str + placeholder acc);
      her HP shows in the HUD; at 0 she is knocked out and gets back up at the centre with full HP, no penalty. Arena frame = st.gnd's frame (the group turns with st.yaw). */
   const PGA = { id: 'lumen_mushroom', on: false, mob: null, hp: 0, dead: 0, n: 0, log: [], kills: 0, dist0: null, tilt0: null, hud: null, AT: [0.38, 0, 0.95], REACH: 1.7, STAND: 0.9, R: 7,
-    arena: null, gnd0: null, F: null, ko: 0, kos: 0, eng: false, aggro: 0, atkT: 0, bite: 0, once: 0, anim: null, wp: null, wt: 1.5, bites: [], calm: 0, mark: null };
+    arena: null, gnd0: null, F: null, ko: 0, kos: 0, eng: false, aggro: 0, atkT: 0, bite: 0, once: 0, anim: null, wp: null, wt: 1.5, bites: [], calm: 0, mark: null, hunt: false, swT: 0, clk: 0, sl: [], leashD: null };
+  const pgaInt = () => (typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.ATTACK_INTERVAL_S) || 3; // (GD-19) seconds between her locked-on attack sequences (src/creatures/data.js)
   const pgaC = () => Creatures.get(PGA.id); // (t661) the target's data row: src/creatures/data.js, built through the Creatures API (src/creatures/creatures.js)
   const pgaMe = () => PGA.F || (PGA.F = Combat.newFight(Combat.playerStats())); // her fight (ward shield, second wind, the 15% healing cap)
   function pgaHud() { const w = wrap || document.getElementById('charWrap'); if (!w) return; let h = PGA.hud; if (!PGA.on) { if (h) h.remove(); PGA.hud = null; return; }
@@ -11992,7 +11999,7 @@ const CharView = (() => {
     const blob = (r) => flat(new THREE.CircleGeometry(r, 24), new THREE.MeshBasicMaterial({ color: 0x1d1a16, transparent: true, opacity: 0.28, depthWrite: false }), 0.006); PGA.blobMe = blob(0.3); PGA.blobMob = blob(0.3); PGA.blobMob.visible = false;
     const mm = new THREE.MeshBasicMaterial({ color: 0xfff1c2, transparent: true, opacity: 0, depthWrite: false }); PGA.mark = flat(new THREE.RingGeometry(0.07, 0.11, 32), mm, 0.008); PGA.mark.visible = false; PGA.mark.userData.t = 9;
     return g; }
-  function pgaOpen() { if (PGA.on || !SOLO.on || !scene) return; PGA.on = true; PGA.hp = pgaC().hp; PGA.dead = 0; PGA.n = 0; PGA.log = []; PGA.bites = []; PGA.F = null; PGA.ko = 0; PGA.eng = false; PGA.aggro = 0; PGA.atkT = 1; PGA.bite = 0; PGA.once = 0; PGA.anim = null; PGA.wp = null; PGA.wt = 1.5;
+  function pgaOpen() { if (PGA.on || !SOLO.on || !scene) return; PGA.on = true; PGA.hp = pgaC().hp; PGA.dead = 0; PGA.n = 0; PGA.log = []; PGA.bites = []; PGA.F = null; PGA.ko = 0; PGA.eng = false; PGA.aggro = 0; PGA.hunt = false; PGA.swT = 0; PGA.clk = 0; PGA.sl = []; PGA.leashD = null; PGA.atkT = 1; PGA.bite = 0; PGA.once = 0; PGA.anim = null; PGA.wp = null; PGA.wt = 1.5;
     PGA.dist0 = st.dist; PGA.tilt0 = st.tilt; st.dist = Math.max(st.dist, 7); st.tilt = Math.max(st.tilt || 0, 0.45); PGA.AT = [0.38, 0, 0.95]; /* (in front of her, a little to one side) */
     PGA.gnd0 = st.gnd; st.climbDir = 'stop'; st.gnd = PGA.G = { home: true, arena: true, x: 0, z: 0, face: 0, mv: 0, back: 0, cell: 0.3, circR: PGA.R - 0.3, inb: (px, pz) => Math.hypot(px, pz) <= PGA.R - 0.3, bnd: { X0: -PGA.R, X1: PGA.R, Z0: -PGA.R, Z1: PGA.R }, obs: [] };
     for (const o of scene.userData.floor || []) o.visible = false; PGA.arena = pgaArena(); PGA.arena.rotation.y = st.yaw; scene.add(PGA.arena); PGA.bg0 = scene.background; scene.background = new THREE.Color(0xaab4b8); pgaHud();
@@ -12009,8 +12016,8 @@ const CharView = (() => {
   function pgaHit() { const m = PGA.mob; if (!m || PGA.dead > 0 || !rig || PGA.ko > 0) return null; const q = pgaRel(); if (!q) return null;
     if (q.d > PGA.REACH || q.dot < 0.3) return null; /* (out of reach, or she has been turned away from it) */
     const r = Combat.rollDamage(Combat.playerStats(), { def: pgaC().def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift(); if (r.dmg > 0) Combat.fightDealt(pgaMe(), r.dmg);
-    pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); PGA.aggro = pgaC().aggroS || 8;
-    if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.kills++; PGA.eng = false; PGA.bite = 0; PGA.once = 0; PGA.anim = 'death'; m.play(pgaC().clips.death, true); Combat.fightKill(pgaMe()); if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } }
+    pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); PGA.hunt = true; /* (GD-19: hit, it hunts her until she is past its leash) */
+    if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.kills++; PGA.eng = false; PGA.hunt = false; PGA.bite = 0; PGA.once = 0; PGA.anim = 'death'; m.play(pgaC().clips.death, true); Combat.fightKill(pgaMe()); if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } }
     else if (r.dmg > 0) pgaOnce('hit'); pgaHud(); return r; }
   function pgaOnce(k) { const m = PGA.mob, C = pgaC(), a = m && m.play(C.clips[k], true); PGA.anim = k; PGA.once = a ? a.getClip().duration : 0.6; }
   function pgaLoop(k) { const m = PGA.mob; if (!m || PGA.anim === k) return; m.play(pgaC().clips[k]); PGA.anim = k; }
@@ -12018,20 +12025,21 @@ const CharView = (() => {
   function pgaBite() { const q = pgaRel(), C = pgaC(); if (!q || PGA.ko > 0 || PGA.dead > 0 || q.d > C.atkReach + 0.35) return null; const r = Combat.creatureAttack(C, Combat.playerStats()); PGA.bites.push(r); if (PGA.bites.length > 50) PGA.bites.shift();
     if (r.parried) pgaNum('Parry', 'info', true); else if (r.dmg > 0) pgaHurt(r.dmg); else pgaNum('Miss', 'miss', true); return r; }
   function pgaHurt(dmg) { if (!PGA.on || PGA.ko > 0) return null; const F = pgaMe(), o = Combat.fightHurt(F, dmg); PGA.calm = 0; pgaNum('-' + Math.round(dmg), 'ouch', true); if (o.dead) pgaKO(); pgaHud(); return o; }
-  function pgaKO() { const G = st.gnd; PGA.ko = 3; PGA.kos++; PGA.eng = false; PGA.aggro = 0; PGA.bite = 0; if (G) { G.goal = null; G.path = null; } if (SWG.at) { SWG.at = null; SWG.q = 0; } pgaNum('Knocked out', 'info', true); }
+  function pgaKO() { const G = st.gnd; PGA.ko = 3; PGA.kos++; PGA.eng = false; PGA.aggro = 0; PGA.hunt = false; PGA.bite = 0; if (G) { G.goal = null; G.path = null; } if (SWG.at) { SWG.at = null; SWG.q = 0; } pgaNum('Knocked out', 'info', true); }
   // tap in the arena: the mushroom -> run up to it and fight; the floor -> run there
   function pgaTap(cx, cy) { if (!PGA.on || !PGA.arena || !st.gnd || !st.gnd.arena || PGA.ko > 0 || !cam) return null; const r = canvas.getBoundingClientRect(); _ray.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), cam); const ray = _ray.ray, m = PGA.mob;
     if (m && PGA.dead <= 0) { const c = m.root.getWorldPosition(V(0, 0, 0)); c.y += pgaC().height * 0.5; if (ray.distanceToPoint(c) < Math.max(0.45, pgaC().height * 0.7)) { PGA.eng = true; if (!(SWG.R || SWG.L)) pgaNum('No sword', 'info', true); return 'mob'; } }
     if (ray.direction.y > -1e-4) return null; const p = ray.origin.clone().addScaledVector(ray.direction, -ray.origin.y / ray.direction.y).applyAxisAngle(V(0, 1, 0), -st.yaw); return pgaWalk(p.x, p.z) ? 'ground' : null; }
-  function pgaWalk(x, z) { const G = st.gnd; if (!G || !G.arena || PGA.ko > 0) return false; PGA.eng = false; const RM = PGA.R - 0.3, L = Math.hypot(x, z); if (L > RM) { x *= RM / L; z *= RM / L; } navTo(G, x, z, null); const M = PGA.mark; if (M) { M.position.x = G.goal ? G.goal.x : x; M.position.z = G.goal ? G.goal.z : z; M.visible = true; M.userData.t = 0; } return true; }
-  // engaged: run to striking range, square up, swing (one at a time; swings never start mid-run - the run sheathes the swords)
-  function pgaChase(dt) { const G = st.gnd, q = pgaRel(); if (!PGA.eng || !q || PGA.dead > 0 || PGA.ko > 0) { if (PGA.dead > 0 || PGA.ko > 0) PGA.eng = false; return; } const mp = PGA.mob.root.position;
-    if (q.d > PGA.STAND + 0.3) { const tx = mp.x - q.dx / q.d * PGA.STAND, tz = mp.z - q.dz / q.d * PGA.STAND; if (!G.goal || Math.hypot(G.goal.x - tx, G.goal.z - tz) > 0.35) navTo(G, tx, tz, null); return; }
+  function pgaWalk(x, z) { const G = st.gnd; if (!G || !G.arena || PGA.ko > 0) return false; PGA.eng = false; SWG.q = 0; /* (GD-19: walking off ends HER attacks - none queued; the run sheathes a swing in progress. The mushroom keeps on until she is past its leash) */ const RM = PGA.R - 0.3, L = Math.hypot(x, z); if (L > RM) { x *= RM / L; z *= RM / L; } navTo(G, x, z, null); const M = PGA.mark; if (M) { M.position.x = G.goal ? G.goal.x : x; M.position.z = G.goal ? G.goal.z : z; M.visible = true; M.userData.t = 0; } return true; }
+  // engaged (GD-19): run to striking range, square up and keep facing it - mid-swing too - and start one attack sequence every ATTACK_INTERVAL_S (3 s); each is the
+  // next of the 4 swing styles in turn (swStart cycles them) and rolls the damage once at its strike point (pgaTick). Locked on until it dies, she is knocked out, or she walks off.
+  function pgaChase(dt) { const G = st.gnd, q = pgaRel(); if (PGA.swT > 0) PGA.swT -= dt; if (!PGA.eng || !q || PGA.dead > 0 || PGA.ko > 0) { if (PGA.dead > 0 || PGA.ko > 0) PGA.eng = false; return; } const mp = PGA.mob.root.position;
+    if (q.d > (SWG.at ? PGA.REACH : PGA.STAND + 0.3)) { const tx = mp.x - q.dx / q.d * PGA.STAND, tz = mp.z - q.dz / q.d * PGA.STAND; if (!G.goal || Math.hypot(G.goal.x - tx, G.goal.z - tz) > 0.35) navTo(G, tx, tz, null); return; } /* (mid-swing it may shuffle a little: she stays put while it is still in reach) */
     if (G.goal) { G.goal = null; G.path = null; } const fa = Math.atan2(q.dx, q.dz), df = Math.atan2(Math.sin(fa - G.face), Math.cos(fa - G.face)); G.face += df * (1 - Math.exp(-dt * 10));
-    if (Math.abs(df) < 0.45 && !SWG.at && !SWG.run && G.mv < 0.15 && (SWG.R || SWG.L)) swAttack(); }
+    if (PGA.swT <= 0 && Math.abs(df) < 0.45 && !SWG.at && !SWG.run && G.mv < 0.15 && (SWG.R || SWG.L) && swAttack()) { PGA.swT = pgaInt(); if (SWG.at) { const e = { t: +PGA.clk.toFixed(3), v: SWG.at.v, roll: 0 }; SWG.at.lock = e; PGA.sl.push(e); if (PGA.sl.length > 60) PGA.sl.shift(); } } }
   // the mushroom: wanders between random spots and idles; hit (or with her right beside it) it turns on her, closes in and bites every atkS seconds
   function pgaMob(dt) { const m = PGA.mob, C = pgaC(), G = st.gnd; if (!m || PGA.dead > 0 || !G) return; const p = m.root.position; if (PGA.once > 0 && (PGA.once -= dt) <= 0) PGA.anim = null;
-    const q = PGA.ko > 0 ? null : pgaRel(), d = q ? q.d : 1e9; if (PGA.aggro > 0) PGA.aggro -= dt; const angry = !!q && (PGA.aggro > 0 || d < C.atkReach + 0.15) && d < (C.leashR || 5);
+    const q = PGA.ko > 0 ? null : pgaRel(), d = q ? q.d : 1e9; if (q && !PGA.hunt && d < C.atkReach + 0.15) PGA.hunt = true; /* (she walked right up to it) */ if (PGA.hunt && (!q || d > (C.leashR || 4))) { PGA.hunt = false; PGA.leashD = q ? +d.toFixed(2) : null; } /* (GD-19: past the leash it gives up) */ PGA.aggro = PGA.hunt ? 1 : 0; const angry = !!q && PGA.hunt;
     let gx = null, gz = null;
     if (angry) { PGA.wp = null; if (d > C.atkReach) { gx = G.x + q.dx / d * C.atkReach * 0.9; gz = G.z + q.dz / d * C.atkReach * 0.9; } else if ((PGA.atkT -= dt) <= 0 && PGA.once <= 0) { PGA.atkT = C.atkS; pgaOnce('attack'); PGA.bite = C.atkHitAt; } }
     else { PGA.atkT = Math.max(PGA.atkT, 0.6); if (!PGA.wp && (PGA.wt -= dt) <= 0) { for (let i = 0; i < 8; i++) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * (PGA.R - 1.2), x = Math.sin(a) * r, z = Math.cos(a) * r; if (Math.hypot(x - p.x, z - p.z) > 1 && Math.hypot(x - G.x, z - G.z) > 1.2) { PGA.wp = { x, z }; break; } } PGA.wt = 2 + Math.random() * 3; }
@@ -12041,14 +12049,14 @@ const CharView = (() => {
     else { if (angry) face = Math.atan2(-q.dx, -q.dz); if (PGA.once <= 0) pgaLoop('idle'); }
     if (face !== null) { const df = Math.atan2(Math.sin(face - m.root.rotation.y), Math.cos(face - m.root.rotation.y)); m.root.rotation.y += df * (1 - Math.exp(-dt * 6)); }
     { const L = Math.hypot(p.x, p.z), RM = PGA.R - 0.5; if (L > RM) { p.x *= RM / L; p.z *= RM / L; } if (q) { const ex = p.x - G.x, ez = p.z - G.z, L2 = Math.hypot(ex, ez); if (L2 < 0.55 && L2 > 1e-4) { p.x = G.x + ex / L2 * 0.55; p.z = G.z + ez / L2 * 0.55; } } } }
-  function pgaTick(dt) { if (!PGA.on) return; if (!st.gnd && PGA.G) { st.gnd = PGA.G; st.anim = 'idle'; } /* (the view's Idle / Run buttons drop the walker: the arena keeps hers) */ const G = st.gnd, m = PGA.mob; if (PGA.arena) PGA.arena.rotation.y = st.yaw;
+  function pgaTick(dt) { if (!PGA.on) return; if (!st.gnd && PGA.G) { st.gnd = PGA.G; st.anim = 'idle'; } /* (the view's Idle / Run buttons drop the walker: the arena keeps hers) */ const G = st.gnd, m = PGA.mob; PGA.clk += dt; if (PGA.arena) PGA.arena.rotation.y = st.yaw;
     if (G && G.arena) { if (PGA.ko > 0) { PGA.ko -= dt; G.goal = null; G.path = null; G.exLeanS = -1.3 * ss(0, 0.45, 3 - PGA.ko) * (1 - ss(0.15, 0, PGA.ko));
         if (PGA.ko <= 0) { PGA.ko = 0; G.exLeanS = 0; G.x = 0; G.z = 0; G.face = 0; G.mv = 0; PGA.F = Combat.newFight(Combat.playerStats()); st.camSnap = true; pgaNum('Respawned', 'info', true); } pgaHud(); }
       else { pgaChase(dt); const F = pgaMe(); if ((PGA.calm += dt) > 5 && F.hp < F.max) { const h0 = Math.round(F.hp); F.hp = Math.min(F.max, F.hp + Combat.regenPerSec(Combat.playerStats(), false) * dt); if (Math.round(F.hp) !== h0) pgaHud(); } } /* (out of the fight 5 s: the normal regen) */
       if (PGA.blobMe) { PGA.blobMe.position.x = G.x; PGA.blobMe.position.z = G.z; } }
     { const M = PGA.mark; if (M && M.visible) { M.userData.t += dt; M.material.opacity = 0.9 * Math.max(0, 1 - M.userData.t / 0.9); if (M.userData.t > 0.9) M.visible = false; } }
     if (!m) return; m.mixer.update(dt); if (PGA.blobMob) { PGA.blobMob.position.x = m.root.position.x; PGA.blobMob.position.z = m.root.position.z; PGA.blobMob.visible = PGA.dead <= 0; }
-    const A = SWG.at; if (A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; pgaHit(); }
+    const A = SWG.at; if (A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; const r = pgaHit(); if (A.lock && r) A.lock.roll++; } /* (one strike point per swing animation = one damage roll) */
     if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; if (PGA.dead <= 0) { PGA.dead = 0; PGA.hp = pgaC().hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(pgaC().clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
     else { if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); pgaMob(dt); } }
   function pgaAttack() { if (!rig || !(SWG.R || SWG.L)) return false; pgaOpen(); if (PGA.ko > 0) return false; return swAttack(); }
@@ -13955,7 +13963,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
   return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { const F = PGA.on ? pgaMe() : null, q = pgaRel(); return { on: PGA.on, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null,
-    arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
+    arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, hunt: PGA.hunt, leash: pgaC().leashR, leashD: PGA.leashD, reach: pgaC().atkReach, interval: pgaInt(), clk: PGA.clk, swings: PGA.sl.map((e) => Object.assign({}, e)), anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
     pgaScreen(x, z, y) { if (!cam || !canvas || !PGA.arena) return null; const p = V(x, y || 0, z).applyAxisAngle(V(0, 1, 0), st.yaw).project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height }; }, get sw() { return { R: SWG.R, L: SWG.L, w: SWG.w, n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */

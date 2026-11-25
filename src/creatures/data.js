@@ -20,8 +20,8 @@ const LUMEN_MUSHROOM = {
   atkS: 2,          // (GD-12) seconds between bites once it is fighting her
   atkHitAt: 0.35,   // seconds into the bite clip that the bite lands
   atkReach: 1.1,    // metres: it closes to this and bites; a bite lands if she is still within atkReach + 0.35
-  aggroS: 8,        // seconds it stays on her after she last hit it (or while she stands right beside it)
-  leashR: 5,        // metres: it gives up the chase past this and goes back to wandering
+  leashR: 4,        // (GD-19) metres: once she hits it (or walks right up to it) it keeps closing in and biting until she is farther than this, then it goes back
+                    // to wandering. 4 m = its bite reach (1.1 m) + ~3 m, so stepping back a little does not shake it but running off does
   walkSpd: 0.55,    // m/s, wandering and closing in
   icon: '🍄',
   model: 'assets/models/creatures/mushnub.glb',
@@ -37,3 +37,9 @@ const LUMEN_MUSHROOM = {
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
 const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM };
+
+// (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
+// seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
+const PLAYGROUND_COMBAT = {
+  ATTACK_INTERVAL_S: 3,
+};

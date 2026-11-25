@@ -8,11 +8,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const p = await (await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 })).newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
-  await p.goto(URL + '?t=' + Date.now(), { timeout: 90000, waitUntil: 'commit' }); await p.waitForTimeout(3000); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
+  await p.goto(URL + '?t=' + Date.now(), { timeout: 90000, waitUntil: 'commit' }); await p.waitForFunction(() => typeof setTab === 'function' && typeof CharView !== 'undefined'); await p.evaluate(() => { try { closeModalQuiet(); } catch (e) {} setTab('city'); });
   await p.waitForFunction(() => typeof M3 !== 'undefined' && M3.st && M3.st.ok, null, { timeout: 240000 }).catch(() => {}); await p.waitForFunction(() => Explore.on && CharView.st.gnd, null, { timeout: 120000 }).catch(() => {});
-  await p.waitForTimeout(2000); await p.evaluate(() => setTab('char')); await p.waitForTimeout(1500);
+  await p.evaluate(() => setTab('char')); await p.waitForFunction(() => CharView.solo && CharView.rig);
   const tap = (sel) => p.evaluate((sel) => { const e = document.querySelector(sel); if (!e || e.disabled) return false; e.click(); return true; }, sel);
-  await tap('#pvBtn'); await p.waitForTimeout(150); await tap('#pvPanel [data-pvk="sword"]'); await p.waitForTimeout(150);
+  await tap('#pvBtn'); await p.waitForSelector('#pvPanel [data-pvk="sword"]'); await tap('#pvPanel [data-pvk="sword"]'); await p.waitForSelector('#pvPanel [data-swg]');
   await tap('#pvPanel [data-swg="iron"]'); await tap('#pvPanel [data-swt="3"]'); await tap('#pvPanel [data-swh="R"]'); await p.waitForFunction(() => CharView.sw.w > 0.99, null, { timeout: 30000 }).catch(() => {});
   const L0 = await p.evaluate(() => ({ btn: document.getElementById('swAtk').textContent.trim(), panel: (document.querySelector('#pvPanel [data-swatk]') || {}).textContent, cfg: typeof Creatures !== 'undefined' && (() => { const c = Creatures.get('lumen_mushroom'); return c && c === LUMEN_MUSHROOM && Creatures.ids.includes('lumen_mushroom') && c.model === 'assets/models/creatures/mushnub.glb' && [c.name, c.hp, c.def, c.str, c.xp]; })(), xp0: (S.combat && S.combat.xp) || 0, on: CharView.pga.on }));
   ok(L0.btn === '⚔️ Attack Playground' && /Attack Playground/.test(L0.panel) && !L0.on, `the Attack button is now "${L0.btn}" (Try gear panel: "${L0.panel}"); no playground until it is pressed`);
@@ -35,7 +35,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(M.mats.cap && M.mats.cap[0] === '66d8ff' && M.mats.cap[2] > 0.3 && M.mats.stem && M.mats.stem[0] === 'eedcbc' && M.mats.eyeWhite && M.mats.eyeBlack, 'Lumen look: glowing cyan cap #66d8ff, cream stem #eedcbc, its own side eyes ' + JSON.stringify(M.mats));
   ok(M.dist > 0.5 && M.dist < 1.7 && M.facing > 0.9 && /Lumen Mushroom/.test(M.hud) && /HP 8 \/ 8 · DEF 0/.test(M.hud) && M.hudSt === 'alive', `she faces it within reach (${M.dist} m, facing ${M.facing}); HUD "${M.hud}"`);
   // that first press also swung: the swing that reaches it rolls the damage
-  await p.waitForFunction(() => !CharView.sw.at, null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(200);
+  await p.waitForFunction(() => !CharView.sw.at, null, { timeout: 30000 }).catch(() => {}); await p.waitForFunction(() => CharView.pga.n >= 1);
   const H1 = await p.evaluate(() => ({ g: CharView.pga, nums: window.__nums.slice(), hud: document.getElementById('pgaHud').dataset.hp }));
   ok(H1.g.n === 1 && H1.g.log.length === 1 && H1.g.hp === Math.max(0, 8 - H1.g.log[0].dmg) && +H1.hud === H1.g.hp && H1.nums.length >= 1 && /^(-\d+( graze)?|Miss)$/.test(H1.nums[0]), `the swing lands: ${JSON.stringify(H1.g.log[0])} -> HP ${H1.g.hp}; damage number "${H1.nums[0]}"`);
   // keep hitting (the combat engine's own roll) until it drops; then it respawns
@@ -54,15 +54,34 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const W1 = await p.evaluate(() => ({ x: CharView.st.gnd.x, z: CharView.st.gnd.z, eng: CharView.pga.eng }));
   ok(T1 === 'ground' && Math.hypot(W1.x + 2.5, W1.z + 2) < 0.3 && Math.hypot(W1.x - W0[0], W1.z - W0[1]) > 2 && !W1.eng, `tap the floor: she runs there (${W0.map((v) => v.toFixed(2))} -> ${W1.x.toFixed(2)}, ${W1.z.toFixed(2)})`);
   // the mushroom wanders while left alone
-  await p.evaluate(() => { CharView.pga.mob && (window.__mp = CharView.pga.mob.position.clone()); }); await p.waitForTimeout(7000);
+  await p.evaluate(() => { CharView.pga.mob && (window.__mp = CharView.pga.mob.position.clone()); }); await p.waitForFunction(() => CharView.pga.mob.position.distanceTo(window.__mp) > 0.3, null, { timeout: 90000 });
   const WD = await p.evaluate(() => ({ moved: CharView.pga.mob.position.distanceTo(window.__mp), anim: CharView.pga.anim }));
   ok(WD.moved > 0.3, `left alone it wanders (moved ${WD.moved.toFixed(2)} m, now "${WD.anim}")`);
-  // tap the mushroom: she runs up to it and swings until it drops
-  const n0 = await p.evaluate(() => CharView.pga.n); await p.evaluate(() => { const m = CharView.pga.mob.position; window.__mob = [m.x, m.z]; }); const mp = await p.evaluate(() => window.__mob);
+  // GD-19: hold damage at zero for four full sequences, observing the real animation strike callbacks (not calling pgaHit).
+  await p.evaluate(() => { window.__roll = Combat.rollDamage; window.__rolls = []; Combat.rollDamage = (...a) => { const r = window.__roll(...a); window.__rolls.push({ t: CharView.pga.clk, face: CharView.pga.rel.dot, v: CharView.sw.at.v }); return Object.assign({}, r, { dmg: 0 }); }; });
+  const n0 = await p.evaluate(() => CharView.pga.n); const mp = await p.evaluate(() => { const m = CharView.pga.mob.position; return [m.x, m.z]; });
   const T2 = await tapAt(mp[0], mp[1], 0.4); const E1 = T2 === 'mob' && await p.evaluate(() => CharView.pga.eng);
-  await p.waitForFunction((n0) => CharView.pga.n > n0 + 1 || CharView.pga.dead > 0, n0, { timeout: 45000 }).catch(() => {});
-  const E2 = await p.evaluate(() => ({ n: CharView.pga.n, d: CharView.pga.rel && CharView.pga.rel.d, dead: CharView.pga.dead, hp: CharView.pga.hp }));
-  ok(E1 && (E2.n > n0 + 1 || E2.dead > 0) && (E2.dead > 0 || E2.d < 1.7), `tap the mushroom: she runs up and attacks (${E2.n - n0} swings, ${E2.d && E2.d.toFixed(2)} m, its HP ${E2.hp})`);
+  await p.waitForFunction(() => CharView.pga.swings.length >= 4 && CharView.pga.swings[3].roll === 1 && !CharView.sw.at, null, { timeout: 240000 });
+  const E2 = await p.evaluate(() => ({ n: CharView.pga.n, d: CharView.pga.rel.d, cfg: PLAYGROUND_COMBAT.ATTACK_INTERVAL_S, swings: CharView.pga.swings, rolls: window.__rolls }));
+  ok(E1 && E2.d < 1.7 && E2.n === n0 + 4, `tap the mushroom: auto-walk and four attack animations (${E2.n - n0} rolls at ${E2.d.toFixed(2)} m)`);
+  ok(E2.cfg === 3 && E2.swings.length === 4 && E2.swings.every((e, i, a) => e.roll === 1 && (!i || (e.v === (a[i - 1].v + 1) % 4 && e.t - a[i - 1].t >= 2.99 && e.t - a[i - 1].t < 3.5))), 'GD-19: next style every 3 game seconds, exactly ONE roll per complete animation ' + JSON.stringify(E2.swings));
+  ok(E2.rolls.length === 4 && E2.rolls.every((e) => e.face > 0.95), 'GD-19: locked on, every strike faces the mushroom ' + JSON.stringify(E2.rolls));
+  // Step back but remain inside the leash: HER attacks stop, its hunt persists beyond the old 8-second timeout and it bites her again.
+  await p.evaluate(() => { const g = CharView.pga, m = g.mob.position, G = CharView.st.gnd; window.__away = { n: g.n, clk: g.clk, bites: g.bites.length }; const dx = G.x - m.x, dz = G.z - m.z, d = Math.hypot(dx, dz); CharView.pgaWalk(m.x + dx / d * 2.5, m.z + dz / d * 2.5); });
+  await p.waitForFunction(() => CharView.pga.clk > window.__away.clk + 9 && CharView.pga.bites.length > window.__away.bites, null, { timeout: 180000 });
+  const STOP = await p.evaluate(() => ({ n: CharView.pga.n, n0: window.__away.n, eng: CharView.pga.eng, hunt: CharView.pga.hunt, d: CharView.pga.rel.d }));
+  ok(!STOP.eng && STOP.n === STOP.n0 && STOP.hunt, 'GD-19: walking off stops her attacks but the mushroom keeps chasing and biting inside its leash ' + JSON.stringify(STOP));
+  // Run to the far side of the arena: it drops the hunt only once beyond the data-table leash.
+  await p.evaluate(() => { const m = CharView.pga.mob.position, L = Math.hypot(m.x, m.z) || 1; CharView.pgaWalk(-m.x / L * 6.5, -m.z / L * 6.5); /* (the rim point farthest from it) */ });
+  await p.waitForFunction(() => CharView.pga.leashD !== null, null, { timeout: 60000 });
+  const LEASH = await p.evaluate(() => ({ d: CharView.pga.leashD, leash: CharView.pga.leash, reach: CharView.pga.reach, hunt: CharView.pga.hunt }));
+  ok(LEASH.leash === 4 && LEASH.leash > LEASH.reach + 2 && LEASH.d > LEASH.leash && !LEASH.hunt, 'GD-19: 4 m data-table leash, hunt ends beyond it ' + JSON.stringify(LEASH));
+  // Let real damage through and tap again: it dies without any extra presses.
+  await p.evaluate(() => { Combat.rollDamage = window.__roll; });
+  const mp2 = await p.evaluate(() => { const m = CharView.pga.mob.position; return [m.x, m.z]; }); await tapAt(mp2[0], mp2[1], 0.4);
+  const k0 = await p.evaluate(() => CharView.pga.kills);
+  await p.waitForFunction((k) => CharView.pga.kills > k, k0, { timeout: 240000 });
+  ok(await p.evaluate(() => !CharView.pga.eng), 'GD-19: auto-attack continues until dead, then releases the lock');
   // it bites back on a timer: GD-15's roll (parry, then acc / (her Defense + 100), else 0..str)
   await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 30000 }).catch(() => {});
   await p.evaluate(() => { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; G.goal = null; G.path = null; G.x = m.x + 0.8; G.z = m.z; CharView.pgaWalk(G.x, G.z); /* (stop fighting; stood right beside it, it turns on her) */ });
@@ -72,12 +91,12 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   // knocked out at 0 HP; back up at the centre with full HP, no penalty
   const KO0 = await p.evaluate(() => ({ xp: (S.combat && S.combat.xp) || 0, bag: JSON.stringify(S.backpack || {})}));
   const KO1 = await p.evaluate(() => { CharView.pgaHurt(9999); const g = CharView.pga, h = document.getElementById('pgaHud'); return { ko: g.ko, kos: g.kos, hp: g.me.hp, hud: h.dataset.ko, txt: h.textContent, tap: CharView.pgaWalk(1, 1) }; });
-  await p.waitForTimeout(1200); const lean = await p.evaluate(() => CharView.rig.root.rotation.x);
-  await p.waitForFunction(() => CharView.pga.ko === 0, null, { timeout: 15000 }).catch(() => {});
+  await p.waitForFunction(() => CharView.rig.root.rotation.x < -0.8, null, { timeout: 30000 }); const lean = await p.evaluate(() => CharView.rig.root.rotation.x);
+  await p.waitForFunction(() => CharView.pga.ko === 0, null, { timeout: 60000 }).catch(() => {});
   const KO2 = await p.evaluate(() => ({ me: CharView.pga.me, x: CharView.st.gnd.x, z: CharView.st.gnd.z, lean: CharView.rig.root.rotation.x, xp: (S.combat && S.combat.xp) || 0, bag: JSON.stringify(S.backpack || {}), hud: document.getElementById('pgaHud').dataset.ko }));
   ok(KO1.ko > 0 && KO1.hp === 0 && KO1.hud === '1' && /Knocked out/.test(KO1.txt) && KO1.tap === false && lean < -0.8, `at 0 HP she is knocked out (falls, can't be steered): ${JSON.stringify([KO1, lean])}`);
   ok(KO2.me.hp === KO2.me.max && Math.hypot(KO2.x, KO2.z) < 0.05 && Math.abs(KO2.lean) < 1e-6 && KO2.hud === '0' && KO2.xp === KO0.xp && KO2.bag === KO0.bag, `she gets back up at the centre with full HP, no penalty (Combat XP and backpack unchanged) ${JSON.stringify(KO2)}`);
-  await p.evaluate(() => setTab('city')); await p.waitForTimeout(1500);
+  await p.evaluate(() => setTab('city')); await p.waitForFunction(() => !CharView.pga.on);
   const C = await p.evaluate(() => ({ on: CharView.pga.on, hud: !!document.getElementById('pgaHud'), mob: !!CharView.pga.mob, arena: !!CharView.pga.arena }));
   ok(!C.on && !C.hud && !C.mob && !C.arena, 'leaving the Character view clears the playground (arena, mushroom, HUD)');
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
