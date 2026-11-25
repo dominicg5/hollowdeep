@@ -1928,7 +1928,7 @@ const CharView = (() => {
   function swTools() { if (!rig) return; const b = rig.built, hold = swHold(), any = !!(SWG.R || SWG.L); if (WK.tl) return; /* (a smithing job owns the hands until it ends) */
     for (const [o, h] of [[b.pick, 'R'], [b.climb && b.climb.R, 'R'], [b.climb && b.climb.L, 'L']]) { const to = hold ? rig.B.chest : rig.B['hd' + h]; if (o && o.parent !== to) { rig.root.updateMatrixWorld(true); to.attach(o); o.userData.hc = hold ? 1 : null; o.userData.lk = null; } }
     if (SOLO.on) { if (any && st.tool !== 'none') setTool('none', true); else if (!any && st.tool === 'none') setTool(typeof S !== 'undefined' && S && S.toolMode === 'climb' ? 'climb' : 'pick', true); if (wrap) wrap.classList.toggle('sw', any); }
-    else if (st.tool === 'none') setTool(typeof S !== 'undefined' && S && S.toolMode === 'climb' ? 'climb' : 'pick', true); /* (the map never parks her tool mode at 'none') */
+    /* (on the map Explore.tick owns her tool mode every frame - 'none' walking / standing, 'pick' mining, 'climb' on a wall - so it is never touched here) */
     if (!any) SWG.at = null; }
   // sheathed for the eye: the Sheathe button (SWG.sh, saved as S.swSh), running (SWG.run), or - on the map - a tool action (mining, climbing, the climbing picks out, a smithing job)
   function swEff() { return !!(SWG.sh || SWG.run || SWG.act); }
