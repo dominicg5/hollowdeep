@@ -25,6 +25,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     const s300 = fresh(); C.setLevel(300, s300); const b300 = C.playerStats(s300, { L: null, R: null });
     o.base = { l1: [b1.level, b1.str, b1.hp, b1.acc], l300: [b300.level, b300.str, b300.hp, b300.acc] };
     o.baseOk = b1.level === 1 && b1.str === 1 && b1.hp === 11 && b1.acc === 0 && b300.level === 300 && b300.str === 101 && b300.hp === 310;
+    // (GD-15) Defense: +1 per 3 Combat levels (0 at Lv 1, 100 at Lv 300), Guard +2 per point (max 25); Parry 1%/pt (max 10) needs 10 Vitality points (Guard counts)
+    { const d = fresh(); C.setLevel(30, d); const g0 = C.playerStats(d, { L: null, R: null }).def; d.skill = { guard: 25 }; const gd = C.playerStats(d, { L: null, R: null });
+      const pq = fresh(); C.setLevel(300, pq); const parNo = C.whyNot('parry', pq) === 'req'; pq.skill = { guard: 10 }; const parYes = C.addPoint('parry', pq); pq.skill.parry = 10; const pp = C.playerStats(pq, { L: null, R: null });
+      const seq = (a) => { let i = 0; return () => a[i++ % a.length]; }, cr = { str: 1, acc: 30 };
+      const blk = C.creatureAttack(cr, { def: 0, parry: 0.1 }, { rng: seq([0.05]) }), full = C.creatureAttack(cr, { def: 0, parry: 0 }, { rng: seq([0.1]) }), miss = C.creatureAttack({ str: 4, acc: 30 }, { def: 0, parry: 0 }, { rng: seq([0.9, 0.99]) });
+      o.def = { l1: b1.def, l300: b300.def, g0, guard: gd.def, parNo, parYes, parry: pp.parry, ch0: C.hitChance(30, 0), ch100: C.hitChance(30, 100), cap: C.hitChance(1e6, 0), blk, full, miss, nodes: [C.NODE.guard && [C.NODE.guard.sub, C.NODE.guard.max], C.NODE.parry && [C.NODE.parry.sub, C.NODE.parry.max, C.NODE.parry.req]] };
+      o.defOk = b1.def === 0 && b300.def === 100 && g0 === 10 && gd.def === 60 && parNo && parYes && near(pp.parry, 0.1) && near(o.def.ch0, 0.3) && near(o.def.ch100, 0.15) && o.def.cap <= 0.6 + 1e-9 && blk.parried && blk.dmg === 0 && full.hit && full.dmg === 1 && !miss.hit && miss.dmg === 4
+        && C.NODE.guard.sub === 'vitality' && C.NODE.guard.max === 25 && C.NODE.parry.max === 10 && C.NODE.parry.req.vitality === 10; }
     // the Lv 300 example: T10 Ember Onyx pair + maxed Might (Strength 40, Vigor 50)
     s300.skill = { strength: 40, vigor: 50 }; const ex = C.playerStats(s300, { L: { g: 'onyx', t: 10 }, R: { g: 'onyx', t: 10 } });
     o.example = [ex.str, ex.hp, ex.acc]; o.exampleOk = ex.str === 277 && ex.hp === 681 && ex.acc === 136;
@@ -41,7 +49,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     o.dmg = [hitD.dmg, missLo.dmg, missHi.dmg, hb.dmg, hb4.dmg, bs.dmg]; o.dmgOk = hitD.hit && hitD.dmg === 10 && !missLo.hit && missLo.dmg === 0 && missHi.dmg === 10 && range && hb.dmg === 15 && hb.heavy && hb4.dmg === 10 && bs.dmg === 120;
     // tree: caps, prerequisites, point budget, removal protecting prerequisites
     const t = fresh(); C.setLevel(300, t); let n = 0; while (C.addPoint('strength', t)) n++; const capS = n === 40 && C.whyNot('strength', t) === 'max';
-    const caps = C.NODES.every((nd) => { const q = fresh(); C.setLevel(300, q); if (nd.req) for (const sub of Object.keys(nd.req)) q.skill[sub === 'might' ? 'vigor' : sub] = nd.req[sub]; let k = 0; while (C.addPoint(nd.id, q)) k++; return k === nd.max && C.whyNot(nd.id, q) === 'max'; });
+    const caps = C.NODES.every((nd) => { const q = fresh(); C.setLevel(300, q); if (nd.req) for (const sub of Object.keys(nd.req)) q.skill[sub === 'might' ? 'vigor' : sub === 'vitality' ? 'guard' : sub] = nd.req[sub]; let k = 0; while (C.addPoint(nd.id, q)) k++; return k === nd.max && C.whyNot(nd.id, q) === 'max'; });
     const r = fresh(); C.setLevel(300, r); r.skill = { strength: 19 }; const req19 = C.whyNot('heavy_blow', r) === 'req' && !C.addPoint('boss_slayer', r) && !C.reqMet('boss_slayer', r);
     r.skill.strength = 20; const req20 = C.addPoint('heavy_blow', r) && C.ranks('heavy_blow', r) === 1 && C.pointsSpent(r) === 25 && C.addPoint('boss_slayer', r);
     const guard = !C.canRemove('strength', r) && !C.removePoint('strength', r) && C.addPoint('vigor', r) && C.canRemove('strength', r) && C.removePoint('strength', r) && !C.canRemove('vigor', r) && C.removePoint('boss_slayer', r) && C.removePoint('heavy_blow', r) && C.canRemove('vigor', r);
@@ -78,6 +86,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   });
   ok(R.tables && R.stickOne && R.unlock, 'grade tables: pair totals at T0, each sword carries half, stick in one spot, unlock levels');
   ok(R.tier, 'tier math: +75% of base per tier (T10 = 8.5x; Onyx T10 pair 136 / 136 / 221); the stick ignores tiers');
+  ok(R.defOk, 'GD-15 Defense: Lv/3 (0 at Lv 1, 100 at Lv 300), Guard +2/pt (max 25), Parry 1%/pt (max 10, needs 10 Vitality incl. Guard); creature hit = acc/(def+100) capped 60%, else 0..str; parry blocks fully ' + JSON.stringify(R.def));
   ok(R.baseOk, 'player base: Lv 1 = 1 Str / 11 HP, Lv 300 = 101 Str / 310 HP, no Accuracy without swords ' + JSON.stringify(R.base));
   ok(R.exampleOk, 'Lv 300 + T10 Ember Onyx pair + maxed Might = 277 Str / 681 HP / 136 Acc ' + JSON.stringify(R.example));
   ok(R.hitOk, 'hit chance: Acc / (Def + 100), linear to 50%, eased toward the 60% cap, never past it ' + JSON.stringify(R.hit));

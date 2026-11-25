@@ -901,7 +901,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='c90f3aee';
+<script>window.HD_BUILD='1df58d33';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -923,8 +923,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build c90f3aee</div>
-<script src="assets/vendor/three.min.js?v=c90f3aee"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 1df58d33</div>
+<script src="assets/vendor/three.min.js?v=1df58d33"></script>
 <script>
 'use strict';
 
@@ -2155,6 +2155,10 @@ const Combat = (() => {
   const SWORD_UNLOCK = { stick: 1, bronze: 1, iron: 20, steel: 30, gold: 45, mithril: 70, rune: 100, lumen: 160, onyx: 220 }; // Combat level to equip
   const TIER_STEP = 0.75, TIER_MAX = 10; // +75% of the grade base per tier, linear: T10 = 8.5x
   const HIT_CAP = 0.6, HIT_EASE = 0.5; // hit chance = acc / (def + 100); linear up to 50%, then eases into the 60% cap
+  // (GD-15, Dominic via Art, verified) Defense: +1 per 3 Combat levels (0 at Lv 1, 100 at Lv 300) + the Vitality node Guard (+2 per point). A creature's full-hit
+  // chance against her is acc / (her Defense + 100), capped at 60% (the same hitChance curve as hers); otherwise it rolls 0..its Strength. Parry (1% per point)
+  // blocks a hit fully before that roll; it is not healing, so it is outside the 15% in-fight healing cap.
+  const DEF_PER_LV = 3;
   const REGEN = 0.02, REGEN_MEND = 0.04, HEAL_CAP = 0.15; // out of combat %max HP / s (none in combat); in-fight healing cap (Second wind excluded)
   const GRADES = Object.keys(SWORD_PAIR);
   const clampT = (t) => Math.max(0, Math.min(TIER_MAX, Math.floor(+t || 0)));
@@ -2191,6 +2195,9 @@ const Combat = (() => {
     { id: 'second_wind', branch: 'combat', sub: 'vitality', name: 'Second wind', max: 1, cost: 3, req: null, text: 'Once per fight, heal 20% HP when you drop below 25% (3 points)', flag: 'secondWind' },
     { id: 'victory_breath', branch: 'combat', sub: 'vitality', name: 'Victory breath', max: 1, cost: 3, req: null, text: 'Heal 5% HP on each kill (3 points)', flag: 'victoryBreath' },
     { id: 'ward', branch: 'combat', sub: 'vitality', name: 'Ward', max: 1, cost: 3, req: null, text: 'Start each fight with a shield of 10% HP (3 points)', flag: 'ward' },
+    // (GD-15) Defense nodes: Guard is an open node (it counts toward Parry's 10); Parry blocks a creature's hit fully (not part of the 15% healing cap)
+    { id: 'guard', branch: 'combat', sub: 'vitality', name: 'Guard', max: 25, cost: 1, req: null, text: '+2 Defense per point', per: { def: 2 } },
+    { id: 'parry', branch: 'combat', sub: 'vitality', name: 'Parry', max: 10, cost: 1, req: { vitality: 10 }, text: '1% per point to block a hit fully (needs 10 points in Vitality)', per: { parry: 0.01 } },
     { id: 'fortune', branch: 'combat', sub: 'spoils', name: 'Fortune', max: 15, cost: 1, req: null, text: '+2% coin drops per point', per: { coinMult: 0.02 } },
     { id: 'beast_lure', branch: 'combat', sub: 'spoils', name: 'Beast lure', max: 10, cost: 1, req: null, text: '+1% tether beast drop chance per point (multiplies each creature\u2019s base chance)', per: { beastMult: 0.01 } },
     // t633u (Dominic): a boss's beast version is much rarer than a normal creature's; until he gives numbers, beast lure's max + cost at half its per-rank bonus
@@ -2228,24 +2235,28 @@ const Combat = (() => {
   function nodeState(id, s) { const n = NODE[id]; if (!n) return null; const r = ranks(id, s), why = whyNot(id, s); return { id, branch: n.branch, sub: n.sub, name: n.name, text: n.text, max: n.max, cost: n.cost, req: n.req, ranks: r, maxed: r >= n.max, reqMet: reqMet(id, s), canAdd: !why, why, canRemove: canRemove(id, s) }; }
   const treeState = (s) => ({ level: level(s), points: pointsTotal(s), spent: pointsSpent(s), left: pointsLeft(s), nodes: NODES.map((n) => nodeState(n.id, s)), subSpent: { might: subSpent('might', s), vitality: subSpent('vitality', s), spoils: subSpent('spoils', s) } });
   // the summed effects of an allocation
-  function applyNodes(s) { const e = { str: 0, hp: 0, atkSpeed: 0, bossDmg: 0, lifesteal: 0, coinMult: 0, beastMult: 0, bossBeastMult: 0, heavyBlow: false, quickMend: false, secondWind: false, victoryBreath: false, ward: false };
+  function applyNodes(s) { const e = { str: 0, hp: 0, def: 0, parry: 0, atkSpeed: 0, bossDmg: 0, lifesteal: 0, coinMult: 0, beastMult: 0, bossBeastMult: 0, heavyBlow: false, quickMend: false, secondWind: false, victoryBreath: false, ward: false };
     for (const n of NODES) { const r = ranks(n.id, s); if (!r) continue; if (n.per) for (const [k, v] of Object.entries(n.per)) e[k] += v * r; if (n.flag) e[n.flag] = true; } return e; }
 
   // ---- player stats: level + both swords + the tree. swords = { L: { g, t }, R: { g, t } } (defaults to her saved swords); a missing hand counts nothing ----
   function equippedSwords(s) { s = sv(s); const o = {}; for (const k of ['L', 'R']) { const g = s && s['sword' + k]; const dt = s && s['swordT' + k]; /* (t629u: Try gear, the dev tool, saves the tier it equipped) */ o[k] = g && SWORD_PAIR[g] ? { g, t: g === 'stick' ? 0 : clampT(dt != null ? dt : s.tswords && s.tswords[g]) } : null; } return o; }
   function playerStats(s, swords, opt) { s = sv(s); const L = (opt && opt.level) || level(s), W = swords || equippedSwords(s), E = applyNodes(s), sw = { str: 0, acc: 0, hp: 0 };
     for (const k of ['L', 'R']) { const h = W[k]; if (!h) continue; const q = swordStats(h.g, h.t); sw.str += q.str; sw.acc += q.acc; sw.hp += q.hp; }
-    const str = BASE_STR + Math.floor(L / 3) + sw.str + E.str, hp = BASE_HP + L + sw.hp + E.hp;
-    return { level: L, str: Math.round(str), hp: Math.round(hp), acc: Math.round(sw.acc), atkSpeed: 1 + E.atkSpeed, regen: E.quickMend ? REGEN_MEND : REGEN, regenInCombat: 0,
+    const str = BASE_STR + Math.floor(L / 3) + sw.str + E.str, hp = BASE_HP + L + sw.hp + E.hp, def = defFromLevel(L) + E.def;
+    return { level: L, str: Math.round(str), hp: Math.round(hp), acc: Math.round(sw.acc), def: Math.round(def), parry: Math.min(1, E.parry), atkSpeed: 1 + E.atkSpeed, regen: E.quickMend ? REGEN_MEND : REGEN, regenInCombat: 0,
       lifesteal: E.lifesteal, bossDmg: E.bossDmg, heavyBlow: E.heavyBlow, secondWind: E.secondWind, victoryBreath: E.victoryBreath, ward: E.ward, coinMult: 1 + E.coinMult, beastMult: 1 + E.beastMult, bossBeastMult: 1 + E.bossBeastMult,
       swords: { L: W.L ? Object.assign({ g: W.L.g, t: W.L.t }, swordStats(W.L.g, W.L.t)) : null, R: W.R ? Object.assign({ g: W.R.g, t: W.R.t }, swordStats(W.R.g, W.R.t)) : null, pair: sw } }; }
 
   // ---- hit + damage ----
+  const defFromLevel = (L) => Math.floor(Math.max(1, Math.min(LV_MAX, L | 0)) / DEF_PER_LV); // (Lv 1: 0 · Lv 300: 100)
   function hitChance(acc, def) { const raw = Math.max(0, +acc || 0) / (Math.max(0, +def || 0) + 100); if (raw <= HIT_EASE) return raw; return HIT_CAP - (HIT_CAP - HIT_EASE) * Math.exp(-(raw - HIT_EASE) / (HIT_CAP - HIT_EASE)); } // (C1: slope 1 at 50%, never quite 60%)
   // one swing: a hit deals full Strength, otherwise a random whole value 0..Strength. opt: { def, swing (1-based count this fight), boss, rng }
   function rollDamage(stats, opt = {}) { const rng = opt.rng || Math.random, p = hitChance(stats.acc, opt.def || 0), hit = rng() < p, str = Math.max(0, Math.round(stats.str || 0));
     let dmg = hit ? str : Math.floor(rng() * (str + 1)); let k = 1; if (stats.heavyBlow && opt.swing && opt.swing % 5 === 0) k *= 1.5; if (opt.boss && stats.bossDmg) k *= 1 + stats.bossDmg; dmg = Math.round(dmg * k);
     return { hit, dmg, chance: p, heavy: k > 1 && !!stats.heavyBlow && opt.swing % 5 === 0 }; }
+  // (GD-15) a creature's swing at her: c = { str, acc } (its data row), P = her playerStats. Parry first (blocks it fully), then the same hit / graze roll as hers
+  function creatureAttack(c, P, opt = {}) { const rng = opt.rng || Math.random, par = Math.max(0, (P && P.parry) || 0); if (par > 0 && rng() < par) return { parried: true, hit: false, dmg: 0, chance: 0 };
+    const p = hitChance(c.acc, (P && P.def) || 0), hit = rng() < p, str = Math.max(0, Math.round(+c.str || 0)); return { parried: false, hit, dmg: hit ? str : Math.floor(rng() * (str + 1)), chance: p }; }
   const swingTime = (base, stats) => base / ((stats && stats.atkSpeed) || 1); // seconds per swing at her attack speed
 
   // ---- one fight's healing / shield bookkeeping (in-fight healing capped at 15% of max HP per fight; Second wind is outside the cap) ----
@@ -2268,7 +2279,7 @@ const Combat = (() => {
   const BEAST_SLOT_LEVELS = [1, 100, 220]; // Tether Beast party slots (max 3); the Tether Beast skill itself is still to come
   const beastSlots = (lv) => BEAST_SLOT_LEVELS.filter((q) => (lv == null ? level() : lv) >= q).length;
 
-  return { LV_MAX, BASE_HP, BASE_STR, STICK_PAIR, SWORD_PAIR, SWORD_UNLOCK, TIER_STEP, HIT_CAP, HIT_EASE, REGEN, REGEN_MEND, HEAL_CAP, GRADES, BRANCHES, NODES, NODE, BEAST_SLOT_LEVELS,
+  return { LV_MAX, BASE_HP, BASE_STR, DEF_PER_LV, defFromLevel, creatureAttack, STICK_PAIR, SWORD_PAIR, SWORD_UNLOCK, TIER_STEP, HIT_CAP, HIT_EASE, REGEN, REGEN_MEND, HEAL_CAP, GRADES, BRANCHES, NODES, NODE, BEAST_SLOT_LEVELS,
     tierMult, pairStats, swordStats, fmt, swordUnlock, canEquip, migrate, level, levelFromXp, addXp, setLevel, xpTo,
     get DEV_POINTS() { return DEV_POINTS; }, set DEV_POINTS(v) { DEV_POINTS = Math.max(0, Math.floor(+v || 0)); },
     ranks, subSpent, reqSpent, pointsTotal, pointsSpent, pointsLeft, branchSpent, branchMax, reqMet, whyNot, canAdd, addPoint, canRemove, removePoint, resetTree, RESET_COST, canReset, resetPaid, nodeState, treeState, applyNodes,
@@ -3363,10 +3374,10 @@ const SkillTree = (() => {
     const nodes = N.map((n) => { const s = stateOf(n), r = api.st(n.id).ranks, [x, y] = POS[n.id], lk = s === 'locked';
       const arc = r > 0 ? `<svg class="stArc" viewBox="0 0 60 60"><circle cx="30" cy="30" r="27" pathLength="100" stroke-dasharray="${r / n.max * 100} 100"/></svg>` : '';
       return `<button class="stN ${s}${U.sel === n.id ? ' sel' : ''}" data-st="node" data-id="${n.id}" data-state="${s}" style="left:${x / 390 * 100}%;top:${y}px"><span class="stMed"><img src="${A}node_red_${SHAPE[n.id] || 'shard'}_${s}.webp" alt="" draggable="false">${arc}</span><span class="stNp"><b>${esc2(n.name)}</b><small${lk ? ' class="no"' : ''}>${r}/${n.max}${lk ? ' · ' + esc2(Object.entries(n.req || {}).map(([q2, v]) => `needs ${v} ${subName(q2)}`).join(' · ')) : s === 'maxed' ? ' max' : ''}</small></span></button>`; }).join('');
-    const heads = SUB.map(([k, nm], i) => `<div class="stGroup ${k}" style="left:${(6 + i * 128) / 390 * 100}%;height:${i === 2 ? 344 : 540}px"><span class="stSub">${nm.toUpperCase()}</span><small>${Combat.subSpent(k)} pts · ${N.filter((n) => n.sub === k).length} nodes</small></div>`).join('') + [68, 195, 322].map((x) => `<div class="stStem" style="left:calc(${x / 390 * 100}% - 30px)"></div>`).join('');
-    return `${header(true)}<div class="stMapW"><div class="stMap">${heads}<img class="stFork" src="${A}limb_fork_red.webp" alt="">${nodes}</div></div>${U.sel ? sheet(node(U.sel)) : ''}`; }
+    const heads = SUB.map(([k, nm], i) => `<div class="stGroup ${k}" style="left:${(6 + i * 128) / 390 * 100}%;height:${344 + Math.max(0, N.filter((n) => n.sub === k).length - 3) * 98}px"><span class="stSub">${nm.toUpperCase()}</span><small>${Combat.subSpent(k)} pts · ${N.filter((n) => n.sub === k).length} nodes</small></div>`).join('') + [68, 195, 322].map((x) => `<div class="stStem" style="left:calc(${x / 390 * 100}% - 30px)"></div>`).join('');
+    return `${header(true)}<div class="stMapW"><div class="stMap" style="height:${Math.max(660, ...SUB.map(([k]) => 364 + Math.max(0, N.filter((n) => n.sub === k).length - 3) * 98))}px">${heads}<img class="stFork" src="${A}limb_fork_red.webp" alt="">${nodes}</div></div>${U.sel ? sheet(node(U.sel)) : ''}`; }
   // what a rank count gives, from the node's own per-point table (Combat.NODE[id].per) - display only, nothing recomputed
-  const UNIT = { str: [1, ' Str'], hp: [1, ' HP'], atkSpeed: [100, '% speed'], bossDmg: [100, '% boss dmg'], lifesteal: [100, '% lifesteal'], coinMult: [100, '% coins'], beastMult: [100, '% beast'], bossBeastMult: [100, '% boss beast'] };
+  const UNIT = { str: [1, ' Str'], hp: [1, ' HP'], atkSpeed: [100, '% speed'], bossDmg: [100, '% boss dmg'], lifesteal: [100, '% lifesteal'], coinMult: [100, '% coins'], beastMult: [100, '% beast'], bossBeastMult: [100, '% boss beast'], def: [1, ' Def'], parry: [100, '% parry'] };
   const effect = (n, r) => { const k = n.per && Object.keys(n.per)[0]; if (k && UNIT[k]) return '+' + +(r * n.per[k] * UNIT[k][0]).toFixed(2) + UNIT[k][1]; return n.max === 1 ? (r ? 'On' : 'Off') : r + '/' + n.max; };
   function resetSheet() { return `<div class="stResetShade"><div class="stResetCard" role="alertdialog" aria-label="Reset all skill points?"><h3>Reset the Skill Tree?</h3><p>Refund all ${api.spent()} spent points.</p><p>${Combat.RESET_COST === 0 ? 'Free · No gold or Combat XP is taken.' : Combat.RESET_COST + ' gold'}</p><button class="stRf" data-st="reset-cancel">Keep my points</button><button class="stGo" data-st="reset-confirm" ${Combat.canReset() ? '' : 'disabled'}>Reset · ${Combat.RESET_COST === 0 ? 'Free' : Combat.RESET_COST + ' gold'}</button></div></div>`; }
   function sheet(n) { if (!n) return ''; const q = api.st(n.id), r = q.ranks, p = api.points(), s = stateOf(n), room = q.reqMet ? Math.max(0, Math.min(n.max - r, Math.floor(p / Math.max(1, n.cost)))) : 0, k = U.k = Math.max(1, Math.min(U.k, Math.max(1, room)));
@@ -3414,7 +3425,7 @@ const CombatStats = (() => {
   const cap = (g) => g.charAt(0).toUpperCase() + g.slice(1);
   // the split, straight from Combat
   function split(s) { s = s || (typeof S !== 'undefined' ? S : null); const P = Combat.playerStats(s), lvOnly = Combat.playerStats(Object.assign({}, s, { skill: {} }), { L: null, R: null }), E = Combat.applyNodes(s), sw = Combat.fmt(P.swords.pair);
-    const rows = [['str', 'Strength'], ['hp', 'HP'], ['acc', 'Accuracy']].map(([k, n]) => ({ k, n, level: lvOnly[k], swords: sw[k], tree: E[k] || 0, total: P[k] }));
+    const rows = [['str', 'Strength'], ['hp', 'HP'], ['acc', 'Accuracy'], ['def', 'Defense']].map(([k, n]) => ({ k, n, level: lvOnly[k] || 0, swords: sw[k] || 0, tree: E[k] || 0, total: P[k] || 0 })); /* (GD-15: Defense = level share + Guard; swords add none) */
     const hand = (h) => (h ? `${cap(h.g)}${h.g === 'stick' ? '' : ' T' + h.t}` : 'Empty');
     return { level: Combat.level(s), rows, hands: { L: hand(P.swords.L), R: hand(P.swords.R) }, hit0: Combat.hitChance(P.acc, 0), hit100: Combat.hitChance(P.acc, 100), cap: Combat.HIT_CAP, ease: Combat.HIT_EASE, base: { str: Combat.BASE_STR, hp: Combat.BASE_HP } }; }
   function html() { const D = split();
@@ -10097,6 +10108,7 @@ const LUMEN_MUSHROOM = {
   hp: 8,            // max HP (Art's stats, Dominic t655)
   str: 1,           // Strength - STORED ONLY: no creature counterattacks exist yet, nothing reads this
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
+  acc: 30,          // Accuracy - PLACEHOLDER (GD-15): its full-hit chance on her = acc / (her Defense + 100), capped at 60%; otherwise 0..str
   xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp. The Combat XP per-level curve is still a placeholder.
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground

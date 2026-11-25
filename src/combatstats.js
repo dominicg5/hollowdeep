@@ -10,7 +10,7 @@ const CombatStats = (() => {
   const cap = (g) => g.charAt(0).toUpperCase() + g.slice(1);
   // the split, straight from Combat
   function split(s) { s = s || (typeof S !== 'undefined' ? S : null); const P = Combat.playerStats(s), lvOnly = Combat.playerStats(Object.assign({}, s, { skill: {} }), { L: null, R: null }), E = Combat.applyNodes(s), sw = Combat.fmt(P.swords.pair);
-    const rows = [['str', 'Strength'], ['hp', 'HP'], ['acc', 'Accuracy']].map(([k, n]) => ({ k, n, level: lvOnly[k], swords: sw[k], tree: E[k] || 0, total: P[k] }));
+    const rows = [['str', 'Strength'], ['hp', 'HP'], ['acc', 'Accuracy'], ['def', 'Defense']].map(([k, n]) => ({ k, n, level: lvOnly[k] || 0, swords: sw[k] || 0, tree: E[k] || 0, total: P[k] || 0 })); /* (GD-15: Defense = level share + Guard; swords add none) */
     const hand = (h) => (h ? `${cap(h.g)}${h.g === 'stick' ? '' : ' T' + h.t}` : 'Empty');
     return { level: Combat.level(s), rows, hands: { L: hand(P.swords.L), R: hand(P.swords.R) }, hit0: Combat.hitChance(P.acc, 0), hit100: Combat.hitChance(P.acc, 100), cap: Combat.HIT_CAP, ease: Combat.HIT_EASE, base: { str: Combat.BASE_STR, hp: Combat.BASE_HP } }; }
   function html() { const D = split();

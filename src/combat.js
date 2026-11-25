@@ -10,6 +10,10 @@ const Combat = (() => {
   const SWORD_UNLOCK = { stick: 1, bronze: 1, iron: 20, steel: 30, gold: 45, mithril: 70, rune: 100, lumen: 160, onyx: 220 }; // Combat level to equip
   const TIER_STEP = 0.75, TIER_MAX = 10; // +75% of the grade base per tier, linear: T10 = 8.5x
   const HIT_CAP = 0.6, HIT_EASE = 0.5; // hit chance = acc / (def + 100); linear up to 50%, then eases into the 60% cap
+  // (GD-15, Dominic via Art, verified) Defense: +1 per 3 Combat levels (0 at Lv 1, 100 at Lv 300) + the Vitality node Guard (+2 per point). A creature's full-hit
+  // chance against her is acc / (her Defense + 100), capped at 60% (the same hitChance curve as hers); otherwise it rolls 0..its Strength. Parry (1% per point)
+  // blocks a hit fully before that roll; it is not healing, so it is outside the 15% in-fight healing cap.
+  const DEF_PER_LV = 3;
   const REGEN = 0.02, REGEN_MEND = 0.04, HEAL_CAP = 0.15; // out of combat %max HP / s (none in combat); in-fight healing cap (Second wind excluded)
   const GRADES = Object.keys(SWORD_PAIR);
   const clampT = (t) => Math.max(0, Math.min(TIER_MAX, Math.floor(+t || 0)));
@@ -46,6 +50,9 @@ const Combat = (() => {
     { id: 'second_wind', branch: 'combat', sub: 'vitality', name: 'Second wind', max: 1, cost: 3, req: null, text: 'Once per fight, heal 20% HP when you drop below 25% (3 points)', flag: 'secondWind' },
     { id: 'victory_breath', branch: 'combat', sub: 'vitality', name: 'Victory breath', max: 1, cost: 3, req: null, text: 'Heal 5% HP on each kill (3 points)', flag: 'victoryBreath' },
     { id: 'ward', branch: 'combat', sub: 'vitality', name: 'Ward', max: 1, cost: 3, req: null, text: 'Start each fight with a shield of 10% HP (3 points)', flag: 'ward' },
+    // (GD-15) Defense nodes: Guard is an open node (it counts toward Parry's 10); Parry blocks a creature's hit fully (not part of the 15% healing cap)
+    { id: 'guard', branch: 'combat', sub: 'vitality', name: 'Guard', max: 25, cost: 1, req: null, text: '+2 Defense per point', per: { def: 2 } },
+    { id: 'parry', branch: 'combat', sub: 'vitality', name: 'Parry', max: 10, cost: 1, req: { vitality: 10 }, text: '1% per point to block a hit fully (needs 10 points in Vitality)', per: { parry: 0.01 } },
     { id: 'fortune', branch: 'combat', sub: 'spoils', name: 'Fortune', max: 15, cost: 1, req: null, text: '+2% coin drops per point', per: { coinMult: 0.02 } },
     { id: 'beast_lure', branch: 'combat', sub: 'spoils', name: 'Beast lure', max: 10, cost: 1, req: null, text: '+1% tether beast drop chance per point (multiplies each creature\u2019s base chance)', per: { beastMult: 0.01 } },
     // t633u (Dominic): a boss's beast version is much rarer than a normal creature's; until he gives numbers, beast lure's max + cost at half its per-rank bonus
@@ -83,24 +90,28 @@ const Combat = (() => {
   function nodeState(id, s) { const n = NODE[id]; if (!n) return null; const r = ranks(id, s), why = whyNot(id, s); return { id, branch: n.branch, sub: n.sub, name: n.name, text: n.text, max: n.max, cost: n.cost, req: n.req, ranks: r, maxed: r >= n.max, reqMet: reqMet(id, s), canAdd: !why, why, canRemove: canRemove(id, s) }; }
   const treeState = (s) => ({ level: level(s), points: pointsTotal(s), spent: pointsSpent(s), left: pointsLeft(s), nodes: NODES.map((n) => nodeState(n.id, s)), subSpent: { might: subSpent('might', s), vitality: subSpent('vitality', s), spoils: subSpent('spoils', s) } });
   // the summed effects of an allocation
-  function applyNodes(s) { const e = { str: 0, hp: 0, atkSpeed: 0, bossDmg: 0, lifesteal: 0, coinMult: 0, beastMult: 0, bossBeastMult: 0, heavyBlow: false, quickMend: false, secondWind: false, victoryBreath: false, ward: false };
+  function applyNodes(s) { const e = { str: 0, hp: 0, def: 0, parry: 0, atkSpeed: 0, bossDmg: 0, lifesteal: 0, coinMult: 0, beastMult: 0, bossBeastMult: 0, heavyBlow: false, quickMend: false, secondWind: false, victoryBreath: false, ward: false };
     for (const n of NODES) { const r = ranks(n.id, s); if (!r) continue; if (n.per) for (const [k, v] of Object.entries(n.per)) e[k] += v * r; if (n.flag) e[n.flag] = true; } return e; }
 
   // ---- player stats: level + both swords + the tree. swords = { L: { g, t }, R: { g, t } } (defaults to her saved swords); a missing hand counts nothing ----
   function equippedSwords(s) { s = sv(s); const o = {}; for (const k of ['L', 'R']) { const g = s && s['sword' + k]; const dt = s && s['swordT' + k]; /* (t629u: Try gear, the dev tool, saves the tier it equipped) */ o[k] = g && SWORD_PAIR[g] ? { g, t: g === 'stick' ? 0 : clampT(dt != null ? dt : s.tswords && s.tswords[g]) } : null; } return o; }
   function playerStats(s, swords, opt) { s = sv(s); const L = (opt && opt.level) || level(s), W = swords || equippedSwords(s), E = applyNodes(s), sw = { str: 0, acc: 0, hp: 0 };
     for (const k of ['L', 'R']) { const h = W[k]; if (!h) continue; const q = swordStats(h.g, h.t); sw.str += q.str; sw.acc += q.acc; sw.hp += q.hp; }
-    const str = BASE_STR + Math.floor(L / 3) + sw.str + E.str, hp = BASE_HP + L + sw.hp + E.hp;
-    return { level: L, str: Math.round(str), hp: Math.round(hp), acc: Math.round(sw.acc), atkSpeed: 1 + E.atkSpeed, regen: E.quickMend ? REGEN_MEND : REGEN, regenInCombat: 0,
+    const str = BASE_STR + Math.floor(L / 3) + sw.str + E.str, hp = BASE_HP + L + sw.hp + E.hp, def = defFromLevel(L) + E.def;
+    return { level: L, str: Math.round(str), hp: Math.round(hp), acc: Math.round(sw.acc), def: Math.round(def), parry: Math.min(1, E.parry), atkSpeed: 1 + E.atkSpeed, regen: E.quickMend ? REGEN_MEND : REGEN, regenInCombat: 0,
       lifesteal: E.lifesteal, bossDmg: E.bossDmg, heavyBlow: E.heavyBlow, secondWind: E.secondWind, victoryBreath: E.victoryBreath, ward: E.ward, coinMult: 1 + E.coinMult, beastMult: 1 + E.beastMult, bossBeastMult: 1 + E.bossBeastMult,
       swords: { L: W.L ? Object.assign({ g: W.L.g, t: W.L.t }, swordStats(W.L.g, W.L.t)) : null, R: W.R ? Object.assign({ g: W.R.g, t: W.R.t }, swordStats(W.R.g, W.R.t)) : null, pair: sw } }; }
 
   // ---- hit + damage ----
+  const defFromLevel = (L) => Math.floor(Math.max(1, Math.min(LV_MAX, L | 0)) / DEF_PER_LV); // (Lv 1: 0 · Lv 300: 100)
   function hitChance(acc, def) { const raw = Math.max(0, +acc || 0) / (Math.max(0, +def || 0) + 100); if (raw <= HIT_EASE) return raw; return HIT_CAP - (HIT_CAP - HIT_EASE) * Math.exp(-(raw - HIT_EASE) / (HIT_CAP - HIT_EASE)); } // (C1: slope 1 at 50%, never quite 60%)
   // one swing: a hit deals full Strength, otherwise a random whole value 0..Strength. opt: { def, swing (1-based count this fight), boss, rng }
   function rollDamage(stats, opt = {}) { const rng = opt.rng || Math.random, p = hitChance(stats.acc, opt.def || 0), hit = rng() < p, str = Math.max(0, Math.round(stats.str || 0));
     let dmg = hit ? str : Math.floor(rng() * (str + 1)); let k = 1; if (stats.heavyBlow && opt.swing && opt.swing % 5 === 0) k *= 1.5; if (opt.boss && stats.bossDmg) k *= 1 + stats.bossDmg; dmg = Math.round(dmg * k);
     return { hit, dmg, chance: p, heavy: k > 1 && !!stats.heavyBlow && opt.swing % 5 === 0 }; }
+  // (GD-15) a creature's swing at her: c = { str, acc } (its data row), P = her playerStats. Parry first (blocks it fully), then the same hit / graze roll as hers
+  function creatureAttack(c, P, opt = {}) { const rng = opt.rng || Math.random, par = Math.max(0, (P && P.parry) || 0); if (par > 0 && rng() < par) return { parried: true, hit: false, dmg: 0, chance: 0 };
+    const p = hitChance(c.acc, (P && P.def) || 0), hit = rng() < p, str = Math.max(0, Math.round(+c.str || 0)); return { parried: false, hit, dmg: hit ? str : Math.floor(rng() * (str + 1)), chance: p }; }
   const swingTime = (base, stats) => base / ((stats && stats.atkSpeed) || 1); // seconds per swing at her attack speed
 
   // ---- one fight's healing / shield bookkeeping (in-fight healing capped at 15% of max HP per fight; Second wind is outside the cap) ----
@@ -123,7 +134,7 @@ const Combat = (() => {
   const BEAST_SLOT_LEVELS = [1, 100, 220]; // Tether Beast party slots (max 3); the Tether Beast skill itself is still to come
   const beastSlots = (lv) => BEAST_SLOT_LEVELS.filter((q) => (lv == null ? level() : lv) >= q).length;
 
-  return { LV_MAX, BASE_HP, BASE_STR, STICK_PAIR, SWORD_PAIR, SWORD_UNLOCK, TIER_STEP, HIT_CAP, HIT_EASE, REGEN, REGEN_MEND, HEAL_CAP, GRADES, BRANCHES, NODES, NODE, BEAST_SLOT_LEVELS,
+  return { LV_MAX, BASE_HP, BASE_STR, DEF_PER_LV, defFromLevel, creatureAttack, STICK_PAIR, SWORD_PAIR, SWORD_UNLOCK, TIER_STEP, HIT_CAP, HIT_EASE, REGEN, REGEN_MEND, HEAL_CAP, GRADES, BRANCHES, NODES, NODE, BEAST_SLOT_LEVELS,
     tierMult, pairStats, swordStats, fmt, swordUnlock, canEquip, migrate, level, levelFromXp, addXp, setLevel, xpTo,
     get DEV_POINTS() { return DEV_POINTS; }, set DEV_POINTS(v) { DEV_POINTS = Math.max(0, Math.floor(+v || 0)); },
     ranks, subSpent, reqSpent, pointsTotal, pointsSpent, pointsLeft, branchSpent, branchMax, reqMet, whyNot, canAdd, addPoint, canRemove, removePoint, resetTree, RESET_COST, canReset, resetPaid, nodeState, treeState, applyNodes,

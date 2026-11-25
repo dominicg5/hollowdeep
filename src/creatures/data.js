@@ -13,6 +13,7 @@ const LUMEN_MUSHROOM = {
   hp: 8,            // max HP (Art's stats, Dominic t655)
   str: 1,           // Strength - STORED ONLY: no creature counterattacks exist yet, nothing reads this
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
+  acc: 30,          // Accuracy - PLACEHOLDER (GD-15): its full-hit chance on her = acc / (her Defense + 100), capped at 60%; otherwise 0..str
   xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp. The Combat XP per-level curve is still a placeholder.
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground
