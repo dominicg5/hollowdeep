@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   PROCEDURAL HOUSES + TREES for the 3D Ledgeville, modelled on the concept sheet
+   PROCEDURAL HOUSES + TREES for the 3D Colossus, modelled on the concept sheet
    (concept/house-concepts.pdf, the painted city/hillside targets and the Heartwood image).
    Eight house tiers x three variants. Every house is one merged geometry (LOD0 detailed, LOD1 simple)
    sharing a painted texture atlas + an emissive atlas (windows and lanterns glow softly at night).

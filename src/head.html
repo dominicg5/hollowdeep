@@ -135,7 +135,7 @@ nav#tabs button .dot{position:absolute;top:2px;right:24%;width:8px;height:8px;bo
 @keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
 .pulse{animation:pulse 2.4s ease-in-out infinite}
 .switch{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px dashed rgba(110,80,40,.25)}
-/* Ledgeville */
+/* Colossus */
 #cityLoader{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%,#2c3a5a 0,#141a2e 70%)}
 #cityLoader.hidden{display:none}
 #cityLoader .ldCard{width:min(300px,80%);text-align:center;color:#fff3d0}
@@ -862,8 +862,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
   </header>
   <main id="view"></main>
   <div id="city" class="hidden">
-    <canvas id="cityCanvas" aria-label="Ledgeville map"></canvas>
-    <div id="cityLoader" class="hidden"><div class="ldCard"><div class="ldTitle">🎨 Painting Ledgeville…</div><div class="ldSub">Unpacking homes, trees and the Hollow</div><div class="ldBar"><i></i></div><div class="ldPct">0%</div></div></div>
+    <canvas id="cityCanvas" aria-label="Colossus map"></canvas>
+    <div id="cityLoader" class="hidden"><div class="ldCard"><div class="ldTitle">Loading Colossus</div></div></div><!-- (GD-16, Dominic t667u: the first loading screen says only this) -->
     <div class="cityTop">
       <div id="cityInfo"></div>
       <div id="ticker" style="display:none"><span></span></div>
@@ -891,7 +891,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     <div id="treeInfo"><b>Inside the Lumen Tree</b><small>The heart of the tree, where the Hollow gathers. Tap the floor to walk · drag to orbit · pinch or scroll to zoom</small></div>
     <div id="ledgeInfo"><b>Silverseam Ledge</b><span>Ore: <i id="ledgeOre">Mithril</i> · Ledge Tether Drill: <i id="ledgeDrill">running</i> · Ledge Tether: <i id="ledgeXferS">idle</i></span><small>A hanging camp on the cliff at a mithril vein. Drag to orbit · pinch or scroll to zoom</small></div></div>
   <nav id="tabs"><div class="wrap">
-    <button data-tab="city"><span><img class="tabi" src="assets/ui/tab_city.webp" alt=""></span>Ledgeville</button>
+    <button data-tab="city"><span><img class="tabi" src="assets/ui/tab_city.webp" alt=""></span>Colossus</button>
     <button data-tab="char"><span class="tabe">⛑️</span>Character</button>
     <button data-tab="ledge"><span><img class="tabi" src="assets/ui/tab_portaledges.webp" alt=""></span>Portaledges</button>
     <button data-tab="home"><span class="tabe">🏠</span>Ledge</button>

@@ -27,7 +27,7 @@ const ExMap = (() => {
   const W2S = (x, y) => { const v = st.view; return [(x - v.cx) * v.s + v.W / 2, (y - v.cy) * v.s + v.H / 2]; }, S2W = (sx, sy) => { const v = st.view; return [(sx - v.W / 2) / v.s + v.cx, (sy - v.H / 2) / v.s + v.cy]; };
   function labels() { const L = [], P = Explore.places(), by = (id) => P.find((q) => q.id === id);
     const ledge = by('ledge'); if (ledge) L.push({ x: ledge.ox, y: ledge.oy, t: '🏠 Your Ledge', k: 'home' }); const tr = by('tree'); if (tr) L.push({ x: tr.ox, y: tr.oy, t: '🌳 Lumen Tree', k: 'tree' });
-    const ci = by('city'); if (ci) L.push({ x: ci.ox, y: ci.oy, t: '🏘️ Ledgeville', k: 'city' }); const ss = by('silverseam'); if (ss) L.push({ x: ss.ox, y: ss.oy, t: '⛺ Silverseam portaledge', k: 'ss' });
+    const ci = by('city'); if (ci) L.push({ x: ci.ox, y: ci.oy, t: '🏘️ Colossus', k: 'city' }); const ss = by('silverseam'); if (ss) L.push({ x: ss.ox, y: ss.oy, t: '⛺ Silverseam portaledge', k: 'ss' });
     if (Explore.tetherList) for (const t of Explore.tetherList()) if (!t.camp && t.kind !== 'door' && isFinite(t.x)) L.push({ x: t.x, y: t.y, t: (t.kind === 'drop' ? '🪢 ' : '🛠️ ') + t.name, k: 'teth', kind: t.kind }); // every tether end, by its (renamable) name; kind picks the marker
     if (typeof Mosby !== 'undefined' && Mosby.MS && Mosby.MS.trip && Mosby.MS.at) L.push({ x: Mosby.MS.at.x, y: Mosby.MS.at.y, t: Mosby.MS.trip.done ? '🏠 Your house (on Mosby\'s cousin)' : '🏠 Your house, on the move', k: 'tort' });
     if (typeof Mosby !== 'undefined' && Mosby.GM && Mosby.GM.at) L.push({ x: Mosby.GM.at.x, y: Mosby.GM.at.y, t: '🐢 Mosby', k: 'mosby' }); // the giant tortoise, where he is now (tap: walk to him)

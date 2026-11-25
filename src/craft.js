@@ -297,12 +297,12 @@ const Craft = (() => {
   }
   function itemBlurb(id, w) {
     const it = ITEMS[id] || {}; const req = it.kind === 'tool' && it.tool === 'pick' ? ` Mining Lv ${pickNeed(id)} to equip${pickLocked(id) && !equipped(id) ? ` (🔒 Unlock Lv ${pickNeed(id)})` : ''}.` : '';
-    if (req) return (it.tiered ? 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Ledgeville Exchange (the shop will not buy it).' : 'Equip it to mine ore out on the map.') + req;
+    if (req) return (it.tiered ? 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Colossus Exchange (the shop will not buy it).' : 'Equip it to mine ore out on the map.') + req;
     if (it.sword) return 'Hold two in the Character screen (\u2694\ufe0f Swords): each sword carries half its grade\u2019s Strength / Accuracy / HP, the pair sums them. Combat Lv ' + (typeof Combat !== 'undefined' ? Combat.swordUnlock(it.grade) : 1) + ' to equip.';
     if (it.kind === 'stand' || it.kind === 'drill') return 'Place the stand, then swap or pick up the bit at the drill itself.';
     if (it.kind === 'teth') return 'The same braid as the door tethers. Lay a drop tether from the backpack on the map, or use the coil to upgrade a strand.';
     if (it.kind === 'bit') return 'Fits any placed stand. Swap or pick it up at the drill itself.';
-    if (it.tiered) return 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Ledgeville Exchange (the shop will not buy it).';
+    if (it.tiered) return 'Its tier lives on this pickaxe. Equip it to mine; trade it with players at the Colossus Exchange (the shop will not buy it).';
     if (it.kind === 'tool' && it.tool === 'pick') return 'Equip it to mine ore out on the map.';
     if (it.climbGear) return 'Everyone carries these; they climb the same in any look. New looks are cosmetic skins at the Lumen Crystal.';
     if (it.winch) return 'The ascender winch on her hip. Everyone carries an Iron Winch; it reels her up the rope at the same speed for everyone.';

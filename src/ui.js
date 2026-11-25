@@ -343,7 +343,7 @@ function settingsModal() {
     <div class="switch"><div><b>Skip ahead</b><div class="dim">Simulate game time instantly (idle stock goes to the Vault).</div></div>
       <div class="wrapgap"><button class="btn ghost sm" data-act="skip" data-id="1">+1h</button><button class="btn ghost sm" data-act="skip" data-id="8">+8h</button><button class="btn ghost sm" data-act="skip" data-id="24">+1d</button></div></div>
     <div class="switch"><div><b>Game clock</b><div class="dim">Day ${dayIndex() + 1}, ${fmtDur(S.gameTime % DAY)} in. Save is stored in this browser.</div></div></div>
-    <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Ledgeville map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
+    <div class="switch"><div><b>Seasons & journal</b><div class="dim">Debug the season/festival cycle on the Colossus map, or read Wren's journal.</div></div><div class="wrapgap"><button class="btn ghost sm" data-act="journal">📔 Journal</button></div></div>
     <div class="switch"><div><b>Graphics quality</b><div class="dim">${QUALITY.override ? 'Set by hand' : 'Auto (this device: ' + QUALITY.auto + ')'}. Mobile caps resolution, shadows and frame rate to keep phones cool.</div></div><div class="wrapgap">${['auto', 'high', 'mobile'].map((k) => `<button class="btn sm ${(k === 'auto' ? !QUALITY.override : QUALITY.override === k) ? 'alt' : 'ghost'}" data-act="quality" data-id="${k}">${k[0].toUpperCase() + k.slice(1)}</button>`).join('')}</div></div>
     <div class="switch"><div><b>Reset save</b><div class="dim">Wipes all progress. No undo.</div></div><button class="btn red sm" data-act="reset">Reset</button></div>
     <button class="btn ghost" style="width:100%;margin-top:12px" data-act="close">Close</button>`, 'settings');
@@ -377,7 +377,7 @@ function updateLive() {
 }
 // area transitions: a styled loading screen over every scene change (map <-> Ledge, the Lumen Tree, the Hanging Camp), so a scene build never looks like a freeze.
 // It cuts in at once, holds at least 300 ms and until the new scene has drawn two frames (capped), then fades out.
-const AreaLoader = (() => { const SC = { city: 'Ledgeville', home: 'your Ledge', ledge: 'the Hanging Camp', tree: 'the Lumen Tree' }, L = { on: false, shows: 0, hides: 0, t0: 0, el: null, tm: null, last: null };
+const AreaLoader = (() => { const SC = { city: 'Colossus', home: 'your Ledge', ledge: 'the Hanging Camp', tree: 'the Lumen Tree' }, L = { on: false, shows: 0, hides: 0, t0: 0, el: null, tm: null, last: null };
   function el() { if (L.el) return L.el; const d = document.createElement('div'); d.id = 'areaLoader'; d.setAttribute('aria-live', 'polite'); d.innerHTML = '<div class="al-card"><div class="al-spin"><i></i></div><div class="al-txt"></div><div class="al-bar"><i></i></div></div>'; document.body.appendChild(d); return (L.el = d); }
   function show(t, label) { const d = el(), bar = d.querySelector('.al-bar i'); d.querySelector('.al-txt').textContent = label || ('Heading to ' + (SC[t] || 'the next area') + '\u2026'); bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
     d.classList.remove('out'); d.classList.add('on'); if (!L.on) { L.shows++; L.t0 = performance.now(); } L.on = true; L.last = t; clearTimeout(L.tm); let fr = 0; const t1 = performance.now();
@@ -460,7 +460,7 @@ function init() {
     openModal(`<h2>Welcome to the Rim</h2>
       <p>You hold a small capital on the edge of <b>the Hollow</b>, a chasm that goes down forever. Lumen, a living light, grows deep below.</p>
       <ul class="small">
-        <li>🗺️ <b>Ledgeville</b>: the huge city around the Hollow. Drag, pinch and tap anything. Every house is a player's ${CITY.homeTerm}.</li>
+        <li>🗺️ <b>Colossus</b>: the huge city around the Hollow. Drag, pinch and tap anything. Every house is a player's ${CITY.homeTerm}.</li>
         <li>🏰 <b>Capital</b>: upgrade buildings. Your wall is not just a wall.</li>
         <li>🕳️ <b>Hollow</b>: send ${CONFIG.hero.name} on timed expeditions. Deeper = richer, riskier.</li>
         <li>🐢 <b>Outposts</b>: your Strider mines a vein and lifts goods up the Tether. Hauling costs Lumen (the Pull).</li>

@@ -1,4 +1,4 @@
-// Ledgeville map tests (mobile viewport, headless)
+// Colossus map tests (mobile viewport, headless)
 const { chromium } = require('playwright-core'); const path = require('path');
 const URL = 'https://dominicg5.github.io/hollowdeep/';
 let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
@@ -9,7 +9,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.goto(URL); await p.waitForTimeout(1200);
   if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]');
   await p.waitForTimeout(1500);
-  ok(await p.isVisible('#cityCanvas'), 'Ledgeville is default tab and canvas visible');
+  ok(await p.isVisible('#cityCanvas'), 'Colossus is default tab and canvas visible');
   const g = await p.evaluate(() => ({ homes: W.homes.length, regions: REGIONS.length, cracks: W.cracks.length }));
   ok(g.homes > 300, `homes generated: ${g.homes}`); ok(g.regions === 9, '9 regions'); ok(g.cracks > 10, 'cracks: ' + g.cracks);
   // canvas non-blank

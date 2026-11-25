@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   LEDGEVILLE — living world: people, pets, NPCs, sky-fish, weather,
+   COLOSSUS — living world: people, pets, NPCs, sky-fish, weather,
    day/night, seasons & festivals, mole surfacings, market spikes
    ===================================================================== */
 const CLOAKS = ['#4f8c8a', '#b0573a', '#7a5fa0', '#c9822f', '#5f7f99', '#6b8f4a', '#9a4a5a', '#3a4a6a', '#d8b46a'];

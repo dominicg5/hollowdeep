@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   LEDGEVILLE 3D — Three.js renderer: heightmap terrain (raised plateau, the Hollow pit, carved fissures, snowy
+   COLOSSUS 3D — Three.js renderer: heightmap terrain (raised plateau, the Hollow pit, carved fissures, snowy
    mountains), painted ground textures, sun + soft shadows, haze, instanced billboard homes/trees, night Lumen glow.
    The 2D canvas on top only carries labels/HUD. Falls back to the 2D painter when WebGL is missing.
    ===================================================================== */
@@ -80,7 +80,7 @@ const M3 = (() => {
   function fgCarve(x, y, c) { return typeof FORGE !== 'undefined' ? FORGE.carve(x, y, c) : c; } // the Volcanic Forge's cone, platform, scorched floor and talk ledge (local; only after generation)
   // terrain probe used when placing homes (height + slope), before or after the meshes exist
   // the Silverseam climb: a ledge route carved up the summit cliff above the Silverseam portaledge - broad ledges joined by short
-  // climbable rock pitches (~35 m each), cut into the face so the lowlands (your Ledge) and the summit (Ledgeville, the Grand Tree) connect
+  // climbable rock pitches (~35 m each), cut into the face so the lowlands (your Ledge) and the summit (Colossus, the Grand Tree) connect
   const SSR = { a: [-2656, 6952], b: [-2832, 4376], h0: 173, h1: 2022, N: 13, w: 44, bank: 80, ledge: 0.68 };
   // t445u (Dominic): one smooth natural regrade on the walk from the Lumen Tree platform down to the keeper valley floor - a ~35 deg pitch at (-6656,1792)
   // eased to an even fall along the line (no ramp, tread or structure): within RG.core of the segment the ground follows the straight grade between the

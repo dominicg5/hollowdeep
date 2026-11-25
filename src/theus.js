@@ -165,7 +165,7 @@ const Theus = (() => {
     if (k) { if (ST.kind === 'sword') ST.swSel = k; else ST.sel = k; } ST.flash = null; render(); ST.up.classList.remove('hidden'); return ST.up; }
   function closeUp() { if (ST.up) ST.up.classList.add('hidden'); ST.flash = null; }
 
-  // ---- the Ledgeville Exchange (Dominic): tiered pickaxes trade only between players, at the seller's price; never with the shop. Listing hands the item over
+  // ---- the Colossus Exchange (Dominic): tiered pickaxes trade only between players, at the seller's price; never with the shop. Listing hands the item over
   //      (its tier goes with it; held until cancelled, like the other player listings); buying brings the item with its tier; one tiered pickaxe per kind.
   const XS = { msg: null, conf: null };
   const lum = () => Craft.gold(), CO = () => Craft.COIN, n0 = (v) => Math.round(v).toLocaleString('en-US');

@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   LEDGEVILLE — camera, tiles, frame loop, input, cards, ticker, minimap
+   COLOSSUS — camera, tiles, frame loop, input, cards, ticker, minimap
    ===================================================================== */
 const CityMap = (() => {
   let cv, ctx, mm, mctx, wrap, dpr = 1, Wc = 0, Hc = 0, running = false, raf = 0;
@@ -38,9 +38,9 @@ const CityMap = (() => {
   }
   function layout() { const top = $('#top').offsetHeight, bot = $('#tabs').offsetHeight; wrap.style.top = top + 'px'; wrap.style.bottom = bot + 'px'; }
   function resize() { if (!cv) return; layout(); dpr = Math.min(window.devicePixelRatio || 1, QUALITY.dpr); const r = wrap.getBoundingClientRect(); Wc = Math.max(1, Math.round(r.width * dpr)); Hc = Math.max(1, Math.round(r.height * dpr)); if (cv.width !== Wc || cv.height !== Hc) { cv.width = Wc; cv.height = Hc; } cv.style.width = r.width + 'px'; cv.style.height = r.height + 'px'; if (typeof M3 !== 'undefined' && M3.canvas) M3.resize(r.width, r.height, dpr); }
-  function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); if (p != null) { L.querySelector('i').style.width = Math.round(p * 100) + '%'; L.querySelector('.ldPct').textContent = Math.round(p * 100) + '%'; } }
+  function showLoader(p) { const L = $('#cityLoader'); if (!L) return; L.classList.toggle('hidden', p == null); L.dataset.p = p == null ? '' : Math.round(p * 100); } // (GD-16: the card reads only 'Loading Colossus'; progress kept on data-p)
   function show() {
-    if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Ledgeville art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
+    if (!ART.ready) { wrap = $('#city'); wrap.classList.remove('hidden'); layout(); showLoader(ART.progress || 0); loadArt((p) => showLoader(p), (ok) => { showLoader(null); if (!ok) console.warn('Colossus art failed to load; using the procedural painter'); tiles.clear(); if (ui.tab === 'city') show(); }); return; }
     if (!mount.done) mount(); wrap.classList.remove('hidden'); layout(); resize(); if (!running) { running = true; lastFrame = performance.now(); raf = requestAnimationFrame(frame); } autoView(); }
   function hide(keepPlay) { devSave(); if (!keepPlay && typeof Explore !== 'undefined') Explore.exit(); /* (keepPlay: the Character tab; the walk on the map just pauses) */ if (wrap) wrap.classList.add('hidden'); running = false; cancelAnimationFrame(raf); if (mount.done) S.cityCam = { x: cam.x, y: cam.y, z: cam.z, rot: cam.rot, tilt: cam.tilt }; }
 
@@ -374,12 +374,12 @@ const CityMap = (() => {
   }
   function updateInfo(t) {
     const si = seasonInfo(), s = SEASONS[si.idx], f = festival(), wx = weatherNow(t); // no time-of-day clock: the world is always in daylight
-    if (CITY.base) { const t2 = `Ledgeville rank #${rimRank(W.player)} of ${W.homes.length}`; const e2 = $('#cityInfo'); if (e2 && e2.textContent !== t2) e2.textContent = t2; return; }
+    if (CITY.base) { const t2 = `Colossus rank #${rimRank(W.player)} of ${W.homes.length}`; const e2 = $('#cityInfo'); if (e2 && e2.textContent !== t2) e2.textContent = t2; return; }
     const txt = `${s.icon} ${s.name}${f ? (f === 'lumen' ? ' · 🏮 Lumen Festival' : ' · 🌾 Harvest Fair') : ''} · ${weatherLabel(wx)}`;
     const el = $('#cityInfo'); if (el && el.textContent !== txt) el.textContent = txt;
   }
   function buildLegend() {
-    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Ledgeville</b><button class="btn ghost sm" data-city="legend">✕</button></div>
+    $('#legend').innerHTML = `<div class="row between"><b>🗺️ Colossus</b><button class="btn ghost sm" data-city="legend">✕</button></div>
       <div class="legrow" data-city="home"><span class="sw" style="background:#ffd46b"></span><div><b>★ Your ${CITY.homeTerm}</b><br><span class="dim">Tap to fly home.</span></div></div>
       <div class="legrow"><span class="sw" style="background:#18203a"></span><div><b>🕳️ The Hollow</b><br><span class="dim">Tether lifts drop into it from the lip.</span></div></div>
       <div class="legrow"><span class="sw" style="background:#3a3430"></span><div><b>Crevices</b><br><span class="dim">Deep cracks spreading out across the lowlands below the plateau; ${W.rifts.length} rift mouths may lead back down.</span></div></div>
@@ -471,7 +471,7 @@ const CityMap = (() => {
     return L.length ? `<div class="small" style="margin-top:6px">${L.join('<br>')}</div>` : '<div class="dim" style="margin-top:6px">No trophies yet. A fresh start.</div>';
   }
   function rimLines(h) { const rk = rimRank(h), N = W.homes.length;
-    return `<div class="wrapgap" style="margin-top:6px"><span class="tag">⤓ Deepest: Lv ${h.deepest} / ${CITY.maxDepth}</span><span class="tag">🏆 Ledgeville rank #${rk} of ${N}</span><span class="tag">◎ ${ringLabel(h)}</span></div>
+    return `<div class="wrapgap" style="margin-top:6px"><span class="tag">⤓ Deepest: Lv ${h.deepest} / ${CITY.maxDepth}</span><span class="tag">🏆 Colossus rank #${rk} of ${N}</span><span class="tag">◎ ${ringLabel(h)}</span></div>
       <div class="small" style="margin-top:4px">Perks: <span class="dim">(coming soon)</span></div>`; }
   function homeCard(h) {
     openModal(`<h2>🏠 ${esc(h.name)}</h2><div class="small">Home of <b>${esc(h.owner)}</b> · ${typeof tierName === 'function' ? tierName(h) : ''}</div>
@@ -481,7 +481,7 @@ const CityMap = (() => {
   }
   function boardModal() { const B = rimBoard(), me = B.indexOf(W.player);
     const row = (h, i, pin) => `<tr class="${h.isPlayer ? 'me' : ''}"${h.isPlayer ? ` style="background:#ffe7a3;font-weight:700${pin ? ';position:sticky;top:0;z-index:2;box-shadow:0 2px 4px rgba(0,0,0,.15)' : ''}"` : ''}><td>#${i + 1}</td><td>${esc(h.isPlayer ? 'You' : h.owner)}${pin ? ' 📌' : ''}</td><td>Lv ${h.deepest}</td><td>${rimRing(h)}</td></tr>`;
-    openModal(`<h2>🏆 Ledgeville Leaderboard</h2><div class="small">Ranked by deepest Hollow level reached. Ten rings, each a tenth of the Rim, from the summit lip (ring 1) out to the far mountains (ring 10). Perks for rim proximity: <span class="dim">(coming soon)</span></div>
+    openModal(`<h2>🏆 Colossus Leaderboard</h2><div class="small">Ranked by deepest Hollow level reached. Ten rings, each a tenth of the Rim, from the summit lip (ring 1) out to the far mountains (ring 10). Perks for rim proximity: <span class="dim">(coming soon)</span></div>
       <table class="board" style="width:100%;margin-top:6px;border-collapse:collapse;font-size:13px"><thead><tr><th align="left">Rank</th><th align="left">Player</th><th align="left">Deepest</th><th align="left">Ring</th></tr></thead>
       <tbody id="boardPin">${row(W.player, me, true)}</tbody><tbody><tr><td colspan="4"><hr style="margin:4px 0"></td></tr>${B.slice(0, 100).map((h, i) => row(h, i)).join('')}</tbody></table>
       ${me >= 100 ? `<div class="dim small">… you are #${me + 1} of ${B.length}</div>` : ''}${btnRow('<button class="btn" data-act="mapgohome">🏠 Fly to my home</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
@@ -516,7 +516,7 @@ const CityMap = (() => {
     openModal(`<h2>★ Your ${CITY.homeTerm}</h2><div class="small">Lantern Hall Lv ${S.buildings.hall} · ${typeof tierName === 'function' ? tierName(W.player) : ''}</div>
       ${rimLines(W.player)}
       <div class="dim" style="margin-top:6px">Reach deeper Hollow levels and your home moves to an inner ring, closer to the rim.</div>
-      ${btnRow('<button class="btn" data-act="mapboard">🏆 Ledgeville Leaderboard</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
+      ${btnRow('<button class="btn" data-act="mapboard">🏆 Colossus Leaderboard</button><button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function marketCard(m) {
     const R = REGIONS[m.region], spike = marketSpike(m.idx), mult = spike ? CITY.spikeMult : 1, P = CONFIG.market, lot = P.lot;

@@ -15,7 +15,7 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   assert(await page.isVisible('#modal:not(.hidden)'), 'welcome modal shown');
   await page.screenshot({ path: 'shot-welcome.png' });
   await page.click('[data-act=close]');
-  assert(await page.isVisible('#cityCanvas'), 'Ledgeville is the default view');
+  assert(await page.isVisible('#cityCanvas'), 'Colossus is the default view');
   await page.evaluate(() => setTab('capital'));
   assert(await page.isVisible('text=Lantern Hall'), 'capital renders buildings');
   await page.screenshot({ path: 'shot-capital.png', fullPage: true });

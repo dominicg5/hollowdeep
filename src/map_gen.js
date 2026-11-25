@@ -1,6 +1,6 @@
 
 /* =====================================================================
-   LEDGEVILLE — procedural, seeded world around the Hollow
+   COLOSSUS — procedural, seeded world around the Hollow
    ===================================================================== */
 const CITY = {
   homeTerm: 'Ledge', functional: false, water: false,

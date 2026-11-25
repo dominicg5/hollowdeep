@@ -1,7 +1,7 @@
 // Theus (the forge ape) talk + pickaxe tiers on the item (Dominic: one tiered pickaxe per kind, its own tier; plain ones stack, are T0 and pay). Checks: the first-meeting chain
 // (restart if closed early, one gift, returning players skip it, no Prometheus), tier maths, equipped item's tier sets the multiplier, drills unaffected, strike yield, consumption, save
 // round-trip + earlier-build migration, names / T badges (backpack never shows vault items), sell confirm + reset to T0, forge card (T0, names wrap), anvil gate, portraits, no page errors.
-// Also: tiered pickaxes only at the Ledgeville Exchange (no shop; buy blocked when holding that kind; list with the warning; cancel), shop sheet title, ore reach (grade + one above).
+// Also: tiered pickaxes only at the Colossus Exchange (no shop; buy blocked when holding that kind; list with the warning; cancel), shop sheet title, ore reach (grade + one above).
 // SHOT=1: forge_owned_combined, backpack_stacks_500, vault_stacked_pickaxes, backpack_climbing_gear, lumen_crystal_skin_shop, exchange_gold_coins, ember_onyx_tier_icons, ember_onyx_tiers_hand to /workspace/shots-char/final/.
 // Also: Theus never pulls from the vault (owned = pack + bank notes, paid notes first), backpack 500-per-slot stacks / single-slot tools / one tether stack, full backpack, vault stacking, slot migration.
 const { chromium } = require('playwright-core');
@@ -44,7 +44,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     Craft.open('xfer'); const xh = document.getElementById('modalBody').innerHTML, vi = xh.indexOf('Ledge Vault'); o.vault = [vi > 0 && xh.indexOf('title="Gold Pickaxe (T2)"') > vi, /<b class="cxtb">T2<\/b>/.test(xh.slice(vi))];
     // the shop sheet (Dominic: no set prices except the Bronze Pickaxe): Skins + the one Buy row; the shop buys nothing back; tiered pickaxes never in it
     Craft.st.tab = 'skins'; Craft.open('exchange'); const mh = document.getElementById('modalBody'); o.shop = [mh.querySelector('h2').textContent, /tpick_/.test(mh.innerHTML), mh.querySelectorAll('[data-cx="buy"]').length, !!mh.querySelector(`[data-cx="buy"][data-id="${P('bronze')}"]`), !!mh.querySelector('[data-cx="sell"]')]; try { closeModalQuiet(); } catch (e) {}
-    // the Ledgeville Exchange: buy blocked when holding that kind, buy brings the item with its tier, list (danger warning) hands it over, cancel returns it (blocked if you hold one again)
+    // the Colossus Exchange: buy blocked when holding that kind, buy brings the item with its tier, list (danger warning) hands it over, cancel returns it (blocked if you hold one again)
     S.gold = 10000000; Theus.XS.msg = null; Theus.XS.conf = null; CityMap.exchangeCard(); const q = (sel) => document.querySelector('#modalBody ' + sel), msg = () => { const e = q('.thExMsg'); return e ? e.textContent : ''; }, E = Theus.exState();
     o.ex0 = [!!q('#thEx'), E.ai.length, E.ai.map((a) => a.k + a.tier).join(' ')];
     q('[data-act="extbuy"][data-id="ai1"]').click(); o.blocked = [msg(), S.gold, E.ai.some((a) => a.id === 'ai1'), K.pickUpgTier('bronze')];
@@ -200,7 +200,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(R.giftFull.join() === 'false,true,0,0,false,1', `Theus' gift with a full backpack stays pending (nothing given, nothing to the vault); the next talk with a free slot gives it (${R.giftFull.join(',')})`);
   ok(!R.cgShop[0] && R.cgShop[1] && !R.cgShop[2] && R.cgShop[3], 'shop: no climbing gear to buy; the Bronze Pickaxe priced in gold coins (coin icon); nothing sold back; looks for Lumen Crystals');
   ok(R.gold.join() === '1,345,1,true,false,false,false,false', `gold coins: the plain Bronze Pickaxe is bought for ${R.gold[1]} gold (fixed); no shop selling, no set prices, no Lumen rate; Lumen untouched (${R.gold.join(',')})`);
-  ok(R.exGold[0] && !R.exGold[1] && !R.exGold[2], 'Ledgeville Exchange: prices, purse and listings in gold coins (no 🏮)');
+  ok(R.exGold[0] && !R.exGold[1] && !R.exGold[2], 'Colossus Exchange: prices, purse and listings in gold coins (no 🏮)');
   ok(R.cgMig.join() === 'gold,iron,lumen,bronze,mithril,rune,steel,0,0,false,false,lumen,bronze,1,24', `climbing migration: owned Gold picks, worn Lumen look, Rune / Steel tethers, a part-done Mithril tether job -> skins (${R.cgMig[0]} | ${R.cgMig[1]}); one base pair; Lumen look kept, Vine -> Bronze; 24 Mithril ingots refunded`);
   ok(R.sk0[0] === '💠 Skins' && R.sk0[1] === 18 && R.sk0[2] && R.sk0[3] && R.sk1.join() === '420,true' && R.sk2[0] === 'steel' && R.sk2[1] === 'steel' && R.sk2[2] && R.sk2[3] && R.sk2[4], `Lumen Crystal skins: 18 looks, crystal purchase stubbed "coming soon"; Steel picks bought for 80 (500 -> ${R.sk1[0]}), worn: the look changes, the speeds don't`);
   ok(R.speeds[0] === 'iron' && R.speeds[1] === 'bronze' && Math.abs(R.speeds[2] - 0.936) < 1e-9 && Math.abs(R.speeds[3] - 1.4) < 1e-9 && Math.abs(R.speeds[4] - 1.56) < 1e-9 && Math.abs(R.speeds[5] - 1.7333) < 1e-3 && Math.abs(R.speeds[6] - 1.4474) < 1e-3, `locked climb speeds with Iron picks + Bronze tether: Explore climbFac ${R.speeds[2]} (CLIMB_EX x 1.56), outside ${R.speeds[3]}, rope fac ${R.speeds[4]} (${R.speeds[5].toFixed(2)} m/s down, ${R.speeds[6].toFixed(2)} m/s up) (got locked climb speeds)`);
