@@ -8,8 +8,10 @@
 // LUMEN MUSHROOM STATS - PLACEHOLDERS (Dominic: "easy placeholder values"). Edit here: everything the playground fight reads comes from this block.
 const LUMEN_MUSHROOM = {
   name: 'Lumen Mushroom',
-  hp: 10,           // max HP (Dominic t654u)
+  hp: 8,            // max HP (Art's stats, Dominic t655)
+  str: 1,           // Strength - STORED ONLY: no creature counterattacks exist yet, nothing reads this
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
+  xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp. The Combat XP per-level curve is still a placeholder.
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground
 };

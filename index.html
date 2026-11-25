@@ -901,7 +901,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='1101a50d';
+<script>window.HD_BUILD='b9f5327f';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -923,8 +923,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 1101a50d</div>
-<script src="assets/vendor/three.min.js?v=1101a50d"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build b9f5327f</div>
+<script src="assets/vendor/three.min.js?v=b9f5327f"></script>
 <script>
 'use strict';
 
@@ -10091,8 +10091,10 @@ const CityMap = (() => {
 // LUMEN MUSHROOM STATS - PLACEHOLDERS (Dominic: "easy placeholder values"). Edit here: everything the playground fight reads comes from this block.
 const LUMEN_MUSHROOM = {
   name: 'Lumen Mushroom',
-  hp: 10,           // max HP (Dominic t654u)
+  hp: 8,            // max HP (Art's stats, Dominic t655)
+  str: 1,           // Strength - STORED ONLY: no creature counterattacks exist yet, nothing reads this
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
+  xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp. The Combat XP per-level curve is still a placeholder.
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground
 };
@@ -11924,7 +11926,7 @@ const CharView = (() => {
     if (d > PGA.REACH || fw.dot(to) < 0.3) return null; /* (out of reach, or she has been turned away from it) */
     const r = Combat.rollDamage(Combat.playerStats(), { def: LUMEN_MUSHROOM.def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift();
     pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss');
-    if (PGA.hp <= 0) { PGA.dead = LUMEN_MUSHROOM.respawnS; PGA.kills++; m.play('Death', true); } else if (r.dmg > 0) m.play('HitRecieve', true); pgaHud(); return r; }
+    if (PGA.hp <= 0) { PGA.dead = LUMEN_MUSHROOM.respawnS; PGA.kills++; m.play('Death', true); if (LUMEN_MUSHROOM.xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(LUMEN_MUSHROOM.xp); if (typeof save === 'function') save(); pgaNum('+' + LUMEN_MUSHROOM.xp + ' Combat XP', 'info'); } } else if (r.dmg > 0) m.play('HitRecieve', true); pgaHud(); return r; }
   function pgaTick(dt) { if (!PGA.on) return; const m = PGA.mob; if (!m) return; m.mixer.update(dt); const A = SWG.at; if (A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; pgaHit(); }
     if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; if (PGA.dead <= 0) { PGA.dead = 0; PGA.hp = LUMEN_MUSHROOM.hp; m.play('Idle'); m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
     else if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); }

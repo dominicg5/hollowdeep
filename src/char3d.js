@@ -1790,7 +1790,7 @@ const CharView = (() => {
     if (d > PGA.REACH || fw.dot(to) < 0.3) return null; /* (out of reach, or she has been turned away from it) */
     const r = Combat.rollDamage(Combat.playerStats(), { def: LUMEN_MUSHROOM.def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift();
     pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss');
-    if (PGA.hp <= 0) { PGA.dead = LUMEN_MUSHROOM.respawnS; PGA.kills++; m.play('Death', true); } else if (r.dmg > 0) m.play('HitRecieve', true); pgaHud(); return r; }
+    if (PGA.hp <= 0) { PGA.dead = LUMEN_MUSHROOM.respawnS; PGA.kills++; m.play('Death', true); if (LUMEN_MUSHROOM.xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(LUMEN_MUSHROOM.xp); if (typeof save === 'function') save(); pgaNum('+' + LUMEN_MUSHROOM.xp + ' Combat XP', 'info'); } } else if (r.dmg > 0) m.play('HitRecieve', true); pgaHud(); return r; }
   function pgaTick(dt) { if (!PGA.on) return; const m = PGA.mob; if (!m) return; m.mixer.update(dt); const A = SWG.at; if (A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; pgaHit(); }
     if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; if (PGA.dead <= 0) { PGA.dead = 0; PGA.hp = LUMEN_MUSHROOM.hp; m.play('Idle'); m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
     else if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); }
