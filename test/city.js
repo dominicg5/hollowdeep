@@ -5,7 +5,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
 (async () => {
   const b = await chromium.launch({ executablePath: '/usr/bin/google-chrome', args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
-  const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message + ' ' + e.stack)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+  const p = await ctx.newPage(), snap = (o) => process.env.SHOT ? p.screenshot(o) : null; // no stills unless explicitly requested
+  const errs = []; p.on('pageerror', (e) => errs.push(e.message + ' ' + e.stack)); p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
   await p.goto(URL); await p.waitForTimeout(1200);
   if (await p.isVisible('#modal:not(.hidden)')) await p.click('#modal [data-act=close]', { timeout: 120000, force: true });
   await p.waitForFunction(() => typeof ART !== 'undefined' && ART.ready, null, { timeout: 30000 }); await p.waitForTimeout(500);
@@ -14,32 +15,34 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.evaluate(() => typeof THREE !== 'undefined' && THREE.REVISION === '149'), 'Three.js r149 vendored locally (no CDN)');
   ok(await p.evaluate(() => CityMap.is3d()), '3D renderer running (WebGL)');
   await p.waitForFunction(() => M3.models === 'ready' || M3.models === 'failed', null, { timeout: 60000 }).catch(() => {}); await p.waitForTimeout(1500);
-  const g3 = await p.evaluate(() => ({ models: M3.models, mm: M3.st.models, sprites: M3.st.sprites, calls: M3.st.calls, tris: M3.st.tris, shadows: M3.dbgShadow ? M3.dbgShadow() : true }));
-  ok(g3.models === 'ready' && g3.mm && g3.mm.homes > 700 && g3.calls > 3 && g3.tris > 1e5, `3D models loaded and instanced (${JSON.stringify(g3.mm)}), ${g3.calls} draw calls, ${g3.tris} tris`);
+  const g3 = await p.evaluate(() => ({ live: W.homes.length, models: M3.models, mm: M3.st.models, sprites: M3.st.sprites, calls: M3.st.calls, tris: M3.st.tris, shadows: M3.dbgShadow ? M3.dbgShadow() : true }));
+  ok(g3.models === 'ready' && g3.mm && g3.mm.homes === g3.live && g3.live >= 300 && g3.calls > 3 && g3.tris > 1e5, `3D models loaded and instanced (${JSON.stringify(g3.mm)}), ${g3.calls} draw calls, ${g3.tris} tris`);
   ok(await p.isVisible('#cityCanvas'), 'Colossus is default tab and canvas visible');
   { const g16 = await p.evaluate(() => ({ ld: (document.getElementById('cityLoader') || {}).textContent, tab: (document.querySelector('nav#tabs [data-tab=city]') || {}).textContent, old: /ledgeville/i.test(document.documentElement.innerHTML) }));
     ok(g16.ld && g16.ld.trim() === 'Loading Colossus' && /Colossus/.test(g16.tab || '') && !g16.old, `GD-16: the loading screen says only "Loading Colossus"; the map is Colossus everywhere, no Ledgeville left (${JSON.stringify(g16)})`); }
   const g = await p.evaluate(() => ({ homes: W.homes.length, cracks: W.cracks.length, R: CITY.R, mk: W.markets.length, vt: W.vaults.length, mtn: W.mountains.length, br: W.bridges.length, fish: (W.dayFish||[]).length + (W.nightFish||[]).length, obs: !!CONFIG.resources.obsidian, wx: WEATHER_TYPES.filter((w) => w === 'storm' || w === 'rain').length, tiers: [...new Set(W.homes.map((h) => h.level))].length }));
-  const hc = await p.evaluate(() => CITY.homeCount); ok(g.homes === hc && hc <= 1200, `light home count from one config value (CITY.homeCount=${hc}): ${g.homes}`); ok(g.cracks > 10, 'crevices: ' + g.cracks); ok(g.mk === 0 && g.vt === 0, 'no bazaars or vaults on the map');
+  const hc = await p.evaluate(() => CITY.homeCount), hs = await p.evaluate(() => ({ st: W.homeStats, dropped: W.homesDropped, bad: W.homes.filter((h) => !h.isPlayer && (!houseGround(h.x, h.y, h.size * 0.75).ok || onRoute(h.x, h.y, h.size))).length }));
+  /* (e93d031, Dominic t569u/t570u: a house stands only on flat ground - generation places CITY.homeCount, then every pre-placed one on slope / mining / scorched ground is deleted, never moved) */
+  ok(hc <= 1200 && hs.st && hs.st.before === hc && hs.st.after === g.homes && g.homes + hs.dropped === hc && hs.bad === 0 && Object.values(hs.st.by).reduce((n, v) => n + v, 0) === hs.dropped && g.homes >= 300, `home count from one config value: CITY.homeCount=${hc} placed, ${hs.dropped} on bad ground deleted, ${g.homes} stand (${JSON.stringify(hs.st && hs.st.by)})`); ok(g.cracks > 10, 'crevices: ' + g.cracks); ok(g.mk === 0 && g.vt === 0, 'no bazaars or vaults on the map');
   ok(g.R >= 10000, 'big map radius ' + g.R); ok(g.mtn > 100, 'mountains: ' + g.mtn);
   const v2 = await p.evaluate(() => ({ op: W.outposts.length, falls: !!W.lakeFalls, pass: !!W.pass, rivers: W.rivers.length - 1, water: CITY.water, stairs: W.stairs.length, fields: W.sets.length, onCliff: W.homes.filter((h) => onCliff(h.x, h.y, 0)).length, plateau: W.homes.filter((h) => plateauDist(h.x, h.y) < 0).length, radial: W.radial.length }));
   const rg = await p.evaluate(() => { const N = W.homes.length, cnt = {}; for (const h of W.homes) cnt[h.ring] = (cnt[h.ring] || 0) + 1; const gs = W.homes.map((h) => ({ k: h.ring, ...M3.ground(h.x, h.y) }));
     const B = rimBoard(); let mono = true; for (let i = 1; i < B.length; i++) if (!B[i].isPlayer && !B[i - 1].isPlayer && B[i].ring < B[i - 1].ring && B[i].deepest < B[i - 1].deepest) mono = false;
     return { N, cnt, hw: cnt[0] || 0, steep: gs.filter((g) => g.slope > 0.4).length, sum1: gs.filter((g) => g.k === 1 && g.h > CITY.summitH - 120).length, n1: gs.filter((g) => g.k === 1).length, low: gs.filter((g) => g.k >= 2 && g.h < CITY.summitH * 0.75).length, nOut: gs.filter((g) => g.k >= 2).length, mono,
       r2: Math.round(W.homes.filter((h) => h.ring === 2).reduce((s, h) => s + Math.hypot(h.x, h.y), 0) / (cnt[2] || 1)), r10: Math.round(W.homes.filter((h) => h.ring === 10).reduce((s, h) => s + Math.hypot(h.x, h.y), 0) / (cnt[10] || 1)) }; });
-  ok(rg.hw === 0 && Object.keys(rg.cnt).length === 10 && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((k) => Math.abs(rg.cnt[k] - rg.N / 10) < rg.N * 0.02 + 8), `ranks split into 10 decile rings (no Lumen Tree seats): ${JSON.stringify(rg.cnt)}`);
+  ok(rg.hw === 0 && Object.keys(rg.cnt).length === 10 && [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((k) => rg.cnt[k] > 0), `ranks placed in 10 decile rings, every ring still populated after the flat-ground cull (no Lumen Tree seats): ${JSON.stringify(rg.cnt)}`);
   ok(rg.sum1 >= rg.n1 * 0.95 && rg.low >= rg.nOut * 0.95 && rg.steep <= 8 && rg.r10 > rg.r2 + 4000, `ring 1 on the summit (${rg.sum1}/${rg.n1}), rings 2-10 below on lowlands/slopes (${rg.low}/${rg.nOut}), ${rg.steep} on steep ground, ring 2 r=${rg.r2} .. ring 10 r=${rg.r10}`);
-  ok(rg.mono, 'rings follow rank (deeper delvers never sit in an outer ring)');
+  ok(rg.mono, 'rings follow rank (deeper explorers never sit in an outer ring)');
   ok(v2.radial >= 12, 'cracks spread out from the plateau: ' + v2.radial);   ok(!v2.falls && v2.rivers <= 0 && !v2.water, 'no water features (no lake, rivers or falls) for now');
   // approved base only
   const base = await p.evaluate(() => ({ mole: currentMole(), fest: festival(), npcs: W.npcs.length, lifts: W.lifts.length, lm: W.landmarks.length, op: W.outposts.length, pass: !!W.pass, br: W.bridges.filter((b) => !b.real).length, stairs: W.stairs.length, civic: W.civic.map((c) => c.type).join(','), ticker: getComputedStyle(document.getElementById('ticker')).display, btns: [...document.querySelectorAll('button[data-city]')].filter((b) => b.offsetParent !== null).map((b) => b.dataset.city).join(',') }));
   ok(!base.mole && !base.fest && base.npcs === 0, 'no mole, festivals/events or NPCs');
   ok(base.lifts + base.lm + base.op + base.br + base.stairs === 0 && !base.pass && base.civic === '', 'no lifts, landmarks, outposts, pass, bridges or stairs; no civic buildings (the Exchange is retired)');
-  ok(base.ticker === 'none' && !/journal|season|legend/.test(base.btns) && /board/.test(base.btns), 'no rumor ticker, journal, season or legend buttons; leaderboard button present: ' + base.btns);
+  ok(base.ticker === 'none' && !/journal|season|legend/.test(base.btns) && /vchar/.test(base.btns) && /vdev/.test(base.btns), 'no rumor ticker, journal, season or legend buttons; the Character / Dev view buttons are (9839169: the map opens in Character view): ' + base.btns);
   // homes ringed by deepest level
   const dp = await p.evaluate(() => { const A = W.homes.filter((h) => !h.isPlayer).sort((a, b) => b.deepest - a.deepest), q = Math.floor(A.length / 4), m = (L) => L.reduce((s, h) => s + hollowDist(h.x, h.y), 0) / L.length;
     return { top: Math.round(m(A.slice(0, q))), bot: Math.round(m(A.slice(-q))), max: A[0].deepest, med: A[Math.floor(A.length / 2)].deepest, all: A.every((h) => h.deepest >= 1 && h.deepest < 99) }; });
-  ok(dp.top < dp.bot && dp.all && dp.max < 90 && dp.med < 15, `deeper delvers live nearer the rim (top quarter ${dp.top} vs bottom ${dp.bot} from the rim; median Lv ${dp.med}, max Lv ${dp.max})`);
+  ok(dp.top < dp.bot && dp.all && dp.max < 90 && dp.med < 15, `deeper explorers live nearer the rim (top quarter ${dp.top} vs bottom ${dp.bot} from the rim; median Lv ${dp.med}, max Lv ${dp.max})`);
   const mv = await p.evaluate(() => { const d0 = hollowDist(W.player.x, W.player.y), r0 = rimRank(W.player); S.stats.deepest = (S.stats.deepest || 0) + 6; const moved = relocatePlayer(); const d1 = hollowDist(W.player.x, W.player.y), r1 = rimRank(W.player); S.stats.deepest -= 6; relocatePlayer(); M3.refresh(); return { moved, d0: Math.round(d0), d1: Math.round(d1), r0, r1 }; });
   ok(mv.moved && mv.d1 < mv.d0 && mv.r1 < mv.r0, `player's Ledge moves inward when their record improves (${mv.d0} -> ${mv.d1} from the rim, rank #${mv.r0} -> #${mv.r1})`);
   const seats = await p.evaluate(() => ({ hw: W.homes.filter((h) => h.heartwood || h.slot != null || h.ring === 0).length, lbl: ringLabel(rimBoard()[0]), fns: ['seatHeartwood', 'heartwoodSlot', 'HW_SEATS'].filter((k) => typeof window[k] !== 'undefined' || (() => { try { return typeof eval(k) !== 'undefined'; } catch (e) { return false; } })()) }));
@@ -48,11 +51,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(hwv.ring === 1 && !hwv.hw && hwv.elev == null && hwv.lbl === 'Ring 1' && hwv.back > 0, `a top player's Ledge moves to ring 1 on the ground, not into the tree (${JSON.stringify(hwv)})`);
   ok(await p.evaluate(() => CONFIG.raidsEnabled === false && S.nextRaidAt > 1e14 && !S.pendingReveal), 'raids are off game-wide (no raid timer, no pending raid)');
   ok(g.fish === 0, 'no flying fish'); ok(g.wx === 0, 'no storms or rain in weather table'); ok(g.obs, 'obsidian resource still in economy');
+  // (9839169) the map opens in Character view (third-person on her); the overview camera checks below need Dev view, which first opens centred where she stood
+  const here = await p.evaluate(() => (typeof Explore !== 'undefined' && Explore.on ? Explore.here() : null)); await p.evaluate(() => { closeModalQuiet(); document.querySelector('[data-city=vdev]').click(); });
+  await p.waitForFunction(() => !(typeof Explore !== 'undefined' && Explore.on) && document.querySelector('.devCam') && document.querySelector('.devCam').offsetParent !== null, null, { timeout: 60000 }).catch(() => {});
   // canvas non-blank
   const varied = await p.evaluate(() => { M3.render(performance.now() / 1000, CityMap.cam); const c = document.createElement('canvas'); c.width = M3.canvas.width; c.height = M3.canvas.height; c.getContext('2d').drawImage(M3.canvas, 0, 0); const x = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; const set = new Set(); for (let i = 0; i < x.length; i += 4 * 997) set.add((x[i] >> 4) + ',' + (x[i + 1] >> 4) + ',' + (x[i + 2] >> 4)); return set.size; });
   ok(varied > 30, '3D map renders varied pixels: ' + varied);
-  const camHome = await p.evaluate(() => [CityMap.cam.x - W.player.x, CityMap.cam.y - W.player.y]);
-  ok(Math.hypot(...camHome) < 5, 'opens centered on player home');
+  const camHome = await p.evaluate((h) => [CityMap.cam.x - (h ? h[0] : W.player.x), CityMap.cam.y - (h ? h[1] : W.player.y)], here);
+  ok(Math.hypot(...camHome) < 5, 'Dev view opens centred on her (' + (here ? 'where she stood' : 'her home') + ')');
   // drag
   const c0 = await p.evaluate(() => ({ ...CityMap.cam }));
   await p.mouse.move(200, 500); await p.mouse.down(); await p.mouse.move(120, 420, { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(300);
@@ -87,8 +93,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     await p.evaluate(() => { CityMap.cam.rot = 0; CityMap.cam.tilt = 55; }); }
   await p.evaluate(() => CityMap.flyTo(W.player.x, W.player.y, 1.05, true)); await p.waitForTimeout(300);
   // wheel zoom
-  await p.evaluate(() => closeModalQuiet()); await p.mouse.move(200, 500); await p.mouse.wheel(0, 400); await p.waitForTimeout(300);
-  const c2 = await p.evaluate(() => CityMap.cam.z); ok(c2 < c1.z, `wheel zooms out ${c1.z.toFixed(2)} -> ${c2.toFixed(2)}`);
+  const zw = await p.evaluate(() => { closeModalQuiet(); return CityMap.cam.z; }); await p.mouse.move(200, 500); await p.mouse.wheel(0, 400); await p.waitForFunction((z) => CityMap.cam.z < z, zw, { timeout: 15000 }).catch(() => {});
+  const c2 = await p.evaluate(() => CityMap.cam.z); ok(c2 < zw, `wheel zooms out ${zw.toFixed(2)} -> ${c2.toFixed(2)}`); /* (compared with the zoom just before the wheel: the flyTo above sets it) */
   await p.evaluate(() => closeModalQuiet()); await p.click('[data-city=zin]'); await p.waitForTimeout(500); const c3 = await p.evaluate(() => CityMap.cam.z); ok(c3 > c2, 'zoom button zooms in');
   // touch pinch via CDP
   const cdp = await ctx.newCDPSession(p); const zb = await p.evaluate(() => CityMap.cam.z);
@@ -106,7 +112,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const hname = await p.evaluate(() => __h.name); console.log('card:', card.replace(/\s+/g, ' ').slice(0, 200));
   ok(card.includes(hname) && !/Raid/.test(card) && /Deepest: Lv \d+/.test(card) && /Colossus rank #\d+/.test(card) && /Perks: \(coming soon\)/.test(card), 'tapping a home opens its safe social card (Deepest, Colossus rank, Perks placeholder, no Raid): ' + hname);
   ok(/'s Ledge$/.test(hname), 'homes are Ledges named after their owner: ' + hname);
-  await p.screenshot({ path: 'city-home-card.png' });
+  await snap({ path: 'city-home-card.png' });
     await p.evaluate(() => closeModalQuiet());
   // the outdoor Exchange is gone from the map (the Lumen Tree is the commune now)
   ok(await p.evaluate(() => !W.exchange && !W.civic.some((c) => c.type === 'exchange')), 'no outdoor Exchange on the map');
@@ -121,13 +127,14 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   { const D = await p.evaluate(() => { const D = GRAND.door; if (!D) return null; const T = W.heartwood, o = T.in + Math.PI; CityMap.flyTo(D.x + Math.cos(o) * 900, D.y + Math.sin(o) * 900, 0.25, true); CityMap.cam.rot = Math.atan2(Math.cos(o), Math.sin(o)); CityMap.cam.tilt = 35; return { x: D.x, y: D.y, up: D.up, h: D.hgt }; });
     ok(!!D, 'the Lumen Tree has its great door'); if (D) { await p.waitForTimeout(1500); await p.evaluate((D) => { closeModalQuiet(); CityMap.handleTap(...CityMap.w2sUp(D.x, D.y, D.up + D.h * 0.4)); }, D); await p.waitForTimeout(400);
       const en = await p.evaluate(() => ({ tab: ui.tab, tree: !!CharView.st.tree, vis: !!CharView.st.visible, modal: ui.modal || null, info: !!document.getElementById('treeInfo').offsetParent }));
-      ok(en.tab === 'tree' && en.tree && en.vis && !en.modal && en.info, 'tapping the Lumen Tree door walks you straight inside the tree (' + JSON.stringify(en) + ')'); await p.screenshot({ path: 'city-door.png' });
+      ok(en.tab === 'tree' && en.tree && en.vis && !en.modal && en.info, 'tapping the Lumen Tree door walks you straight inside the tree (' + JSON.stringify(en) + ')'); await snap({ path: 'city-door.png' });
       await p.click('#treeBack'); await p.waitForTimeout(600); const bk = await p.evaluate(() => ({ tab: ui.tab, tree: !!CharView.st.tree, vis: !!CharView.st.visible }));
       ok(bk.tab === 'city' && !bk.tree && !bk.vis, 'the Outside button leaves the tree back to the Rim (' + JSON.stringify(bk) + ')'); await p.waitForTimeout(800); } }
   // Colossus Leaderboard
-  await p.click('[data-city=board]'); await p.waitForTimeout(300);
+  // (9839169) no map leaderboard button any more: the board opens from her Ledge card's 🏆 Colossus Leaderboard button (CityMap.boardModal)
+  await p.evaluate(() => { closeModalQuiet(); CityMap.boardModal(); }); await p.waitForSelector('#boardPin');
   { const bt = await p.textContent('#modalBody'); const pin = await p.textContent('#boardPin'); ok(/Colossus Leaderboard/.test(bt) && /You/.test(pin) && /Lv \d+/.test(pin), 'leaderboard ranks homes by rim proximity with your row pinned: ' + pin.trim().replace(/\s+/g, ' '));
-    ok(await p.evaluate(() => { const r = rimBoard(); return r.every((h, i) => i === 0 || r[i - 1].deepest >= h.deepest); }), 'leaderboard sorted by deepest level'); await p.screenshot({ path: 'city-board.png' }); }
+    ok(await p.evaluate(() => { const r = rimBoard(); return r.every((h, i) => i === 0 || r[i - 1].deepest >= h.deepest); }), 'leaderboard sorted by deepest level'); await snap({ path: 'city-board.png' }); }
   ok(!/Lumen Tree #|Heartwood|seat #/.test(await p.textContent('#modalBody')), 'leaderboard has no Lumen Tree / Heartwood seat text');
   { const hc2 = await p.evaluate(() => { closeModalQuiet(); const h = rimBoard().find((o) => !o.isPlayer); CityMap.homeCard(h); return document.getElementById('modalBody').textContent; }); ok(/Ring \d+/.test(hc2) && /Colossus rank #\d+/.test(hc2) && !/Lumen Tree seat|Lumen Tree #/.test(hc2), 'the #1 Ledge card shows a ground ring, no tree seat'); await p.evaluate(() => closeModalQuiet()); }
   await p.evaluate(() => closeModalQuiet());
@@ -139,7 +146,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   // Character tab: own 3D stage, sex toggle persisted, fidgets advance, hidden on other tabs
   ok(await p.evaluate(() => [...document.querySelectorAll('nav#tabs [data-tab]')].map((b) => b.dataset.tab).join(',')) === 'city,char,ledge,home,tree,bag', 'tab bar is Colossus, Character, Portaledges, Ledge, Lumen Tree, Backpack');
   await p.click('nav#tabs [data-tab=ledge]', { force: true }); await p.waitForTimeout(1500);
-  ok(await p.evaluate(() => CharView.st.ledge && !!CharView.ledge && CharView.ledge.visible && CharView.LP.on && CharView.st.gnd && CharView.st.gnd.mine && document.getElementById('charWrap').classList.contains('ledge') && !document.getElementById('cityCanvas').offsetParent), 'portaledges tab shows the hanging camp with the delver mining');
+  ok(await p.evaluate(() => CharView.st.ledge && !!CharView.ledge && CharView.ledge.visible && CharView.LP.on && CharView.st.gnd && CharView.st.gnd.mine && document.getElementById('charWrap').classList.contains('ledge') && !document.getElementById('cityCanvas').offsetParent), 'portaledges tab shows the hanging camp with her mining');
   ok(await p.isVisible('#ledgeInfo') && /Mithril/.test(await p.textContent('#ledgeInfo')), 'portaledge info panel names the ore');
   { const d = await p.evaluate(() => { const L = CharView.LG, a0 = L.bit.rotation.z, n0 = L.sparks.life.filter((x) => x > 0).length; CharView.st.paused = true; CharView.advance(1 / 30, 20); const live = L.sparks.life.filter((x) => x > 0).length, c = L.sparks.pts.material.color.getHex(); return { spun: Math.abs(L.bit.rotation.z - a0), live, c, want: CharView.ORES[L.ore].spark, iron: CharView.ORES.iron.spark, hubOnBlock: !!L.drillG }; });
     ok(d.spun > 1 && d.live > 10 && d.c === d.want && d.want !== d.iron && d.hubOnBlock, 'Ledge Tether Drill spins and throws ore-coloured sparks (' + JSON.stringify(d) + ')'); await p.evaluate(() => { CharView.st.paused = false; }); }
@@ -349,7 +356,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.evaluate(() => setTab('capital')); await p.waitForTimeout(300); ok(await p.evaluate(() => document.getElementById('charWrap').classList.contains('hidden') && !CharView.st.visible), 'character stage hidden + paused on other tabs');
   await p.click('nav#tabs [data-tab=city]', { force: true }); await p.waitForTimeout(300);
   // Screenshots: far / mid / close
-  const shot = async (name, x, y, z, w = 2200) => { await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [x, y, z]); await p.waitForTimeout(w); await p.screenshot({ path: name }); };
+  const shot = async (name, x, y, z, w = 2200) => { await p.evaluate(([x, y, z]) => CityMap.flyTo(x, y, z, true), [x, y, z]); await p.waitForTimeout(w); await snap({ path: name }); };
   await p.evaluate(() => { S.seasonOverride = null; S.festivalOverride = false; });
   await shot('city-far.png', 0, 1200, 0.035, 4000);
   await shot('city-mid.png', 0, 2600, 0.25, 3000);
