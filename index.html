@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='51cd3bbb';
+<script>window.HD_BUILD='0af9a43c';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 51cd3bbb</div>
-<script src="assets/vendor/three.min.js?v=51cd3bbb"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 0af9a43c</div>
+<script src="assets/vendor/three.min.js?v=0af9a43c"></script>
 <script>
 'use strict';
 
@@ -10398,7 +10398,9 @@ const WORLD_GOLEMS = {
   // made offline: 2 of his 600 sit at 7.55 / 7.57 m) - a spawn closer than this is moved to the nearest clear, walkable, <= SPAWN_SLOPE_DEG spot in its own zone
   NODE_CLEAR_M: 8,       // metres from any ore node centre: spawns, and every wander step (a golem never wanders onto a rock)
   HUNT_NODE_K: 0.6,      // hunting her it may come closer, only kept off the rock itself: node size x this (the node's own collider, Explore colList) + its bodyR
-  NUDGE_MAX_M: 40,       // search radius for that move (1 m rings, 16 bearings)
+  NUDGE_MAX_M: 40,       // fine search radius for that move (1 m rings, 16 bearings)...
+  FAR_STEP_M: 2,         // ...then rings this far apart (32 bearings) out to its field's edge + WANDER_M (run30: 68 of Art's spots had no good ground within 40 m on the live map)
+  SPAWN_GAP_M: 10,       // a moved spawn keeps this far from its field's other golems (Art's plan: 18 m minimum spacing within a field)
   // (t718s2692) far stand-ins: every golem that is not one of the MAX_LIVE full ones is drawn as Art's unskinned LOD (golem_i23d_lod, 3,410 tris, Idle first key = bind
   // pose) - one THREE.InstancedMesh per ore = one draw each, the same chalk toon / glow / crystal gain / map encoding as the full golem. Swapped in the same frame a full
   // golem is built or released (never both, never neither); a dead golem's stand-in is hidden until it respawns
@@ -17311,23 +17313,28 @@ const WorldGolems = (() => {
   function nodesNear(x, y, f) { const I = nodeIdx(); if (!I) return; const i = Math.floor(x / I.C), j = Math.floor(y / I.C); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const L = I.m.get((i + a) + ',' + (j + b)); if (L) for (const n of L) f(n); } }
   function nodeDist(x, y) { let d = Infinity; nodesNear(x, y, (n) => { const e = Math.hypot(n.x - x, n.y - y); if (e < d) d = e; }); return d; } // map units to the nearest node centre (Infinity past 16 m)
   function nodeOn(x, y, r) { let on = false; nodesNear(x, y, (n) => { if (Math.hypot(n.x - x, n.y - y) < n.s * D().HUNT_NODE_K + r) on = true; }); return on; }
-  // its own wander zone: the closest field whose edge + WANDER_M covers the point is its field, and the closest of that field's spawns (Art's) is its own
-  function inZone(g, x, y) { let bf = null, bd = Infinity; for (const id in W.fields) { const f = W.fields[id], d = Math.hypot(x - f.x, y - f.y); if (d < bd && d <= f.R + D().WANDER_M * WS()) { bd = d; bf = f; } } if (!bf || bf.id !== g.fid) return false;
-    let bg = null; bd = Infinity; for (const q of W.byField[g.fid]) { const d = Math.hypot(x - q.ax, y - q.ay); if (d < bd) { bd = d; bg = q; } } return bg === g; }
+  // its own wander zone: the closest field whose edge + WANDER_M covers the point is its field (ownField), and the closest of that field's spawns - as placed on the live
+  // map (fixSpawns) - is its own: the Voronoi cell of its spawn
+  function ownField(g, x, y) { let bf = null, bd = Infinity; for (const id in W.fields) { const f = W.fields[id], d = Math.hypot(x - f.x, y - f.y); if (d < bd && d <= f.R + D().WANDER_M * WS()) { bd = d; bf = f; } } return !!bf && bf.id === g.fid; }
+  function inZone(g, x, y) { if (!ownField(g, x, y)) return false; let bg = null, bd = Infinity; for (const q of W.byField[g.fid]) { const d = Math.hypot(x - q.sx, y - q.sy); if (d < bd) { bd = d; bg = q; } } return bg === g; }
   // mode 0: a wander target (own zone, NODE_CLEAR_M from every rock); 1: a wander step (out of the zone is fine on the way back, and inside the clearance only if it does
   // not get closer to the rock: a golem left there by a hunt walks out); 2: hunting her (only off the rock itself)
   function canStand(g, x, y, mode) { const T = D(), f = W.fields[g.fid]; mode = mode || 0; if (Math.hypot(x - f.x, y - f.y) > g.wr) return false;
     if (mode === 2) { if (nodeOn(x, y, (g.C.bodyR || 0) * U())) return false; }
     else { const c = T.NODE_CLEAR_M * WS(), dn = nodeDist(x, y); if (dn < c && (mode === 0 || dn < nodeDist(g.x, g.y) - 1e-6)) return false; if (mode === 0 && !inZone(g, x, y)) return false; }
     if (slopeDeg(x, y) > T.MAX_SLOPE_DEG) return false; const c = Explore.clsAt(x, y); return c === 1; }
-  // Art's spawns re-checked on the live map (once per node set): NODE_CLEAR_M from every node, walkable, footprint <= SPAWN_SLOPE_DEG, in its own zone - else the nearest
-  // spot that is (1 m rings, 16 bearings, up to NUDGE_MAX_M); a golem standing at its old spawn moves with it
-  function fixSpawns() { const I = nodeIdx(); if (!I || W.fixRef === I || !W.list) return; W.fixRef = I; const T = D(), st = W.stats, c = T.NODE_CLEAR_M * WS(); st.nudged = 0; st.nudgeSlope = 0; st.nudgeMaxM = 0; st.unfixed = 0;
-    const okAt = (g, x, y) => nodeDist(x, y) >= c && inZone(g, x, y) && Explore.clsAt(x, y) === 1 && slopeDeg(x, y) <= T.SPAWN_SLOPE_DEG;
-    for (const g of W.list) { const at = !g.inst && g.x === g.sx && g.y === g.sy; let p = [g.ax, g.ay];
-      if (!okAt(g, g.ax, g.ay)) { const slope = nodeDist(g.ax, g.ay) >= c; let got = null; for (let r = 1; r <= T.NUDGE_MAX_M && !got; r++) for (let k = 0; k < 16 && !got; k++) { const a = k * Math.PI / 8, x = g.ax + Math.cos(a) * r * WS(), y = g.ay + Math.sin(a) * r * WS(); if (okAt(g, x, y)) got = [x, y, r]; }
-        if (got) { p = got; st.nudged++; if (slope) st.nudgeSlope++; st.nudgeMaxM = Math.max(st.nudgeMaxM, got[2]); g.nudged = got[2]; } else { st.unfixed++; g.unfixed = true; } }
-      g.sx = p[0]; g.sy = p[1]; if (at) { g.x = p[0]; g.y = p[1]; } }
+  // Art's spawns re-checked on the live map (once per node set): NODE_CLEAR_M from every node, walkable, footprint <= SPAWN_SLOPE_DEG, inside its own field's area and
+  // SPAWN_GAP_M from its field's golems already placed - else the nearest spot that is: 1 m rings (16 bearings) to NUDGE_MAX_M, then FAR_STEP_M rings (32 bearings) out
+  // to its field's edge + WANDER_M. (run30: Art's offline heightmap is far flatter than the live ground in places - 126 needed a move, 68 had nothing within 40 m.)
+  // The wander zones are then the Voronoi cells of these placed spawns. A golem standing at its old spawn moves with it
+  function fixSpawns() { const I = nodeIdx(); if (!I || W.fixRef === I || !W.list) return; W.fixRef = I; const T = D(), st = W.stats, c = T.NODE_CLEAR_M * WS(), gap = T.SPAWN_GAP_M * WS(); st.nudged = 0; st.nudgeSlope = 0; st.nudgeMaxM = 0; st.unfixed = 0;
+    for (const fid in W.byField) { const done = [], f = W.fields[fid];
+      const okAt = (g, x, y) => { if (Math.hypot(x - f.x, y - f.y) > g.wr || nodeDist(x, y) < c || !ownField(g, x, y) || Explore.clsAt(x, y) !== 1) return false; for (const q of done) if (Math.hypot(x - q[0], y - q[1]) < gap) return false; return slopeDeg(x, y) <= T.SPAWN_SLOPE_DEG; };
+      for (const g of W.byField[fid]) { const at = !g.inst && g.x === g.sx && g.y === g.sy; let p = [g.ax, g.ay];
+        if (!okAt(g, g.ax, g.ay)) { const slope = nodeDist(g.ax, g.ay) >= c && Explore.clsAt(g.ax, g.ay) === 1; let got = null; const rMax = g.wr / WS() + Math.hypot(g.ax - f.x, g.ay - f.y) / WS();
+          for (let r = 1; r <= rMax && !got; r += r < T.NUDGE_MAX_M ? 1 : T.FAR_STEP_M) { const nb = r < T.NUDGE_MAX_M ? 16 : 32; for (let k = 0; k < nb && !got; k++) { const a = k * 2 * Math.PI / nb, x = g.ax + Math.cos(a) * r * WS(), y = g.ay + Math.sin(a) * r * WS(); if (okAt(g, x, y)) got = [x, y, r]; } }
+          if (got) { p = got; st.nudged++; if (slope) st.nudgeSlope++; st.nudgeMaxM = Math.max(st.nudgeMaxM, got[2]); g.nudged = got[2]; g.unfixed = false; } else { st.unfixed++; g.unfixed = true; } }
+        done.push(p); g.sx = p[0]; g.sy = p[1]; if (at) { g.x = p[0]; g.y = p[1]; } } }
     let mn = Infinity; for (const g of W.list) mn = Math.min(mn, nodeDist(g.sx, g.sy)); st.minNodeM = +(mn / WS()).toFixed(2); }
   function here() { return Explore.on ? Explore.here() : null; }
   // ---- templates (one per ore) and clones

@@ -24,7 +24,9 @@ const WORLD_GOLEMS = {
   // made offline: 2 of his 600 sit at 7.55 / 7.57 m) - a spawn closer than this is moved to the nearest clear, walkable, <= SPAWN_SLOPE_DEG spot in its own zone
   NODE_CLEAR_M: 8,       // metres from any ore node centre: spawns, and every wander step (a golem never wanders onto a rock)
   HUNT_NODE_K: 0.6,      // hunting her it may come closer, only kept off the rock itself: node size x this (the node's own collider, Explore colList) + its bodyR
-  NUDGE_MAX_M: 40,       // search radius for that move (1 m rings, 16 bearings)
+  NUDGE_MAX_M: 40,       // fine search radius for that move (1 m rings, 16 bearings)...
+  FAR_STEP_M: 2,         // ...then rings this far apart (32 bearings) out to its field's edge + WANDER_M (run30: 68 of Art's spots had no good ground within 40 m on the live map)
+  SPAWN_GAP_M: 10,       // a moved spawn keeps this far from its field's other golems (Art's plan: 18 m minimum spacing within a field)
   // (t718s2692) far stand-ins: every golem that is not one of the MAX_LIVE full ones is drawn as Art's unskinned LOD (golem_i23d_lod, 3,410 tris, Idle first key = bind
   // pose) - one THREE.InstancedMesh per ore = one draw each, the same chalk toon / glow / crystal gain / map encoding as the full golem. Swapped in the same frame a full
   // golem is built or released (never both, never neither); a dead golem's stand-in is hidden until it respawns
