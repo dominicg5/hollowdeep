@@ -72,7 +72,8 @@ const ICONS = {
     'drill:mithril':70
   }
 };
-function itemIco(id) {
+function itemIco(id, n) {
+  if (id === 'coin:gold' && typeof CoinDrops !== 'undefined') return '<i class="cxsv cxico cxs1" style="background-image:url(' + CoinDrops.icon(n) + ')" aria-hidden="true"></i>'; // (t566s2525) Art's coin icons: one coin, a stack or a pile by count (COIN_DROPS)
   // (Art's painted pickaxe tier icons) tool:pick_<grade>@t1..@t10: one 10x1 sheet per grade (assets/ui/icons/items_<grade>_tiers.webp), a CSS background, so the
   // browser fetches a grade's sheet only the first time one of its tiered icons is shown; @t0 is the pick's own atlas cell
   // swords (Art's sword tier icons): one 11-cell sheet per grade, T0..T10, loaded only when a sword icon is drawn

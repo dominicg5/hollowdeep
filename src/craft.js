@@ -14,6 +14,7 @@ const Craft = (() => {
   ITEMS[CLIMB_BASE].name = 'Iron Climbing Picks'; ITEMS[TLINK_BASE].name = 'Bronze Climbing Tether'; ITEMS[TLINK_BASE].emoji = '🪢';
   // (Dominic: "There should have never been a winch for the Ledge tether system") the hip ascender is its own fixed gear, always worn: not a tool, never made, bought,
   // sold, listed, carried or stored. The old anvil-made Ledge Tether winch (tool:lifeline_*) is gone; old saves drop it with a refund (migrateWinch v2)
+  ITEMS['coin:gold'] = { name: 'Gold coins', short: 'Gold', emoji: '🪙', col: '#e6b640', kind: 'coin' }; // (t566s2525) dropped by every monster kill (COIN_DROPS): straight into the backpack, one slot, no stacking limit
   const WINCH_BASE = 'gear:winch_iron'; ITEMS[WINCH_BASE] = { name: 'Iron Winch', short: 'Winch', emoji: '🪝', col: (TIERS.find((q) => q[0] === 'iron') || [])[2], kind: 'gear', winch: true, grade: 'iron' };
   // (Dominic) equipped gear lives in equipment slots, never in the backpack grid or its slot count: the base gear (always worn) and the pickaxe in her hand (S.worn.pick)
   const BASE_GEAR = [CLIMB_BASE, TLINK_BASE, WINCH_BASE], isBase = (id) => BASE_GEAR.includes(id);
@@ -151,7 +152,7 @@ const Craft = (() => {
   // (Dominic) Backpack: ores, coal, bars and every other non-tool item stack to STACK (500) per slot, the 501st starts a new slot; pickaxes and other tools take one slot each;
   // drill stands and bits stack to 12 per slot; Ledge Tether length (metres) stacks in one slot. Vault: every kind sits in one slot, tools included, up to STACK_MAX (the largest exact whole number a save holds).
   const BAG_N = 20, VAULT_N = 2000, /* (t591u, Dominic) 2000 vault slots; the grid draws only the rows in view */ STACK = 500, STACK_DRILL = 12, STACK_MAX = Number.MAX_SAFE_INTEGER;
-  const perSlot = (id) => { const it = ITEMS[id]; if (!it) return STACK; if (it.unit === 'm' || it.kind === 'note') return STACK_MAX; /* (a note: one slot, however many it stands for) */ if (it.kind === 'stand' || it.kind === 'bit' || it.kind === 'drill') return STACK_DRILL; return it.kind === 'tool' ? 1 : STACK; }; // (Dominic: drill stands and bits stack to 12)
+  const perSlot = (id) => { const it = ITEMS[id]; if (!it) return STACK; if (it.unit === 'm' || it.kind === 'note' || it.kind === 'coin') return STACK_MAX; /* (coins: no stacking limit) */ /* (a note: one slot, however many it stands for) */ if (it.kind === 'stand' || it.kind === 'bit' || it.kind === 'drill') return STACK_DRILL; return it.kind === 'tool' ? 1 : STACK; }; // (Dominic: drill stands and bits stack to 12)
   const slotsFor = (where, id, c) => (c <= 0 ? 0 : where === 'bag' ? Math.ceil(c / perSlot(id)) : 1);
   // old saves (unlimited stacks): split the backpack into 500-slots and single tool slots once; whatever no longer fits goes to the vault, nothing is lost
   function migrateBagStacks() { if (typeof S === 'undefined' || !S || S.bagStackV >= 2) return; S.bagStackV = 2; S.bagStack500 = 1; /* v1: 500-slots + single tools; v2: stands / bits 12 per slot */ const b = bag(); let O = Array.isArray(S.bagOrder) ? S.bagOrder : [];
@@ -225,7 +226,7 @@ const Craft = (() => {
     else if (it.kind === 'bit') b = `<path d="${P([[18, 36], [30, 36], [24, 8]])}" fill="${c}" ${st}/><rect x="${j(20)}" y="${j(34)}" width="8" height="5" rx="1" fill="#8a8d92" ${st}/><rect x="${j(22)}" y="${j(38)}" width="4" height="5" fill="#6a6d72" ${st}/>`;
     else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
     return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
-  const pic = (id) => { if (isNote(id)) return '<span class="cxi cxNote" aria-label="Bank note">📜</span>'; const it = ITEMS[id], a = it && it.tiered ? 'tool:pick_' + it.grade + '@t' + pickTier(it.grade) : id; return ((typeof itemIco === 'function' && itemIco(a)) || svgIco(it && it.tiered ? 'tool:pick_' + it.grade : a)) + tb(id); }; // (a tiered pickaxe: Art's painted icon for its tier, no tint)
+  const pic = (id, n) => { if (isNote(id)) return '<span class="cxi cxNote" aria-label="Bank note">📜</span>'; const it = ITEMS[id], a = it && it.tiered ? 'tool:pick_' + it.grade + '@t' + pickTier(it.grade) : id; return ((typeof itemIco === 'function' && itemIco(a, n)) || svgIco(it && it.tiered ? 'tool:pick_' + it.grade : a)) + tb(id); }; // (a tiered pickaxe: Art's painted icon for its tier, no tint)
   const tb = (id) => { const it = ITEMS[id]; return it && it.tiered ? `<b class="cxtb">T${pickTier(it.grade)}</b>` : ''; }; // the brass tier badge on a tiered pickaxe's icon
   const badge = (id, c) => { const it = ITEMS[id], m = it && it.unit === 'm'; return `<b class="cxct${m ? ' m' : ''}">${m ? fmtN(c) + ' m' : '×' + fmtN(c)}</b>`; };
   const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
@@ -268,7 +269,7 @@ const Craft = (() => {
   function vaultHook() { const sc = typeof document !== 'undefined' && document.querySelector('#modalBody .cxvv'); if (!sc || sc.__v) return; sc.__v = 1; sc.scrollTop = VG.top; sc.addEventListener('scroll', () => vaultScroll(sc), { passive: true }); vaultScroll(sc); }
   function slotsHTML(where, O, i0, i1, N) { let h = ''; const seen = {}; if (where === 'bag') for (let i = 0; i < i0; i++) if (O[i]) seen[O[i]] = (seen[O[i]] || 0) + 1;
     for (let i = i0; i < i1; i++) { const id = O[i]; let c = id ? get(where, id) : 0, first = true; if (id && where === 'bag') { const j = seen[id] || 0, p = perSlot(id); seen[id] = j + 1; first = !j; c = p >= STACK_MAX ? c : Math.max(0, Math.min(p, c - j * p)); }
-      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${one ? ' one' : ''}${id && isNote(id) ? ' note' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + (one ? '' : badge(id, c)) : ''}</div>`; }
+      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${one ? ' one' : ''}${id && isNote(id) ? ' note' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id, c) + (one ? '' : badge(id, c)) : ''}</div>`; }
     return h; }
   function gridHTML(where) { if (where !== 'bag') return vaultGridHTML(); const O = order(where), N = BAG_N; return `<div class="cxg cxg-${where}" data-w="${where}">` + slotsHTML(where, O, 0, Math.max(N, O.length), N) + '</div>'; }
   const used = (w) => order(w).filter(Boolean).length;

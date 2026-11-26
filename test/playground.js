@@ -26,22 +26,43 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     if (mob) { mob.updateMatrixWorld(true); const bb = new THREE.Box3(), v = new THREE.Vector3(); mob.traverse((m) => { if (!m.isSkinnedMesh) return; const P = m.geometry.attributes.position; for (let i = 0; i < P.count; i++) { v.fromBufferAttribute(P, i); m.boneTransform(i, v); bb.expandByPoint(v.applyMatrix4(m.matrixWorld)); } });
       const c = mob.getWorldPosition(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3()); o.box = { h: +sz.y.toFixed(3), w: +Math.max(sz.x, sz.z).toFixed(3), y0: +(bb.min.y - c.y).toFixed(3), off: +Math.hypot(bb.getCenter(new THREE.Vector3()).x - c.x, bb.getCenter(new THREE.Vector3()).z - c.z).toFixed(3) }; }
     { const G = CharView.st.gnd, A = g.arena; o.arena = !!(A && A.parent && A.parent.isScene && G && G.arena && G.circR > 5); o.floorHidden = !!A && (A.parent.userData.floor || []).every((f) => !f.visible); }
-    o.me = g.me && [g.me.hp, g.me.max]; o.meHud = h0() && h0().dataset.me;
-    const h = document.getElementById('pgaHud'); o.hud = h && h.textContent; o.hudSt = h && h.dataset.state; return o; });
+    o.me = g.me && [g.me.hp, g.me.max]; o.st = g.status; o.box = !!h0() || !!document.getElementById('golemHud');
+    return o; });
   ok(M.on && M.ready && M.inScene && M.skinned === 2 && M.ink === 1 && M.bones === 4 && M.tris === 7108 && ['Idle', 'Walk', 'Attack', 'Hit', 'Death'].every((c) => M.clips.includes(c)), `pressing it opens the playground: Art's rigged Mushnub (GD-33: one body + its ink hull, ${M.tris} tris, ${M.bones} bones; clips ${M.clips.join(', ')}) stands on the floor`);
   ok(M.box && Math.abs(M.box.h - 0.8) < 0.05 && M.box.w < 1.5 && Math.abs(M.box.y0) < 0.03 && M.box.off < 0.3, `GD-12: the skinned mushroom draws at its real size where it stands (0.8 m tall, feet on the floor): ${JSON.stringify(M.box)}`);
   ok(M.arena && M.floorHidden, 'GD-12: an open stone arena replaces the small studio disc; she walks it (a ground walker, circular bound)');
-  ok(M.me && M.me[0] === M.me[1] && M.me[1] >= 11 && +M.meHud === M.me[0] && /You/.test(M.hud) && new RegExp('HP ' + M.me[0] + ' / ' + M.me[1]).test(M.hud), `her HP shows in the HUD (${JSON.stringify(M.me)}): "${M.hud}"`);
+  ok(M.me && M.me[0] === M.me[1] && M.me[1] >= 11 && M.st && M.st.me === M.me[0] && M.st.meMax === M.me[1] && !M.box, `t720u: no info box over the playground (her HP ${JSON.stringify(M.me)} is in the fight status for her bar): ${JSON.stringify(M.st)}`);
   ok(M.mats.stone && M.mats.stone.map && M.mats.stone.emis && M.mats.stone.ei === 1 && M.mats.stone.srgb && M.mats.stone.rim && M.mats.stone.rimMask === 1 && M.mats.stone.rimE === '40d0c7' && M.mats.stone.glowAttr && M.mats.stone.uv && M.mats.stone.col, 'GD-33 Lumen look: Art\'s chalk toon from the GLB - its albedo + emissive textures, vertex shading, the teal rim glow (#40d0c7) only on his _HD_GLOW mask, sRGB out ' + JSON.stringify(M.mats));
-  ok(M.dist > 0.5 && M.dist < 1.7 && M.facing > 0.9 && /Lumen Mushroom/.test(M.hud) && /HP 8 \/ 8 · DEF 0/.test(M.hud) && M.hudSt === 'alive', `she faces it within reach (${M.dist} m, facing ${M.facing}); HUD "${M.hud}"`);
+  ok(M.dist > 0.5 && M.dist < 1.7 && M.facing > 0.9 && M.st.name === 'Lumen Mushroom' && M.st.hp === 8 && M.st.max === 8 && M.st.def === 0 && M.st.state === 'alive', `she faces it within reach (${M.dist} m, facing ${M.facing}); status ${JSON.stringify(M.st)}`);
   // that first press also swung: the swing that reaches it rolls the damage
   await p.waitForFunction(() => !CharView.sw.at, null, { timeout: 30000 }).catch(() => {}); await p.waitForFunction(() => CharView.pga.n >= 1);
-  const H1 = await p.evaluate(() => ({ g: CharView.pga, nums: window.__nums.slice(), hud: document.getElementById('pgaHud').dataset.hp }));
+  const H1 = await p.evaluate(() => ({ g: CharView.pga, nums: window.__nums.slice(), hud: CharView.pga.status.hp }));
   ok(H1.g.n === 1 && H1.g.log.length === 1 && H1.g.hp === Math.max(0, 8 - H1.g.log[0].dmg) && +H1.hud === H1.g.hp && H1.nums.length >= 1 && /^(-\d+( graze)?|Miss)$/.test(H1.nums[0]), `the swing lands: ${JSON.stringify(H1.g.log[0])} -> HP ${H1.g.hp}; damage number "${H1.nums[0]}"`);
+  // (t720u / t722u / t566s2518) overhead plates: names + Lv badges for the creatures near her (hers hidden); one hit on the mushroom starts a fight -> both health bars
+  // show (her green one, its rust-red one) and track HP; the parchment trail catches up after the hit. Waits on the bars' own state, no fixed delays.
+  const HB0 = await p.evaluate(() => { const rd = Combat.rollDamage; window.__c0 = Craft.get('bag', COIN_DROPS.ITEM); Combat.rollDamage = (...x) => Object.assign({}, rd(...x), { dmg: 0, hit: true }); const r = CharView.pgaHit(); /* (a zero-damage hit: it provokes it, the fight is on) */ Combat.rollDamage = rd;
+    const my = Combat.playerStats().level; return { r: !!r, hp: CharView.pga.hp, my, mlv: LUMEN_MUSHROOM.level, glv: TIN_GOLEM.level, cls: HealthBars.lvClass(LUMEN_MUSHROOM.level, my), gcls: HealthBars.lvClass(TIN_GOLEM.level, my), box: !!document.getElementById('pgaHud') }; });
+  await p.waitForFunction((hp) => { const b = HealthBars.state('pga').bars.find((q) => q.key === 'pga:0'); return b && b.bar && b.vis && b.hp === hp; }, HB0.hp, { timeout: 30000 }).catch(() => {});
+  const HB1 = await p.evaluate(() => HealthBars.state('pga'));
+  // a hit on her (2 HP): her bar drops at once, the parchment trail holds behind it, then catches up (caught inside the wait, on the frame it happens)
+  const HT = await (await p.waitForFunction(() => { if (!window.__ht) { window.__ht = { hp0: CharView.pga.me.hp }; CharView.pgaHurt(2); } const b = HealthBars.state('pga').bars.find((q) => q.key === 'me'); return b && b.hp === Math.round(CharView.pga.me.hp) && b.hp < window.__ht.hp0 ? b : false; }, null, { timeout: 30000, polling: 'raf' }).catch(() => ({ jsonValue: () => null }))).jsonValue();
+  await p.waitForFunction(() => { const b = HealthBars.state('pga').bars.find((q) => q.key === 'me'); return b && b.hold === 0 && Math.abs(b.trail - b.fill) < 1e-3; }, null, { timeout: 30000 }).catch(() => {});
+  const HB2 = await p.evaluate(() => HealthBars.state('pga'));
+  { const b1 = HB1.bars.find((q) => q.key === 'pga:0'), g1 = HB1.bars.find((q) => q.key === 'pga:1'), me1 = HB1.bars.find((q) => q.key === 'me'), b2 = HB2.bars.find((q) => q.key === 'me');
+    ok(HB0.r && !HB0.box && b1 && b1.row && b1.name === 'Lumen Mushroom' && b1.lv === 'Lv ' + HB0.mlv && b1.lvCls === HB0.cls && g1 && g1.row && g1.name === 'Tin Golem' && g1.lv === 'Lv ' + HB0.glv && g1.lvCls === HB0.gcls && !g1.bar && me1 && !me1.row && HB1.named.length === 2, `t566s2518: nameplates (Lv badge + name) over both creatures near her - Mushroom Lv ${HB0.mlv} (${b1 && b1.lvCls}), Tin Golem Lv ${HB0.glv} (${g1 && g1.lvCls}) vs her Lv ${HB0.my}; hers hidden; the golem (not in the fight) has no bar`);
+    ok(b1 && b1.bar && b1.vis && b1.hp === HB0.hp && b1.max === 8 && b1.txt === HB0.hp + '/8' && me1 && me1.bar && me1.vis && !me1.row && /^\d+\/\d+/.test(me1.txt) && b1.w >= 48 && b1.w <= 96 && me1.w >= 48 && me1.w <= 96 && b1.gap >= 4, `t720u: in the fight both bars show over their heads and read the HP (${b1 && b1.txt}, hers ${me1 && me1.txt}), ${b1 && b1.w} / ${me1 && me1.w} px wide ${JSON.stringify(HB1)}`);
+    ok(HT && HT.trail > HT.fill && b2 && Math.abs(b2.trail - b2.fill) < 1e-3 && b2.hp === HT.hp, `t720u: hit for 2, her bar drops at once with the parchment trail behind it (${HT && HT.trail} > ${HT && HT.fill}), then the trail catches up (${b2 && b2.trail})`); }
   // keep hitting (the combat engine's own roll) until it drops; then it respawns
-  const K = await p.evaluate(() => { let n = 0, r = null; const hits = []; while (CharView.pga.hp > 0 && n < 400) { r = CharView.pgaHit(); n++; if (r) hits.push(r.dmg); } const g = CharView.pga, h = document.getElementById('pgaHud');
-    let death = false; g.mob && CharView.pga.mob; return { n, hp: g.hp, dead: g.dead, kills: g.kills, st: h.dataset.state, hud: h.textContent, after: CharView.pgaHit(), xp: (S.combat && S.combat.xp) || 0, sum: hits.reduce((a, x) => a + x, 0) }; });
-  ok(K.hp === 0 && K.dead > 0 && K.kills === 1 && K.st === 'dead' && /Defeated/.test(K.hud) && K.after === null, `at 0 HP it dies (${K.n} more hits, ${K.sum} damage): Death plays, "${K.hud}", no more hits land while it is down`);
+  const K = await p.evaluate(() => { let n = 0, r = null; const hits = []; while (CharView.pga.hp > 0 && n < 400) { r = CharView.pgaHit(); n++; if (r) hits.push(r.dmg); } const g = CharView.pga, h = g.status;
+    let death = false; g.mob && CharView.pga.mob; return { n, hp: g.hp, dead: g.dead, kills: g.kills, st: h.state, hud: h.back, after: CharView.pgaHit(), xp: (S.combat && S.combat.xp) || 0, sum: hits.reduce((a, x) => a + x, 0) }; });
+  const CN = await p.evaluate(() => { const L = CoinDrops.state('pga').log, e = L[L.length - 1]; return { e, got: Craft.get('bag', COIN_DROPS.ITEM) - window.__c0, lv: LUMEN_MUSHROOM.level, clk: CharView.pga.clk, ico: itemIco(COIN_DROPS.ITEM, 1), ico2: itemIco(COIN_DROPS.ITEM, 150) }; });
+  ok(CN.e && CN.e.bag && CN.e.n >= CN.lv && CN.e.n <= 3 * CN.lv && CN.got === CN.e.n && /gold_coin_128/.test(CN.ico) && /gold_coin_pile_128/.test(CN.ico2), `t566s2525: the kill drops ${CN.e && CN.e.n} gold coins (Lv ${CN.lv}: ${CN.lv}..${3 * CN.lv}) straight into the backpack (+${CN.got}); slot icon by count (1 coin / pile at 150)`);
+  await p.waitForFunction((c) => CharView.pga.clk > c + 1, CN.clk, { timeout: 30000 }).catch(() => {});
+  const FD1 = await p.evaluate(() => HealthBars.state('pga'));
+  await p.waitForFunction(() => !HealthBars.state('pga').shown, null, { timeout: 60000 }).catch(() => {});
+  const FD2 = await p.evaluate((c) => ({ dt: +(CharView.pga.clk - c).toFixed(2), s: HealthBars.state('pga'), A: HEALTH_BARS.FADE_AFTER_S, F: HEALTH_BARS.FADE_S }), CN.clk);
+  ok(FD1.shown && !FD1.fight && FD2.dt >= FD2.A - 0.2 && FD2.dt <= FD2.A + FD2.F + 1 && !FD2.s.bars.some((q) => q.bar), `t722u: the fight is over at the kill; the bars stay, then are gone ${FD2.dt} s after it (rule ${FD2.A} s + ${FD2.F} s fade); the nameplates stay ${JSON.stringify(FD2.s.named)}`);
+  ok(K.hp === 0 && K.dead > 0 && K.kills === 1 && K.st === 'dead' && K.hud > 0 && K.after === null, `at 0 HP it dies (${K.n} more hits, ${K.sum} damage): Death plays, back in ${K.hud} s, no more hits land while it is down`);
   // (combat SFX, Art's pack, Dominic 9:01 AM) Sfx fires on the swing (shout + swoosh) and on each landed hit; random variants, never one clip twice in a row
   const SX = await p.evaluate(() => { const L = Sfx.log.slice(), T = Sfx.TABLE, seq = {}; for (const e of L) { const k = e.cat.startsWith('hit') ? 'hit' : e.cat; (seq[k] = seq[k] || []).push(e.name); }
     const rep = (a) => a.some((x, i) => i && x === a[i - 1]); const pool = []; for (let i = 0; i < 300; i++) pool.push(Sfx.play('swoosh')); const hp = []; for (let i = 0; i < 300; i++) hp.push(Sfx.hit({ crit: i % 7 === 0 }));
@@ -52,7 +73,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(!SX.rep && !SX.rep2 && SX.uniq === 6 && SX.uniqH === 6 && SX.crit[0] === 'hit_06' && SX.crit[1] !== 'hit_06' && SX.ext === 'mp3', `combat SFX: random picks, no back-to-back repeats (all 6 swooshes, all 6 hits used; crit gets hit_06 and a 2nd crit in a row alternates: ${SX.crit}); MP3 only`);
   ok(K.xp - L0.xp0 === 32, `the kill awards Combat XP = 4 x its HP (${L0.xp0} -> ${K.xp})`);
   await p.waitForFunction(() => CharView.pga.dead === 0 && CharView.pga.hp === CharView.pga.max, null, { timeout: 60000 }).catch(() => {});
-  const R2 = await p.evaluate(() => ({ g: CharView.pga, st: document.getElementById('pgaHud').dataset.state, nums: window.__nums.slice(-3) }));
+  const R2 = await p.evaluate(() => ({ g: CharView.pga, st: CharView.pga.status.state, nums: window.__nums.slice(-3) }));
   ok(R2.g.hp === 8 && R2.g.dead === 0 && R2.st === 'alive' && R2.nums.includes('Respawned'), `it respawns at full HP (${R2.g.hp}) to test again`);
   const AW = await p.evaluate(() => { const G = CharView.st.gnd, f = G.face; G.face = f + Math.PI; const r = CharView.pgaHit(); G.face = f; return [r, CharView.pga.hp]; });
   ok(AW[0] === null && AW[1] === 8, 'turned away from it, a swing does not land');
@@ -124,19 +145,19 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction((b0) => CharView.pga.bites.length >= b0 + 2 && !CharView.sw.sh, PR.b0, { timeout: 60000 }).catch(() => {});
   const PD = await p.evaluate(() => ({ sh: CharView.sw.sh, saved: S.swSh, hunt: CharView.pga.hunt }));
   ok(PR.sh === true && !PD.sh && PD.saved === false && PD.hunt, 'GD-25: a provoked creature fighting her draws her sheathed swords ' + JSON.stringify(PD));
-  const B = await p.evaluate(() => { const g = CharView.pga, P = Combat.playerStats(); return { bites: g.bites, me: g.me, ch: Combat.hitChance(LUMEN_MUSHROOM.acc, P.def), hud: document.getElementById('pgaHud').dataset.me }; });
+  const B = await p.evaluate(() => { const g = CharView.pga, P = Combat.playerStats(); return { bites: g.bites, me: g.me, ch: Combat.hitChance(LUMEN_MUSHROOM.acc, P.def), hud: CharView.pga.status.me }; });
   ok(B.bites.length >= 2 && B.bites.every((b) => b.parried || (Math.abs(b.chance - B.ch) < 1e-9 && b.dmg >= 0 && b.dmg <= 1 && (!b.hit || b.dmg === 1))) && B.me.hp <= B.me.max && +B.hud === Math.round(B.me.hp), `it bites back every ${'~2'} s: ${B.bites.length} bites at ${(B.ch * 100).toFixed(1)}% full-hit (acc 30 vs her Defense), 0..1 dmg; her HP ${B.me.hp} / ${B.me.max}`);
   // knocked out at 0 HP; back up at the centre with full HP, no penalty
   const KO0 = await p.evaluate(() => ({ xp: (S.combat && S.combat.xp) || 0, bag: JSON.stringify(S.backpack || {})}));
-  const KO1 = await p.evaluate(() => { CharView.pgaHurt(9999); const g = CharView.pga, h = document.getElementById('pgaHud'); return { ko: g.ko, kos: g.kos, hp: g.me.hp, hud: h.dataset.ko, txt: h.textContent, tap: CharView.pgaWalk(1, 1) }; });
+  const KO1 = await p.evaluate(() => { CharView.pgaHurt(9999); const g = CharView.pga, h = g.status; return { ko: g.ko, kos: g.kos, hp: g.me.hp, hud: h.ko ? '1' : '0', txt: h.ko ? 'Turned to ash' : '', tap: CharView.pgaWalk(1, 1) }; });
   await p.waitForFunction(() => CharView.pga.ash.u >= 0.5, null, { timeout: 30000 }).catch(() => {});
-  const AS = await p.evaluate(() => { const a = CharView.pga.ash; return { on: a.on, u: +a.u.toFixed(2), cut: a.cut, top: a.top, bot: a.bot, born: a.born, n: a.n, mats: a.mats, hid: a.hid, fx: a.fx, d: a.d, lean: CharView.rig.root.rotation.x, txt: document.getElementById('pgaHud').textContent, ko: CharView.pga.ko }; });
+  const AS = await p.evaluate(() => { const a = CharView.pga.ash; return { on: a.on, u: +a.u.toFixed(2), cut: a.cut, top: a.top, bot: a.bot, born: a.born, n: a.n, mats: a.mats, hid: a.hid, fx: a.fx, d: a.d, lean: CharView.rig.root.rotation.x, txt: CharView.pga.status.ko ? 'Turned to ash' : '', ko: CharView.pga.ko }; });
   const lean = AS.lean; await p.waitForFunction(() => CharView.pga.ko === 0, null, { timeout: 60000 }).catch(() => {});
   const AE = await p.evaluate(() => { const a = CharView.pga.ash; return { on: a.on, cut: a.cut, born: a.born }; });
   const AD = AS.d || {}; ok(AS.on && AS.top > AS.bot && AS.cut < AS.top - 0.4 * (AS.top - AS.bot) && AS.born > 0 && AS.n === AD.PARTICLES && AS.mats > 0 && AS.fx && Math.abs(lean) < 0.05 && /Turned to ash/.test(AS.txt) && AD.DISSOLVE_S >= 1.5 && AD.DISSOLVE_S + AD.HOLD_S <= 2.5,
     'GD-22: at 0 HP she crumbles to ash top-down (clip plane between head and feet, ash/ember particles, no fall), timings from PLAYGROUND_COMBAT.ASH ' + JSON.stringify(AS));
   ok(!AE.on && AE.cut > 1e5, 'GD-22: the respawn ends the ash and restores her whole ' + JSON.stringify(AE));
-  const KO2 = await p.evaluate(() => ({ me: CharView.pga.me, x: CharView.st.gnd.x, z: CharView.st.gnd.z, lean: CharView.rig.root.rotation.x, xp: (S.combat && S.combat.xp) || 0, bag: JSON.stringify(S.backpack || {}), hud: document.getElementById('pgaHud').dataset.ko }));
+  const KO2 = await p.evaluate(() => ({ me: CharView.pga.me, x: CharView.st.gnd.x, z: CharView.st.gnd.z, lean: CharView.rig.root.rotation.x, xp: (S.combat && S.combat.xp) || 0, bag: JSON.stringify(S.backpack || {}), hud: CharView.pga.status.ko ? '1' : '0' }));
   ok(KO1.ko > 0 && KO1.hp === 0 && KO1.hud === '1' && /Turned to ash/.test(KO1.txt) && KO1.tap === false, `at 0 HP she is down (can't be steered): ${JSON.stringify([KO1, lean])}`);
   ok(KO2.me.hp === KO2.me.max && Math.hypot(KO2.x, KO2.z) < 0.05 && Math.abs(KO2.lean) < 1e-6 && KO2.hud === '0' && KO2.xp === KO0.xp && KO2.bag === KO0.bag, `she gets back up at the centre with full HP, no penalty (Combat XP and backpack unchanged) ${JSON.stringify(KO2)}`);
   // (GD-30, Dominic via Art t526s2249) Art's golems are creature rows (Tin < Copper < Coal, placeholder stats, XP = 4 x HP); the Tin Golem stands in the arena with the mushroom
@@ -162,8 +183,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(GO.legArm === 0, `t553 (Art's arm fix): no Tin Golem vertex below the knee on the leg side is weighted to a hand / arm bone (${GO.legArm}; the pre-fix files had 116)`);
   ok(GO.box && Math.abs(GO.box.h - 2.6) < 0.08 && Math.abs(GO.box.y0) < 0.04 && GO.tris > 22000 && GO.tris < 24500 && GO.chalk === 2 && GO.ink === 2 && GO.col === 2, `GD-30: drawn at Art's size, feet on the floor, ~23k tris, Art's chalk toon + ink outline on both parts, vertex paint ${JSON.stringify([GO.box, GO.tris, GO.chalk, GO.ink, GO.col])}`);
   // tap it: she targets it (HUD shows it); one zero-damage hit provokes it; its slam lands ~0.633 s into Attack
-  const GT = await p.evaluate(() => { const T = CharView.pga.mobs[1], s = CharView.pgaScreen(T.x, T.z, 1.3); const r = s ? CharView.pgaTap(s.x, s.y) : null; return { r, tgt: CharView.pga.tgt, hud: document.getElementById('pgaHud').textContent }; });
-  ok(GT.r === 'mob' && GT.tgt === 1 && /Tin Golem/.test(GT.hud) && /HP 20 \/ 20/.test(GT.hud), 'GD-30: tapping the golem makes it her target (HUD: ' + GT.hud + ')');
+  const GT = await p.evaluate(() => { const T = CharView.pga.mobs[1], s = CharView.pgaScreen(T.x, T.z, 1.3); const r = s ? CharView.pgaTap(s.x, s.y) : null; return { r, tgt: CharView.pga.tgt, hud: JSON.stringify(CharView.pga.status) }; });
+  ok(GT.r === 'mob' && GT.tgt === 1 && /"name":"Tin Golem"/.test(GT.hud) && /"hp":20,"max":20/.test(GT.hud), 'GD-30: tapping the golem makes it her target (HUD: ' + GT.hud + ')');
   const GP = await p.evaluate(() => { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; CharView.pgaWalk(G.x, G.z); G.goal = null; G.path = null; const a = Math.atan2(G.x - m.x, G.z - m.z); G.x = m.x + Math.sin(a) * 1.6; G.z = m.z + Math.cos(a) * 1.6; G.face = Math.atan2(m.x - G.x, m.z - G.z);
     const rd = Combat.rollDamage; Combat.rollDamage = (...x) => Object.assign({}, rd(...x), { dmg: 0 }); const r = CharView.pgaHit(); Combat.rollDamage = rd;
     const W = window.__gs = { b0: g.bites.length, a: null, b: null, prev: g.clk, hd: 0, cr: 0, ch: 0, anims: [] }; const I = CharView.pga.mobs[1].inst, bn = (k) => I.bones.find((b) => b.name === k), ang = (k) => +(2 * Math.acos(Math.min(1, Math.abs(bn(k).quaternion.dot(I.rest[k])))) * 180 / Math.PI).toFixed(2);
@@ -187,8 +208,19 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 60000 }).catch(() => {});
   const GR = await p.evaluate(() => ({ hp: CharView.pga.hp, y: CharView.pga.mobs[1].y, mush: CharView.pga.mobs[0].ready }));
   ok(GK.hp === 0 && GK.dead > 0 && GK.anim === 'death' && GK.xp === 80 && GD.dead > 0 && GD.y < -1 && GR.hp === 20 && GR.y === 0 && GR.mush, `GD-30: killed in ${GK.n} rolls: Death, +${GK.xp} Combat XP, it sinks away after landing (y ${GD.y && GD.y.toFixed(2)}) and respawns at full HP ${JSON.stringify(GR)}`);
+  // (t566s2525) a full backpack: the next kill's coins drop on the ground at the kill spot; with room again she walks over them and they go in the backpack
+  const FB = await p.evaluate(() => { window.__bk = [JSON.stringify(S.backpack || {}), JSON.stringify(S.bagOrder || null)]; const I = COIN_DROPS.ITEM, have = Craft.get('bag', I); if (have) Craft.add('bag', I, -have);
+    const ids = ['ore:copper', 'ore:tin', 'ore:iron', 'ore:coal', 'ore:gold', 'ore:mithril', 'ingot:bronze', 'ingot:iron', 'ingot:steel', 'ingot:gold', 'ingot:mithril', 'ingot:rune']; for (const id of ids) { let k = 0; while (Craft.room('bag', I) > 0 && Craft.fits('bag', id, 500) && k++ < 40) Craft.add('bag', id, 500); }
+    const room = Craft.room('bag', I); let n = 0; while (CharView.pga.hp > 0 && n < 600) { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; G.face = Math.atan2(m.x - G.x, m.z - G.z); CharView.pgaHit(); n++; }
+    const st = CoinDrops.state('pga'), e = st.log[st.log.length - 1]; return { room, e, drops: st.drops, lv: TIN_GOLEM.level, bag: Craft.get('bag', I), gs: COIN_DROPS.GROUND_S }; });
+  ok(FB.room === 0 && FB.e && !FB.e.bag && FB.e.ground && FB.e.n >= FB.lv && FB.e.n <= 3 * FB.lv && FB.drops.length === 1 && FB.drops[0].n === FB.e.n && FB.drops[0].shown && FB.drops[0].t > FB.gs - 5 && FB.bag === 0, `t566s2525: backpack full -> the Tin Golem's ${FB.e && FB.e.n} coins (Lv ${FB.lv}: ${FB.lv}..${3 * FB.lv}) drop on the ground at the kill spot for ${FB.gs} s ${JSON.stringify(FB.drops)}`);
+  await p.evaluate(() => { S.backpack = JSON.parse(window.__bk[0]); const o = JSON.parse(window.__bk[1]); if (o) S.bagOrder = o; else delete S.bagOrder; const d = CoinDrops.state('pga').drops[0], G = CharView.st.gnd; if (d) { G.goal = null; G.path = null; G.x = d.x + 0.3; G.z = d.z; } window.__cb = Craft.get('bag', COIN_DROPS.ITEM); });
+  await p.waitForFunction(() => !CoinDrops.state('pga').drops.length, null, { timeout: 30000 }).catch(() => {});
+  const PU = await p.evaluate((n) => ({ left: CoinDrops.state('pga').drops.length, got: Craft.get('bag', COIN_DROPS.ITEM) - window.__cb, n }), FB.e ? FB.e.n : -1);
+  ok(PU.left === 0 && PU.got === PU.n, `t566s2525: with room again she walks over the coins and they go in the backpack (+${PU.got} of ${PU.n})`);
+  await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 60000 }).catch(() => {});
   await p.evaluate(() => setTab('city')); await p.waitForFunction(() => !CharView.pga.on);
-  const C = await p.evaluate(() => ({ on: CharView.pga.on, hud: !!document.getElementById('pgaHud'), mob: !!CharView.pga.mob, arena: !!CharView.pga.arena }));
+  const C = await p.evaluate(() => ({ on: CharView.pga.on, hud: !!document.getElementById('pgaHud') || !!document.querySelector('.hbLayer[data-scope="pga"]'), mob: !!CharView.pga.mob, arena: !!CharView.pga.arena }));
   ok(!C.on && !C.hud && !C.mob && !C.arena, 'leaving the Character view clears the playground (arena, mushroom, HUD)');
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   console.log(fails ? `${fails} FAILED` : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);

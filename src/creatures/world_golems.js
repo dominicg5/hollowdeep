@@ -38,14 +38,14 @@ const WorldGolems = (() => {
   // ---- her fight on the map
   const me = () => W.F || (W.F = Combat.newFight(Combat.playerStats()));
   function rel(g) { const h = here(); if (!h) return null; const dx = g.x - h[0], dy = g.y - h[1], cd = Math.hypot(dx, dy) / U(); return { dx, dy, cd, d: cd - (g.C.bodyR || 0) }; } // d: metres from her to its body surface
-  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; if (g.wp) g.wp = null; hud(); return true; }
-  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; W.inR = false; W.aim = null; hud(); }
+  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; W.fought = false; if (g.wp) g.wp = null; return true; }
+  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; W.inR = false; W.aim = null; W.fought = false; }
   function strike(g) { const q = rel(g); if (!q || g.dead > 0 || q.d > D().REACH_M + D().KEEP_REACH_M) return null; const C = g.C, r = Combat.rollDamage(Combat.playerStats(), { def: C.def, swing: ++W.n });
     g.hp = Math.max(0, g.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); if (r.dmg > 0) Combat.fightDealt(me(), r.dmg); num(g, r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); g.hunt = true;
-    if (g.hp <= 0) { g.dead = C.respawnS || 6; g.sink = 0; g.hunt = false; g.bite = 0; g.once = 0; g.wp = null; if (g.inst) { g.inst.play(C.clips.death, true); g.anim = 'death'; } Combat.fightKill(me()); disengage(); W.kills++;
+    if (g.hp <= 0) { g.dead = C.respawnS || 6; g.sink = 0; g.hunt = false; g.bite = 0; g.once = 0; g.wp = null; if (g.inst) { g.inst.play(C.clips.death, true); g.anim = 'death'; } Combat.fightKill(me()); disengage(); W.kills++; if (typeof CoinDrops !== 'undefined') { CoinDrops.host('map', { parent: M3.scene, m: U(), y: (x, z) => Explore.hAt(x, z) }); const cd = CoinDrops.kill('map', C, g.x, g.y); num(g, cd.bag ? '+' + cd.n + ' gold' : cd.n + ' gold on the ground (backpack full)', 'info'); } /* (t566s2525: coins from every kill) */
       if (C.xp > 0 && Combat.addXp) { Combat.addXp(C.xp); if (typeof save === 'function') save(); num(g, '+' + C.xp + ' Combat XP', 'info'); } }
-    else if (r.dmg > 0) once(g, 'hit'); hud(); return r; }
-  function bite(g) { const q = rel(g); if (!q || W.ko > 0 || g.dead > 0 || q.d > g.C.atkReach + 0.35) return null; const r = Combat.creatureAttack(g.C, Combat.playerStats()); if (r.parried) num(null, 'Parry', 'info'); else if (r.dmg > 0) { const o = Combat.fightHurt(me(), r.dmg); num(null, '-' + Math.round(r.dmg), 'ouch'); if (o.dead) ko(); } else num(null, 'Miss', 'miss'); hud(); return r; }
+    else if (r.dmg > 0) once(g, 'hit'); return r; }
+  function bite(g) { const q = rel(g); if (!q || W.ko > 0 || g.dead > 0 || q.d > g.C.atkReach + 0.35) return null; const r = Combat.creatureAttack(g.C, Combat.playerStats()); if (r.parried) num(null, 'Parry', 'info'); else if (r.dmg > 0) { const o = Combat.fightHurt(me(), r.dmg); num(null, '-' + Math.round(r.dmg), 'ouch'); if (o.dead) ko(); } else num(null, 'Miss', 'miss'); return r; }
   function ko() { W.ko = D().KO_CALM_S; disengage(); for (const g of W.list) { g.hunt = false; g.wp = null; } if (typeof toast === 'function') toast('💫 Knocked out - the golems lose interest. Back on your feet in a moment.'); }
   // her side each frame: run to striking range (STAND_M off its surface), square up, one swing every ATTACK_INTERVAL_S, the roll at STRIKE_AT_S into it
   function herTick(dt) { const T = D(), g = W.tgt, G = CharView.st.gnd; if (W.strike > 0) { W.strike -= dt; if (W.strike <= 0) { W.strike = 0; if (g) strike(g); } } if (W.swT > 0) W.swT -= dt; if (!W.eng || !g || !G) return; if (g.dead > 0 || !g.inst) return disengage(); const q = rel(g); if (!q) return;
@@ -53,7 +53,7 @@ const WorldGolems = (() => {
     W.rp -= dt; if (!W.strike && q.d > (W.inR ? T.REACH_M + T.CHASE_SLACK_M : T.STAND_M + T.STOP_SLACK_M)) { W.inR = false; chase(g, q, G); return; }
     if (!W.inR) { W.inR = true; W.aim = null; if (G.path || G.goal) { G.path = null; G.goal = null; } W.stats.holds = (W.stats.holds || 0) + 1; }
     const fa = Math.atan2(q.dx, q.dy), df = Math.atan2(Math.sin(fa - G.face), Math.cos(fa - G.face)); G.face += df * (1 - Math.exp(-dt * T.TURN_K)); /* (her local frame turns like the map's: x -> x, z -> y; her facing is set here only) */
-    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15 && Math.abs(df) < 0.45) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
+    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15 && Math.abs(df) < 0.45) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; W.fought = true; /* (the fight is on: the bars show) */ } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
   // (t719u) aim her run at its stand-off spot: re-aimed at most every REPATH_S and only once that spot has moved REPATH_M; a short straight run when the ground
   // between is open (the nav grid's 2.5 m cell centres put a waypoint beside / behind her on every re-plan - the back-and-forth Dominic saw)
   function chase(g, q, G) { const T = D(), so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()), tx = g.x - q.dx / L * so, ty = g.y - q.dy / L * so, A = W.aim;
@@ -83,18 +83,22 @@ const WorldGolems = (() => {
     const near = L.filter((g) => g.d < T.SPAWN_M).sort((a, b) => a.d - b.d).slice(0, T.MAX_LIVE); let live = 0, animd = 0, aid = 0;
     for (const g of L) { if (g.inst && (g.d > T.DESPAWN_M || (!near.includes(g) && g.d > T.SPAWN_M))) release(g); if (!g.inst && near.includes(g)) build(g); if (!g.inst) continue; live++;
       if (g.d < T.ANIM_M) { ai(g, dt); aid++; place(g); g.inst.mixer.update(dt); animd++; } }
-    st.live = live; st.animated = animd; st.ai = aid; st.far = L.length - live; herTick(dt); numsTick(dt); }
+    st.live = live; st.animated = animd; st.ai = aid; st.far = L.length - live; herTick(dt); numsTick(dt); bars(dt); if (typeof CoinDrops !== 'undefined') { const got = CoinDrops.tick('map', dt, h[0], h[1]); if (got) num(null, '+' + got + ' gold', 'info'); } }
   // ---- tap: the nearest built golem under the tap (base-to-top segment on screen, as Explore's own pick), before anything else on the map
   function hit(sx, sy) { if (!W.list) return null; let best = null, bd = 1e9; for (const g of W.list) { if (!g.inst || g.dead > 0 || g.d > D().ANIM_M) continue; const a = M3.project(g.x, g.y, 0), b = M3.project(g.x, g.y, g.C.height * U()); if (a[0] < -999 || b[0] < -999) continue;
       const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)), d = Math.hypot(a[0] + vx * t - sx, a[1] + vy * t - sy), rad = Math.max(18, Math.sqrt(l2) * 0.3); if (d < rad && d / rad < bd) { bd = d / rad; best = g; } } return best; }
   // ---- HUD + floating numbers (DOM, over the map canvas)
-  function hud() { let el = document.getElementById('golemHud'); const g = W.tgt; if (!g || !W.eng) { if (el) el.style.display = 'none'; return; } if (!el) { el = document.createElement('div'); el.id = 'golemHud'; el.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 56px);transform:translateX(-50%);z-index:60;background:rgba(20,18,14,.78);color:#f3ead8;font:600 13px system-ui,sans-serif;padding:6px 12px;border-radius:10px;pointer-events:none'; document.body.appendChild(el); }
-    const F = me(); el.style.display = ''; el.textContent = `${g.C.icon || ''} ${g.C.name} HP ${g.hp} / ${g.C.hp} · DEF ${g.C.def}   You HP ${Math.round(F.hp)} / ${F.max}`; }
+  // (t720u / t722u) no info box over the map any more: the fight shows on overhead health bars (src/creatures/healthbars.js, HEALTH_BARS) - hers and every
+  // golem in the fight - only while a fight is on (a golem hunting her, or her target once she has swung at it), gone HEALTH_BARS.FADE_AFTER_S after it ends
+  function bars(dt) { if (typeof HealthBars === 'undefined' || !M3.camera) return; const R = typeof M3.renderer === 'function' ? M3.renderer() : M3.renderer, rig = CharView.rig, F = me(), items = [];
+    if (rig) items.push({ key: 'me', me: true, name: 'You', level: Combat.playerStats().level, dist: 0, hp: F.hp, max: F.max, shield: F.shield, root: rig.root, head: rig.B && rig.B.head });
+    for (const g of W.list || []) if (g.inst) { if (g.inst.hbHead === undefined) g.inst.hbHead = HealthBars.headOf(g.inst.root); items.push({ key: g.id, name: g.C.name, level: g.C.level, dist: g.d, hp: g.hp, max: g.C.hp, root: g.inst.root, head: g.inst.hbHead, fighting: W.ko <= 0 && g.dead <= 0 && (g.hunt || (W.eng && W.tgt === g && W.fought)) }); }
+    HealthBars.frame('map', { myLevel: Combat.playerStats().level, host: document.body, canvas: R && R.domElement, cam: M3.camera, m: U(), dt, items }); }
   function num(g, txt, cls) { const el = document.createElement('div'); el.className = 'golemNum ' + (cls || ''); el.textContent = txt; el.style.cssText = 'position:fixed;z-index:61;pointer-events:none;font:700 15px system-ui,sans-serif;text-shadow:0 1px 2px #000;color:' + (cls === 'miss' ? '#cfcfcf' : cls === 'info' ? '#bfe8ff' : cls === 'ouch' ? '#ff8a7a' : cls === 'crit' ? '#ffd25a' : '#fff');
     document.body.appendChild(el); W.nums.push({ el, g, t: 0, me: !g }); if (W.nums.length > 12) { const o = W.nums.shift(); o.el.remove(); } }
   function numsTick(dt) { const cv = M3.renderer && M3.renderer.domElement, r = cv ? cv.getBoundingClientRect() : { left: 0, top: 0 }, h = here();
     W.nums = W.nums.filter((n) => { n.t += dt; if (n.t > 1.2 || !h) { n.el.remove(); return false; } const x = n.g ? n.g.x : h[0], y = n.g ? n.g.y : h[1], up = (n.g ? n.g.C.height + 0.2 : 2.2) * U(), p = M3.project(x, y, up); n.el.style.left = (r.left + p[0] - 20) + 'px'; n.el.style.top = (r.top + p[1] - 30 * n.t) + 'px'; n.el.style.opacity = String(1 - Math.max(0, n.t - 0.7) / 0.5); return true; }); }
-  function hideAll() { if (!W.list) return; for (const g of W.list) release(g); disengage(); for (const n of W.nums) n.el.remove(); W.nums = []; }
+  function hideAll() { if (typeof HealthBars !== 'undefined') HealthBars.clear('map'); if (typeof CoinDrops !== 'undefined') CoinDrops.clear('map'); if (!W.list) return; for (const g of W.list) release(g); disengage(); for (const n of W.nums) n.el.remove(); W.nums = []; }
   if (typeof Explore !== 'undefined') { const t0 = Explore.tick, tp0 = Explore.tap, x0 = Explore.exit;
     Explore.tick = (dt) => { t0(dt); try { tick(dt); } catch (e) { console.error(e); } };
     Explore.tap = (sx, sy, ...r) => { if (Explore.on) { const g = hit(sx, sy); if (g) { engage(g); return 'golem'; } if (W.eng) disengage(); /* (tapping elsewhere walks her off: her attacks stop; a hunting golem keeps on inside its leash) */ } return tp0(sx, sy, ...r); };

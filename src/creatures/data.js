@@ -11,6 +11,7 @@
 const LUMEN_MUSHROOM = {
   id: 'lumen_mushroom',
   name: 'Lumen Mushroom',
+  level: 1,        // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
   hp: 8,            // max HP (Art's stats, Dominic t655)
   str: 1,           // Strength: its bite does str on a full hit, otherwise 0..str (Combat.creatureAttack, GD-15)
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
@@ -41,6 +42,7 @@ const LUMEN_MUSHROOM = {
 const TIN_GOLEM = {
   id: 'tin_golem',
   name: 'Tin Golem',
+  level: 10,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
   hp: 20,           // placeholder, not approved
   str: 2,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 5,            // placeholder, not approved
@@ -69,6 +71,7 @@ const TIN_GOLEM = {
 const COPPER_GOLEM = {
   id: 'copper_golem',
   name: 'Copper Golem',
+  level: 25,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
   hp: 35,           // placeholder, not approved
   str: 3,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 10,            // placeholder, not approved
@@ -95,6 +98,7 @@ const COPPER_GOLEM = {
 const COAL_GOLEM = {
   id: 'coal_golem',
   name: 'Coal Golem',
+  level: 40,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
   hp: 50,           // placeholder, not approved
   str: 4,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 15,            // placeholder, not approved
@@ -124,6 +128,48 @@ const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, co
 
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
+// (Dominic t720u / t722u, Art's design approved on card t721s2718) overhead combat health bars, hers and the monster's: drawn by src/creatures/healthbars.js
+// (DOM over the 3D canvas: constant screen size, billboarded). Shown ONLY while a fight is on - not when a monster is merely targeted - and gone FADE_AFTER_S after it ends.
+const HEALTH_BARS = {
+  FADE_AFTER_S: 5,        // (t722u) after the fight ends the bars stay this long...
+  FADE_S: 0.35,           // ...then fade out over this
+  LIFT_M: 0.5,            // (t566s2518 nameplate) the plate is pinned this far above the top of the model's bounding box (riding its head bone when it has one)
+  MIN_GAP_PX: 4,          // at least this screen gap between the model top and the plate
+  HEAD_W_K: 1.0,          // bar width = this x the head width...
+  BODY_W_K: 0.6,          // ...or this x the body width for a creature with no head bone
+  MIN_W_PX: 48, MAX_W_PX: 96, // clamped on screen
+  H_PX: 10,               // bar height (the HP number sits on it)
+  FRAME_PX: 2, FRAME: '#b08a3e', INNER: '#3a2c1c', RADIUS_PX: 3, SHADOW: '0 1px 2px rgba(0,0,0,.5)', // brass frame, 1 px inner line
+  TRACK: '#2a2118',
+  ME_FILL: '#6fae4a', ME_HI: '#8fcf63',     // hers: green, highlight over the top HI_TOP
+  MOB_FILL: '#c8452f', MOB_HI: '#e0664c',   // the monster's: rust red
+  HI_TOP: 0.4,
+  TRAIL: '#f3e6c4', TRAIL_DELAY_S: 0.4, TRAIL_CATCH_S: 0.25, // parchment damage chunk behind the fill: holds, then catches up 0.4 s after a hit (heals fill instantly)
+  NUM_PX: 12, NUM: '#f3e6c4', NUM_OUTLINE: '#1d150d',    // "14/20", centred, bold, 1 px outline (t566s2518: 12 px, was 10)
+  LOW: 0.25, LOW_HZ: 1.5, LOW_BRIGHT: 1.45,               // below 25% her fill pulses brighter at 1.5 Hz
+  HER_HEAD_W_M: 0.2,      // her head width when her rig has no measurable head part (metres)
+  // (Art's nameplate, card t566s2518, mockup hd-notes/nameplate/nameplate_mockup.html) one centred row - brass Lv badge, then the name - with the health bar under it
+  FONT: 'Georgia, "Times New Roman", serif',
+  NAME_PX: 12, NAME: '#f3e6c4', NAME_OUTLINE: '#1a140e', NAME_OUTLINE_PX: 1,
+  BADGE_PX: 12, BADGE_BG: '#2a2118', BADGE_BORDER: '#b08a3e', BADGE_PAD: '1px 6px',
+  ROW_GAP_PX: 5, STACK_GAP_PX: 4,  // badge -> name gap; row -> bar gap
+  // badge text colour: their combat level against hers
+  LV_LOWER: '#6fae4a', LV_EVEN: '#f3e6c4', LV_HIGHER: '#e08a3a', LV_MUCH: '#c8452f', LV_MUCH_D: 10, // higher by 1..9 = orange, by 10+ = red
+  NAME_R_M: 30, NAME_MAX: 10,  // names + badges: the nearest NAME_MAX within NAME_R_M of her (the health bars keep the combat-only rule)
+  ME_PLATE: false,             // her own name / badge hidden (her health bar still shows in a fight)
+};
+// (Dominic, Art's card t566s2525: 'a varying range of gold coins dropped after every monster kill and automatically put into a players inventory unless it's full.
+// Coins have no stacking limit' / 'if inventory is full the coins will drop on the ground') - src/creatures/coin_drops.js. No boss multiplier (not approved).
+const COIN_DROPS = {
+  ITEM: 'coin:gold',      // the backpack item (Gold Coins): one slot, no stacking limit
+  MIN_K: 1, MAX_K: 3,     // a kill drops a whole random number of coins in [MIN_K x L, MAX_K x L], L = the creature row's combat level
+  GROUND_S: 300,          // (Dominic: '5 minutes') coins dropped on a full backpack stay on the ground this long
+  PICK_R_M: 1.2,          // she picks them up by walking within this (metres), once the backpack has room
+  SPRITE_M: 0.45,         // their size on the ground (metres)
+  ICON: { one: 'assets/ui/icons/coins/gold_coin_128.png', stack: 'assets/ui/icons/coins/gold_coin_stack_128.png', pile: 'assets/ui/icons/coins/gold_coin_pile_128.png' }, // Art's icons
+  STACK_AT: 10,           // the icon is a stack from this many coins...
+  PILE_AT: 100,           // ...and a pile from this many (inventory slot and the ground drop)
+};
 const PLAYGROUND_COMBAT = {
   ATTACK_INTERVAL_S: 3,
   MOB_START_SLACK_M: 0.25, // (GD-30 t706u) a hunting creature that has stopped beside her starts walking again only once she is this far past its reach (no walk / idle flicker)

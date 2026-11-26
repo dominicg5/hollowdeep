@@ -152,7 +152,7 @@ body.cvSolo #cityWrap{display:none}
 #charWrap.solo.pv #pvPanel{display:block;position:absolute;left:8px;right:8px;bottom:8px;z-index:4;padding:8px;border-radius:14px;background:rgba(255,248,236,.95);box-shadow:0 4px 14px rgba(0,0,0,.25)}#charWrap.solo.pv #charPick,#charWrap.solo.pv #charHint{display:none}
 #pvPanel .pvh{display:flex;align-items:center;gap:8px;margin-bottom:6px;color:#4a2e1a;font:600 14px system-ui}#pvPanel .pvh .ic{width:44px;height:44px;flex:none;display:block}#pvPanel .pvh .ic>*{width:44px;height:44px}#pvPanel .pvh b{flex:1;min-width:0}#pvPanel .pvh small{display:block;font-weight:400;font-size:11px;opacity:.75}
 #pvPanel .pvh button{height:40px;border:0;border-radius:12px;background:#4a2e1a;color:#ffe9c4;font:600 12px system-ui;padding:0 10px;flex:none}
-#pgaHud{position:absolute;top:218px;left:12px;z-index:3;min-width:170px;max-width:46%;padding:6px 10px;border-radius:12px;background:rgba(20,30,40,.78);color:#e8f8ff;font:600 12px system-ui;pointer-events:none;display:flex;flex-direction:column;gap:3px}#pgaHud .pgaBar{display:block;height:8px;border-radius:4px;background:rgba(255,255,255,.18);overflow:hidden}#pgaHud .pgaBar i{display:block;height:100%;background:linear-gradient(90deg,#66d8ff,#2fb8f0);transition:width .2s}#pgaHud small{font-weight:500;opacity:.9}.pgaNum{position:absolute;z-index:4;transform:translate(-50%,-100%);font:800 20px system-ui;color:#fff2c4;text-shadow:0 2px 3px rgba(0,0,0,.6);pointer-events:none;animation:pgaUp 1s ease-out forwards}.pgaNum.miss{color:#d8e4ee;font-size:16px}.pgaNum.crit{color:#ffb14a;font-size:24px}.pgaNum.info{color:#9fe8ff;font-size:14px}.pgaNum.ouch{color:#ff8a7a}#pgaHud .pgaMe{display:flex;flex-direction:column;gap:3px;margin-top:3px;padding-top:4px;border-top:1px solid rgba(255,255,255,.15)}#pgaHud .pgaMe .pgaBar i{background:linear-gradient(90deg,#8ee08a,#3cb85c)}#pgaHud[data-ko="1"] .pgaMe small{color:#ffb0a4}@keyframes pgaUp{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-44px}}
+.pgaNum{position:absolute;z-index:4;transform:translate(-50%,-100%);font:800 20px system-ui;color:#fff2c4;text-shadow:0 2px 3px rgba(0,0,0,.6);pointer-events:none;animation:pgaUp 1s ease-out forwards}.pgaNum.miss{color:#d8e4ee;font-size:16px}.pgaNum.crit{color:#ffb14a;font-size:24px}.pgaNum.info{color:#9fe8ff;font-size:14px}.pgaNum.ouch{color:#ff8a7a}@keyframes pgaUp{from{opacity:1;margin-top:0}to{opacity:0;margin-top:-44px}}
 #swAtk{display:none}#charWrap.solo.sw #swAtk{display:block;position:absolute;top:168px;left:12px;z-index:3;height:44px;border:0;border-radius:18px;background:#8a2a1e;color:#ffe9c4;font:700 14px system-ui;padding:0 16px;cursor:pointer}
 #pvPanel .pvk,#pvPanel .pva{display:grid;gap:4px;margin-bottom:6px}#pvPanel .pvk{grid-template-columns:1fr 1fr}#pvPanel .pva{grid-template-columns:repeat(5,1fr);margin:6px 0 0}#pvPanel .pvk button,#pvPanel .pva button{min-height:44px;min-width:0;border:1px solid rgba(74,46,26,.25);border-radius:10px;background:#fff8ec;color:#4a2e1a;font:600 12px system-ui;padding:2px;cursor:pointer}#pvPanel .pva button:disabled{opacity:.35}#pvPanel [data-swatk]{background:#8a2a1e;color:#ffe9c4}
 #pvPanel .pvg{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:6px}#pvPanel .pvt{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='7efd86d7';
+<script>window.HD_BUILD='577f2cbd';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7efd86d7</div>
-<script src="assets/vendor/three.min.js?v=7efd86d7"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 577f2cbd</div>
+<script src="assets/vendor/three.min.js?v=577f2cbd"></script>
 <script>
 'use strict';
 
@@ -2893,7 +2893,8 @@ const ICONS = {
     'drill:mithril':70
   }
 };
-function itemIco(id) {
+function itemIco(id, n) {
+  if (id === 'coin:gold' && typeof CoinDrops !== 'undefined') return '<i class="cxsv cxico cxs1" style="background-image:url(' + CoinDrops.icon(n) + ')" aria-hidden="true"></i>'; // (t566s2525) Art's coin icons: one coin, a stack or a pile by count (COIN_DROPS)
   // (Art's painted pickaxe tier icons) tool:pick_<grade>@t1..@t10: one 10x1 sheet per grade (assets/ui/icons/items_<grade>_tiers.webp), a CSS background, so the
   // browser fetches a grade's sheet only the first time one of its tiered icons is shown; @t0 is the pick's own atlas cell
   // swords (Art's sword tier icons): one 11-cell sheet per grade, T0..T10, loaded only when a sword icon is drawn
@@ -2923,6 +2924,7 @@ const Craft = (() => {
   ITEMS[CLIMB_BASE].name = 'Iron Climbing Picks'; ITEMS[TLINK_BASE].name = 'Bronze Climbing Tether'; ITEMS[TLINK_BASE].emoji = '🪢';
   // (Dominic: "There should have never been a winch for the Ledge tether system") the hip ascender is its own fixed gear, always worn: not a tool, never made, bought,
   // sold, listed, carried or stored. The old anvil-made Ledge Tether winch (tool:lifeline_*) is gone; old saves drop it with a refund (migrateWinch v2)
+  ITEMS['coin:gold'] = { name: 'Gold coins', short: 'Gold', emoji: '🪙', col: '#e6b640', kind: 'coin' }; // (t566s2525) dropped by every monster kill (COIN_DROPS): straight into the backpack, one slot, no stacking limit
   const WINCH_BASE = 'gear:winch_iron'; ITEMS[WINCH_BASE] = { name: 'Iron Winch', short: 'Winch', emoji: '🪝', col: (TIERS.find((q) => q[0] === 'iron') || [])[2], kind: 'gear', winch: true, grade: 'iron' };
   // (Dominic) equipped gear lives in equipment slots, never in the backpack grid or its slot count: the base gear (always worn) and the pickaxe in her hand (S.worn.pick)
   const BASE_GEAR = [CLIMB_BASE, TLINK_BASE, WINCH_BASE], isBase = (id) => BASE_GEAR.includes(id);
@@ -3060,7 +3062,7 @@ const Craft = (() => {
   // (Dominic) Backpack: ores, coal, bars and every other non-tool item stack to STACK (500) per slot, the 501st starts a new slot; pickaxes and other tools take one slot each;
   // drill stands and bits stack to 12 per slot; Ledge Tether length (metres) stacks in one slot. Vault: every kind sits in one slot, tools included, up to STACK_MAX (the largest exact whole number a save holds).
   const BAG_N = 20, VAULT_N = 2000, /* (t591u, Dominic) 2000 vault slots; the grid draws only the rows in view */ STACK = 500, STACK_DRILL = 12, STACK_MAX = Number.MAX_SAFE_INTEGER;
-  const perSlot = (id) => { const it = ITEMS[id]; if (!it) return STACK; if (it.unit === 'm' || it.kind === 'note') return STACK_MAX; /* (a note: one slot, however many it stands for) */ if (it.kind === 'stand' || it.kind === 'bit' || it.kind === 'drill') return STACK_DRILL; return it.kind === 'tool' ? 1 : STACK; }; // (Dominic: drill stands and bits stack to 12)
+  const perSlot = (id) => { const it = ITEMS[id]; if (!it) return STACK; if (it.unit === 'm' || it.kind === 'note' || it.kind === 'coin') return STACK_MAX; /* (coins: no stacking limit) */ /* (a note: one slot, however many it stands for) */ if (it.kind === 'stand' || it.kind === 'bit' || it.kind === 'drill') return STACK_DRILL; return it.kind === 'tool' ? 1 : STACK; }; // (Dominic: drill stands and bits stack to 12)
   const slotsFor = (where, id, c) => (c <= 0 ? 0 : where === 'bag' ? Math.ceil(c / perSlot(id)) : 1);
   // old saves (unlimited stacks): split the backpack into 500-slots and single tool slots once; whatever no longer fits goes to the vault, nothing is lost
   function migrateBagStacks() { if (typeof S === 'undefined' || !S || S.bagStackV >= 2) return; S.bagStackV = 2; S.bagStack500 = 1; /* v1: 500-slots + single tools; v2: stands / bits 12 per slot */ const b = bag(); let O = Array.isArray(S.bagOrder) ? S.bagOrder : [];
@@ -3134,7 +3136,7 @@ const Craft = (() => {
     else if (it.kind === 'bit') b = `<path d="${P([[18, 36], [30, 36], [24, 8]])}" fill="${c}" ${st}/><rect x="${j(20)}" y="${j(34)}" width="8" height="5" rx="1" fill="#8a8d92" ${st}/><rect x="${j(22)}" y="${j(38)}" width="4" height="5" fill="#6a6d72" ${st}/>`;
     else b = `<rect x="12" y="14" width="24" height="22" rx="3" fill="${c}" ${st}/>`;
     return (ICO[id] = `<svg class="cxsv" viewBox="0 0 48 48" aria-hidden="true">${b}</svg>`); }
-  const pic = (id) => { if (isNote(id)) return '<span class="cxi cxNote" aria-label="Bank note">📜</span>'; const it = ITEMS[id], a = it && it.tiered ? 'tool:pick_' + it.grade + '@t' + pickTier(it.grade) : id; return ((typeof itemIco === 'function' && itemIco(a)) || svgIco(it && it.tiered ? 'tool:pick_' + it.grade : a)) + tb(id); }; // (a tiered pickaxe: Art's painted icon for its tier, no tint)
+  const pic = (id, n) => { if (isNote(id)) return '<span class="cxi cxNote" aria-label="Bank note">📜</span>'; const it = ITEMS[id], a = it && it.tiered ? 'tool:pick_' + it.grade + '@t' + pickTier(it.grade) : id; return ((typeof itemIco === 'function' && itemIco(a, n)) || svgIco(it && it.tiered ? 'tool:pick_' + it.grade : a)) + tb(id); }; // (a tiered pickaxe: Art's painted icon for its tier, no tint)
   const tb = (id) => { const it = ITEMS[id]; return it && it.tiered ? `<b class="cxtb">T${pickTier(it.grade)}</b>` : ''; }; // the brass tier badge on a tiered pickaxe's icon
   const badge = (id, c) => { const it = ITEMS[id], m = it && it.unit === 'm'; return `<b class="cxct${m ? ' m' : ''}">${m ? fmtN(c) + ' m' : '×' + fmtN(c)}</b>`; };
   const fmtN = (n) => (n >= 1e9 ? (n / 1e9).toFixed(n >= 1e10 ? 0 : 1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1) + 'M' : n >= 1e4 ? Math.floor(n / 1000) + 'k' : String(n));
@@ -3177,7 +3179,7 @@ const Craft = (() => {
   function vaultHook() { const sc = typeof document !== 'undefined' && document.querySelector('#modalBody .cxvv'); if (!sc || sc.__v) return; sc.__v = 1; sc.scrollTop = VG.top; sc.addEventListener('scroll', () => vaultScroll(sc), { passive: true }); vaultScroll(sc); }
   function slotsHTML(where, O, i0, i1, N) { let h = ''; const seen = {}; if (where === 'bag') for (let i = 0; i < i0; i++) if (O[i]) seen[O[i]] = (seen[O[i]] || 0) + 1;
     for (let i = i0; i < i1; i++) { const id = O[i]; let c = id ? get(where, id) : 0, first = true; if (id && where === 'bag') { const j = seen[id] || 0, p = perSlot(id); seen[id] = j + 1; first = !j; c = p >= STACK_MAX ? c : Math.max(0, Math.min(p, c - j * p)); }
-      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${one ? ' one' : ''}${id && isNote(id) ? ' note' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id) + (one ? '' : badge(id, c)) : ''}</div>`; }
+      const one = id && where === 'bag' && perSlot(id) === 1; h += `<div class="cxs${id ? ' full' : ''}${i >= N ? ' over' : ''}${one ? ' one' : ''}${id && isNote(id) ? ' note' : ''}" data-w="${where}" data-s="${i}"${id ? ` data-id="${id}" data-n="${c}" title="${esc(nm(id))}"` : ''}>${id ? pic(id, c) + (one ? '' : badge(id, c)) : ''}</div>`; }
     return h; }
   function gridHTML(where) { if (where !== 'bag') return vaultGridHTML(); const O = order(where), N = BAG_N; return `<div class="cxg cxg-${where}" data-w="${where}">` + slotsHTML(where, O, 0, Math.max(N, O.length), N) + '</div>'; }
   const used = (w) => order(w).filter(Boolean).length;
@@ -10180,6 +10182,7 @@ const CityMap = (() => {
 const LUMEN_MUSHROOM = {
   id: 'lumen_mushroom',
   name: 'Lumen Mushroom',
+  level: 1,        // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
   hp: 8,            // max HP (Art's stats, Dominic t655)
   str: 1,           // Strength: its bite does str on a full hit, otherwise 0..str (Combat.creatureAttack, GD-15)
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
@@ -10210,6 +10213,7 @@ const LUMEN_MUSHROOM = {
 const TIN_GOLEM = {
   id: 'tin_golem',
   name: 'Tin Golem',
+  level: 10,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
   hp: 20,           // placeholder, not approved
   str: 2,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 5,            // placeholder, not approved
@@ -10238,6 +10242,7 @@ const TIN_GOLEM = {
 const COPPER_GOLEM = {
   id: 'copper_golem',
   name: 'Copper Golem',
+  level: 25,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
   hp: 35,           // placeholder, not approved
   str: 3,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 10,            // placeholder, not approved
@@ -10264,6 +10269,7 @@ const COPPER_GOLEM = {
 const COAL_GOLEM = {
   id: 'coal_golem',
   name: 'Coal Golem',
+  level: 40,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
   hp: 50,           // placeholder, not approved
   str: 4,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 15,            // placeholder, not approved
@@ -10293,6 +10299,48 @@ const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, co
 
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
+// (Dominic t720u / t722u, Art's design approved on card t721s2718) overhead combat health bars, hers and the monster's: drawn by src/creatures/healthbars.js
+// (DOM over the 3D canvas: constant screen size, billboarded). Shown ONLY while a fight is on - not when a monster is merely targeted - and gone FADE_AFTER_S after it ends.
+const HEALTH_BARS = {
+  FADE_AFTER_S: 5,        // (t722u) after the fight ends the bars stay this long...
+  FADE_S: 0.35,           // ...then fade out over this
+  LIFT_M: 0.5,            // (t566s2518 nameplate) the plate is pinned this far above the top of the model's bounding box (riding its head bone when it has one)
+  MIN_GAP_PX: 4,          // at least this screen gap between the model top and the plate
+  HEAD_W_K: 1.0,          // bar width = this x the head width...
+  BODY_W_K: 0.6,          // ...or this x the body width for a creature with no head bone
+  MIN_W_PX: 48, MAX_W_PX: 96, // clamped on screen
+  H_PX: 10,               // bar height (the HP number sits on it)
+  FRAME_PX: 2, FRAME: '#b08a3e', INNER: '#3a2c1c', RADIUS_PX: 3, SHADOW: '0 1px 2px rgba(0,0,0,.5)', // brass frame, 1 px inner line
+  TRACK: '#2a2118',
+  ME_FILL: '#6fae4a', ME_HI: '#8fcf63',     // hers: green, highlight over the top HI_TOP
+  MOB_FILL: '#c8452f', MOB_HI: '#e0664c',   // the monster's: rust red
+  HI_TOP: 0.4,
+  TRAIL: '#f3e6c4', TRAIL_DELAY_S: 0.4, TRAIL_CATCH_S: 0.25, // parchment damage chunk behind the fill: holds, then catches up 0.4 s after a hit (heals fill instantly)
+  NUM_PX: 12, NUM: '#f3e6c4', NUM_OUTLINE: '#1d150d',    // "14/20", centred, bold, 1 px outline (t566s2518: 12 px, was 10)
+  LOW: 0.25, LOW_HZ: 1.5, LOW_BRIGHT: 1.45,               // below 25% her fill pulses brighter at 1.5 Hz
+  HER_HEAD_W_M: 0.2,      // her head width when her rig has no measurable head part (metres)
+  // (Art's nameplate, card t566s2518, mockup hd-notes/nameplate/nameplate_mockup.html) one centred row - brass Lv badge, then the name - with the health bar under it
+  FONT: 'Georgia, "Times New Roman", serif',
+  NAME_PX: 12, NAME: '#f3e6c4', NAME_OUTLINE: '#1a140e', NAME_OUTLINE_PX: 1,
+  BADGE_PX: 12, BADGE_BG: '#2a2118', BADGE_BORDER: '#b08a3e', BADGE_PAD: '1px 6px',
+  ROW_GAP_PX: 5, STACK_GAP_PX: 4,  // badge -> name gap; row -> bar gap
+  // badge text colour: their combat level against hers
+  LV_LOWER: '#6fae4a', LV_EVEN: '#f3e6c4', LV_HIGHER: '#e08a3a', LV_MUCH: '#c8452f', LV_MUCH_D: 10, // higher by 1..9 = orange, by 10+ = red
+  NAME_R_M: 30, NAME_MAX: 10,  // names + badges: the nearest NAME_MAX within NAME_R_M of her (the health bars keep the combat-only rule)
+  ME_PLATE: false,             // her own name / badge hidden (her health bar still shows in a fight)
+};
+// (Dominic, Art's card t566s2525: 'a varying range of gold coins dropped after every monster kill and automatically put into a players inventory unless it's full.
+// Coins have no stacking limit' / 'if inventory is full the coins will drop on the ground') - src/creatures/coin_drops.js. No boss multiplier (not approved).
+const COIN_DROPS = {
+  ITEM: 'coin:gold',      // the backpack item (Gold Coins): one slot, no stacking limit
+  MIN_K: 1, MAX_K: 3,     // a kill drops a whole random number of coins in [MIN_K x L, MAX_K x L], L = the creature row's combat level
+  GROUND_S: 300,          // (Dominic: '5 minutes') coins dropped on a full backpack stay on the ground this long
+  PICK_R_M: 1.2,          // she picks them up by walking within this (metres), once the backpack has room
+  SPRITE_M: 0.45,         // their size on the ground (metres)
+  ICON: { one: 'assets/ui/icons/coins/gold_coin_128.png', stack: 'assets/ui/icons/coins/gold_coin_stack_128.png', pile: 'assets/ui/icons/coins/gold_coin_pile_128.png' }, // Art's icons
+  STACK_AT: 10,           // the icon is a stack from this many coins...
+  PILE_AT: 100,           // ...and a pile from this many (inventory slot and the ground drop)
+};
 const PLAYGROUND_COMBAT = {
   ATTACK_INTERVAL_S: 3,
   MOB_START_SLACK_M: 0.25, // (GD-30 t706u) a hunting creature that has stopped beside her starts walking again only once she is this far past its reach (no walk / idle flicker)
@@ -10699,6 +10747,110 @@ const Creatures = (() => {
     const root = new THREE.Group(); root.name = T.id; root.add(cp); const bones = T.bones.map((b) => cL.get(b)), mats = T.mats;
     return player({ id: T.id, def: T.def, root, model: cp, clips: T.clips, mats, names: T.names, stripped: T.stripped, rest: T.rest, bones, clone: true }); }
   return { get, load, make, clone, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
+})();
+/* (Dominic t720u / t722u, Art's design approved on card t721s2718) overhead combat health bars - hers and each monster's in the fight - over the 3D canvas,
+   under (t566s2518) Art's nameplate: one centred row, a brass 'Lv N' badge (coloured against her combat level) then the name.
+   Plain DOM + CSS (no PNGs), constant screen size, billboarded; every number is in HEALTH_BARS (src/creatures/data.js). Used by the Attack Playground
+   (char3d.js) and the overworld golems (world_golems.js), which both call frame() once per frame with their candidates:
+     HealthBars.frame(scope, { host, canvas, cam, m, dt, myLevel, items: [{ key, me, name, level, dist, hp, max, shield, root, head, fighting }] }) -> { shown }
+       a monster with fighting = true puts it (and her) in the fight; the bars show only while a fight is on and fade FADE_AFTER_S after it ends;
+       names + badges show for the nearest NAME_MAX others within NAME_R_M metres (dist), hers only if ME_PLATE
+     HealthBars.clear(scope)    drop a scope's bars at once (playground closed / map left)
+     HealthBars.state(scope)    what is on screen (tests) */
+const HealthBars = (() => {
+  const D = () => HEALTH_BARS, S = {}, V = () => new THREE.Vector3();
+  let css = false;
+  function style() { if (css) return; css = true; const T = D(), el = document.createElement('style'), o = T.NAME_OUTLINE_PX, ol = (c, k) => [[-k, -k], [k, -k], [-k, k], [k, k], [-k, 0], [k, 0], [0, -k], [0, k]].map(([x, y]) => `${x}px ${y}px 0 ${c}`).join(','); el.id = 'hbStyle';
+    el.textContent = `.hbLayer{pointer-events:none;overflow:visible}.hbPlate{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-100%);will-change:left,top;font-family:${T.FONT}}`
+      + `.hbRow{display:flex;align-items:center;justify-content:center;gap:${T.ROW_GAP_PX}px;white-space:nowrap}.hbRow+.hbBar{margin-top:${T.STACK_GAP_PX}px}`
+      + `.hbName{font-weight:700;font-size:${T.NAME_PX}px;line-height:1.15;color:${T.NAME};text-shadow:${ol(T.NAME_OUTLINE, o)}}`
+      + `.hbLv{font-weight:700;font-size:${T.BADGE_PX}px;line-height:1.2;background:${T.BADGE_BG};border:1px solid ${T.BADGE_BORDER};border-radius:999px;padding:${T.BADGE_PAD}}.hbLv.lower{color:${T.LV_LOWER}}.hbLv.even{color:${T.LV_EVEN}}.hbLv.higher{color:${T.LV_HIGHER}}.hbLv.much{color:${T.LV_MUCH}}`
+      + `.hbBar{position:relative;box-sizing:border-box;height:${T.H_PX + 2 * T.FRAME_PX}px;border:${T.FRAME_PX}px solid ${T.FRAME};border-radius:${T.RADIUS_PX}px;box-shadow:${T.SHADOW},inset 0 0 0 1px ${T.INNER};background:${T.TRACK}}.hbTrack{position:absolute;inset:0;overflow:hidden;border-radius:1px}`
+      + `.hbBar i{position:absolute;left:1px;top:1px;bottom:1px;display:block;border-radius:1px}.hbBar .hbTrail{background:${T.TRAIL}}.hbBar .hbTrail.go{transition:width ${T.TRAIL_CATCH_S}s ease-out}`
+      + `.hbBar.me .hbFill{background:linear-gradient(180deg,${T.ME_HI} 0,${T.ME_HI} ${T.HI_TOP * 100}%,${T.ME_FILL} ${T.HI_TOP * 100}%)}.hbBar.mob .hbFill{background:linear-gradient(180deg,${T.MOB_HI} 0,${T.MOB_HI} ${T.HI_TOP * 100}%,${T.MOB_FILL} ${T.HI_TOP * 100}%)}`
+      + `.hbBar.me.low .hbFill{animation:hbPulse ${(1 / T.LOW_HZ).toFixed(3)}s ease-in-out infinite}@keyframes hbPulse{50%{filter:brightness(${T.LOW_BRIGHT})}}`
+      + `.hbBar b{position:absolute;inset:-4px 0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${T.NUM_PX}px;line-height:1;color:${T.NUM};text-shadow:${ol(T.NUM_OUTLINE, 1)};white-space:nowrap}`;
+    document.head.appendChild(el); }
+  // ---- one model's sizes, measured once (in its root's local units): its top, its head bone's rest height, head and body width
+  function headOf(root) { let h = null; root.traverse((o) => { if (!h && o.isBone && /^head$/i.test(o.name)) h = o; }); return h; }
+  function measure(root, head) { const ud = root.userData; if (ud.hbM && ud.hbM.head === head) return ud.hbM; root.updateMatrixWorld(true); const inv = root.matrixWorld.clone().invert(), bb = new THREE.Box3(), hb = new THREE.Box3(), v = V();
+    root.traverse((o) => { if (!o.isMesh || o.userData.isInk) return; const P = o.geometry.attributes.position, sk = o.isSkinnedMesh ? o.skeleton : null, hi = sk && head ? sk.bones.indexOf(head) : -1, J = o.geometry.attributes.skinIndex, W = o.geometry.attributes.skinWeight;
+      const M = o.matrixWorld.clone().premultiply(inv); for (let i = 0; i < P.count; i += 3) { v.fromBufferAttribute(P, i).applyMatrix4(M); bb.expandByPoint(v); if (hi >= 0) { let bj = J.getX(i), bw = W.getX(i); for (const [j, w] of [[J.getY(i), W.getY(i)], [J.getZ(i), W.getZ(i)], [J.getW(i), W.getW(i)]]) if (w > bw) { bw = w; bj = j; } if (bj === hi) hb.expandByPoint(v); } } });
+    if (head && hb.isEmpty()) { head.updateMatrixWorld(true); head.traverse((o) => { if (!o.isMesh) return; const P = o.geometry.attributes.position, M = o.matrixWorld.clone().premultiply(inv); for (let i = 0; i < P.count; i += 3) hb.expandByPoint(v.fromBufferAttribute(P, i).applyMatrix4(M)); }); }
+    const hy = head ? head.getWorldPosition(V()).applyMatrix4(inv).y : 0, bw = bb.isEmpty() ? 0.5 : Math.max(bb.max.x - bb.min.x, 1e-3), hw = hb.isEmpty() ? 0 : hb.max.x - hb.min.x;
+    return (ud.hbM = { head, top: bb.isEmpty() ? 1 : bb.max.y, hy, headW: hw, bodyW: bw }); }
+  // ---- a scope (one per host: 'pga', 'map'): its layer, its plates, the fight clock
+  function scope(id, host) { let s = S[id]; if (s && s.host === host) return s; if (s) clear(id); style(); const L = document.createElement('div'); L.className = 'hbLayer'; L.dataset.scope = id;
+    L.style.cssText = (host === document.body ? 'position:fixed;' : 'position:absolute;') + 'left:0;top:0;width:0;height:0;z-index:' + (host === document.body ? 60 : 4); host.appendChild(L);
+    return (S[id] = { host, L, bars: {}, members: new Set(), named: [], fight: false, t: 1e9, op: 0 }); }
+  function plate(s, key, me) { let b = s.bars[key]; if (b) return b; const el = document.createElement('div'); el.className = 'hbPlate'; el.dataset.key = key;
+    el.innerHTML = `<div class="hbRow"><span class="hbLv"></span><span class="hbName"></span></div><div class="hbBar ${me ? 'me' : 'mob'}"><div class="hbTrack"><i class="hbTrail"></i><i class="hbFill"></i></div><b></b></div>`; s.L.appendChild(el);
+    const row = el.children[0], bar = el.children[1];
+    return (s.bars[key] = { el, row, lv: row.children[0], nm: row.children[1], bar, tr: bar.children[0].children[0], fl: bar.children[0].children[1], num: bar.children[1], me, f: -1, trail: -1, hold: 0, hp: null, max: null, txt: '', name: '', lvTxt: '', lvCls: '', x: 0, y: 0, w: 0, vis: false, rowOn: null, barOn: null }); }
+  function setW(e, u) { e.style.width = 'calc(' + (u * 100).toFixed(2) + '% - 2px)'; }
+  const show = (e, on) => { e.style.display = on ? '' : 'none'; };
+  function lvClass(lv, my) { const d = (lv || 1) - (my || 1); return d < 0 ? 'lower' : d === 0 ? 'even' : d < D().LV_MUCH_D ? 'higher' : 'much'; }
+  function frame(id, o) { const T = D(), s = scope(id, o.host || document.body), dt = Math.min(o.dt || 0, 0.25), items = o.items || [];
+    // the fight clock: bars only in a fight, FADE_AFTER_S after it ends they fade over FADE_S
+    const fighting = items.filter((q) => q.fighting && !q.me); if (fighting.length) { s.fight = true; s.t = 0; s.op = 1; for (const q of fighting) s.members.add(q.key); for (const q of items) if (q.me) s.members.add(q.key); }
+    else { if (s.fight) { s.fight = false; s.t = 0; } if (s.members.size) { s.t += dt; s.op = s.t <= T.FADE_AFTER_S ? 1 : Math.max(0, 1 - (s.t - T.FADE_AFTER_S) / T.FADE_S); if (s.op <= 0) s.members.clear(); } }
+    // names + badges: the nearest NAME_MAX within NAME_R_M (hers only with ME_PLATE)
+    const named = new Set(items.filter((q) => (!q.me || T.ME_PLATE) && q.dist != null && q.dist <= T.NAME_R_M).sort((a, b) => a.dist - b.dist).slice(0, T.NAME_MAX).map((q) => q.key)); s.named = [...named];
+    const cam = o.cam, cv = o.canvas, cr = cv && cv.getBoundingClientRect(), hr = s.host === document.body ? { left: 0, top: 0 } : s.host.getBoundingClientRect(), ox = cr ? cr.left - hr.left : 0, oy = cr ? cr.top - hr.top : 0;
+    const right = cam ? V().setFromMatrixColumn(cam.matrixWorld, 0).normalize() : null, m = o.m || 1, scr = (p) => { const q = p.clone().project(cam); return q.z > 1 || q.z < -1 ? null : [ox + (q.x + 1) / 2 * cr.width, oy + (1 - q.y) / 2 * cr.height]; };
+    const seen = new Set();
+    for (const q of items) { const rowOn = named.has(q.key), barOn = s.members.has(q.key) && s.op > 0; let b = s.bars[q.key]; if (!rowOn && !barOn) { if (b) { b.el.remove(); delete s.bars[q.key]; } continue; }
+      seen.add(q.key); b = b || plate(s, q.key, !!q.me); if (b.rowOn !== rowOn) { show(b.row, rowOn); b.rowOn = rowOn; } if (b.barOn !== barOn) { show(b.bar, barOn); b.barOn = barOn; if (!barOn) b.f = -1; } b.bar.style.opacity = barOn ? String(s.op) : '';
+      if (rowOn) { const nm = q.name || '', lt = 'Lv ' + (q.level || 1), lc = lvClass(q.level, o.myLevel); if (nm !== b.name) { b.name = nm; b.nm.textContent = nm; } if (lt !== b.lvTxt) { b.lvTxt = lt; b.lv.textContent = lt; } if (lc !== b.lvCls) { if (b.lvCls) b.lv.classList.remove(b.lvCls); b.lv.classList.add(lc); b.lvCls = lc; } }
+      // HP: a drop leaves the parchment trail behind (it catches up TRAIL_DELAY_S after the last hit); a heal fills at once
+      const max = Math.max(1, q.max || 1), hp = Math.max(0, Math.min(max, q.hp || 0)), f = hp / max;
+      if (barOn) { if (b.f < 0) { b.f = b.trail = f; b.hold = 0; b.tr.classList.remove('go'); setW(b.fl, f); setW(b.tr, f); }
+        else if (f < b.f - 1e-6) { b.hold = T.TRAIL_DELAY_S; b.tr.classList.remove('go'); b.f = f; setW(b.fl, f); }
+        else if (f > b.f + 1e-6) { b.f = f; setW(b.fl, f); if (b.trail < f) { b.trail = f; b.tr.classList.remove('go'); setW(b.tr, f); } }
+        if (b.hold > 0 && (b.hold -= dt) <= 0) { b.hold = 0; b.trail = b.f; b.tr.classList.add('go'); setW(b.tr, b.f); }
+        const txt = Math.round(hp) + '/' + Math.round(max) + (q.shield > 0 ? ' +' + Math.round(q.shield) : ''); if (txt !== b.txt) { b.txt = txt; b.num.textContent = txt; } b.hp = Math.round(hp); b.max = Math.round(max);
+        b.bar.classList.toggle('low', !!q.me && hp > 0 && f < T.LOW); }
+      // where: LIFT_M above its top (riding its head bone when it has one), at least MIN_GAP_PX clear of it on screen; bar width from its head (or body), clamped
+      const root = q.root; let pa = null, pt = null, at = null, M = null, sc = 1; if (cam && cr && root && root.parent && root.visible !== false) { M = measure(root, q.head || null); sc = root.getWorldScale(V()).y;
+        const top = M.head ? M.head.getWorldPosition(V()).add(V().set(0, (M.top - M.hy) * sc, 0)) : root.getWorldPosition(V()).add(V().set(0, M.top * sc, 0)); at = top.clone().add(V().set(0, T.LIFT_M * m, 0)); pa = scr(at); pt = scr(top); }
+      if (!pa || !pt) { if (b.vis) { b.el.style.display = 'none'; b.vis = false; } continue; }
+      const wW = (M.headW > 0 ? M.headW * T.HEAD_W_K : (q.me ? T.HER_HEAD_W_M * m / sc : M.bodyW * T.BODY_W_K)) * sc, pr = scr(at.clone().addScaledVector(right, wW)), wpx = Math.round(Math.max(T.MIN_W_PX, Math.min(T.MAX_W_PX, pr ? Math.abs(pr[0] - pa[0]) : T.MIN_W_PX)));
+      const y = Math.min(pa[1], pt[1] - T.MIN_GAP_PX); b.x = pa[0]; b.y = y; b.gap = +(pt[1] - y).toFixed(1); if (wpx !== b.w) { b.w = wpx; b.bar.style.width = wpx + 'px'; }
+      b.el.style.left = pa[0].toFixed(1) + 'px'; b.el.style.top = y.toFixed(1) + 'px'; if (!b.vis) { b.el.style.display = ''; b.vis = true; } }
+    for (const k of Object.keys(s.bars)) if (!seen.has(k)) { s.bars[k].el.remove(); delete s.bars[k]; }
+    return { shown: s.members.size > 0 || named.size > 0 }; }
+  function clear(id) { const s = S[id]; if (!s) return; s.L.remove(); delete S[id]; }
+  function state(id) { const s = S[id]; if (!s) return { on: false, fight: false, shown: false, bars: [], named: [] }; return { on: true, fight: s.fight, t: +s.t.toFixed(2), op: +s.op.toFixed(2), shown: s.members.size > 0 && s.op > 0, members: [...s.members], named: s.named.slice(),
+    bars: Object.entries(s.bars).map(([k, b]) => ({ key: k, me: b.me, bar: !!b.barOn, row: !!b.rowOn, hp: b.hp, max: b.max, txt: b.txt, name: b.name, lv: b.lvTxt, lvCls: b.lvCls, fill: +b.f.toFixed(3), trail: +b.trail.toFixed(3), hold: +b.hold.toFixed(2), low: b.bar.classList.contains('low'), vis: b.vis, w: b.w, x: Math.round(b.x), y: Math.round(b.y), gap: b.gap, op: b.barOn ? +s.op.toFixed(2) : 0, inDom: !!b.el.parentNode })) }; }
+  return { frame, clear, state, measure, headOf, lvClass };
+})();
+/* (Dominic, Art's card t566s2525) gold coins from every monster kill: a whole random number in [MIN_K x L, MAX_K x L] (L = the creature row's combat level,
+   the one its nameplate shows), straight into the backpack (Craft item COIN_DROPS.ITEM, one slot, no stacking limit); with the backpack full they drop on the
+   ground at the kill spot for GROUND_S, and she picks them up by walking over them once there is room. Every number is in COIN_DROPS (src/creatures/data.js).
+   Used by the Attack Playground (char3d.js) and the overworld golems (world_golems.js):
+     CoinDrops.host(scope, { parent, m, y(x, z) })   where a scope's ground drops live (parent-local x / z, m = units per metre, y = ground height)
+     CoinDrops.kill(scope, C, x, z) -> { n, bag, ground }   a kill of creature row C at x / z
+     CoinDrops.tick(scope, dt, hx, hz)               her position: pick-ups and expiry
+     CoinDrops.clear(scope), CoinDrops.state(scope), CoinDrops.roll(L), CoinDrops.icon(n) */
+const CoinDrops = (() => {
+  const D = () => COIN_DROPS, S = {}, tex = {};
+  function roll(L, rnd) { const T = D(), l = Math.max(1, Math.round(L || 1)), a = T.MIN_K * l, b = T.MAX_K * l; return a + Math.floor((rnd || Math.random)() * (b - a + 1)); }
+  function icon(n) { const T = D(); return (n || 1) >= T.PILE_AT ? T.ICON.pile : (n || 1) >= T.STACK_AT ? T.ICON.stack : T.ICON.one; }
+  function sc(id) { return S[id] || (S[id] = { host: null, drops: [], log: [] }); }
+  function host(id, h) { const s = sc(id); if (s.host && h && s.host.parent !== h.parent) for (const d of s.drops) if (d.obj && d.obj.parent) d.obj.parent.remove(d.obj); s.host = h; }
+  function give(n) { const T = D(); if (typeof Craft === 'undefined' || Craft.room('bag', T.ITEM) < n) return false; return Craft.add('bag', T.ITEM, n) >= n; }
+  function sprite(s, d) { const H = s.host; if (!H || !H.parent || typeof THREE === 'undefined') return; const T = D(), u = icon(d.n); let t = tex[u]; if (!t) { t = tex[u] = new THREE.TextureLoader().load(u); if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace; else t.encoding = THREE.sRGBEncoding; }
+    const o = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })), k = T.SPRITE_M * (H.m || 1); o.scale.set(k, k, 1); o.position.set(d.x, (H.y ? H.y(d.x, d.z) : 0) + k * 0.5, d.z); o.name = 'coinDrop'; o.renderOrder = 5; H.parent.add(o); d.obj = o; }
+  function drop(o) { if (o.obj) { if (o.obj.parent) o.obj.parent.remove(o.obj); o.obj.material.dispose(); o.obj = null; } }
+  function kill(id, C, x, z) { const s = sc(id), n = roll(C && C.level); const bag = give(n), r = { n, bag, ground: !bag, level: (C && C.level) || 1, at: +(Date.now() / 1000).toFixed(1) };
+    if (!bag) { const d = { n, x, z, t: D().GROUND_S }; s.drops.push(d); sprite(s, d); } else if (typeof save === 'function') save();
+    s.log.push(r); if (s.log.length > 20) s.log.shift(); return r; }
+  function tick(id, dt, hx, hz) { const s = S[id]; if (!s || !s.drops.length) return null; const T = D(), m = (s.host && s.host.m) || 1; let got = 0;
+    s.drops = s.drops.filter((d) => { if ((d.t -= dt) <= 0) { drop(d); return false; } if (hx != null && Math.hypot(d.x - hx, d.z - hz) <= T.PICK_R_M * m && give(d.n)) { got += d.n; drop(d); return false; } if (!d.obj) sprite(s, d); return true; });
+    if (got && typeof save === 'function') save(); return got || null; }
+  function clear(id) { const s = S[id]; if (!s) return; for (const d of s.drops) drop(d); s.drops = []; s.host = null; }
+  function state(id) { const s = S[id]; return s ? { drops: s.drops.map((d) => ({ n: d.n, x: +d.x.toFixed(2), z: +d.z.toFixed(2), t: +d.t.toFixed(1), shown: !!(d.obj && d.obj.parent) })), log: s.log.slice() } : { drops: [], log: [] }; }
+  return { roll, icon, host, kill, tick, clear, state };
 })();
 /* crystalCrown.js — Lumenite skill-tree crown + branch module (Art, ART-16 crown_v3: 9-crown tree, per-colour merged draws)
    three.js r149 (global THREE, same as assets/vendor/three.min.js). No other deps. Classic script:
@@ -12928,11 +13080,16 @@ const CharView = (() => {
   const pgaBR = () => pgaC().bodyR || 0; // (GD-30) centre to body surface: reaches are measured from its surface
   const pgaC = () => Creatures.get(PGA.id); // (t661) the target's data row: src/creatures/data.js, built through the Creatures API (src/creatures/creatures.js)
   const pgaMe = () => PGA.F || (PGA.F = Combat.newFight(Combat.playerStats())); // her fight (ward shield, second wind, the 15% healing cap)
-  function pgaHud() { if (PGA.on && PGA.mobs && PGA.si !== PGA.tgt && PGA.mobs[PGA.tgt]) { const s0 = PGA.si; pgaUse(PGA.tgt); pgaHud(); pgaUse(s0); return; } /* (GD-30: the HUD always shows her target) */ const w = wrap || document.getElementById('charWrap'); if (!w) return; let h = PGA.hud; if (!PGA.on) { if (h) h.remove(); PGA.hud = null; return; }
-    if (!h) { h = PGA.hud = document.createElement('div'); h.id = 'pgaHud'; h.setAttribute('role', 'status'); w.appendChild(h); } const C = pgaC(), f = Math.max(0, PGA.hp) / C.hp, F = pgaMe(), fm = Math.max(0, F.hp) / F.max;
-    h.dataset.hp = PGA.hp; h.dataset.me = Math.round(F.hp); h.dataset.state = !PGA.mob ? (Creatures.error(PGA.id) ? 'error' : 'loading') : PGA.dead > 0 ? 'dead' : 'alive'; h.dataset.ko = PGA.ko > 0 ? '1' : '0';
-    h.innerHTML = `<b>${C.icon || '🍄'} ${C.name}</b><span class="pgaBar"><i style="width:${(f * 100).toFixed(1)}%"></i></span><small>${!PGA.mob ? (Creatures.error(PGA.id) ? 'could not load' : 'loading…') : PGA.dead > 0 ? 'Defeated - back in ' + Math.ceil(PGA.dead) + ' s' : `HP ${PGA.hp} / ${C.hp} · DEF ${C.def}`}</small>`
-      + `<span class="pgaMe"><b>You</b><span class="pgaBar"><i style="width:${(fm * 100).toFixed(1)}%"></i></span><small>${PGA.ko > 0 ? 'Turned to ash' : `HP ${Math.round(F.hp)} / ${F.max}${F.shield > 0 ? ' · +' + Math.round(F.shield) : ''}`}</small></span>`; }
+  // (t720u / t722u) the black info box over the playground is gone: the fight shows on overhead health bars (pgaBars, src/creatures/healthbars.js). This keeps the
+  // fight's status (CharView.pga.status: target, HP, DEF, state, KO) for the view and tests; nothing is drawn here
+  function pgaHud() { if (PGA.on && PGA.mobs && PGA.si !== PGA.tgt && PGA.mobs[PGA.tgt]) { const s0 = PGA.si; pgaUse(PGA.tgt); pgaHud(); pgaUse(s0); return; } /* (GD-30: the status always reads her target) */ if (PGA.hud) { PGA.hud.remove(); PGA.hud = null; }
+    if (!PGA.on) { PGA.status = null; if (typeof HealthBars !== 'undefined') HealthBars.clear('pga'); return; } const C = pgaC(), F = pgaMe();
+    PGA.status = { name: C.name, hp: PGA.hp, max: C.hp, def: C.def, me: Math.round(F.hp), meMax: F.max, shield: Math.round(F.shield || 0), state: !PGA.mob ? (Creatures.error(PGA.id) ? 'error' : 'loading') : PGA.dead > 0 ? 'dead' : 'alive', ko: PGA.ko > 0, back: PGA.dead > 0 ? Math.ceil(PGA.dead) : 0 }; }
+  // her bar and every creature's in the fight (a creature hunting her, or her target once she has swung at it) - shown only while a fight is on
+  function pgaBars(dt) { if (typeof HealthBars === 'undefined' || !PGA.on || !rig || !R || !cam) return; const w = wrap || document.getElementById('charWrap'), L = PGA.mobs || [], F = pgaMe(), G = st.gnd, items = [{ key: 'me', me: true, name: 'You', level: Combat.playerStats().level, dist: 0, hp: F.hp, max: F.max, shield: F.shield, root: rig.root, head: rig.B.head }];
+    for (let i = 0; i < L.length; i++) { const o = i === PGA.si ? PGA : L[i], m = o.mob; if (!m) continue; if (m.hbHead === undefined) m.hbHead = HealthBars.headOf(m.root); const C = Creatures.get(o.id) || {};
+      items.push({ key: 'pga:' + i, name: C.name, level: C.level, dist: G ? Math.hypot(m.root.position.x - G.x, m.root.position.z - G.z) : 0, hp: o.hp, max: C.hp, root: m.root, head: m.hbHead, fighting: PGA.ko <= 0 && !(o.dead > 0) && !!(o.hunt || (i === PGA.tgt && PGA.eng && PGA.fought)) }); }
+    if (w) HealthBars.frame('pga', { myLevel: Combat.playerStats().level, host: w, canvas: R.domElement, cam, m: 1, dt, items }); }
   function pgaArena() { const g = new THREE.Group(); g.name = 'pgaArena'; const R0 = PGA.R, lam = (c, o) => new THREE.MeshLambertMaterial(Object.assign({ color: c }, o || {})), flat = (geo, m, y) => { const e = new THREE.Mesh(geo, m); e.rotation.x = -Math.PI / 2; e.position.y = y || 0; g.add(e); return e; };
     flat(new THREE.CircleGeometry(R0 + 0.7, 72), lam(0x8e8981)); const jm = new THREE.MeshBasicMaterial({ color: 0x6c675f });
     for (let i = 1; i <= 3; i++) { const r = i * R0 / 3.1; flat(new THREE.RingGeometry(r - 0.025, r + 0.025, 96), jm, 0.003); } // flagstone courses
@@ -12950,7 +13107,7 @@ const CharView = (() => {
     PGA.si = -1; PGA.tgt = 0; pgaUse(0);
     PGA.mobs.forEach((sl, i) => Creatures.load(sl.id).then(() => { if (!PGA.on || !SOLO.on || scene !== sc0 || !PGA.arena || PGA.mobs[i] !== sl) return; const m = Creatures.make(sl.id); if (!m) return; m.root.position.set(...sl.AT); m.root.rotation.y = Math.atan2(-sl.AT[0], -sl.AT[2]); PGA.arena.add(m.root);
       pgaSync(); sl.mob = m; sl.anim = 'idle'; sl.blobMob.visible = true; if (PGA.si === i) { PGA.mob = m; PGA.anim = 'idle'; } pgaHud(); }).catch(() => pgaHud())); }
-  function pgaClose() { if (!PGA.on) return; PGA.on = false; ashClear(); for (const sl of pgaSync()) { const m = sl.mob; sl.mob = null; if (m) { m.mixer.stopAllAction(); if (m.root.parent) m.root.parent.remove(m.root); dropObj(m.root); for (const q of m.mats) q.dispose(); } } PGA.mob = null; PGA.mobs = null; PGA.si = -1; PGA.tgt = 0; PGA.id = (pgaRows()[0] || { id: 'lumen_mushroom' }).id;
+  function pgaClose() { if (!PGA.on) return; PGA.on = false; ashClear(); if (typeof CoinDrops !== 'undefined') CoinDrops.clear('pga'); if (typeof HealthBars !== 'undefined') HealthBars.clear('pga'); for (const sl of pgaSync()) { const m = sl.mob; sl.mob = null; if (m) { m.mixer.stopAllAction(); if (m.root.parent) m.root.parent.remove(m.root); dropObj(m.root); for (const q of m.mats) q.dispose(); } } PGA.mob = null; PGA.mobs = null; PGA.si = -1; PGA.tgt = 0; PGA.id = (pgaRows()[0] || { id: 'lumen_mushroom' }).id;
     if (PGA.arena) { if (PGA.arena.parent) PGA.arena.parent.remove(PGA.arena); dropObj(PGA.arena); PGA.arena.traverse((o) => { for (const q of [].concat(o.material || [])) q.dispose(); }); PGA.arena = null; }
     if (scene) { for (const o of scene.userData.floor || []) o.visible = true; if (PGA.bg0 !== undefined) scene.background = PGA.bg0; } PGA.bg0 = undefined; if (st.gnd && st.gnd.arena) { st.gnd.exLeanS = 0; st.gnd = PGA.gnd0 || null; } PGA.gnd0 = null; PGA.G = null; PGA.eng = false; PGA.F = null; PGA.ko = 0;
     if (PGA.dist0 != null) st.dist = PGA.dist0; if (PGA.tilt0 !== null) st.tilt = PGA.tilt0; PGA.dist0 = null; PGA.tilt0 = null; pgaHud(); const w = wrap || document.getElementById('charWrap'); if (w) w.querySelectorAll('.pgaNum').forEach((e) => e.remove()); }
@@ -12963,7 +13120,7 @@ const CharView = (() => {
     if (q.d > PGA.REACH + (keep || 0) || q.dot < 0.3) return null; /* (out of reach, or she has been turned away from it) */
     const r = Combat.rollDamage(Combat.playerStats(), { def: pgaC().def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift(); if (r.dmg > 0) Combat.fightDealt(pgaMe(), r.dmg);
     pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); PGA.hunt = true; /* (GD-19: hit, it hunts her until she is past its leash) */
-    if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.sink = 0; PGA.kills++; PGA.eng = false; PGA.hunt = false; PGA.bite = 0; PGA.once = 0; PGA.anim = 'death'; m.play(pgaC().clips.death, true); Combat.fightKill(pgaMe()); if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } }
+    if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.sink = 0; PGA.kills++; PGA.eng = false; PGA.hunt = false; PGA.bite = 0; PGA.once = 0; PGA.anim = 'death'; m.play(pgaC().clips.death, true); Combat.fightKill(pgaMe()); if (typeof CoinDrops !== 'undefined' && PGA.arena) { CoinDrops.host('pga', { parent: PGA.arena, m: 1, y: () => 0 }); const cd = CoinDrops.kill('pga', pgaC(), m.root.position.x, m.root.position.z); pgaNum(cd.bag ? '+' + cd.n + ' gold' : cd.n + ' gold on the ground (backpack full)', 'info'); } /* (t566s2525: coins from every kill) */ if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } }
     else if (r.dmg > 0) pgaOnce('hit'); pgaHud(); return r; }
   function pgaOnce(k) { const m = PGA.mob, C = pgaC(), a = m && m.play(C.clips[k], true); PGA.anim = k; PGA.once = a ? a.getClip().duration : 0.6; }
   function pgaLoop(k) { const m = PGA.mob; if (!m || PGA.anim === k) return; m.play(pgaC().clips[k]); PGA.anim = k; }
@@ -13012,9 +13169,9 @@ const CharView = (() => {
         if (!bk || (k.hit !== bk.hit ? k.hit : (k.hit && Math.abs(k.t - bk.t) > 0.3 ? k.t < bk.t : k.px < bk.px))) bk = k; });
       const best = bk ? bk.i : -1; PGA.pick = bk; /* (GD-30 t543: a creature whose body the tap ray really passes through (its upright core) beats one it only grazes; of two it passes through, the nearer
          along the ray; otherwise / as the tie-break, the one whose centre is nearest the tap on screen. run24: a mushroom tap with the 2.6 m golem near the line of sight) */
-      if (best >= 0) { if (best !== PGA.tgt) { PGA.cur = null; PGA.inR = false; if (SWG.at) SWG.at.lock = null; } PGA.tgt = best; pgaUse(best); PGA.eng = true; swDrawFight(); if (!(SWG.R || SWG.L)) pgaNum('No sword', 'info', true); pgaHud(); return 'mob'; } }
+      if (best >= 0) { if (best !== PGA.tgt) { PGA.cur = null; PGA.inR = false; PGA.fought = false; if (SWG.at) SWG.at.lock = null; } PGA.tgt = best; pgaUse(best); PGA.eng = true; swDrawFight(); if (!(SWG.R || SWG.L)) pgaNum('No sword', 'info', true); pgaHud(); return 'mob'; } }
     if (ray.direction.y > -1e-4) return null; const p = ray.origin.clone().addScaledVector(ray.direction, -ray.origin.y / ray.direction.y).applyAxisAngle(V(0, 1, 0), -st.yaw); return pgaWalk(p.x, p.z) ? 'ground' : null; }
-  function pgaWalk(x, z) { const G = st.gnd; if (!G || !G.arena || PGA.ko > 0) return false; PGA.eng = false; SWG.q = 0; /* (GD-19: walking off ends HER attacks - none queued; the run sheathes a swing in progress. The mushroom keeps on until she is past its leash) */ const RM = PGA.R - 0.3, L = Math.hypot(x, z); if (L > RM) { x *= RM / L; z *= RM / L; } navTo(G, x, z, null); const M = PGA.mark; if (M) { M.position.x = G.goal ? G.goal.x : x; M.position.z = G.goal ? G.goal.z : z; M.visible = true; M.userData.t = 0; } return true; }
+  function pgaWalk(x, z) { const G = st.gnd; if (!G || !G.arena || PGA.ko > 0) return false; PGA.eng = false; SWG.q = 0; /* (GD-19: walking off ends HER attacks - none queued; the run sheathes a swing in progress. The mushroom keeps on until she is past its leash) */ PGA.fought = false; const RM = PGA.R - 0.3, L = Math.hypot(x, z); if (L > RM) { x *= RM / L; z *= RM / L; } navTo(G, x, z, null); const M = PGA.mark; if (M) { M.position.x = G.goal ? G.goal.x : x; M.position.z = G.goal ? G.goal.z : z; M.visible = true; M.userData.t = 0; } return true; }
   // engaged (GD-19): run to striking range, square up and keep facing it - mid-swing too - and start one attack sequence every ATTACK_INTERVAL_S (3 s); each is the
   // next of the 4 swing styles in turn (swStart cycles them) and rolls the damage once at its strike point (pgaTick). Locked on until it dies, she is knocked out, or she walks off.
   function pgaChase(dt) { const G = st.gnd, q = pgaRel(); if (PGA.swT > 0) PGA.swT -= dt; if (!PGA.eng || !q || PGA.dead > 0 || PGA.ko > 0) { if (PGA.dead > 0 || PGA.ko > 0) PGA.eng = false; PGA.cur = null; PGA.inR = false; return; } const mp = PGA.mob.root.position, CH = pgaCh();
@@ -13023,7 +13180,7 @@ const CharView = (() => {
     if (!commit && q.d > (SWG.at || (PGA.inR && CH.HOLD_IN_REACH) ? PGA.REACH : PGA.STAND + 0.3)) { PGA.chased = true; PGA.inR = false; const so = PGA.STAND + pgaBR(), tx = mp.x - q.dx / q.cd * so, tz = mp.z - q.dz / q.cd * so; PGA.rpT = (PGA.rpT || 0) - dt; if (!G.goal || (Math.hypot(G.goal.x - tx, G.goal.z - tz) > CH.REPATH_M && PGA.rpT <= 0)) { navTo(G, tx, tz, null); PGA.rpT = CH.REPATH_S; } return; } /* (t719u: re-aimed only once its spot has moved REPATH_M, at most every REPATH_S) */ /* (mid-swing it may shuffle a little: she stays put while it is still in reach) */
     PGA.inR = true; /* (t698u hysteresis: caught up at STAND + 0.3, she holds and swings until it is past the full reach, instead of re-chasing every few cm while her run winds down) */
     if (G.goal) { G.goal = null; G.path = null; } const fa = Math.atan2(q.dx, q.dz), df = Math.atan2(Math.sin(fa - G.face), Math.cos(fa - G.face)); G.face += df * (1 - Math.exp(-dt * 10));
-    if (PGA.swT <= 0 && Math.abs(df) < 0.45 && !SWG.at && !SWG.run && G.mv < 0.15 && (SWG.R || SWG.L) && swAttack()) { PGA.swT = pgaInt(); if (SWG.at) { const e = { t: +PGA.clk.toFixed(3), v: SWG.at.v, roll: 0, d0: +q.d.toFixed(2), chased: !!PGA.chased }; PGA.chased = false; SWG.at.lock = e; PGA.cur = { sw: SWG.at, e }; PGA.sl.push(e); if (PGA.sl.length > 60) PGA.sl.shift(); } } }
+    if (PGA.swT <= 0 && Math.abs(df) < 0.45 && !SWG.at && !SWG.run && G.mv < 0.15 && (SWG.R || SWG.L) && swAttack()) { PGA.swT = pgaInt(); PGA.fought = true; /* (t722u: she has swung - the fight is on, the bars show) */ if (SWG.at) { const e = { t: +PGA.clk.toFixed(3), v: SWG.at.v, roll: 0, d0: +q.d.toFixed(2), chased: !!PGA.chased }; PGA.chased = false; SWG.at.lock = e; PGA.cur = { sw: SWG.at, e }; PGA.sl.push(e); if (PGA.sl.length > 60) PGA.sl.shift(); } } }
   // the mushroom: wanders between random spots and idles; hit (or with her right beside it) it turns on her, closes in and bites every atkS seconds
   function pgaMob(dt) { const m = PGA.mob, C = pgaC(), G = st.gnd; if (!m || PGA.dead > 0 || !G) return; const p = m.root.position; if (PGA.once > 0 && (PGA.once -= dt) <= 0) PGA.anim = null;
     const q = PGA.ko > 0 ? null : pgaRel(), d = q ? q.d : 1e9; if (q && !PGA.hunt && C.aggro !== 'provoked' && d < C.atkReach + 0.15) PGA.hunt = true; /* (she walked right up to it - only a creature that is not passive-until-provoked: GD-21) */ if (PGA.hunt && (!q || d > (C.leashR || 4))) { PGA.hunt = false; PGA.bite = 0; PGA.atkT = Math.max(PGA.atkT, 0.6); PGA.leashD = q ? +d.toFixed(2) : null; } /* (GD-21: back to passive - she must hit it again) */ /* (GD-19: past the leash it gives up) */ PGA.aggro = PGA.hunt ? 1 : 0; const angry = !!q && PGA.hunt; if (angry && SWG.sh) swDrawFight(); /* (t686u: it fights her - out come the swords) */
@@ -13045,7 +13202,7 @@ const CharView = (() => {
       if (PGA.blobMe) { PGA.blobMe.position.x = G.x; PGA.blobMe.position.z = G.z; } }
     { const M = PGA.mark; if (M && M.visible) { M.userData.t += dt; M.material.opacity = 0.9 * Math.max(0, 1 - M.userData.t / 0.9); if (M.userData.t > 0.9) M.visible = false; } }
     { const A = SWG.at; if (PGA.mob && A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; const r = pgaHit(A.lock && pgaCh().COMMIT_SWING ? pgaCh().KEEP_REACH_M : 0); if (A.lock) { A.lock.str = true; if (r) A.lock.roll++; } } } /* (one strike point per swing animation = one damage roll, on her target) */
-    const n = (PGA.mobs || []).length; for (let i = 0; i < n; i++) { pgaUse(i); pgaMobTick(dt); } pgaUse(PGA.tgt); } /* (GD-30: every creature in the arena lives; then back to her target) */
+    const n = (PGA.mobs || []).length; for (let i = 0; i < n; i++) { pgaUse(i); pgaMobTick(dt); } pgaUse(PGA.tgt); pgaBars(dt); if (typeof CoinDrops !== 'undefined' && G && G.arena) { const got = CoinDrops.tick('pga', dt, G.x, G.z); if (got) pgaNum('+' + got + ' gold', 'info', true); } } /* (GD-30: every creature in the arena lives; then back to her target) */
   function pgaMobTick(dt) { const m = PGA.mob, C = pgaC(); if (!m) return; m.mixer.update(dt); if (PGA.blobMob) { PGA.blobMob.position.x = m.root.position.x; PGA.blobMob.position.z = m.root.position.z; PGA.blobMob.visible = PGA.dead <= 0; }
     if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0; } /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
       if (PGA.dead <= 0) { PGA.dead = 0; PGA.sink = 0; m.root.position.y = 0; PGA.hp = C.hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(C.clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
@@ -14945,7 +15102,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
     const G = st.gnd; if (!G) return false; let x = q.x, z = q.z; const L = Math.hypot(x, z); if (L > TR.RW) { x *= TR.RW / L; z *= TR.RW / L; } navTo(G, x, z, () => { st.pg = null; }); pgMark({ x: G.goal.x, z: G.goal.z, y: trHeight(G.goal.x, G.goal.z) }); st.pg = { home: true, tree: true }; return true; }
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
-  return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { const F = PGA.on ? pgaMe() : null, q = pgaRel(); return { on: PGA.on, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null,
+  return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { const F = PGA.on ? pgaMe() : null, q = pgaRel(); return { on: PGA.on, status: PGA.status ? Object.assign({}, PGA.status) : null, fought: !!PGA.fought, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null,
     arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, hunt: PGA.hunt, pick: PGA.pick || null, provoked: pgaC().aggro === 'provoked', ash: { on: ASHX.on, t: ASHX.t, u: ASHX.u, cut: ASHX.plane.constant, top: ASHX.top, bot: ASHX.bot, born: ASHX.born, n: ASHX.P ? ASHX.P.length : 0, fx: !!(ASHX.pts && ASHX.pts.parent), mats: ASHX.mats.size, hid: ASHX.hid.length, d: ashD() }, leash: pgaC().leashR, leashD: PGA.leashD, reach: pgaC().atkReach, interval: pgaInt(), clk: PGA.clk, tgt: PGA.tgt, mobs: pgaSync().map((sl) => ({ id: sl.id, ready: !!sl.mob, hp: sl.hp, dead: sl.dead, hunt: sl.hunt, anim: sl.anim, x: sl.mob ? sl.mob.root.position.x : null, z: sl.mob ? sl.mob.root.position.z : null, y: sl.mob ? sl.mob.root.position.y : null, clips: sl.mob ? sl.mob.names : [], root: sl.mob ? sl.mob.root : null, inst: sl.mob || null })), swings: PGA.sl.map((e) => Object.assign({}, e)), anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
     pgaScreen(x, z, y) { if (!cam || !canvas || !PGA.arena) return null; const p = V(x, y || 0, z).applyAxisAngle(V(0, 1, 0), st.yaw).project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height }; }, get sw() { const gn = gearNow(); return { R: SWG.R, L: SWG.L, w: SWG.w, ip: SWG.ip, tw: gn.tw, want: gn.tool, toolAct: gn.toolAct, idle: gearNow().swIdle, pose: Object.assign({}, SW_POSE), n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
@@ -16593,14 +16750,14 @@ const WorldGolems = (() => {
   // ---- her fight on the map
   const me = () => W.F || (W.F = Combat.newFight(Combat.playerStats()));
   function rel(g) { const h = here(); if (!h) return null; const dx = g.x - h[0], dy = g.y - h[1], cd = Math.hypot(dx, dy) / U(); return { dx, dy, cd, d: cd - (g.C.bodyR || 0) }; } // d: metres from her to its body surface
-  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; if (g.wp) g.wp = null; hud(); return true; }
-  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; W.inR = false; W.aim = null; hud(); }
+  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; W.fought = false; if (g.wp) g.wp = null; return true; }
+  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; W.inR = false; W.aim = null; W.fought = false; }
   function strike(g) { const q = rel(g); if (!q || g.dead > 0 || q.d > D().REACH_M + D().KEEP_REACH_M) return null; const C = g.C, r = Combat.rollDamage(Combat.playerStats(), { def: C.def, swing: ++W.n });
     g.hp = Math.max(0, g.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); if (r.dmg > 0) Combat.fightDealt(me(), r.dmg); num(g, r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); g.hunt = true;
-    if (g.hp <= 0) { g.dead = C.respawnS || 6; g.sink = 0; g.hunt = false; g.bite = 0; g.once = 0; g.wp = null; if (g.inst) { g.inst.play(C.clips.death, true); g.anim = 'death'; } Combat.fightKill(me()); disengage(); W.kills++;
+    if (g.hp <= 0) { g.dead = C.respawnS || 6; g.sink = 0; g.hunt = false; g.bite = 0; g.once = 0; g.wp = null; if (g.inst) { g.inst.play(C.clips.death, true); g.anim = 'death'; } Combat.fightKill(me()); disengage(); W.kills++; if (typeof CoinDrops !== 'undefined') { CoinDrops.host('map', { parent: M3.scene, m: U(), y: (x, z) => Explore.hAt(x, z) }); const cd = CoinDrops.kill('map', C, g.x, g.y); num(g, cd.bag ? '+' + cd.n + ' gold' : cd.n + ' gold on the ground (backpack full)', 'info'); } /* (t566s2525: coins from every kill) */
       if (C.xp > 0 && Combat.addXp) { Combat.addXp(C.xp); if (typeof save === 'function') save(); num(g, '+' + C.xp + ' Combat XP', 'info'); } }
-    else if (r.dmg > 0) once(g, 'hit'); hud(); return r; }
-  function bite(g) { const q = rel(g); if (!q || W.ko > 0 || g.dead > 0 || q.d > g.C.atkReach + 0.35) return null; const r = Combat.creatureAttack(g.C, Combat.playerStats()); if (r.parried) num(null, 'Parry', 'info'); else if (r.dmg > 0) { const o = Combat.fightHurt(me(), r.dmg); num(null, '-' + Math.round(r.dmg), 'ouch'); if (o.dead) ko(); } else num(null, 'Miss', 'miss'); hud(); return r; }
+    else if (r.dmg > 0) once(g, 'hit'); return r; }
+  function bite(g) { const q = rel(g); if (!q || W.ko > 0 || g.dead > 0 || q.d > g.C.atkReach + 0.35) return null; const r = Combat.creatureAttack(g.C, Combat.playerStats()); if (r.parried) num(null, 'Parry', 'info'); else if (r.dmg > 0) { const o = Combat.fightHurt(me(), r.dmg); num(null, '-' + Math.round(r.dmg), 'ouch'); if (o.dead) ko(); } else num(null, 'Miss', 'miss'); return r; }
   function ko() { W.ko = D().KO_CALM_S; disengage(); for (const g of W.list) { g.hunt = false; g.wp = null; } if (typeof toast === 'function') toast('💫 Knocked out - the golems lose interest. Back on your feet in a moment.'); }
   // her side each frame: run to striking range (STAND_M off its surface), square up, one swing every ATTACK_INTERVAL_S, the roll at STRIKE_AT_S into it
   function herTick(dt) { const T = D(), g = W.tgt, G = CharView.st.gnd; if (W.strike > 0) { W.strike -= dt; if (W.strike <= 0) { W.strike = 0; if (g) strike(g); } } if (W.swT > 0) W.swT -= dt; if (!W.eng || !g || !G) return; if (g.dead > 0 || !g.inst) return disengage(); const q = rel(g); if (!q) return;
@@ -16608,7 +16765,7 @@ const WorldGolems = (() => {
     W.rp -= dt; if (!W.strike && q.d > (W.inR ? T.REACH_M + T.CHASE_SLACK_M : T.STAND_M + T.STOP_SLACK_M)) { W.inR = false; chase(g, q, G); return; }
     if (!W.inR) { W.inR = true; W.aim = null; if (G.path || G.goal) { G.path = null; G.goal = null; } W.stats.holds = (W.stats.holds || 0) + 1; }
     const fa = Math.atan2(q.dx, q.dy), df = Math.atan2(Math.sin(fa - G.face), Math.cos(fa - G.face)); G.face += df * (1 - Math.exp(-dt * T.TURN_K)); /* (her local frame turns like the map's: x -> x, z -> y; her facing is set here only) */
-    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15 && Math.abs(df) < 0.45) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
+    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15 && Math.abs(df) < 0.45) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; W.fought = true; /* (the fight is on: the bars show) */ } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
   // (t719u) aim her run at its stand-off spot: re-aimed at most every REPATH_S and only once that spot has moved REPATH_M; a short straight run when the ground
   // between is open (the nav grid's 2.5 m cell centres put a waypoint beside / behind her on every re-plan - the back-and-forth Dominic saw)
   function chase(g, q, G) { const T = D(), so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()), tx = g.x - q.dx / L * so, ty = g.y - q.dy / L * so, A = W.aim;
@@ -16638,18 +16795,22 @@ const WorldGolems = (() => {
     const near = L.filter((g) => g.d < T.SPAWN_M).sort((a, b) => a.d - b.d).slice(0, T.MAX_LIVE); let live = 0, animd = 0, aid = 0;
     for (const g of L) { if (g.inst && (g.d > T.DESPAWN_M || (!near.includes(g) && g.d > T.SPAWN_M))) release(g); if (!g.inst && near.includes(g)) build(g); if (!g.inst) continue; live++;
       if (g.d < T.ANIM_M) { ai(g, dt); aid++; place(g); g.inst.mixer.update(dt); animd++; } }
-    st.live = live; st.animated = animd; st.ai = aid; st.far = L.length - live; herTick(dt); numsTick(dt); }
+    st.live = live; st.animated = animd; st.ai = aid; st.far = L.length - live; herTick(dt); numsTick(dt); bars(dt); if (typeof CoinDrops !== 'undefined') { const got = CoinDrops.tick('map', dt, h[0], h[1]); if (got) num(null, '+' + got + ' gold', 'info'); } }
   // ---- tap: the nearest built golem under the tap (base-to-top segment on screen, as Explore's own pick), before anything else on the map
   function hit(sx, sy) { if (!W.list) return null; let best = null, bd = 1e9; for (const g of W.list) { if (!g.inst || g.dead > 0 || g.d > D().ANIM_M) continue; const a = M3.project(g.x, g.y, 0), b = M3.project(g.x, g.y, g.C.height * U()); if (a[0] < -999 || b[0] < -999) continue;
       const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)), d = Math.hypot(a[0] + vx * t - sx, a[1] + vy * t - sy), rad = Math.max(18, Math.sqrt(l2) * 0.3); if (d < rad && d / rad < bd) { bd = d / rad; best = g; } } return best; }
   // ---- HUD + floating numbers (DOM, over the map canvas)
-  function hud() { let el = document.getElementById('golemHud'); const g = W.tgt; if (!g || !W.eng) { if (el) el.style.display = 'none'; return; } if (!el) { el = document.createElement('div'); el.id = 'golemHud'; el.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 56px);transform:translateX(-50%);z-index:60;background:rgba(20,18,14,.78);color:#f3ead8;font:600 13px system-ui,sans-serif;padding:6px 12px;border-radius:10px;pointer-events:none'; document.body.appendChild(el); }
-    const F = me(); el.style.display = ''; el.textContent = `${g.C.icon || ''} ${g.C.name} HP ${g.hp} / ${g.C.hp} · DEF ${g.C.def}   You HP ${Math.round(F.hp)} / ${F.max}`; }
+  // (t720u / t722u) no info box over the map any more: the fight shows on overhead health bars (src/creatures/healthbars.js, HEALTH_BARS) - hers and every
+  // golem in the fight - only while a fight is on (a golem hunting her, or her target once she has swung at it), gone HEALTH_BARS.FADE_AFTER_S after it ends
+  function bars(dt) { if (typeof HealthBars === 'undefined' || !M3.camera) return; const R = typeof M3.renderer === 'function' ? M3.renderer() : M3.renderer, rig = CharView.rig, F = me(), items = [];
+    if (rig) items.push({ key: 'me', me: true, name: 'You', level: Combat.playerStats().level, dist: 0, hp: F.hp, max: F.max, shield: F.shield, root: rig.root, head: rig.B && rig.B.head });
+    for (const g of W.list || []) if (g.inst) { if (g.inst.hbHead === undefined) g.inst.hbHead = HealthBars.headOf(g.inst.root); items.push({ key: g.id, name: g.C.name, level: g.C.level, dist: g.d, hp: g.hp, max: g.C.hp, root: g.inst.root, head: g.inst.hbHead, fighting: W.ko <= 0 && g.dead <= 0 && (g.hunt || (W.eng && W.tgt === g && W.fought)) }); }
+    HealthBars.frame('map', { myLevel: Combat.playerStats().level, host: document.body, canvas: R && R.domElement, cam: M3.camera, m: U(), dt, items }); }
   function num(g, txt, cls) { const el = document.createElement('div'); el.className = 'golemNum ' + (cls || ''); el.textContent = txt; el.style.cssText = 'position:fixed;z-index:61;pointer-events:none;font:700 15px system-ui,sans-serif;text-shadow:0 1px 2px #000;color:' + (cls === 'miss' ? '#cfcfcf' : cls === 'info' ? '#bfe8ff' : cls === 'ouch' ? '#ff8a7a' : cls === 'crit' ? '#ffd25a' : '#fff');
     document.body.appendChild(el); W.nums.push({ el, g, t: 0, me: !g }); if (W.nums.length > 12) { const o = W.nums.shift(); o.el.remove(); } }
   function numsTick(dt) { const cv = M3.renderer && M3.renderer.domElement, r = cv ? cv.getBoundingClientRect() : { left: 0, top: 0 }, h = here();
     W.nums = W.nums.filter((n) => { n.t += dt; if (n.t > 1.2 || !h) { n.el.remove(); return false; } const x = n.g ? n.g.x : h[0], y = n.g ? n.g.y : h[1], up = (n.g ? n.g.C.height + 0.2 : 2.2) * U(), p = M3.project(x, y, up); n.el.style.left = (r.left + p[0] - 20) + 'px'; n.el.style.top = (r.top + p[1] - 30 * n.t) + 'px'; n.el.style.opacity = String(1 - Math.max(0, n.t - 0.7) / 0.5); return true; }); }
-  function hideAll() { if (!W.list) return; for (const g of W.list) release(g); disengage(); for (const n of W.nums) n.el.remove(); W.nums = []; }
+  function hideAll() { if (typeof HealthBars !== 'undefined') HealthBars.clear('map'); if (typeof CoinDrops !== 'undefined') CoinDrops.clear('map'); if (!W.list) return; for (const g of W.list) release(g); disengage(); for (const n of W.nums) n.el.remove(); W.nums = []; }
   if (typeof Explore !== 'undefined') { const t0 = Explore.tick, tp0 = Explore.tap, x0 = Explore.exit;
     Explore.tick = (dt) => { t0(dt); try { tick(dt); } catch (e) { console.error(e); } };
     Explore.tap = (sx, sy, ...r) => { if (Explore.on) { const g = hit(sx, sy); if (g) { engage(g); return 'golem'; } if (W.eng) disengage(); /* (tapping elsewhere walks her off: her attacks stop; a hunting golem keeps on inside its leash) */ } return tp0(sx, sy, ...r); };
