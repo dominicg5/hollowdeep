@@ -11,7 +11,7 @@
 const LUMEN_MUSHROOM = {
   id: 'lumen_mushroom',
   name: 'Lumen Mushroom',
-  level: 1,        // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
+  level: 1,        // (t566s2518) combat level on its nameplate badge (+ its coin drop, L..3L) - under MONSTER_LEVELS.CAP (Dominic t573s2565), see MONSTER_LEVELS
   hp: 8,            // max HP (Art's stats, Dominic t655)
   str: 1,           // Strength: its bite does str on a full hit, otherwise 0..str (Combat.creatureAttack, GD-15)
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
@@ -42,7 +42,7 @@ const LUMEN_MUSHROOM = {
 const TIN_GOLEM = {
   id: 'tin_golem',
   name: 'Tin Golem',
-  level: 10,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
+  level: 5,        // (t566s2518) combat level on its nameplate badge (+ its coin drop, L..3L) - under MONSTER_LEVELS.CAP (Dominic t573s2565), see MONSTER_LEVELS
   hp: 20,           // placeholder, not approved
   str: 2,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 5,            // placeholder, not approved
@@ -71,7 +71,7 @@ const TIN_GOLEM = {
 const COPPER_GOLEM = {
   id: 'copper_golem',
   name: 'Copper Golem',
-  level: 25,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
+  level: 13,       // (t566s2518) combat level on its nameplate badge (+ its coin drop, L..3L) - under MONSTER_LEVELS.CAP (Dominic t573s2565), see MONSTER_LEVELS
   hp: 35,           // placeholder, not approved
   str: 3,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 10,            // placeholder, not approved
@@ -98,7 +98,7 @@ const COPPER_GOLEM = {
 const COAL_GOLEM = {
   id: 'coal_golem',
   name: 'Coal Golem',
-  level: 40,       // (t566s2518) combat level on its nameplate badge - PLACEHOLDER, not approved: its HP - 10 (the HP she has at that Combat level), min 1
+  level: 20,       // (t566s2518) combat level on its nameplate badge (+ its coin drop, L..3L) - under MONSTER_LEVELS.CAP (Dominic t573s2565), see MONSTER_LEVELS
   hp: 50,           // placeholder, not approved
   str: 4,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
   def: 15,            // placeholder, not approved
@@ -124,6 +124,15 @@ const COAL_GOLEM = {
 };
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
+// (Dominic, card t573s2565 via Art: 'Monster levels shouldn't exceed what we can kill at whatever level requires iron ore') the cap = the level that unlocks
+// iron ore: Mining 20 (Skills ORES.iron.unlock), the same level as the iron swords (Combat SWORD_UNLOCK.iron 20). The old placeholders 1 / 10 / 25 / 40 scaled into
+// 1..CAP keeping the Mushroom at 1: L' = 1 + (L - 1) x (CAP - 1) / (40 - 1), rounded -> 1 / 5 / 13 / 20. (A Combat 20 player with iron T0 swords, no skill points,
+// beats the Coal golem's current placeholder stats in ~76% of straight fights, Copper ~100%.) The rows' level fields below carry these values.
+const MONSTER_LEVELS = {
+  CAP: 20,          // never above the iron-ore unlock level
+  FROM: { lumen_mushroom: 1, tin_golem: 10, copper_golem: 25, coal_golem: 40 }, // the t566s2518 placeholders
+  LEVEL: { lumen_mushroom: 1, tin_golem: 5, copper_golem: 13, coal_golem: 20 },  // = each row's level
+};
 const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM };
 
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
