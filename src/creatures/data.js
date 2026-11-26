@@ -277,17 +277,19 @@ const PLAYER_MODELS = {
   },
   f: {
     id: 'player_f', name: 'Player (female)',
-    model: 'assets/models/player/player_female_i23d.glb', // Art's player_female_i23d_slim.glb (26 Nov, 668 KB)
-    height: 1.47, keepOrigin: true, uv: true,
-    clips: { idle: 'Idle', walk: 'Walk', run: 'Run', mine: 'Mine', attack: 'Attack' },
-    hipZ: 0.0369,
-    legK: 0.622,    // 0.417 / 0.67
-    gait: { walk: { S: 1.07, ph0: 0.075 }, run: { S: 1.97, ph0: 0.442 } },
-    grip: [0, -0.035, 0.036],
-    pack: { W: 0.36, H: 0.30, D: 0.17, y0: -0.075, zb: -0.27 }, // (her pack sits lower and smaller: y -0.22..0.08 in the chest frame)
-    backZ: -0.295,
-    headTop: 1.471,
-    reachM: 0.08,    // (her arms are the shorter: 0.48 m shoulder to fist vs the old rig's 0.515)
+    model: 'assets/models/player/player_female_v9.glb', // (t764u, Dominic: 'replace the current girl with v9') Art's final female v9 (sop_rerun/fal_female_v9/rigged): the male v5's 19 bones + braid1-5 (head > braid1 > .. > braid5),
+                    // Idle / Walk / Run / Mine / Attack; 58,322 tris; JPEG albedo re-encoded WebP + KHR_mesh_quantization (3.60 -> 1.60 MB), mesh, bones and clips unchanged
+    height: 1.47, keepOrigin: true, uv: true, // already game size (top 1.470 m, feet at y 0)
+    clips: { idle: 'Idle', walk: 'Walk', run: 'Run', mine: 'Mine', attack: 'Attack' }, // Idle 2.4, Walk 1.0, Run 0.66, Mine 1.2, Attack 0.9 s (braid1-5 are keyed at rest in all five: the braid rides the head rigidly)
+    hipZ: 0.001,    // her hips sit 0.1 cm forward of the origin
+    legK: 0.603,    // her leg (thigh joint to ankle 0.404 m) / the old rig's (0.67)
+    gait: { walk: { S: 1.04, ph0: 0.075 }, run: { S: 1.92, ph0: 0.442 } }, // the i23d female's S x 0.975 (v9's foot sweep / the i23d's, measured 0.386 / 0.396 walk, 0.618 / 0.634 run); left foot plants at the same phases
+    grip: [-0.022, -0.029, 0.043], gripMirrorX: true, // hand-local offset from the old palm point to the middle of her hand past the cuff (R measured -0.022, -0.028, 0.041; L 0.021, -0.030, 0.045, mirrored).
+                    // v9's hands are open (fingerless gloves), so tools sit in the middle of the open hand
+    pack: { W: 0.34, H: 0.32, D: 0.13, y0: -0.06, zb: -0.225 }, // her backpack in the chest frame: x -0.168..0.171, y about -0.22..0.10, back face -0.221 (smaller and closer in than the i23d's -0.271)
+    backZ: -0.25,   // sheaths / stowed pick's back slot on the back of her pack; her braid hangs over the pack's top half (back-most -0.227), so this is just behind it
+    headTop: 1.470,
+    reachM: 0.08,   // (her arms: 0.471 m shoulder to hand middle vs the old rig's 0.515)
     footDH: 0.25,
   },
 };
