@@ -147,17 +147,30 @@ const FORGE = (() => {
     return { c: ca.map((v, k) => lerp(v, cb[k], u)), em: lerp(a[2], b[2], u) }; }
   const hitTimes = () => Array.from({ length: HITS }, (_, i) => +(HIT0 + i * HITDT).toFixed(2));
   function phase(t) { t = ((t % LOOP) + LOOP) % LOOP; return t < 4 ? 'dip' : t < 6 ? 'lift' : t < 10 ? 'turn' : t < 12 ? 'lay' : t < 23 ? 'strike' : 'return'; }
-  // where he is (design metres along the loop line), which way he faces (deg, 90 = the volcano), the walks (0..1), the bar laid (0..1), the current hit, the bar's quarter turns
-  function pose(t) { t = ((t % LOOP) + LOOP) % LOOP; const P = {};
-    if (t < 4) { P.X = L.D; P.yaw = 90; P.lay = 0; }
-    else if (t < 6) { P.X = L.D; P.yaw = 90; P.lay = 0; }
-    else if (t < 10) { const u = sm(6.2, 9.8, t); P.X = lerp(L.D, L.S, u); P.yaw = lerp(90, -90, sm(6, 9.6, t)); P.walk = u; P.lay = 0; }
-    else if (t < 12) { P.X = L.S; P.yaw = -90; P.lay = sm(10.2, 11.9, t); }
-    else if (t < 23) { P.X = L.S; P.yaw = -90; P.lay = 1; }
-    else { const u = sm(24, 26.6, t); P.X = lerp(L.S, L.D, u); P.yaw = lerp(-90, 90, sm(23.8, 26.4, t)); P.lay = 1 - sm(23, 23.9, t); P.walk = u; P.back = true; }
-    // strikes: per hit th, its swing (wind-up 0.85 s before, recovery 0.75 after); the bar turns a quarter after hits 3 and 6
+  // body plan (design metres, ape-local: +z forward, +y up, +x his left)
+  let SHO = 2.45; const BXS = 3.06, ABD = 38; // (pass 7b: swing plane / bar 0.05x his height to his right; upper arm abducted ~22 deg through the raise)
+  // (pass 7: 0.04x his ~61 height)
+  const BP = { hip: 34, hipW: 6, thigh: 17, shin: 15, ankle: 2, chestUp: 2, torso: 26, shA: [11, 24, 0], shB: [10, 14, 1], armA: [19, 17], armB: [15, 14], head: [0, 28, 7] }; // (pass 4, Dominic: the head up and out in front of the shoulders)
+  // key poses (every key eased): X (along the loop line), yaw (deg, 90 = facing the volcano), lean (deg), hip drop, tongs hand-mid [y, z] + pitch (deg down), bar laid; the arms are solved in setPose
+  const TG = { start: { y: 40, z: 26, p: -4 }, dip: { y: 30, z: 25, p: 7 }, lift: { y: 43, z: 28, p: -8 }, carry: { y: 43, z: 27, p: -40 }, back: { y: 40, z: 27, p: -45 }, lay: { y: 30, z: 24, p: 3.8 }, low: { y: 31, z: 18, p: 18 } }; /* (pass 6: the bar dips level into the lava, rises straight up out of it, is carried pitched up (clear of the cone and platform) with the hands out in front, and lifts straight off the platform) */ // (Art pass 3: the lower hands held out ~0.35 x his height in front of the hips, forearms ~30 deg below horizontal)
+  const tgMix = (a, b, u) => ({ y: lerp(a.y, b.y, u), z: lerp(a.z, b.z, u), p: lerp(a.p, b.p, u) });
+  M.TG = TG; // (tunable from tests)
+  function pose(t) { t = ((t % LOOP) + LOOP) % LOOP; const P = {}; const k = (a, b, t0, t1) => lerp(a, b, sm(t0, t1, t));
+    if (t < 4) { P.X = L.D; P.yaw = 90; P.lean = k(16, 30, 0, 1.4) + 1.5 * Math.sin(Math.max(0, t - 1.4) * 2.4) * sm(1.4, 2, t); P.drop = k(0, 4, 0, 1.4); P.tg = tgMix(TG.start, TG.dip, sm(0, 1.6, t)); if (t > 1.6) P.tg.p += 2 * Math.sin((t - 1.6) * 3) * (1 - sm(3.4, 4, t)); }
+    else if (t < 6) { P.X = L.D; P.yaw = 90; P.lean = k(30, 9, 4, 5.8); /* (pass 7b: more upright over the carry: the chin stays above the tong fists) */ P.drop = k(4, 0, 4, 5.6); P.tg = t < 5.1 ? tgMix(TG.dip, TG.lift, sm(4, 5.1, t)) : tgMix(TG.lift, TG.carry, sm(5.1, 6, t)); }
+    else if (t < 10) { const u = sm(6.2, 9.8, t); P.X = lerp(L.D, L.S, u); P.yaw = lerp(90, -90, sm(6, 9.6, t)); P.lean = 8; P.drop = 1.2 * Math.abs(Math.sin(u * 2 * Math.PI)); P.tg = tgMix(TG.carry, TG.lift, sm(9.3, 10, t)); P.walk = u; }
+    else if (t < 12) { P.X = L.S; P.yaw = -90; P.lean = k(9, 22, 10, 11.6); P.drop = k(0, 1.5, 10, 11.6); P.tg = tgMix(TG.lift, TG.lay, sm(10, 11.8, t)); P.lay = sm(10.2, 11.9, t); }
+    else if (t < 23) { P.X = L.S; P.yaw = -90; P.lean = 22; P.drop = 1.5; /* (pass 5: 22 + the strike dip (<=7) keeps the torso within 30 deg of vertical) */ P.tg = { ...TG.lay }; P.lay = 1; }
+    else { const u = sm(24, 26.6, t); P.X = lerp(L.S, L.D, u); P.yaw = lerp(-90, 90, sm(23.8, 26.4, t)); P.lean = t < 24 ? k(22, 8, 23, 23.5) : k(8, 16, 26, 27); /* (pass 7b: upright over the return carry too) */ P.drop = t < 24 ? k(1.5, 0, 23, 24) : 1.2 * Math.abs(Math.sin(u * 2 * Math.PI));
+      P.tg = t < 23.6 ? tgMix(TG.lay, TG.lift, sm(23, 23.6, t)) : t < 26 ? tgMix(TG.lift, TG.back, sm(23.6, 24.3, t)) : tgMix(TG.back, TG.start, sm(26, 27, t)); /* (pass 7b: the return carry holds the tongs lower and pitched up more, clear of his chin and the ground) */ P.lay = 1 - sm(23, 23.9, t); P.walk = u; P.back = true; }
+    P.bx = t >= 10 && t < 12 ? -BXS * sm(10, 11.8, t) : t >= 12 && t < 23 ? -BXS : t >= 23 && t < 24 ? -BXS * (1 - sm(23, 23.9, t)) : 0; /* (pass 7b: the bar and its strike spot 0.05x his height to his right, under the right shoulder) */
+    { const b = Math.sin(Math.PI * clamp((t - 11.75) / 0.55, 0, 1)); if (b > 0) { P.tg = { ...P.tg, y: P.tg.y - 1.3 * b }; P.drop = (P.drop || 0) + 0.8 * b; P.settle = b; } } // (pass 7 'settle': the lower hands press the laid bar flat, the shoulders settle)
+    P.hipY = BP.hip - 2.6 - (P.drop || 0);
+    // strikes: per hit th, the hammer's cycle phase (wind-up 0.6 s, swing 0.25, hold 2 frames, rebound, eased recovery 0.75); the bar turns a quarter after hits 3 and 6
     const H = hitTimes(); P.hit = null; for (let i = 0; i < H.length; i++) { const th = H[i]; if (t >= th - 0.85 && t < th + 0.75) { P.hit = { i, th }; break; } }
-    P.roll = (sm(H[2] + 0.15, H[2] + 0.6, t) + sm(H[5] + 0.15, H[5] + 0.6, t)) * Math.PI / 2 * (t < 23 ? 1 : 0); return P; }
+    P.roll = (sm(H[2] + 0.15, H[2] + 0.6, t) + sm(H[5] + 0.15, H[5] + 0.6, t)) * Math.PI / 2 * (t < 23 ? 1 : 0); P.adj = 0; P.trem = 0; for (const th of H) { P.adj += Math.sin(Math.PI * clamp((t - th - 0.25) / 0.5, 0, 1)); const x = t - th; if (x >= 0 && x < 0.35) P.trem += Math.sin(x * 70) * Math.exp(-x / 0.08); } /* (pass 6: a small tremor in the tongs on impact) */ // small tong adjustment after each hit
+    P.ham = [null, t >= 11 && t < 23.6 ? 1 : null]; return P; }
+
 
   function lavaTex() { const N = 128, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d'), im = g.createImageData(N, N); // lava #fb6b1c with a hot #ffd24a core and hot veins, a little dark crust
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const a = i / N * 2 * Math.PI, b = j / N * 2 * Math.PI, rc = Math.hypot(i / N - 0.5, j / N - 0.5) * 2;
@@ -189,11 +202,11 @@ const FORGE = (() => {
       const pm = new THREE.PointsMaterial({ size: 1.5 * U, map: dotTex(), vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true }); const pts = new THREE.Points(pg, pm); pts.frustumCulled = false; pts.name = 'forgeSparks'; g.add(pts); M.pts = pts; }
     buildStumps(g, mob); buildFire(g, mob);
     M.t0 = performance.now() / 1000; M.lastT = null; M.barRest = null; anim(0, 0); }
-  /* ---------- Theus (t736u): Art's i23d model IS his body (NPC_MODELS.theus, THEUS_RIG in src/creatures/data.js); the baked ape, its fur, IK and bones are gone ----------
-     M.ape is the group the loop places (on the loop line at pose(t).X, facing pose(t).yaw, feet on the forge ground HB); Art's model stands in it (x WS: its metres
-     -> map units). Clips by loop phase (THEUS_RIG.phaseClip; Walk / Strike run on the loop clock, so a pinned loop time poses him exactly); Strike starts
-     strikeHitS before each hit so its blow lands on the hit (the whoosh, the thunder strike and the sparks stay on the hit times). The hammer and tongs (not in
-     Art's mesh) are the old props held at the ends of his right upper / lower arms. Until the GLB has loaded there is no Theus (and no bar / sparks) */
+  /* ---------- Theus (t736u / t738u): Art's i23d model IS his body (NPC_MODELS.theus, THEUS_RIG in src/creatures/data.js); the baked ape's mesh, fur and shells are gone ----------
+     His MOTION is the original one: the old rig's skeleton (bones only, no mesh: M.gh, placed like M.ape) is posed by the original setPose every frame - the 27 s
+     loop's walk with planted feet, the lean and dip, the tongs on the reins at the dip / lift / carry / lay, the 7 hammer blows (wind-up, drive, impact, rebound),
+     his gaze - and retargeted onto Art's bones (THEUS_RIG.retarget): his body / head take the old torso / head turn, each arm points where the old arm's hand is,
+     each leg at the old foot. The hammer and tongs (not in Art's mesh) are held in his closed fists (the ends of his arm bones) in the old tools' grip and angle */
   function tools() { const box = (w, h, d) => new THREE.BoxGeometry(w, h, d), lam = (c) => new THREE.MeshLambertMaterial({ color: new THREE.Color(c).convertSRGBToLinear() }), part = (g, m, at, rot) => { const o = new THREE.Mesh(g, m); o.position.fromArray(at); if (rot) o.rotation.set(rot[0], rot[1], rot[2]); o.castShadow = !M.mob; return o; };
     const IRON = lam(0x2e2b28), WOOD = lam(0x4f3420), WRAP = lam(0x4a2c16), HEADC = lam(0x3a3632), BRASS = lam(0xb8862b), BRD = lam(0x6b4a1c);
     const tg = new THREE.Group(); tg.name = 'theusTongs'; tg.add(part(box(0.9, 0.9, L.tongs), IRON, [1.0, 0, L.tongs / 2]), part(box(0.9, 0.9, L.tongs), IRON, [-1.0, 0, L.tongs / 2]), part(box(3.2, 1.6, 1.6), IRON, [0, 0, L.tongs * 0.62]),
@@ -206,50 +219,153 @@ const FORGE = (() => {
     for (let i = 0; i < P.count; i++) { let d = 0, w = -1; for (let q = 0; q < 4; q++) { const x = Wt.array[i * 4 + q]; if (x > w) { w = x; d = J.array[i * 4 + q]; } } if (d !== b) continue; v.fromBufferAttribute(P, i); bt(i, v); pts.push(v.clone().applyMatrix4(sk.matrixWorld)); }
     const lo = Math.min(...pts.map((p) => p.y)), band = R.handBandM * WS, c = new THREE.Vector3(); let n = 0; for (const p of pts) if (p.y < lo + band) { c.add(p); n++; } c.multiplyScalar(1 / Math.max(1, n));
     const bone = bones[b]; return { bone, at: bone.worldToLocal(c.clone()) }; }
-  const hStrike = () => (L.plat[3] + L.bar[1] + L.head[1] / 2); // (design m over HB) the hammer head's centre when it meets the laid bar
-  function glbReady() { if (M.glb) return M.glb; if (typeof NpcModels === 'undefined' || typeof NPC_MODELS === 'undefined' || typeof THEUS_RIG === 'undefined') return null; const I = NpcModels.make('theus'); if (!I) return null;
-    const R = THEUS_RIG, ape = M.ape; I.root.name = 'theusGlb'; I.root.scale.setScalar(WS); ape.add(I.root); let sk = null; I.root.traverse((o) => { if (o.isSkinnedMesh && !o.userData.isInk && !sk) sk = o; });
-    // rest: the hands in their bones' frames; then his stance at the bar (12.5 s) with Strike at its blow: the hammer is gripped so its head meets the laid bar
-    // there (handle level-ish, out in front of his fist), and the bar's rest is laid under that head
-    const P0 = pose(12.5), [wx, wz] = wld(P0.X, 0); ape.position.set(wx, HB, wz); ape.rotation.set(0, P0.yaw * DEG, 0); ape.updateMatrixWorld(true);
-    const H = hand(I, sk, R.hammer.bone), Tn = hand(I, sk, R.tongs.bone), q0 = Tn.bone.getWorldQuaternion(new THREE.Quaternion()), qa = ape.getWorldQuaternion(new THREE.Quaternion());
-    Tn.off = q0.clone().invert().multiply(qa); /* (the tongs point straight ahead of him at rest) */
-    const a = NpcModels.play(I, 'strike', { restart: true, once: true }); I.mixer.update(0.2); a.time = R.strikeHitS; I.mixer.update(1e-6); ape.updateMatrixWorld(true); /* (past its fade-in, at its blow) */
-    // Art's Strike lands well out to his right: at the bar he stands turned (M.yawS, eased in as he arrives and out as he leaves) so the blow falls on the platform's middle line
-    { const f0 = H.bone.localToWorld(H.at.clone()), h0 = f0.clone().addScaledVector(new THREE.Vector3(0, 0, 1).applyQuaternion(qa), L.handle * U), dx = h0.x - wx, dz = h0.z - wz; let best = 0, bd = 1e18;
-      for (let d = -80; d <= 80; d += 0.25) { const t = d * DEG, e = Math.abs(wz - dx * Math.sin(t) + dz * Math.cos(t) - LIP[1]); if (e < bd - 1e-6 || (Math.abs(e - bd) <= 1e-6 && Math.abs(d) < Math.abs(best))) { bd = e; best = d; } }
-      M.yawS = best; ape.rotation.set(0, (P0.yaw + best) * DEG, 0); ape.updateMatrixWorld(true); ape.getWorldQuaternion(qa); }
-    const fist = H.bone.localToWorld(H.at.clone()), qh = H.bone.getWorldQuaternion(new THREE.Quaternion()), fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(qa), up = (hStrike() * U + HB - fist.y) / (L.handle * U), el = Math.asin(clamp(up, -0.9, 0.9));
-    const want = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -el).premultiply(qa); /* (prop +z = the handle, ahead of him, tilted by el) */ H.off = qh.clone().invert().multiply(want);
-    const head = fist.clone().add(fwd.clone().multiplyScalar(Math.cos(el) * L.handle * U)).add(new THREE.Vector3(0, Math.sin(el) * L.handle * U, 0)), flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2); // laid flat along the loop line (world -x), on the striking surface
-    const top = HB + (L.plat[3] + L.bar[1] / 2) * U, mid = new THREE.Vector3(-1, 0, 0).multiplyScalar((L.bar[0] / 2 - L.grip) * U), p = new THREE.Vector3(head.x, top, head.z).sub(mid);
-    { const lx = loc(p.x, p.z)[0], m0 = L.plat[0] + 23; if (lx < m0) p.x -= (m0 - lx) * U; } /* (slid along its length so all of it lies on the striking surface: his blow still lands on it) */
-    M.barRest = { p, q: flat, local: new THREE.Vector3(...loc(p.x, p.z), (p.y - HB) / U), head: head.clone() }; M.gripEl = +(el / DEG).toFixed(1); M.fistGap = +((fist.y - HB) / U - hStrike()).toFixed(2);
-    NpcModels.play(I, 'idle', { restart: true }); I.mixer.update(1);
-    // likewise at the dip (2 s) his tongs hand is out to his side: he stands turned (M.yawD) so the tongs reach into the lava through the lip's notch
-    { const P2 = pose(2), [dx0, dz0] = wld(P2.X, 0); ape.position.set(dx0, HB, dz0); ape.rotation.set(0, P2.yaw * DEG, 0); ape.updateMatrixWorld(true); const q2 = ape.getWorldQuaternion(new THREE.Quaternion()), fh = Tn.bone.localToWorld(Tn.at.clone()), jy = jawY(2) * U + HB - fh.y, pt = Math.asin(clamp(jy / (L.tongs * U), -0.95, 0.95));
-      const j0 = fh.addScaledVector(new THREE.Vector3(0, 0, 1).applyQuaternion(q2), Math.cos(pt) * (L.tongs - 1.2) * U), dx = j0.x - dx0, dz = j0.z - dz0; let best = 0, bd = 1e18;
-      for (let d = -80; d <= 80; d += 0.25) { const t = d * DEG, e = Math.abs(dz0 - dx * Math.sin(t) + dz * Math.cos(t) - LIP[1]); if (e < bd - 1e-6 || (Math.abs(e - bd) <= 1e-6 && Math.abs(d) < Math.abs(best))) { bd = e; best = d; } } M.yawD = best; }
-    M.glb = I; M.sk = sk; M.hand = { hammer: H, tongs: Tn }; M.hammer.visible = M.tongs.visible = true; M.bar.visible = true; return I; }
-  // place him for loop time T: the group from the loop, his clip, the props in his hands
-  function place(T, now) { const P = pose(T), ape = M.ape, [wx, wz] = wld(P.X, 0); ape.position.set(wx, HB, wz); ape.rotation.set(0, (P.yaw + (M.yawS || 0) * stanceW(T) + (M.yawD || 0) * dipW(T)) * DEG, 0); const I = glbReady(); if (!I) { ape.updateMatrixWorld(true); return P; }
-    const R = THEUS_RIG, dt0 = clamp(now - (M.glbT == null ? now : M.glbT), 0, 0.1), dt = dt0 > 0 ? dt0 : M.tOv != null ? 0.2 : 0; M.glbT = now; /* (a pinned loop time still finishes his clip fades) */ const ph = phase(T), talk = typeof Theus !== 'undefined' && Theus.ST && !!Theus.ST.step, sc = I.clips[I.def.clips.strike], dur = (sc && sc.duration) || 1.333;
-    let hit = null; if (ph === 'strike') for (const th of hitTimes()) if (T >= th - R.strikeHitS && T < th - R.strikeHitS + dur) hit = th;
-    const key = hit != null ? 'strike' : R.phaseClip[ph] === 'walk' ? 'walk' : talk ? 'talk' : R.phaseClip[ph] || 'idle';
-    if (key === 'strike') { if (M.glbHit !== hit || I.key !== 'strike') { M.glbHit = hit; NpcModels.play(I, 'strike', { once: true, restart: true }); M.glbStrikes = (M.glbStrikes || 0) + 1; } I.act.time = Math.max(0, T - (hit - R.strikeHitS) - dt); } /* (its blow on the hit, on the loop clock) */
-    else { NpcModels.play(I, key); if (key === 'walk' && I.act) { const wc = I.clips[I.def.clips.walk], t0 = ph === 'turn' ? 6 : 23; I.act.time = Math.max(0, ((T - t0) % wc.duration + wc.duration) % wc.duration - dt); } }
-    M.clip = key; I.mixer.update(dt); ape.updateMatrixWorld(true);
-    for (const [k, o] of [['hammer', M.hammer], ['tongs', M.tongs]]) { const h = M.hand[k]; o.position.copy(h.bone.localToWorld(h.at.clone())); h.bone.getWorldQuaternion(o.quaternion).multiply(h.off); o.updateMatrixWorld(true); }
-    // the tongs pitched in his fist so their jaws are where the loop has the bar (THEUS_RIG.jawY: into the lava over the lip, carried high, laid on the platform)
-    { const o = M.tongs, y = jawY(T), s2 = clamp((HB + y * U - o.position.y) / (L.tongs * U), -0.95, 0.95), pt = Math.asin(s2); o.quaternion.multiply(_qx.setFromAxisAngle(_ax, -pt)); o.updateMatrixWorld(true); M.tongsPitch = +(pt / DEG).toFixed(1); M.barLevel = pt * dipW(T); /* (the bar itself dips level into the lava, as before) */ }
+  function bones(BK) { const B = [], mk = (p, par) => { const b = new THREE.Bone(); b.position.set(...p); if (par != null) B[par].add(b); B.push(b); return b; };
+    const hy = BP.hip; mk([0, hy, 0]); mk([0, BP.chestUp, 0], 0); mk([BP.head[0], BP.torso - 1 + 0, BP.head[2]], 1);
+    for (const s of [1, -1]) { mk([s * BP.hipW, 0, 0], 0); mk([0, -BP.thigh, 0], B.length - 1); }
+    for (const s of [1, -1]) { mk([s * BP.shA[0], BP.shA[1], BP.shA[2]], 1); mk([0, -BP.armA[0], 0], B.length - 1); }
+    for (const s of [1, -1]) { mk([s * BP.shB[0], BP.shB[1], BP.shB[2]], 1); mk([0, -BP.armB[0], 0], B.length - 1); }
+    mk([0, 0, 0], 1); mk([0, 0, 0], 1); mk([0, 0, 0], 1); mk([0, -BP.shin, 0], 4); mk([0, -BP.shin, 0], 6); if (BK) { const Z = new THREE.Vector3(0, 0, 1); B[7].quaternion.setFromAxisAngle(Z, BK.apA); B[9].quaternion.setFromAxisAngle(Z, -BK.apA); B[11].quaternion.setFromAxisAngle(Z, BK.apB); B[13].quaternion.setFromAxisAngle(Z, -BK.apB); } return B; } // 18 / 19: the feet; (baked: the arms bind abducted, as baked)
+  // the motion source: the old rig's 20 bones in their bind pose (arms hanging), no mesh; the old setPose poses them
+  function ghost() { if (M.gh) return M.gh; if (typeof THEUS_RIG !== 'undefined' && THEUS_RIG.bodyPlan) { const { sho, ...bp } = THEUS_RIG.bodyPlan; Object.assign(BP, bp); if (sho != null) SHO = sho; if (THEUS_RIG.strikeAlong != null) M.sz = THEUS_RIG.strikeAlong; } /* (t738u: the old body plan fitted to Art's skeleton, so the old IK reaches where his arms and legs reach) */ const gh = new THREE.Group(); gh.name = 'theusMotion'; gh.visible = false; gh.scale.setScalar(U); const B = bones(null); gh.add(B[0]); M.grp.add(gh); gh.updateMatrixWorld(true); gh.skeleton = new THREE.Skeleton(B); M.gh = gh; M.B = B; return gh; }
+  const V3 = () => new THREE.Vector3(), DOWN = () => new THREE.Vector3(0, -1, 0), ZAX = () => new THREE.Vector3(0, 0, 1);
+  function ik2(S, T, L1, L2, pole, mx) { const d = T.clone().sub(S); let dist = d.length(); const dn = d.clone().normalize(); dist = clamp(dist, Math.abs(L1 - L2) + 0.01, (L1 + L2) * (mx || 0.96)); /* (never a locked limb) */
+    const a = (L1 * L1 + dist * dist - L2 * L2) / (2 * dist), h = Math.sqrt(Math.max(0, L1 * L1 - a * a)), p = pole.clone().sub(dn.clone().multiplyScalar(pole.dot(dn))); if (p.lengthSq() < 1e-6) p.set(0, 0, 1); p.normalize();
+    return [S.clone().add(dn.clone().multiplyScalar(a)).add(p.multiplyScalar(h)), S.clone().add(dn.clone().multiplyScalar(dist))]; }
+  // (pass 7) roll the raised right upper arm about its own axis so the deltoid's outer bulk stays on the outside of the swing plane, never rolled in toward the face
+  function rollOut(up, fore, S, E, H) { const ax = E.clone().sub(S).normalize(), el = sm(-0.25, 0.45, Math.asin(clamp(ax.y, -1, 1))); if (el <= 0) return; const sk = M.gh && M.gh.skeleton; if (!sk) return;
+    if (!M.qb9) { const bw = (b) => sk.boneInverses[b].clone().invert(), m = bw(1).invert().multiply(bw(9)); M.qb9 = new THREE.Quaternion().setFromRotationMatrix(m); }
+    const R = up.quaternion.clone().multiply(M.qb9.clone().invert()), o = v3(-1, 0, 0).applyQuaternion(R), op = o.addScaledVector(ax, -o.dot(ax)), n = v3(-1, 0, 0).addScaledVector(ax, ax.x); if (op.lengthSq() < 1e-4 || n.lengthSq() < 1e-4) return; op.normalize(); n.normalize();
+    const ang = Math.atan2(new THREE.Vector3().crossVectors(op, n).dot(ax), op.dot(n)); M.roll9 = ang / DEG; up.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(ax, ang * el)); const dl = H.clone().sub(E).applyQuaternion(up.quaternion.clone().invert()).normalize(); fore.quaternion.setFromUnitVectors(DOWN(), dl); }
+  function aimLimb(up, fore, S, E, H) { up.quaternion.setFromUnitVectors(DOWN(), E.clone().sub(S).normalize()); const dl = H.clone().sub(E).applyQuaternion(up.quaternion.clone().invert()).normalize(); fore.quaternion.setFromUnitVectors(DOWN(), dl); }
+  // the upper right hammer: key hand positions (ape space), handle directions and elbow poles; arcs = quadratic Beziers through a control point
+  const bez = (a, c, b, u) => a.clone().multiplyScalar((1 - u) * (1 - u)).add(c.clone().multiplyScalar(2 * u * (1 - u))).add(b.clone().multiplyScalar(u * u));
+  const v3 = (x, y, z) => new THREE.Vector3(x, y, z), nlerp = (a, b, u) => a.clone().lerp(b, u).normalize();
+  function hammerAt(t, P, barC) { const strikeHead = v3(-1.5, barC.y + L.bar[1] / 2 + L.head[1] / 2 - 0.8, barC.z + 6), dI = v3(0.05, -0.6, 0.8).normalize(), I = strikeHead.clone().sub(dI.clone().multiplyScalar(L.handle));
+    const R = v3(-10, 64, 17), dR = v3(-0.1, 0.92, 0.35).normalize(), W = v3(-9, 84, 1), dW = v3(0.05, -0.45, -0.89).normalize(), pR = v3(-1, -0.3, -0.4), pW = v3(-0.4, 1, 0.2), pI = v3(-0.7, 0.2, -0.6);
+    const hang = { h: v3(-16, P.hipY - 3, 5 + 2 * Math.sin(t * 1.3)), d: v3(-0.1, -0.92, 0.38).normalize(), p: v3(-1, 0, -1) };
+    const tt = ((t % LOOP) + LOOP) % LOOP, Hh = hitTimes(); let h, d, p;
+    const hit = (() => { for (const th of Hh) if (tt >= th - 0.85 && tt < th + 0.75) return th; return null; })();
+    if (hit != null) { const th = hit, x = tt - th;
+      if (x < -0.25) { const u = sm(-0.85, -0.25, x); h = bez(R, v3(-14, 80, 13), W, u); d = nlerp(dR, dW, u); p = nlerp(pR, pW, sm(-0.85, -0.45, x)); } // wind-up: shoulder rolls back, elbow above the head, the hammer drops behind
+      else if (x < 0) { const u = (x + 0.25) / 0.25, ue = u * u * (1.6 - 0.6 * u); h = bez(W, v3(-8, 86, 24), I, ue); d = nlerp(dW, dI, Math.pow(u, 2.2)); p = nlerp(pW, pI, sm(0, 0.6, u)); } // swing: the elbow leads, the forearm whips
+      else if (x < 0.067) { h = I.clone(); d = dI.clone(); p = pI.clone(); } // impact: a 2-frame hold
+      else if (x < 0.2) { const u = Math.sin(Math.PI * (x - 0.067) / 0.133); h = I.clone().add(v3(0, 1.8 * u, -0.6 * u)); d = dI.clone().applyAxisAngle(v3(1, 0, 0), -0.22 * u); /* a 12 deg rebound */ p = pI.clone(); } // a slight rebound
+      else { const u = sm(0.2, 0.75, x); h = bez(I, v3(-14, 55, 27), R, u); d = nlerp(dI, dR, u); p = nlerp(pI, pR, u); } } // eased recovery
+    else if (tt >= 10 && tt < 12) { const u = sm(10.6, 11.95, tt); h = hang.h.clone().lerp(R, u); h.z += 6 * Math.sin(Math.PI * u); d = nlerp(hang.d, dR, u); p = nlerp(hang.p, pR, u); } // raise to the ready pose
+    else if (tt >= 12 && tt < 23.6) { h = R.clone(); d = dR.clone(); p = pR.clone(); if (tt > 23.15) { const u = sm(23.15, 23.6, tt); h.lerp(hang.h, u); d = nlerp(dR, hang.d, u); p = nlerp(pR, hang.p, u); } }
+    else { h = hang.h; d = hang.d; p = hang.p; if (P.walk != null) { const sw = Math.sin(P.walk * 2 * Math.PI); h = h.clone().add(v3(0, 1.5 * Math.abs(sw), -6 * sw)); } } // hangs; swings against his steps
+    return { h, d, p }; }
+  // shoulder roll / torso twist / dip lead the hand (evaluated ~3 frames ahead); the elbow pole ~1.5 frames ahead
+  function strikeBody(t) { const Hh = hitTimes(); let tw = 0, dip = 0, fw = 0, kn = 0, sh = v3(0, 0, 0); for (const th of Hh) { const x = t - th; if (x < -0.8 || x > 0.8) continue;
+      const wind = sm(-0.8, -0.3, x) * (1 - sm(-0.2, 0, x)), hitk = sm(-0.2, 0, x) * (1 - sm(0.12, 0.7, x)); tw += 4 * wind - 1.5 * hitk; dip += -3 * wind + 7 * hitk; fw += 1.4 * hitk; kn += 1.0 * hitk; sh.add(v3(0, 1.0 * wind - 1.2 * hitk, -1.2 * wind + 1.0 * hitk)); } /* (pass 6: chest up + a slight twist back on the raise; on the drive the shoulder drops, the torso folds ~7 deg, weight forward, knees flex) */
+    return { tw, dip, sh, fw, kn }; }
+  // foot placement: in a walk window each foot takes two steps (L .02-.30, R .25-.52, L .50-.78, R .72-1.0), landing where the body will stand a little later; a planted foot keeps its world spot and yaw
+  const WALKW = [[6.0, 9.8], [23.8, 26.6]], STEPS = [[[0.02, 0.3, 0.45], [0.5, 0.78, 1]], [[0.25, 0.52, 0.62], [0.72, 1, 1]]];
+  function stdFoot(s, X, yaw) { const lx = s * (BP.hipW + 1), lz = 3, c = Math.cos(yaw * DEG), sn = Math.sin(yaw * DEG); return [X - (lx * c + lz * sn), -lx * sn + lz * c, yaw]; }
+  function feetAt(t, P) { const tt = ((t % LOOP) + LOOP) % LOOP, out = []; const w = WALKW.find(([a, b]) => tt >= a && tt < b);
+    for (const [si, s] of [[0, 1], [1, -1]]) { if (!w) { out.push({ x: s * (BP.hipW + 1), z: 3, lift: 0, yaw: 0, pitch: 0, sw: 0 }); continue; }
+      const [a, b] = w, f = (tt - a) / (b - a), at = (q) => { const Q = pose(a + q * (b - a)); return stdFoot(s, Q.X, Q.yaw); }; let pos = at(0), lift = 0, pitch = 0, sw = 0;
+      for (const [f0, f1, land] of STEPS[si]) { const L2 = at(land); if (f >= f1) { pos = L2; continue; } if (f > f0) { const u = sm(f0, f1, f), r = (f - f0) / (f1 - f0); pos = [lerp(pos[0], L2[0], u), lerp(pos[1], L2[1], u), lerp(pos[2], L2[2], u)]; lift = 4.5 * Math.sin(Math.PI * r); sw = Math.sin(Math.PI * r);
+          pitch = 22 * sm(0, 0.15, r) * (1 - sm(0.15, 0.5, r)) - 16 * sm(0.55, 0.85, r) * (1 - sm(0.92, 1, r)); } break; } // toe-off (toes down), then heel strike (toes up), then flat
+      const c = Math.cos(P.yaw * DEG), sn = Math.sin(P.yaw * DEG), wx = -(pos[0] - P.X), wz = pos[1]; out.push({ x: wx * c - wz * sn, z: wx * sn + wz * c, lift, yaw: pos[2] - P.yaw, pitch, sw }); }
+    return out; }
+  function setPose(t) { const B = M.B, P = pose(t), ape = M.gh, [wx, wz] = wld(P.X, 0); ape.position.set(wx, HB, wz); ape.rotation.set(0, P.yaw * DEG, 0); ape.updateMatrix(); ape.updateMatrixWorld(true);
+    const sb = strikeBody(((t + 0.1) % LOOP + LOOP) % LOOP), walkTw = P.walk != null ? 6 * Math.sin(P.walk * 2 * Math.PI) : 0; P.hipY -= sb.kn;
+    const hips = B[0], chest = B[1], head = B[2]; hips.position.set(0, P.hipY, 0); hips.quaternion.setFromAxisAngle(v3(0, 1, 0), -walkTw * 0.5 * DEG);
+    chest.quaternion.setFromAxisAngle(v3(1, 0, 0), (P.lean + sb.dip) * DEG).multiply(new THREE.Quaternion().setFromAxisAngle(v3(0, 1, 0), (sb.tw + walkTw) * DEG));
+    head.quaternion.setFromAxisAngle(v3(1, 0, 0), -(P.lean + sb.dip) * 0.6 * DEG + 0.12).multiply(new THREE.Quaternion().setFromAxisAngle(v3(0, 1, 0), -(sb.tw + walkTw) * 0.6 * DEG));
+    hips.updateMatrix(); chest.updateMatrix(); const chM = hips.matrix.clone().multiply(chest.matrix), chI = chM.clone().invert(), toC = (v) => v.clone().applyMatrix4(chI), dirC = (v) => v.clone().transformDirection(chI);
+    // legs: real foot placement. Planted feet stay put in the world; two steps each foot per walk (heel-to-toe), the hips shift over the planted foot
+    const FT = feetAt(t, P); hips.position.set(1.4 * (FT[1].sw - FT[0].sw), P.hipY, sb.fw); hips.updateMatrix(); const chM2 = hips.matrix.clone().multiply(chest.matrix); chI.copy(chM2).invert(); let kneeL = null;
+    for (const [s, b0, fb, F] of [[1, 3, 18, FT[0]], [-1, 5, 19, FT[1]]]) { const T2 = v3(F.x - hips.position.x, BP.ankle + F.lift - P.hipY, F.z - sb.fw), S2 = v3(s * BP.hipW, 0, 0); const [E, H] = ik2(S2, T2, BP.thigh, BP.shin, v3(0, 0, 1)); aimLimb(B[b0], B[b0 + 1], S2, E, H); if (s > 0) kneeL = E.clone().add(v3(hips.position.x, P.hipY, sb.fw));
+      const qD = new THREE.Quaternion().setFromEuler(new THREE.Euler(F.pitch * DEG, F.yaw * DEG, 0, 'YXZ')), qP = hips.quaternion.clone().multiply(B[b0].quaternion).multiply(B[b0 + 1].quaternion); B[fb].quaternion.copy(qP.invert().multiply(qD)); }
+    // tongs: hand-mid in ape space -> chest space; both lower hands on the reins (elbows ~100 deg); the bar turns on strikes 3 and 6
+    const tg = P.tg, hm = v3(0.15 * P.trem + (P.bx || 0), tg.y + 0.5 * P.adj + 0.35 * P.trem, tg.z + 0.4 * P.adj), td = v3(0, -Math.sin(tg.p * DEG), Math.cos(tg.p * DEG)); const hmC = toC(hm), tdC = dirC(td);
+    B[15].position.copy(hmC); B[15].quaternion.setFromUnitVectors(ZAX(), tdC).multiply(new THREE.Quaternion().setFromAxisAngle(ZAX(), P.roll || 0));
+    for (const [s, b0] of [[1, 11], [-1, 13]]) { const S = v3(s * BP.shB[0], BP.shB[1], BP.shB[2]), wl = v3(s * 0.3, 0.55, -0.78).normalize().applyQuaternion(B[15].quaternion), T = hmC.clone().addScaledVector(tdC, s > 0 ? 2.5 : 8.5).addScaledVector(wl, 4.3); /* the wrist just behind its fist on the reins */ const [E, H] = ik2(S, T, BP.armB[0], BP.armB[1], v3(s, -0.5, -0.5)); /* (the rein runs through the fist) */ aimLimb(B[b0], B[b0 + 1], S, E, H); }
+    // upper left: braced on his knee (dip), swinging against his steps (walks), on the platform's edge (lay + strikes: planted)
+    { const tt = ((t % LOOP) + LOOP) % LOOP, knee = kneeL.clone().lerp(v3(BP.hipW, P.hipY, 0), 0.3).add(v3(3, 2.5, 3)), sw = P.walk != null ? Math.sin(P.walk * 2 * Math.PI) : 0, free = v3(17, P.hipY - 1 + 1.5 * Math.abs(sw), 7 + 5 * sw); /* (pass 6: held out clear of the ribs) */
+      const eY = 10, eX = PC[0] - PA * Math.sqrt(1 - (eY / PB) ** 2) + 1.5 - L.S, edge = v3(eY, L.plat[3] + 0.6, eX); let T;
+      if (tt < 4) T = free.clone().lerp(knee, sm(0.2, 1.2, tt)); else if (tt < 6) T = knee.clone().lerp(free, sm(4.2, 5.4, tt)); else if (tt < 10) T = free; else if (tt < 23.4) T = free.clone().lerp(edge, sm(10.4, 11.6, tt)); else T = edge.clone().lerp(free, sm(23.4, 24.2, tt));
+      const S = v3(BP.shA[0], BP.shA[1], BP.shA[2]), fh = T.clone().sub(v3(BP.shA[0], P.hipY + BP.chestUp + BP.shA[1], 0)).setY(0).normalize(), Tw = T.clone().add(v3(0, 2.2, 0)).addScaledVector(fh, -2.6); /* the wrist above and behind the palm */
+      const [E, H] = ik2(S, toC(Tw), BP.armA[0], BP.armA[1], v3(1, 0.2, -0.7)); aimLimb(B[7], B[8], S, E, H); const fC = H.clone().sub(E).normalize(), w = tt < 10 ? 0 : tt < 23.4 ? sm(10.4, 11.6, tt) : 1 - sm(23.4, 24.2, tt);
+      B[16].position.copy(E).addScaledVector(fC, BP.armA[1]); const qA = new THREE.Quaternion().setFromUnitVectors(ZAX(), fC), qF = hips.quaternion.clone().multiply(chest.quaternion).invert().multiply(new THREE.Quaternion().setFromUnitVectors(ZAX(), fh)); B[16].quaternion.copy(qA.slerp(qF, w)); } // flat on the platform edge while planted
+    // upper right: the hammer (pass 6, Dominic: 'a natural grip and swing'). In a strike window the arm is posed by angles in ONE vertical plane through the right shoulder and the strike spot
+    // (upper arm aU, forearm e, wrist theta = forearm-to-handle angle), keys: raise 0.5 s -> hold 0.1 -> drive 0.2 (elbow leads, forearm lags, wrist uncocks last) -> impact (2 frames) -> rebound 0.2 -> recover (looping behind the shoulder)
+    // the fist grips the last ~17% of the handle; the hammer's frame: +z along the handle, +y toward the forearm (so the face, -y, points down at impact). Outside the strikes: the old hang / ready poses (IK)
+    { const barC = M.barRest ? M.barRest.local : v3(0, 30, 50), S = v3(-BP.shA[0] - SHO, BP.shA[1], BP.shA[2]).add(v3(0, sb.sh.y, Math.min(0.3, sb.sh.z))); B[9].position.copy(S); /* (pass 7: the right shoulder pivot 0.04x his height further out from the neck; no forward travel) */ const SZ = M.sz != null ? M.sz : 17.5, L1 = BP.armA[0], L2 = BP.armA[1], Lh = L.handle, GR = 0.17;
+      const tt0 = ((t % LOOP) + LOOP) % LOOP, Sa = S.clone().applyMatrix4(chM2), Thb = v3(barC.x - 1.5, barC.y + L.bar[1] / 2, barC.z + SZ), /* (pass 6: the strike spot 15 along the bar from the jaws, so the arm reaches it near-straight) */ f = Thb.clone().sub(Sa).setY(0).normalize(), UP = v3(0, 1, 0);
+      M.swF = f.clone(); const pl = (a, b) => Sa.clone().addScaledVector(f, a).addScaledVector(UP, b), dv = (ang) => f.clone().multiplyScalar(Math.cos(ang)).addScaledVector(UP, Math.sin(ang));
+      const imp = (() => { const ta = Thb.clone().sub(Sa).dot(f), tb = Thb.y - Sa.y; M.swT = [+ta.toFixed(1), +tb.toFixed(1), +Sa.z.toFixed(1), +Thb.z.toFixed(1)]; let e = -35 * DEG, aU = -50 * DEG, th = 150 * DEG;
+        for (let k = 0; k < 6; k++) { th = Math.max(150 * DEG, Math.PI + e); const da = e + Math.PI - th, G = [ta - Math.cos(da) * (1 - GR) * Lh - Math.sin(da) * L.head[1] / 2, tb - Math.sin(da) * (1 - GR) * Lh + Math.cos(da) * L.head[1] / 2], W = [G[0] - Math.cos(e) * 4.3, G[1] - Math.sin(e) * 4.3], d = clamp(Math.hypot(W[0], W[1]), Math.abs(L1 - L2) + 0.5, (L1 + L2) * 0.985), an = Math.atan2(W[1], W[0]); aU = an + Math.acos(clamp((L1 * L1 + d * d - L2 * L2) / (2 * L1 * d), -1, 1)); /* (the elbow above the shoulder-wrist line: the forearm angles down onto the bar) */ const Ex = Math.cos(aU) * L1, Ey = Math.sin(aU) * L1; e = Math.atan2(W[1] - Ey, W[0] - Ex); }
+        return [aU / DEG, e / DEG, Math.max(150, 180 + e / DEG)]; })(); // (theta at impact: the handle level, so the face lands flat)
+      const hitW = (() => { for (const th of hitTimes()) if (tt0 >= th - 0.8 && tt0 < th + 0.8) return th; return null; })();
+      const KT = [35, 115, 100], KH = [36, 117, 98], KM = [15, 70, 150], KR = [20, 105, 110], RB = [imp[0] + 3, imp[1] + 8, imp[2] - 4], L3 = (a, b, u) => [lerp(a[0], b[0], u), lerp(a[1], b[1], u), lerp(a[2], b[2], u)];
+      const key = (x) => { if (x < -0.3) return L3(KR, KT, sm(-0.8, -0.3, x)); if (x < -0.2) return L3(KT, KH, (x + 0.3) / 0.1); if (x < 0) { const u = (x + 0.2) / 0.2; return [lerp(KH[0], imp[0], sm(0, 0.75, u)), lerp(KH[1], imp[1], Math.pow(u, 1.8)), lerp(KH[2], imp[2], Math.pow(u, 3.5))]; }
+        if (x < 0.067) return imp; if (x < 0.267) return L3(imp, RB, Math.sin(Math.PI / 2 * Math.min(1, (x - 0.067) / 0.1))); if (x < 0.5) { const u = sm(0.267, 0.5, x); return [lerp(RB[0], KM[0], Math.pow(u, 0.6)), lerp(RB[1], KM[1], u), lerp(RB[2], KM[2], u)]; } return L3(KM, KR, sm(0.5, 0.8, x)); };
+      const AR = 0.65 * ABD, alOf = (x) => x < -0.3 ? lerp(AR, ABD, sm(-0.8, -0.3, x)) : x < -0.12 ? ABD : x < 0.05 ? ABD * (1 - sm(-0.07, -0.004, x)) : AR * sm(0.12, 0.6, x); /* (pass 7b: the upper arm abducted ~22 deg out from the head through the raise, top and early drive; back in the strike plane for the impact) */
+      const fk = (k, al) => { const aU = k[0] * DEG, e = k[1] * DEG, E = pl(Math.cos(aU) * L1, Math.sin(aU) * L1), W = E.clone().addScaledVector(dv(e), L2), d = dv(e + Math.PI - k[2] * DEG), q = new THREE.Quaternion().setFromAxisAngle(f, (al == null ? AR : al) * DEG); /* rotate the arm about the forward axis through the shoulder: out to his right */
+        const E2 = E.sub(Sa).applyQuaternion(q).add(Sa), W2 = W.sub(Sa).applyQuaternion(q).add(Sa); return { W: W2, d: d.applyQuaternion(q), pole: E2.clone().sub(Sa) }; };
+      let A; if (hitW != null) { A = fk(key(tt0 - hitW), alOf(tt0 - hitW)); M.swing = { x: tt0 - hitW, k: key(tt0 - hitW), imp }; }
+      else { const a = hammerAt(t, P, barC), ap = hammerAt(t + 0.05, P, barC), yA = v3(0, 1, 0).applyQuaternion(new THREE.Quaternion().setFromUnitVectors(ZAX(), a.d)); A = { W: a.h.clone().addScaledVector(a.d, GR * Lh).addScaledVector(yA, 4.3), d: a.d.clone(), pole: ap.p.clone() }; M.swing = null;
+        const OUTV = new THREE.Vector3().crossVectors(f, UP).normalize(); /* (pass 7b: the hammer swings out round his right side between the carry and the strikes, never through his head) */
+        if (tt0 >= 11.1 && tt0 < 12) { const B2 = fk(KR), u = sm(11.1, 12, tt0); A = { W: A.W.lerp(B2.W, u).addScaledVector(OUTV, 9 * Math.sin(Math.PI * u)), d: nlerp(A.d, B2.d, u), pole: nlerp(A.pole.clone().normalize(), B2.pole.clone().normalize(), u) }; } // into the first raise
+        else if (tt0 >= 23.2 && tt0 < 23.6) { const B2 = fk(KR), u = 1 - sm(23.2, 23.6, tt0); A = { W: A.W.lerp(B2.W, u).addScaledVector(OUTV, 9 * Math.sin(Math.PI * u)), d: nlerp(A.d, B2.d, u), pole: nlerp(A.pole.clone().normalize(), B2.pole.clone().normalize(), u) }; } }
+      { const el = sm(-4, 10, A.W.y - Sa.y), oW = f.clone().multiplyScalar(-1.8 * el).add(v3(0, 1.6 * el, 0)), oC = el > 0 ? dirC(oW.clone().normalize()).multiplyScalar(oW.length()) : v3(0, 0, 0); if (el > 0) { S.add(oC); B[9].position.copy(S); A.W.add(oW); } M.shEl = el; } /* (pass 7: as the arm lifts the shoulder rises and draws back (scapula upward rotation), in the swing plane) */
+      const Wc = toC(A.W), [E, H] = ik2(S, Wc, L1, L2, dirC(A.pole), 0.986); /* (up to ~160 deg at impact, never locked) */ aimLimb(B[9], B[10], S, E, H); rollOut(B[9], B[10], S, E, H); const Wa = E.clone().addScaledVector(H.clone().sub(E).normalize(), L2), eC = Wa.clone().sub(E).normalize(), dC = dirC(A.d);
+      const Gc = Wa.clone().addScaledVector(eC, 4.3), yC = eC.clone().negate().addScaledVector(dC, eC.dot(dC)); if (yC.lengthSq() < 1e-4) yC.set(0, 1, 0); yC.normalize(); const xC = new THREE.Vector3().crossVectors(yC, dC).normalize(); yC.crossVectors(dC, xC);
+      B[17].quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xC, yC, dC)); B[17].position.copy(Gc).addScaledVector(dC, -GR * Lh); M.reachGap = 0; /* the fist is on the wrist in every frame: the hammer hangs off the hand */
+      M.armDbg = { elbow: 180 - E.clone().sub(S).angleTo(Wa.clone().sub(E)) / DEG, wrist: eC.clone().negate().angleTo(dC) / DEG };
+      const a = { h: Gc.clone().addScaledVector(dC, -GR * Lh).applyMatrix4(chM2), d: dC.clone().transformDirection(chM2) };
+      const tt = ((t % LOOP) + LOOP) % LOOP, jaw = hm.clone().addScaledVector(td, L.tongs - 3), bar = v3(barC.x - 1.5, barC.y, barC.z + 15), hh = a.h.clone().addScaledVector(a.d, L.handle), sh2 = strikeBody(tt);
+      let look = P.settle ? bar.clone().add(v3(0, -4, -4)) : tt >= 11.5 && tt < 23.2 ? /* (settle: the head drops to look at the bar) */ (M.swing && M.swing.x > -0.2 && M.swing.x < 0.05 ? bar.clone().lerp(hh, 0.3 * (1 - sm(-0.2, 0, M.swing.x))) : bar.clone().lerp(hh, 0.08)) : /* (pass 6: his gaze follows the hammer down to the bar) */ P.walk != null ? v3(0, 70, 60) : jaw.clone().add(v3(0, 16, 8)); /* (pass 7b: chin up over the carry, clear of the tong fists) */ const hp = v3(BP.head[0], BP.torso - 1, BP.head[2]), dir = toC(look).sub(hp).normalize();
+      const q = new THREE.Quaternion().setFromUnitVectors(ZAX(), dir), rest = new THREE.Quaternion().setFromAxisAngle(v3(1, 0, 0), 0.12); head.quaternion.copy(rest.slerp(q, 0.8)); if (M.swing) { const x = M.swing.x, w = sm(-0.75, -0.45, x) * (1 - sm(-0.15, 0.05, x)), w2 = Math.max(w, 0.6 * sm(-0.2, -0.05, x) * (1 - sm(0.3, 0.6, x))); /* (pass 7b: the head stays turned a little left through the impact and rebound, the jaw clear of the right shoulder) */ if (w2 > 0) { head.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(v3(0, 1, 0), 13 * DEG * w2)).multiply(new THREE.Quaternion().setFromAxisAngle(v3(1, 0, 0), 7 * DEG * w)); } } } // his gaze (pass 7: at the top of the swing the head turns ~13 deg to his left and tilts down toward the bar, away from the rising shoulder)
+    ape.updateMatrixWorld(true); return P; }
+  function gJaw() { const b = M.B[15]; return { p: new THREE.Vector3(0, 0, L.tongs - 1.2).applyMatrix4(b.matrixWorld), q: b.getWorldQuaternion(new THREE.Quaternion()) }; }
+  function restBar() { if (M.barRest) return M.barRest; setPose(12.0); const j = gJaw(), flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2); // laid flat along the loop line (world -x), resting on the striking surface
+    const top = HB + (L.plat[3] + L.bar[1] / 2) * U, p = new THREE.Vector3(j.p.x, top, LIP[1]).add(new THREE.Vector3(-BXS * U, 0, 0).applyQuaternion(M.gh.getWorldQuaternion(new THREE.Quaternion())).setY(0)); const local = new THREE.Vector3(-BXS, L.plat[3] + L.bar[1] / 2, (LIP[0] - j.p.x) / U - L.S); M.barRest = { p, q: flat, local }; return M.barRest; }
+
+  // Art's model: built once, its bind pose in the ape's frame (THEUS_RIG.retarget: which old bone or hand drives each of his bones; the tips are his fists / soles)
+  function glbReady() { if (M.glb) return M.glb; if (typeof NpcModels === 'undefined' || typeof THEUS_RIG === 'undefined') return null; const I = NpcModels.make('theus'); if (!I) return null; ghost();
+    const ape = M.ape; I.root.name = 'theusGlb'; I.root.scale.setScalar(WS); ape.position.set(0, 0, 0); ape.rotation.set(0, 0, 0); ape.add(I.root); ape.updateMatrixWorld(true); let sk = null; I.root.traverse((o) => { if (o.isSkinnedMesh && !o.userData.isInk && !sk) sk = o; });
+    I.mixer.stopAllAction(); const RT = THEUS_RIG.retarget, qa = new THREE.Quaternion(); M.rt = Object.keys(RT).map((nm) => { const r = RT[nm], b = sk.skeleton.bones.find((q) => q.name === nm); const o = { nm, b, r, q0: b.quaternion.clone(), p0: b.position.clone(), w0: b.getWorldQuaternion(new THREE.Quaternion()).premultiply(qa.clone().invert()) };
+      if (r.aim != null) { o.tip = hand(I, sk, nm).at; const a = o.tip.toArray().map(Math.abs); o.ax = a.indexOf(Math.max(...a)); o.s0 = b.scale.clone(); } return o; });
+    M.glb = I; M.sk = sk; M.barRest = restBar(); gripAt(); M.hammer.visible = M.tongs.visible = true; M.bar.visible = true; return I; }
+  const _v = new THREE.Vector3(), _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion();
+  // an old bone's point / turn in the ape's frame (design m -> world through M.gh)
+  const gPt = (i, v) => (v ? M.B[i].localToWorld(new THREE.Vector3(...v)) : M.B[i].getWorldPosition(new THREE.Vector3()));
+  function retarget() { const B = M.B, ape = M.ape, qa = ape.getWorldQuaternion(new THREE.Quaternion()), L1 = BP.armA[1], L2 = BP.armB[1];
+    // the old hands / feet this frame (world): fists on the hammer grip and the reins, the upper-left palm, the soles
+    const end = { hammer: gPt(17, [0, 0, M.gripG == null ? 0.17 * L.handle : M.gripG]), palmL: gPt(16), reinL: gPt(15, [0, 0, 2.5 + (M.reinG || 0)]), reinR: gPt(15, [0, 0, 8.5 + (M.reinG || 0)]), /* (the old fists on the reins: 2.5 / 8.5 up from the tongs' grip point) */ footL: gPt(18), footR: gPt(19) }; void L1; void L2;
+    for (const o of M.rt) { const { b, r } = o; b.quaternion.copy(o.q0); b.position.copy(o.p0); if (o.s0) b.scale.copy(o.s0);
+      if (r.turn != null) { /* the old bone's turn from its bind (ape frame) onto Art's bind */ const d = B[r.turn].getWorldQuaternion(_q).premultiply(_q2.copy(qa).invert()); const want = d.multiply(o.w0.clone()).premultiply(qa), pq = b.parent.getWorldQuaternion(new THREE.Quaternion()); b.quaternion.copy(pq.invert().multiply(want));
+        if (r.move) { const dp = B[r.turn].getWorldPosition(new THREE.Vector3()).sub(M.gh.localToWorld(new THREE.Vector3(...r.bindAt))); b.parent.updateWorldMatrix(true, false); const w0 = b.parent.localToWorld(o.p0.clone()).add(dp); b.position.copy(b.parent.worldToLocal(w0)); } }
+      else { /* aim his arm / leg at the old hand / foot: from his own shoulder along the old arm (r.rel), or straight at the old foot */ b.updateWorldMatrix(true, false); const S = b.getWorldPosition(_v), T = r.rel ? S.clone().add(end[r.aim].clone().sub(gPt(r.rel))) : end[r.aim];
+        const cur = b.localToWorld(o.tip.clone()).sub(S).normalize(), want = T.clone().sub(S).normalize(), wq = b.getWorldQuaternion(new THREE.Quaternion()), pq = b.parent.getWorldQuaternion(new THREE.Quaternion()); b.quaternion.copy(pq.invert().multiply(new THREE.Quaternion().setFromUnitVectors(cur, want).multiply(wq)));
+        if (r.stretch) { const l = b.localToWorld(o.tip.clone()).distanceTo(S), k = clamp(T.distanceTo(S) / l, 1 - r.stretch, 1 + r.stretch); b.scale.setComponent(o.ax, o.s0.getComponent(o.ax) * k); } /* (a leg reaches its planted foot: lengthened / shortened along itself, at most r.stretch) */ }
+      b.updateMatrixWorld(true); } }
+  // a fist (world) at the end of one of his arms
+  const fist = (nm) => { const o = M.rt.find((q) => q.nm === nm); return o.b.localToWorld(o.tip.clone()); };
+  // place him for loop time T: the old loop poses the motion rig, Art's bones follow it, the tools sit in his fists at the old tools' angles
+  function place(T, now) { void now; ghost(); const P = setPose(T), ape = M.ape; ape.position.copy(M.gh.position); ape.quaternion.copy(M.gh.quaternion); ape.updateMatrixWorld(true); const I = glbReady(); if (!I) return P; M.gh.updateMatrixWorld(true); retarget(); M.clip = 'motion';
+    holdTools();
     return P; }
-  function stanceW(T) { T = ((T % LOOP) + LOOP) % LOOP; return T < 9.2 ? 0 : T < 10 ? sm(9.2, 10, T) : T < 23 ? 1 : T < 23.6 ? 1 - sm(23, 23.6, T) : 0; } // (his turn to the bar: eased in on his last stride, out as he lifts it off)
-  function dipW(T) { T = ((T % LOOP) + LOOP) % LOOP; return T < 4 ? 1 : T < 5 ? 1 - sm(4, 5, T) : T < 26.2 ? 0 : sm(26.2, 27, T); } // (his turn to the notch: held through the dip, eased out as he lifts, back in at the end of his return)
-  const _qx = new THREE.Quaternion(), _ax = new THREE.Vector3(1, 0, 0);
-  function jawY(T) { const K = THEUS_RIG.jawY; T = ((T % LOOP) + LOOP) % LOOP; let i = 0; while (i + 1 < K.length && K[i + 1][0] <= T) i++; const a = K[i], b = K[Math.min(i + 1, K.length - 1)]; return b[0] > a[0] ? lerp(a[1], b[1], sm(a[0], b[0], T)) : a[1]; }
-  function jawWorld() { const t = M.tongs, q = t.getWorldQuaternion(new THREE.Quaternion()); if (M.barLevel) q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), M.barLevel)); return { p: new THREE.Vector3(0, 0, L.tongs - 1.2).applyMatrix4(t.matrixWorld), q }; }
+  // his grip on the hammer (M.gripG, design m up the handle from its butt), set once so that at the blow his fist - at his arm's own length from his shoulder -
+  // holds the hammer exactly where the old swing has it: the face lands on the bar where it always did. A firm grip: the same all loop
+  function gripAt() { const th = hitTimes()[0]; M.gripG = 0.17 * L.handle; setPose(th); M.ape.position.copy(M.gh.position); M.ape.quaternion.copy(M.gh.quaternion); M.ape.updateMatrixWorld(true); M.gh.updateMatrixWorld(true); retarget();
+    const o = M.rt.find((q) => q.nm === THEUS_RIG.hammer.bone), S = o.b.getWorldPosition(new THREE.Vector3()), l = fist(o.nm).distanceTo(S), Pb = M.B[17].getWorldPosition(new THREE.Vector3()), a = new THREE.Vector3(0, 0, U).applyQuaternion(M.B[17].getWorldQuaternion(new THREE.Quaternion())), c = Pb.sub(S);
+    const A = a.dot(a), Bq = 2 * a.dot(c), C = c.dot(c) - l * l, D = Bq * Bq - 4 * A * C; let g = 0.17 * L.handle; if (D >= 0) { const r = [(-Bq - Math.sqrt(D)) / (2 * A), (-Bq + Math.sqrt(D)) / (2 * A)].filter((x) => x > 0.03 * L.handle && x < 0.7 * L.handle); if (r.length) g = r.sort((x, y) => Math.abs(x - 0.17 * L.handle) - Math.abs(y - 0.17 * L.handle))[0]; }
+    M.gripG = +g.toFixed(3); M.gripMiss = D >= 0 ? 0 : +((Math.sqrt(c.dot(c)) - l) / U).toFixed(2);
+    // the same for the tongs: how far along the reins his two lower fists hold them (M.reinG), so that at the dip (2.5 s) they reach where the old fists were
+    setPose(2.5); M.ape.position.copy(M.gh.position); M.ape.quaternion.copy(M.gh.quaternion); M.ape.updateMatrixWorld(true); M.gh.updateMatrixWorld(true); retarget(); const P15 = M.B[15].getWorldPosition(new THREE.Vector3()), at = new THREE.Vector3(0, 0, U).applyQuaternion(M.B[15].getWorldQuaternion(new THREE.Quaternion())), gs = [];
+    for (const [nm, a0] of [[THEUS_RIG.tongs.bone2, 2.5], [THEUS_RIG.tongs.bone, 8.5]]) { const o2 = M.rt.find((q) => q.nm === nm), S2 = o2.b.getWorldPosition(new THREE.Vector3()), l2 = fist(nm).distanceTo(S2), c2 = P15.clone().addScaledVector(at, a0).sub(S2), B2 = 2 * at.dot(c2), C2 = c2.dot(c2) - l2 * l2, A2 = at.dot(at), D2 = B2 * B2 - 4 * A2 * C2;
+      if (D2 >= 0) { const r = [(-B2 - Math.sqrt(D2)) / (2 * A2), (-B2 + Math.sqrt(D2)) / (2 * A2)].sort((x, y) => Math.abs(x) - Math.abs(y))[0]; gs.push(r); } }
+    M.reinG = gs.length ? +(gs.reduce((x, y) => x + y, 0) / gs.length).toFixed(3) : 0; }
+  // the hammer and tongs in his fists, at the old tools' angles (the hammer at his grip M.gripG, the tongs' reins in both lower fists)
+  function holdTools() { const R = THEUS_RIG; { const q = M.B[17].getWorldQuaternion(new THREE.Quaternion()), f = fist(R.hammer.bone); M.hammer.quaternion.copy(q); M.hammer.position.copy(f).sub(new THREE.Vector3(0, 0, (M.gripG == null ? 0.17 * L.handle : M.gripG) * U).applyQuaternion(q)); M.hammer.updateMatrixWorld(true); }
+    { const q = M.B[15].getWorldQuaternion(new THREE.Quaternion()), f = fist(R.tongs.bone).add(fist(R.tongs.bone2)).multiplyScalar(0.5); M.tongs.quaternion.copy(q); M.tongs.position.copy(f).sub(new THREE.Vector3(0, 0, (5.5 + (M.reinG || 0)) * U).applyQuaternion(q)); /* (the reins run through his fists 2.5 and 8.5 up from the tongs' grip point, as before) */ M.tongs.updateMatrixWorld(true); } }
+  function jawWorld() { const t = M.tongs; return { p: new THREE.Vector3(0, 0, L.tongs - 1.2).applyMatrix4(t.matrixWorld), q: t.getWorldQuaternion(new THREE.Quaternion()) }; }
   function headWorld() { return new THREE.Vector3(0, -L.head[1] / 2, L.handle).applyMatrix4(M.hammer.matrixWorld); } // the hammer head's striking face
-  function restBar() { return M.barRest; }
   const lin = (c) => c.map((v) => Math.pow(v, 2.2)), CORE = lin([1, 0xde / 255, 0x48 / 255]);
   function anim(t, night) { if (!M.built) return; void t; void night; const now = M.tOv != null ? M.tOv : performance.now() / 1000, T = M.tOv != null ? ((M.tOv % LOOP) + LOOP) % LOOP : ((now - M.t0) % LOOP + LOOP) % LOOP; // (tOv: a test / shot pins the loop time)
     M.T = T; M.phase = phase(T); M.lava.rotation.y = (now * 0.01) % (2 * Math.PI);
@@ -327,5 +443,5 @@ const FORGE = (() => {
     for (const s of M.sp) { if (n >= M.spN) break; pos.setXYZ(n, s.p.x, s.p.y, s.p.z); const f = s.ground ? Math.max(0, 1 - (s.age - s.tg) / (s.ember ? 6 : 2.5)) * (s.ember ? 0.35 : 0.5) : (s.ember ? 0.55 + 0.25 * Math.sin(now * 11 + s.p.x) : 1) - 0.4 * sm(0, s.life, s.age); col.setXYZ(n, s.c[0] * f, s.c[1] * f * (s.ground ? 0.5 : 1), s.c[2] * f); n++; }
     M.pts.geometry.setDrawRange(0, n); pos.needsUpdate = true; col.needsUpdate = true; }
   const shaderU = () => new THREE.Vector4(LIP[0], LIP[1], U, 1);
-  return { mapTint, WS, F, U, LIP, HB, LOOP, HITS, L, M, wld, loc, carve, keepOut, scorched, clear, afterGen, orePrune, anchors, build, anim, barAt, hitTimes, phase, pose, platZ, platD, cone, Hr, Rb, Rr, shaderU, homeU, pathKeepW: (x, y) => { const [X, Y] = loc(x, y); return inBox(X, Y) && pathKeep(X, Y); }, SWB, swbNear, place, restBar, jawWorld, headWorld, glbReady, on };
+  return { mapTint, WS, F, U, LIP, HB, LOOP, HITS, L, M, wld, loc, carve, keepOut, scorched, clear, afterGen, orePrune, anchors, build, anim, barAt, hitTimes, phase, pose, platZ, platD, cone, Hr, Rb, Rr, shaderU, homeU, pathKeepW: (x, y) => { const [X, Y] = loc(x, y); return inBox(X, Y) && pathKeep(X, Y); }, SWB, swbNear, place, restBar, jawWorld, headWorld, glbReady, fist, on };
 })();

@@ -18,9 +18,9 @@ const Mosby = (() => {
        house move with the shell he really draws. Each carries the bind-pose triangles of its bone as a collision copy (drawn with no colour or depth writes): the
        ride's heightfield and her climb on his head rasterise Art's own surface
      - the walk top (domeY) and the ore spots come from the same triangles (MOSBY_RIG.walkTop / ores); the feet colliders sit on each leg bone's sole; the
-       footfalls (dust + his stomp) are the plant frames of Art's Walk */
-  const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
-  let PROXY_M = null, WT = null, PL = null;
+       footfalls (dust + his stomp) are the plants of the original walk, now on his bones (t738u, MOSBY_RIG.gait) */
+  const V3 = (x, y, z) => new THREE.Vector3(x, y, z), sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); }, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  let PROXY_M = null, WT = null;
   const proxyMat = () => PROXY_M || (PROXY_M = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide }));
   // the walk top: the top-most surface of the shell triangles (body units, shell frame), its smoothed copy, the summit; domeY = the smoothed top, steepened
   // about the summit so MosbyRide's 30 deg edge falls where the dome reaches walkMaxDeg (MOSBY_RIG.walkTop)
@@ -64,26 +64,43 @@ const Mosby = (() => {
     MS.shell = sh.f; MS.neck = hd.f; MS.head = head; MS.neck0 = V3(0, 0, 0); MS.headC = hc; MS.feet = feet;
     // the small one: her house on his summit
     if (MS !== GM) { const hs = new THREE.Group(); hs.name = 'mosbyHouse'; hs.position.set(WT.sx, (WT.top(WT.sx, WT.sz) || WT.sy) + R.houseLift, WT.sz); sh.f.add(hs); MS.houseSlot = hs; MS.houseKey = null; }
-    // the footfalls of Art's Walk, once: per foot the clip phase it plants at (MOSBY_RIG.plantN / plantK)
-    const sl = feet.map((F) => F.b.worldToLocal(F.sole.clone().applyMatrix4(g.matrixWorld))); /* (each sole in its bone's frame, at rest) */
-    if (!PL) { const a = NpcModels.play(I, 'walk', { restart: true }); I.mixer.update(1); const D = a ? a.getClip().duration : 1, N = R.plantN, Y = feet.map(() => []);
-      for (let k = 0; k < N; k++) { a.time = D * k / N; I.mixer.update(1e-6); g.updateMatrixWorld(true); const gi2 = new THREE.Matrix4().copy(g.matrixWorld).invert(); feet.forEach((F, q) => Y[q].push(sl[q].clone().applyMatrix4(F.b.matrixWorld).applyMatrix4(gi2).y)); }
-      PL = { D, ph: Y.map((y) => { const lo = Math.min(...y), hi = Math.max(...y), pk = y.indexOf(hi); for (let j = 1; j <= N; j++) { const k = (pk + j) % N; if (y[k] < lo + R.plantK * (hi - lo)) return k / N; } return 0; }), lift: Y.map((y) => +((Math.max(...y) - Math.min(...y)) * R.bodyM).toFixed(2)) }; }
-    NpcModels.play(I, 'idle', { restart: true }); I.mixer.update(1);
-    MS.rig = { I, sk, sh, hd, feet, fol: [sh, hd, ...feet], tris: shT.length, headTris: hdT.length }; MS.mats = null; MS.fadeOn = null;
+    // (t738u) the original walk on his bones: per leg its bind turn in his frame (the old hip pivot = the leg bone's root), its length to the sole, the long axis
+    // it telescopes along, its step offset (MOSBY_RIG.gait); his body's and head's bind turns (their sway / dip / nod are turned in his frame, as before)
+    const gq = (b) => { const q = new THREE.Quaternion(); rel(b).decompose(V3(), q, V3()); return q; }, body = bones[bi(R.bones.shell)], QB0 = gq(body), QB0i = QB0.clone().invert();
+    feet.forEach((F) => { const hp = V3().setFromMatrixPosition(rel(F.b)), tip = F.b.worldToLocal(F.sole.clone().applyMatrix4(g.matrixWorld)), a = tip.toArray().map(Math.abs);
+      Object.assign(F, { Q0: gq(F.b), hp, Lg: hp.y - F.sole.y, ax: a.indexOf(Math.max(...a)), s0: F.b.scale.clone(), ph: R.gait.ph[F.name] || 0, front: /^lf/.test(F.name), down: true, rx: 0 }); });
+    const head0 = gq(bones[bi(R.bones.head)]), rootM = rel(body.parent), bodyP0 = V3().setFromMatrixPosition(rel(body));
+    I.mixer.stopAllAction(); I.key = null; I.act = null;
+    MS.rig = { I, sk, sh, hd, feet, fol: [sh, hd, ...feet], tris: shT.length, headTris: hdT.length, body, QB0, QB0i, head0, rootM, rootMi: rootM.clone().invert(), rootQi: (() => { const q = new THREE.Quaternion(); rootM.decompose(V3(), q, V3()); return q.invert(); })(), bodyP0, bodyQ0: body.quaternion.clone(), bodyPos0: body.position.clone() }; MS.mats = null; MS.fadeOn = null;
     if (MS === GM && typeof MosbyRide !== 'undefined' && MosbyRide.R) { MosbyRide.R.reg = null; MosbyRide.R.hf = null; } /* (its walk region / heightfield are rebuilt on Art's shell) */
     return MS.rig; }
-  // one frame of him: the clip (Talk while his dialogue is open, Walk while he walks, else Idle), his head held still while she is on it (MS.headHold, set by
-  // MosbyVeins), the followers, and the footfalls: a foot crossing its plant phase puffs dust under its sole; the giant's stomp (one per stompMergeS)
-  const _m = new THREE.Matrix4(), _gi = new THREE.Matrix4();
-  function anim(MS, dt, moving) { const G = MS.rig; if (!G) return; const I = G.I, R = MOSBY_RIG, talk = MS === GM && typeof MosbyTalk !== 'undefined' && !!MosbyTalk.step;
-    NpcModels.play(I, talk ? 'talk' : moving ? 'walk' : 'idle'); if (I.act) I.act.timeScale = I.key === 'walk' ? R.walkTimeScale : 1;
-    const walking = I.key === 'walk' && I.act && moving, t0 = walking ? I.act.time : null; I.mixer.update(dt);
+  // one frame of him (t738u): the original Mosby walk on Art's bones (MOSBY_RIG.gait: the old stepAnim) - a lateral-sequence walk (BL, FL, BR, FR a quarter cycle
+  // apart), long stance; a planted foot stays put on the ground (its leg sweeps exactly what the body covers and telescopes so the sole keeps touching), a short
+  // high swing; the body shifts over the planted side, dips at each footfall and breathes; the head nods and looks about. Art's Talk clip plays on his body and
+  // head while his dialogue is open (he stands then). His head is held still while she is on it (MS.headHold, set by MosbyVeins). Each plant puffs dust under
+  // its sole and (the giant) stomps
+  const _m = new THREE.Matrix4(), _gi = new THREE.Matrix4(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _e = new THREE.Euler(), _X = new THREE.Vector3(1, 0, 0);
+  function anim(MS, dt, moving) { const G = MS.rig; if (!G) return; const I = G.I, R = MOSBY_RIG, A = R.gait, talk = MS === GM && typeof MosbyTalk !== 'undefined' && !!MosbyTalk.step && !moving, T = MS.t || 0;
+    if (talk) { NpcModels.play(I, 'talk'); I.mixer.update(dt); } else if (I.key) { I.mixer.stopAllAction(); I.key = null; I.act = null; G.body.position.copy(G.bodyPos0); G.body.quaternion.copy(G.bodyQ0); G.hd.b.position.copy(G.hd.p0); G.hd.b.quaternion.copy(G.hd.q0); }
+    MS.ph = ((MS.ph || 0) + (moving ? dt / B.cyc : 0)) % 1; const D = A.duty; let sway = 0, dip = 0;
+    for (const F of G.feet) { const p = (MS.ph + F.ph) % 1, sw = moving && p >= D, u = sw ? (p - D) / (1 - D) : p / D, Lg = F.Lg, H = Math.min(0.85 * Lg, (B.stride * D) / 2);
+      let rx, lift = 0; if (!moving) rx = F.rx * 0.9; else if (sw) { const e = sm(0, 1, u); rx = Math.atan((H - 2 * H * e) / Lg); lift = Math.pow(Math.sin(u * Math.PI), 0.8) * (F.front ? A.liftFront : A.liftBack); sway += (F.name.endsWith('.L') ? 1 : -1) * Math.sin(u * Math.PI); }
+      else { rx = Math.atan((-H + 2 * H * u) / Lg); if (u < 0.08) dip = Math.max(dip, 1 - u / 0.08); }
+      F.rx = rx; F.lift = lift;
+      const down = !sw; if (moving && down && !F.down) { F.plants = (F.plants || 0) + 1; MS.steps = (MS.steps || 0) + 1; F.dustDue = true; if (MS === GM && typeof GameMusic !== 'undefined') { MS.stomps = (MS.stomps || 0) + 1; GameMusic.stomp(); } } /* (t362u) each foot's own stomp on the frame it plants */ F.down = down; }
+    const br = Math.sin(T * 0.85); MS.dip = (MS.dip || 0) + (dip - (MS.dip || 0)) * Math.min(1, dt * 6); MS.sway = moving ? sway : (MS.sway || 0) * 0.95;
+    if (!talk) { // the body: shifted over the planted side, a dip at each footfall, breathing; the head: a slow nod and look about (all in his frame)
+      const bp = G.bodyP0.clone().add(V3(-A.sway[0] * MS.sway, -A.dip[0] * MS.dip + A.breath * br, 0)); G.body.position.copy(bp.applyMatrix4(G.rootMi));
+      G.body.quaternion.copy(G.rootQi).multiply(_qa.setFromEuler(_e.set(moving ? A.dip[1] * MS.dip : 0, 0, moving ? A.sway[1] * MS.sway : 0))).multiply(G.QB0);
+      const H = A.head; G.hd.b.quaternion.copy(G.QB0i).multiply(_qa.setFromEuler(_e.set(H.nod * Math.sin(T * 0.3) - (moving ? H.walkDown : 0) + (moving ? H.dipNod * MS.dip : 0), H.look * Math.sin(T * 0.17), H.roll * Math.sin(T * 0.23), 'YXZ'))).multiply(G.head0); }
+    // the legs last, in his frame from their hips (their hips stay where they are while the body sways over them, so a planted sole does not slide): turned
+    // about his x by rx, telescoped by the lift
+    G.body.updateMatrix(); _m.multiplyMatrices(G.rootM, G.body.matrix).decompose(_p, _qb, _s); _gi.copy(_m).invert(); _qb.invert();
+    for (const F of G.feet) { F.b.position.copy(F.hp).applyMatrix4(_gi); F.b.quaternion.copy(_qb).multiply(_qa.setFromAxisAngle(_X, F.rx)).multiply(F.Q0);
+      F.b.scale.copy(F.s0); F.b.scale.setComponent(F.ax, F.s0.getComponent(F.ax) * clamp((F.Lg - F.lift) / (F.Lg * Math.cos(F.rx)), 1 - A.stretch, 1 + A.stretch)); }
     const hh = MS.headHold || 0; if (hh > 0) { G.hd.b.quaternion.slerp(G.hd.q0, hh); G.hd.b.position.lerp(G.hd.p0, hh); }
     MS.g.updateMatrixWorld(true); _gi.copy(MS.g.matrixWorld).invert(); for (const F of G.fol) { _m.multiplyMatrices(_gi, F.b.matrixWorld).multiply(F.r0i); _m.decompose(F.f.position, F.f.quaternion, F.f.scale); F.f.updateMatrixWorld(true); }
-    MS.walkT = walking ? I.act.time : null; if (!walking || t0 == null || !PL) return;
-    const a = t0 / PL.D, b = I.act.time / PL.D, now = MS.t; G.feet.forEach((F, i) => { const p = PL.ph[i], hit = a <= b ? a < p && p <= b : a < p || p <= b; if (!hit) return;
-      F.plants = (F.plants || 0) + 1; dust(MS, F.f.localToWorld(F.sole.clone())); MS.steps = (MS.steps || 0) + 1; if (MS === GM && typeof GameMusic !== 'undefined' && !(now - (MS.stompT == null ? -1e9 : MS.stompT) < R.stompMergeS)) { MS.stompT = now; MS.stomps = (MS.stomps || 0) + 1; GameMusic.stomp(); } }); }
+    for (const F of G.feet) if (F.dustDue) { F.dustDue = false; dust(MS, F.f.localToWorld(F.sole.clone())); } }
   // his frame (the group the GLB, the followers and the dust ride in)
   function frame(MS, name) { const g = new THREE.Group(); g.name = name; MS.dust = [];
     const dm = new THREE.SpriteMaterial({ map: C(64, 64, (g2) => { const gr = g2.createRadialGradient(32, 32, 2, 32, 32, 30); gr.addColorStop(0, 'rgba(200,180,140,0.7)'); gr.addColorStop(1, 'rgba(200,180,140,0)'); g2.fillStyle = gr; g2.fillRect(0, 0, 64, 64); }), transparent: true, depthWrite: false });
@@ -232,5 +249,5 @@ const Mosby = (() => {
     const cv = M3.renderer && M3.renderer.domElement, hb = e.parentElement.getBoundingClientRect(), cb = cv ? cv.getBoundingClientRect() : hb; e.style.display = ''; e.style.left = (cb.left - hb.left + p[0]) + 'px'; e.style.top = (cb.top - hb.top + p[1]) + 'px'; }
   function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__mos) return; const R0 = M3.render; M3.render = function () { try { tick(); } catch (e) { if (!MS.err) console.error(MS.err = e); } try { if (M3.st && M3.st.ok && typeof Explore !== 'undefined' && Explore.ledgeFront) { const now = performance.now(), dt = Math.min(0.1, GM.last ? (now - GM.last) / 1000 : 0.016); GM.last = now; gTick(dt); } pillSync(); } catch (e) { if (!GM.err) console.error(GM.err = e); } return R0.apply(this, arguments); }; M3.render.__mos = true; }
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 500); }
-  return { domeY, MS, B, newMS, rig, frame, get walkTop() { return WT; }, get plants() { return PL; }, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, release, meet, talkTap, GM, GLOOP, gLift, gProf, trailHit, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, G_SHOW, G_GONE, get giant() { return GM.g; }, tick, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
+  return { domeY, MS, B, newMS, rig, frame, get walkTop() { return WT; }, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, release, meet, talkTap, GM, GLOOP, gLift, gProf, trailHit, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, G_SHOW, G_GONE, get giant() { return GM.g; }, tick, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
 })();

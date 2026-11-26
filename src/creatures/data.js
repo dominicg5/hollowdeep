@@ -195,31 +195,37 @@ const MOSBY_RIG = {
   // feet: each leg bone's sole = its vertices within soleBandM of the leg's lowest point (centroid, bind pose); the foot collider sits on it, footR x the
   // sole's measured radius (~10.5-11.7 m) ; the head collider is the 'head' bone's vertices' centre, headR m
   soleBandM: 1.0, footRK: 0.85, headR: 12.0,
-  // footfalls: from Art's Walk, sampled once (plantN steps): a foot plants on the first step after its highest lift where the sole is back within plantK of its
-  // swing height above its lowest (measured: the right pair at 0.20 of the clip, the left pair at 0.69). Feet planting within stompMergeS share one stomp sound
-  // (Art's Walk plants front + back of a side together); each still puffs its own dust.
-  plantN: 120, plantK: 0.15, stompMergeS: 0.15,
-  // the pace: unchanged (B.stride / B.cyc body units / s: 5.4 m/s giant, 0.54 m/s small) - his loop timing, meet and the house trips keep their clocks. Art's
-  // Walk keeps its own timing (walkTimeScale 1: one clip, two footfalls, every 2.03 s; the old gait was 4 footfalls per 3.6 s). Art's Walk is an in-place sway
-  // (its planted feet do not sweep back), so no pace is slip-free: say if it should be slower / the clip faster.
-  walkTimeScale: 1,
+  // (t738u) his walk is the original one (the old stepAnim, body units) on Art's bones: a lateral-sequence walk (BL, FL, BR, FR a quarter cycle apart: ph = the
+  // leg's offset, a larger one lifts earlier), on the ground duty of each cycle (Mosby.B.cyc s, stride B.stride); the swing lifts a front / back sole liftFront /
+  // liftBack; a leg telescopes along itself at most stretch so a planted sole stays on the ground; the body shifts sway[0] over the planted side and rolls sway[1],
+  // dips dip[0] / pitches dip[1] at each footfall, breathes breath; the head nods / looks / rolls (radians)
+  gait: { duty: 0.72, ph: { 'lb.L': 0, 'lf.L': 0.75, 'lb.R': 0.5, 'lf.R': 0.25 }, liftFront: 0.5, liftBack: 0.36, stretch: 0.2, sway: [0.09, 0.03], dip: [0.06, 0.012], breath: 0.012,
+    head: { nod: 0.035, walkDown: 0.04, dipNod: 0.05, look: 0.1, roll: 0.035 } },
+  // the pace: unchanged (B.stride / B.cyc body units / s: 5.4 m/s giant, 0.54 m/s small) - his loop timing, meet and the house trips keep their clocks
   // the small tortoise (her house on his back): the house sits on his summit (houseW body units wide), his colliders [dz, r] body units along his length
   houseW: 3.25, houseLift: -0.1, smallCols: [[3.7, 1.1], [0.6, 3.3], [-2.4, 3.2]],
 };
 
-// (t736u) Theus, rebuilt on Art's GLB (src/volcanic_forge.js): the 27 s forge loop (where he stands and faces, FORGE.pose) places Art's model; his clips
-// play per loop phase (Art has no dip / lift / lay clips: each maps to the nearest one he has); Strike starts strikeHitS before each of the 7 hits so its
-// blow lands on the hit (the hammer sound, sparks and bar strike stay on the hit times). Art's mesh has no hammer or tongs: the old ones (same sizes,
-// FORGE.L.handle / head / tongs / grip, design metres) are props held in his hands - the hammer at the end of his right upper arm (armU.R), the tongs at
-// the end of his right lower arm (armL.R) - each hand = the arm bone's vertices within handBandM of its lowest point (bind pose)
+// (t736u / t738u) Theus is Art's GLB moved by the original forge loop: the old rig's bones are posed exactly as before (no mesh) and Art's bones follow them
+// (THEUS_RIG.retarget); the old hammer and tongs (same sizes, FORGE.L.handle / head / tongs / grip, design metres) are held closed in his fists at the ends of his arms
 const THEUS_RIG = {
-  phaseClip: { dip: 'idle', lift: 'idle', turn: 'walk', lay: 'idle', strike: 'idle', return: 'walk' }, // between strikes: Idle; Talk while his dialogue is open and he is not walking / striking
-  strikeHitS: 0.6, // the Strike clip's blow lands 0.600 s in (frame 18 @ 30 fps)
-  hammer: { bone: 'armU.R' }, tongs: { bone: 'armL.R' }, handBandM: 4.0,
-  // [loop s, design m over the forge ground HB]: where the tongs' jaws hold the bar (the old loop's tongs-hand heights): the tongs are pitched in his fist to
-  // reach it (Art's Idle / Walk keep his lower hands ~20 m up): dipped into the lava through the lip's notch (0-4 s; the bar held level, under the lava's top at 28), lifted and carried high (clear of the cone and
-  // the platform), set down on the platform (10-12 s), lifted off and carried back (23-27 s)
-  jawY: [[0, 40], [1.6, 25], [4, 25], [5.1, 43], [6, 43], [9.3, 43], [10, 43], [11.8, 30], [23, 30], [23.6, 43], [24.3, 40], [27, 40]],
+  // (t738u) his motion is the original forge loop's (src/volcanic_forge.js setPose on the old rig's bones), retargeted onto Art's skeleton. Per Art bone: turn = the
+  // old bone whose turn (from its bind) it takes (move: and its shift, bindAt = that bone's bind spot, design m); aim = the old hand / foot it points at (rel: from
+  // his own shoulder along the old arm from this old shoulder bone; without rel: straight at the old foot, so a planted foot stays planted)
+  retarget: {
+    body: { turn: 1, move: true, bindAt: [0, 36, 0] }, // the old chest (its lean, dip and twist) and the hips' drop / shift
+    head: { turn: 2 },                                 // his gaze: down the bar to the blow, up over the carry
+    'armU.R': { aim: 'hammer' },                       // the hammer arm, straight at the old fist on the hammer's grip: wind-up, drive, impact, rebound
+    'armU.L': { aim: 'palmL' },                        // braced on his knee at the dip, swinging on the walks, planted on the platform's edge
+    'armL.L': { aim: 'reinL' }, 'armL.R': { aim: 'reinR' },                   // both lower fists straight at the old fists on the tongs' reins
+    'thigh.L': { aim: 'footL', stretch: 0.12 }, 'thigh.R': { aim: 'footR', stretch: 0.12 }, // the old foot placement (two steps per foot per walk); a leg lengthens up to 12% so a planted foot stays put
+  },
+  // the old rig's body plan (design m: FORGE.BP) fitted to Art's skeleton (his joints and fist / sole reach, x1.3 = his metres), so the old IK swings, reaches and
+  // steps with his proportions: shoulders (shA upper, shB lower: from the chest pivot at hip + chestUp), arm lengths (+ the old 4.3 fist / 1.8 rein offsets = his
+  // arm bones' reach), hips and legs (thigh + shin + ankle = his leg's reach); sho: the right shoulder's extra offset (none: his own shoulder)
+  bodyPlan: { hipW: 6.57, thigh: 16, shin: 14.4, ankle: 1.4, shA: [18.24, 19.8, 0], armA: [14.3, 12.8], shB: [16.41, 9.24, 0], armB: [12.6, 11.8], sho: 0 },
+  strikeAlong: 6, // (design m) where the blows fall along the laid bar from its jaws end (the old 17.5 is past his arm + hammer's reach)
+  hammer: { bone: 'armU.R' }, tongs: { bone: 'armL.R', bone2: 'armL.L' }, handBandM: 4.0, // his fists: the lowest handBandM (GLB m) of each arm bone's vertices (bind)
 };
 
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S

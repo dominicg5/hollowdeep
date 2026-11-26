@@ -256,19 +256,18 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const bb = await p.evaluate(() => { const r = document.getElementById('charCanvas').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: Math.min(r.height, 560) }; }); await p.screenshot({ path: `/workspace/probe/js/onyx_t${t}.png`, clip: bb }); }
     require('child_process').execSync(`ffmpeg -y -loglevel error -i /workspace/probe/js/onyx_t0.png -i /workspace/probe/js/onyx_t5.png -i /workspace/probe/js/onyx_t10.png -filter_complex "[0][1][2]hstack=inputs=3" ${OUT}ember_onyx_tiers_hand.png`);
   }
-  // (Dominic t580u / t736u) Art's i23d Theus IS the smith now: x10 (98 m), no baked ape left; the hammer + tongs props ride on Art's arm-end bands (THEUS_RIG), clips mapped to the loop
+  // (Dominic t580u / t736u / t738u) Art's i23d Theus IS the smith now: x10 (98 m), the old body gone; the original forge motions (the old pose, on an unseen copy of
+  // the old skeleton) drive Art's bones, and the hammer + tongs sit in his closed fists (the ends of his arm bones) at the old tools' angles - a firm grip all loop
   await p.waitForFunction(() => { const q = typeof NpcModels !== 'undefined' && NpcModels.state('theus'); return q && (q.ready || q.err); }, null, { timeout: 90000 }).catch(() => {});
   const TG = await p.evaluate(async () => { const F = FORGE, M = F.M, R = NPC_MODELS.theus, q = NpcModels.state('theus'), o = { st: q && { ready: q.ready, err: q.err } }, fr = (n) => new Promise((r) => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); });
-    if (!M.glb) return o; const I = M.glb, bb = new THREE.Box3().setFromObject(I.model), run = () => I.running.join(); Theus.closeUp && Theus.closeUp(); Theus.close();
-    o.size = { H: +((bb.max.y - bb.min.y) / F.WS).toFixed(1), want: R.nativeH * R.scaleM, inGrp: I.root.parent === M.ape && M.ape.parent === M.grp, old: ['shells', 'TG', 'B', 'toolTris', 'apeTris'].filter((k) => M[k] != null).join(), props: !!(M.hand && M.hammer.visible && M.tongs.visible && M.hand.hammer.bone.name === THEUS_RIG.hammer.bone && M.hand.tongs.bone.name === THEUS_RIG.tongs.bone), clips: Object.keys(I.clips).sort().join() };
-    o.at = (() => { const d = I.root.position.length(), y = Math.abs(I.root.rotation.y); return { d: +d.toFixed(3), y: +y.toFixed(3) }; })(); /* (he rides in the loop's group) */
-    const H = F.hitTimes(), at = async (T) => { M.tOv = T; await fr(3); return run(); };
-    o.clips = { dip: await at(2), walk: await at(8), back: await at(25), strike: await at(H[0] - R.strikeHitS + 0.05) }; const n0 = M.glbStrikes || 0; await at(H[1] - R.strikeHitS + 0.05); o.clips.next = (M.glbStrikes || 0) - n0;
-    M.tOv = 2; Theus.open(); await fr(6); o.clips.talk = run(); Theus.close(); await fr(6); o.clips.after = run(); M.tOv = null; return o; });
-  ok(TG.st && TG.st.ready && !TG.st.err && !!TG.size && TG.size.inGrp && Math.abs(TG.size.H - TG.size.want) < 1.5 && TG.size.old === '' && TG.size.props && TG.size.clips === 'Idle,Strike,Talk,Walk' && TG.at.d < 1e-3 && TG.at.y < 1e-3,
-    `t580u: Art's i23d Theus is drawn in place of the baked ape - ${TG.size && TG.size.H} m tall (x10 of the GLB), driven by the forge loop; no baked ape / shells / IK left; hammer + tongs in his hands ` + JSON.stringify(TG));
-  ok(TG.clips && TG.clips.dip === 'Idle' && TG.clips.walk === 'Walk' && TG.clips.back === 'Walk' && TG.clips.strike === 'Strike' && TG.clips.next === 1 && TG.clips.talk === 'Talk' && TG.clips.after === 'Idle',
-    't580u: Theus clips follow the forge loop - Walk while he walks, Strike once per hit (started 0.600 s before it so the blow lands on the hit), Talk while he talks, else Idle ' + JSON.stringify(TG.clips));
+    if (!M.glb) return o; const I = M.glb, bb = new THREE.Box3().setFromObject(I.model); Theus.closeUp && Theus.closeUp(); Theus.close();
+    o.size = { H: +((bb.max.y - bb.min.y) / F.WS).toFixed(1), want: R.nativeH * R.scaleM, inGrp: I.root.parent === M.ape && M.ape.parent === M.grp, old: ['shells', 'toolTris', 'apeTris'].filter((k) => M[k] != null).join(), ghostHidden: !!M.gh && !M.gh.visible, props: !!(M.hammer.visible && M.tongs.visible), grip: [M.gripG, M.gripMiss, M.reinG] };
+    const at = async (T) => { M.tOv = T; await fr(3); const h = F.fist(THEUS_RIG.hammer.bone).distanceTo(M.hammer.position.clone().add(new THREE.Vector3(0, 0, M.gripG * F.U).applyQuaternion(M.hammer.quaternion))) / F.U, j = F.jawWorld().p; return { clip: M.clip, running: I.running.join(), hand: +h.toFixed(3), jaw: +((j.y - M.grp.position.y) / F.U).toFixed(1) }; };
+    const H = F.hitTimes(); o.ph = { dip: await at(2.5), walk: await at(8), strike: await at(H[0]), back: await at(25) }; M.tOv = null; return o; });
+  ok(TG.st && TG.st.ready && !TG.st.err && !!TG.size && TG.size.inGrp && Math.abs(TG.size.H - TG.size.want) < 1.5 && TG.size.old === '' && TG.size.ghostHidden && TG.size.props && TG.size.grip[1] === 0,
+    `t580u: Art's i23d Theus is drawn in place of the old ape - ${TG.size && TG.size.H} m tall (x10 of the GLB); the old body gone, its motions kept; hammer + tongs in his fists ` + JSON.stringify(TG.size));
+  ok(TG.ph && Object.values(TG.ph).every((v) => v.clip === 'motion' && v.running === '' && v.hand < 0.05),
+    't738u: the original forge motions drive Art\'s Theus all loop (no clips), the hammer firm in his fist at every phase ' + JSON.stringify(TG.ph));
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   console.log(fails ? `${fails} FAILED` : 'ALL PASS'); await b.close(); process.exit(fails ? 1 : 0);
 })();
