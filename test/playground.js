@@ -58,9 +58,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(AW[0] === null && AW[1] === 8, 'turned away from it, a swing does not land');
   // tap the floor: she runs there (a screen point through the arena's own tap handler: camera ray -> the mushroom, else the floor)
   const tapAt = (x, z, y) => p.evaluate(([x, z, y]) => { const s = CharView.pgaScreen(x, z, y); return s ? CharView.pgaTap(s.x, s.y) : null; }, [x, z, y || 0]);
-  const W0 = await p.evaluate(() => [CharView.st.gnd.x, CharView.st.gnd.z]); const T1 = await tapAt(-2.5, -2); await p.waitForFunction(() => Math.hypot(CharView.st.gnd.x + 2.5, CharView.st.gnd.z + 2) < 0.3, null, { timeout: 20000 }).catch(() => {});
+  const W0 = await p.evaluate(() => [CharView.st.gnd.x, CharView.st.gnd.z]); const T1 = await tapAt(2.5, -2); /* (t539: a floor spot clear of the Tin Golem's roam area - run23 tapped -2.5, -2 while it stood there) */ await p.waitForFunction(() => Math.hypot(CharView.st.gnd.x - 2.5, CharView.st.gnd.z + 2) < 0.3, null, { timeout: 20000 }).catch(() => {});
   const W1 = await p.evaluate(() => ({ x: CharView.st.gnd.x, z: CharView.st.gnd.z, eng: CharView.pga.eng }));
-  ok(T1 === 'ground' && Math.hypot(W1.x + 2.5, W1.z + 2) < 0.3 && Math.hypot(W1.x - W0[0], W1.z - W0[1]) > 2 && !W1.eng, `tap the floor: she runs there (${W0.map((v) => v.toFixed(2))} -> ${W1.x.toFixed(2)}, ${W1.z.toFixed(2)})`);
+  ok(T1 === 'ground' && Math.hypot(W1.x - 2.5, W1.z + 2) < 0.3 && Math.hypot(W1.x - W0[0], W1.z - W0[1]) > 2 && !W1.eng, `tap the floor: she runs there (${W0.map((v) => v.toFixed(2))} -> ${W1.x.toFixed(2)}, ${W1.z.toFixed(2)})`);
   // GD-25 (t686u): running sheathed her swords and stopping does NOT bring them back (game-clock wait, not wall time)
   const SH0 = await p.evaluate(() => ({ sh: CharView.sw.sh, run: CharView.sw.run, clk: CharView.pga.clk })); await p.waitForFunction((c) => CharView.pga.clk > c + 1.5 && !CharView.sw.run, SH0.clk, { timeout: 60000 }).catch(() => {});
   const SH1 = await p.evaluate(() => ({ sh: CharView.sw.sh, run: CharView.sw.run, eff: CharView.sw.eff, saved: S.swSh, rule: CharView.sw.pose.RUN_SHEATHES }));

@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='ff745927';
+<script>window.HD_BUILD='7d329864';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build ff745927</div>
-<script src="assets/vendor/three.min.js?v=ff745927"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7d329864</div>
+<script src="assets/vendor/three.min.js?v=7d329864"></script>
 <script>
 'use strict';
 
@@ -12843,7 +12843,8 @@ const CharView = (() => {
   function pgaKO() { const G = st.gnd, A = ashD(); PGA.ko = A.DISSOLVE_S + A.HOLD_S; PGA.kos++; PGA.eng = false; PGA.aggro = 0; PGA.hunt = false; PGA.bite = 0; for (const sl of pgaSync()) { sl.hunt = false; sl.aggro = 0; sl.bite = 0; } /* (GD-30: every creature calms down) */ if (G) { G.goal = null; G.path = null; G.mv = 0; } if (SWG.at) { SWG.at = null; SWG.q = 0; } ashStart(); pgaNum('Turned to ash', 'info', true); }
   // tap in the arena: the mushroom -> run up to it and fight; the floor -> run there
   function pgaTap(cx, cy) { if (!PGA.on || !PGA.arena || !st.gnd || !st.gnd.arena || PGA.ko > 0 || !cam) return null; const r = canvas.getBoundingClientRect(); _ray.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), cam); const ray = _ray.ray, m = PGA.mob;
-    { let best = -1, bs = 1; pgaSync().forEach((sl, i) => { if (!sl.mob || sl.dead > 0) return; const C = Creatures.get(sl.id), c = sl.mob.root.getWorldPosition(V(0, 0, 0)); c.y += C.height * 0.5; const s = ray.distanceToPoint(c) / Math.max(0.45, C.height * 0.7, C.bodyR || 0); if (s < bs) { bs = s; best = i; } }); /* (GD-30: the creature whose centre is nearest the tap) */
+    { let best = -1, bs = 1; pgaSync().forEach((sl, i) => { if (!sl.mob || sl.dead > 0) return; const C = Creatures.get(sl.id), c0 = sl.mob.root.getWorldPosition(V(0, 0, 0)), c1 = c0.clone(); c1.y += C.height; const s = Math.sqrt(ray.distanceSqToSegment(c0, c1)) / Math.max(0.45, (C.bodyR || 0) * 1.2, Math.min(C.height * 0.7, 0.6)); if (s < bs) { bs = s; best = i; } });
+      /* (GD-30: the creature whose upright axis is nearest the tap, within about its body radius - t539 run23: the 2.6 m golem's old size-scaled pick (1.8 m off its centre) took a floor tap a metre past it) */
       if (best >= 0) { if (best !== PGA.tgt) { PGA.cur = null; PGA.inR = false; if (SWG.at) SWG.at.lock = null; } PGA.tgt = best; pgaUse(best); PGA.eng = true; swDrawFight(); if (!(SWG.R || SWG.L)) pgaNum('No sword', 'info', true); pgaHud(); return 'mob'; } }
     if (ray.direction.y > -1e-4) return null; const p = ray.origin.clone().addScaledVector(ray.direction, -ray.origin.y / ray.direction.y).applyAxisAngle(V(0, 1, 0), -st.yaw); return pgaWalk(p.x, p.z) ? 'ground' : null; }
   function pgaWalk(x, z) { const G = st.gnd; if (!G || !G.arena || PGA.ko > 0) return false; PGA.eng = false; SWG.q = 0; /* (GD-19: walking off ends HER attacks - none queued; the run sheathes a swing in progress. The mushroom keeps on until she is past its leash) */ const RM = PGA.R - 0.3, L = Math.hypot(x, z); if (L > RM) { x *= RM / L; z *= RM / L; } navTo(G, x, z, null); const M = PGA.mark; if (M) { M.position.x = G.goal ? G.goal.x : x; M.position.z = G.goal ? G.goal.z : z; M.visible = true; M.userData.t = 0; } return true; }
