@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='bec91917';
+<script>window.HD_BUILD='9e015de3';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build bec91917</div>
-<script src="assets/vendor/three.min.js?v=bec91917"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 9e015de3</div>
+<script src="assets/vendor/three.min.js?v=9e015de3"></script>
 <script>
 'use strict';
 
@@ -13822,7 +13822,7 @@ const CharView = (() => {
     const n = (PGA.mobs || []).length; for (let i = 0; i < n; i++) { pgaUse(i); pgaMobTick(dt); } pgaUse(PGA.tgt); pgaBars(dt); if (typeof CoinDrops !== 'undefined' && G && G.arena) { const got = CoinDrops.tick('pga', dt, G.x, G.z); if (got) pgaNum('+' + got + ' gold', 'info', true); } } /* (GD-30: every creature in the arena lives; then back to her target) */
   function pgaMobTick(dt) { const m = PGA.mob, C = pgaC(); if (!m) return; m.mixer.update(dt); if (PGA.blobMob) { PGA.blobMob.position.x = m.root.position.x; PGA.blobMob.position.z = m.root.position.z; PGA.blobMob.visible = PGA.dead <= 0; }
     if (PGA.dead > 0) { PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0; m.root.visible = !(u >= 1.2); } /* (t575s2576: the longer hidden wait - once sunk it is gone until the respawn, not a stump on the floor) */ /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
-      if (PGA.dead <= 0) { PGA.dead = 0; PGA.sink = 0; m.root.position.y = 0; m.root.visible = true; PGA.hp = C.hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(C.clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
+      if (PGA.dead <= 0) { PGA.dead = 0; PGA.sink = 0; m.root.position.y = 0; m.root.visible = true; PGA.hp = C.hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(C.clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } } /* (t575s2576: no countdown, so nothing to refresh each second while it waits) */
     else { if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); pgaMob(dt); } }
   function pgaAttack() { if (!rig || !(SWG.R || SWG.L)) return false; pgaOpen(); if (PGA.ko > 0) return false; return swAttack(); }
   function swAttack() { if (!rig || !(SWG.R || SWG.L)) return false; if (SWG.sh) { SWG.sh = false; swSaveSh(); swHolster(); pvDraw(); } /* (sheathed: Attack draws first) */ if (SWG.at) SWG.q = 1; else SWG.at = swStart(); return true; }
