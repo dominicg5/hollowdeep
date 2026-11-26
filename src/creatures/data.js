@@ -60,11 +60,11 @@ const TIN_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.45,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_* stripped, 0.92 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (tin_golem_i23d.glb)
+  model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (tin_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
   crystalGain: [1.9, 2.3, 2.7], // (t539, Art: Tin's crystals too dark) linear lift on its crystal paint: median #594b40 -> #787068, Art's lineup value
-  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup) - on only when the GLB carries the mask (t539 files do not)
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (t542: Art's _HD_GLOW 0..1 per vertex x its hd_glow colour x 1.6, bound without the atlas; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -87,10 +87,10 @@ const COPPER_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.45,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_* stripped, 0.92 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (copper_golem_i23d.glb)
+  model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (copper_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
-  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup) - on only when the GLB carries the mask (t539 files do not)
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (t542: Art's _HD_GLOW 0..1 per vertex x its hd_glow colour x 1.6, bound without the atlas; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -113,10 +113,10 @@ const COAL_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.4,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_* stripped, 0.92 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (coal_golem_i23d.glb)
+  model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (coal_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
-  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup) - on only when the GLB carries the mask (t539 files do not)
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (t542: Art's _HD_GLOW 0..1 per vertex x its hd_glow colour x 1.6, bound without the atlas; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };

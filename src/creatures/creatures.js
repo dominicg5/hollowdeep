@@ -18,18 +18,23 @@ const Creatures = (() => {
       while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) S.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) S.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
       if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
   // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
-  const DT = {}; function dummyTex(r, g, b) { const k = r + ',' + g + ',' + b; if (DT[k]) return DT[k]; const t = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1); t.needsUpdate = true; return (DT[k] = t); }
-  function hdMat(D, gm, A) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm), glow = !!(D.crackGlow && A && A._HD_GLOW != null);
+  function hdMat(D, gm, A, gc) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm), glow = hasGlow(D, A, gc);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
-      : T.makeChalkMaterial(Object.assign({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 }, glow ? { atlasColor: dummyTex(255, 255, 255), atlasNormal: dummyTex(128, 128, 255), atlasBlend: 0, normalAmt: 0, glowColor: ud.hd_glow } : {}));
-    /* (t705u) crackGlow: Art's per-ore crack glow (the _HD_GLOW vertex mask x the material's hd_glow colour) needs his shader's atlas path on; the stone atlas itself is not
-       shipped, so a 1x1 stand-in with atlasBlend 0 / normalAmt 0 leaves the painted stone exactly as is and only turns the glow on. Only when the GLB carries the _HD_GLOW mask
-       (Art's t539 game-fix files strip the _HD_* attributes, so it stays off - no atlas shader cost - until a mask comes back) */
+      : T.makeChalkMaterial(Object.assign({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 }));
+    /* (t705u / t542) crackGlow: Art's per-ore glow on the crystals, crack veins and eyes = the golem's hd_glow colour (its Stone material extras) x the _HD_GLOW vertex
+       value (0..1) x 1.6, added to the emissive. Art's shader only does this with his stone atlas on (not shipped), so it is bound here on its own (glowBind); Coal's colour is black = none */
+    if (glow) glowBind(m, gc, D.glowGain ?? 1.6);
     const bc = (gm.pbrMetallicRoughness && gm.pbrMetallicRoughness.baseColorFactor) || [1, 1, 1]; m.color.setRGB(bc[0], bc[1], bc[2]); /* (glTF: vertex paint x baseColorFactor; Art's t539 files use 1) */
     if (lum && D.crystalGain) m.color.multiply(new THREE.Color().setRGB(...D.crystalGain)); /* (t539: Art's per-variant crystal lift, from the data row) */
     m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut) srgbOut(m); return m; }
   // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
   // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
+  function hasGlow(D, A, gc) { return !!(D.crackGlow && A && A._HD_GLOW != null && gc && Math.max(gc[0], gc[1], gc[2]) > 0); }
+  function glowBind(m, gc, k) { const prev = m.onBeforeCompile, key = m.customProgramCacheKey, U = { uHdGlowC: { value: new THREE.Vector3(gc[0], gc[1], gc[2]) }, uHdGlowK: { value: k } };
+    m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); Object.assign(sh.uniforms, U);
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float hdGlow; varying float vHdGlow;').replace('#include <begin_vertex>', '#include <begin_vertex>\n  vHdGlow = hdGlow;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vHdGlow; uniform vec3 uHdGlowC; uniform float uHdGlowK;').replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += uHdGlowC * vHdGlow * uHdGlowK;'); };
+    m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|hdGlow'; m.userData.hdGlow = U; return m; }
   function srgbOut(m) { const prev = m.onBeforeCompile, key = m.customProgramCacheKey; m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <encodings_fragment>', '#include <encodings_fragment>\n  gl_FragColor = LinearTosRGB(gl_FragColor);'); };
     m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|srgbOut'; m.userData.srgbOut = true; return m; }
   function mat(D, name) { const L = (D.look || []).find((r) => r.test.test(name)) || { part: 'body', color: 0xcccccc }, m = new THREE.MeshLambertMaterial({ color: L.color });
@@ -40,10 +45,10 @@ const Creatures = (() => {
     g.nodes.forEach((n, i) => (n.children || []).forEach((c) => nodes[i].add(nodes[c])));
     const model = new THREE.Group(); model.name = D.id + 'Model'; for (const i of g.scenes[g.scene || 0].nodes) model.add(nodes[i]); model.updateMatrixWorld(true);
     let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
-    const mats = [];
+    const mats = [], gc = ((g.materials || []).find((q) => q.extras && q.extras.hd_glow) || { extras: {} }).extras.hd_glow; /* (t542: the golem's glow colour, on its Stone material) */
     g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
-        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (D.crackGlow && A._HD_GLOW != null && !/Lumenite/.test(g.materials[p.material].name || '')) { put('_HD_TEX', 'hdTex'); put('_HD_GLOW', 'hdGlow'); } } /* (the golems' painted swatches; their _HD_* atlas attributes are not uploaded) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
-        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
+        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (hasGlow(D, A, gc)) put('_HD_GLOW', 'hdGlow'); } /* (the golems' painted swatches + Art's _HD_GLOW per-vertex glow, t542) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
+        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A, gc) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
     // (GD-12: the invisible mushroom) glTF skinning ignores the skinned mesh node's own transform - the joints' world matrices x inverse bind matrices already place
     // every vertex. FBX2glTF puts the 100x / -90 deg X export transform on BOTH the armature and the mesh node, so binding with the mesh's matrixWorld applied it twice:
     // a ~60 m mesh around the camera (only shards of it on screen). Identity bind matrix; 'attached' mode cancels the mesh node transform (bindMatrixInverse = its inverse).
