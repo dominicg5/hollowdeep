@@ -54,7 +54,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     ok(HT && HT.trail > HT.fill && b2 && Math.abs(b2.trail - b2.fill) < 1e-3 && b2.hp === HT.hp, `t720u: hit for 2, her bar drops at once with the parchment trail behind it (${HT && HT.trail} > ${HT && HT.fill}), then the trail catches up (${b2 && b2.trail})`); }
   // keep hitting (the combat engine's own roll) until it drops; then it respawns
   const K = await p.evaluate(() => { let n = 0, r = null; const hits = []; while (CharView.pga.hp > 0 && n < 400) { r = CharView.pgaHit(); n++; if (r) hits.push(r.dmg); } const g = CharView.pga, h = g.status;
-    let death = false; g.mob && CharView.pga.mob; return { n, hp: g.hp, dead: g.dead, kills: g.kills, st: h.state, hud: h.back, after: CharView.pgaHit(), xp: (S.combat && S.combat.xp) || 0, sum: hits.reduce((a, x) => a + x, 0) }; });
+    let death = false; g.mob && CharView.pga.mob; return { n, hp: g.hp, dead: g.dead, kills: g.kills, st: h.state, noBack: !('back' in h), dom: /respawn\w*\s+in\s+\d|back in \d+\s*s/i.test(document.body.innerText), rs: RESPAWN_S.lumen_mushroom, rsRow: LUMEN_MUSHROOM.respawnS, RS: Object.assign({}, RESPAWN_S), after: CharView.pgaHit(), xp: (S.combat && S.combat.xp) || 0, sum: hits.reduce((a, x) => a + x, 0) }; });
   const CN = await p.evaluate(() => { const L = CoinDrops.state('pga').log, e = L[L.length - 1]; return { e, got: Craft.get('bag', COIN_DROPS.ITEM) - window.__c0, lv: LUMEN_MUSHROOM.level, clk: CharView.pga.clk, ico: itemIco(COIN_DROPS.ITEM, 1), ico2: itemIco(COIN_DROPS.ITEM, 150) }; });
   ok(CN.e && CN.e.bag && CN.e.n >= CN.lv && CN.e.n <= 3 * CN.lv && CN.got === CN.e.n && /gold_coin_128/.test(CN.ico) && /gold_coin_pile_128/.test(CN.ico2), `t566s2525: the kill drops ${CN.e && CN.e.n} gold coins (Lv ${CN.lv}: ${CN.lv}..${3 * CN.lv}) straight into the backpack (+${CN.got}); slot icon by count (1 coin / pile at 150)`);
   await p.waitForFunction((c) => CharView.pga.clk > c + 1, CN.clk, { timeout: 30000 }).catch(() => {});
@@ -62,7 +62,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => !HealthBars.state('pga').shown, null, { timeout: 60000 }).catch(() => {});
   const FD2 = await p.evaluate((c) => ({ dt: +(CharView.pga.clk - c).toFixed(2), s: HealthBars.state('pga'), A: HEALTH_BARS.FADE_AFTER_S, F: HEALTH_BARS.FADE_S }), CN.clk);
   ok(FD1.shown && !FD1.fight && FD2.dt >= FD2.A - 0.2 && FD2.dt <= FD2.A + FD2.F + 1 && !FD2.s.bars.some((q) => q.bar), `t722u: the fight is over at the kill; the bars stay, then are gone ${FD2.dt} s after it (rule ${FD2.A} s + ${FD2.F} s fade); the nameplates stay ${JSON.stringify(FD2.s.named)}`);
-  ok(K.hp === 0 && K.dead > 0 && K.kills === 1 && K.st === 'dead' && K.hud > 0 && K.after === null, `at 0 HP it dies (${K.n} more hits, ${K.sum} damage): Death plays, back in ${K.hud} s, no more hits land while it is down`);
+  ok(K.hp === 0 && K.dead > 0 && K.kills === 1 && K.st === 'dead' && K.after === null, `at 0 HP it dies (${K.n} more hits, ${K.sum} damage): Death plays, no more hits land while it is down`);
+  ok(K.rs === 20 && K.rsRow === 20 && K.dead > K.rs - 1 && K.dead <= K.rs && K.noBack && !K.dom && K.RS.tin_golem === 30 && K.RS.copper_golem === 45 && K.RS.coal_golem === 60, `t575s2576: hidden respawn timers (Mushroom ${K.rs} s, it has ${K.dead && K.dead.toFixed(1)} s left; table ${JSON.stringify(K.RS)}) - no countdown in its status or on screen`);
   // (combat SFX, Art's pack, Dominic 9:01 AM) Sfx fires on the swing (shout + swoosh) and on each landed hit; random variants, never one clip twice in a row
   const SX = await p.evaluate(() => { const L = Sfx.log.slice(), T = Sfx.TABLE, seq = {}; for (const e of L) { const k = e.cat.startsWith('hit') ? 'hit' : e.cat; (seq[k] = seq[k] || []).push(e.name); }
     const rep = (a) => a.some((x, i) => i && x === a[i - 1]); const pool = []; for (let i = 0; i < 300; i++) pool.push(Sfx.play('swoosh')); const hp = []; for (let i = 0; i < 300; i++) hp.push(Sfx.hit({ crit: i % 7 === 0 }));
@@ -72,6 +73,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(SX.shout >= 1 && SX.sw >= 1 && SX.cats.includes(SX.sexOk) && SX.hits === SX.landed && SX.hits >= 1, `combat SFX: the swing played a ${SX.sexOk} shout + swoosh (${SX.shout} shouts, ${SX.sw} swooshes) and every landed hit played a hit (${SX.hits} of ${SX.landed})`);
   ok(!SX.rep && !SX.rep2 && SX.uniq === 6 && SX.uniqH === 6 && SX.crit[0] === 'hit_06' && SX.crit[1] !== 'hit_06' && SX.ext === 'mp3', `combat SFX: random picks, no back-to-back repeats (all 6 swooshes, all 6 hits used; crit gets hit_06 and a 2nd crit in a row alternates: ${SX.crit}); MP3 only`);
   ok(K.xp - L0.xp0 === 32, `the kill awards Combat XP = 4 x its HP (${L0.xp0} -> ${K.xp})`);
+  await p.evaluate(() => CharView.pgaRespawnSoon(0.3)); /* (t575s2576: the 20 / 30 s hidden respawn waits skipped; the timer value itself is checked above) */
   await p.waitForFunction(() => CharView.pga.dead === 0 && CharView.pga.hp === CharView.pga.max, null, { timeout: 60000 }).catch(() => {});
   const R2 = await p.evaluate(() => ({ g: CharView.pga, st: CharView.pga.status.state, nums: window.__nums.slice(-3) }));
   ok(R2.g.hp === 8 && R2.g.dead === 0 && R2.st === 'alive' && R2.nums.includes('Respawned'), `it respawns at full HP (${R2.g.hp}) to test again`);
@@ -136,6 +138,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const KD = await p.waitForFunction((k) => CharView.pga.kills > k, k0, { timeout: 240000 }).then(() => true).catch(() => false);
   ok(KD && await p.evaluate(() => !CharView.pga.eng), 'GD-19: auto-attack continues until dead, then releases the lock ' + (KD ? '' : JSON.stringify({ tap: T3, before: KS0, after: await KS() })));
   // it bites back on a timer: GD-15's roll (parry, then acc / (her Defense + 100), else 0..str)
+  await p.evaluate(() => CharView.pgaRespawnSoon(0.3)); /* (t575s2576: the 20 / 30 s hidden respawn waits skipped; the timer value itself is checked above) */
   await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 30000 }).catch(() => {});
   await passive(); const PV2 = await passiveRes();
   ok(!PV2.hunt && PV2.bites === 0, 'GD-21: a fresh (respawned) Lumen Mushroom is passive - she can stand beside it and it never bites ' + JSON.stringify(PV2));
@@ -204,10 +207,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const GK = await p.evaluate(() => { const x0 = (S.combat && S.combat.xp) || 0; let n = 0; while (CharView.pga.hp > 0 && n < 600) { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; G.face = Math.atan2(m.x - G.x, m.z - G.z); CharView.pgaHit(); n++; }
     return { n, hp: CharView.pga.hp, dead: CharView.pga.dead, anim: CharView.pga.anim, xp: ((S.combat && S.combat.xp) || 0) - x0, clk: CharView.pga.clk }; });
   await p.waitForFunction((c) => CharView.pga.clk > c + 1.067 + 0.8 + 1.3, GK.clk, { timeout: 60000 }).catch(() => {});
-  const GD = await p.evaluate(() => ({ y: CharView.pga.mobs[1].y, dead: CharView.pga.dead }));
+  const GD = await p.evaluate(() => ({ y: CharView.pga.mobs[1].y, dead: CharView.pga.dead, rs: TIN_GOLEM.respawnS }));
+  await p.evaluate(() => CharView.pgaRespawnSoon(0.3)); /* (t575s2576: the 20 / 30 s hidden respawn waits skipped; the timer value itself is checked above) */
   await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 60000 }).catch(() => {});
   const GR = await p.evaluate(() => ({ hp: CharView.pga.hp, y: CharView.pga.mobs[1].y, mush: CharView.pga.mobs[0].ready }));
-  ok(GK.hp === 0 && GK.dead > 0 && GK.anim === 'death' && GK.xp === 80 && GD.dead > 0 && GD.y < -1 && GR.hp === 20 && GR.y === 0 && GR.mush, `GD-30: killed in ${GK.n} rolls: Death, +${GK.xp} Combat XP, it sinks away after landing (y ${GD.y && GD.y.toFixed(2)}) and respawns at full HP ${JSON.stringify(GR)}`);
+  ok(GK.hp === 0 && GK.dead > 0 && GK.anim === 'death' && GK.xp === 80 && GD.dead > 0 && GD.rs === 30 && GD.dead > GD.rs - 6 && GD.y < -1 && GR.hp === 20 && GR.y === 0 && GR.mush, `GD-30: killed in ${GK.n} rolls: Death, +${GK.xp} Combat XP, it sinks away after landing (y ${GD.y && GD.y.toFixed(2)}) and respawns at full HP ${JSON.stringify(GR)}`);
   // (t566s2525) a full backpack: the next kill's coins drop on the ground at the kill spot; with room again she walks over them and they go in the backpack
   const FB = await p.evaluate(() => { window.__bk = [JSON.stringify(S.backpack || {}), JSON.stringify(S.bagOrder || null)]; const I = COIN_DROPS.ITEM, have = Craft.get('bag', I); if (have) Craft.add('bag', I, -have);
     const ids = ['ore:copper', 'ore:tin', 'ore:iron', 'ore:coal', 'ore:gold', 'ore:mithril', 'ingot:bronze', 'ingot:iron', 'ingot:steel', 'ingot:gold', 'ingot:mithril', 'ingot:rune']; for (const id of ids) { let k = 0; while (Craft.room('bag', I) > 0 && Craft.fits('bag', id, 500) && k++ < 40) Craft.add('bag', id, 500); }
@@ -218,6 +222,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => !CoinDrops.state('pga').drops.length, null, { timeout: 30000 }).catch(() => {});
   const PU = await p.evaluate((n) => ({ left: CoinDrops.state('pga').drops.length, got: Craft.get('bag', COIN_DROPS.ITEM) - window.__cb, n }), FB.e ? FB.e.n : -1);
   ok(PU.left === 0 && PU.got === PU.n, `t566s2525: with room again she walks over the coins and they go in the backpack (+${PU.got} of ${PU.n})`);
+  await p.evaluate(() => CharView.pgaRespawnSoon(0.3)); /* (t575s2576: the 20 / 30 s hidden respawn waits skipped; the timer value itself is checked above) */
   await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 60000 }).catch(() => {});
   await p.evaluate(() => setTab('city')); await p.waitForFunction(() => !CharView.pga.on);
   const C = await p.evaluate(() => ({ on: CharView.pga.on, hud: !!document.getElementById('pgaHud') || !!document.querySelector('.hbLayer[data-scope="pga"]'), mob: !!CharView.pga.mob, arena: !!CharView.pga.arena }));

@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='aa2872b9';
+<script>window.HD_BUILD='69432747';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build aa2872b9</div>
-<script src="assets/vendor/three.min.js?v=aa2872b9"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 69432747</div>
+<script src="assets/vendor/three.min.js?v=69432747"></script>
 <script>
 'use strict';
 
@@ -1651,9 +1651,9 @@ function save() { S.lastReal = Date.now(); try { localStorage.setItem(CONFIG.sav
 function clearRaids(s) { if (CONFIG.raidsEnabled) return s; s.pendingReveal = null; s.lastRaid = null; s.nextRaidAt = 1e15; s.shieldUntil = 0;
   if (s.hero && s.hero.task && s.hero.task.type === 'raid') s.hero.task = null; return s; }
 function load() {
-  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); if (s.home && (s.home.tv || 0) < 2) { s.home.ports = {}; s.home.tv = 2; } /* migration: clear the old test Ledge Tethers on the door (only real, routed tethers stay) */ const out = clearRaids(Object.assign(d, s)); if (typeof Skills !== 'undefined') Skills.migrate(out); else if (!out.skills) out.skills = { mining: 0, smithing: 0 }; if (typeof Combat !== 'undefined') Combat.migrate(out); /* (combat design: Combat level XP + skill tree points; old saves start at Lv 1, no points spent) */ return out; } catch (e) { return null; }
+  try { const raw = localStorage.getItem(CONFIG.saveKey); if (!raw) return null; const s = JSON.parse(raw); if (!s || s.v !== 1) return null; const d = newState(); s.buildings = Object.assign(d.buildings, s.buildings || {}); s.res = Object.assign(Object.fromEntries(RES.map((k) => [k, 0])), s.res || {}); if (s.home && (s.home.tv || 0) < 2) { s.home.ports = {}; s.home.tv = 2; } /* migration: clear the old test Ledge Tethers on the door (only real, routed tethers stay) */ const out = clearRaids(Object.assign(d, s)); if (typeof Skills !== 'undefined') Skills.migrate(out); else if (!out.skills) out.skills = { mining: 0, smithing: 0 }; if (typeof Combat !== 'undefined') Combat.migrate(out); /* (combat design: Combat level XP + skill tree points; old saves start at Lv 1, no points spent) */ if (typeof Gold !== 'undefined') Gold.migrate(out); /* (t575s2576: the old gold purse -> Gold coins in the backpack, nothing lost) */ return out; } catch (e) { return null; }
 }
-function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }
+function resetSave() { localStorage.removeItem(CONFIG.saveKey); S = newState(); if (typeof Gold !== 'undefined') Gold.migrate(S); ensureRivals(); closeModal(); rerender(true); toast('Fresh start. Welcome to the Rim.'); }
 /* Mining and Smithing: one shared XP curve, no max level (Lv 300 is the practical ceiling).
    Numbers follow /workspace/mining_design/v7.py. Post-120 growth is LOCKED at 3% (Dominic, 2026-11-23: x1.5 tiers + 3% is "the perfect balance", about 3.5 years 120->300). */
 const Skills = (() => {
@@ -2286,8 +2286,8 @@ const Combat = (() => {
   function resetTree(s) { s = migrate(s); if (s) s.skill = {}; }
   // the player's Reset in the Skill Tree (t643u, Dominic): every point back. Free for now - RESET_COST is the one place its price (gold) goes later
   const RESET_COST = 0;
-  const canReset = (s) => { s = sv(s); return !!s && pointsSpent(s) > 0 && (RESET_COST <= 0 || (+s.gold || 0) >= RESET_COST); };
-  function resetPaid(s) { s = migrate(s); if (!s || !canReset(s)) return 0; const n = pointsSpent(s); if (RESET_COST > 0) s.gold = (+s.gold || 0) - RESET_COST; s.skill = {}; if (s === (typeof S !== 'undefined' ? S : null) && typeof save === 'function') save(); return n; }
+  const canReset = (s) => { s = sv(s); return !!s && pointsSpent(s) > 0 && (RESET_COST <= 0 || (typeof Gold !== 'undefined' && Gold.canAfford(RESET_COST, s))); }; // (t575s2576) paid in backpack Gold coins
+  function resetPaid(s) { s = migrate(s); if (!s || !canReset(s)) return 0; const n = pointsSpent(s); if (RESET_COST > 0 && !Gold.spendGold(RESET_COST, s)) return 0; s.skill = {}; if (s === (typeof S !== 'undefined' ? S : null) && typeof save === 'function') save(); return n; }
   // one node's full state for the tree UI
   function nodeState(id, s) { const n = NODE[id]; if (!n) return null; const r = ranks(id, s), why = whyNot(id, s); return { id, branch: n.branch, sub: n.sub, name: n.name, text: n.text, max: n.max, cost: n.cost, req: n.req, ranks: r, maxed: r >= n.max, reqMet: reqMet(id, s), canAdd: !why, why, canRemove: canRemove(id, s) }; }
   const treeState = (s) => ({ level: level(s), points: pointsTotal(s), spent: pointsSpent(s), left: pointsLeft(s), nodes: NODES.map((n) => nodeState(n.id, s)), subSpent: { might: subSpent('might', s), vitality: subSpent('vitality', s), spoils: subSpent('spoils', s) } });
@@ -2776,7 +2776,7 @@ function closeModalQuiet() { ui.modal = null; $('#modal').classList.add('hidden'
 
 function init() {
   const loaded = load();
-  S = loaded || newState();
+  S = loaded || newState(); if (typeof Gold !== 'undefined') Gold.migrate(S); /* (t575s2576) the old gold purse -> Gold coins in the backpack, once */
   ensureRivals();
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]'); if (t) return setTab(t.dataset.tab);
@@ -3108,9 +3108,10 @@ const Craft = (() => {
     try { for (let g = 0; n < c && g < 1e5; g++) { if (room('bag', r.out) >= c - n) { n = c; break; } if (!fits('bag', r.out, 1)) break; for (const k in r.in) add('bag', k, -r.in[k]); add('bag', r.out, 1); n++; } } finally { S.backpack = b0; S.bagOrder = o0; }
     return n; }
   function make(r, x, dest) { if (x <= 0 || !canMake(r, x)) return 0; if (smLocked(r)) { if (typeof toast === 'function') toast('Unlock Lv ' + recLv(r)); return 0; } /* (t624u: the Smithing lock holds on every crafting path, not just the screens) */ if (!fits(dest === 'vault' ? 'vault' : 'bag', r.out, x)) return fullMsg(dest === 'vault' ? '🔒 Vault full' : FULL), 0; /* (room checked before any ingredient is taken) */ for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
-  // (Dominic) gold is the only free-to-play currency: everything is bought and sold for gold coins (S.gold, Mosby's fare purse). Lumen Crystals are premium only
+  // (Dominic) gold is the only free-to-play currency: everything is bought and sold for gold coins - (t575s2576) the 'Gold coins' backpack item only (src/gold.js Gold:
+  // no purse). Lumen Crystals are premium only
   // (in-game purchase, 'Coming soon'); nothing in play gives them, and they buy looks only.
-  const gold = () => { if (S.gold == null) S.gold = 2500; return Math.floor(S.gold); }, lum = gold;
+  const gold = () => (typeof Gold !== 'undefined' ? Gold.getGold() : 0), lum = gold; // (t575s2576) the coins in the backpack
   const COIN = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
   if (typeof document !== 'undefined' && !document.getElementById('cxSkinCss')) { const e = document.createElement('style'); e.id = 'cxSkinCss'; e.textContent = '.cxsw{flex:none;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55),transparent 45%),var(--c);box-shadow:inset 0 0 0 2px rgba(60,35,15,.55);margin-right:6px}.cxskH{margin:10px 0 4px;font-size:15px}.cxsoon{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;margin:6px 0;border-radius:10px;background:rgba(120,170,255,.14);box-shadow:inset 0 0 0 1px rgba(90,130,220,.35)}.cxsoon b{flex:1 1 100%}.cxsoon small{flex:1;opacity:.8}.cxgd{display:inline-flex;align-items:center}'; document.head.appendChild(e); }
   // ---- UI
@@ -3364,7 +3365,7 @@ const Craft = (() => {
           + (on ? '<button class="btn sm ghost" disabled>Wearing</button>' : own ? `<button class="btn sm alt" data-cx="skwear" data-kind="${kind}" data-g="${g}">Wear</button>` : `<button class="btn sm ${crystals() >= p ? 'alt' : 'ghost'}" data-cx="skbuy" data-kind="${kind}" data-g="${g}" ${crystals() >= p ? '' : 'disabled'}>Buy 💠 ${p}</button>`) + '</div>'; }
       h += '</div>'; }
     return h; }
-  function buy(id, n = 1) { const p = SHOP[id]; if (!p || !(n > 0)) return 0; if (room('bag', id) <= 0) return fullMsg(), 0; /* (full backpack: blocked before any gold is taken) */ n = Math.min(n, Math.floor(gold() / p), room('bag', id)); if (n <= 0) return 0; S.gold = gold() - p * n; add('bag', id, n); return n; }
+  function buy(id, n = 1) { const p = SHOP[id]; if (!p || !(n > 0)) return 0; if (room('bag', id) <= 0) return fullMsg(), 0; /* (full backpack: blocked before any gold is taken) */ n = Math.min(n, Math.floor(gold() / p), room('bag', id)); if (n <= 0 || !Gold.spendGold(p * n)) return 0; if (add('bag', id, n) !== n) { Gold.addGold(p * n); return 0; } /* (paid from the backpack's coins; refunded if the item then does not fit) */ return n; }
   // bank notes trade at the Lumen Crystal (t591u): list a note at your own price (it is handed over and held, like the other player listings, until a buyer
   // comes or you cancel; cancelling gives the note back)
   const NX = () => S.noteEx || (S.noteEx = { mine: [], next: 1 });
@@ -3413,6 +3414,34 @@ const Craft = (() => {
   function swordTier(g) { return typeof S !== 'undefined' && S && S.tswords ? Math.max(0, Math.min(10, Math.floor(S.tswords[g] || 0))) : 0; }
   const swordOwned = (g) => have('tool:sword_' + g) > 0;
   return { itemStats, itemBlurb, recLv, recLocked, noteList, noteCancel, atVault, VBLOCK, tetherDraw, moleDraw, isNote, noteOf, noteDef, noteCount, carried, takeCarried, SWORD_STAT_PLAN, swordTier, swordOwned, SHOP, buy, TPICK, drop, equipGrade, syncWorn, pickNeed, pickLocked, pickTier, equippedPickTierN, BAG_N, VAULT_N, order, fits, equip, unequip, equipped, worn, spare, addAll, WINCH_BASE, BASE_GEAR, FULL, migrateWinch, migrateWorn, svgIco,  ITEMS, SMELT, SMITH, MILL, TIERS, STAND_ID, STAND_T, STAND_OLD, BIT_T, CLIMB_BASE, TLINK_BASE, SKIN_LOOKS, SKIN_BASE, SKIN_PRICE, SKIN_NAME, skins, skinOwned, skinBuy, skinWear, crystals, gold, COIN, migrateClimbGear, bag, get, add, addUpTo, room, perSlot, STACK, STACK_DRILL, STACK_MAX, migrateBagStacks, have, take, move, make, maxMake, canMake, open, BATCH_MS, BQ, JOB, batchStart, batchStop, bagHTML, st, sheet, sheetOn, ICON: svgIco, nm, migrateDrillSplit, migrateStandUnify };
+})();
+/* ---------- (Dominic, t575s2576 / Art's chat 2574: 'Gold coins should be separate as an inventory item and nothing in game should be outside that') gold = the
+   'Gold coins' backpack item (Craft ITEMS 'coin:gold', one slot, no stack limit) and nothing else: no purse / balance anywhere. Every price (the Lumen Crystal shop,
+   the Theus pickaxe exchange, the Exchange, Mosby's fare, the Skill Tree reset when it gets a price) reads and spends the coins in the backpack; anything that pays
+   gold pays coins into it (monster kills: COIN_DROPS). Public API (the only place gold is read or changed):
+     Gold.getGold()      -> whole coins in the backpack
+     Gold.canAfford(n)   -> getGold() >= n
+     Gold.spendGold(n)   -> true and n coins taken, or false and nothing taken
+     Gold.addGold(n)     -> coins credited (never lost: a full backpack with no coin slot still gets one, past its last slot, as an old over-full save keeps its stacks)
+     Gold.migrate(s)     -> once per save (GOLD_COINS.MIGRATE_V): the old S.gold purse -> coins in the backpack; S.gold removed ---------- */
+const GOLD_COINS = {
+  ITEM: 'coin:gold',   // the backpack item (src/craft.js ITEMS, t566s2525)
+  START: 2500,         // coins a save starts with: the old purse's seed (S.gold defaulted to 2500 the first time anything read it), so old and new players keep it
+  MIGRATE_V: 1,        // S.goldV once the purse has been moved into the backpack
+};
+const Gold = (() => {
+  const T = () => GOLD_COINS, st = (s) => s || (typeof S !== 'undefined' ? S : null);
+  const bagOf = (s) => (s.backpack && typeof s.backpack === 'object' ? s.backpack : (s.backpack = {}));
+  // the purse -> coins: its balance (or the old lazy 2500 seed when it was never read) into the coin stack; past a full backpack it takes a slot past the last one
+  function migrate(s) { s = st(s); if (!s || (s.goldV || 0) >= T().MIGRATE_V) return s; const n = s.gold == null ? T().START : Math.max(0, Math.floor(+s.gold || 0)); delete s.gold; s.goldV = T().MIGRATE_V;
+    if (n > 0) force(s, n); s.goldMigrated = n; return s; }
+  function force(s, n) { const b = bagOf(s), id = T().ITEM; b[id] = Math.min(Number.MAX_SAFE_INTEGER, Math.floor(b[id] || 0) + n); if (s === (typeof S !== 'undefined' ? S : null) && typeof Craft !== 'undefined' && Craft.order) Craft.order('bag'); return n; }
+  function getGold(s) { s = migrate(st(s)); if (!s) return 0; return Math.max(0, Math.floor((bagOf(s)[T().ITEM]) || 0)); }
+  const canAfford = (n, s) => getGold(s) >= Math.max(0, Math.ceil(+n || 0));
+  function spendGold(n, s) { s = migrate(st(s)); n = Math.ceil(+n || 0); if (!s || !(n >= 0) || getGold(s) < n) return false; if (!n) return true; const b = bagOf(s), id = T().ITEM; b[id] = getGold(s) - n; if (b[id] <= 0) delete b[id];
+    if (s === (typeof S !== 'undefined' ? S : null) && typeof Craft !== 'undefined' && Craft.order) Craft.order('bag'); return true; }
+  function addGold(n, s) { s = migrate(st(s)); n = Math.floor(+n || 0); if (!s || !(n > 0)) return 0; if (typeof Craft !== 'undefined' && Craft.add && s === S && Craft.add('bag', T().ITEM, n) === n) return n; return force(s, n); }
+  return { getGold, canAfford, spendGold, addGold, migrate, get ITEM() { return T().ITEM; } };
 })();
 /* ---------- The Skill Tree (Dominic, via Art): the lumenite tree in its own room behind the Ledge house, tapped to spend skill points.
    UI from Art's crystal mocks (/workspace/mia/ui/skill_tree_crystal: tree overview, Combat branch node map, node detail sheet; leather tray, parchment, Confirm, medallions)
@@ -10046,7 +10075,7 @@ const CityMap = (() => {
   }
   /* ---------- the Exchange: a free player market, resources for gold coins at player-set prices (simple order-book stub). (Dominic: gold is the only free-to-play currency) ---------- */
   const EX_RES = ['stone', 'timber', 'moss', 'iron', 'coal', 'steel', 'amber', 'obsidian'], EX_BASE = { stone: 4, timber: 4.5, moss: 6, iron: 9, coal: 8, steel: 22, amber: 30, obsidian: 35 }; // gold per unit
-  const GOLD = () => (typeof Craft !== 'undefined' && Craft.gold ? Craft.gold() : (S.gold == null ? (S.gold = 2500) : S.gold)), CI = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
+  const GOLD = () => Gold.getGold(), /* (t575s2576) the backpack's Gold coins */ CI = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
   function exState() { if (!S.exchange) S.exchange = { bought: {}, mine: [], nextId: 1 }; return S.exchange; } // (prices are gold; no conversion from old Lumen prices)
   function exListings() { const day = Math.floor(gTime() / (6 * HOUR)), rr = mulberry32(day * 977 + 5), out = [], ex = exState(), AI = W.homes.filter((h) => !h.isPlayer);
     for (let i = 0; i < 14; i++) { const k = EX_RES[Math.floor(rr() * EX_RES.length)], h = AI[Math.floor(rr() * AI.length)], qty = 10 * (1 + Math.floor(rr() * 12)), price = Math.max(1, Math.round(EX_BASE[k] * (0.7 + rr() * 0.8))), id = day + ':' + i;
@@ -10066,7 +10095,7 @@ const CityMap = (() => {
       ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function exAct(act, ds) { const ex = exState();
-    if (act === 'exbuy') { const o = exListings().find((x) => x.id === ds.id); if (!o) return; const cost = Math.ceil(o.qty * o.price); if (GOLD() < cost) return toast('Not enough gold.'); S.gold = GOLD() - cost; addRes(o.k, o.qty); ex.bought[o.id] = 1; toast(`⚖️ Bought ${o.qty} ${CONFIG.resources[o.k].name} from ${o.seller} for ${cost} gold`); }
+    if (act === 'exbuy') { const o = exListings().find((x) => x.id === ds.id); if (!o) return; const cost = Math.ceil(o.qty * o.price); if (!Gold.spendGold(cost)) return toast('Not enough gold.'); addRes(o.k, o.qty); ex.bought[o.id] = 1; toast(`⚖️ Bought ${o.qty} ${CONFIG.resources[o.k].name} from ${o.seller} for ${cost} gold`); }
     if (act === 'exsell') { const k = $('#exK').value, q = Math.floor(+$('#exQ').value), pr = Math.round(+$('#exP').value); if (!(q > 0) || !(pr > 0)) return toast('Set a quantity and a price.'); if ((S.res[k] || 0) < q) return toast('You do not have that much.'); if (k === 'iron' || k === 'coal' || k === 'steel') return toast('🔒 Sell vault stock from the vault'); S.res[k] -= q; ex.mine.push({ id: ex.nextId++, k, qty: q, price: pr }); toast(`⚖️ Listed ${q} ${CONFIG.resources[k].name} at ${pr} gold each`); }
     if (act === 'excancel') { const i = ex.mine.findIndex((m) => m.id === +ds.id); if (i >= 0) { const m = ex.mine[i]; ex.mine.splice(i, 1); addRes(m.k, m.qty); } }
     exchangeCard(); }
@@ -10174,6 +10203,10 @@ const CityMap = (() => {
    Combat XP per kill = 4 x creature HP (Art's rule); the Combat XP per-level curve is still a placeholder. (GD-12) It bites back:
    Combat.creatureAttack reads str + acc (GD-15 formula); the attack timing / reach / walk fields below drive the playground arena. ===== */
 
+// (Dominic, card t575s2576: 'I would like the countdown respawn not visible') seconds from a creature's death to its respawn - hidden timers: nothing on screen
+// counts them down (no countdown in the playground status / overhead bars / map); each row's respawnS reads this table
+const RESPAWN_S = { lumen_mushroom: 20, tin_golem: 30, copper_golem: 45, coal_golem: 60 };
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // LUMEN MUSHROOM - the Attack Playground's practice target (t653u). (GD-33, Dominic t553u: "that replaces the old Lumen Mushroom") Model: Art's own Mushnub
 // (creature_pipeline/production/mushnub_i23d, image-to-3D build3, gate 3 PASS), the game build mushnub_i23d_slim.glb shipped as assets/models/creatures/mushnub_i23d.glb
@@ -10188,7 +10221,7 @@ const LUMEN_MUSHROOM = {
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
   acc: 30,          // Accuracy - PLACEHOLDER (GD-15): its full-hit chance on her = acc / (her Defense + 100), capped at 60%; otherwise 0..str
   xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp, on the shared Skills curve (Skills.xpToReach, Lv 1-300).
-  respawnS: 3,      // seconds after it dies before a fresh one pops back up
+  respawnS: RESPAWN_S.lumen_mushroom, // seconds after it dies before a fresh one pops back up (hidden timer, RESPAWN_S)
   height: 0.8,      // metres tall in the playground
   atkS: 2,          // (GD-12) seconds between bites once it is fighting her
   atkHitAt: 0.333,  // seconds into Attack that the cap-butt lands (GD-33: Art's hit_timing.json, frame 10 @ 30 fps)
@@ -10219,7 +10252,7 @@ const TIN_GOLEM = {
   def: 5,            // placeholder, not approved
   acc: 35,           // placeholder, not approved
   xp: 80,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
-  respawnS: 6,
+  respawnS: RESPAWN_S.tin_golem, // (t575s2576) hidden respawn timer, RESPAWN_S
   height: 2.6,      // metres (Art's build: 2.6 m)
   bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
   atkS: 3,          // placeholder, not approved - seconds between slams once provoked
@@ -10248,7 +10281,7 @@ const COPPER_GOLEM = {
   def: 10,            // placeholder, not approved
   acc: 45,           // placeholder, not approved
   xp: 140,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
-  respawnS: 6,
+  respawnS: RESPAWN_S.copper_golem, // (t575s2576) hidden respawn timer, RESPAWN_S
   height: 2.6,      // metres (Art's build: 2.6 m)
   bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
   atkS: 3,          // placeholder, not approved - seconds between slams once provoked
@@ -10275,7 +10308,7 @@ const COAL_GOLEM = {
   def: 15,            // placeholder, not approved
   acc: 55,           // placeholder, not approved
   xp: 200,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
-  respawnS: 6,
+  respawnS: RESPAWN_S.coal_golem, // (t575s2576) hidden respawn timer, RESPAWN_S
   height: 2.6,      // metres (Art's build: 2.6 m)
   bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
   atkS: 3,          // placeholder, not approved - seconds between slams once provoked
@@ -11412,7 +11445,7 @@ const CoinDrops = (() => {
   function icon(n) { const T = D(); return (n || 1) >= T.PILE_AT ? T.ICON.pile : (n || 1) >= T.STACK_AT ? T.ICON.stack : T.ICON.one; }
   function sc(id) { return S[id] || (S[id] = { host: null, drops: [], log: [] }); }
   function host(id, h) { const s = sc(id); if (s.host && h && s.host.parent !== h.parent) for (const d of s.drops) if (d.obj && d.obj.parent) d.obj.parent.remove(d.obj); s.host = h; }
-  function give(n) { const T = D(); if (typeof Craft === 'undefined' || Craft.room('bag', T.ITEM) < n) return false; return Craft.add('bag', T.ITEM, n) >= n; }
+  function give(n) { const T = D(); if (typeof Craft === 'undefined' || Craft.room('bag', T.ITEM) < n) return false; return (typeof Gold !== 'undefined' ? Gold.addGold(n) : Craft.add('bag', T.ITEM, n)) >= n; } /* (t575s2576: through the one gold API) */
   function sprite(s, d) { const H = s.host; if (!H || !H.parent || typeof THREE === 'undefined') return; const T = D(), u = icon(d.n); let t = tex[u]; if (!t) { t = tex[u] = new THREE.TextureLoader().load(u); if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace; else t.encoding = THREE.sRGBEncoding; }
     const o = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })), k = T.SPRITE_M * (H.m || 1); o.scale.set(k, k, 1); o.position.set(d.x, (H.y ? H.y(d.x, d.z) : 0) + k * 0.5, d.z); o.name = 'coinDrop'; o.renderOrder = 5; H.parent.add(o); d.obj = o; }
   function drop(o) { if (o.obj) { if (o.obj.parent) o.obj.parent.remove(o.obj); o.obj.material.dispose(); o.obj = null; } }
@@ -13658,7 +13691,7 @@ const CharView = (() => {
   // fight's status (CharView.pga.status: target, HP, DEF, state, KO) for the view and tests; nothing is drawn here
   function pgaHud() { if (PGA.on && PGA.mobs && PGA.si !== PGA.tgt && PGA.mobs[PGA.tgt]) { const s0 = PGA.si; pgaUse(PGA.tgt); pgaHud(); pgaUse(s0); return; } /* (GD-30: the status always reads her target) */ if (PGA.hud) { PGA.hud.remove(); PGA.hud = null; }
     if (!PGA.on) { PGA.status = null; if (typeof HealthBars !== 'undefined') HealthBars.clear('pga'); return; } const C = pgaC(), F = pgaMe();
-    PGA.status = { name: C.name, hp: PGA.hp, max: C.hp, def: C.def, me: Math.round(F.hp), meMax: F.max, shield: Math.round(F.shield || 0), state: !PGA.mob ? (Creatures.error(PGA.id) ? 'error' : 'loading') : PGA.dead > 0 ? 'dead' : 'alive', ko: PGA.ko > 0, back: PGA.dead > 0 ? Math.ceil(PGA.dead) : 0 }; }
+    PGA.status = { name: C.name, hp: PGA.hp, max: C.hp, def: C.def, me: Math.round(F.hp), meMax: F.max, shield: Math.round(F.shield || 0), state: !PGA.mob ? (Creatures.error(PGA.id) ? 'error' : 'loading') : PGA.dead > 0 ? 'dead' : 'alive', ko: PGA.ko > 0 }; } /* (t575s2576: no respawn countdown anywhere - the timer stays hidden) */
   // her bar and every creature's in the fight (a creature hunting her, or her target once she has swung at it) - shown only while a fight is on
   function pgaBars(dt) { if (typeof HealthBars === 'undefined' || !PGA.on || !rig || !R || !cam) return; const w = wrap || document.getElementById('charWrap'), L = PGA.mobs || [], F = pgaMe(), G = st.gnd, items = [{ key: 'me', me: true, name: 'You', level: Combat.playerStats().level, dist: 0, hp: F.hp, max: F.max, shield: F.shield, root: rig.root, head: rig.B.head }];
     for (let i = 0; i < L.length; i++) { const o = i === PGA.si ? PGA : L[i], m = o.mob; if (!m) continue; if (m.hbHead === undefined) m.hbHead = HealthBars.headOf(m.root); const C = Creatures.get(o.id) || {};
@@ -13778,8 +13811,8 @@ const CharView = (() => {
     { const A = SWG.at; if (PGA.mob && A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; const r = pgaHit(A.lock && pgaCh().COMMIT_SWING ? pgaCh().KEEP_REACH_M : 0); if (A.lock) { A.lock.str = true; if (r) A.lock.roll++; } } } /* (one strike point per swing animation = one damage roll, on her target) */
     const n = (PGA.mobs || []).length; for (let i = 0; i < n; i++) { pgaUse(i); pgaMobTick(dt); } pgaUse(PGA.tgt); pgaBars(dt); if (typeof CoinDrops !== 'undefined' && G && G.arena) { const got = CoinDrops.tick('pga', dt, G.x, G.z); if (got) pgaNum('+' + got + ' gold', 'info', true); } } /* (GD-30: every creature in the arena lives; then back to her target) */
   function pgaMobTick(dt) { const m = PGA.mob, C = pgaC(); if (!m) return; m.mixer.update(dt); if (PGA.blobMob) { PGA.blobMob.position.x = m.root.position.x; PGA.blobMob.position.z = m.root.position.z; PGA.blobMob.visible = PGA.dead <= 0; }
-    if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0; } /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
-      if (PGA.dead <= 0) { PGA.dead = 0; PGA.sink = 0; m.root.position.y = 0; PGA.hp = C.hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(C.clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
+    if (PGA.dead > 0) { PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0; m.root.visible = !(u >= 1.2); } /* (t575s2576: the longer hidden wait - once sunk it is gone until the respawn, not a stump on the floor) */ /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
+      if (PGA.dead <= 0) { PGA.dead = 0; PGA.sink = 0; m.root.position.y = 0; m.root.visible = true; PGA.hp = C.hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(C.clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
     else { if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); pgaMob(dt); } }
   function pgaAttack() { if (!rig || !(SWG.R || SWG.L)) return false; pgaOpen(); if (PGA.ko > 0) return false; return swAttack(); }
   function swAttack() { if (!rig || !(SWG.R || SWG.L)) return false; if (SWG.sh) { SWG.sh = false; swSaveSh(); swHolster(); pvDraw(); } /* (sheathed: Attack draws first) */ if (SWG.at) SWG.q = 1; else SWG.at = swStart(); return true; }
@@ -15676,7 +15709,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
     const G = st.gnd; if (!G) return false; let x = q.x, z = q.z; const L = Math.hypot(x, z); if (L > TR.RW) { x *= TR.RW / L; z *= TR.RW / L; } navTo(G, x, z, () => { st.pg = null; }); pgMark({ x: G.goal.x, z: G.goal.z, y: trHeight(G.goal.x, G.goal.z) }); st.pg = { home: true, tree: true }; return true; }
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
-  return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { const F = PGA.on ? pgaMe() : null, q = pgaRel(); return { on: PGA.on, status: PGA.status ? Object.assign({}, PGA.status) : null, fought: !!PGA.fought, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null,
+  return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, pgaRespawnSoon: (t) => { if (PGA.dead > t) PGA.dead = t; return PGA.dead; } /* (tests: skip the hidden respawn wait) */, get pga() { const F = PGA.on ? pgaMe() : null, q = pgaRel(); return { on: PGA.on, status: PGA.status ? Object.assign({}, PGA.status) : null, fought: !!PGA.fought, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null,
     arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, hunt: PGA.hunt, pick: PGA.pick || null, provoked: pgaC().aggro === 'provoked', ash: { on: ASHX.on, t: ASHX.t, u: ASHX.u, cut: ASHX.plane.constant, top: ASHX.top, bot: ASHX.bot, born: ASHX.born, n: ASHX.P ? ASHX.P.length : 0, fx: !!(ASHX.pts && ASHX.pts.parent), mats: ASHX.mats.size, hid: ASHX.hid.length, d: ashD() }, leash: pgaC().leashR, leashD: PGA.leashD, reach: pgaC().atkReach, interval: pgaInt(), clk: PGA.clk, tgt: PGA.tgt, mobs: pgaSync().map((sl) => ({ id: sl.id, ready: !!sl.mob, hp: sl.hp, dead: sl.dead, hunt: sl.hunt, anim: sl.anim, x: sl.mob ? sl.mob.root.position.x : null, z: sl.mob ? sl.mob.root.position.z : null, y: sl.mob ? sl.mob.root.position.y : null, clips: sl.mob ? sl.mob.names : [], root: sl.mob ? sl.mob.root : null, inst: sl.mob || null })), swings: PGA.sl.map((e) => Object.assign({}, e)), anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
     pgaScreen(x, z, y) { if (!cam || !canvas || !PGA.arena) return null; const p = V(x, y || 0, z).applyAxisAngle(V(0, 1, 0), st.yaw).project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height }; }, get sw() { const gn = gearNow(); return { R: SWG.R, L: SWG.L, w: SWG.w, ip: SWG.ip, tw: gn.tw, want: gn.tool, toolAct: gn.toolAct, idle: gearNow().swIdle, pose: Object.assign({}, SW_POSE), n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
@@ -17390,7 +17423,7 @@ const WorldGolems = (() => {
     const dpr = Math.min((typeof QUALITY !== 'undefined' && QUALITY.dpr) || 2, window.devicePixelRatio || 1); for (const m of T.mats) if (m.userData.uniforms && m.userData.uniforms.uRes) m.userData.uniforms.uRes.value.set(innerWidth * dpr, innerHeight * dpr);
     g.inst = I; g.anim = null; loop(g, 'idle'); M3.scene.add(I.root); place(g); return true; }
   function release(g) { if (!g.inst) return; if (g.inst.root.parent) g.inst.root.parent.remove(g.inst.root); g.inst.mixer.stopAllAction(); g.inst = null; if (W.tgt === g) disengage(); }
-  function place(g) { const I = g.inst; if (!I) return; let y = Explore.hAt(g.x, g.y); if (g.dead > 0 && g.sink > 0) y -= g.sink * g.C.height * U(); I.root.position.set(g.x, y, g.y); I.root.rotation.y = g.face; }
+  function place(g) { const I = g.inst; if (!I) return; let y = Explore.hAt(g.x, g.y); if (g.dead > 0 && g.sink > 0) y -= g.sink * g.C.height * U(); I.root.position.set(g.x, y, g.y); I.root.rotation.y = g.face; I.root.visible = !(g.dead > 0 && g.sink >= 0.6 - 1e-6); } /* (t575s2576: sunk = gone for the rest of its hidden respawn wait) */
   function loop(g, k) { if (!g.inst || g.anim === k) return; g.inst.play(g.C.clips[k]); g.anim = k; }
   function once(g, k) { if (!g.inst) return; const a = g.inst.play(g.C.clips[k], true); g.anim = k; g.once = a ? a.getClip().duration : 0.6; }
   // ---- her fight on the map
@@ -17942,7 +17975,7 @@ const MosbyTalk = (() => {
     return { pts, len: L, metres: Math.round(m), fee: Math.round(m), eta: m / v, dest: pts[pts.length - 1], wade: wade * 20 / WSf(), steps }; }
   function crackW(x, y) { for (const cr of W.cracks || []) for (let q = 0; q + 1 < cr.pts.length; q++) { const a = cr.pts[q], c = cr.pts[q + 1]; if (Math.abs(a[0] - x) > 300 || Math.abs(a[1] - y) > 300) continue; const dx = c[0] - a[0], dy = c[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)), w = cr.ws[q] + (cr.ws[q + 1] - cr.ws[q]) * t; if (Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t) < w / 2) return w; } return 0; }
   // ---- gold (seeded for the trip)
-  const gold = () => { if (S.gold == null) S.gold = 2500; return S.gold; };
+  const gold = () => Gold.getGold(); // (t575s2576) the Gold coins in her backpack
   const fmtT = (s) => { const m = Math.max(1, Math.round(s / 60)); return m >= 60 ? Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min' : m + ' min'; };
   // ---- the panel
   const ST = { el: null, step: null, card: null, trip: null };
@@ -18001,7 +18034,7 @@ const MosbyTalk = (() => {
     const g = gold(), ok = g >= R.fee; c.innerHTML = `<div class="mcBox"><span class="mcC1"></span><span class="mcC2"></span><h3>Trip</h3><div class="mcRow"><span>Distance</span><b data-v="dist">${R.metres} m</b></div><div class="mcRow"><span>Cost</span><b data-v="cost">${R.fee}<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold"></b></div><div class="mcRow"><span>Time</span><b data-v="time">${fmtT(R.eta)}</b></div>
       <div class="mcFoot"><button class="mdB blue" data-a="confirm"${ok ? '' : ' disabled'}>Confirm</button><button class="mdB cream" data-a="cancel">Cancel</button></div><div class="mcNote">${ok ? `You have ${g} gold` : `Not enough gold \u2014 you have ${g}`}</div></div>`; c.classList.remove('hidden'); return R; }
   function closeCard() { const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; close(); }
-  function confirm() { const R = ST.trip; if (!R || gold() < R.fee) return; S.gold -= R.fee; S.mosbyTrip = { pts: R.pts.map(([x, y]) => [Math.round(x), Math.round(y)]), len: R.len, fee: R.fee, eta: R.eta, t0: Date.now(), done: false, home: R.home }; if (typeof HomeMove !== 'undefined') HomeMove.depart(); try { save(); } catch (e) {} const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; go('sent'); return S.mosbyTrip; }
+  function confirm() { const R = ST.trip; if (!R || !Gold.spendGold(R.fee)) return; S.mosbyTrip = { pts: R.pts.map(([x, y]) => [Math.round(x), Math.round(y)]), len: R.len, fee: R.fee, eta: R.eta, t0: Date.now(), done: false, home: R.home }; if (typeof HomeMove !== 'undefined') HomeMove.depart(); try { save(); } catch (e) {} const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; go('sent'); return S.mosbyTrip; }
   return { TP, tpBuild, route, gold, open, close, go, act, card, confirm, closeCard, fmtT, crackW, get step() { return ST.step && ST.step.id; }, STEP_W, WADE_D };
 })();
 /* ===== Theus (Prometheus in the old songs): the forge ape's talk and Theus' pickaxe and sword tier upgrades =====
@@ -18195,7 +18228,7 @@ const Theus = (() => {
   function exAct(act, ds) { const E = exState(); XS.msg = null;
     if (act === 'extbuy') { const o = E.ai.find((q) => q.id === ds.id); if (!o) return false; if (Craft.have(Craft.TPICK(o.k)) > 0) { XS.msg = ['bad', ownMsg(o.k)]; toast(ownMsg(o.k)); return false; }
       if (lum() < o.price) { XS.msg = ['bad', 'Not enough gold.']; return false; } if (!slotFor(Craft.TPICK(o.k))) { XS.msg = ['bad', Craft.FULL + '.']; toast(Craft.FULL); return false; }
-      S.gold = lum() - o.price; give(o.k, o.tier); E.ai = E.ai.filter((q) => q !== o); XS.msg = ['good', `Bought ${NAME(o.k)} (T${o.tier}) from ${o.seller}.`]; toast(`\u2696\ufe0f Bought ${NAME(o.k)} (T${o.tier}) from ${o.seller} for ${n0(o.price)} gold`); if (typeof save === 'function') save(); return true; }
+      if (!Gold.spendGold(o.price)) { XS.msg = ['bad', 'Not enough gold.']; return false; } give(o.k, o.tier); E.ai = E.ai.filter((q) => q !== o); XS.msg = ['good', `Bought ${NAME(o.k)} (T${o.tier}) from ${o.seller}.`]; toast(`\u2696\ufe0f Bought ${NAME(o.k)} (T${o.tier}) from ${o.seller} for ${n0(o.price)} gold`); if (typeof save === 'function') save(); return true; }
     if (act === 'extlist') { const ke = document.getElementById('thExK'), pe = document.getElementById('thExP'), k = ke && ke.value, pr = Math.floor(+(pe && pe.value)); if (!k || !(pr >= 1)) { XS.msg = ['bad', 'Set a price in gold.']; return false; } XS.conf = { k, price: pr }; return true; }
     if (act === 'extlistno') { XS.conf = null; return true; }
     if (act === 'extlistok') { const c = XS.conf; XS.conf = null; if (!c || Craft.have(Craft.TPICK(c.k)) <= 0) return false; if (Craft.equipped(Craft.TPICK(c.k))) { XS.msg = ['bad', 'Unequip it first.']; toast('Unequip it first'); return false; } const t = Craft.pickTier(c.k); if (!Craft.take(Craft.TPICK(c.k), 1)) return false; if (S.tpicks) delete S.tpicks[c.k]; if (S.pickEqT === c.k) S.pickEqT = null;

@@ -104,7 +104,7 @@ const WorldGolems = (() => {
     const dpr = Math.min((typeof QUALITY !== 'undefined' && QUALITY.dpr) || 2, window.devicePixelRatio || 1); for (const m of T.mats) if (m.userData.uniforms && m.userData.uniforms.uRes) m.userData.uniforms.uRes.value.set(innerWidth * dpr, innerHeight * dpr);
     g.inst = I; g.anim = null; loop(g, 'idle'); M3.scene.add(I.root); place(g); return true; }
   function release(g) { if (!g.inst) return; if (g.inst.root.parent) g.inst.root.parent.remove(g.inst.root); g.inst.mixer.stopAllAction(); g.inst = null; if (W.tgt === g) disengage(); }
-  function place(g) { const I = g.inst; if (!I) return; let y = Explore.hAt(g.x, g.y); if (g.dead > 0 && g.sink > 0) y -= g.sink * g.C.height * U(); I.root.position.set(g.x, y, g.y); I.root.rotation.y = g.face; }
+  function place(g) { const I = g.inst; if (!I) return; let y = Explore.hAt(g.x, g.y); if (g.dead > 0 && g.sink > 0) y -= g.sink * g.C.height * U(); I.root.position.set(g.x, y, g.y); I.root.rotation.y = g.face; I.root.visible = !(g.dead > 0 && g.sink >= 0.6 - 1e-6); } /* (t575s2576: sunk = gone for the rest of its hidden respawn wait) */
   function loop(g, k) { if (!g.inst || g.anim === k) return; g.inst.play(g.C.clips[k]); g.anim = k; }
   function once(g, k) { if (!g.inst) return; const a = g.inst.play(g.C.clips[k], true); g.anim = k; g.once = a ? a.getClip().duration : 0.6; }
   // ---- her fight on the map

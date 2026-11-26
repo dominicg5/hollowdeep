@@ -3,6 +3,10 @@
    Combat XP per kill = 4 x creature HP (Art's rule); the Combat XP per-level curve is still a placeholder. (GD-12) It bites back:
    Combat.creatureAttack reads str + acc (GD-15 formula); the attack timing / reach / walk fields below drive the playground arena. ===== */
 
+// (Dominic, card t575s2576: 'I would like the countdown respawn not visible') seconds from a creature's death to its respawn - hidden timers: nothing on screen
+// counts them down (no countdown in the playground status / overhead bars / map); each row's respawnS reads this table
+const RESPAWN_S = { lumen_mushroom: 20, tin_golem: 30, copper_golem: 45, coal_golem: 60 };
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // LUMEN MUSHROOM - the Attack Playground's practice target (t653u). (GD-33, Dominic t553u: "that replaces the old Lumen Mushroom") Model: Art's own Mushnub
 // (creature_pipeline/production/mushnub_i23d, image-to-3D build3, gate 3 PASS), the game build mushnub_i23d_slim.glb shipped as assets/models/creatures/mushnub_i23d.glb
@@ -17,7 +21,7 @@ const LUMEN_MUSHROOM = {
   def: 0,           // Defense (Combat.hitChance: her Accuracy / (def + 100))
   acc: 30,          // Accuracy - PLACEHOLDER (GD-15): its full-hit chance on her = acc / (her Defense + 100), capped at 60%; otherwise 0..str
   xp: 32,           // Combat XP per kill = 4 x creature HP (Art's rule); awarded via Combat.addXp, on the shared Skills curve (Skills.xpToReach, Lv 1-300).
-  respawnS: 3,      // seconds after it dies before a fresh one pops back up
+  respawnS: RESPAWN_S.lumen_mushroom, // seconds after it dies before a fresh one pops back up (hidden timer, RESPAWN_S)
   height: 0.8,      // metres tall in the playground
   atkS: 2,          // (GD-12) seconds between bites once it is fighting her
   atkHitAt: 0.333,  // seconds into Attack that the cap-butt lands (GD-33: Art's hit_timing.json, frame 10 @ 30 fps)
@@ -48,7 +52,7 @@ const TIN_GOLEM = {
   def: 5,            // placeholder, not approved
   acc: 35,           // placeholder, not approved
   xp: 80,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
-  respawnS: 6,
+  respawnS: RESPAWN_S.tin_golem, // (t575s2576) hidden respawn timer, RESPAWN_S
   height: 2.6,      // metres (Art's build: 2.6 m)
   bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
   atkS: 3,          // placeholder, not approved - seconds between slams once provoked
@@ -77,7 +81,7 @@ const COPPER_GOLEM = {
   def: 10,            // placeholder, not approved
   acc: 45,           // placeholder, not approved
   xp: 140,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
-  respawnS: 6,
+  respawnS: RESPAWN_S.copper_golem, // (t575s2576) hidden respawn timer, RESPAWN_S
   height: 2.6,      // metres (Art's build: 2.6 m)
   bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
   atkS: 3,          // placeholder, not approved - seconds between slams once provoked
@@ -104,7 +108,7 @@ const COAL_GOLEM = {
   def: 15,            // placeholder, not approved
   acc: 55,           // placeholder, not approved
   xp: 200,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
-  respawnS: 6,
+  respawnS: RESPAWN_S.coal_golem, // (t575s2576) hidden respawn timer, RESPAWN_S
   height: 2.6,      // metres (Art's build: 2.6 m)
   bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
   atkS: 3,          // placeholder, not approved - seconds between slams once provoked
