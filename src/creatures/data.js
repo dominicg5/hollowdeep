@@ -187,15 +187,17 @@ for (const k in NPC_MODELS) NPC_MODELS[k].height = NPC_MODELS[k].nativeH * NPC_M
 const PLAYER_MODELS = {
   m: {
     id: 'player_m', name: 'Player (male)',
-    model: 'assets/models/player/player_male_i23d.glb', // Art's player_male_i23d_slim.glb (26 Nov, 603 KB; 21 bones, root 'body' mesh, webp albedo)
+    model: 'assets/models/player/player_male_v5.glb', // (t-male-v5) Fal's player_male_v5 (approved by Dominic), rigged onto the i23d male's skeleton: same 19 bones, rest pose and clips
     height: 1.52, keepOrigin: true, uv: true, // already game size (top 1.520 m, feet at y 0): NOT x10; no recentring (the pose code drives the bones in place)
     clips: { idle: 'Idle', walk: 'Walk', run: 'Run', mine: 'Mine', attack: 'Attack' }, // Idle 2.4, Walk 1.0, Run 0.66, Mine 1.2 (pick lands 0.636), Attack 0.9 (hit 0.423)
     hipZ: 0.0726,   // Art's hips sit this far forward of the origin: the model is set back by it so her hips are over the rig root, like the old body's
     legK: 0.688,    // Art's leg (thigh joint to ankle 0.485 m) / the old rig's (LT + LS 0.705): the old hips' bob / squat is scaled by it
     gait: { walk: { S: 1.26, ph0: 0.075 }, run: { S: 2.30, ph0: 0.442 } }, // S: metres per gait cycle of Art's clip (planted-foot speed x duration); ph0: clip phase where the left foot plants (the old gait's phase 0)
-    grip: [0, -0.07, 0.041], // hand-local offset from the old palm point (0, -0.045, -0.031) to the middle of Art's closed mitten: tools sit in the fist
-    pack: { W: 0.42, H: 0.40, D: 0.19, y0: 0.05, zb: -0.30 }, // Art's backpack in the chest frame (width, height, depth, centre height, back face; t741u re-measured off his mesh): the Tether coil, winch and lantern hang on it
-    backZ: -0.325,  // (t741u) chest-frame z of the sheaths and the stowed pick's back slot: on the back face of his pack (part of the mesh: nothing fits between)
+    grip: [0.024, -0.075, 0.044], gripMirrorX: true, // hand-local offset from the old palm point (0, -0.045, -0.031) to the middle of the closed mitten (past its cuff): tools sit in the fist.
+                    // (t-male-v5) Fal's mittens sit 2.2 / 2.6 cm toward the body off the hand bones: x is mirrored for the left hand
+    pack: { W: 0.40, H: 0.40, D: 0.19, y0: 0.04, zb: -0.30 }, // the backpack in the chest frame (width, height, depth, centre height, back face): the Tether coil, winch and lantern hang on it. (t-male-v5) re-measured off Fal's
+                    // rigid pack: x -0.198..0.195, y -0.161..0.238, back face -0.302
+    backZ: -0.325,  // (t741u; t-male-v5 unchanged: Fal's pack back face is at -0.302) chest-frame z of the sheaths and the stowed pick's back slot: on the back face of his pack (part of the mesh: nothing fits between)
     headTop: 1.520,  // top of the model (hair / helmet), metres
     reachM: 0.06,    // (t741u) how far a shoulder may give toward a hand target past Art's arm reach (the arms are solved onto the old rig's palm points)
     footDH: 0.25,    // (t741u) most a foot is lifted / lowered onto sloped ground (and the hips drop for the downhill foot)

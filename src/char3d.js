@@ -1310,7 +1310,7 @@ const CharView = (() => {
     I.root.position.set(0, 0, -PM.hipZ); I.root.name = 'artBody'; c.root.add(I.root);
     if (st.explore && c === rig) exTone(I.root, true); /* (colour check t628u) her body loads after exploreOn: no map ACES on it either, like her gear and the monsters */
     const act = (k) => { const a = I.mixer.clipAction(I.clips[PM.clips[k]]); a.setLoop(THREE.LoopRepeat, Infinity); a.enabled = false; return a; };
-    Object.assign(c, { art: I, artB: A, artRest: rest, artGh: gh, artWalk: act('walk'), artRun: act('run'), artGrip: new THREE.Vector3().fromArray(PM.grip), ghost: false, barHead: A.head /* her health bar: Art's head bone (top and head width measured off his mesh) */ }); return I; }
+    Object.assign(c, { art: I, artB: A, artRest: rest, artGh: gh, artWalk: act('walk'), artRun: act('run'), artGrip: { R: new THREE.Vector3().fromArray(PM.grip), L: new THREE.Vector3().fromArray(PM.grip).multiply(V(PM.gripMirrorX ? -1 : 1, 1, 1)) }, /* (t-male-v5) per hand: a mitten centred off the hand bone sits mirrored left / right */ ghost: false, barHead: A.head /* her health bar: Art's head bone (top and head width measured off his mesh) */ }); return I; }
   function ghostIn(c) { if (!c.ghost) return; const B = c.B, G = c.artGh; for (const k in ART_B) { B[k].position.copy(G[k].p); B[k].quaternion.copy(G[k].q); } c.ghost = false; }
   // world-space two-bone IK on Art's bones: a (upper) > b (mid) > e (end); end origin to T, the mid joint toward the pole point; the end keeps world turn qe
   const _ik = { A: V(0, 0, 0), M: V(0, 0, 0), d: V(0, 0, 0), p: V(0, 0, 0), c: V(0, 0, 0), q: new THREE.Quaternion(), q2: new THREE.Quaternion() };
@@ -1333,7 +1333,7 @@ const CharView = (() => {
     // arms (t741u): Art's arms are a little shorter / set lower than the old rig's, so copying the turns alone left two-handed grips, wall holds and the
     // face scratch short of their targets. Each arm is solved onto the old rig's palm point in the world (its elbow toward the old elbow, the hand at the old
     // hand's world turn): Art's fist lands where the old hand was and the tool in it follows. Past his reach the shoulder gives up to PM.reachM toward it.
-    for (const k of ['R', 'L']) { const ua = A['ua' + k], fa = A['fa' + k], hd = A['hd' + k], Pk = _ap.P[k]; _ap.g.copy(c.artGrip).add(PALM).applyQuaternion(_ap.Q[k]); const W = _ap.W.copy(Pk).sub(_ap.g);
+    for (const k of ['R', 'L']) { const ua = A['ua' + k], fa = A['fa' + k], hd = A['hd' + k], Pk = _ap.P[k]; _ap.g.copy(c.artGrip[k]).add(PALM).applyQuaternion(_ap.Q[k]); const W = _ap.W.copy(Pk).sub(_ap.g);
       ua.getWorldPosition(_ap.t); const L = fa.position.length() + hd.position.length(), dd = W.distanceTo(_ap.t), over = dd - L * 0.998;
       if (over > 0) { const sh = A['sh' + k]; _ap.f.copy(W).sub(_ap.t).normalize().multiplyScalar(Math.min(over, PM.reachM)); sh.getWorldQuaternion(_ap.qf).invert(); ua.position.copy(R0['ua' + k]).add(_ap.f.applyQuaternion(_ap.qf)); ua.updateMatrixWorld(true); }
       artIK(ua, fa, hd, W, _ap.E[k], _ap.Q[k]); }
@@ -1345,7 +1345,7 @@ const CharView = (() => {
         for (const k of ['R', 'L']) { const th = A['th' + k], sn = A['sn' + k], ft = A['ft' + k]; ft.getWorldQuaternion(_ap.qf); sn.getWorldPosition(_ap.k); _ap.k.add(V(0, 0, 0.3).applyQuaternion(c.root.getWorldQuaternion(_ap.qf.clone()))); ft.getWorldQuaternion(_ap.qf); artIK(th, sn, ft, tg[k], _ap.k, _ap.qf.clone()); } } } }
     // the rig follows Art's body (positions in its parents' frames: Art's root sits at (0, 0, -hipZ) under the rig root, identity otherwise)
     for (const k in ART_B) { const b = B[k], a = A[k], g = G[k]; g.p.copy(b.position); g.q.copy(b.quaternion); b.quaternion.copy(a.quaternion); b.position.copy(a.position); if (k === 'hips') b.position.add(I.root.position); }
-    for (const k of ['hdR', 'hdL']) B[k].position.add(_av.copy(c.artGrip).applyQuaternion(A[k].quaternion)); /* the tools' palm point lands in the fist */
+    for (const k of ['R', 'L']) B['hd' + k].position.add(_av.copy(c.artGrip[k]).applyQuaternion(A['hd' + k].quaternion)); /* the tools' palm point lands in the fist */
     c.ghost = true; c.root.updateMatrixWorld(true); }
   function animate(c, t, dt) { const { B } = c, f = {}; ghostIn(c);
     // run / mine modes: ease in over ~0.25 s, and back out to idle before switching

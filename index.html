@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='cde87d83';
+<script>window.HD_BUILD='5ce339db';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build cde87d83</div>
-<script src="assets/vendor/three.min.js?v=cde87d83"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 5ce339db</div>
+<script src="assets/vendor/three.min.js?v=5ce339db"></script>
 <script>
 'use strict';
 
@@ -10224,15 +10224,17 @@ for (const k in NPC_MODELS) NPC_MODELS[k].height = NPC_MODELS[k].nativeH * NPC_M
 const PLAYER_MODELS = {
   m: {
     id: 'player_m', name: 'Player (male)',
-    model: 'assets/models/player/player_male_i23d.glb', // Art's player_male_i23d_slim.glb (26 Nov, 603 KB; 21 bones, root 'body' mesh, webp albedo)
+    model: 'assets/models/player/player_male_v5.glb', // (t-male-v5) Fal's player_male_v5 (approved by Dominic), rigged onto the i23d male's skeleton: same 19 bones, rest pose and clips
     height: 1.52, keepOrigin: true, uv: true, // already game size (top 1.520 m, feet at y 0): NOT x10; no recentring (the pose code drives the bones in place)
     clips: { idle: 'Idle', walk: 'Walk', run: 'Run', mine: 'Mine', attack: 'Attack' }, // Idle 2.4, Walk 1.0, Run 0.66, Mine 1.2 (pick lands 0.636), Attack 0.9 (hit 0.423)
     hipZ: 0.0726,   // Art's hips sit this far forward of the origin: the model is set back by it so her hips are over the rig root, like the old body's
     legK: 0.688,    // Art's leg (thigh joint to ankle 0.485 m) / the old rig's (LT + LS 0.705): the old hips' bob / squat is scaled by it
     gait: { walk: { S: 1.26, ph0: 0.075 }, run: { S: 2.30, ph0: 0.442 } }, // S: metres per gait cycle of Art's clip (planted-foot speed x duration); ph0: clip phase where the left foot plants (the old gait's phase 0)
-    grip: [0, -0.07, 0.041], // hand-local offset from the old palm point (0, -0.045, -0.031) to the middle of Art's closed mitten: tools sit in the fist
-    pack: { W: 0.42, H: 0.40, D: 0.19, y0: 0.05, zb: -0.30 }, // Art's backpack in the chest frame (width, height, depth, centre height, back face; t741u re-measured off his mesh): the Tether coil, winch and lantern hang on it
-    backZ: -0.325,  // (t741u) chest-frame z of the sheaths and the stowed pick's back slot: on the back face of his pack (part of the mesh: nothing fits between)
+    grip: [0.024, -0.075, 0.044], gripMirrorX: true, // hand-local offset from the old palm point (0, -0.045, -0.031) to the middle of the closed mitten (past its cuff): tools sit in the fist.
+                    // (t-male-v5) Fal's mittens sit 2.2 / 2.6 cm toward the body off the hand bones: x is mirrored for the left hand
+    pack: { W: 0.40, H: 0.40, D: 0.19, y0: 0.04, zb: -0.30 }, // the backpack in the chest frame (width, height, depth, centre height, back face): the Tether coil, winch and lantern hang on it. (t-male-v5) re-measured off Fal's
+                    // rigid pack: x -0.198..0.195, y -0.161..0.238, back face -0.302
+    backZ: -0.325,  // (t741u; t-male-v5 unchanged: Fal's pack back face is at -0.302) chest-frame z of the sheaths and the stowed pick's back slot: on the back face of his pack (part of the mesh: nothing fits between)
     headTop: 1.520,  // top of the model (hair / helmet), metres
     reachM: 0.06,    // (t741u) how far a shoulder may give toward a hand target past Art's arm reach (the arms are solved onto the old rig's palm points)
     footDH: 0.25,    // (t741u) most a foot is lifted / lowered onto sloped ground (and the hips drop for the downhill foot)
@@ -13214,7 +13216,7 @@ const CharView = (() => {
     I.root.position.set(0, 0, -PM.hipZ); I.root.name = 'artBody'; c.root.add(I.root);
     if (st.explore && c === rig) exTone(I.root, true); /* (colour check t628u) her body loads after exploreOn: no map ACES on it either, like her gear and the monsters */
     const act = (k) => { const a = I.mixer.clipAction(I.clips[PM.clips[k]]); a.setLoop(THREE.LoopRepeat, Infinity); a.enabled = false; return a; };
-    Object.assign(c, { art: I, artB: A, artRest: rest, artGh: gh, artWalk: act('walk'), artRun: act('run'), artGrip: new THREE.Vector3().fromArray(PM.grip), ghost: false, barHead: A.head /* her health bar: Art's head bone (top and head width measured off his mesh) */ }); return I; }
+    Object.assign(c, { art: I, artB: A, artRest: rest, artGh: gh, artWalk: act('walk'), artRun: act('run'), artGrip: { R: new THREE.Vector3().fromArray(PM.grip), L: new THREE.Vector3().fromArray(PM.grip).multiply(V(PM.gripMirrorX ? -1 : 1, 1, 1)) }, /* (t-male-v5) per hand: a mitten centred off the hand bone sits mirrored left / right */ ghost: false, barHead: A.head /* her health bar: Art's head bone (top and head width measured off his mesh) */ }); return I; }
   function ghostIn(c) { if (!c.ghost) return; const B = c.B, G = c.artGh; for (const k in ART_B) { B[k].position.copy(G[k].p); B[k].quaternion.copy(G[k].q); } c.ghost = false; }
   // world-space two-bone IK on Art's bones: a (upper) > b (mid) > e (end); end origin to T, the mid joint toward the pole point; the end keeps world turn qe
   const _ik = { A: V(0, 0, 0), M: V(0, 0, 0), d: V(0, 0, 0), p: V(0, 0, 0), c: V(0, 0, 0), q: new THREE.Quaternion(), q2: new THREE.Quaternion() };
@@ -13237,7 +13239,7 @@ const CharView = (() => {
     // arms (t741u): Art's arms are a little shorter / set lower than the old rig's, so copying the turns alone left two-handed grips, wall holds and the
     // face scratch short of their targets. Each arm is solved onto the old rig's palm point in the world (its elbow toward the old elbow, the hand at the old
     // hand's world turn): Art's fist lands where the old hand was and the tool in it follows. Past his reach the shoulder gives up to PM.reachM toward it.
-    for (const k of ['R', 'L']) { const ua = A['ua' + k], fa = A['fa' + k], hd = A['hd' + k], Pk = _ap.P[k]; _ap.g.copy(c.artGrip).add(PALM).applyQuaternion(_ap.Q[k]); const W = _ap.W.copy(Pk).sub(_ap.g);
+    for (const k of ['R', 'L']) { const ua = A['ua' + k], fa = A['fa' + k], hd = A['hd' + k], Pk = _ap.P[k]; _ap.g.copy(c.artGrip[k]).add(PALM).applyQuaternion(_ap.Q[k]); const W = _ap.W.copy(Pk).sub(_ap.g);
       ua.getWorldPosition(_ap.t); const L = fa.position.length() + hd.position.length(), dd = W.distanceTo(_ap.t), over = dd - L * 0.998;
       if (over > 0) { const sh = A['sh' + k]; _ap.f.copy(W).sub(_ap.t).normalize().multiplyScalar(Math.min(over, PM.reachM)); sh.getWorldQuaternion(_ap.qf).invert(); ua.position.copy(R0['ua' + k]).add(_ap.f.applyQuaternion(_ap.qf)); ua.updateMatrixWorld(true); }
       artIK(ua, fa, hd, W, _ap.E[k], _ap.Q[k]); }
@@ -13249,7 +13251,7 @@ const CharView = (() => {
         for (const k of ['R', 'L']) { const th = A['th' + k], sn = A['sn' + k], ft = A['ft' + k]; ft.getWorldQuaternion(_ap.qf); sn.getWorldPosition(_ap.k); _ap.k.add(V(0, 0, 0.3).applyQuaternion(c.root.getWorldQuaternion(_ap.qf.clone()))); ft.getWorldQuaternion(_ap.qf); artIK(th, sn, ft, tg[k], _ap.k, _ap.qf.clone()); } } } }
     // the rig follows Art's body (positions in its parents' frames: Art's root sits at (0, 0, -hipZ) under the rig root, identity otherwise)
     for (const k in ART_B) { const b = B[k], a = A[k], g = G[k]; g.p.copy(b.position); g.q.copy(b.quaternion); b.quaternion.copy(a.quaternion); b.position.copy(a.position); if (k === 'hips') b.position.add(I.root.position); }
-    for (const k of ['hdR', 'hdL']) B[k].position.add(_av.copy(c.artGrip).applyQuaternion(A[k].quaternion)); /* the tools' palm point lands in the fist */
+    for (const k of ['R', 'L']) B['hd' + k].position.add(_av.copy(c.artGrip[k]).applyQuaternion(A['hd' + k].quaternion)); /* the tools' palm point lands in the fist */
     c.ghost = true; c.root.updateMatrixWorld(true); }
   function animate(c, t, dt) { const { B } = c, f = {}; ghostIn(c);
     // run / mine modes: ease in over ~0.25 s, and back out to idle before switching
