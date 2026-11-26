@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='e2ddd73d';
+<script>window.HD_BUILD='cde87d83';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build e2ddd73d</div>
-<script src="assets/vendor/three.min.js?v=e2ddd73d"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build cde87d83</div>
+<script src="assets/vendor/three.min.js?v=cde87d83"></script>
 <script>
 'use strict';
 
@@ -11263,13 +11263,16 @@ const Creatures = (() => {
   function texs(S) { const g = S.gl; return (g.textures || []).map((t) => { const src = t.source != null ? t.source : t.extensions && t.extensions.EXT_texture_webp ? t.extensions.EXT_texture_webp.source : null, im = g.images && g.images[src], /* (t740u: EXT_texture_webp - the browser decodes the WebP) */ bv = im && g.bufferViews[im.bufferView]; if (!bv) return null; const T = new THREE.Texture(); T.flipY = false; T.encoding = THREE.sRGBEncoding;
       const sp = (g.samplers || [])[t.sampler] || {}; if (sp.wrapS) T.wrapS = sp.wrapS; if (sp.wrapT) T.wrapT = sp.wrapT; if (sp.magFilter) T.magFilter = sp.magFilter; if (sp.minFilter) T.minFilter = sp.minFilter;
       const url = URL.createObjectURL(new Blob([new Uint8Array(S.bin.buffer, S.bin.byteOffset + (bv.byteOffset || 0), bv.byteLength)], { type: im.mimeType || 'image/jpeg' })), I = new Image(); I.onload = () => { T.image = I; T.needsUpdate = true; URL.revokeObjectURL(url); }; I.src = url; return T; }); }
+  // (colour check, Dominic t628u) glTF base colour and emissive images are sRGB (as Art's viewer's GLTFLoader reads them); they were left at three's Linear default,
+  // so on the sRGB-output map they drew lighter than his viewer. Only colour maps go through here - any data map (normal, metal/roughness) stays Linear
+  function srgbTex(T) { if (T && T.encoding !== THREE.sRGBEncoding) { T.encoding = THREE.sRGBEncoding; if (T.image) T.needsUpdate = true; } return T; }
   // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
   function hdMat(D, gm, A, gc, O, TX) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm), glow = hasGlow(D, A, gc);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
       : T.makeChalkMaterial({ grain: ud.hd_grain ?? 0.55, tooth: ud.hd_tooth ?? 0.26, stroke: ud.hd_stroke ?? 0.75, scale: 7, rim: ud.hd_srim, rimAmt: ud.hd_srimAmt, shade: ud.hd_sshade, lift: ud.hd_lift,
           rimE: ud.hd_rimE, rimE0: ud.hd_rimE0, rimE1: ud.hd_rimE1, rimMix: ud.hd_rimMix, rimMask: ud.hd_rimMask }); /* (GD-33: his viewer's non-crystal mapping of the material extras; the golem Stone carries none, so its defaults are unchanged) */
-    if (!lum) { const pb = gm.pbrMetallicRoughness || {}, tx = (k) => (k && TX && TX[k.index]) || null; if (ud.hd_usemap && tx(pb.baseColorTexture)) m.map = tx(pb.baseColorTexture);
-      if (ud.hd_useemis && tx(gm.emissiveTexture)) { m.emissiveMap = tx(gm.emissiveTexture); m.emissive.set(0xffffff); m.emissiveIntensity = ud.hd_emisK ?? 1; } /* (as his viewer: albedo / emissive maps only when the extras ask) */
+    if (!lum) { const pb = gm.pbrMetallicRoughness || {}, tx = (k) => (k && TX && TX[k.index]) || null; if (ud.hd_usemap && tx(pb.baseColorTexture)) m.map = srgbTex(tx(pb.baseColorTexture));
+      if (ud.hd_useemis && tx(gm.emissiveTexture)) { m.emissiveMap = srgbTex(tx(gm.emissiveTexture)); m.emissive.set(0xffffff); m.emissiveIntensity = ud.hd_emisK ?? 1; } /* (as his viewer: albedo / emissive maps only when the extras ask) */
       if (ud.hd_rimMask && A && A._HD_GLOW != null) rimMaskBind(m); } /* (the glowing rim only where Art's _HD_GLOW mask says; his shader reads it only with the stone atlas on) */
     /* (t705u / t542) crackGlow: Art's per-ore glow on the crystals, crack veins and eyes = the golem's hd_glow colour (its Stone material extras) x the _HD_GLOW vertex
        value (0..1) x 1.6, added to the emissive. Art's shader only does this with his stone atlas on (not shipped), so it is bound here on its own (glowBind); Coal's colour is black = none */
@@ -13203,12 +13206,13 @@ const CharView = (() => {
   function artLoad(sex) { if (typeof Creatures === 'undefined' || typeof PLAYER_MODELS === 'undefined' || !PLAYER_MODELS[sex]) return false; const id = artId(sex); if (!Creatures.get(id)) Creatures.def(id, PLAYER_MODELS[sex]); if (Creatures.ready(id)) return true; if (!Creatures.error(id)) Creatures.load(id).catch(() => {}); return false; }
   function artBody(c) { if (c.art || c.artErr) return c.art || null; if (!artLoad(c.sex)) { if (typeof Creatures !== 'undefined' && Creatures.error(artId(c.sex))) c.artErr = true; return null; }
     const PM = c.pm, I = Creatures.make(artId(c.sex)); if (!I) return null; I.mixer.stopAllAction();
-    const tx = (I.tex && I.tex[0]) || null; if (tx) { tx.encoding = THREE.LinearEncoding; if (tx.image) tx.needsUpdate = true; } /* (t741u) read raw like every other char3d texture (its stage renders Linear): the sRGB decode drew Art's colours far too dark */
+    const tx = (I.tex && I.tex[0]) || null; if (tx) { tx.encoding = THREE.sRGBEncoding; if (tx.image) tx.needsUpdate = true; } /* (colour check t628u) Art's base colour is sRGB, and the Character stage now outputs sRGB (CHAR_STAGE) like the map, so she reads the same on both screens */
     const mat = toon(0, tx, { side: THREE.DoubleSide }), sk = []; I.root.traverse((o) => { if (o.isSkinnedMesh) sk.push(o); });
     for (const m of sk) { m.material = mat; m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false; m.userData.artBody = true;
       const ol = new THREE.SkinnedMesh(m.geometry, INK_S); ol.position.copy(m.position); ol.quaternion.copy(m.quaternion); ol.scale.copy(m.scale); ol.bind(m.skeleton, m.bindMatrix); ol.frustumCulled = false; ol.castShadow = false; ol.userData.isInk = true; m.parent.add(ol); } /* the ink hull, as the old body had */
     const AB = {}; for (const b of I.bones) AB[b.name] = b; const A = {}, rest = {}, gh = {}; for (const k in ART_B) { A[k] = AB[ART_B[k]]; if (!A[k]) { c.artErr = true; return null; } rest[k] = A[k].position.clone(); gh[k] = { p: new THREE.Vector3(), q: new THREE.Quaternion(), oq: new THREE.Quaternion(), op: new THREE.Vector3() }; }
     I.root.position.set(0, 0, -PM.hipZ); I.root.name = 'artBody'; c.root.add(I.root);
+    if (st.explore && c === rig) exTone(I.root, true); /* (colour check t628u) her body loads after exploreOn: no map ACES on it either, like her gear and the monsters */
     const act = (k) => { const a = I.mixer.clipAction(I.clips[PM.clips[k]]); a.setLoop(THREE.LoopRepeat, Infinity); a.enabled = false; return a; };
     Object.assign(c, { art: I, artB: A, artRest: rest, artGh: gh, artWalk: act('walk'), artRun: act('run'), artGrip: new THREE.Vector3().fromArray(PM.grip), ghost: false, barHead: A.head /* her health bar: Art's head bone (top and head width measured off his mesh) */ }); return I; }
   function ghostIn(c) { if (!c.ghost) return; const B = c.B, G = c.artGh; for (const k in ART_B) { B[k].position.copy(G[k].p); B[k].quaternion.copy(G[k].q); } c.ghost = false; }
@@ -13346,15 +13350,18 @@ const CharView = (() => {
   }
 
   /* ---------- stage, camera, input ---------- */
+  // (colour check t628u) the Character stage's colour set-up: sRGB output like the map (Art's sRGB base colour reads the same on both screens); the lights are
+  // unchanged - with sRGB output every lit tone comes out the same or lighter than before (her shadow tones lift), so nothing needed raising
+  const CHAR_STAGE = { out: 'sRGB', hemi: 0.4, key: 0.55, fill: 0.14, rim1: 0.32, rim2: 0.22 };
   function initGL() { wrap = document.getElementById('charWrap'); canvas = document.getElementById('charCanvas');
     try { R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false }); } catch (e) { st.ok = false; return false; }
-    R.setPixelRatio(Math.min(QUALITY.dpr, window.devicePixelRatio || 1)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.outputEncoding = THREE.LinearEncoding;
+    R.setPixelRatio(Math.min(QUALITY.dpr, window.devicePixelRatio || 1)); R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap; R.outputEncoding = CHAR_STAGE.out === 'sRGB' ? THREE.sRGBEncoding : THREE.LinearEncoding;
     scene = new THREE.Scene(); scene.background = cv(8, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#f6e7cc'); gr.addColorStop(0.55, '#e9c99a'); gr.addColorStop(1, '#b9814f'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
     cam = new THREE.PerspectiveCamera(26, 1, 0.1, 160);
-    scene.add(new THREE.HemisphereLight(0xfff1dc, 0x7a5236, 0.4));
-    const key = new THREE.DirectionalLight(0xfff0dc, 0.55); key.position.set(1.4, 3.2, 2.6); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -1.2, right: 1.2, top: 2, bottom: -0.4, near: 0.5, far: 8 }); key.shadow.bias = -0.0008; key.shadow.radius = 4; scene.add(key);
-    const fill = new THREE.DirectionalLight(0xffd8b0, 0.14); fill.position.set(-2.2, 1.2, 1.4); scene.add(fill);
-    const rim1 = new THREE.DirectionalLight(0xffe6c0, 0.32); rim1.position.set(-1.6, 2.2, -2.6); scene.add(rim1); const rim2 = new THREE.DirectionalLight(0xfff0d8, 0.22); rim2.position.set(1.8, 1.6, -2.2); scene.add(rim2);
+    scene.add(new THREE.HemisphereLight(0xfff1dc, 0x7a5236, CHAR_STAGE.hemi));
+    const key = new THREE.DirectionalLight(0xfff0dc, CHAR_STAGE.key); key.position.set(1.4, 3.2, 2.6); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -1.2, right: 1.2, top: 2, bottom: -0.4, near: 0.5, far: 8 }); key.shadow.bias = -0.0008; key.shadow.radius = 4; scene.add(key);
+    const fill = new THREE.DirectionalLight(0xffd8b0, CHAR_STAGE.fill); fill.position.set(-2.2, 1.2, 1.4); scene.add(fill);
+    const rim1 = new THREE.DirectionalLight(0xffe6c0, CHAR_STAGE.rim1); rim1.position.set(-1.6, 2.2, -2.6); scene.add(rim1); const rim2 = new THREE.DirectionalLight(0xfff0d8, CHAR_STAGE.rim2); rim2.position.set(1.8, 1.6, -2.2); scene.add(rim2);
     const disc = new THREE.Mesh(new THREE.CircleGeometry(1.25, 64), new THREE.MeshBasicMaterial({ map: radial('rgba(255,236,205,1)', 'rgba(222,178,128,.9)'), transparent: true, depthWrite: false })); disc.rotation.x = -Math.PI / 2; scene.add(disc);
     const sh = new THREE.Mesh(new THREE.CircleGeometry(1.0, 48), new THREE.ShadowMaterial({ opacity: 0.32, color: 0x4a2a14 })); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.002; sh.receiveShadow = true; scene.add(sh);
     const blob = new THREE.Mesh(new THREE.CircleGeometry(0.34, 32), new THREE.MeshBasicMaterial({ map: radial('rgba(70,40,20,.45)', 'rgba(70,40,20,.15)'), transparent: true, depthWrite: false })); blob.rotation.x = -Math.PI / 2; blob.position.y = 0.003; scene.add(blob); FLOOR = [disc, sh, blob];
@@ -13502,7 +13509,7 @@ const CharView = (() => {
     const sc0 = scene, b0 = PGA.blobMob; PGA.mobs = pgaRows().map((r, i) => { const C = Creatures.get(r.id), at = r.at || [0.38, 0, 0.95], bl = i ? b0.clone() : b0; if (i) { bl.material = b0.material.clone(); PGA.arena.add(bl); } bl.scale.setScalar(Math.max(1, (C.bodyR || 0) / 0.3)); bl.visible = false;
       return { id: r.id, mob: null, hp: C.hp, dead: 0, hunt: false, bite: 0, atkT: 1, once: 0, anim: null, wp: null, wt: 1.5 + i, leashD: null, aggro: 0, blobMob: bl, AT: at.slice(), home: [at[0], at[2]], roam: r.roam || 0, sink: 0 }; });
     PGA.si = -1; PGA.tgt = 0; pgaUse(0);
-    PGA.mobs.forEach((sl, i) => Creatures.load(sl.id).then(() => { if (!PGA.on || !SOLO.on || scene !== sc0 || !PGA.arena || PGA.mobs[i] !== sl) return; const m = Creatures.make(sl.id); if (!m) return; m.root.position.set(...sl.AT); m.root.rotation.y = Math.atan2(-sl.AT[0], -sl.AT[2]); PGA.arena.add(m.root);
+    PGA.mobs.forEach((sl, i) => Creatures.load(sl.id).then(() => { if (!PGA.on || !SOLO.on || scene !== sc0 || !PGA.arena || PGA.mobs[i] !== sl) return; const m = Creatures.make(sl.id, { screenEnc: CHAR_STAGE.out === 'sRGB' }); /* (colour check) the stage encodes sRGB now: no srgbOut of their own (it would encode twice) */ if (!m) return; m.root.position.set(...sl.AT); m.root.rotation.y = Math.atan2(-sl.AT[0], -sl.AT[2]); PGA.arena.add(m.root);
       pgaSync(); sl.mob = m; sl.anim = 'idle'; sl.blobMob.visible = true; if (PGA.si === i) { PGA.mob = m; PGA.anim = 'idle'; } pgaHud(); }).catch(() => pgaHud())); }
   function pgaClose() { if (!PGA.on) return; PGA.on = false; ashClear(); if (typeof CoinDrops !== 'undefined') CoinDrops.clear('pga'); if (typeof HealthBars !== 'undefined') HealthBars.clear('pga'); for (const sl of pgaSync()) { const m = sl.mob; sl.mob = null; if (m) { m.mixer.stopAllAction(); if (m.root.parent) m.root.parent.remove(m.root); dropObj(m.root); for (const q of m.mats) q.dispose(); } } PGA.mob = null; PGA.mobs = null; PGA.si = -1; PGA.tgt = 0; PGA.id = (pgaRows()[0] || { id: 'lumen_mushroom' }).id;
     if (PGA.arena) { if (PGA.arena.parent) PGA.arena.parent.remove(PGA.arena); dropObj(PGA.arena); PGA.arena.traverse((o) => { for (const q of [].concat(o.material || [])) q.dispose(); }); PGA.arena = null; }
@@ -14413,10 +14420,14 @@ const CharView = (() => {
   const climbFacFor = (explore) => (explore ? CLIMB_EX * CLIMB_LOCK.ex : CLIMB_LOCK.out);
   const climbSpeeds = () => ({ ex: climbFacFor(true), out: climbFacFor(false), teth: CLIMB_LOCK.teth, down: (TV.hop / TV.hopT) * CLIMB_LOCK.teth, up: (TV.aD / TV.aT) * CLIMB_LOCK.teth, picks: rig && rig.built.climb ? rig.built.climb.R.userData.grade : null, tether: rig && rig.built.tethers && rig.built.tethers[0] ? rig.built.tethers[0].grp.userData.grade : null });
   const EXK = 1.18; // Explore body scale (character scale on the map)
+  // (colour check t628u) her meshes on the map: no receive-shadow (the map's km-scale shadow map would stripe her) and no ACES (the map's grade would wash her out;
+  // she keeps her own colours like the monsters). One function for entering, leaving and meshes that load late (Art's body: artBody)
+  function exTone(root, on) { root.traverse((o) => { if (!o.isMesh) return; if (on) { if (o.userData.rs0 === undefined) o.userData.rs0 = o.receiveShadow; o.receiveShadow = false; for (const m of [].concat(o.material)) if (m.toneMapped) { m.toneMapped = false; m.userData.tm0 = 1; m.needsUpdate = true; } }
+      else { if (o.userData.rs0 !== undefined) o.receiveShadow = o.userData.rs0; for (const m of [].concat(o.material)) if (m.userData.tm0) { m.toneMapped = true; m.userData.tm0 = 0; m.needsUpdate = true; } } }); }
 function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return null; setChar(S.charSex === 'f' ? 'f' : 'm'); if (st.tree) treeMode(false); if (st.home) homeMode(false); if (st.ledge) ledgeMode(false); stop(); st.explore = true; st.play = false; st.pg = null; pgMark(null); st.anim = 'idle'; st.yaw = 0; st.yawV = 0; st.tool = 'none'; an.eq = { held: 'none', seq: null, t: 0 }; an.cl = null; an.tv = null; an.act = null;
-    par.add(rig.root); rig.root.scale.setScalar(EXK); /* on the map she stands ~0.13 m under the top of her Ledge door set (1.91 m vs 2.04 m) */ rig.root.traverse((o) => { if (o.isMesh) { if (o.userData.rs0 === undefined) o.userData.rs0 = o.receiveShadow; o.receiveShadow = false; for (const m of [].concat(o.material)) if (m.toneMapped) { m.toneMapped = false; m.userData.tm0 = 1; m.needsUpdate = true; } } }); // the map's km-scale shadow map would stripe her (acne); the map's ACES grade would wash her out, so she keeps her own colours
+    par.add(rig.root); rig.root.scale.setScalar(EXK); /* on the map she stands ~0.13 m under the top of her Ledge door set (1.91 m vs 2.04 m) */ exTone(rig.root, true); // the map's km-scale shadow map would stripe her (acne); the map's ACES grade would wash her out, so she keeps her own colours
     st.gnd = { home: true, explore: true, x, z, y: hy(x, z), face, mv: 0, back: 0, bnd: { X0: -1e5, X1: 1e5, Z0: -1e5, Z1: 1e5 }, obs: [], hy }; st.exCf = V(x, st.gnd.y, z); return st.gnd; }
-  function exploreOff() { soloOff(); if (!st.explore) return; st.explore = false; st.gnd = null; if (rig) { scene.add(rig.root); rig.root.scale.setScalar(1); rig.root.position.set(0, 0, 0); rig.root.rotation.y = 0; rig.root.traverse((o) => { if (o.isMesh && o.userData.rs0 !== undefined) o.receiveShadow = o.userData.rs0; if (o.isMesh) for (const m of [].concat(o.material)) if (m.userData.tm0) { m.toneMapped = true; m.userData.tm0 = 0; m.needsUpdate = true; } }); } st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; an.act = null; }
+  function exploreOff() { soloOff(); if (!st.explore) return; st.explore = false; st.gnd = null; if (rig) { scene.add(rig.root); rig.root.scale.setScalar(1); rig.root.position.set(0, 0, 0); rig.root.rotation.y = 0; exTone(rig.root, false); } st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; an.act = null; }
   function exploreStep(dt) { const G = st.gnd; if (!st.explore || !G) return; clk += dt; st.frames++; st.yaw = 0; const par = rig.root.parent, s0 = par ? par.scale.x : 1; if (par) { par.scale.setScalar(1); par.updateMatrixWorld(true); } animate(rig, clk, dt); if (par) { par.scale.setScalar(s0); par.updateMatrixWorld(true); } /* the limb IK works in metres: solve the pose unscaled (bone rotations do not depend on the group scale), then show her at map scale */ if (!G.exC) G.y += (G.hy(G.x, G.z) - G.y) * (1 - Math.exp(-dt * 14)); const k = 1 - Math.exp(-dt * CAM_FOLLOW), c = st.exCf; /* the same tight follow as every walkable scene */ c.x += (G.x - c.x) * k; c.y += (G.y - c.y) * k; c.z += (G.z - c.z) * k; }
   function exploreCam(d, tilt, az) { return camP(st.exCf, d, tilt, az, 1); }
   function show(mode) { wrap = document.getElementById('charWrap'); if (mode) soloOff(); if (mode && st.explore && typeof Explore !== 'undefined') Explore.exit(); wrap.classList.remove('hidden'); st.visible = true; if (!R && !initGL()) return; if (!mode) soloOn(); /* (t584u) the Character tab: its own stage; her world self stays put */ const sex = S.charSex === 'f' ? 'f' : 'm'; if (st.tool === undefined) { st.tool = S.toolMode === 'climb' ? 'climb' : 'pick'; an.eq = null; setTool(st.tool, true); } setChar(sex); if (st.gait === undefined) { st.gait = 'run'; document.querySelectorAll('#charClimb [data-gait]').forEach((b) => b.classList.toggle('on', b.dataset.gait === st.gait)); } if (mode !== 'tree' && st.tree) { treeMode(false); setAnim('idle'); } if (mode === 'home') homeMode(true); else if (st.home) { homeMode(false); setAnim('idle'); } if (mode === 'ledge') ledgeMode(true); else if (st.ledge) { ledgeMode(false); setAnim('idle'); } if (mode === 'tree') treeMode(true); resize(); start(); }
