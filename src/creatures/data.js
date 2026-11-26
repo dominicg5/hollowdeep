@@ -38,12 +38,92 @@ const LUMEN_MUSHROOM = {
 };
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
-const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM };
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// (GD-30, Dominic via Art t526s2249) Art's golem family: Tin < Copper < Coal (ore tiers). One body (Art's image-to-3D golem, 23,154 tris, 20 bones), each
+// painted for its ore. Clips Idle / Walk / Attack / Hit / Death. ALL STATS BELOW ARE PLACEHOLDERS, NOT APPROVED (ascending with the ore tier).
+const TIN_GOLEM = {
+  id: 'tin_golem',
+  name: 'Tin Golem',
+  hp: 20,           // placeholder, not approved
+  str: 2,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
+  def: 5,            // placeholder, not approved
+  acc: 35,           // placeholder, not approved
+  xp: 80,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
+  respawnS: 6,
+  height: 2.6,      // metres (Art's build: 2.6 m)
+  bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
+  atkS: 3,          // placeholder, not approved - seconds between slams once provoked
+  atkHitAt: 0.633,  // the two-fist slam lands 0.633 s into Attack (Art's hit_timing.json, frame 19 @ 30 fps)
+  deathHitAt: 1.067, // Death: it hits the ground 1.067 s in (frame 32); it holds the final pose, then sinks away before the respawn
+  atkReach: 0.9,    // metres past its body surface that the slam closes to; a slam lands if she is still within atkReach + 0.35
+  aggro: 'provoked', // passive until she hits it, like the mushroom
+  leashR: 5,        // placeholder, not approved
+  walkSpd: 0.45,    // m/s - placeholder, not approved
+  icon: '🪨',
+  model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's build, copied unchanged (tin_golem_i23d.glb)
+  clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
+  shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+};
+const COPPER_GOLEM = {
+  id: 'copper_golem',
+  name: 'Copper Golem',
+  hp: 35,           // placeholder, not approved
+  str: 3,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
+  def: 10,            // placeholder, not approved
+  acc: 45,           // placeholder, not approved
+  xp: 140,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
+  respawnS: 6,
+  height: 2.6,      // metres (Art's build: 2.6 m)
+  bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
+  atkS: 3,          // placeholder, not approved - seconds between slams once provoked
+  atkHitAt: 0.633,  // the two-fist slam lands 0.633 s into Attack (Art's hit_timing.json, frame 19 @ 30 fps)
+  deathHitAt: 1.067, // Death: it hits the ground 1.067 s in (frame 32); it holds the final pose, then sinks away before the respawn
+  atkReach: 0.9,    // metres past its body surface that the slam closes to; a slam lands if she is still within atkReach + 0.35
+  aggro: 'provoked', // passive until she hits it, like the mushroom
+  leashR: 5,        // placeholder, not approved
+  walkSpd: 0.45,    // m/s - placeholder, not approved
+  icon: '🪨',
+  model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's build, copied unchanged (copper_golem_i23d.glb)
+  clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
+  shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+};
+const COAL_GOLEM = {
+  id: 'coal_golem',
+  name: 'Coal Golem',
+  hp: 50,           // placeholder, not approved
+  str: 4,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
+  def: 15,            // placeholder, not approved
+  acc: 55,           // placeholder, not approved
+  xp: 200,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
+  respawnS: 6,
+  height: 2.6,      // metres (Art's build: 2.6 m)
+  bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
+  atkS: 3,          // placeholder, not approved - seconds between slams once provoked
+  atkHitAt: 0.633,  // the two-fist slam lands 0.633 s into Attack (Art's hit_timing.json, frame 19 @ 30 fps)
+  deathHitAt: 1.067, // Death: it hits the ground 1.067 s in (frame 32); it holds the final pose, then sinks away before the respawn
+  atkReach: 0.9,    // metres past its body surface that the slam closes to; a slam lands if she is still within atkReach + 0.35
+  aggro: 'provoked', // passive until she hits it, like the mushroom
+  leashR: 5,        // placeholder, not approved
+  walkSpd: 0.4,    // m/s - placeholder, not approved
+  icon: '🪨',
+  model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's build, copied unchanged (coal_golem_i23d.glb)
+  clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
+  shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+};
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+
+const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM };
 
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
 const PLAYGROUND_COMBAT = {
   ATTACK_INTERVAL_S: 3,
+  // (GD-30) who stands in the arena: the first row is her default target (the HUD); at = spawn spot (arena metres, she starts at the centre);
+  // roam = metres it wanders round its spawn (0 / missing = the whole arena)
+  CREATURES: [
+    { id: 'lumen_mushroom', at: [0.38, 0, 0.95] },
+    { id: 'tin_golem', at: [-3.4, 0, -2.6], roam: 1.6 },
+  ],
   // (Dominic t698u) chasing a creature that walks away: once she is back in reach she starts AND finishes a whole attack sequence.
   // COMMIT_SWING: a started swing is never dropped to re-chase (she stays, keeps facing it); KEEP_REACH_M: hysteresis - a committed swing still lands at its
   // strike point up to REACH + this (she starts at STAND + 0.3, the plain reach is 1.7 m); SLOW_TARGET: the creature's walk speed while her swing is on it

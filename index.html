@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='e0ed5ed6';
+<script>window.HD_BUILD='0074ba82';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build e0ed5ed6</div>
-<script src="assets/vendor/three.min.js?v=e0ed5ed6"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 0074ba82</div>
+<script src="assets/vendor/three.min.js?v=0074ba82"></script>
 <script>
 'use strict';
 
@@ -10207,12 +10207,92 @@ const LUMEN_MUSHROOM = {
 };
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
-const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM };
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// (GD-30, Dominic via Art t526s2249) Art's golem family: Tin < Copper < Coal (ore tiers). One body (Art's image-to-3D golem, 23,154 tris, 20 bones), each
+// painted for its ore. Clips Idle / Walk / Attack / Hit / Death. ALL STATS BELOW ARE PLACEHOLDERS, NOT APPROVED (ascending with the ore tier).
+const TIN_GOLEM = {
+  id: 'tin_golem',
+  name: 'Tin Golem',
+  hp: 20,           // placeholder, not approved
+  str: 2,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
+  def: 5,            // placeholder, not approved
+  acc: 35,           // placeholder, not approved
+  xp: 80,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
+  respawnS: 6,
+  height: 2.6,      // metres (Art's build: 2.6 m)
+  bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
+  atkS: 3,          // placeholder, not approved - seconds between slams once provoked
+  atkHitAt: 0.633,  // the two-fist slam lands 0.633 s into Attack (Art's hit_timing.json, frame 19 @ 30 fps)
+  deathHitAt: 1.067, // Death: it hits the ground 1.067 s in (frame 32); it holds the final pose, then sinks away before the respawn
+  atkReach: 0.9,    // metres past its body surface that the slam closes to; a slam lands if she is still within atkReach + 0.35
+  aggro: 'provoked', // passive until she hits it, like the mushroom
+  leashR: 5,        // placeholder, not approved
+  walkSpd: 0.45,    // m/s - placeholder, not approved
+  icon: '🪨',
+  model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's build, copied unchanged (tin_golem_i23d.glb)
+  clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
+  shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+};
+const COPPER_GOLEM = {
+  id: 'copper_golem',
+  name: 'Copper Golem',
+  hp: 35,           // placeholder, not approved
+  str: 3,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
+  def: 10,            // placeholder, not approved
+  acc: 45,           // placeholder, not approved
+  xp: 140,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
+  respawnS: 6,
+  height: 2.6,      // metres (Art's build: 2.6 m)
+  bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
+  atkS: 3,          // placeholder, not approved - seconds between slams once provoked
+  atkHitAt: 0.633,  // the two-fist slam lands 0.633 s into Attack (Art's hit_timing.json, frame 19 @ 30 fps)
+  deathHitAt: 1.067, // Death: it hits the ground 1.067 s in (frame 32); it holds the final pose, then sinks away before the respawn
+  atkReach: 0.9,    // metres past its body surface that the slam closes to; a slam lands if she is still within atkReach + 0.35
+  aggro: 'provoked', // passive until she hits it, like the mushroom
+  leashR: 5,        // placeholder, not approved
+  walkSpd: 0.45,    // m/s - placeholder, not approved
+  icon: '🪨',
+  model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's build, copied unchanged (copper_golem_i23d.glb)
+  clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
+  shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+};
+const COAL_GOLEM = {
+  id: 'coal_golem',
+  name: 'Coal Golem',
+  hp: 50,           // placeholder, not approved
+  str: 4,            // placeholder, not approved - its slam does str on a full hit, otherwise 0..str (Combat.creatureAttack)
+  def: 15,            // placeholder, not approved
+  acc: 55,           // placeholder, not approved
+  xp: 200,           // Combat XP per kill = 4 x HP (Art's rule) - follows the placeholder HP
+  respawnS: 6,
+  height: 2.6,      // metres (Art's build: 2.6 m)
+  bodyR: 0.85,      // (GD-30) metres from its centre to its body surface: her reach / stand-off and its slam reach are measured from here (the mushroom is 0)
+  atkS: 3,          // placeholder, not approved - seconds between slams once provoked
+  atkHitAt: 0.633,  // the two-fist slam lands 0.633 s into Attack (Art's hit_timing.json, frame 19 @ 30 fps)
+  deathHitAt: 1.067, // Death: it hits the ground 1.067 s in (frame 32); it holds the final pose, then sinks away before the respawn
+  atkReach: 0.9,    // metres past its body surface that the slam closes to; a slam lands if she is still within atkReach + 0.35
+  aggro: 'provoked', // passive until she hits it, like the mushroom
+  leashR: 5,        // placeholder, not approved
+  walkSpd: 0.4,    // m/s - placeholder, not approved
+  icon: '🪨',
+  model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's build, copied unchanged (coal_golem_i23d.glb)
+  clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
+  shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+};
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+
+const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM };
 
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
 const PLAYGROUND_COMBAT = {
   ATTACK_INTERVAL_S: 3,
+  // (GD-30) who stands in the arena: the first row is her default target (the HUD); at = spawn spot (arena metres, she starts at the centre);
+  // roam = metres it wanders round its spawn (0 / missing = the whole arena)
+  CREATURES: [
+    { id: 'lumen_mushroom', at: [0.38, 0, 0.95] },
+    { id: 'tin_golem', at: [-3.4, 0, -2.6], roam: 1.6 },
+  ],
   // (Dominic t698u) chasing a creature that walks away: once she is back in reach she starts AND finishes a whole attack sequence.
   // COMMIT_SWING: a started swing is never dropped to re-chase (she stays, keeps facing it); KEEP_REACH_M: hysteresis - a committed swing still lands at its
   // strike point up to REACH + this (she starts at STAND + 0.3, the plain reach is 1.7 m); SLOW_TARGET: the creature's walk speed while her swing is on it
@@ -10233,6 +10313,147 @@ const PLAYGROUND_COMBAT = {
     LIFE_S: 1.1,        // a speck fades out over this
   },
 };
+/* ===== HDToon: Art's Hollowdeep creature look (creature_pipeline/scripts/hollowdeepToon.js, copied verbatim for three r149; only the ES-module
+   import / export lines are dropped so it runs on the game's global THREE). makeChalkMaterial(): painted 3-step toon with chalk grain, cool shadow
+   tint, warm rim, lumenite emissive; addInkOutline(): constant-pixel inverted-hull ink that follows the skin. Used by Creatures.make for rows with
+   shade: 'hdToon' (the golems). Do not edit here - update Art's file and re-copy. ===== */
+const HDToon = (() => {
+// Hollowdeep creature look for three r149: chalky painted toon + crack-free ink outline. ES module.
+const NOISE = `
+float hd_h(vec3 p){ p = fract(p*0.3183099 + .1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float hd_n(vec3 x){ vec3 i = floor(x), f = fract(x); f = f*f*(3.0-2.0*f);
+  return mix(mix(mix(hd_h(i),hd_h(i+vec3(1,0,0)),f.x),mix(hd_h(i+vec3(0,1,0)),hd_h(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hd_h(i+vec3(0,0,1)),hd_h(i+vec3(1,0,1)),f.x),mix(hd_h(i+vec3(0,1,1)),hd_h(i+vec3(1,1,1)),f.x),f.y),f.z); }
+float hd_fbm(vec3 p){ return hd_n(p)*0.55 + hd_n(p*2.13)*0.28 + hd_n(p*4.41)*0.17; }
+float hd_st(vec3 q, vec3 d){ vec3 a = normalize(cross(d, vec3(0.3,0.5,0.8))); vec3 b = cross(d,a);
+  return hd_n(vec3(dot(q,d)*0.5, dot(q,a)*7.5, dot(q,b)*7.5)); }       // stretched noise -> short chalk dashes            // long thin chalk stroke field
+float hdGrain; float hdTooth; float hdStroke;`;
+// opts: grain (terminator raggedness), tooth (paper grain on colour), steps, shade (cool shadow tint), rim, emissive (0..1 of vertex colour)
+function makeChalkMaterial(o = {}) {
+  const m = new THREE.MeshToonMaterial({ vertexColors: o.vertexColors !== false, color: o.color ?? 0xffffff, flatShading: !!o.flat });
+  const U = { uAtlasC:{value:o.atlasColor||null}, uGlow:{value:o.glow??1.6}, uGlowC:{value:new THREE.Vector3(...(o.glowColor||[0.027,0.63,0.51]))}, uAtlasN:{value:o.atlasNormal||null}, uNormalAmt:{value:o.normalAmt??0.45}, uAtlasOverride:{value:o.atlasOverride??-1.0}, uTS:{value:o.tileScales||[1,1,1,1,1,1,1,1]}, uHA:{value:o.tileHue||[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]}, uVA:{value:o.tileVal||[0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8]}, uNA:{value:o.tileNormal||[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]}, uLM:{value:o.tileLum||[0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2]}, uABlend:{value:o.atlasBlend??0.6},
+    uGrain: { value: o.grain ?? 0.32 }, uTooth: { value: o.tooth ?? 0.22 }, uScale: { value: o.scale ?? 9.0 },
+    uShade: { value: new THREE.Color(o.shade ?? 0x6a6488) }, uRim: { value: new THREE.Color(o.rim ?? 0xffe6b8) }, uRimAmt: { value: o.rimAmt ?? 0.35 },
+    uEmis: { value: o.emissive ?? 0.0 }, uLift: { value: o.lift ?? 0.0 }, uStroke: { value: o.stroke ?? 0.0 }, uFacet: { value: o.facet ?? 0.0 },
+    uDetail: { value: o.detailMap ?? null }, uDetailS: { value: 1.0 / (o.detailScale ?? 1.0) }, uDetailAmt: { value: o.detailMap ? (o.detailAmt ?? 0.5) : 0.0 } };
+  if (o.detailMap) { o.detailMap.wrapS = o.detailMap.wrapT = THREE.RepeatWrapping; m.defines = { ...(m.defines||{}), HD_DETAIL: 1 }; }
+  if(o.atlasColor) m.defines = {...(m.defines||{}),HD_ATLAS:1};
+  m.userData.uniforms = U;
+  m.onBeforeCompile = (s) => {
+    Object.assign(s.uniforms, U);
+    s.vertexShader = s.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vObj;\n#ifdef HD_ATLAS\nattribute vec3 hdTex; varying vec3 vHD; attribute float hdGlow; varying float vGlow;\n#endif')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vObjN;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position; vObjN = normal;\n#ifdef HD_ATLAS\nvHD=hdTex; vGlow=hdGlow;\n#endif');   // bind-pose coords: grain sticks to the body when animated
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vObj; varying vec3 vObjN;\nuniform float uGrain,uTooth,uScale,uRimAmt,uEmis,uLift,uStroke,uFacet,uDetailS,uDetailAmt;\n#ifdef HD_DETAIL\nuniform sampler2D uDetail;\n#endif\nuniform vec3 uShade,uRim;\n${NOISE}
+#ifdef HD_ATLAS
+varying vec3 vHD; varying float vGlow; uniform float uGlow; uniform vec3 uGlowC; uniform sampler2D uAtlasC,uAtlasN; uniform float uNormalAmt,uAtlasOverride,uABlend; uniform float uTS[8], uHA[8], uVA[8], uNA[8], uLM[8];
+float hdPick(float a[8], float i){ float s=a[0]; for(int k=0;k<8;k++) if(abs(float(k)-i)<0.5) s=a[k]; return s; }
+float hdTS(float i){ return hdPick(uTS,i); }
+vec2 hdUV(vec2 uv,float idx){ vec2 tile=vec2(mod(idx,4.0),1.0-floor(idx/4.0)); /* atlas row 0 is the TOP of the png; textures are flipY'd */ return (tile + (16.0+fract(uv)*512.0)/544.0)/vec2(4.0,2.0); }
+vec3 hdTri(sampler2D t,vec3 P,vec3 w,float i){ vec3 p=P/hdTS(i); return texture2D(t,hdUV(p.yz,i)).rgb*w.x+texture2D(t,hdUV(p.xz,i)).rgb*w.y+texture2D(t,hdUV(p.xy,i)).rgb*w.z; }
+vec3 hdPerturb(vec3 eye,vec3 N,vec3 mapN,vec2 uv){
+ vec3 q0=dFdx(eye),q1=dFdy(eye); vec2 st0=dFdx(uv),st1=dFdy(uv);
+ vec3 q1p=cross(q1,N),q0p=cross(N,q0); vec3 T=q1p*st0.x+q0p*st1.x, B=q1p*st0.y+q0p*st1.y;
+ float sc=inversesqrt(max(max(dot(T,T),dot(B,B)),1e-8)); return normalize(T*sc*mapN.x+B*sc*mapN.y+N*mapN.z); }
+#endif`)
+
+      .replace('#include <gradientmap_pars_fragment>', `
+vec3 getGradientIrradiance(vec3 normal, vec3 lightDirection){
+  float x = dot(normal, lightDirection)*0.5 + 0.5 + (hdGrain-0.5)*uGrain;      // chalk-ragged terminator
+  float t = 0.18 + 0.47*smoothstep(0.47,0.53,x) + 0.35*smoothstep(0.74,0.79,x); // 3 painted tone steps
+  return mix(uShade, vec3(1.0), t);                                              // cool painted shadow
+}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+  vec3 q = vObj*uScale;
+  hdStroke = max(hd_st(q*1.1, normalize(vec3(1.0,0.35,0.6))), hd_st(q*1.45+7.0, normalize(vec3(-0.45,1.0,0.25)))*0.92);
+  hdStroke = smoothstep(0.66, 0.88, hdStroke);
+  hdGrain = mix(hd_fbm(q*1.0) * 0.6 + hd_n(q*7.3) * 0.4, hdStroke, uStroke);
+  hdTooth = hd_n(q*9.7)*0.6 + hd_n(q*23.0)*0.4;
+  #ifdef HD_ATLAS
+  { float ta=uAtlasOverride>=0.0?uAtlasOverride:floor(vHD.x+0.5), tb=floor(vHD.y+0.5), wb=clamp(vHD.z,0.0,1.0);
+    vec3 w=pow(abs(normalize(vObjN)),vec3(4.0)); w/=max(w.x+w.y+w.z,0.0001);
+    // per-material preset: the atlas gives the VALUE pattern (normalised by its mean, amount uVA) and only uHA of the hue;
+    // the rest of the hue stays the painted palette (cool grey stone stays grey, warm only where the paint is warm)
+    float lv=dot(diffuseColor.rgb,vec3(0.3,0.59,0.11));
+    if(ta>=0.0){ vec3 ca=pow(hdTri(uAtlasC,vObj,w,ta),vec3(2.2)); float lmA=hdPick(uLM,ta);
+      vec3 cA=mix(diffuseColor.rgb*mix(1.0,clamp(dot(ca,vec3(0.3,0.59,0.11))/lmA,0.3,2.2),hdPick(uVA,ta)), ca*lv/lmA, hdPick(uHA,ta));
+      if(tb>=0.0 && wb>0.01){ vec3 cb=pow(hdTri(uAtlasC,vObj,w,tb),vec3(2.2)); float lmB=hdPick(uLM,tb);
+        vec3 cB=mix(diffuseColor.rgb*mix(1.0,clamp(dot(cb,vec3(0.3,0.59,0.11))/lmB,0.3,2.2),hdPick(uVA,tb)), cb*lv/lmB, hdPick(uHA,tb));
+        cA=mix(cA,cB,wb); }
+      diffuseColor.rgb=mix(diffuseColor.rgb,cA,uABlend); }
+  }
+  #endif
+  #ifdef HD_DETAIL
+  { vec3 w = pow(abs(normalize(vObjN)), vec3(4.0)); w /= (w.x + w.y + w.z); vec3 pd = vObj * uDetailS;
+    float dt = texture2D(uDetail, pd.yz).r * w.x + texture2D(uDetail, pd.xz).r * w.y + texture2D(uDetail, pd.xy).r * w.z;
+    diffuseColor.rgb *= 1.0 + (dt - 0.5) * 2.0 * uDetailAmt;            // CC0 surface features, value-only (repainted)
+    hdGrain = mix(hdGrain, dt, 0.35); }
+  #endif
+  diffuseColor.rgb *= 1.0 + hdStroke*0.12*uStroke;                               // light chalk strokes over the paint
+  diffuseColor.rgb *= 1.0 - uFacet*0.5 + uFacet*hd_h(floor(normalize(vObjN)*6.0)+3.1);   // per-facet value shift (crystals)
+  diffuseColor.rgb *= 1.0 + (hd_fbm(q*0.35)-0.5)*0.22;                          // big painted value wobble
+  diffuseColor.rgb *= 1.0 - uTooth*0.5 + uTooth*hdTooth;                          // paper tooth / chalk`)
+      .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+#ifdef HD_ATLAS
+{ float ta=uAtlasOverride>=0.0?uAtlasOverride:floor(vHD.x+0.5), tb=floor(vHD.y+0.5), wb=clamp(vHD.z,0.0,1.0);
+ if(ta>=0.0){ vec3 w=pow(abs(normalize(vObjN)),vec3(4.0)); w/=max(w.x+w.y+w.z,0.0001);
+  float sa=hdTS(ta); vec3 pa=vObj/sa;
+  vec3 nx=texture2D(uAtlasN,hdUV(pa.yz,ta)).xyz*2.0-1.0, ny=texture2D(uAtlasN,hdUV(pa.xz,ta)).xyz*2.0-1.0, nz=texture2D(uAtlasN,hdUV(pa.xy,ta)).xyz*2.0-1.0;
+  if(tb>=0.0 && wb>0.01){ float sb=hdTS(tb); vec3 pb=vObj/sb;
+   nx=mix(nx,texture2D(uAtlasN,hdUV(pb.yz,tb)).xyz*2.0-1.0,wb); ny=mix(ny,texture2D(uAtlasN,hdUV(pb.xz,tb)).xyz*2.0-1.0,wb); nz=mix(nz,texture2D(uAtlasN,hdUV(pb.xy,tb)).xyz*2.0-1.0,wb); }
+  float na=mix(hdPick(uNA,ta),(tb>=0.0?hdPick(uNA,tb):hdPick(uNA,ta)),wb)*uNormalAmt; nx.xy*=na; ny.xy*=na; nz.xy*=na;
+  normal=normalize(hdPerturb(-vViewPosition,normal,normalize(nx),pa.yz)*w.x+hdPerturb(-vViewPosition,normal,normalize(ny),pa.xz)*w.y+hdPerturb(-vViewPosition,normal,normalize(nz),pa.xy)*w.z); }
+}
+#endif`)
+      .replace('#include <aomap_fragment>', `#include <aomap_fragment>
+  { vec3 V = normalize(vViewPosition); float fr = pow(1.0 - clamp(dot(normal, V), 0.0, 1.0), 3.0);
+    reflectedLight.directDiffuse += uRim * smoothstep(0.35,0.6,fr) * uRimAmt * diffuseColor.rgb;
+    reflectedLight.indirectDiffuse += diffuseColor.rgb * uLift; }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * uEmis;\n#ifdef HD_ATLAS\n  totalEmissiveRadiance += uGlowC * vGlow * uGlow;   // lumenite crack veins\n#endif`);
+  };
+  m.customProgramCacheKey = () => 'hdchalk' + (o.detailMap ? 'D' : '') + (o.atlasColor?'A':'');
+  return m;
+}
+// Smoothed normals keyed by position: hull stays closed across flat-shaded/split seams -> no cracks.
+function smoothNormalsByPosition(geo) {
+  const pos = geo.attributes.position, nrm = geo.attributes.normal, map = new Map(), key = (i) =>
+    `${Math.round(pos.getX(i) * 1e4)},${Math.round(pos.getY(i) * 1e4)},${Math.round(pos.getZ(i) * 1e4)}`;
+  const idx = geo.index ? geo.index.array : null, n = idx ? idx.length : pos.count;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3(), fn = new THREE.Vector3();
+  for (let t = 0; t < n; t += 3) {
+    const i0 = idx ? idx[t] : t, i1 = idx ? idx[t + 1] : t + 1, i2 = idx ? idx[t + 2] : t + 2;
+    a.fromBufferAttribute(pos, i0); b.fromBufferAttribute(pos, i1); c.fromBufferAttribute(pos, i2);
+    fn.subVectors(c, b).cross(a.clone().sub(b)); // area-weighted
+    for (const i of [i0, i1, i2]) { const k = key(i); const v = map.get(k) || new THREE.Vector3(); v.add(fn); map.set(k, v); }
+  }
+  const out = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) { const v = map.get(key(i)).clone().normalize(); out.set([v.x, v.y, v.z], i * 3); }
+  return new THREE.BufferAttribute(out, 3);
+}
+// Constant-pixel-width ink hull for (Skinned)Mesh. width in px at 1080p-equivalent.
+function addInkOutline(mesh, o = {}) {
+  const g = mesh.geometry.clone(); g.setAttribute('normal', smoothNormalsByPosition(mesh.geometry));
+  const mat = new THREE.MeshBasicMaterial({ color: o.color ?? 0x2b1d14, side: THREE.BackSide });
+  const U = { uW: { value: o.width ?? 2.2 }, uWorld: { value: o.worldWidth ?? 0.022 }, uRes: { value: new THREE.Vector2(1080, 1080) } };   // R7: outline = min(uW px, uWorld metres): thin at small on-screen size
+  mat.userData.uniforms = U;
+  mat.onBeforeCompile = (s) => { Object.assign(s.uniforms, U);
+    s.vertexShader = s.vertexShader.replace('#if defined ( USE_ENVMAP ) || defined ( USE_SKINNING )', '#if 1')
+      .replace('#include <common>', '#include <common>\nuniform float uW; uniform float uWorld; uniform vec2 uRes;')
+      .replace('#include <project_vertex>', `#include <project_vertex>
+  { vec3 nV = normalize(normalMatrix * objectNormal); vec2 d = (projectionMatrix * vec4(nV, 0.0)).xy;
+    float l = length(d); if (l > 1e-5) gl_Position.xy += d / l * min(uW * 2.0 / uRes.y * gl_Position.w, uWorld * projectionMatrix[1][1]); gl_Position.z += 0.0004 * gl_Position.w; }`); };
+  mat.customProgramCacheKey = () => 'hdink';
+  const ol = mesh.isSkinnedMesh ? new THREE.SkinnedMesh(g, mat) : new THREE.Mesh(g, mat);
+  if (mesh.isSkinnedMesh) ol.bind(mesh.skeleton, mesh.bindMatrix);
+  ol.name = mesh.name + '_ink'; ol.frustumCulled = false; ol.userData.isInk = true;
+  mesh.parent.add(ol); ol.position.copy(mesh.position); ol.quaternion.copy(mesh.quaternion); ol.scale.copy(mesh.scale);
+  return ol;
+}
+function setInkResolution(root, w, h) { root.traverse((n) => { if (n.userData.isInk) n.material.userData.uniforms.uRes.value.set(w, h); }); }
+
+return { makeChalkMaterial, addInkOutline, setInkResolution, smoothNormalsByPosition };
+})();
 /* ===== Creatures: loading, building and animating any CREATURE_DATA entry (src/creatures/data.js) (t661).
    Public API (the Attack Playground in char3d.js uses only this):
      Creatures.get(id)        -> its data row (stats, model, clips, look)
@@ -10240,17 +10461,23 @@ const PLAYGROUND_COMBAT = {
      Creatures.make(id)       -> one instance { id, def, root (Group, feet at y 0, facing +z), model, mixer, clips, names, play(name, once), mats } or null until loaded
      Creatures.ready(id) / Creatures.error(id)
    A minimal GLB reader covers what the Quaternius creature files hold: nodes, one skin, one mesh of several primitives, LINEAR rotation / translation /
-   scale clips, tightly packed buffers. ===== */
+   scale clips, tightly packed buffers. (GD-30) Also Art's golems: several skinned mesh nodes, STEP keys, normalized COLOR_0 vertex paint, and a row with
+   shade: 'hdToon' gets Art's chalk toon + ink outline (src/creatures/hd_toon.js) from each GLB material's extras (hd_shade / hd_rim / hd_ink / hd_emis / hd_gloss). ===== */
 const Creatures = (() => {
   const CT = { 5121: Uint8Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array }, NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 };
   const ST = {}; // id -> { gl, bin, p, err }
   const get = (id) => CREATURE_DATA[id] || null, st = (id) => ST[id] || (ST[id] = { gl: null, bin: null, p: null, err: null });
   function acc(S, i) { const g = S.gl, a = g.accessors[i], bv = g.bufferViews[a.bufferView], T = CT[a.componentType], n = NC[a.type], off = S.bin.byteOffset + (bv.byteOffset || 0) + (a.byteOffset || 0);
-    return { arr: new T(S.bin.buffer.slice(off, off + a.count * n * T.BYTES_PER_ELEMENT)), n }; }
+    return { arr: new T(S.bin.buffer.slice(off, off + a.count * n * T.BYTES_PER_ELEMENT)), n, norm: !!a.normalized }; }
   function load(id) { const D = get(id); if (!D) return Promise.reject(new Error('no creature ' + id)); const S = st(id); if (S.p) return S.p;
     S.p = fetch(D.model).then((r) => { if (!r.ok) throw new Error(id + ' ' + r.status); return r.arrayBuffer(); }).then((ab) => { const dv = new DataView(ab); let o = 12;
       while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) S.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) S.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
       if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
+  // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
+  function hdMat(D, gm) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm);
+    const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
+      : T.makeChalkMaterial({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 });
+    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; return m; }
   function mat(D, name) { const L = (D.look || []).find((r) => r.test.test(name)) || { part: 'body', color: 0xcccccc }, m = new THREE.MeshLambertMaterial({ color: L.color });
     if (L.emissive != null) { m.emissive.setHex(L.emissive); m.emissiveIntensity = L.glow == null ? 1 : L.glow; } m.name = D.id + ':' + L.part; return m; }
   function make(id) { const D = get(id), S = ST[id]; if (!D || !S || !S.gl) return null; const g = S.gl, J = (g.skins && g.skins[0] && g.skins[0].joints) || [];
@@ -10260,18 +10487,21 @@ const Creatures = (() => {
     const model = new THREE.Group(); model.name = D.id + 'Model'; for (const i of g.scenes[g.scene || 0].nodes) model.add(nodes[i]); model.updateMatrixWorld(true);
     let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
     const mats = [];
-    g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n)); };
-        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
-        const m = mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
+    g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
+        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') put('COLOR_0', 'color'); /* (the golems' painted swatches; their _HD_* atlas attributes are not uploaded) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
+        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material]) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
     // (GD-12: the invisible mushroom) glTF skinning ignores the skinned mesh node's own transform - the joints' world matrices x inverse bind matrices already place
     // every vertex. FBX2glTF puts the 100x / -90 deg X export transform on BOTH the armature and the mesh node, so binding with the mesh's matrixWorld applied it twice:
     // a ~60 m mesh around the camera (only shards of it on screen). Identity bind matrix; 'attached' mode cancels the mesh node transform (bindMatrixInverse = its inverse).
     model.updateMatrixWorld(true); if (skel) { model.traverse((o) => { if (o.isSkinnedMesh) o.bind(skel, new THREE.Matrix4()); }); model.updateMatrixWorld(true); }
+    if (D.shade === 'hdToon' && typeof HDToon !== 'undefined') { const body = []; model.traverse((o) => { if (o.isMesh && o.material.userData.ink) body.push(o); }); const dpr = (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1;
+      for (const o of body) { const ol = HDToon.addInkOutline(o, o.material.userData.ink); ol.userData.uniformsRes = true; ol.material.userData.uniforms.uRes.value.set((typeof innerWidth !== 'undefined' ? innerWidth : 1080) * dpr, (typeof innerHeight !== 'undefined' ? innerHeight : 1080) * dpr); mats.push(ol.material); } }
     const clips = {}; for (const an of g.animations || []) { const tracks = []; for (const ch of an.channels) { const s = an.samplers[ch.sampler], t = acc(S, s.input).arr, v = acc(S, s.output).arr, nm = nodes[ch.target.node].name;
-        if (ch.target.path === 'rotation') tracks.push(new THREE.QuaternionKeyframeTrack(nm + '.quaternion', t, v)); else if (ch.target.path === 'translation') tracks.push(new THREE.VectorKeyframeTrack(nm + '.position', t, v)); else if (ch.target.path === 'scale') tracks.push(new THREE.VectorKeyframeTrack(nm + '.scale', t, v)); }
+        const ip = s.interpolation === 'STEP' ? THREE.InterpolateDiscrete : undefined; /* (GD-30: the golem clips hold some keys) */
+        if (ch.target.path === 'rotation') tracks.push(new THREE.QuaternionKeyframeTrack(nm + '.quaternion', t, v, ip)); else if (ch.target.path === 'translation') tracks.push(new THREE.VectorKeyframeTrack(nm + '.position', t, v, ip)); else if (ch.target.path === 'scale') tracks.push(new THREE.VectorKeyframeTrack(nm + '.scale', t, v, ip)); }
       const k = an.name.replace(/^.*\|/, ''); clips[k] = new THREE.AnimationClip(k, -1, tracks); }
     // feet on the ground, D.height tall (measured in the bind pose)
-    const bb = new THREE.Box3(), pv = new THREE.Vector3(); model.traverse((o) => { if (!o.isMesh) return; const P = o.geometry.attributes.position;
+    const bb = new THREE.Box3(), pv = new THREE.Vector3(); model.traverse((o) => { if (!o.isMesh || o.userData.isInk) return; const P = o.geometry.attributes.position;
       if (o.isSkinnedMesh) { for (let i = 0; i < P.count; i++) { pv.fromBufferAttribute(P, i); o.boneTransform(i, pv); bb.expandByPoint(pv.applyMatrix4(o.matrixWorld)); } } /* (where the skin really draws it, bones applied) */
       else { o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
     const h = Math.max(1e-4, bb.max.y - bb.min.y), k = (D.height || 1) / h; model.scale.setScalar(k); model.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k); /* (centred on its root, feet on the ground) */
@@ -12499,12 +12729,19 @@ const CharView = (() => {
     arena: null, gnd0: null, F: null, ko: 0, kos: 0, eng: false, aggro: 0, atkT: 0, bite: 0, once: 0, anim: null, wp: null, wt: 1.5, bites: [], calm: 0, mark: null, hunt: false, swT: 0, clk: 0, sl: [], leashD: null };
   const pgaCh = () => Object.assign({ COMMIT_SWING: true, KEEP_REACH_M: 0.6, SLOW_TARGET: 0.3, RETRY_UNLANDED: true, KEEP_DRAWN: true, HOLD_IN_REACH: true }, (typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.CHASE) || {}); // (t698u) chase-then-attack rules (src/creatures/data.js)
   const pgaInt = () => (typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.ATTACK_INTERVAL_S) || 3; // (GD-19) seconds between her locked-on attack sequences (src/creatures/data.js)
+  // (GD-30) several creatures share the arena (PLAYGROUND_COMBAT.CREATURES: the mushroom + Art's Tin Golem). Each has its own slot; the per-creature code below
+  // works on "the loaded one" (PGA.mob / hp / hunt ...), so pgaUse(i) swaps slot i's fields in. PGA.tgt = the one she is fighting (HUD, her swings, CharView.pga).
+  const PGA_MF = ['id', 'mob', 'hp', 'dead', 'hunt', 'bite', 'atkT', 'once', 'anim', 'wp', 'wt', 'leashD', 'aggro', 'blobMob', 'AT', 'home', 'roam', 'sink'];
+  const pgaRows = () => ((typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.CREATURES) || [{ id: 'lumen_mushroom', at: [0.38, 0, 0.95] }]).filter((r) => Creatures.get(r.id));
+  function pgaUse(i) { const L = PGA.mobs; if (!L || !L[i] || PGA.si === i) return; const o = L[PGA.si]; if (o) for (const k of PGA_MF) o[k] = PGA[k]; for (const k of PGA_MF) PGA[k] = L[i][k]; PGA.si = i; }
+  function pgaSync() { const o = PGA.mobs && PGA.mobs[PGA.si]; if (o) for (const k of PGA_MF) o[k] = PGA[k]; return PGA.mobs || []; }
+  const pgaBR = () => pgaC().bodyR || 0; // (GD-30) centre to body surface: reaches are measured from its surface
   const pgaC = () => Creatures.get(PGA.id); // (t661) the target's data row: src/creatures/data.js, built through the Creatures API (src/creatures/creatures.js)
   const pgaMe = () => PGA.F || (PGA.F = Combat.newFight(Combat.playerStats())); // her fight (ward shield, second wind, the 15% healing cap)
-  function pgaHud() { const w = wrap || document.getElementById('charWrap'); if (!w) return; let h = PGA.hud; if (!PGA.on) { if (h) h.remove(); PGA.hud = null; return; }
+  function pgaHud() { if (PGA.on && PGA.mobs && PGA.si !== PGA.tgt && PGA.mobs[PGA.tgt]) { const s0 = PGA.si; pgaUse(PGA.tgt); pgaHud(); pgaUse(s0); return; } /* (GD-30: the HUD always shows her target) */ const w = wrap || document.getElementById('charWrap'); if (!w) return; let h = PGA.hud; if (!PGA.on) { if (h) h.remove(); PGA.hud = null; return; }
     if (!h) { h = PGA.hud = document.createElement('div'); h.id = 'pgaHud'; h.setAttribute('role', 'status'); w.appendChild(h); } const C = pgaC(), f = Math.max(0, PGA.hp) / C.hp, F = pgaMe(), fm = Math.max(0, F.hp) / F.max;
     h.dataset.hp = PGA.hp; h.dataset.me = Math.round(F.hp); h.dataset.state = !PGA.mob ? (Creatures.error(PGA.id) ? 'error' : 'loading') : PGA.dead > 0 ? 'dead' : 'alive'; h.dataset.ko = PGA.ko > 0 ? '1' : '0';
-    h.innerHTML = `<b>🍄 ${C.name}</b><span class="pgaBar"><i style="width:${(f * 100).toFixed(1)}%"></i></span><small>${!PGA.mob ? (Creatures.error(PGA.id) ? 'could not load' : 'loading…') : PGA.dead > 0 ? 'Defeated - back in ' + Math.ceil(PGA.dead) + ' s' : `HP ${PGA.hp} / ${C.hp} · DEF ${C.def}`}</small>`
+    h.innerHTML = `<b>${C.icon || '🍄'} ${C.name}</b><span class="pgaBar"><i style="width:${(f * 100).toFixed(1)}%"></i></span><small>${!PGA.mob ? (Creatures.error(PGA.id) ? 'could not load' : 'loading…') : PGA.dead > 0 ? 'Defeated - back in ' + Math.ceil(PGA.dead) + ' s' : `HP ${PGA.hp} / ${C.hp} · DEF ${C.def}`}</small>`
       + `<span class="pgaMe"><b>You</b><span class="pgaBar"><i style="width:${(fm * 100).toFixed(1)}%"></i></span><small>${PGA.ko > 0 ? 'Turned to ash' : `HP ${Math.round(F.hp)} / ${F.max}${F.shield > 0 ? ' · +' + Math.round(F.shield) : ''}`}</small></span>`; }
   function pgaArena() { const g = new THREE.Group(); g.name = 'pgaArena'; const R0 = PGA.R, lam = (c, o) => new THREE.MeshLambertMaterial(Object.assign({ color: c }, o || {})), flat = (geo, m, y) => { const e = new THREE.Mesh(geo, m); e.rotation.x = -Math.PI / 2; e.position.y = y || 0; g.add(e); return e; };
     flat(new THREE.CircleGeometry(R0 + 0.7, 72), lam(0x8e8981)); const jm = new THREE.MeshBasicMaterial({ color: 0x6c675f });
@@ -12518,8 +12755,12 @@ const CharView = (() => {
     PGA.dist0 = st.dist; PGA.tilt0 = st.tilt; st.dist = Math.max(st.dist, 7); st.tilt = Math.max(st.tilt || 0, 0.45); PGA.AT = [0.38, 0, 0.95]; /* (in front of her, a little to one side) */
     PGA.gnd0 = st.gnd; st.climbDir = 'stop'; st.gnd = PGA.G = { home: true, arena: true, x: 0, z: 0, face: 0, mv: 0, back: 0, cell: 0.3, circR: PGA.R - 0.3, inb: (px, pz) => Math.hypot(px, pz) <= PGA.R - 0.3, bnd: { X0: -PGA.R, X1: PGA.R, Z0: -PGA.R, Z1: PGA.R }, obs: [] };
     for (const o of scene.userData.floor || []) o.visible = false; ashPrep(); /* (GD-22: the ash plane goes on now, so the first death never stalls on a shader compile) */ PGA.arena = pgaArena(); PGA.arena.rotation.y = st.yaw; scene.add(PGA.arena); PGA.bg0 = scene.background; scene.background = new THREE.Color(0xaab4b8); pgaHud();
-    const sc0 = scene; Creatures.load(PGA.id).then(() => { if (!PGA.on || !SOLO.on || scene !== sc0 || !PGA.arena) return; const m = Creatures.make(PGA.id); if (!m) return; m.root.position.set(...PGA.AT); m.root.rotation.y = Math.atan2(-PGA.AT[0], -PGA.AT[2]); PGA.arena.add(m.root); PGA.mob = m; PGA.anim = 'idle'; PGA.blobMob.visible = true; pgaHud(); }).catch(() => pgaHud()); }
-  function pgaClose() { if (!PGA.on) return; PGA.on = false; ashClear(); const m = PGA.mob; PGA.mob = null; if (m) { m.mixer.stopAllAction(); if (m.root.parent) m.root.parent.remove(m.root); dropObj(m.root); for (const q of m.mats) q.dispose(); }
+    const sc0 = scene, b0 = PGA.blobMob; PGA.mobs = pgaRows().map((r, i) => { const C = Creatures.get(r.id), at = r.at || [0.38, 0, 0.95], bl = i ? b0.clone() : b0; if (i) { bl.material = b0.material.clone(); PGA.arena.add(bl); } bl.scale.setScalar(Math.max(1, (C.bodyR || 0) / 0.3)); bl.visible = false;
+      return { id: r.id, mob: null, hp: C.hp, dead: 0, hunt: false, bite: 0, atkT: 1, once: 0, anim: null, wp: null, wt: 1.5 + i, leashD: null, aggro: 0, blobMob: bl, AT: at.slice(), home: [at[0], at[2]], roam: r.roam || 0, sink: 0 }; });
+    PGA.si = -1; PGA.tgt = 0; pgaUse(0);
+    PGA.mobs.forEach((sl, i) => Creatures.load(sl.id).then(() => { if (!PGA.on || !SOLO.on || scene !== sc0 || !PGA.arena || PGA.mobs[i] !== sl) return; const m = Creatures.make(sl.id); if (!m) return; m.root.position.set(...sl.AT); m.root.rotation.y = Math.atan2(-sl.AT[0], -sl.AT[2]); PGA.arena.add(m.root);
+      pgaSync(); sl.mob = m; sl.anim = 'idle'; sl.blobMob.visible = true; if (PGA.si === i) { PGA.mob = m; PGA.anim = 'idle'; } pgaHud(); }).catch(() => pgaHud())); }
+  function pgaClose() { if (!PGA.on) return; PGA.on = false; ashClear(); for (const sl of pgaSync()) { const m = sl.mob; sl.mob = null; if (m) { m.mixer.stopAllAction(); if (m.root.parent) m.root.parent.remove(m.root); dropObj(m.root); for (const q of m.mats) q.dispose(); } } PGA.mob = null; PGA.mobs = null; PGA.si = -1; PGA.tgt = 0; PGA.id = (pgaRows()[0] || { id: 'lumen_mushroom' }).id;
     if (PGA.arena) { if (PGA.arena.parent) PGA.arena.parent.remove(PGA.arena); dropObj(PGA.arena); PGA.arena.traverse((o) => { for (const q of [].concat(o.material || [])) q.dispose(); }); PGA.arena = null; }
     if (scene) { for (const o of scene.userData.floor || []) o.visible = true; if (PGA.bg0 !== undefined) scene.background = PGA.bg0; } PGA.bg0 = undefined; if (st.gnd && st.gnd.arena) { st.gnd.exLeanS = 0; st.gnd = PGA.gnd0 || null; } PGA.gnd0 = null; PGA.G = null; PGA.eng = false; PGA.F = null; PGA.ko = 0;
     if (PGA.dist0 != null) st.dist = PGA.dist0; if (PGA.tilt0 !== null) st.tilt = PGA.tilt0; PGA.dist0 = null; PGA.tilt0 = null; pgaHud(); const w = wrap || document.getElementById('charWrap'); if (w) w.querySelectorAll('.pgaNum').forEach((e) => e.remove()); }
@@ -12527,12 +12768,12 @@ const CharView = (() => {
   function pgaNum(txt, cls, me) { const m = PGA.mob, w = wrap || document.getElementById('charWrap'); if (!w || !R || !cam || (!me && !m)) return; const p = (me ? (rig ? rig.root.getWorldPosition(V(0, 0, 0)).add(V(0, 1.9, 0)) : null) : m.root.getWorldPosition(V(0, 0, 0)).add(V(0, pgaC().height + 0.12, 0))); if (!p) return; p.project(cam); const cr = R.domElement.getBoundingClientRect(), wr = w.getBoundingClientRect();
     const e = document.createElement('div'); e.className = 'pgaNum ' + (cls || '') + (me ? ' me' : ''); e.textContent = txt; e.style.left = (cr.left - wr.left + (p.x + 1) / 2 * cr.width).toFixed(0) + 'px'; e.style.top = (cr.top - wr.top + (1 - p.y) / 2 * cr.height).toFixed(0) + 'px'; w.appendChild(e); setTimeout(() => e.remove(), 1000); }
   // her and the mushroom in the arena frame: distance, and how squarely she faces it (1 = dead ahead)
-  function pgaRel() { const m = PGA.mob, G = st.gnd; if (!m || !G || !G.arena) return null; const dx = m.root.position.x - G.x, dz = m.root.position.z - G.z, d = Math.hypot(dx, dz); return { d, dot: d > 1e-6 ? (Math.sin(G.face) * dx + Math.cos(G.face) * dz) / d : 1, dx, dz }; }
+  function pgaRel() { const m = PGA.mob, G = st.gnd; if (!m || !G || !G.arena) return null; const dx = m.root.position.x - G.x, dz = m.root.position.z - G.z, cd = Math.hypot(dx, dz); return { d: Math.max(0, cd - pgaBR()), cd, dot: cd > 1e-6 ? (Math.sin(G.face) * dx + Math.cos(G.face) * dz) / cd : 1, dx, dz }; } /* (d = to its body surface: GD-30) */
   function pgaHit(keep) { const m = PGA.mob; if (!m || PGA.dead > 0 || !rig || PGA.ko > 0) return null; const q = pgaRel(); if (!q) return null;
     if (q.d > PGA.REACH + (keep || 0) || q.dot < 0.3) return null; /* (out of reach, or she has been turned away from it) */
     const r = Combat.rollDamage(Combat.playerStats(), { def: pgaC().def, swing: ++PGA.n }); PGA.hp = Math.max(0, PGA.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); PGA.log.push({ hit: r.hit, dmg: r.dmg, chance: r.chance, hp: PGA.hp }); if (PGA.log.length > 50) PGA.log.shift(); if (r.dmg > 0) Combat.fightDealt(pgaMe(), r.dmg);
     pgaNum(r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); PGA.hunt = true; /* (GD-19: hit, it hunts her until she is past its leash) */
-    if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.kills++; PGA.eng = false; PGA.hunt = false; PGA.bite = 0; PGA.once = 0; PGA.anim = 'death'; m.play(pgaC().clips.death, true); Combat.fightKill(pgaMe()); if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } }
+    if (PGA.hp <= 0) { PGA.dead = pgaC().respawnS; PGA.sink = 0; PGA.kills++; PGA.eng = false; PGA.hunt = false; PGA.bite = 0; PGA.once = 0; PGA.anim = 'death'; m.play(pgaC().clips.death, true); Combat.fightKill(pgaMe()); if (pgaC().xp > 0 && typeof Combat !== 'undefined' && Combat.addXp) { Combat.addXp(pgaC().xp); if (typeof save === 'function') save(); pgaNum('+' + pgaC().xp + ' Combat XP', 'info'); } }
     else if (r.dmg > 0) pgaOnce('hit'); pgaHud(); return r; }
   function pgaOnce(k) { const m = PGA.mob, C = pgaC(), a = m && m.play(C.clips[k], true); PGA.anim = k; PGA.once = a ? a.getClip().duration : 0.6; }
   function pgaLoop(k) { const m = PGA.mob; if (!m || PGA.anim === k) return; m.play(pgaC().clips[k]); PGA.anim = k; }
@@ -12571,10 +12812,11 @@ const CharView = (() => {
   function ashEnd() { if (!ASHX.on && !ASHX.pts) return; ASHX.on = false; ASHX.plane.constant = 1e6; for (const [m, o] of ASHX.mats) { if (m.color && o.col) m.color.copy(o.col); if (m.emissive && o.em) m.emissive.copy(o.em); }
     for (const o of ASHX.hid) o.visible = true; ASHX.hid = []; if (PGA.blobMe) PGA.blobMe.visible = true; if (ASHX.pts) { if (ASHX.pts.parent) ASHX.pts.parent.remove(ASHX.pts); ASHX.pts.geometry.dispose(); ASHX.pts.material.dispose(); ASHX.pts = null; ASHX.P = null; } }
   function ashClear() { ashEnd(); for (const [m, o] of ASHX.mats) { m.clippingPlanes = o.cp || null; m.needsUpdate = true; } ASHX.mats.clear(); } /* (leaving the arena: her materials as they were) */
-  function pgaKO() { const G = st.gnd, A = ashD(); PGA.ko = A.DISSOLVE_S + A.HOLD_S; PGA.kos++; PGA.eng = false; PGA.aggro = 0; PGA.hunt = false; PGA.bite = 0; if (G) { G.goal = null; G.path = null; G.mv = 0; } if (SWG.at) { SWG.at = null; SWG.q = 0; } ashStart(); pgaNum('Turned to ash', 'info', true); }
+  function pgaKO() { const G = st.gnd, A = ashD(); PGA.ko = A.DISSOLVE_S + A.HOLD_S; PGA.kos++; PGA.eng = false; PGA.aggro = 0; PGA.hunt = false; PGA.bite = 0; for (const sl of pgaSync()) { sl.hunt = false; sl.aggro = 0; sl.bite = 0; } /* (GD-30: every creature calms down) */ if (G) { G.goal = null; G.path = null; G.mv = 0; } if (SWG.at) { SWG.at = null; SWG.q = 0; } ashStart(); pgaNum('Turned to ash', 'info', true); }
   // tap in the arena: the mushroom -> run up to it and fight; the floor -> run there
   function pgaTap(cx, cy) { if (!PGA.on || !PGA.arena || !st.gnd || !st.gnd.arena || PGA.ko > 0 || !cam) return null; const r = canvas.getBoundingClientRect(); _ray.setFromCamera(new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1), cam); const ray = _ray.ray, m = PGA.mob;
-    if (m && PGA.dead <= 0) { const c = m.root.getWorldPosition(V(0, 0, 0)); c.y += pgaC().height * 0.5; if (ray.distanceToPoint(c) < Math.max(0.45, pgaC().height * 0.7)) { PGA.eng = true; swDrawFight(); if (!(SWG.R || SWG.L)) pgaNum('No sword', 'info', true); return 'mob'; } }
+    { let best = -1, bs = 1; pgaSync().forEach((sl, i) => { if (!sl.mob || sl.dead > 0) return; const C = Creatures.get(sl.id), c = sl.mob.root.getWorldPosition(V(0, 0, 0)); c.y += C.height * 0.5; const s = ray.distanceToPoint(c) / Math.max(0.45, C.height * 0.7, C.bodyR || 0); if (s < bs) { bs = s; best = i; } }); /* (GD-30: the creature whose centre is nearest the tap) */
+      if (best >= 0) { if (best !== PGA.tgt) { PGA.cur = null; PGA.inR = false; if (SWG.at) SWG.at.lock = null; } PGA.tgt = best; pgaUse(best); PGA.eng = true; swDrawFight(); if (!(SWG.R || SWG.L)) pgaNum('No sword', 'info', true); pgaHud(); return 'mob'; } }
     if (ray.direction.y > -1e-4) return null; const p = ray.origin.clone().addScaledVector(ray.direction, -ray.origin.y / ray.direction.y).applyAxisAngle(V(0, 1, 0), -st.yaw); return pgaWalk(p.x, p.z) ? 'ground' : null; }
   function pgaWalk(x, z) { const G = st.gnd; if (!G || !G.arena || PGA.ko > 0) return false; PGA.eng = false; SWG.q = 0; /* (GD-19: walking off ends HER attacks - none queued; the run sheathes a swing in progress. The mushroom keeps on until she is past its leash) */ const RM = PGA.R - 0.3, L = Math.hypot(x, z); if (L > RM) { x *= RM / L; z *= RM / L; } navTo(G, x, z, null); const M = PGA.mark; if (M) { M.position.x = G.goal ? G.goal.x : x; M.position.z = G.goal ? G.goal.z : z; M.visible = true; M.userData.t = 0; } return true; }
   // engaged (GD-19): run to striking range, square up and keep facing it - mid-swing too - and start one attack sequence every ATTACK_INTERVAL_S (3 s); each is the
@@ -12582,7 +12824,7 @@ const CharView = (() => {
   function pgaChase(dt) { const G = st.gnd, q = pgaRel(); if (PGA.swT > 0) PGA.swT -= dt; if (!PGA.eng || !q || PGA.dead > 0 || PGA.ko > 0) { if (PGA.dead > 0 || PGA.ko > 0) PGA.eng = false; PGA.cur = null; PGA.inR = false; return; } const mp = PGA.mob.root.position, CH = pgaCh();
     if (PGA.cur && SWG.at !== PGA.cur.sw) { const e = PGA.cur.e; if (!e.roll && CH.RETRY_UNLANDED) PGA.swT = 0; PGA.cur = null; } /* (t698u: a sequence that never rolled - cancelled - is retried as soon as she is in reach) */
     const commit = !!(SWG.at && SWG.at.lock && CH.COMMIT_SWING); /* (t698u: committed - finish it here, facing it; no re-chase mid-wind-up) */
-    if (!commit && q.d > (SWG.at || (PGA.inR && CH.HOLD_IN_REACH) ? PGA.REACH : PGA.STAND + 0.3)) { PGA.chased = true; PGA.inR = false; const tx = mp.x - q.dx / q.d * PGA.STAND, tz = mp.z - q.dz / q.d * PGA.STAND; if (!G.goal || Math.hypot(G.goal.x - tx, G.goal.z - tz) > 0.35) navTo(G, tx, tz, null); return; } /* (mid-swing it may shuffle a little: she stays put while it is still in reach) */
+    if (!commit && q.d > (SWG.at || (PGA.inR && CH.HOLD_IN_REACH) ? PGA.REACH : PGA.STAND + 0.3)) { PGA.chased = true; PGA.inR = false; const so = PGA.STAND + pgaBR(), tx = mp.x - q.dx / q.cd * so, tz = mp.z - q.dz / q.cd * so; if (!G.goal || Math.hypot(G.goal.x - tx, G.goal.z - tz) > 0.35) navTo(G, tx, tz, null); return; } /* (mid-swing it may shuffle a little: she stays put while it is still in reach) */
     PGA.inR = true; /* (t698u hysteresis: caught up at STAND + 0.3, she holds and swings until it is past the full reach, instead of re-chasing every few cm while her run winds down) */
     if (G.goal) { G.goal = null; G.path = null; } const fa = Math.atan2(q.dx, q.dz), df = Math.atan2(Math.sin(fa - G.face), Math.cos(fa - G.face)); G.face += df * (1 - Math.exp(-dt * 10));
     if (PGA.swT <= 0 && Math.abs(df) < 0.45 && !SWG.at && !SWG.run && G.mv < 0.15 && (SWG.R || SWG.L) && swAttack()) { PGA.swT = pgaInt(); if (SWG.at) { const e = { t: +PGA.clk.toFixed(3), v: SWG.at.v, roll: 0, d0: +q.d.toFixed(2), chased: !!PGA.chased }; PGA.chased = false; SWG.at.lock = e; PGA.cur = { sw: SWG.at, e }; PGA.sl.push(e); if (PGA.sl.length > 60) PGA.sl.shift(); } } }
@@ -12590,23 +12832,26 @@ const CharView = (() => {
   function pgaMob(dt) { const m = PGA.mob, C = pgaC(), G = st.gnd; if (!m || PGA.dead > 0 || !G) return; const p = m.root.position; if (PGA.once > 0 && (PGA.once -= dt) <= 0) PGA.anim = null;
     const q = PGA.ko > 0 ? null : pgaRel(), d = q ? q.d : 1e9; if (q && !PGA.hunt && C.aggro !== 'provoked' && d < C.atkReach + 0.15) PGA.hunt = true; /* (she walked right up to it - only a creature that is not passive-until-provoked: GD-21) */ if (PGA.hunt && (!q || d > (C.leashR || 4))) { PGA.hunt = false; PGA.bite = 0; PGA.atkT = Math.max(PGA.atkT, 0.6); PGA.leashD = q ? +d.toFixed(2) : null; } /* (GD-21: back to passive - she must hit it again) */ /* (GD-19: past the leash it gives up) */ PGA.aggro = PGA.hunt ? 1 : 0; const angry = !!q && PGA.hunt; if (angry && SWG.sh) swDrawFight(); /* (t686u: it fights her - out come the swords) */
     let gx = null, gz = null;
-    if (angry) { PGA.wp = null; if (d > C.atkReach) { gx = G.x + q.dx / d * C.atkReach * 0.9; gz = G.z + q.dz / d * C.atkReach * 0.9; } else if ((PGA.atkT -= dt) <= 0 && PGA.once <= 0) { PGA.atkT = C.atkS; pgaOnce('attack'); PGA.bite = C.atkHitAt; } }
-    else { PGA.atkT = Math.max(PGA.atkT, 0.6); if (!PGA.wp && (PGA.wt -= dt) <= 0) { for (let i = 0; i < 8; i++) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * (PGA.R - 1.2), x = Math.sin(a) * r, z = Math.cos(a) * r; if (Math.hypot(x - p.x, z - p.z) > 1 && Math.hypot(x - G.x, z - G.z) > 1.2) { PGA.wp = { x, z }; break; } } PGA.wt = 2 + Math.random() * 3; }
+    if (angry) { PGA.wp = null; if (d > C.atkReach) { const so = C.atkReach * 0.9 + pgaBR(); gx = G.x + q.dx / q.cd * so; gz = G.z + q.dz / q.cd * so; } else if ((PGA.atkT -= dt) <= 0 && PGA.once <= 0) { PGA.atkT = C.atkS; pgaOnce('attack'); PGA.bite = C.atkHitAt; } }
+    else { PGA.atkT = Math.max(PGA.atkT, 0.6); if (!PGA.wp && (PGA.wt -= dt) <= 0) { for (let i = 0; i < 8; i++) { const a = Math.random() * Math.PI * 2, rr = PGA.roam || PGA.R - 1.2, hx = PGA.roam ? PGA.home[0] : 0, hz = PGA.roam ? PGA.home[1] : 0, r = Math.sqrt(Math.random()) * rr, x = hx + Math.sin(a) * r, z = hz + Math.cos(a) * r; if (Math.hypot(x, z) > PGA.R - 1.2) continue; /* (GD-30: roam = round its own spot) */ if (Math.hypot(x - p.x, z - p.z) > 1 && Math.hypot(x - G.x, z - G.z) > 1.2) { PGA.wp = { x, z }; break; } } PGA.wt = 2 + Math.random() * 3; }
       if (PGA.wp) { gx = PGA.wp.x; gz = PGA.wp.z; if (Math.hypot(gx - p.x, gz - p.z) < 0.08) { PGA.wp = null; gx = null; } } }
     if (PGA.bite > 0 && (PGA.bite -= dt) <= 0) pgaBite();
-    let face = null; if (gx !== null && PGA.once <= 0) { const ex = gx - p.x, ez = gz - p.z, L = Math.hypot(ex, ez), s = Math.min(L, (C.walkSpd || 0.5) * (PGA.eng && SWG.at && SWG.at.lock ? pgaCh().SLOW_TARGET : 1) * dt); /* (t698u: it flinches under her swing) */ p.x += ex / L * s; p.z += ez / L * s; face = Math.atan2(ex, ez); pgaLoop('walk'); }
+    let face = null; if (gx !== null && PGA.once <= 0) { const ex = gx - p.x, ez = gz - p.z, L = Math.hypot(ex, ez), s = Math.min(L, (C.walkSpd || 0.5) * (PGA.eng && PGA.si === PGA.tgt && SWG.at && SWG.at.lock ? pgaCh().SLOW_TARGET : 1) * dt); /* (t698u: it flinches under her swing) */ p.x += ex / L * s; p.z += ez / L * s; face = Math.atan2(ex, ez); pgaLoop('walk'); }
     else { if (angry) face = Math.atan2(-q.dx, -q.dz); if (PGA.once <= 0) pgaLoop('idle'); }
     if (face !== null) { const df = Math.atan2(Math.sin(face - m.root.rotation.y), Math.cos(face - m.root.rotation.y)); m.root.rotation.y += df * (1 - Math.exp(-dt * 6)); }
-    { const L = Math.hypot(p.x, p.z), RM = PGA.R - 0.5; if (L > RM) { p.x *= RM / L; p.z *= RM / L; } if (q) { const ex = p.x - G.x, ez = p.z - G.z, L2 = Math.hypot(ex, ez); if (L2 < 0.55 && L2 > 1e-4) { p.x = G.x + ex / L2 * 0.55; p.z = G.z + ez / L2 * 0.55; } } } }
-  function pgaTick(dt) { if (!PGA.on) return; if (!st.gnd && PGA.G) { st.gnd = PGA.G; st.anim = 'idle'; } /* (the view's Idle / Run buttons drop the walker: the arena keeps hers) */ const G = st.gnd, m = PGA.mob; PGA.clk += dt; if (PGA.arena) PGA.arena.rotation.y = st.yaw;
+    { const L = Math.hypot(p.x, p.z), RM = PGA.R - 0.5; if (L > RM) { p.x *= RM / L; p.z *= RM / L; } if (q) { const ex = p.x - G.x, ez = p.z - G.z, L2 = Math.hypot(ex, ez); const K = 0.55 + pgaBR(); if (L2 < K && L2 > 1e-4) { p.x = G.x + ex / L2 * K; p.z = G.z + ez / L2 * K; } }
+      for (const o of PGA.mobs || []) { if (o.id === PGA.id || !o.mob || o.dead > 0) continue; const op = o.mob.root.position, ex = p.x - op.x, ez = p.z - op.z, L3 = Math.hypot(ex, ez), K = pgaBR() + (Creatures.get(o.id).bodyR || 0) + 0.4; if (L3 < K && L3 > 1e-4) { p.x = op.x + ex / L3 * K; p.z = op.z + ez / L3 * K; } } } } /* (GD-30: creatures do not walk through each other) */
+  function pgaTick(dt) { if (!PGA.on) return; if (!st.gnd && PGA.G) { st.gnd = PGA.G; st.anim = 'idle'; } /* (the view's Idle / Run buttons drop the walker: the arena keeps hers) */ pgaUse(PGA.tgt); const G = st.gnd; PGA.clk += dt; if (PGA.arena) PGA.arena.rotation.y = st.yaw;
     if (G && G.arena) { if (PGA.ko > 0) { PGA.ko -= dt; G.goal = null; G.path = null; G.exLeanS = 0; ashTick(dt); /* (GD-22: she crumbles where she stands - no fall) */
         if (PGA.ko <= 0) { PGA.ko = 0; G.exLeanS = 0; ashEnd(); G.x = 0; G.z = 0; G.face = 0; G.mv = 0; PGA.F = Combat.newFight(Combat.playerStats()); st.camSnap = true; pgaNum('Respawned', 'info', true); } pgaHud(); }
       else { pgaChase(dt); const F = pgaMe(); if ((PGA.calm += dt) > 5 && F.hp < F.max) { const h0 = Math.round(F.hp); F.hp = Math.min(F.max, F.hp + Combat.regenPerSec(Combat.playerStats(), false) * dt); if (Math.round(F.hp) !== h0) pgaHud(); } } /* (out of the fight 5 s: the normal regen) */
       if (PGA.blobMe) { PGA.blobMe.position.x = G.x; PGA.blobMe.position.z = G.z; } }
     { const M = PGA.mark; if (M && M.visible) { M.userData.t += dt; M.material.opacity = 0.9 * Math.max(0, 1 - M.userData.t / 0.9); if (M.userData.t > 0.9) M.visible = false; } }
-    if (!m) return; m.mixer.update(dt); if (PGA.blobMob) { PGA.blobMob.position.x = m.root.position.x; PGA.blobMob.position.z = m.root.position.z; PGA.blobMob.visible = PGA.dead <= 0; }
-    const A = SWG.at; if (A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; const r = pgaHit(A.lock && pgaCh().COMMIT_SWING ? pgaCh().KEEP_REACH_M : 0); if (A.lock) { A.lock.str = true; if (r) A.lock.roll++; } } /* (one strike point per swing animation = one damage roll) */
-    if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; if (PGA.dead <= 0) { PGA.dead = 0; PGA.hp = pgaC().hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(pgaC().clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
+    { const A = SWG.at; if (PGA.mob && A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; const r = pgaHit(A.lock && pgaCh().COMMIT_SWING ? pgaCh().KEEP_REACH_M : 0); if (A.lock) { A.lock.str = true; if (r) A.lock.roll++; } } } /* (one strike point per swing animation = one damage roll, on her target) */
+    const n = (PGA.mobs || []).length; for (let i = 0; i < n; i++) { pgaUse(i); pgaMobTick(dt); } pgaUse(PGA.tgt); } /* (GD-30: every creature in the arena lives; then back to her target) */
+  function pgaMobTick(dt) { const m = PGA.mob, C = pgaC(); if (!m) return; m.mixer.update(dt); if (PGA.blobMob) { PGA.blobMob.position.x = m.root.position.x; PGA.blobMob.position.z = m.root.position.z; PGA.blobMob.visible = PGA.dead <= 0; }
+    if (PGA.dead > 0) { const s0 = Math.ceil(PGA.dead); PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0; } /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
+      if (PGA.dead <= 0) { PGA.dead = 0; PGA.sink = 0; m.root.position.y = 0; PGA.hp = C.hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(C.clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } else if (Math.ceil(PGA.dead) !== s0) pgaHud(); }
     else { if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); pgaMob(dt); } }
   function pgaAttack() { if (!rig || !(SWG.R || SWG.L)) return false; pgaOpen(); if (PGA.ko > 0) return false; return swAttack(); }
   function swAttack() { if (!rig || !(SWG.R || SWG.L)) return false; if (SWG.sh) { SWG.sh = false; swSaveSh(); swHolster(); pvDraw(); } /* (sheathed: Attack draws first) */ if (SWG.at) SWG.q = 1; else SWG.at = swStart(); return true; }
@@ -14504,7 +14749,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
   return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { const F = PGA.on ? pgaMe() : null, q = pgaRel(); return { on: PGA.on, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null,
-    arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, hunt: PGA.hunt, provoked: pgaC().aggro === 'provoked', ash: { on: ASHX.on, t: ASHX.t, u: ASHX.u, cut: ASHX.plane.constant, top: ASHX.top, bot: ASHX.bot, born: ASHX.born, n: ASHX.P ? ASHX.P.length : 0, fx: !!(ASHX.pts && ASHX.pts.parent), mats: ASHX.mats.size, hid: ASHX.hid.length, d: ashD() }, leash: pgaC().leashR, leashD: PGA.leashD, reach: pgaC().atkReach, interval: pgaInt(), clk: PGA.clk, swings: PGA.sl.map((e) => Object.assign({}, e)), anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
+    arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, hunt: PGA.hunt, provoked: pgaC().aggro === 'provoked', ash: { on: ASHX.on, t: ASHX.t, u: ASHX.u, cut: ASHX.plane.constant, top: ASHX.top, bot: ASHX.bot, born: ASHX.born, n: ASHX.P ? ASHX.P.length : 0, fx: !!(ASHX.pts && ASHX.pts.parent), mats: ASHX.mats.size, hid: ASHX.hid.length, d: ashD() }, leash: pgaC().leashR, leashD: PGA.leashD, reach: pgaC().atkReach, interval: pgaInt(), clk: PGA.clk, tgt: PGA.tgt, mobs: pgaSync().map((sl) => ({ id: sl.id, ready: !!sl.mob, hp: sl.hp, dead: sl.dead, hunt: sl.hunt, anim: sl.anim, x: sl.mob ? sl.mob.root.position.x : null, z: sl.mob ? sl.mob.root.position.z : null, y: sl.mob ? sl.mob.root.position.y : null, clips: sl.mob ? sl.mob.names : [], root: sl.mob ? sl.mob.root : null })), swings: PGA.sl.map((e) => Object.assign({}, e)), anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
     pgaScreen(x, z, y) { if (!cam || !canvas || !PGA.arena) return null; const p = V(x, y || 0, z).applyAxisAngle(V(0, 1, 0), st.yaw).project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height }; }, get sw() { const gn = gearNow(); return { R: SWG.R, L: SWG.L, w: SWG.w, ip: SWG.ip, tw: gn.tw, want: gn.tool, toolAct: gn.toolAct, idle: gearNow().swIdle, pose: Object.assign({}, SW_POSE), n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */

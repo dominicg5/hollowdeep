@@ -13,7 +13,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   await p.waitForFunction(() => typeof Explore !== 'undefined' && Explore.on && CharView.st.gnd, null, { timeout: 120000 }).catch(() => {});
   const G = await p.evaluate(() => ({ m3: !!(M3.st && M3.st.ok), ex: !!Explore.on, gnd: !!CharView.st.gnd, S: typeof S !== 'undefined' && !!S, cr: typeof Creatures !== 'undefined' && Creatures.ids.join() }));
   ok(G.m3 && G.ex && G.gnd && G.S, 'the game reaches the map: 3D map ready, she is out exploring, save loaded ' + JSON.stringify(G));
-  ok(G.cr === 'lumen_mushroom', 'creature table loaded (src/creatures/): ' + G.cr);
+  ok(G.cr === 'lumen_mushroom,tin_golem,copper_golem,coal_golem', 'creature table loaded (GD-30: + Art\'s Tin / Copper / Coal golems) (src/creatures/): ' + G.cr);
   await p.waitForTimeout(2000);
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   ok(!cons.length, 'no console errors' + (cons.length ? ': ' + cons.slice(0, 3).join(' | ') : ''));

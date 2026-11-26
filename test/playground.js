@@ -138,6 +138,37 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   const KO2 = await p.evaluate(() => ({ me: CharView.pga.me, x: CharView.st.gnd.x, z: CharView.st.gnd.z, lean: CharView.rig.root.rotation.x, xp: (S.combat && S.combat.xp) || 0, bag: JSON.stringify(S.backpack || {}), hud: document.getElementById('pgaHud').dataset.ko }));
   ok(KO1.ko > 0 && KO1.hp === 0 && KO1.hud === '1' && /Turned to ash/.test(KO1.txt) && KO1.tap === false, `at 0 HP she is down (can't be steered): ${JSON.stringify([KO1, lean])}`);
   ok(KO2.me.hp === KO2.me.max && Math.hypot(KO2.x, KO2.z) < 0.05 && Math.abs(KO2.lean) < 1e-6 && KO2.hud === '0' && KO2.xp === KO0.xp && KO2.bag === KO0.bag, `she gets back up at the centre with full HP, no penalty (Combat XP and backpack unchanged) ${JSON.stringify(KO2)}`);
+  // (GD-30, Dominic via Art t526s2249) Art's golems are creature rows (Tin < Copper < Coal, placeholder stats, XP = 4 x HP); the Tin Golem stands in the arena with the mushroom
+  await p.waitForFunction(() => CharView.pga.mobs.length === 2 && CharView.pga.mobs.every((m) => m.ready), null, { timeout: 120000 }).catch(() => {});
+  const GO = await p.evaluate(async () => { const g = CharView.pga, T = g.mobs.find((m) => m.id === 'tin_golem'), rows = ['tin_golem', 'copper_golem', 'coal_golem'].map((k) => Creatures.get(k));
+    const o = { ids: g.mobs.map((m) => m.id), tgt: g.tgt, clips: T && T.clips, rows: rows.map((r) => r && [r.id, r.hp, r.str, r.def, r.acc, r.xp, r.aggro, r.atkHitAt, r.deathHitAt, r.height, r.model]), files: [], ink: 0, chalk: 0, tris: 0, col: 0 };
+    for (const r of rows) o.files.push(r ? (await fetch(r.model, { method: 'HEAD' })).status : 0);
+    const root = T && T.root; if (root) { root.updateMatrixWorld(true); const bb = new THREE.Box3(), v = new THREE.Vector3(); root.traverse((m) => { if (!m.isSkinnedMesh) return; if (m.userData.isInk) { o.ink++; return; } if (m.material.userData.uniforms) o.chalk++; if (m.geometry.attributes.color) o.col++; o.tris += m.geometry.index.count / 3;
+        const P = m.geometry.attributes.position; for (let i = 0; i < P.count; i += 7) { v.fromBufferAttribute(P, i); m.boneTransform(i, v); bb.expandByPoint(v.applyMatrix4(m.matrixWorld)); } });
+      const c = root.getWorldPosition(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3()); o.box = { h: +sz.y.toFixed(2), w: +sz.x.toFixed(2), d: +sz.z.toFixed(2), y0: +(bb.min.y - c.y).toFixed(3) }; o.inArena = root.parent && root.parent.name === 'pgaArena'; o.at = [+T.x.toFixed(2), +T.z.toFixed(2)]; }
+    return o; });
+  const asc = (i) => GO.rows[0][i] < GO.rows[1][i] && GO.rows[1][i] < GO.rows[2][i];
+  ok(GO.rows.every((r) => r && r[5] === 4 * r[1] && r[6] === 'provoked' && r[7] === 0.633 && r[8] === 1.067 && r[9] === 2.6) && asc(1) && asc(2) && asc(3) && asc(4) && GO.files.every((f) => f === 200), 'GD-30: Tin < Copper < Coal golem rows (placeholder stats ascending, XP = 4 x HP, passive until provoked, slam at 0.633 s, death lands at 1.067 s, 2.6 m; GLBs served) ' + JSON.stringify([GO.rows, GO.files]));
+  ok(GO.ids.join() === 'lumen_mushroom,tin_golem' && GO.inArena && ['Idle', 'Walk', 'Attack', 'Hit', 'Death'].every((c) => GO.clips.includes(c)), `GD-30: the Tin Golem stands in the arena alongside the mushroom (at ${GO.at}; clips ${GO.clips})`);
+  ok(GO.box && Math.abs(GO.box.h - 2.6) < 0.08 && Math.abs(GO.box.y0) < 0.04 && GO.tris > 22000 && GO.tris < 24500 && GO.chalk === 2 && GO.ink === 2 && GO.col === 2, `GD-30: drawn at Art's size, feet on the floor, ~23k tris, Art's chalk toon + ink outline on both parts, vertex paint ${JSON.stringify([GO.box, GO.tris, GO.chalk, GO.ink, GO.col])}`);
+  // tap it: she targets it (HUD shows it); one zero-damage hit provokes it; its slam lands ~0.633 s into Attack
+  const GT = await p.evaluate(() => { const T = CharView.pga.mobs[1], s = CharView.pgaScreen(T.x, T.z, 1.3); const r = s ? CharView.pgaTap(s.x, s.y) : null; return { r, tgt: CharView.pga.tgt, hud: document.getElementById('pgaHud').textContent }; });
+  ok(GT.r === 'mob' && GT.tgt === 1 && /Tin Golem/.test(GT.hud) && /HP 20 \/ 20/.test(GT.hud), 'GD-30: tapping the golem makes it her target (HUD: ' + GT.hud + ')');
+  const GP = await p.evaluate(() => { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; CharView.pgaWalk(G.x, G.z); G.goal = null; G.path = null; const a = Math.atan2(G.x - m.x, G.z - m.z); G.x = m.x + Math.sin(a) * 1.6; G.z = m.z + Math.cos(a) * 1.6; G.face = Math.atan2(m.x - G.x, m.z - G.z);
+    const rd = Combat.rollDamage; Combat.rollDamage = (...x) => Object.assign({}, rd(...x), { dmg: 0 }); const r = CharView.pgaHit(); Combat.rollDamage = rd;
+    const W = window.__gs = { b0: g.bites.length, a: null, b: null, prev: g.clk }; const step = () => { const q = CharView.pga; if (!q.on) return; if (W.a === null && q.anim === 'attack') W.a = q.clk; if (W.a !== null && W.b === null && q.bites.length > W.b0) W.b = q.clk; if (W.b === null) requestAnimationFrame(step); }; requestAnimationFrame(step);
+    return { r: !!r, hunt: CharView.pga.hunt, d: +CharView.pga.rel.d.toFixed(2) }; });
+  await p.waitForFunction(() => window.__gs.b !== null, null, { timeout: 90000 }).catch(() => {});
+  const GS = await p.evaluate(() => Object.assign({}, window.__gs, { me: CharView.pga.me }));
+  ok(GP.r && GP.hunt && GS.a !== null && GS.b !== null && GS.b - GS.a > 0.5 && GS.b - GS.a < 0.8, `GD-30: provoked, it closes in and its slam lands ${GS.b !== null && GS.a !== null ? (GS.b - GS.a).toFixed(3) : '?'} s into Attack (Art: 0.633 s) ${JSON.stringify([GP, GS])}`);
+  // kill it (the combat roll): Death plays, +80 Combat XP, it lands then sinks away, and respawns at full HP
+  const GK = await p.evaluate(() => { const x0 = (S.combat && S.combat.xp) || 0; let n = 0; while (CharView.pga.hp > 0 && n < 600) { const g = CharView.pga, G = CharView.st.gnd, m = g.mob.position; G.face = Math.atan2(m.x - G.x, m.z - G.z); CharView.pgaHit(); n++; }
+    return { n, hp: CharView.pga.hp, dead: CharView.pga.dead, anim: CharView.pga.anim, xp: ((S.combat && S.combat.xp) || 0) - x0, clk: CharView.pga.clk }; });
+  await p.waitForFunction((c) => CharView.pga.clk > c + 1.067 + 0.8 + 1.3, GK.clk, { timeout: 60000 }).catch(() => {});
+  const GD = await p.evaluate(() => ({ y: CharView.pga.mobs[1].y, dead: CharView.pga.dead }));
+  await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 60000 }).catch(() => {});
+  const GR = await p.evaluate(() => ({ hp: CharView.pga.hp, y: CharView.pga.mobs[1].y, mush: CharView.pga.mobs[0].ready }));
+  ok(GK.hp === 0 && GK.dead > 0 && GK.anim === 'death' && GK.xp === 80 && GD.dead > 0 && GD.y < -1 && GR.hp === 20 && GR.y === 0 && GR.mush, `GD-30: killed in ${GK.n} rolls: Death, +${GK.xp} Combat XP, it sinks away after landing (y ${GD.y && GD.y.toFixed(2)}) and respawns at full HP ${JSON.stringify(GR)}`);
   await p.evaluate(() => setTab('city')); await p.waitForFunction(() => !CharView.pga.on);
   const C = await p.evaluate(() => ({ on: CharView.pga.on, hud: !!document.getElementById('pgaHud'), mob: !!CharView.pga.mob, arena: !!CharView.pga.arena }));
   ok(!C.on && !C.hud && !C.mob && !C.arena, 'leaving the Character view clears the playground (arena, mushroom, HUD)');

@@ -48,3 +48,10 @@ Art's combat SFX pack (Dominic approved, Nov 25 2026). Shipped as MP3 only in `a
 | `hit_01`–`06` (sword on creature, the v3 "lower schwing + ting" set; `hit_06` is the crit) | **Jan Schupke (Vehicle Music)**, Tinysized SFX Library (`knife-unsheathe-02`, `handsaw-knife-scrape-02`, `metal-knife-scrape-01`/`03`, `sword-clash-05`) — https://opengameart.org/content/fantasy-sound-effects-tinysized-sfx, plus original procedural schwing / ting layers made for Hollowdeep | CC0 1.0 |
 
 CC0 (https://creativecommons.org/publicdomain/zero/1.0/) needs no attribution; recorded for provenance.
+
+## Golems: Tin, Copper and Coal (GD-30, Dominic approved via Art t526s2249)
+
+| Used for | Asset | Source / licence |
+|---|---|---|
+| `assets/models/creatures/tin_golem_i23d.glb`, `copper_golem_i23d.glb`, `coal_golem_i23d.glb` (the Tin Golem stands in the Attack Playground; copied unchanged from Art's `creature_pipeline/production/*_golem_i23d/`) | Art's golem family: one body generated from Art's own concept sheets with Tripo3D h3.1 multiview-to-3d (via Fal), then rebuilt, painted per ore, rigged and animated (Idle / Walk / Attack / Hit / Death) with Art's creature kit | made for Hollowdeep (our own work) |
+| `src/creatures/hd_toon.js` (chalk toon + ink outline on the golems) | Art's `creature_pipeline/scripts/hollowdeepToon.js`, copied verbatim (module import / export lines dropped) | our own work |
