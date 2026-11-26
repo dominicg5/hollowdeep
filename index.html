@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='6ebe0a68';
+<script>window.HD_BUILD='c19cbec3';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 6ebe0a68</div>
-<script src="assets/vendor/three.min.js?v=6ebe0a68"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build c19cbec3</div>
+<script src="assets/vendor/three.min.js?v=c19cbec3"></script>
 <script>
 'use strict';
 
@@ -10042,7 +10042,7 @@ const CityMap = (() => {
 
 // (Dominic, card t575s2576: 'I would like the countdown respawn not visible') seconds from a creature's death to its respawn - hidden timers: nothing on screen
 // counts them down (no countdown in the playground status / overhead bars / map); each row's respawnS reads this table
-const RESPAWN_S = { lumen_mushroom: 20, tin_golem: 30, copper_golem: 45, coal_golem: 60 };
+const RESPAWN_S = { lumen_mushroom: 20, tin_golem: 30, copper_golem: 45, coal_golem: 60, stalk_lurker: 30, mossmaw_toad: 30, skytalon_hawk: 30 };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // LUMEN MUSHROOM - the Attack Playground's practice target (t653u). (GD-33, Dominic t553u: "that replaces the old Lumen Mushroom") Model: Art's own Mushnub
@@ -10164,6 +10164,41 @@ const COAL_GOLEM = {
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
 // ---------------------------------------------------------------------------------------------------------------------------------------------
+// (Dominic, 26 Nov: "implement as new monsters. 1 of each put into the attack playground. Give the same stats as golem for now just so I can practice on them")
+// Art's arms-out batch (creature_pipeline/production/arms_out_v1): the Stalk Lurker mantis, the Mossmaw toad and the Skytalon hawk. Each is Art's _slim.glb with its
+// two JPEG maps (base colour + emissive, 1024) re-encoded as WebP (EXT_texture_webp); mesh, bones, extras and clips unchanged. sRGB base colour, metallic 0, one
+// material; drawn like the other monsters (chalk toon + ink, sRGB colour maps, no tone mapping on the sRGB stage). Already game size (1.0 scale, feet on y 0).
+// STATS: the golems' tiers differ, so all three carry the TIN GOLEM's numbers (level 5, 20 HP, Str 2, Def 5, Acc 35, 80 XP, 30 s respawn, a 3 s attack, 5 m leash,
+// 0.45 m/s) - placeholders for practice, not approved. Timings from Art's build reports (impact: Attack 0.333 s, Death 0.767 s). Playground only: not on the map.
+// deathRestY: metres added to its height while it lies in its final Death pose (eased in over the 0.15 s after deathHitAt), so the held pose rests on the floor:
+// measured lowest point at the held end of Death, -(that) - mantis 4.0 cm up, toad 0.7 cm up, hawk 0.5 cm under.
+const MONSTER_BASE = { level: 5, hp: 20, str: 2, def: 5, acc: 35, xp: 80, respawnS: RESPAWN_S.tin_golem, atkS: 3, atkHitAt: 0.333, deathHitAt: 0.767, atkReach: 0.9, aggro: 'provoked', leashR: 5, walkSpd: 0.45,
+  shade: 'hdToon', srgbOut: true, clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' } }; // (= TIN_GOLEM's stats, see above)
+const STALK_LURKER = Object.assign({}, MONSTER_BASE, {
+  id: 'stalk_lurker', name: 'Stalk Lurker', icon: '🦗',
+  model: 'assets/models/creatures/stalk_lurker_i23d.glb', // arms_out_v1/mantis/rig_v2 stalk_lurker_i23d_slim.glb: 16,000 tris, 12 bones (elbows fa.L / fa.R), 1.0 MB
+  height: 1.2,      // metres (Art's build: 1.20 m), footprint 0.98 x 1.00 m
+  bodyR: 0.45,      // metres from its centre to its body surface (half its 0.98 m width)
+  deathRestY: -0.040, // Death: rolls onto its side; the held end pose sat 4.0 cm off the floor
+}); // claws fold to the chest in Idle / Walk / Hit / Death; Attack strikes forward
+const MOSSMAW_TOAD = Object.assign({}, MONSTER_BASE, {
+  id: 'mossmaw_toad', name: 'Mossmaw', icon: '🐸',
+  model: 'assets/models/creatures/mossmaw_toad_i23d.glb', // arms_out_v1/toad/fal_v2/rest_down mossmaw_toad_i23d_rest_slim.glb: 16,000 tris, 9 bones (elbows fa.L / fa.R), arms hang down at rest, 1.0 MB
+  height: 1.1,      // metres (Art's build: 1.10 m), footprint 1.34 (arms) x 0.65 m
+  bodyR: 0.4,       // metres to its body surface (its belly; the arms hang a little wider)
+  deathRestY: -0.007, // the held end of Death sat 0.7 cm off the floor
+});
+const SKYTALON_HAWK = Object.assign({}, MONSTER_BASE, {
+  id: 'skytalon_hawk', name: 'Skytalon', icon: '🦅',
+  model: 'assets/models/creatures/skytalon_hawk_i23d.glb', // arms_out_v1/hawk/fal_v3 skytalon_hawk_i23d_slim.glb: 15,998 tris, 8 bones, 1.0 MB
+  height: 1.5,      // metres (Art's build: 1.50 m), wings spread 2.80 m, 1.20 m deep
+  bodyR: 0.5,       // metres to its body surface (the body, not the spread wings)
+  deathRestY: 0.005, // Death lands on its back; the held end sat 0.5 cm under the floor
+  // (Dominic: the wing clips past 45 deg down) the flap about each wing bone's own fore-aft axis (+Y) is clamped to at most downMax deg below its rest pose, after
+  // every mixer update (Creatures player). Art's clips peak at 31.6 deg down (Walk), so today the clamp only guards; up-beats are not limited
+  boneClamp: [{ bone: 'wing.L', axis: [0, 1, 0], down: 1, downMax: 32 }, { bone: 'wing.R', axis: [0, 1, 0], down: -1, downMax: 32 }], // down = the twist sign that lowers that wingtip
+});
+// ---------------------------------------------------------------------------------------------------------------------------------------------
 
 // (Dominic, card t573s2565 via Art: 'Monster levels shouldn't exceed what we can kill at whatever level requires iron ore') the cap = the level that unlocks
 // iron ore: Mining 20 (Skills ORES.iron.unlock), the same level as the iron swords (Combat SWORD_UNLOCK.iron 20). The old placeholders 1 / 10 / 25 / 40 scaled into
@@ -10174,7 +10209,7 @@ const MONSTER_LEVELS = {
   FROM: { lumen_mushroom: 1, tin_golem: 10, copper_golem: 25, coal_golem: 40 }, // the t566s2518 placeholders
   LEVEL: { lumen_mushroom: 1, tin_golem: 5, copper_golem: 13, coal_golem: 20 },  // = each row's level
 };
-const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM };
+const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM, stalk_lurker: STALK_LURKER, mossmaw_toad: MOSSMAW_TOAD, skytalon_hawk: SKYTALON_HAWK };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // (Dominic t580u in Art's chat; t736u: "Mosby and Theus will be replaced by these completely and reinstalled with the same motions and noises as before. This
@@ -10379,6 +10414,9 @@ const PLAYGROUND_COMBAT = {
   CREATURES: [
     { id: 'lumen_mushroom', at: [0.38, 0, 0.95] },
     { id: 'tin_golem', at: [-3.4, 0, -2.6], roam: 1.6 },
+    { id: 'stalk_lurker', at: [3.4, 0, -2.6], roam: 1.4 },  // (26 Nov) Art's new three, one each, for practice (Tin Golem stats)
+    { id: 'mossmaw_toad', at: [-3.3, 0, 2.9], roam: 1.4 },
+    { id: 'skytalon_hawk', at: [3.3, 0, 2.9], roam: 1.4 },
   ],
   // (Dominic t698u) chasing a creature that walks away: once she is back in reach she starts AND finishes a whole attack sequence.
   // COMMIT_SWING: a started swing is never dropped to re-chase (she stays, keeps facing it); KEEP_REACH_M: hysteresis - a committed swing still lands at its
@@ -11366,6 +11404,13 @@ const Creatures = (() => {
   function player(I) { const mixer = new THREE.AnimationMixer(I.model), clips = I.clips, acts = new Set(); let starts = 0;
     const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); acts.add(a); for (const o of acts) if (o !== a && o.enabled && o.getEffectiveWeight() > 0) o.fadeOut(0.12); /* (a finished clamped one-shot counts too) */
       const live = !once && a.isRunning() && a.getEffectiveWeight() > 0.01; if (live) { a.stopFading(); a.setEffectiveWeight(1); } else { a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); starts++; } return a; };
+    /* (26 Nov, the Skytalon hawk) a row's boneClamp limits a bone's twist about its own axis to downMax deg on its 'down' side of the rest pose, after every
+       mixer update (each clip writes the bone afresh, so this never builds up); the swing part of the pose is kept */
+    const BC = (I.def.boneClamp || []).map((c) => ({ c, b: (I.bones || []).find((x) => x.name === c.bone), ax: new THREE.Vector3(...c.axis).normalize() })).filter((q) => q.b && I.rest[q.c.bone]);
+    if (BC.length) { const up = mixer.update.bind(mixer), d = new THREE.Quaternion(), tw = new THREE.Quaternion(), sw = new THREE.Quaternion(), p = new THREE.Vector3();
+      mixer.update = (dt) => { const r = up(dt); for (const q of BC) { const R0 = I.rest[q.c.bone]; d.copy(R0).invert().multiply(q.b.quaternion); p.set(d.x, d.y, d.z); const k = p.dot(q.ax); tw.set(q.ax.x * k, q.ax.y * k, q.ax.z * k, d.w); if (tw.lengthSq() < 1e-12) continue; tw.normalize();
+        let a = 2 * Math.atan2(tw.x * q.ax.x + tw.y * q.ax.y + tw.z * q.ax.z, tw.w); if (a > Math.PI) a -= 2 * Math.PI; if (a < -Math.PI) a += 2 * Math.PI; const lim = q.c.downMax * Math.PI / 180;
+        if (a * q.c.down <= lim) continue; sw.copy(d).multiply(tw.clone().invert()); tw.setFromAxisAngle(q.ax, lim * q.c.down); q.b.quaternion.copy(R0).multiply(sw).multiply(tw); } return r; }; I.clamped = BC.map((q) => q.c.bone); }
     Object.assign(I, { mixer, play }); Object.defineProperty(I, 'running', { get: () => [...acts].filter((o) => o.isRunning() && o.getEffectiveWeight() > 0.01).map((o) => o.getClip().name) }); Object.defineProperty(I, 'starts', { get: () => starts });
     play((I.def.clips && I.def.clips.idle) || 'Idle'); return I; }
   // (GD-32) another instance of a built one: three's SkeletonUtils.clone (examples/jsm/utils/SkeletonUtils.js, r149 - not in our three.min.js), the same geometry and
@@ -13242,7 +13287,7 @@ const CharView = (() => {
     { const A = SWG.at; if (PGA.mob && A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; const r = pgaHit(A.lock && pgaCh().COMMIT_SWING ? pgaCh().KEEP_REACH_M : 0); if (A.lock) { A.lock.str = true; if (r) A.lock.roll++; } } } /* (one strike point per swing animation = one damage roll, on her target) */
     const n = (PGA.mobs || []).length; for (let i = 0; i < n; i++) { pgaUse(i); pgaMobTick(dt); } pgaUse(PGA.tgt); pgaBars(dt); if (typeof CoinDrops !== 'undefined' && G && G.arena) { const got = CoinDrops.tick('pga', dt, G.x, G.z); if (got) pgaNum('+' + got + ' gold', 'info', true); } } /* (GD-30: every creature in the arena lives; then back to her target) */
   function pgaMobTick(dt) { const m = PGA.mob, C = pgaC(); if (!m) return; m.mixer.update(dt); if (PGA.blobMob) { PGA.blobMob.position.x = m.root.position.x; PGA.blobMob.position.z = m.root.position.z; PGA.blobMob.visible = PGA.dead <= 0; }
-    if (PGA.dead > 0) { PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0; m.root.visible = !(u >= 1.2); } /* (t575s2576: the longer hidden wait - once sunk it is gone until the respawn, not a stump on the floor) */ /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
+    if (PGA.dead > 0) { PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = (u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0) + (C.deathRestY || 0) * ss(C.deathHitAt, C.deathHitAt + 0.15, PGA.sink); m.root.visible = !(u >= 1.2); } /* (26 Nov: deathRestY puts the held Death pose on the floor) */ /* (t575s2576: the longer hidden wait - once sunk it is gone until the respawn, not a stump on the floor) */ /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
       if (PGA.dead <= 0) { PGA.dead = 0; PGA.sink = 0; m.root.position.y = 0; m.root.visible = true; PGA.hp = C.hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(C.clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } } /* (t575s2576: no countdown, so nothing to refresh each second while it waits) */
     else { if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); pgaMob(dt); } }
   function pgaAttack() { if (!rig || !(SWG.R || SWG.L)) return false; pgaOpen(); if (PGA.ko > 0) return false; return swAttack(); }

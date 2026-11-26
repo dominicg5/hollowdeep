@@ -5,7 +5,7 @@
 
 // (Dominic, card t575s2576: 'I would like the countdown respawn not visible') seconds from a creature's death to its respawn - hidden timers: nothing on screen
 // counts them down (no countdown in the playground status / overhead bars / map); each row's respawnS reads this table
-const RESPAWN_S = { lumen_mushroom: 20, tin_golem: 30, copper_golem: 45, coal_golem: 60 };
+const RESPAWN_S = { lumen_mushroom: 20, tin_golem: 30, copper_golem: 45, coal_golem: 60, stalk_lurker: 30, mossmaw_toad: 30, skytalon_hawk: 30 };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // LUMEN MUSHROOM - the Attack Playground's practice target (t653u). (GD-33, Dominic t553u: "that replaces the old Lumen Mushroom") Model: Art's own Mushnub
@@ -127,6 +127,41 @@ const COAL_GOLEM = {
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
 // ---------------------------------------------------------------------------------------------------------------------------------------------
+// (Dominic, 26 Nov: "implement as new monsters. 1 of each put into the attack playground. Give the same stats as golem for now just so I can practice on them")
+// Art's arms-out batch (creature_pipeline/production/arms_out_v1): the Stalk Lurker mantis, the Mossmaw toad and the Skytalon hawk. Each is Art's _slim.glb with its
+// two JPEG maps (base colour + emissive, 1024) re-encoded as WebP (EXT_texture_webp); mesh, bones, extras and clips unchanged. sRGB base colour, metallic 0, one
+// material; drawn like the other monsters (chalk toon + ink, sRGB colour maps, no tone mapping on the sRGB stage). Already game size (1.0 scale, feet on y 0).
+// STATS: the golems' tiers differ, so all three carry the TIN GOLEM's numbers (level 5, 20 HP, Str 2, Def 5, Acc 35, 80 XP, 30 s respawn, a 3 s attack, 5 m leash,
+// 0.45 m/s) - placeholders for practice, not approved. Timings from Art's build reports (impact: Attack 0.333 s, Death 0.767 s). Playground only: not on the map.
+// deathRestY: metres added to its height while it lies in its final Death pose (eased in over the 0.15 s after deathHitAt), so the held pose rests on the floor:
+// measured lowest point at the held end of Death, -(that) - mantis 4.0 cm up, toad 0.7 cm up, hawk 0.5 cm under.
+const MONSTER_BASE = { level: 5, hp: 20, str: 2, def: 5, acc: 35, xp: 80, respawnS: RESPAWN_S.tin_golem, atkS: 3, atkHitAt: 0.333, deathHitAt: 0.767, atkReach: 0.9, aggro: 'provoked', leashR: 5, walkSpd: 0.45,
+  shade: 'hdToon', srgbOut: true, clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' } }; // (= TIN_GOLEM's stats, see above)
+const STALK_LURKER = Object.assign({}, MONSTER_BASE, {
+  id: 'stalk_lurker', name: 'Stalk Lurker', icon: '🦗',
+  model: 'assets/models/creatures/stalk_lurker_i23d.glb', // arms_out_v1/mantis/rig_v2 stalk_lurker_i23d_slim.glb: 16,000 tris, 12 bones (elbows fa.L / fa.R), 1.0 MB
+  height: 1.2,      // metres (Art's build: 1.20 m), footprint 0.98 x 1.00 m
+  bodyR: 0.45,      // metres from its centre to its body surface (half its 0.98 m width)
+  deathRestY: -0.040, // Death: rolls onto its side; the held end pose sat 4.0 cm off the floor
+}); // claws fold to the chest in Idle / Walk / Hit / Death; Attack strikes forward
+const MOSSMAW_TOAD = Object.assign({}, MONSTER_BASE, {
+  id: 'mossmaw_toad', name: 'Mossmaw', icon: '🐸',
+  model: 'assets/models/creatures/mossmaw_toad_i23d.glb', // arms_out_v1/toad/fal_v2/rest_down mossmaw_toad_i23d_rest_slim.glb: 16,000 tris, 9 bones (elbows fa.L / fa.R), arms hang down at rest, 1.0 MB
+  height: 1.1,      // metres (Art's build: 1.10 m), footprint 1.34 (arms) x 0.65 m
+  bodyR: 0.4,       // metres to its body surface (its belly; the arms hang a little wider)
+  deathRestY: -0.007, // the held end of Death sat 0.7 cm off the floor
+});
+const SKYTALON_HAWK = Object.assign({}, MONSTER_BASE, {
+  id: 'skytalon_hawk', name: 'Skytalon', icon: '🦅',
+  model: 'assets/models/creatures/skytalon_hawk_i23d.glb', // arms_out_v1/hawk/fal_v3 skytalon_hawk_i23d_slim.glb: 15,998 tris, 8 bones, 1.0 MB
+  height: 1.5,      // metres (Art's build: 1.50 m), wings spread 2.80 m, 1.20 m deep
+  bodyR: 0.5,       // metres to its body surface (the body, not the spread wings)
+  deathRestY: 0.005, // Death lands on its back; the held end sat 0.5 cm under the floor
+  // (Dominic: the wing clips past 45 deg down) the flap about each wing bone's own fore-aft axis (+Y) is clamped to at most downMax deg below its rest pose, after
+  // every mixer update (Creatures player). Art's clips peak at 31.6 deg down (Walk), so today the clamp only guards; up-beats are not limited
+  boneClamp: [{ bone: 'wing.L', axis: [0, 1, 0], down: 1, downMax: 32 }, { bone: 'wing.R', axis: [0, 1, 0], down: -1, downMax: 32 }], // down = the twist sign that lowers that wingtip
+});
+// ---------------------------------------------------------------------------------------------------------------------------------------------
 
 // (Dominic, card t573s2565 via Art: 'Monster levels shouldn't exceed what we can kill at whatever level requires iron ore') the cap = the level that unlocks
 // iron ore: Mining 20 (Skills ORES.iron.unlock), the same level as the iron swords (Combat SWORD_UNLOCK.iron 20). The old placeholders 1 / 10 / 25 / 40 scaled into
@@ -137,7 +172,7 @@ const MONSTER_LEVELS = {
   FROM: { lumen_mushroom: 1, tin_golem: 10, copper_golem: 25, coal_golem: 40 }, // the t566s2518 placeholders
   LEVEL: { lumen_mushroom: 1, tin_golem: 5, copper_golem: 13, coal_golem: 20 },  // = each row's level
 };
-const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM };
+const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM, stalk_lurker: STALK_LURKER, mossmaw_toad: MOSSMAW_TOAD, skytalon_hawk: SKYTALON_HAWK };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // (Dominic t580u in Art's chat; t736u: "Mosby and Theus will be replaced by these completely and reinstalled with the same motions and noises as before. This
@@ -342,6 +377,9 @@ const PLAYGROUND_COMBAT = {
   CREATURES: [
     { id: 'lumen_mushroom', at: [0.38, 0, 0.95] },
     { id: 'tin_golem', at: [-3.4, 0, -2.6], roam: 1.6 },
+    { id: 'stalk_lurker', at: [3.4, 0, -2.6], roam: 1.4 },  // (26 Nov) Art's new three, one each, for practice (Tin Golem stats)
+    { id: 'mossmaw_toad', at: [-3.3, 0, 2.9], roam: 1.4 },
+    { id: 'skytalon_hawk', at: [3.3, 0, 2.9], roam: 1.4 },
   ],
   // (Dominic t698u) chasing a creature that walks away: once she is back in reach she starts AND finishes a whole attack sequence.
   // COMMIT_SWING: a started swing is never dropped to re-chase (she stays, keeps facing it); KEEP_REACH_M: hysteresis - a committed swing still lands at its

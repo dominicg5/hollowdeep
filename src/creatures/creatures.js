@@ -101,6 +101,13 @@ const Creatures = (() => {
   function player(I) { const mixer = new THREE.AnimationMixer(I.model), clips = I.clips, acts = new Set(); let starts = 0;
     const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); acts.add(a); for (const o of acts) if (o !== a && o.enabled && o.getEffectiveWeight() > 0) o.fadeOut(0.12); /* (a finished clamped one-shot counts too) */
       const live = !once && a.isRunning() && a.getEffectiveWeight() > 0.01; if (live) { a.stopFading(); a.setEffectiveWeight(1); } else { a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); starts++; } return a; };
+    /* (26 Nov, the Skytalon hawk) a row's boneClamp limits a bone's twist about its own axis to downMax deg on its 'down' side of the rest pose, after every
+       mixer update (each clip writes the bone afresh, so this never builds up); the swing part of the pose is kept */
+    const BC = (I.def.boneClamp || []).map((c) => ({ c, b: (I.bones || []).find((x) => x.name === c.bone), ax: new THREE.Vector3(...c.axis).normalize() })).filter((q) => q.b && I.rest[q.c.bone]);
+    if (BC.length) { const up = mixer.update.bind(mixer), d = new THREE.Quaternion(), tw = new THREE.Quaternion(), sw = new THREE.Quaternion(), p = new THREE.Vector3();
+      mixer.update = (dt) => { const r = up(dt); for (const q of BC) { const R0 = I.rest[q.c.bone]; d.copy(R0).invert().multiply(q.b.quaternion); p.set(d.x, d.y, d.z); const k = p.dot(q.ax); tw.set(q.ax.x * k, q.ax.y * k, q.ax.z * k, d.w); if (tw.lengthSq() < 1e-12) continue; tw.normalize();
+        let a = 2 * Math.atan2(tw.x * q.ax.x + tw.y * q.ax.y + tw.z * q.ax.z, tw.w); if (a > Math.PI) a -= 2 * Math.PI; if (a < -Math.PI) a += 2 * Math.PI; const lim = q.c.downMax * Math.PI / 180;
+        if (a * q.c.down <= lim) continue; sw.copy(d).multiply(tw.clone().invert()); tw.setFromAxisAngle(q.ax, lim * q.c.down); q.b.quaternion.copy(R0).multiply(sw).multiply(tw); } return r; }; I.clamped = BC.map((q) => q.c.bone); }
     Object.assign(I, { mixer, play }); Object.defineProperty(I, 'running', { get: () => [...acts].filter((o) => o.isRunning() && o.getEffectiveWeight() > 0.01).map((o) => o.getClip().name) }); Object.defineProperty(I, 'starts', { get: () => starts });
     play((I.def.clips && I.def.clips.idle) || 'Idle'); return I; }
   // (GD-32) another instance of a built one: three's SkeletonUtils.clone (examples/jsm/utils/SkeletonUtils.js, r149 - not in our three.min.js), the same geometry and
