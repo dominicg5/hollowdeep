@@ -84,8 +84,8 @@ const Combat = (() => {
   function resetTree(s) { s = migrate(s); if (s) s.skill = {}; }
   // the player's Reset in the Skill Tree (t643u, Dominic): every point back. Free for now - RESET_COST is the one place its price (gold) goes later
   const RESET_COST = 0;
-  const canReset = (s) => { s = sv(s); return !!s && pointsSpent(s) > 0 && (RESET_COST <= 0 || (+s.gold || 0) >= RESET_COST); };
-  function resetPaid(s) { s = migrate(s); if (!s || !canReset(s)) return 0; const n = pointsSpent(s); if (RESET_COST > 0) s.gold = (+s.gold || 0) - RESET_COST; s.skill = {}; if (s === (typeof S !== 'undefined' ? S : null) && typeof save === 'function') save(); return n; }
+  const canReset = (s) => { s = sv(s); return !!s && pointsSpent(s) > 0 && (RESET_COST <= 0 || (typeof Gold !== 'undefined' && Gold.canAfford(RESET_COST, s))); }; // (t575s2576) paid in backpack Gold coins
+  function resetPaid(s) { s = migrate(s); if (!s || !canReset(s)) return 0; const n = pointsSpent(s); if (RESET_COST > 0 && !Gold.spendGold(RESET_COST, s)) return 0; s.skill = {}; if (s === (typeof S !== 'undefined' ? S : null) && typeof save === 'function') save(); return n; }
   // one node's full state for the tree UI
   function nodeState(id, s) { const n = NODE[id]; if (!n) return null; const r = ranks(id, s), why = whyNot(id, s); return { id, branch: n.branch, sub: n.sub, name: n.name, text: n.text, max: n.max, cost: n.cost, req: n.req, ranks: r, maxed: r >= n.max, reqMet: reqMet(id, s), canAdd: !why, why, canRemove: canRemove(id, s) }; }
   const treeState = (s) => ({ level: level(s), points: pointsTotal(s), spent: pointsSpent(s), left: pointsLeft(s), nodes: NODES.map((n) => nodeState(n.id, s)), subSpent: { might: subSpent('might', s), vitality: subSpent('vitality', s), spoils: subSpent('spoils', s) } });

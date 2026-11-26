@@ -432,7 +432,7 @@ function closeModalQuiet() { ui.modal = null; $('#modal').classList.add('hidden'
 
 function init() {
   const loaded = load();
-  S = loaded || newState();
+  S = loaded || newState(); if (typeof Gold !== 'undefined') Gold.migrate(S); /* (t575s2576) the old gold purse -> Gold coins in the backpack, once */
   ensureRivals();
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]'); if (t) return setTab(t.dataset.tab);

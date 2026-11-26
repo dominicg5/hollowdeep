@@ -41,7 +41,7 @@ const MosbyTalk = (() => {
     return { pts, len: L, metres: Math.round(m), fee: Math.round(m), eta: m / v, dest: pts[pts.length - 1], wade: wade * 20 / WSf(), steps }; }
   function crackW(x, y) { for (const cr of W.cracks || []) for (let q = 0; q + 1 < cr.pts.length; q++) { const a = cr.pts[q], c = cr.pts[q + 1]; if (Math.abs(a[0] - x) > 300 || Math.abs(a[1] - y) > 300) continue; const dx = c[0] - a[0], dy = c[1] - a[1], l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / l2)), w = cr.ws[q] + (cr.ws[q + 1] - cr.ws[q]) * t; if (Math.hypot(x - a[0] - dx * t, y - a[1] - dy * t) < w / 2) return w; } return 0; }
   // ---- gold (seeded for the trip)
-  const gold = () => { if (S.gold == null) S.gold = 2500; return S.gold; };
+  const gold = () => Gold.getGold(); // (t575s2576) the Gold coins in her backpack
   const fmtT = (s) => { const m = Math.max(1, Math.round(s / 60)); return m >= 60 ? Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min' : m + ' min'; };
   // ---- the panel
   const ST = { el: null, step: null, card: null, trip: null };
@@ -100,6 +100,6 @@ const MosbyTalk = (() => {
     const g = gold(), ok = g >= R.fee; c.innerHTML = `<div class="mcBox"><span class="mcC1"></span><span class="mcC2"></span><h3>Trip</h3><div class="mcRow"><span>Distance</span><b data-v="dist">${R.metres} m</b></div><div class="mcRow"><span>Cost</span><b data-v="cost">${R.fee}<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold"></b></div><div class="mcRow"><span>Time</span><b data-v="time">${fmtT(R.eta)}</b></div>
       <div class="mcFoot"><button class="mdB blue" data-a="confirm"${ok ? '' : ' disabled'}>Confirm</button><button class="mdB cream" data-a="cancel">Cancel</button></div><div class="mcNote">${ok ? `You have ${g} gold` : `Not enough gold \u2014 you have ${g}`}</div></div>`; c.classList.remove('hidden'); return R; }
   function closeCard() { const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; close(); }
-  function confirm() { const R = ST.trip; if (!R || gold() < R.fee) return; S.gold -= R.fee; S.mosbyTrip = { pts: R.pts.map(([x, y]) => [Math.round(x), Math.round(y)]), len: R.len, fee: R.fee, eta: R.eta, t0: Date.now(), done: false, home: R.home }; if (typeof HomeMove !== 'undefined') HomeMove.depart(); try { save(); } catch (e) {} const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; go('sent'); return S.mosbyTrip; }
+  function confirm() { const R = ST.trip; if (!R || !Gold.spendGold(R.fee)) return; S.mosbyTrip = { pts: R.pts.map(([x, y]) => [Math.round(x), Math.round(y)]), len: R.len, fee: R.fee, eta: R.eta, t0: Date.now(), done: false, home: R.home }; if (typeof HomeMove !== 'undefined') HomeMove.depart(); try { save(); } catch (e) {} const c = document.getElementById('mosCard'); if (c) c.classList.add('hidden'); ST.trip = null; go('sent'); return S.mosbyTrip; }
   return { TP, tpBuild, route, gold, open, close, go, act, card, confirm, closeCard, fmtT, crackW, get step() { return ST.step && ST.step.id; }, STEP_W, WADE_D };
 })();

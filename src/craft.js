@@ -198,9 +198,10 @@ const Craft = (() => {
     try { for (let g = 0; n < c && g < 1e5; g++) { if (room('bag', r.out) >= c - n) { n = c; break; } if (!fits('bag', r.out, 1)) break; for (const k in r.in) add('bag', k, -r.in[k]); add('bag', r.out, 1); n++; } } finally { S.backpack = b0; S.bagOrder = o0; }
     return n; }
   function make(r, x, dest) { if (x <= 0 || !canMake(r, x)) return 0; if (smLocked(r)) { if (typeof toast === 'function') toast('Unlock Lv ' + recLv(r)); return 0; } /* (t624u: the Smithing lock holds on every crafting path, not just the screens) */ if (!fits(dest === 'vault' ? 'vault' : 'bag', r.out, x)) return fullMsg(dest === 'vault' ? '🔒 Vault full' : FULL), 0; /* (room checked before any ingredient is taken) */ for (const k in r.in) take(k, r.in[k] * x); add(dest === 'vault' ? 'vault' : 'bag', r.out, x); if (typeof Skills !== 'undefined') Skills.awardCraft(r, x); return x; }
-  // (Dominic) gold is the only free-to-play currency: everything is bought and sold for gold coins (S.gold, Mosby's fare purse). Lumen Crystals are premium only
+  // (Dominic) gold is the only free-to-play currency: everything is bought and sold for gold coins - (t575s2576) the 'Gold coins' backpack item only (src/gold.js Gold:
+  // no purse). Lumen Crystals are premium only
   // (in-game purchase, 'Coming soon'); nothing in play gives them, and they buy looks only.
-  const gold = () => { if (S.gold == null) S.gold = 2500; return Math.floor(S.gold); }, lum = gold;
+  const gold = () => (typeof Gold !== 'undefined' ? Gold.getGold() : 0), lum = gold; // (t575s2576) the coins in the backpack
   const COIN = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
   if (typeof document !== 'undefined' && !document.getElementById('cxSkinCss')) { const e = document.createElement('style'); e.id = 'cxSkinCss'; e.textContent = '.cxsw{flex:none;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55),transparent 45%),var(--c);box-shadow:inset 0 0 0 2px rgba(60,35,15,.55);margin-right:6px}.cxskH{margin:10px 0 4px;font-size:15px}.cxsoon{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;margin:6px 0;border-radius:10px;background:rgba(120,170,255,.14);box-shadow:inset 0 0 0 1px rgba(90,130,220,.35)}.cxsoon b{flex:1 1 100%}.cxsoon small{flex:1;opacity:.8}.cxgd{display:inline-flex;align-items:center}'; document.head.appendChild(e); }
   // ---- UI
@@ -454,7 +455,7 @@ const Craft = (() => {
           + (on ? '<button class="btn sm ghost" disabled>Wearing</button>' : own ? `<button class="btn sm alt" data-cx="skwear" data-kind="${kind}" data-g="${g}">Wear</button>` : `<button class="btn sm ${crystals() >= p ? 'alt' : 'ghost'}" data-cx="skbuy" data-kind="${kind}" data-g="${g}" ${crystals() >= p ? '' : 'disabled'}>Buy 💠 ${p}</button>`) + '</div>'; }
       h += '</div>'; }
     return h; }
-  function buy(id, n = 1) { const p = SHOP[id]; if (!p || !(n > 0)) return 0; if (room('bag', id) <= 0) return fullMsg(), 0; /* (full backpack: blocked before any gold is taken) */ n = Math.min(n, Math.floor(gold() / p), room('bag', id)); if (n <= 0) return 0; S.gold = gold() - p * n; add('bag', id, n); return n; }
+  function buy(id, n = 1) { const p = SHOP[id]; if (!p || !(n > 0)) return 0; if (room('bag', id) <= 0) return fullMsg(), 0; /* (full backpack: blocked before any gold is taken) */ n = Math.min(n, Math.floor(gold() / p), room('bag', id)); if (n <= 0 || !Gold.spendGold(p * n)) return 0; if (add('bag', id, n) !== n) { Gold.addGold(p * n); return 0; } /* (paid from the backpack's coins; refunded if the item then does not fit) */ return n; }
   // bank notes trade at the Lumen Crystal (t591u): list a note at your own price (it is handed over and held, like the other player listings, until a buyer
   // comes or you cancel; cancelling gives the note back)
   const NX = () => S.noteEx || (S.noteEx = { mine: [], next: 1 });

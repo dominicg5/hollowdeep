@@ -86,8 +86,8 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     click('[data-st=node][data-id=vigor]'); for (let i = 0; i < 60; i++) click('[data-st=plus]'); o.vk = +q('[data-st=k]').textContent; click('[data-st=confirm]'); o.vig = [Combat.pointsLeft(), q('[data-st=confirm]').disabled, /Not enough skill points/.test(q('[data-st=sheet]').textContent)];
     o.saved = (S.skill || {}).vigor;
     // t643u: Reset refunds every point for free (Combat.RESET_COST = 0), after a confirm step; Cancel keeps them
-    { const g0 = S.gold, xp1 = S.combat.xp, sp = Combat.pointsSpent(); click('[data-st=reset]'); const dlg = !!q('[data-st=reset-confirm]') && /Free/.test(q('.stResetCard').textContent); click('[data-st=reset-cancel]'); const kept = Combat.pointsSpent();
-      click('[data-st=reset]'); click('[data-st=reset-confirm]'); o.reset = { cost: Combat.RESET_COST, sp, dlg, kept, after: Combat.pointsSpent(), left: Combat.pointsLeft(), gold: S.gold === g0, xp: S.combat.xp === xp1, shut: !q('.stResetCard'), dis: q('[data-st=reset]').disabled, saved: JSON.stringify(JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').skill || {}) }; }
+    { const g0 = Gold.getGold(), xp1 = S.combat.xp, sp = Combat.pointsSpent(); click('[data-st=reset]'); const dlg = !!q('[data-st=reset-confirm]') && /Free/.test(q('.stResetCard').textContent); click('[data-st=reset-cancel]'); const kept = Combat.pointsSpent();
+      click('[data-st=reset]'); click('[data-st=reset-confirm]'); o.reset = { cost: Combat.RESET_COST, sp, dlg, kept, after: Combat.pointsSpent(), left: Combat.pointsLeft(), gold: Gold.getGold() === g0, xp: S.combat.xp === xp1, shut: !q('.stResetCard'), dis: q('[data-st=reset]').disabled, saved: JSON.stringify(JSON.parse(localStorage.getItem(CONFIG.saveKey) || '{}').skill || {}) }; }
     // iPhone: 44 px targets, inside the screen
     o.touch = qa('button').filter((e) => e.offsetParent).map(box).map((x) => [Math.round(x.w), Math.round(x.h), Math.round(x.l), Math.round(x.r), Math.round(x.b)]);
     o.touchOk = o.touch.every(([w, h, l, rr]) => w >= 44 && h >= 44 && l >= 0 && rr <= innerWidth + 0.5);

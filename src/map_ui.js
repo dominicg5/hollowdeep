@@ -488,7 +488,7 @@ const CityMap = (() => {
   }
   /* ---------- the Exchange: a free player market, resources for gold coins at player-set prices (simple order-book stub). (Dominic: gold is the only free-to-play currency) ---------- */
   const EX_RES = ['stone', 'timber', 'moss', 'iron', 'coal', 'steel', 'amber', 'obsidian'], EX_BASE = { stone: 4, timber: 4.5, moss: 6, iron: 9, coal: 8, steel: 22, amber: 30, obsidian: 35 }; // gold per unit
-  const GOLD = () => (typeof Craft !== 'undefined' && Craft.gold ? Craft.gold() : (S.gold == null ? (S.gold = 2500) : S.gold)), CI = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
+  const GOLD = () => Gold.getGold(), /* (t575s2576) the backpack's Gold coins */ CI = '<img class="kCoin" src="assets/ui/icons/coin.webp" alt="gold">';
   function exState() { if (!S.exchange) S.exchange = { bought: {}, mine: [], nextId: 1 }; return S.exchange; } // (prices are gold; no conversion from old Lumen prices)
   function exListings() { const day = Math.floor(gTime() / (6 * HOUR)), rr = mulberry32(day * 977 + 5), out = [], ex = exState(), AI = W.homes.filter((h) => !h.isPlayer);
     for (let i = 0; i < 14; i++) { const k = EX_RES[Math.floor(rr() * EX_RES.length)], h = AI[Math.floor(rr() * AI.length)], qty = 10 * (1 + Math.floor(rr() * 12)), price = Math.max(1, Math.round(EX_BASE[k] * (0.7 + rr() * 0.8))), id = day + ':' + i;
@@ -508,7 +508,7 @@ const CityMap = (() => {
       ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
   }
   function exAct(act, ds) { const ex = exState();
-    if (act === 'exbuy') { const o = exListings().find((x) => x.id === ds.id); if (!o) return; const cost = Math.ceil(o.qty * o.price); if (GOLD() < cost) return toast('Not enough gold.'); S.gold = GOLD() - cost; addRes(o.k, o.qty); ex.bought[o.id] = 1; toast(`⚖️ Bought ${o.qty} ${CONFIG.resources[o.k].name} from ${o.seller} for ${cost} gold`); }
+    if (act === 'exbuy') { const o = exListings().find((x) => x.id === ds.id); if (!o) return; const cost = Math.ceil(o.qty * o.price); if (!Gold.spendGold(cost)) return toast('Not enough gold.'); addRes(o.k, o.qty); ex.bought[o.id] = 1; toast(`⚖️ Bought ${o.qty} ${CONFIG.resources[o.k].name} from ${o.seller} for ${cost} gold`); }
     if (act === 'exsell') { const k = $('#exK').value, q = Math.floor(+$('#exQ').value), pr = Math.round(+$('#exP').value); if (!(q > 0) || !(pr > 0)) return toast('Set a quantity and a price.'); if ((S.res[k] || 0) < q) return toast('You do not have that much.'); if (k === 'iron' || k === 'coal' || k === 'steel') return toast('🔒 Sell vault stock from the vault'); S.res[k] -= q; ex.mine.push({ id: ex.nextId++, k, qty: q, price: pr }); toast(`⚖️ Listed ${q} ${CONFIG.resources[k].name} at ${pr} gold each`); }
     if (act === 'excancel') { const i = ex.mine.findIndex((m) => m.id === +ds.id); if (i >= 0) { const m = ex.mine[i]; ex.mine.splice(i, 1); addRes(m.k, m.qty); } }
     exchangeCard(); }

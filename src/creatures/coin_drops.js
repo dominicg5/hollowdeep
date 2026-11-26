@@ -12,7 +12,7 @@ const CoinDrops = (() => {
   function icon(n) { const T = D(); return (n || 1) >= T.PILE_AT ? T.ICON.pile : (n || 1) >= T.STACK_AT ? T.ICON.stack : T.ICON.one; }
   function sc(id) { return S[id] || (S[id] = { host: null, drops: [], log: [] }); }
   function host(id, h) { const s = sc(id); if (s.host && h && s.host.parent !== h.parent) for (const d of s.drops) if (d.obj && d.obj.parent) d.obj.parent.remove(d.obj); s.host = h; }
-  function give(n) { const T = D(); if (typeof Craft === 'undefined' || Craft.room('bag', T.ITEM) < n) return false; return Craft.add('bag', T.ITEM, n) >= n; }
+  function give(n) { const T = D(); if (typeof Craft === 'undefined' || Craft.room('bag', T.ITEM) < n) return false; return (typeof Gold !== 'undefined' ? Gold.addGold(n) : Craft.add('bag', T.ITEM, n)) >= n; } /* (t575s2576: through the one gold API) */
   function sprite(s, d) { const H = s.host; if (!H || !H.parent || typeof THREE === 'undefined') return; const T = D(), u = icon(d.n); let t = tex[u]; if (!t) { t = tex[u] = new THREE.TextureLoader().load(u); if ('colorSpace' in t) t.colorSpace = THREE.SRGBColorSpace; else t.encoding = THREE.sRGBEncoding; }
     const o = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false })), k = T.SPRITE_M * (H.m || 1); o.scale.set(k, k, 1); o.position.set(d.x, (H.y ? H.y(d.x, d.z) : 0) + k * 0.5, d.z); o.name = 'coinDrop'; o.renderOrder = 5; H.parent.add(o); d.obj = o; }
   function drop(o) { if (o.obj) { if (o.obj.parent) o.obj.parent.remove(o.obj); o.obj.material.dispose(); o.obj = null; } }
