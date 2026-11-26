@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='52623cf6';
+<script>window.HD_BUILD='34d4c9a4';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 52623cf6</div>
-<script src="assets/vendor/three.min.js?v=52623cf6"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 34d4c9a4</div>
+<script src="assets/vendor/three.min.js?v=34d4c9a4"></script>
 <script>
 'use strict';
 
@@ -10235,9 +10235,13 @@ const MOSBY_RIG = {
   // (t738u) his walk is the original one (the old stepAnim, body units) on Art's bones: a lateral-sequence walk (BL, FL, BR, FR a quarter cycle apart: ph = the
   // leg's offset, a larger one lifts earlier), on the ground duty of each cycle (Mosby.B.cyc s, stride B.stride); the swing lifts a front / back sole liftFront /
   // liftBack; a leg telescopes along itself at most stretch so a planted sole stays on the ground; the body shifts sway[0] over the planted side and rolls sway[1],
-  // dips dip[0] / pitches dip[1] at each footfall, breathes breath; the head nods / looks / rolls (radians)
-  gait: { duty: 0.72, ph: { 'lb.L': 0, 'lf.L': 0.75, 'lb.R': 0.5, 'lf.R': 0.25 }, liftFront: 0.5, liftBack: 0.36, stretch: 0.2, sway: [0.09, 0.03], dip: [0.06, 0.012], breath: 0.012,
-    head: { nod: 0.035, walkDown: 0.04, dipNod: 0.05, look: 0.1, roll: 0.035 } },
+  // dips dip[0] / pitches dip[1] at each footfall, breathes breath; the head nods / looks / rolls (radians); a planted sole stays pinned to its spot at most lockM
+  // body units off its stride (t739u)
+  gait: { duty: 0.72, ph: { 'lb.L': 0, 'lf.L': 0.75, 'lb.R': 0.5, 'lf.R': 0.25 }, liftFront: 0.5, liftBack: 0.36, stretch: 0.2, lockM: 0.8, sway: [0.09, 0.03], dip: [0.06, 0.012], breath: 0.012,
+    head: { nod: 0.035, walkDown: 0.04, dipNod: 0.05, look: 0.1, roll: 0.035 },
+    // (t739u) the giant's line round the loop (metres): sampled every stepM, eased over +-posM, heading = its direction over +-headM; on a bend his pace drops so his
+    // farthest sole (reachM from his middle) swings round at most slipMax m/s, never below minPace of his walk, eased in / out over +-slowM
+    route: { stepM: 1, posM: 24, headM: 20, reachM: 40, slipMax: 1.5, minPace: 0.5, slowM: 30 } },
   // the pace: unchanged (B.stride / B.cyc body units / s: 5.4 m/s giant, 0.54 m/s small) - his loop timing, meet and the house trips keep their clocks
   // the small tortoise (her house on his back): the house sits on his summit (houseW body units wide), his colliders [dz, r] body units along his length
   houseW: 3.25, houseLift: -0.1, smallCols: [[3.7, 1.1], [0.6, 3.3], [-2.4, 3.2]],
@@ -17521,7 +17525,7 @@ const Mosby = (() => {
     // it telescopes along, its step offset (MOSBY_RIG.gait); his body's and head's bind turns (their sway / dip / nod are turned in his frame, as before)
     const gq = (b) => { const q = new THREE.Quaternion(); rel(b).decompose(V3(), q, V3()); return q; }, body = bones[bi(R.bones.shell)], QB0 = gq(body), QB0i = QB0.clone().invert();
     feet.forEach((F) => { const hp = V3().setFromMatrixPosition(rel(F.b)), tip = F.b.worldToLocal(F.sole.clone().applyMatrix4(g.matrixWorld)), a = tip.toArray().map(Math.abs);
-      Object.assign(F, { Q0: gq(F.b), hp, Lg: hp.y - F.sole.y, ax: a.indexOf(Math.max(...a)), s0: F.b.scale.clone(), ph: R.gait.ph[F.name] || 0, front: /^lf/.test(F.name), down: true, rx: 0 }); });
+      Object.assign(F, { Q0: gq(F.b), hp, tipL: tip.clone(), Lg: hp.y - F.sole.y, ax: a.indexOf(Math.max(...a)), s0: F.b.scale.clone(), ph: R.gait.ph[F.name] || 0, front: /^lf/.test(F.name), down: true, rx: 0 }); });
     const head0 = gq(bones[bi(R.bones.head)]), rootM = rel(body.parent), bodyP0 = V3().setFromMatrixPosition(rel(body));
     I.mixer.stopAllAction(); I.key = null; I.act = null;
     MS.rig = { I, sk, sh, hd, feet, fol: [sh, hd, ...feet], tris: shT.length, headTris: hdT.length, body, QB0, QB0i, head0, rootM, rootMi: rootM.clone().invert(), rootQi: (() => { const q = new THREE.Quaternion(); rootM.decompose(V3(), q, V3()); return q.invert(); })(), bodyP0, bodyQ0: body.quaternion.clone(), bodyPos0: body.position.clone() }; MS.mats = null; MS.fadeOn = null;
@@ -17532,10 +17536,10 @@ const Mosby = (() => {
   // high swing; the body shifts over the planted side, dips at each footfall and breathes; the head nods and looks about. Art's Talk clip plays on his body and
   // head while his dialogue is open (he stands then). His head is held still while she is on it (MS.headHold, set by MosbyVeins). Each plant puffs dust under
   // its sole and (the giant) stomps
-  const _m = new THREE.Matrix4(), _gi = new THREE.Matrix4(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _e = new THREE.Euler(), _X = new THREE.Vector3(1, 0, 0);
+  const _m = new THREE.Matrix4(), _gi = new THREE.Matrix4(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion(), _qc = new THREE.Quaternion(), _qr = new THREE.Quaternion(), _gi2 = new THREE.Matrix4(), _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _v4 = new THREE.Vector3(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _e = new THREE.Euler(), _X = new THREE.Vector3(1, 0, 0);
   function anim(MS, dt, moving) { const G = MS.rig; if (!G) return; const I = G.I, R = MOSBY_RIG, A = R.gait, talk = MS === GM && typeof MosbyTalk !== 'undefined' && !!MosbyTalk.step && !moving, T = MS.t || 0;
     if (talk) { NpcModels.play(I, 'talk'); I.mixer.update(dt); } else if (I.key) { I.mixer.stopAllAction(); I.key = null; I.act = null; G.body.position.copy(G.bodyPos0); G.body.quaternion.copy(G.bodyQ0); G.hd.b.position.copy(G.hd.p0); G.hd.b.quaternion.copy(G.hd.q0); }
-    MS.ph = ((MS.ph || 0) + (moving ? dt / B.cyc : 0)) % 1; const D = A.duty; let sway = 0, dip = 0;
+    MS.ph = ((MS.ph || 0) + (moving ? (dt * (MS.pace == null ? 1 : MS.pace)) / B.cyc : 0)) % 1; /* (t739u: at his pace, so a planted foot keeps pace with the ground) */ const D = A.duty; let sway = 0, dip = 0;
     for (const F of G.feet) { const p = (MS.ph + F.ph) % 1, sw = moving && p >= D, u = sw ? (p - D) / (1 - D) : p / D, Lg = F.Lg, H = Math.min(0.85 * Lg, (B.stride * D) / 2);
       let rx, lift = 0; if (!moving) rx = F.rx * 0.9; else if (sw) { const e = sm(0, 1, u); rx = Math.atan((H - 2 * H * e) / Lg); lift = Math.pow(Math.sin(u * Math.PI), 0.8) * (F.front ? A.liftFront : A.liftBack); sway += (F.name.endsWith('.L') ? 1 : -1) * Math.sin(u * Math.PI); }
       else { rx = Math.atan((-H + 2 * H * u) / Lg); if (u < 0.08) dip = Math.max(dip, 1 - u / 0.08); }
@@ -17549,8 +17553,17 @@ const Mosby = (() => {
     // the legs last, in his frame from their hips (their hips stay where they are while the body sways over them, so a planted sole does not slide): turned
     // about his x by rx, telescoped by the lift
     G.body.updateMatrix(); _m.multiplyMatrices(G.rootM, G.body.matrix).decompose(_p, _qb, _s); _gi.copy(_m).invert(); _qb.invert();
-    for (const F of G.feet) { F.b.position.copy(F.hp).applyMatrix4(_gi); F.b.quaternion.copy(_qb).multiply(_qa.setFromAxisAngle(_X, F.rx)).multiply(F.Q0);
-      F.b.scale.copy(F.s0); F.b.scale.setComponent(F.ax, F.s0.getComponent(F.ax) * clamp((F.Lg - F.lift) / (F.Lg * Math.cos(F.rx)), 1 - A.stretch, 1 + A.stretch)); }
+    // (t739u) a planted sole is pinned where it landed on the ground (its spot kept in the world): when he turns or the ground line bends under him the leg
+    // re-aims from its hip at that spot (and telescopes to reach it), at most lockM body units off its own stride before it lets go
+    MS.g.updateMatrixWorld(true); _gi2.copy(MS.g.matrixWorld).invert(); G.body.updateMatrixWorld(true);
+    for (const F of G.feet) { const k = clamp((F.Lg - F.lift) / (F.Lg * Math.cos(F.rx)), 1 - A.stretch, 1 + A.stretch), bv = _v1.copy(F.sole).sub(F.hp), dn = _v2.copy(bv).applyAxisAngle(_X, F.rx), nom = _v3.copy(dn).multiplyScalar(k).add(F.hp);
+      const R = _qr.setFromAxisAngle(_X, F.rx); let sc = k;
+      if (!moving || !F.down) F.lock = null; else if (!F.lock) F.lock = nom.clone().applyMatrix4(MS.g.matrixWorld); else { const t = _v4.copy(F.lock).applyMatrix4(_gi2);
+        if (t.distanceTo(nom) > A.lockM) { t.sub(nom).setLength(A.lockM).add(nom); F.lock.copy(t).applyMatrix4(MS.g.matrixWorld); } /* (too far off his stride: the foot is dragged along rather than the leg overreaching) */
+        const to = t.sub(F.hp); sc = clamp(to.length() / bv.length(), 1 - A.stretch, 1 + A.stretch); R.premultiply(_qc.setFromUnitVectors(dn.normalize(), to.normalize())); }
+      F.b.position.copy(F.hp).applyMatrix4(_gi); F.b.quaternion.copy(_qb).multiply(R).multiply(F.Q0); F.b.scale.copy(F.s0); F.b.scale.setComponent(F.ax, F.s0.getComponent(F.ax) * sc);
+      if (F.lock) for (let it = 0; it < 2; it++) { /* (the leg's sole is not quite on its long axis: two touch-ups put it on the spot) */ F.b.updateMatrixWorld(true); const at = _v1.copy(F.tipL).applyMatrix4(F.b.matrixWorld).applyMatrix4(_gi2).sub(F.hp), to = _v2.copy(F.lock).applyMatrix4(_gi2).sub(F.hp);
+        sc = clamp(sc * to.length() / at.length(), 1 - A.stretch, 1 + A.stretch); R.premultiply(_qc.setFromUnitVectors(at.normalize(), to.normalize())); F.b.quaternion.copy(_qb).multiply(R).multiply(F.Q0); F.b.scale.setComponent(F.ax, F.s0.getComponent(F.ax) * sc); } }
     const hh = MS.headHold || 0; if (hh > 0) { G.hd.b.quaternion.slerp(G.hd.q0, hh); G.hd.b.position.lerp(G.hd.p0, hh); }
     MS.g.updateMatrixWorld(true); _gi.copy(MS.g.matrixWorld).invert(); for (const F of G.fol) { _m.multiplyMatrices(_gi, F.b.matrixWorld).multiply(F.r0i); _m.decompose(F.f.position, F.f.quaternion, F.f.scale); F.f.updateMatrixWorld(true); }
     for (const F of G.feet) if (F.dustDue) { F.dustDue = false; dust(MS, F.f.localToWorld(F.sole.clone())); } }
@@ -17621,7 +17634,23 @@ const Mosby = (() => {
     const L = TH.get(Math.floor(x / C) * 7919 + Math.floor(y / C)); if (!L) return false; const lim = W0 + (r || 20); for (const [ax, ay, bx, by] of L) { const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)); if (Math.hypot(x - ax - dx * t, y - ay - dy * t) < lim) return true; } return false; }
   function gAt(s) { const G = gLoop(); s = ((s % G.L) + G.L) % G.L; let lo = 0, hi = G.n; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (G.cum[m] <= s) lo = m; else hi = m; } const a = G.P[lo], b = G.P[(lo + 1) % G.n], u = (s - G.cum[lo]) / ((G.cum[lo + 1] - G.cum[lo]) || 1); return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]; }
   const gScale = () => Explore.WS * B.K * GK, gSpeed = () => (B.stride / B.cyc) * gScale(); // world units / s
-  function gYaw(s) { const WS = Explore.WS, a = gAt(s + WS * 30), b = gAt(s - WS * 30); return Math.atan2(a[0] - b[0], a[1] - b[1]); }
+  function gYaw(s) { return gR(s).yaw; } // (t739u) his heading at s: along his eased line
+  /* (Dominic t739u: "smooth that out") his line round the loop, built once (MOSBY_RIG.gait.route): the loop's points eased over +-posM (under a metre off it),
+     his heading = that line's own direction (so he always faces the way he goes: no lag, no crab), and his pace = how fast he can turn with his planted feet
+     staying put - a turn swings his feet round his middle, so on a bend his pace drops to slipMax m/s at his farthest sole (never below minPace of his walk),
+     eased in over +-slowM so he slows before the bend and picks up after. The wall clock runs through that pace (T = the time to each point), so he is still in
+     the same place for everyone; the gait (anim) runs at the same pace so his planted feet keep pace with the ground */
+  let GR = null;
+  function gRoute() { if (GR) return GR; const WS = Explore.WS, R = MOSBY_RIG.gait.route, G = gLoop(), n = Math.ceil(G.L / (WS * R.stepM)), st = G.L / n, X = new Float64Array(n), Y = new Float64Array(n);
+    for (let i = 0; i < n; i++) { const p = gAt(i * st); X[i] = p[0]; Y[i] = p[1]; } const bl = (a, r) => { const o = gBlur(Float32Array.from(a), r); return Float64Array.from(o); }, rp = Math.round(R.posM / R.stepM / 2);
+    const PX = bl(X, rp), PY = bl(Y, rp), H = new Float64Array(n), w = Math.max(1, Math.round(R.headM / R.stepM)); let off = 0;
+    for (let i = 0; i < n; i++) { const a = (i + w) % n, b = (i - w + n) % n; let h = Math.atan2(PX[a] - PX[b], PY[a] - PY[b]) + off; if (i) { while (h - H[i - 1] > Math.PI) { h -= 2 * Math.PI; off -= 2 * Math.PI; } while (h - H[i - 1] < -Math.PI) { h += 2 * Math.PI; off += 2 * Math.PI; } } H[i] = h; }
+    const v0 = gSpeed() / WS, reach = R.reachM, f = new Float32Array(n); for (let i = 0; i < n; i++) { const a = (i + 1) % n, b = (i - 1 + n) % n; const d = Math.atan2(Math.sin(H[a] - H[b]), Math.cos(H[a] - H[b]));
+      const k = Math.abs(d) / (2 * R.stepM); f[i] = 1 - Math.max(R.minPace, Math.min(1, R.slipMax / Math.max(1e-6, k * reach * v0))); } /* (1 - pace: widened and eased so the slow-down starts before the bend) */
+    const sr = Math.max(1, Math.round(R.slowM / R.stepM)), sl = gBlur(gMaxF(f, sr), sr / 2), P = new Float32Array(n), T = new Float64Array(n + 1); for (let i = 0; i < n; i++) { P[i] = Math.max(R.minPace, 1 - sl[i]); T[i + 1] = T[i] + st / (gSpeed() * P[i]); }
+    return (GR = { n, st, PX, PY, H, P, T, L: G.L }); }
+  function gR(s) { const Q = gRoute(); s = ((s % Q.L) + Q.L) % Q.L; const fi = s / Q.st, i = Math.floor(fi) % Q.n, j = (i + 1) % Q.n, u = fi - Math.floor(fi); let dh = Q.H[j] - Q.H[i]; dh = Math.atan2(Math.sin(dh), Math.cos(dh));
+    return { x: Q.PX[i] + (Q.PX[j] - Q.PX[i]) * u, y: Q.PY[i] + (Q.PY[j] - Q.PY[i]) * u, yaw: Q.H[i] + dh * u, pace: Q.P[i] + (Q.P[j] - Q.P[i]) * u }; }
   /* (t578u/t579u, Dominic: "adjust it so it does not walk through any ledges or mountains ... I meant like cliffs") wherever rock is still under his footprint his
      body rides it: a profile along the loop, every 30 units, of the highest ground under his shell (inner 86% against his belly line 0.82 U up, the rim against
      B.by) minus his usual base (ground at his middle - SINK), widened over 1.5 body lengths and low-passed, so he rises gently onto a rise rather than popping;
@@ -17645,7 +17674,7 @@ const Mosby = (() => {
     return (GP = { key, chk: now, n, st, lift, pitch }); }
   function gLift(s) { const P = gProf(); if (!P) return [0, 0]; const L = P.n * P.st; s = ((s % L) + L) % L; const f = s / P.st, i = Math.floor(f) % P.n, j = (i + 1) % P.n, u = f - Math.floor(f); return [P.lift[i] + (P.lift[j] - P.lift[i]) * u, P.pitch[i] + (P.pitch[j] - P.pitch[i]) * u]; }
   // where he is on the loop right now: driven by the wall clock (so he is in the same place for everyone and after a reload), held while he talks
-  function gClockS() { return ((Date.now() / 1000) * gSpeed()) % gLoop().L; }
+  function gClockS() { const Q = gRoute(), P = Q.T[Q.n], t = (Date.now() / 1000) % P; let lo = 0, hi = Q.n; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (Q.T[m] <= t) lo = m; else hi = m; } return (lo + (t - Q.T[lo]) / (Q.T[lo + 1] - Q.T[lo])) * Q.st; }
   function gCols() { const out = GM.col || (GM.col = [0, 1, 2, 3, 4].map((i) => ({ x: 0, y: 0, r: 0, key: i < 4 ? 'mosbyFoot' : 'mosbyHead' }))), v = new THREE.Vector3(), s = GM.g.scale.x, G = GM.rig, R = MOSBY_RIG;
     G.feet.forEach((F, i) => { F.f.localToWorld(v.copy(F.sole)); const c = out[i]; c.x = v.x; c.y = v.z; c.r = R.footRK * F.r * s; }); GM.neck.localToWorld(v.copy(GM.headC)); out[4].x = v.x; out[4].y = v.z; out[4].r = R.headR / R.bodyM * s; /* (Art's soles and head: MOSBY_RIG.footRK / headR) */
     if (!GM.colOn) { Explore.addSolid(out); GM.colOn = true; } return out; } // only his feet and head are solid: she can walk right under his shell
@@ -17658,9 +17687,9 @@ const Mosby = (() => {
   function gLod() { const cam = M3.camera; if (!cam || !GM.g) return; const WS = Explore.WS, s = GM.g.scale.x, c = new THREE.Vector3(GM.g.position.x, GM.g.position.y + s * 3, GM.g.position.z), d = cam.position.distanceTo(c); GM.lodD = d;
     const f = Math.max(0, Math.min(1, (WS * G_GONE - d) / (WS * (G_GONE - G_SHOW)))), sm = f * f * (3 - 2 * f); GM.fade = sm; GM.g.visible = sm > 0.003; if (GM.g.visible) gFade(sm);
     const mob = typeof QUALITY !== 'undefined' && QUALITY.name === 'mobile', near = d < WS * (mob ? 160 : 260); if (near !== GM.detOn) { GM.detOn = near; for (const o of GM.detList || []) o.visible = near; } }
-  function gTick(dt) { if (!GM.g) { GM.g = frame(GM, 'mosbyGiant'); GM.g.scale.setScalar(gScale()); GM.s = gClockS(); GM.yaw = gYaw(GM.s); GM.at = { x: 0, y: 0 }; } if (!GM.g.parent) M3.scene.add(GM.g);
-    const WS = Explore.WS; GM.t += dt; const moving = !GM.hold; if (moving) GM.s = (GM.s + gSpeed() * dt) % gLoop().L; const p = gAt(GM.s); GM.at.x = p[0]; GM.at.y = p[1];
-    let d = gYaw(GM.s) - GM.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); GM.yaw += d * Math.min(1, dt * 0.8); GM.g.rotation.order = 'YXZ'; GM.g.rotation.y = GM.yaw;
+  function gTick(dt) { if (!GM.g) { GM.g = frame(GM, 'mosbyGiant'); GM.g.scale.setScalar(gScale()); GM.s = gClockS(); GM.yaw = gR(GM.s).yaw; GM.at = { x: 0, y: 0 }; } if (!GM.g.parent) M3.scene.add(GM.g);
+    const WS = Explore.WS; GM.t += dt; const moving = !GM.hold; if (moving) GM.s = (GM.s + gSpeed() * gR(GM.s).pace * dt) % gLoop().L; const r = gR(GM.s), p = [r.x, r.y]; GM.at.x = p[0]; GM.at.y = p[1]; GM.pace = r.pace;
+    GM.yaw = r.yaw; GM.g.rotation.order = 'YXZ'; GM.g.rotation.y = GM.yaw; /* (t739u: he faces along his eased line; the turn rate is his pace x the bend) */
     const lp = gLift(GM.s); GM.lift = lp[0]; GM.pitch = (GM.pitch || 0) + (lp[1] - (GM.pitch || 0)) * Math.min(1, dt * 2); GM.g.rotation.x = -GM.pitch; /* YXZ: pitch about his own side axis after the yaw; +z is his nose, so -x lifts it */
     GM.g.position.set(p[0], M3.meshH(p[0], p[1]) - WS * GSINK + GM.lift, p[1]); rig(GM); anim(GM, dt, moving); dustTick(GM, dt); if (GM.rig) gCols(); gLod(); if (typeof MosbyRide !== 'undefined') MosbyRide.sync(); /* a rider stays pinned to his shell this very frame */ }
   // auto-walk to him: a spot just off his flank (the side nearest her), kept fresh as he plods on
@@ -17702,7 +17731,7 @@ const Mosby = (() => {
     const cv = M3.renderer && M3.renderer.domElement, hb = e.parentElement.getBoundingClientRect(), cb = cv ? cv.getBoundingClientRect() : hb; e.style.display = ''; e.style.left = (cb.left - hb.left + p[0]) + 'px'; e.style.top = (cb.top - hb.top + p[1]) + 'px'; }
   function hook() { if (typeof M3 === 'undefined' || !M3.render || M3.render.__mos) return; const R0 = M3.render; M3.render = function () { try { tick(); } catch (e) { if (!MS.err) console.error(MS.err = e); } try { if (M3.st && M3.st.ok && typeof Explore !== 'undefined' && Explore.ledgeFront) { const now = performance.now(), dt = Math.min(0.1, GM.last ? (now - GM.last) / 1000 : 0.016); GM.last = now; gTick(dt); } pillSync(); } catch (e) { if (!GM.err) console.error(GM.err = e); } return R0.apply(this, arguments); }; M3.render.__mos = true; }
   if (typeof window !== 'undefined') { const iv = setInterval(() => { if (typeof M3 !== 'undefined' && M3.render) { hook(); clearInterval(iv); } }, 500); }
-  return { domeY, MS, B, newMS, rig, frame, get walkTop() { return WT; }, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, release, meet, talkTap, GM, GLOOP, gLift, gProf, trailHit, gLoop, gAt, gYaw, gScale, gSpeed, gTick, gMeet, gNear, G_SHOW, G_GONE, get giant() { return GM.g; }, tick, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
+  return { domeY, MS, B, newMS, rig, frame, get walkTop() { return WT; }, tSpeed, tripState, tAt, MEET, iconAt, iconHit, pillSync, get pill() { return PILL.el; }, bodyHit, release, meet, talkTap, GM, GLOOP, gLift, gProf, trailHit, gLoop, gAt, gYaw, gScale, gSpeed, gLapS: () => gRoute().T[gRoute().n], gPace: (q) => gR(q).pace, gTick, gMeet, gNear, G_SHOW, G_GONE, get giant() { return GM.g; }, tick, place, spot, cols, houseSync, hold: (v) => { MS.hold = !!v; if (v) { MS.st = 'idle'; } }, walk: (v) => { MS.forceWalk = !!v; }, get group() { return MS.g; } };
 })();
 /* ===== Mosby's dialogue and the transport tortoise (Art: /workspace/mia/ui/v3/mosby_dialog, Direction B field kit) =====
    In person only (she is beside the giant and taps him): a wide leather-and-canvas bar low in the view, the brass porthole portrait over its top-left edge

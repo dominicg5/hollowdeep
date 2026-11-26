@@ -198,9 +198,13 @@ const MOSBY_RIG = {
   // (t738u) his walk is the original one (the old stepAnim, body units) on Art's bones: a lateral-sequence walk (BL, FL, BR, FR a quarter cycle apart: ph = the
   // leg's offset, a larger one lifts earlier), on the ground duty of each cycle (Mosby.B.cyc s, stride B.stride); the swing lifts a front / back sole liftFront /
   // liftBack; a leg telescopes along itself at most stretch so a planted sole stays on the ground; the body shifts sway[0] over the planted side and rolls sway[1],
-  // dips dip[0] / pitches dip[1] at each footfall, breathes breath; the head nods / looks / rolls (radians)
-  gait: { duty: 0.72, ph: { 'lb.L': 0, 'lf.L': 0.75, 'lb.R': 0.5, 'lf.R': 0.25 }, liftFront: 0.5, liftBack: 0.36, stretch: 0.2, sway: [0.09, 0.03], dip: [0.06, 0.012], breath: 0.012,
-    head: { nod: 0.035, walkDown: 0.04, dipNod: 0.05, look: 0.1, roll: 0.035 } },
+  // dips dip[0] / pitches dip[1] at each footfall, breathes breath; the head nods / looks / rolls (radians); a planted sole stays pinned to its spot at most lockM
+  // body units off its stride (t739u)
+  gait: { duty: 0.72, ph: { 'lb.L': 0, 'lf.L': 0.75, 'lb.R': 0.5, 'lf.R': 0.25 }, liftFront: 0.5, liftBack: 0.36, stretch: 0.2, lockM: 0.8, sway: [0.09, 0.03], dip: [0.06, 0.012], breath: 0.012,
+    head: { nod: 0.035, walkDown: 0.04, dipNod: 0.05, look: 0.1, roll: 0.035 },
+    // (t739u) the giant's line round the loop (metres): sampled every stepM, eased over +-posM, heading = its direction over +-headM; on a bend his pace drops so his
+    // farthest sole (reachM from his middle) swings round at most slipMax m/s, never below minPace of his walk, eased in / out over +-slowM
+    route: { stepM: 1, posM: 24, headM: 20, reachM: 40, slipMax: 1.5, minPace: 0.5, slowM: 30 } },
   // the pace: unchanged (B.stride / B.cyc body units / s: 5.4 m/s giant, 0.54 m/s small) - his loop timing, meet and the house trips keep their clocks
   // the small tortoise (her house on his back): the house sits on his summit (houseW body units wide), his colliders [dz, r] body units along his length
   houseW: 3.25, houseLift: -0.1, smallCols: [[3.7, 1.1], [0.6, 3.3], [-2.4, 3.2]],
