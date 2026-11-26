@@ -177,6 +177,10 @@ const NPC_MODELS = {
     walkTsMax: 3,     // fastest Walk playback (3 waddles a second; the legs paddle at this rate while it hops)
     hop: { v0: 0.3, len: 0.6, hzMax: 4.5, h: 0.11, hMaxK: 1.8, contact: 0.16, vRef: 3.4, lean: 0.12 }, // (t741u) above v0 m/s it bounds: hops of len m (longer past hzMax a second), h m high (x up to hMaxK for the long catch-up hops), paws down for the contact share of each (x vRef / speed above its 3.4 m/s trot), leaning lean rad forward
     walkMin: 0.25,    // m/s below which it stands (Idle)
+    // (Dominic, 26 Nov: arms to the sides while resting) Idle / rest only: arm.L turns -deg and arm.R +deg about the body's forward axis (axis, body frame), eased
+    // over blendS s in and out. 15 deg is as far down as the arms go before the paws touch the belly (measured over the Idle clip: the paws clear the body by
+    // 0.9 cm at their closest at 15 deg and sink into it from about 20 deg); the paw tips go from about 65 deg off vertical to about 50 deg
+    armsRest: { deg: 15, axis: [0, 0, 1], blendS: 0.3 },
   },
 };
 for (const k in NPC_MODELS) NPC_MODELS[k].height = NPC_MODELS[k].nativeH * NPC_MODELS[k].scaleM; // in-game metres tall (Creatures.make scales the model to it)

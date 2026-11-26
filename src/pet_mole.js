@@ -13,6 +13,16 @@ const Mole = (() => {
   // the GLB instance (own bones + mixer): screenEnc for the map renderer, plain for the Mole screen's own renderer (outputEncoding sRGB)
   function inst(solo) { if (typeof NpcModels === 'undefined' || typeof Creatures === 'undefined') return null; NpcModels.make('mole_pet'); /* registers the row + starts the load */ if (!Creatures.ready('mole_pet')) return null;
     const I = solo ? Creatures.make('mole_pet') : NpcModels.spawn('mole_pet'); if (!I) return null; I.root.traverse((n) => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = !!solo; } }); I.key = null; return I; }
+  // (Dominic, 26 Nov: "He needs to have the new mole's arms put to the sides while resting") at rest - the Idle clip, or no clip yet - arm.L / arm.R are
+  // turned down by MR().armsRest (about the body's forward axis, through the shoulder pivot) on top of the clip; eased in / out over blendS as Idle starts /
+  // ends, so Walk and Deposit play exactly as Art made them. The clip's own arm pose is put back before each mixer update, so the offset never builds up
+  const _aq = new THREE.Quaternion(), _ax = new THREE.Vector3();
+  function mix(I, dt) { const A = MR().armsRest; if (!A) return I.mixer.update(dt);
+    const B = I.armB || (I.armB = ['L', 'R'].map((k) => { let b = null; I.root.traverse((o) => { if (o.isBone && o.name === 'arm.' + k) b = o; }); return b && { b, s: k === 'L' ? -1 : 1, q0: b.quaternion.clone() }; }).filter(Boolean));
+    for (const a of B) a.b.quaternion.copy(a.q0); I.mixer.update(dt); for (const a of B) a.q0.copy(a.b.quaternion);
+    const on = !I.key || I.key === 'idle' ? 1 : 0, w0 = I.armW == null ? on : I.armW; I.armW = w0 + Math.sign(on - w0) * Math.min(Math.abs(on - w0), dt / A.blendS);
+    const w = I.armW * I.armW * (3 - 2 * I.armW); if (w <= 0) return; _ax.fromArray(A.axis);
+    for (const a of B) { _aq.setFromAxisAngle(_ax, a.s * A.deg * Math.PI / 180 * w); a.b.quaternion.premultiply(_aq); } }
   function attach(g) { if (g.userData.inst) return g.userData.inst; const I = inst(g.userData.solo); if (!I) return null; g.add(I.root); g.userData.inst = I; let m0 = null; I.root.traverse((n) => { if (!m0 && n.isMesh) m0 = n; }); if (m0) m0.onBeforeRender = g.userData.guard; NpcModels.play(I, 'idle'); return I; }
   function build(solo) { const g = new THREE.Group(); g.name = 'petMole'; g.userData.solo = !!solo;
     // (as before) never drawn outside Explore when parented to a scene by mistake
@@ -58,7 +68,7 @@ const Mole = (() => {
     const I = attach(g); if (I) { if (M.st === 'deposit') { if (M.dig - dt <= 0 || I.key !== 'deposit') { NpcModels.play(I, 'deposit', { once: true, restart: true }); } if (I.act) I.act.timeScale = 1; }
       else if (v > R0.walkMin) { NpcModels.play(I, 'walk'); if (I.act) I.act.timeScale = Math.min(R0.walkTsMax, v * I.clips[R0.clips.walk].duration / R0.walkStride); }
       else { NpcModels.play(I, 'idle'); if (I.act) I.act.timeScale = 1; }
-      I.mixer.update(dt); }
+      mix(I, dt); }
     if (M.t - (M.barT || 0) > 0.5) { M.barT = M.t; bar(); } }
   // ---- Explore bar button: Start / Stop the Mole
   function bar() { const k0 = document.querySelector('#exploreBar [data-mole]'); if (k0) k0.remove(); bubbleTick(); } // the old Explore-bar Mole button is gone: tap the Mole itself (bubble -> Menu)
@@ -105,7 +115,7 @@ const Mole = (() => {
     sc.add(new THREE.HemisphereLight(0xfff1dc, 0x5a4236, 0.75)); const L1 = new THREE.DirectionalLight(0xfff0dc, 0.9); L1.position.set(1.4, 2.4, 2.6); sc.add(L1); const L2 = new THREE.DirectionalLight(0xbfd8ff, 0.35); L2.position.set(-2, 1, -1.5); sc.add(L2);
     const g = build(true); g.scale.setScalar(1 / H); /* (the screen frames a unit-tall mole) */ g.visible = true; sc.add(g); const gr = new THREE.Mesh(new THREE.CircleGeometry(0.62, 40), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 })); gr.rotation.x = -Math.PI / 2; sc.add(gr);
     const P = SC.pv = { R, sc, cam, g, yaw: 0.5, vy: 0.4, drag: null }; cv.addEventListener('pointerdown', (e) => { P.drag = e.clientX; P.vy = 0; try { cv.setPointerCapture(e.pointerId); } catch (_) {} }); cv.addEventListener('pointermove', (e) => { if (P.drag == null) return; P.yaw += (e.clientX - P.drag) * 0.012; P.vy = (e.clientX - P.drag) * 0.4; P.drag = e.clientX; }); const up = () => { P.drag = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    let t0 = performance.now(); const loop = (now) => { if (SC.pv !== P || !cv.isConnected) { try { R.dispose(); } catch (e) {} if (SC.pv === P) SC.pv = null; return; } const dt = Math.min(0.05, (now - t0) / 1000); t0 = now; if (P.drag == null) { P.yaw += P.vy * dt; P.vy += (0.35 - P.vy) * Math.min(1, dt * 1.5); } g.rotation.y = P.yaw; { const I = attach(g); if (I) I.mixer.update(dt); } R.render(sc, cam); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+    let t0 = performance.now(); const loop = (now) => { if (SC.pv !== P || !cv.isConnected) { try { R.dispose(); } catch (e) {} if (SC.pv === P) SC.pv = null; return; } const dt = Math.min(0.05, (now - t0) / 1000); t0 = now; if (P.drag == null) { P.yaw += P.vy * dt; P.vy += (0.35 - P.vy) * Math.min(1, dt * 1.5); } g.rotation.y = P.yaw; { const I = attach(g); if (I) mix(I, dt); } R.render(sc, cam); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
   function openScreen() { if (typeof openModal !== 'function') return false; SC.msg = null; if (M.task) { SC.kind = M.task.kind; SC.tether = M.task.tether || null; SC.ids = M.task.ids.slice(); } else SC.tether = null; /* the tether must be picked each time */ openModal(screenHTML(), 'mole'); preview(document.querySelector('#modalBody #molePrev')); return true; }
   document.addEventListener('click', (e) => { const t = e.target.closest('[data-mo]'); if (!t || t.disabled || ui.modal !== 'mole') return; const a = t.dataset.mo;
     if (a === 'close') return closeModal(); if (a === 'kind') { SC.kind = t.dataset.v; SC.ids = []; } else if (a === 'item') { const id = t.dataset.id; SC.ids = SC.ids.includes(id) ? SC.ids.filter((q) => q !== id) : SC.ids.concat(id); } else if (a === 'teth') SC.tether = t.dataset.v;
