@@ -365,3 +365,24 @@ const PLAYGROUND_COMBAT = {
     LIFE_S: 1.1,        // a speck fades out over this
   },
 };
+
+// (Dominic, 26 Nov: "Approved, send the tree to dev" + "replace the skill tree with that and remove the floating features and reconnect the tether") Art's Lumenite
+// Skill Tree v4 (production/skill_tree_v7_i23d/touchup_v4 skill_tree_v7_touchup_v4.glb: 23,592 tris, 4.0 m, planted at y 0, one material, metallic 0, sRGB) in
+// place of the code-built crystal tree in the Skill Tree room (char3d.js makeSkillRoom). Slimmed for the game: the 4096x2048 PNG albedo is a 2048x1024 WebP
+// (12.6 MB -> 3.6 MB); mesh, skin, hd extras and clips unchanged. Drawn in its rest pose (the room keeps it still; the clips stay in the file).
+const SKILL_TREE = {
+  row: { id: 'skill_tree_v4', name: 'Lumenite Skill Tree', model: 'assets/models/creatures/skill_tree_v4_i23d.glb', shade: 'hdToon', keepOrigin: true, clips: { idle: 'Idle' } },
+  scale: 1,      // Art's 4.0 m as built (the old code tree stood 4.1 m, 0.03-4.13 m up, so the height matches); centred on the room's tree spot (SKR.tx, SKR.tz), feet on the floor
+  // the 9 bushels are not separate nodes: each has its own UV cell in the right half of Art's atlas (3 x 3 cells of 640 px, 20 px apart, from (2072, 24) px of
+  // 4096 x 2048, row by row - touchup_v4.py), so a triangle's bushel is the cell its UVs sit in; the trunk, roots and limbs use the left half
+  cells: { W: 4096, H: 2048, x0: 2072, y0: 24, cell: 640, pad: 20 },
+  bushels: [['G1', 'gold', 'crown'], ['R1', 'ruby', 'back-left high'], ['R2', 'ruby', 'front-left high'], ['G2', 'gold', 'front mid'], ['G3', 'gold', 'front-left low'],
+    ['S1', 'sapphire', 'back-right high'], ['S2', 'sapphire', 'front-right mid'], ['S3', 'sapphire', 'lower-right'], ['R3', 'ruby', 'mid-right']], // [id, colour, where] in cell order
+  branch: { ruby: 'combat', sapphire: 'production', gold: 'beasts' }, // the skill branch each bushel colour belongs to (the old tree's red / blue / yellow crowns)
+  // the braided tether's anchor, tree-local metres (x, y, z; +z = toward the walkway). Measured on v4 (inside tests on its triangles): the trunk is solid on its
+  // axis from 0.055 m up, and 0.2 m up a 0.15 m ring round the axis is still inside, so the knot (where the three strands start) sits on the axis 0.2 m up,
+  // 13 cm inside the surface. The front root runs out along +z (inside it, at x 0.02: y 0.025-0.245 at z 0.3, 0.015-0.135 at z 0.5, gone past z 0.68), so the
+  // strands follow it down through those lead points, half-sunk in it, and come out of its tip onto the floor, joining the old floor run at (0.04, 0.07, 1.0).
+  // knot on the axis and > 0.05 m up, as the tether's checks expect (skilltree.js braid0, knotY, knot-to-strand gap)
+  tether: { knot: [0, 0.20, 0], lead: [[0, 0.13, 0.30], [0.02, 0.075, 0.50]] },
+};

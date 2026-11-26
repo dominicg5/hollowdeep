@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='ed438eda';
+<script>window.HD_BUILD='6ebe0a68';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build ed438eda</div>
-<script src="assets/vendor/three.min.js?v=ed438eda"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 6ebe0a68</div>
+<script src="assets/vendor/three.min.js?v=6ebe0a68"></script>
 <script>
 'use strict';
 
@@ -10402,6 +10402,27 @@ const PLAYGROUND_COMBAT = {
     LIFE_S: 1.1,        // a speck fades out over this
   },
 };
+
+// (Dominic, 26 Nov: "Approved, send the tree to dev" + "replace the skill tree with that and remove the floating features and reconnect the tether") Art's Lumenite
+// Skill Tree v4 (production/skill_tree_v7_i23d/touchup_v4 skill_tree_v7_touchup_v4.glb: 23,592 tris, 4.0 m, planted at y 0, one material, metallic 0, sRGB) in
+// place of the code-built crystal tree in the Skill Tree room (char3d.js makeSkillRoom). Slimmed for the game: the 4096x2048 PNG albedo is a 2048x1024 WebP
+// (12.6 MB -> 3.6 MB); mesh, skin, hd extras and clips unchanged. Drawn in its rest pose (the room keeps it still; the clips stay in the file).
+const SKILL_TREE = {
+  row: { id: 'skill_tree_v4', name: 'Lumenite Skill Tree', model: 'assets/models/creatures/skill_tree_v4_i23d.glb', shade: 'hdToon', keepOrigin: true, clips: { idle: 'Idle' } },
+  scale: 1,      // Art's 4.0 m as built (the old code tree stood 4.1 m, 0.03-4.13 m up, so the height matches); centred on the room's tree spot (SKR.tx, SKR.tz), feet on the floor
+  // the 9 bushels are not separate nodes: each has its own UV cell in the right half of Art's atlas (3 x 3 cells of 640 px, 20 px apart, from (2072, 24) px of
+  // 4096 x 2048, row by row - touchup_v4.py), so a triangle's bushel is the cell its UVs sit in; the trunk, roots and limbs use the left half
+  cells: { W: 4096, H: 2048, x0: 2072, y0: 24, cell: 640, pad: 20 },
+  bushels: [['G1', 'gold', 'crown'], ['R1', 'ruby', 'back-left high'], ['R2', 'ruby', 'front-left high'], ['G2', 'gold', 'front mid'], ['G3', 'gold', 'front-left low'],
+    ['S1', 'sapphire', 'back-right high'], ['S2', 'sapphire', 'front-right mid'], ['S3', 'sapphire', 'lower-right'], ['R3', 'ruby', 'mid-right']], // [id, colour, where] in cell order
+  branch: { ruby: 'combat', sapphire: 'production', gold: 'beasts' }, // the skill branch each bushel colour belongs to (the old tree's red / blue / yellow crowns)
+  // the braided tether's anchor, tree-local metres (x, y, z; +z = toward the walkway). Measured on v4 (inside tests on its triangles): the trunk is solid on its
+  // axis from 0.055 m up, and 0.2 m up a 0.15 m ring round the axis is still inside, so the knot (where the three strands start) sits on the axis 0.2 m up,
+  // 13 cm inside the surface. The front root runs out along +z (inside it, at x 0.02: y 0.025-0.245 at z 0.3, 0.015-0.135 at z 0.5, gone past z 0.68), so the
+  // strands follow it down through those lead points, half-sunk in it, and come out of its tip onto the floor, joining the old floor run at (0.04, 0.07, 1.0).
+  // knot on the axis and > 0.05 m up, as the tether's checks expect (skilltree.js braid0, knotY, knot-to-strand gap)
+  tether: { knot: [0, 0.20, 0], lead: [[0, 0.13, 0.30], [0.02, 0.075, 0.50]] },
+};
 /* (GD-32, Dominic t548u: 'push the map role out for the golems' / '100m radius around those fields. They can't walk up a slope greater than 30 degrees')
    Art's overworld golem plan (hd-notes/golem_placement/golem_placement_20.json, built against main 9987ff2, city seed 20261114; Dominic t718s2692 'do 20 per area with far
    stand-ins'): 20 golems per mining field, matching its ore - 120 Tin, 120 Copper, 360 Coal - spread over the field + 100 m (the mine interior too, never on a mineable rock:
@@ -11477,400 +11498,6 @@ const CoinDrops = (() => {
   function state(id) { const s = S[id]; return s ? { drops: s.drops.map((d) => ({ n: d.n, x: +d.x.toFixed(2), z: +d.z.toFixed(2), t: +d.t.toFixed(1), shown: !!(d.obj && d.obj.parent) })), log: s.log.slice() } : { drops: [], log: [] }; }
   return { roll, icon, host, kill, tick, clear, state };
 })();
-/* crystalCrown.js — Lumenite skill-tree crown + branch module (Art, ART-16 crown_v3: 9-crown tree, per-colour merged draws)
-   three.js r149 (global THREE, same as assets/vendor/three.min.js). No other deps. Classic script:
-   exposes window.CrystalCrown = { createCrystalCrown, createCrystalBranch, createBraid, createCrystalTree, createCrownSet, makeCrystalMaterial, setBloom, TREE_LAYOUT }.
-   Units: skill-tree local units (H = 4.15, SPEC_v2). +Y up.
-   Game integration (tree-fix-v1): includeTrunk/includeRoots flags (the game keeps its claw roots + trunk strands + tether);
-   limb paths follow each crown's azimuth so the 9 crowns can sit all the way around the trunk (t488u);
-   glowPoints clamp gl_PointSize at 511 and hide points closer than 0.18 m so close-up cameras don't clip the near plane.
-   setPoints on the tree group takes { combat, production, beasts } fractions. */
-(function (root) {
-  'use strict';
-  const THREE = root.THREE;
-  const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  const lerp = (a, b, t) => a + (b - a) * t;
-  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
-  function rng(seed) { let a = (seed >>> 0) || 1; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-
-  /* ---------------- material: toon crystal, inner glow, white-hot edges, procedural facet web, fresnel rim, glints ---------------- */
-  const VS = `
-attribute vec3 aBary; attribute vec2 aLeaf; attribute vec3 aCol; attribute vec2 aUV;
-#ifdef USE_INSTANCING
-attribute vec3 iData;
-#endif
-varying vec3 vB; varying vec2 vL; varying vec3 vC; varying vec3 vD; varying vec3 vWP; varying vec2 vUV;
-#include <common>
-#include <fog_pars_vertex>
-void main(){
-  mat4 m = modelMatrix;
-#ifdef USE_INSTANCING
-  m = modelMatrix * instanceMatrix; vD = iData;
-#else
-  vD = vec3(0.45, 0.5, 0.3);
-#endif
-  vB = aBary; vL = aLeaf; vC = aCol; vUV = aUV;
-  vec4 wp = m * vec4(position, 1.0); vWP = wp.xyz;
-  vec4 mvPosition = viewMatrix * wp; gl_Position = projectionMatrix * mvPosition;
-  #include <fog_vertex>
-}`;
-  const FS = `
-uniform vec3 uColor; uniform vec3 uGlow; uniform vec3 uRim; uniform vec3 uLight; uniform float uAmb; uniform float uEm; uniform float uEdge; uniform float uLines; uniform float uFres; uniform float uGlint; uniform float uWeb; uniform float uHot; uniform float uDeep;
-varying vec3 vB; varying vec2 vL; varying vec3 vC; varying vec3 vD; varying vec3 vWP; varying vec2 vUV;
-#include <common>
-#include <fog_pars_fragment>
-float h1(float n){ return fract(sin(n * 91.345) * 47453.53); }
-float lineAt(float a){ float d = abs(fract(a - 0.5) - 0.5); return 1.0 - smoothstep(0.0, fwidth(a) * 1.4, d); }
-void main(){
-  vec3 N = normalize(cross(dFdx(vWP), dFdy(vWP)));
-  vec3 Vv = normalize(cameraPosition - vWP); if (dot(N, Vv) < 0.0) N = -N;
-  float ndl = dot(N, normalize(uLight));
-  float band = 0.6 * smoothstep(-0.3, 0.05, ndl) + 0.4 * smoothstep(0.35, 0.6, ndl);
-  vec3 alb = uColor * vC * (0.82 + 0.3 * vD.y) * mix(1.0, 1.0 - uDeep, smoothstep(0.3, 0.65, vD.x));   // inner facets deeper
-  float au = abs(vUV.x), v = vUV.y;
-  // procedural facet web (leaves only): chevron veins + counter-veins + midrib, each cell its own tint -> stained-crystal mosaic
-  float web = 0.0, cell = 1.0;
-  if (uWeb > 0.0) {
-    float s = vD.z * 7.0, a1 = v * 7.5 - au * 2.6 + s, a2 = v * 7.5 + au * 2.6 + s * 1.7;
-    cell = 0.86 + 0.28 * h1(floor(a1) * 13.0 + floor(a2) * 7.0 + s);
-    web = max(max(lineAt(a1), lineAt(a2) * 0.75), 1.0 - smoothstep(0.0, fwidth(vUV.x) * 1.6, au)) * uWeb;
-  }
-  vec3 col = alb * (uAmb + 0.6 * band) * cell * ((uWeb > 0.0) ? mix(0.72, 1.12, v) : 1.0);   // leaf base deeper, tip lighter
-  float g = (0.35 + 0.65 * vD.x) * mix(1.25, 0.55, vL.y);
-  col += uGlow * vC * uEm * g;
-  float fr = pow(1.0 - clamp(dot(N, Vv), 0.0, 1.0), 2.2);
-  col += mix(uColor, uRim, 0.6) * fr * uFres;
-  float w = min(min(vB.x, vB.y), vB.z); float ln = 1.0 - smoothstep(0.0, fwidth(w) * 1.3, w);
-  col = mix(col, mix(uColor * 1.3, uRim, 0.28), max(ln * uLines, web * 0.42));
-  float e = (uWeb > 0.0) ? smoothstep(0.8, 0.98, au) + smoothstep(0.93, 1.0, v) * 0.5 : smoothstep(0.8, 0.97, vL.x);
-  col = mix(col, uRim * (1.0 + 0.35 * uHot), clamp(e * uEdge, 0.0, 1.0)) + uRim * e * uEdge * 0.35 * uHot;   // white-hot edges
-  vec3 Hh = normalize(normalize(uLight) + Vv); float sp = pow(max(dot(N, Hh), 0.0), 48.0);
-  col += vec3(1.0) * smoothstep(0.55, 0.7, sp) * uGlint * (0.5 + vD.z);
-  gl_FragColor = vec4(col, 1.0);
-  #include <fog_fragment>
-}`;
-  function makeCrystalMaterial(o) {
-    o = o || {};
-    const c = new THREE.Color(o.color !== undefined ? o.color : 0xffffff);
-    const rim = o.rim ? new THREE.Color(o.rim) : c.clone().lerp(new THREE.Color(1, 0.97, 0.92), 0.7);
-    const glow = o.glow ? new THREE.Color(o.glow) : c.clone().lerp(new THREE.Color(1, 0.85, 0.5), 0.15);
-    const m = new THREE.ShaderMaterial({
-      uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-        uColor: { value: c }, uGlow: { value: glow }, uRim: { value: rim },
-        uLight: { value: (o.light || V(-0.45, 0.8, 0.55)).clone().normalize() },
-        uAmb: { value: o.amb !== undefined ? o.amb : 0.34 }, uEm: { value: o.em !== undefined ? o.em : 0.42 },
-        uEdge: { value: o.edge !== undefined ? o.edge : 0.6 }, uLines: { value: o.lines !== undefined ? o.lines : 0.1 },
-        uFres: { value: o.fres !== undefined ? o.fres : 0.22 }, uGlint: { value: o.glint !== undefined ? o.glint : 0.5 },
-        uWeb: { value: o.web !== undefined ? o.web : 0 }, uHot: { value: o.hot !== undefined ? o.hot : 1 }, uDeep: { value: o.deep || 0 } }]),
-      vertexShader: VS, fragmentShader: FS, fog: true, toneMapped: false });
-    m.extensions = { derivatives: true };
-    return m;
-  }
-
-  /* ---------------- geometry helpers (non-indexed, with barycentrics) ---------------- */
-  function Builder() { this.p = []; this.b = []; this.l = []; this.c = []; this.u = []; }
-  Builder.prototype.tri = function (A, B, C, la, lb, lc, ca, cb, cc, ua, ub, uc) {
-    this.p.push(A.x, A.y, A.z, B.x, B.y, B.z, C.x, C.y, C.z); this.b.push(1, 0, 0, 0, 1, 0, 0, 0, 1);
-    this.l.push(la[0], la[1], lb[0], lb[1], lc[0], lc[1]); cb = cb || ca; cc = cc || ca;
-    this.c.push(ca.r, ca.g, ca.b, cb.r, cb.g, cb.b, cc.r, cc.g, cc.b);
-    ua = ua || [0, 0]; ub = ub || ua; uc = uc || ua; this.u.push(ua[0], ua[1], ub[0], ub[1], uc[0], uc[1]); };
-  Builder.prototype.geo = function () { const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3)); g.setAttribute('aBary', new THREE.Float32BufferAttribute(this.b, 3));
-    g.setAttribute('aLeaf', new THREE.Float32BufferAttribute(this.l, 2)); g.setAttribute('aCol', new THREE.Float32BufferAttribute(this.c, 3));
-    g.setAttribute('aUV', new THREE.Float32BufferAttribute(this.u, 2));
-    g.computeBoundingSphere(); g.computeBoundingBox(); return g; };
-
-  /* broad flat crystal leaf: +Y length 1, max width ~0.56, low diamond section (thin midrib ridge), 54 tris.
-     aUV = (across -1..1, along 0..1) drives the facet web and the white-hot edge in the shader. */
-  function leafGeometry(seed) {
-    const r = rng(seed || 7), B = new Builder(), W = new THREE.Color(1, 1, 1);
-    const T = [0, 0.12, 0.36, 0.62, 0.84], HW = [0.06, 0.29, 0.35, 0.27, 0.11], NS = 4, TH = 0.22;
-    const rings = T.map((t, i) => { const out = []; const w = HW[i] * (1 + (r() - 0.5) * 0.1);
-      for (let k = 0; k < NS; k++) { const cx = [1, 0, -1, 0][k], cz = [0, 1, 0, -1][k];
-        out.push({ v: V(cx * w, t, cz * w * TH), uv: [cx, t], e: Math.abs(cx), t }); } return out; });
-    const tip = V(0, 1.0, 0);
-    for (let i = 0; i < T.length - 1; i++) for (let k = 0; k < NS; k++) { const a = rings[i][k], b = rings[i][(k + 1) % NS], c = rings[i + 1][(k + 1) % NS], d = rings[i + 1][k];
-      B.tri(a.v, b.v, c.v, [a.e, a.t], [b.e, b.t], [c.e, c.t], W, W, W, a.uv, b.uv, c.uv); B.tri(a.v, c.v, d.v, [a.e, a.t], [c.e, c.t], [d.e, d.t], W, W, W, a.uv, c.uv, d.uv); }
-    const L = rings[T.length - 1]; for (let k = 0; k < NS; k++) { const a = L[k], b = L[(k + 1) % NS]; B.tri(a.v, b.v, tip, [a.e, a.t], [b.e, b.t], [0, 1], W, W, W, a.uv, b.uv, [0, 1]); }
-    const C0 = rings[0]; B.tri(C0[0].v, C0[2].v, C0[1].v, [0.3, 0], [0.3, 0], [0.3, 0], W, W, W, [0, 0]); B.tri(C0[0].v, C0[3].v, C0[2].v, [0.3, 0], [0.3, 0], [0.3, 0], W, W, W, [0, 0]);
-    return B.geo(); }
-
-  /* tapered faceted tube along a curve; col = THREE.Color or fn(t) */
-  function addTube(B, curve, r0, r1, col, o) {
-    o = o || {}; const NS = o.ns || 6, NL = o.nl || 10, rr = rng(o.seed || 3);
-    const fr = curve.computeFrenetFrames(NL, false); const rings = [];
-    for (let i = 0; i <= NL; i++) { const t = i / NL, p = curve.getPointAt(t), N = fr.normals[i], Bn = fr.binormals[i];
-      let rad = lerp(r0, r1, Math.pow(t, o.pw || 1)); if (o.tipTaper && t > 1 - o.tipTaper) rad *= lerp(1, 0.35, (t - (1 - o.tipTaper)) / o.tipTaper);
-      const ring = []; for (let k = 0; k < NS; k++) { const a = k / NS * Math.PI * 2 + i * 0.35, j = 1 + (rr() - 0.5) * 0.14;
-        ring.push(p.clone().addScaledVector(N, Math.cos(a) * rad * j).addScaledVector(Bn, Math.sin(a) * rad * j)); }
-      rings.push({ ring, t, c: typeof col === 'function' ? col(t) : col }); }
-    for (let i = 0; i < NL; i++) for (let k = 0; k < NS; k++) { const A = rings[i], C = rings[i + 1], e0 = k % 2 ? 0.55 : 0.25, e1 = (k + 1) % 2 ? 0.55 : 0.25;
-      const a = A.ring[k], b = A.ring[(k + 1) % NS], c = C.ring[(k + 1) % NS], d = C.ring[k];
-      B.tri(a, b, c, [e0, 0.4], [e1, 0.4], [e1, 0.4], A.c, A.c, C.c); B.tri(a, c, d, [e0, 0.4], [e1, 0.4], [e0, 0.4], A.c, C.c, C.c); }
-    if (o.capEnd) { const L = rings[NL], tp = curve.getPointAt(1).add(curve.getTangentAt(1).multiplyScalar(o.capEnd));
-      for (let k = 0; k < NS; k++) B.tri(L.ring[k], L.ring[(k + 1) % NS], tp, [0.4, 0.6], [0.4, 0.6], [1, 1], L.c); }
-    return B; }
-
-  /* 3-ply braid around a centreline. colors: [c0,c1,c2]; radii: [r0..] start radius per ply; returns Builder */
-  function createBraid(B, pts, o) {
-    const cl = new THREE.CatmullRomCurve3(pts), L = cl.getLength(), NL = o.nl || Math.ceil(L * 26), fr = cl.computeFrenetFrames(NL, false);
-    const turns = o.turns !== undefined ? o.turns : L * 0.9, hr = o.hr || 0.07;
-    for (let s = 0; s < 3; s++) { const P = [];
-      for (let i = 0; i <= NL; i++) { const t = i / NL, p = cl.getPointAt(t), a = s / 3 * Math.PI * 2 + t * turns * Math.PI * 2 + (o.phase || 0);
-        const h = hr * (o.hrFn ? o.hrFn(t) : 1); P.push(p.addScaledVector(fr.normals[i], Math.cos(a) * h).addScaledVector(fr.binormals[i], Math.sin(a) * h)); }
-      const r = o.radii[s]; addTube(B, new THREE.CatmullRomCurve3(P), r[0], r[1], o.colors[s], { ns: o.ns || 7, nl: NL, seed: 11 + s, pw: 1, tipTaper: o.tipTaper }); }
-    return B; }
-
-  /* ---------------- halo sprite ---------------- */
-  const _halo = {};
-  function haloTex(col) { const k = col.getHexString(); if (_halo[k]) return _halo[k]; const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-    const x = cv.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64), c = col, s = (a) => `rgba(${c.r * 255 | 0},${c.g * 255 | 0},${c.b * 255 | 0},${a})`;
-    g.addColorStop(0, s(1)); g.addColorStop(0.3, s(0.7)); g.addColorStop(0.6, s(0.25)); g.addColorStop(0.85, s(0.06)); g.addColorStop(1, s(0)); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
-    return (_halo[k] = new THREE.CanvasTexture(cv)); }
-
-  /* ---------------- crown ---------------- */
-  /* opts: color, height (visible tip-to-tip height at 0 pts), radius (visible half-width), seed, pointsFraction 0..1,
-           shape 'round'|'teardrop', inward (+1/-1: x side the limb comes from, 0 = centred), stem (Vector3 override),
-           growth (max extra scale at 1), halo, glow (frond glow points = the cheap "bloom"), em */
-  function createCrystalCrown(opts) {
-    const o = Object.assign({ color: 0xe8382c, height: 1.46, radius: 0.78, seed: 1, pointsFraction: 0, shape: 'round', inward: 0, halo: true, glow: true, growth: 0.12 }, opts || {});
-    const R = o.radius, Hh = o.height / 2, col = new THREE.Color(o.color), tear = o.shape === 'teardrop', up = V(0, 1, 0);
-    const stem = o.stem ? o.stem.clone() : V(o.inward * 0.5 * R, -1.55 * Hh, 0);
-    const grp = new THREE.Group(); grp.name = 'crystalCrown';
-    const inner = new THREE.Group(); grp.add(inner);
-    // frond list: unit direction from the crown heart, size, fan-axis tilt. 7 fronds; teardrop = 1 tall top + 2 rings of 3.
-    let FR;
-    if (o.lite) FR = [{ d: [0.05, 1, 0.15], s: 1.0 }, { d: [-0.85, 0.5, 0.25], s: 0.95 }, { d: [0.85, 0.5, -0.25], s: 0.95 }, { d: [-0.9, -0.3, -0.3], s: 0.85 }, { d: [0.9, -0.3, 0.3], s: 0.85 }, { d: [0.1, 0.1, 1], s: 0.8, tilt: 0.75 }];
-    else if (!tear) { const lo = o.inward ? -o.inward : 0;
-      FR = [{ d: [0.05, 1, 0.12], s: 1.0 }, { d: [-0.78, 0.55, 0.32], s: 0.95 }, { d: [0.78, 0.55, -0.32], s: 0.95 },
-        { d: [-0.95, -0.3 - (lo < 0 ? 0.2 : 0), -0.28], s: lo < 0 ? 0.85 : 0.8 }, { d: [0.95, -0.3 - (lo > 0 ? 0.2 : 0), 0.28], s: lo > 0 ? 0.85 : 0.8 },
-        { d: [0.12, -0.05, 1], s: 0.9, tilt: 0.75 }, { d: [-0.12, 0.0, -1], s: 0.9, tilt: 0.75 }]; }
-    else FR = [{ d: [0, 1, 0], s: 1.25, top: 1 }, { d: [0.0, 0.42, 1], s: 0.9 }, { d: [0.87, 0.42, -0.5], s: 0.9 }, { d: [-0.87, 0.42, -0.5], s: 0.9 },
-      { d: [0.87, -0.3, 0.5], s: 1.0 }, { d: [-0.87, -0.3, 0.5], s: 1.0 }, { d: [0, -0.3, -1], s: 1.0 }];
-
-    function layout(ex, ey, oy) {
-      const r = rng(o.seed * 9301 + 17), leaves = [], fronds = [], ribLines = [];
-      const pushLeaf = (p, dir, L, inn, tier, nrm) => { dir = dir.clone(); dir.normalize(); if (dir.y < -0.26) { dir.y = -0.26 + r() * 0.06; dir.normalize(); }
-        leaves.push({ p, dir, L, inner: inn, tier, n: nrm.clone(), w: lerp(0.95, 1.15, r()), tint: r(), gl: r() }); };
-      FR.forEach((f, fi) => {
-        const n = V(...f.d).normalize(), yn = n.y, sx = tear ? (yn > 0 ? 1 - 0.42 * yn : 1) : 1;
-        const Pc = V(n.x * R * ex * sx * 0.55, n.y * Hh * ey * 0.55 + oy, n.z * R * ex * sx * 0.55);
-        const Rf = R * 1.05 * f.s;
-        // frond axis points out from the heart and up; its broad faces turn sideways (horizontal tangent), so every frond
-        // shows full leaf faces exactly when it is on the silhouette; a crossed layer covers the face-on angle.
-        const a = n.clone().add(V(0, f.top ? 0 : (f.tilt !== undefined ? f.tilt : (n.y > 0.2 ? 0.25 : 0.6)), 0)).normalize();
-        let nf = V(0, 1, 0).cross(n); if (nf.lengthSq() < 0.02) nf = V(Math.cos(fi * 2.3 + 0.4), 0, Math.sin(fi * 2.3 + 0.4)); nf.normalize();
-        nf.addScaledVector(a, -nf.dot(a)).normalize();
-        const lat = nf.clone().cross(a).normalize();
-        const B = Pc.clone().addScaledVector(a, -0.42 * Rf);
-        fronds.push({ Pc, B, a, nf, lat, Rf, n });
-        // palmate-pinnate frond (like the painting): 3 ribs fan out from the twig tip in the frond's face plane, each rib carries
-        // paired leaves (wide-angled + longer at the base, one terminal leaf). A 4th rib sits crossed (lat plane) so the frond
-        // keeps broad faces through the spin, and a short inner rib layer adds depth. Leaves are small vs the crown (~1/7 width).
-        const ribs = [{ ang: 0, pn: nf, lt: lat, len: 1.0, k: 7, ls: 1.0, off: 0.02 }, { ang: -0.62, pn: nf, lt: lat, len: 0.82, k: 6, ls: 0.95, off: 0 }, { ang: 0.62, pn: nf, lt: lat, len: 0.82, k: 6, ls: 0.95, off: 0 },
-                      { ang: 0, pn: lat, lt: nf, len: 0.85, k: 6, ls: 0.9, off: -0.01, cross: 1 }, { ang: 0.0, pn: nf, lt: lat, len: 0.55, k: 4, ls: 0.8, off: -0.05 }, { ang: -0.32, pn: nf, lt: lat, len: 0.7, k: 4, ls: 0.85, off: -0.09 }, { ang: 0.32, pn: nf, lt: lat, len: 0.7, k: 4, ls: 0.85, off: -0.09 }];
-        const RB = o.lite ? [{ ang: 0, pn: nf, lt: lat, len: 1.0, k: 3, ls: 1.45, off: 0.02 }, { ang: -0.62, pn: nf, lt: lat, len: 0.82, k: 2, ls: 1.4, off: 0 }, { ang: 0.62, pn: nf, lt: lat, len: 0.82, k: 2, ls: 1.4, off: 0 }, { ang: 0, pn: lat, lt: nf, len: 0.85, k: 2, ls: 1.3, off: -0.01, cross: 1 }]
-                 : (o.depth === false ? ribs.slice(0, 5) : ribs);
-        RB.forEach((rb_, ri) => { const ax = a.clone().multiplyScalar(Math.cos(rb_.ang)).addScaledVector(rb_.lt, Math.sin(rb_.ang)).normalize();
-          const rl = Rf * rb_.len; if (ri < (o.lite ? 1 : 4)) ribLines.push({ B: B.clone(), ax, rl, pn: rb_.pn, fi });
-          for (let k = 0; k <= rb_.k; k++) { const t = k / rb_.k;
-            const p0 = B.clone().addScaledVector(ax, rl * lerp(0.08, 0.8, t)).addScaledVector(rb_.pn, rb_.off * R);
-            (k === rb_.k ? [0] : [-1, 1]).forEach((sd) => {
-              const ang = sd === 0 ? 0 : lerp(1.25, 0.45, t) + (r() - 0.5) * 0.18;
-              const dir = ax.clone().multiplyScalar(Math.cos(ang)).addScaledVector(rb_.lt, sd * Math.sin(ang)).addScaledVector(n, 0.14 + 0.3 * Math.abs(sd) * (1 - 0.5 * t));
-              if (f.top) dir.y += 0.12;
-              const L = Rf * 0.5 * rb_.ls * (sd === 0 ? 1.0 : lerp(1.0, 0.72, t)) * lerp(0.9, 1.1, r());
-              pushLeaf(p0.clone().add(V(r() - 0.5, r() - 0.5, r() - 0.5).multiplyScalar(0.02 * R)), dir, L, ri >= 3 ? 0.65 : 0.25 + 0.35 * (1 - t), r(), rb_.pn); }); } });
-      });
-      let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-      leaves.forEach((l) => { if (l.tier >= 0.8) return; for (const t of [-0.1, 0.9]) { const q = l.p.clone().addScaledVector(l.dir, t * l.L);
-        x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); } });
-      return { leaves, fronds, ribLines, ext: { hx: (x1 - x0) / 2, cx: (x0 + x1) / 2, hy: (y1 - y0) / 2, cy: (y0 + y1) / 2 } };
-    }
-    let ex = 1, ey = 1, oy = 0, LY;
-    for (let pass = 0; pass < 8; pass++) { LY = layout(ex, ey, oy); const e = LY.ext; if (pass === 7) break;
-      ex *= clamp(Math.pow(R / e.hx, 1.3), 0.6, 1.6); ey *= clamp(Math.pow(Hh / e.hy, 1.3), 0.6, 1.6); oy -= e.cy * 0.8; }
-    const { leaves, fronds, ribLines } = LY;
-
-    // branches: stem -> 3 thin curving secondaries -> curving twigs, one per frond -> a short midrib into each frond. Plus a small heart body.
-    const Bb = new Builder(), bc = col.clone().multiplyScalar(0.95), rb = rng(o.seed * 31 + 3);
-    const curvy = (A, Bp, bend) => { const d = Bp.clone().sub(A), side = d.clone().cross(V(rb() - 0.5, 0.2, rb() - 0.5)).normalize().multiplyScalar(bend * d.length());
-      return new THREE.CatmullRomCurve3([A, A.clone().lerp(Bp, 0.33).add(side), A.clone().lerp(Bp, 0.68).addScaledVector(side, -0.7).add(V(0, 0.03, 0)), Bp]); };
-    const groups = [[], [], []]; fronds.forEach((f, i) => { const k = f.Pc.x < -0.25 * R ? 0 : f.Pc.x > 0.25 * R ? 2 : 1; groups[k].push(i); });
-    groups.forEach((gi, k) => { if (!gi.length) return;
-      const cen = gi.reduce((a, i) => a.add(fronds[i].B), V(0, 0, 0)).multiplyScalar(1 / gi.length);
-      const sec = stem.clone().lerp(cen, 0.45).add(V((rb() - 0.5) * 0.06, 0.04, (rb() - 0.5) * 0.06));
-      addTube(Bb, curvy(stem, sec, 0.14), 0.056, 0.036, bc, { nl: 12, ns: 6, seed: 20 + k });
-      gi.forEach((fi) => { const f = fronds[fi];
-        addTube(Bb, curvy(sec, f.B, 0.18), 0.034, 0.017, bc, { nl: o.lite ? 7 : 10, ns: 5, seed: 40 + fi });
-        }); });
-    // visible crystal ribs (the frond's own little branches), sitting just proud of the leaves like the painted branch-veins
-    ribLines.forEach((rl, i) => { const s0 = rl.B.clone().addScaledVector(rl.pn, 0.03 * R), e = s0.clone().addScaledVector(rl.ax, rl.rl * 0.8);
-      addTube(Bb, new THREE.CatmullRomCurve3([s0, s0.clone().lerp(e, 0.5).addScaledVector(rl.pn, 0.02 * R), e]), 0.02, 0.006, bc.clone().lerp(new THREE.Color(1, 1, 1), 0.15), { nl: 4, ns: 4, seed: 80 + i, capEnd: 0.02 }); });
-    const ico = new THREE.IcosahedronGeometry(1, 1), ip = ico.attributes.position, dark = new THREE.Color(0.7, 0.66, 0.66);
-    const hc = V(0, fronds.reduce((a, f) => a + f.B.y, 0) / fronds.length, 0), m4 = new THREE.Matrix4().compose(hc.clone().add(V(0, 0.1 * R, 0)), new THREE.Quaternion(), V(0.2 * R, 0.18 * R, 0.2 * R));
-    for (let i = 0; i < ip.count; i += 3) Bb.tri(V(0, 0, 0).fromBufferAttribute(ip, i).applyMatrix4(m4), V(0, 0, 0).fromBufferAttribute(ip, i + 1).applyMatrix4(m4), V(0, 0, 0).fromBufferAttribute(ip, i + 2).applyMatrix4(m4), [0.2, 0.2], [0.2, 0.2], [0.2, 0.2], dark);
-    if (o.sink) { const K = o.sink, off = o.offset || V(0, 0, 0), M0 = new THREE.Matrix4(), X0 = V(0, 0, 0), Y0 = V(0, 0, 0), Z0 = V(0, 0, 0);
-      const b0 = Bb.p; for (let i = 0; i < b0.length; i += 3) { b0[i] += off.x; b0[i + 1] += off.y; b0[i + 2] += off.z; }
-      ['p', 'b', 'l', 'c', 'u'].forEach((k) => { for (const x of Bb[k]) K.Bb[k].push(x); });
-      const first = K.leaves.length;
-      leaves.forEach((l) => { Y0.copy(l.dir); X0.copy(l.n).cross(Y0); if (X0.lengthSq() < 1e-6) X0.set(1, 0, 0); X0.normalize(); Z0.crossVectors(X0, Y0).normalize(); M0.makeBasis(X0, Y0, Z0);
-        K.leaves.push(Object.assign(l, { q: new THREE.Quaternion().setFromRotationMatrix(M0), off, stem: stem.clone(), growth: o.growth })); });
-      K.crowns.push({ first, count: leaves.length, R, Hh, off, hc: hc.clone().add(off) });
-      const hot = col.clone().lerp(new THREE.Color(1, 1, 1), 0.2), hcol = col.clone().lerp(new THREE.Color(1, 0.92, 0.75), 0.18);
-      K.halo.push({ p: off.clone().add(V(0, 0, -0.2 * R)), s: Math.max(R * 3.4, Hh * 3.2) * (o.haloK || 1), c: hcol });
-      fronds.forEach((f) => K.glow.push({ p: f.Pc.clone().addScaledVector(f.n, 0.12 * R).add(off), s: R * (o.lite ? 0.6 : 0.8), c: hot }));
-      K.glow.push({ p: hc.clone().add(V(0, 0.15 * R, 0)).add(off), s: R * 0.8, c: hot });
-      return { leaves: leaves.length, fronds: fronds.length, stem: stem.clone().add(off) }; }
-    const bMesh = new THREE.Mesh(Bb.geo(), makeCrystalMaterial({ color: col, em: 0.42, edge: 0.4, lines: 0.12, glint: 0.3 })); bMesh.name = 'crownBranches'; inner.add(bMesh);
-
-    // leaves
-    const geo = leafGeometry(o.seed * 3 + 1), mat = makeCrystalMaterial({ color: col, em: o.em !== undefined ? o.em : 0.42, web: 1, edge: 0.5, hot: 0.7, fres: 0.14, amb: 0.4, deep: o.deep });
-    const im = new THREE.InstancedMesh(geo, mat, leaves.length); im.name = 'crownLeaves'; im.frustumCulled = false;
-    const data = new Float32Array(leaves.length * 3); leaves.forEach((l, i) => { data[i * 3] = l.inner; data[i * 3 + 1] = l.tint; data[i * 3 + 2] = l.gl; });
-    geo.setAttribute('iData', new THREE.InstancedBufferAttribute(data, 3)); inner.add(im);
-    const M = new THREE.Matrix4(), S = V(1, 1, 1), X = V(0, 0, 0), Y = V(0, 0, 0), Z = V(0, 0, 0);
-    leaves.forEach((l) => { Y.copy(l.dir); X.copy(l.n).cross(Y); if (X.lengthSq() < 1e-6) X.set(1, 0, 0); X.normalize(); Z.crossVectors(X, Y).normalize(); M.makeBasis(X, Y, Z); l.q = new THREE.Quaternion().setFromRotationMatrix(M); });
-
-    // glow: halo sprite + one Points draw with a soft glow card per frond and one for the heart (cheap selective "bloom")
-    const hcol = col.clone().lerp(new THREE.Color(1, 0.92, 0.75), 0.18);
-    let halo = null, gl = null;
-    if (o.halo) { halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex(hcol), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8, fog: false }));
-      halo.scale.set(R * 3.4, Hh * 3.2, 1); halo.position.set(0, 0, -0.2 * R); halo.renderOrder = -1; halo.name = 'crownHalo'; halo.userData.s0 = halo.scale.clone(); inner.add(halo); }
-    if (o.glow) { const pts = [], cols = [], hot = col.clone().lerp(new THREE.Color(1, 1, 1), 0.2);
-      fronds.forEach((f) => { const q = f.Pc.clone().addScaledVector(f.n, 0.12 * R); pts.push(q.x, q.y, q.z); cols.push(hot.r, hot.g, hot.b); });
-      pts.push(hc.x, hc.y + 0.15 * R, hc.z); cols.push(hot.r, hot.g, hot.b);
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-      gl = new THREE.Points(g, new THREE.PointsMaterial({ size: R * 2.0, map: haloTex(new THREE.Color(1, 1, 1)), vertexColors: true, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, opacity: 0.32, sizeAttenuation: true, fog: false }));
-      gl.name = 'crownGlow'; gl.renderOrder = 5; gl.frustumCulled = false; inner.add(gl); }
-
-    function setPoints(f) { f = clamp(f, 0, 1); const g = 1 + o.growth * f;
-      leaves.forEach((l, i) => { const show = l.tier < 0.8 ? 1 : clamp((f - (l.tier - 0.8) / 0.2 * 0.7) / 0.3, 0, 1);
-        const L = l.L * lerp(0.001, 1, show); S.set(L * l.w, L, L * l.w); M.compose(X.copy(l.p), l.q, S); im.setMatrixAt(i, M); });
-      im.instanceMatrix.needsUpdate = true; inner.scale.setScalar(g); inner.position.copy(stem).multiplyScalar(1 - g); grp.userData.pointsFraction = f; }
-    const tris = geo.attributes.position.count / 3 * leaves.length + bMesh.geometry.attributes.position.count / 3 + (halo ? 2 : 0) + (gl ? fronds.length * 2 + 2 : 0);
-    grp.userData = { setPoints, stem, fit: LY.ext, radius: R, height: o.height, leaves: leaves.length, fronds: fronds.length, tris, drawCalls: 2 + (halo ? 1 : 0) + (gl ? 1 : 0), materials: [mat, bMesh.material], halo, glow: gl, pointsFraction: 0 };
-    setPoints(o.pointsFraction);
-    return grp; }
-
-  /* main limb: 3-colour braid from `from` to `to` (tree-local), dominant colour index thicker; then a crown at crownCentre */
-  function createCrystalBranch(o) {
-    const B = new Builder(); const C = o.colors.map((c) => new THREE.Color(c));
-    const dom = o.dominant !== undefined ? o.dominant : 0;
-    createBraid(B, o.points, { colors: C, radii: C.map((c, i) => i === dom ? [0.07, 0.055] : [0.05, 0.034]), hr: o.hr || 0.06, turns: o.turns, tipTaper: 0.1 });
-    const m = new THREE.Mesh(B.geo(), makeCrystalMaterial({ color: 0xffffff, glow: 0xfff0dc, rim: 0xffffff, em: 0.3, edge: 0.3, lines: 0.12, glint: 0.4 }));
-    m.name = 'limbBraid'; return m; }
-
-  /* world-sized additive glow points (one draw for many halos / glow cards). Size is world units, like a Sprite. */
-  const GPVS = `attribute float aSize; attribute vec3 color; varying vec3 vC; uniform float uScale; uniform float uPx;
-void main(){ vC = color; vec4 mv = modelViewMatrix * vec4(position, 1.0); float z = -mv.z;
-  if (z < 0.18) { gl_Position = vec4(2.0, 2.0, 2.0, 1.0); gl_PointSize = 0.0; return; }
-  gl_Position = projectionMatrix * mv;
-  gl_PointSize = min(aSize * uScale * projectionMatrix[1][1] * uPx / max(0.22, z), 511.0); }`;
-  const GPFS = `uniform sampler2D uMap; uniform float uOpacity; varying vec3 vC; void main(){ float a = texture2D(uMap, gl_PointCoord).a; gl_FragColor = vec4(vC * a * uOpacity, 1.0); }`;
-  function glowPoints(list, o) { const P = [], C = [], S = [];
-    list.forEach((q) => { P.push(q.p.x, q.p.y, q.p.z); C.push(q.c.r, q.c.g, q.c.b); S.push(q.s); });
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 3)); g.setAttribute('aSize', new THREE.Float32BufferAttribute(S, 1));
-    const m = new THREE.ShaderMaterial({ vertexShader: GPVS, fragmentShader: GPFS, transparent: true, depthWrite: false, depthTest: o.depthTest, blending: THREE.AdditiveBlending,
-      uniforms: { uMap: { value: haloTex(new THREE.Color(1, 1, 1)) }, uOpacity: { value: o.opacity }, uScale: { value: 1 }, uPx: { value: 500 } } });
-    const pts = new THREE.Points(g, m); pts.frustumCulled = false; pts.renderOrder = o.renderOrder || 0; pts.name = o.name; m.userData.o0 = o.opacity;
-    const tmp = new THREE.Vector2(); pts.onBeforeRender = (r) => { r.getDrawingBufferSize(tmp); m.uniforms.uPx.value = tmp.y / 2; };
-    return pts; }
-
-  /* several crowns of ONE colour merged into 4 draw calls: instanced leaves, merged branches (+ any extra tubes), halo points, glow-card points.
-     items: [{ position, height, radius, shape, lite, seed, inward, stem, growth, haloK }]. extra(B) may add side-branch tubes to the branch builder. */
-  function createCrownSet(o) {
-    const col = new THREE.Color(o.color), K = { Bb: new Builder(), leaves: [], crowns: [], halo: [], glow: [] }, g = new THREE.Group(); g.name = 'crownSet';
-    const info = o.items.map((it, i) => createCrystalCrown(Object.assign({ color: o.color, seed: (o.seed || 1) + i * 17, halo: true, glow: true }, it, { sink: K, offset: V(...it.position), pointsFraction: 0 })));
-    if (o.extra) o.extra(K.Bb, info);
-    const bMesh = new THREE.Mesh(K.Bb.geo(), makeCrystalMaterial({ color: col, em: 0.42, edge: 0.4, lines: 0.12, glint: 0.3 })); bMesh.name = 'crownBranches'; g.add(bMesh);
-    const geo = leafGeometry((o.seed || 1) * 3 + 1), mat = makeCrystalMaterial({ color: col, em: 0.42, web: 1, edge: 0.5, hot: 0.7, fres: 0.14, amb: 0.4, deep: o.deep || 0 });
-    const L = K.leaves, im = new THREE.InstancedMesh(geo, mat, L.length); im.name = 'crownLeaves'; im.frustumCulled = false;
-    const data = new Float32Array(L.length * 3); L.forEach((l, i) => { data[i * 3] = l.inner; data[i * 3 + 1] = l.tint; data[i * 3 + 2] = l.gl; });
-    geo.setAttribute('iData', new THREE.InstancedBufferAttribute(data, 3)); g.add(im);
-    let halo = null, gl = null;
-    if (o.halo !== false) { halo = glowPoints(K.halo, { opacity: 0.8, depthTest: true, renderOrder: -1, name: 'crownHalo' }); g.add(halo); }
-    if (o.glow !== false) { gl = glowPoints(K.glow, { opacity: 0.28, depthTest: false, renderOrder: 5, name: 'crownGlow' }); g.add(gl); }
-    const M = new THREE.Matrix4(), S = V(1, 1, 1), X = V(0, 0, 0);
-    function setPoints(f) { f = clamp(f, 0, 1);
-      L.forEach((l, i) => { const gr = 1 + (l.growth || 0) * f, show = l.tier < 0.8 ? 1 : clamp((f - (l.tier - 0.8) / 0.2 * 0.7) / 0.3, 0, 1);
-        const len = l.L * lerp(0.001, 1, show) * gr; S.set(len * l.w, len, len * l.w);
-        X.copy(l.p).sub(l.stem).multiplyScalar(gr).add(l.stem).add(l.off); M.compose(X, l.q, S); im.setMatrixAt(i, M); });
-      im.instanceMatrix.needsUpdate = true; g.userData.pointsFraction = f; }
-    const tris = geo.attributes.position.count / 3 * L.length + bMesh.geometry.attributes.position.count / 3 + (halo ? K.halo.length * 2 : 0) + (gl ? K.glow.length * 2 : 0);
-    g.userData = { setPoints, crowns: K.crowns, info, leaves: L.length, tris, drawCalls: 2 + (halo ? 1 : 0) + (gl ? 1 : 0), halo, glow: gl, pointsFraction: 0 };
-    setPoints(o.pointsFraction || 0); return g; }
-
-  /* full-tree (tree-local, origin on the trunk axis, roots reach y ~ -0.45 if includeRoots). The game keeps its own trunk strands, claw roots and tether
-     (createCrystalTree({ includeTrunk: false, includeRoots: false })). v3: 3 main crowns + 2 smaller crowns per colour on thin curving side branches.
-     Azimuth: 0 = +X (right from the walkway), 90 = -Z (back), 180 = -X (left), 270 = +Z (toward the walkway); x = r cos az, z = -r sin az.
-     t488u layout: mains and side crowns at varied azimuths and heights all the way around, not a flat front plane. Yellow stays on top and dominant.
-     combat main 205° / y 2.70 / r 1.90; smalls 160° y 2.08 r 2.55 and 250° y 1.92 r 1.65.
-     production main 25° / y 2.55 / r 1.90; smalls 80° y 2.18 r 2.45 and 340° y 1.85 r 1.65.
-     beasts main 280° / y 3.12 / r 0.18; smalls 145° y 3.38 r 1.40 and 325° y 3.48 r 1.40. */
-  const TREE_LAYOUT = {
-    splitY: 1.25,
-    combat: { C: [-1.722, 2.70, 0.803], height: 1.38, radius: 0.8, fork: [0.72, 0.32],
-      small: [{ C: [-2.396, 2.08, -0.872], height: 0.8, radius: 0.44 }, { C: [-0.564, 1.92, 1.550], height: 0.8, radius: 0.44 }] },
-    production: { C: [1.722, 2.55, -0.803], height: 1.38, radius: 0.8, fork: [0.72, 0.32],
-      small: [{ C: [0.425, 2.18, -2.413], height: 0.8, radius: 0.44 }, { C: [1.550, 1.85, 0.564], height: 0.8, radius: 0.44 }] },
-    beasts: { C: [0.031, 3.12, 0.177], height: 1.8, radius: 1.08, shape: 'teardrop', growth: 0.06, fork: [0.62, 0.62],
-      small: [{ C: [-1.147, 3.38, -0.803], height: 0.8, radius: 0.45 }, { C: [1.147, 3.48, 0.803], height: 0.8, radius: 0.45 }] } };
-  function createCrystalTree(o) {
-    o = Object.assign({ points: { combat: 0, production: 0, beasts: 0 }, seed: 1, colors: { combat: 0xd42a22, production: 0x2f86f0, beasts: 0xf3b52a }, includeTrunk: true, includeRoots: true }, o || {});
-    const g = new THREE.Group(), B = new Builder(), Lt = o.layout || TREE_LAYOUT, S = Lt.splitY;
-    const cR = new THREE.Color(o.colors.combat), cB = new THREE.Color(o.colors.production), cY = new THREE.Color(o.colors.beasts);
-    if (o.includeTrunk !== false) createBraid(B, [V(0, -0.45, 0), V(0, 0.4, 0), V(0, 1.0, 0), V(0, S + 0.08, 0)], { colors: [cR, cB, cY], radii: [[0.1, 0.09], [0.1, 0.09], [0.1, 0.09]], hr: 0.1, turns: 3.0 });
-    if (o.includeRoots === 'claws') {
-      // game claws (fix_v3): thick, short reach, curl back in toward the trunk and tether; one mesh with the wood
-      const AZ = [[160, cR], [232, cR], [104, cY], [284, cY], [20, cB], [308, cB]];
-      const RY = [[0.10, 0.42], [0.26, 0.22], [0.34, 0.06], [0.22, -0.02]];
-      AZ.forEach(([az, c], i) => { const a = az * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
-        const P = [V(ca * 0.10, 0.42, sa * 0.10), ...RY.map(([rr, y]) => V(ca * rr, y, sa * rr))];
-        addTube(B, new THREE.CatmullRomCurve3(P), 0.19, 0.11, c, { ns: 7, nl: 12, seed: 70 + i, pw: 0.7, capEnd: 0.14 }); });
-    } else if (o.includeRoots !== false) {
-      const AZ = [[160, cR], [232, cR], [104, cY], [284, cY], [20, cB], [308, cB]];
-      AZ.forEach(([az, c], i) => { const a = az * Math.PI / 180, d = V(Math.cos(a), 0, -Math.sin(a));
-        const P = [[0.1, 0.3], [0.3, 0.12], [0.52, -0.02], [0.68, -0.12]].map(([rr, y]) => V(d.x * rr, y, d.z * rr));
-        addTube(B, new THREE.CatmullRomCurve3(P), 0.105, 0.055, c, { ns: 7, nl: 10, seed: 70 + i, capEnd: 0.2 }); });
-    }
-    const crowns = {}, sets = {}; let nCrowns = 0;
-    const mk = (key, col, others, seed) => { const L = Lt[key], C = V(...L.C), Hh = L.height / 2;
-      const horiz = Math.hypot(C.x, C.z) || 1, dx = C.x / horiz, dz = C.z / horiz;
-      const stemM = V(-dx * 0.4 * L.radius, -(key === 'beasts' ? 1.0 : 1.15) * Hh, -dz * 0.4 * L.radius);
-      const st = stemM.clone().add(C);
-      // main limb leaves the trunk along the crown's azimuth (not a left/right plane) and rises ~30-40 deg into the stem
-      const pts = key === 'beasts'
-        ? [V(0, S, 0), V(C.x * 0.25, S + 0.35, C.z * 0.25), V(C.x * 0.7, lerp(S, st.y, 0.75), C.z * 0.7), st]
-        : [V(0.10 * dx, S, 0.10 * dz), V(0.45 * dx, S + 0.2, 0.45 * dz), st.clone().lerp(V(0.45 * dx, S + 0.2, 0.45 * dz), 0.45).add(V(0, 0.05, 0)), st];
-      B_limbs.push({ pts, colors: [new THREE.Color(col), new THREE.Color(others[0]), new THREE.Color(others[1])], hr: key === 'beasts' ? 0.075 : 0.06, turns: key === 'beasts' ? 1.6 : 1.8 });
-      const limb = new THREE.CatmullRomCurve3(pts), dark = new THREE.Color(col).multiplyScalar(0.95);
-      const items = [{ position: L.C, height: L.height, radius: L.radius, shape: L.shape || 'round', growth: L.growth !== undefined ? L.growth : 0.12, inward: 0, stem: stemM, depth: false }]
-        .concat(L.small.map((sm) => { const h = Math.hypot(sm.C[0], sm.C[2]) || 1;
-          return { position: sm.C, height: sm.height, radius: sm.radius, lite: true, growth: 0.1, inward: 0, stem: V(-sm.C[0] / h * 0.3 * sm.radius, -1.25 * sm.height / 2, -sm.C[2] / h * 0.3 * sm.radius), haloK: 0.9 }; }));
-      const set = createCrownSet({ color: col, seed: o.seed + seed, items, deep: key === 'combat' ? 0.32 : 0.18, halo: o.halo, glow: o.glow,
-        extra: (Bb, info) => { L.small.forEach((sm, i) => { const t = L.fork[i], A = limb.getPointAt(t), E = info[i + 1].stem, d = E.clone().sub(A);
-          const side = d.clone().cross(V(0, 1, 0)); if (side.lengthSq() < 1e-8) side.set(d.z, 0, -d.x); side.normalize().multiplyScalar(0.12 * d.length() * (i ? -1 : 1));
-          const cv = new THREE.CatmullRomCurve3([A, A.clone().lerp(E, 0.3).add(side).add(V(0, 0.05, 0)), A.clone().lerp(E, 0.7).addScaledVector(side, -0.6), E]);
-          addTube(Bb, cv, 0.05, 0.03, dark, { nl: 14, ns: 6, seed: 90 + i, capEnd: 0.02 }); }); } });
-      g.add(set); sets[key] = set; crowns[key] = set; nCrowns += items.length; set.userData.setPoints(o.points[key] || 0); };
-    const B_limbs = [];
-    mk('combat', o.colors.combat, [o.colors.production, o.colors.beasts], 3); mk('production', o.colors.production, [o.colors.beasts, o.colors.combat], 7); mk('beasts', o.colors.beasts, [o.colors.combat, o.colors.production], 11);
-    B_limbs.forEach((lb) => { const dom = 0; createBraid(B, lb.pts, { colors: lb.colors, radii: lb.colors.map((c, k) => k === dom ? [0.07, 0.055] : [0.05, 0.034]), hr: lb.hr, turns: lb.turns, tipTaper: 0.1 }); });
-    const tm = new THREE.Mesh(B.geo(), makeCrystalMaterial({ color: 0xffffff, glow: 0xfff0dc, rim: 0xffffff, em: 0.3, edge: 0.3, lines: 0.12, glint: 0.4 })); tm.name = 'trunkRootsLimbs'; g.add(tm);
-    function setPoints(pts) { pts = pts || {}; for (const k in sets) sets[k].userData.setPoints(pts[k] || 0); }
-    g.userData = { crowns, sets, layout: Lt, nCrowns, setPoints, wood: tm }; return g; }
-
-  /* glow toggle (cheap selective bloom): ON = frond glow cards visible, halo brighter/bigger, emissive + edge heat up. OFF = plain. */
-  function setBloom(obj, on) { obj.traverse((n) => {
-    if (n.name === 'crownGlow') n.visible = !!on;
-    if (n.name === 'crownHalo') { if (n.material.uniforms && n.material.uniforms.uOpacity) { n.material.uniforms.uOpacity.value = on ? 1.0 : 0.55; n.material.uniforms.uScale.value = on ? 1.2 : 0.9; }
-      else { n.material.opacity = on ? 1.0 : 0.55; n.scale.copy(n.userData.s0).multiplyScalar(on ? 1.2 : 0.9); } }
-    if (n.material && n.material.uniforms && n.material.uniforms.uEm) { const U = n.material.uniforms; if (U.uEm.base === undefined) { U.uEm.base = U.uEm.value; U.uHot.base = U.uHot.value; }
-      U.uEm.value = U.uEm.base * (on ? 1.45 : 0.8); U.uHot.value = on ? 1.3 : 0.15; } }); }
-
-  root.CrystalCrown = { createCrystalCrown, createCrystalBranch, createBraid: (pts, o) => { const B = new Builder(); createBraid(B, pts, o); return new THREE.Mesh(B.geo(), makeCrystalMaterial({ color: 0xffffff })); }, createCrystalTree, createCrownSet, makeCrystalMaterial, leafGeometry, setBloom, TREE_LAYOUT };
-})(typeof window !== 'undefined' ? window : globalThis);
 /* ===== Sfx: combat sound effects (Dominic, Art's chat 9:01 AM: "all variations of noises utilized in random fashion so it's not in a specific ordered sequence")
    - SFX_TABLE (below) is the one data table: each category's files and volume. Art's CC0 pack (/workspace/mia/audio/combat_sfx, credits in CREDITS.md).
    - shout: her attack effort, only the moment a sword swing starts (male / female set by her sex); swoosh: the blade through the air, ~9 dB under shout / hit;
@@ -14444,7 +14071,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
   // frame: door in the front wall plane z = HM.FZ, interior x in [-HM.W/2, HM.W/2], z in [HM.BZ, HM.FZ]; exterior ledge shelf in front (z > HM.FZ)
   /* t626u (Dominic): the Skill Tree room behind the Ledge house - the old unopened back door is gone; an open arched walkway (AX centre, AW wide, AH high)
      runs through the back wall and a short corridor into a much larger room (X0..X1, Z0..Z1, RH high) where the lumenite Skill Tree hovers on its dais (tx, tz) */
-  const SKR = { AX: -2.72, AW: 1.0, AH: 2.05, CZ0: -2.94, CZ1: -3.9, X0: -8.0, X1: 3.2, Z0: -12.9, Z1: -4.04, RH: 5.0, tx: -2.5, tz: -8.7, obsR: 0.9, drift: 0.4, yK: -0.45 }; /* (t636u: no dais - the tree hovers over the room's own stone floor; obsR covers its roots + drift; yK = the root knot under the trunk, tree-local) */
+  const SKR = { AX: -2.72, AW: 1.0, AH: 2.05, CZ0: -2.94, CZ1: -3.9, X0: -8.0, X1: 3.2, Z0: -12.9, Z1: -4.04, RH: 5.0, tx: -2.5, tz: -8.7, obsR: 0.9, drift: 0.4, yK: -0.45 }; /* (t636u: no dais; 26 Nov: Art's v4 tree stands planted on the room's stone floor at (tx, tz) - drift / yK are left from the hovering code tree and unused; obsR covers v4's roots, 0.8-0.9 m out at the floor; the tether's anchors are in SKILL_TREE.tether) */
   const HM = { W: 7.2, BZ: -2.8, FZ: 2.8, H: 2.6, dw: 0.92, dh: 1.55, dx: -1.5, pc: 0.86, ring: 0.3, mode: null, open: 0, ports: null, sel: 'c', g: null, ext: null, room: null, obs: [] };
   const PORTS = ['c', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
   function homeState() { if (typeof S === 'undefined' || !S) return { ports: {}, open: 0 }; if (!S.home) S.home = { ports: {}, open: 0, tv: 2 }; return S.home; } // open: how many of the 8 small ports are unlocked
@@ -14864,6 +14491,22 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
      leaves a lumenite clasp under the tree, runs out along the floor, through the walkway, across the house and up the table leg to the Tether Orb.
      Walls and floor are solid to her (homeWalker's inb + an obstacle round the tree's roots); tapping the tree walks her to it and opens the Skill Tree screen.
      iPhone-light: unlit / toon materials, glow sprites, one soft point light. ---------- */
+  // (26 Nov) Art's Skill Tree v4: loaded through the creature loader (sRGB base colour, chalk toon + ink, no tone mapping on the sRGB Character view, as the
+  // playground's monsters), still in its rest pose. Each triangle's bushel comes from its UV cell (SKILL_TREE.cells); the bushels fill HM.skBush / skCrown
+  function skTreeLoad(art) { if (typeof Creatures === 'undefined') return; const D = SKILL_TREE.row; if (!Creatures.get(D.id)) Creatures.def(D.id, D);
+    Creatures.load(D.id).then(() => { const I = Creatures.make(D.id, { screenEnc: CHAR_STAGE.out === 'sRGB' }); if (!I) return; art.add(I.root); art.userData.inst = I; art.updateMatrixWorld(true);
+      let sm = null; I.root.traverse((o) => { if (o.isSkinnedMesh && !o.userData.isInk && !sm) sm = o; o.castShadow = o.isMesh && !o.userData.isInk; }); if (!sm) return; sm.skeleton.update();
+      const C = SKILL_TREE.cells, BU = SKILL_TREE.bushels, Pz = sm.geometry.attributes.position, UV = sm.geometry.attributes.uv, ix = sm.geometry.index.array, tri = new Uint8Array(ix.length / 3).fill(255), w = V(0, 0, 0), toArt = art.matrixWorld.clone().invert();
+      const acc = BU.map(() => ({ n: 0, c: V(0, 0, 0), b: new THREE.Box3() }));
+      for (let t = 0; t < tri.length; t++) { let u = 0, v = 0; for (let q = 0; q < 3; q++) { u += UV.getX(ix[t * 3 + q]); v += UV.getY(ix[t * 3 + q]); } const x = u / 3 * C.W - C.x0, y = v / 3 * C.H - C.y0, st2 = C.cell + C.pad, c = Math.floor(x / st2), r = Math.floor(y / st2);
+        if (x < 0 || y < 0 || c > 2 || r > 2) continue; const k = r * 3 + c; tri[t] = k; const A = acc[k]; A.n++; for (let q = 0; q < 3; q++) { sm.getVertexPosition(ix[t * 3 + q], w).applyMatrix4(sm.matrixWorld).applyMatrix4(toArt); A.c.add(w); A.b.expandByPoint(w); } }
+      art.userData.tri = tri; art.userData.mesh = sm; const n = { combat: 0, production: 0, beasts: 0 };
+      BU.forEach(([id, col, where], k) => { const A = acc[k], br = SKILL_TREE.branch[col]; if (!A.n || !br) return; const B = { id, colour: col, where, branch: br, tris: A.n, c: A.c.multiplyScalar(1 / (3 * A.n)), r: A.b.getSize(V(0, 0, 0)).length() / 2 };
+        HM.skBush[br].push(B); HM.skCrown[br].add(B.c); n[br]++; });
+      for (const k in n) if (n[k]) HM.skCrown[k].multiplyScalar(1 / n[k]); art.userData.nBushels = BU.filter((_, k) => acc[k].n).length; }).catch(() => {}); }
+  // the bushel a tap landed on (the tree's own mesh, by triangle), or null
+  function skBushelHit(h) { const K = HM.sk, a = K && K.art; if (!h || !a || !a.userData.tri || h.object !== a.userData.mesh || h.faceIndex == null) return null; const k = a.userData.tri[h.faceIndex]; if (k === 255) return null;
+    const id = SKILL_TREE.bushels[k][0]; for (const b in HM.skBush) { const B = HM.skBush[b].find((q) => q.id === id); if (B) return B; } return null; }
   function makeSkillRoom() { const g = new THREE.Group(); g.name = 'skillRoom'; const R = SKR, r = prng(626), H = R.RH, W = R.X1 - R.X0, D = R.Z1 - R.Z0, xc = (R.X0 + R.X1) / 2, zc = (R.Z0 + R.Z1) / 2;
     const stM = (seed, rx, ry, base) => { const t = stoneTex(seed, base, 30); t.repeat.set(rx, ry); return toon(0xffffff, t); }, beam = toon(0x5a3820), beamD = toon(0x462b18), walls = {};
     const wallM = stM(91, W / 2.2, H / 2.2, [104, 100, 96]), sideM = stM(92, D / 2.2, H / 2.2, [104, 100, 96]);
@@ -14887,39 +14530,39 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     { const add = (k, m) => { (walls[k + 'X'] = walls[k + 'X'] || []).push(m); }; for (let x = R.X0 + 1.4; x < R.X1 - 0.6; x += 2.4) { if (Math.abs(x - R.AX) > 1.0) add('front', part(g, rbox(0.24, H, 0.2, 0.03), beam, [x, H / 2, R.Z1 - 0.1])); add('back', part(g, rbox(0.24, H, 0.2, 0.03), beam, [x, H / 2, R.Z0 + 0.1])); }
       for (let z = R.Z1 - 1.5; z > R.Z0 + 0.6; z -= 2.4) { add('left', part(g, rbox(0.2, H, 0.24, 0.03), beam, [R.X0 + 0.1, H / 2, z])); add('right', part(g, rbox(0.2, H, 0.24, 0.03), beam, [R.X1 - 0.1, H / 2, z])); }
       add('back', part(g, rbox(W, 0.2, 0.2, 0.03), beamD, [xc, H - 0.1, R.Z0 + 0.1])); add('left', part(g, rbox(0.2, 0.2, D, 0.03), beamD, [R.X0 + 0.1, H - 0.1, zc])); add('right', part(g, rbox(0.2, 0.2, D, 0.03), beamD, [R.X1 - 0.1, H - 0.1, zc])); }
-    // (t635u / t636u: no stone dais and no glow ring - the tree hovers over the room's flagstones in a pool of cold fog)
+    // (t635u / t636u: no stone dais and no glow ring; 26 Nov: the v4 tree stands on the room's flagstones in a pool of cold fog)
     const T = new THREE.Group(); T.position.set(R.tx, 0, R.tz); g.add(T);
-    // (crown_v3, Dominic t486s1972: "Send the fuller tree to dev to drop into the game"; t488u: stagger branches 360°)
-    // Art's createCrystalTree is the 9 crowns, braided limbs and trunk. Our claw roots are built into that same wood mesh
-    // (includeRoots: 'claws') because they hug the base better than Art's stand-in flares. Our tether, fog and room stay.
-    const F = new THREE.Group(); F.position.y = 0.55; T.add(F);
-    const GR = new THREE.Group(); GR.position.y = R.yK; F.add(GR); const GT = new THREE.Group(); GT.position.y = -R.yK; GR.add(GT);
+    // (26 Nov) Art's Lumenite Skill Tree v4 GLB (SKILL_TREE, data.js; loaded by skTreeLoad) stands here in place of the code-built crown_v3 crystal tree.
+    // Our tether, fog and room stay.
+    const F = new THREE.Group(); T.add(F); /* (Dominic, 26 Nov: Art's Skill Tree v4 is planted on the floor - no hover, bob, drift or spin; F stays as the tree's still frame) */
     const crysTx = HM.skTx || (HM.skTx = { c: cv(128, 128, (x, w, h) => { const q = prng(628); x.fillStyle = '#bfefff'; x.fillRect(0, 0, w, h); for (let i = 0; i < 70; i++) { x.fillStyle = q() < 0.5 ? `rgba(255,255,255,${0.15 + q() * 0.3})` : `rgba(120,200,235,${0.1 + q() * 0.25})`; x.fillRect(q() * w, q() * h, 2 + q() * 5, 10 + q() * 40); } }),
       n: cv(4, 4, (x, w, h) => { x.fillStyle = 'rgb(128,128,255)'; x.fillRect(0, 0, w, h); }) });
     crysTx.c.wrapS = crysTx.c.wrapT = THREE.RepeatWrapping;
     const crys = (tint, em) => { const M = new THREE.Matrix3().set(tint[0], 0, 0, 0, tint[1], 0, 0, 0, tint[2]); return swCrys(crysTx, { M, off: V(0, 0, 0), em: new THREE.Color(em) }); };
     const crysTube = (tint, em, op) => { const m = crys(tint, em); m.flatShading = true; m.specular = new THREE.Color(0x262c34); m.shininess = 26; m.opacity = op; m.userData.U.uEm.value.multiplyScalar(1.55); m.userData.U.uGl.value = 1.65; m.customProgramCacheKey = () => 'swordCrysTube'; return m; };
     const glow = (par, p, col, sz) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial(col, col.replace(/[\d.]+\)$/, '0)')), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); sp.position.copy(p); sp.scale.setScalar(sz); sp.renderOrder = 4; par.add(sp); return sp; };
-    const YE = R.yK, hash01 = (ring, side) => { let n = (Math.imul(ring, 374761393) + Math.imul(side, 668265263)) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n >>> 0) % 100000) / 100000; };
+    const hash01 = (ring, side) => { let n = (Math.imul(ring, 374761393) + Math.imul(side, 668265263)) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n >>> 0) % 100000) / 100000; };
     const BR = [
       ['combat', 0xd42a22, 0xb02010, [1.3, 0.30, 0.20], 'rgba(212,42,34,0.8)'],
       ['production', 0x2f86f0, 0x0c3c9c, [0.20, 0.84, 1.25], 'rgba(47,134,240,0.8)'],
       ['beasts', 0xf3b52a, 0xa86400, [1.3, 0.78, 0.26], 'rgba(243,181,42,0.8)']];
-    const glows = [], mats = [], grow = {}; HM.skBranch = {}; HM.skCrown = {}; HM.skBush = {}; const MAT = {};
+    const glows = [], mats = []; HM.skBranch = {}; HM.skCrown = {}; HM.skBush = {}; const MAT = {};
     for (const [k, col, em, tint, rgba] of BR) { const mTether = crysTube(tint, em, 0.92); MAT[k + 'Tether'] = mTether; mats.push([mTether, new THREE.Color(col)]); }
-    const art = CrystalCrown.createCrystalTree({ includeTrunk: true, includeRoots: 'claws', halo: true, glow: true, points: { combat: 0, production: 0, beasts: 0 } });
-    art.name = 'crystalTree'; GT.add(art); CrystalCrown.setBloom(art, true);
-    for (const k of ['combat', 'production', 'beasts']) { const set = art.userData.sets[k], C = V(...art.userData.layout[k].C);
-      HM.skBush[k] = set; HM.skBranch[k] = set; HM.skCrown[k] = C; grow[k] = { s: -1, set, C: C.clone() }; }
-    glow(F, V(0, YE - 0.05, 0), 'rgba(255,240,220,0.45)', 0.75); // soft glow at the trunk / tether seam
-    HM.skRootY = YE;
+    /* (Dominic, 26 Nov: "replace the skill tree with that and remove the floating features") Art's v4 GLB (SKILL_TREE, data.js) in place of Art's code-built
+       crystal tree: the 9 crystal crowns with their halo sprites and glow points, the braided limbs, trunk and claw roots, and the soft glow at the trunk /
+       tether seam are gone. The branches map to v4's bushels (ruby = Combat, sapphire = Production, gold = Tether Beasts): HM.skBush / skBranch[k] = that
+       colour's bushels { id, c, r, tris }, HM.skCrown[k] = their mean centre (tree-local), and a tap on a ruby bushel opens the Combat branch. Static (Dominic: "Swap it in as a static tree"): its Idle clip doesn't move (0 cm), so no mixer */
+    const art = new THREE.Group(); art.name = 'skillTreeV4'; art.scale.setScalar(SKILL_TREE.scale); F.add(art);
+    for (const k of ['combat', 'production', 'beasts']) { HM.skBush[k] = []; HM.skBranch[k] = HM.skBush[k]; HM.skCrown[k] = V(0, 0, 0); }
+    skTreeLoad(art);
+    HM.skRootY = SKILL_TREE.tether.knot[1];
     // cold fog (t635u): dense, low and rolling - sprites rise off the trunk, sink and roll out along the floor, pooling round the base (cheap: ~18 sprites, one texture)
     const fogTx = cv(128, 128, (x, w, h) => { const q = prng(635); for (let i = 0; i < 26; i++) { const cx = 64 + (q() - 0.5) * 60, cy = 64 + (q() - 0.5) * 36, rr = 18 + q() * 30, gr = x.createRadialGradient(cx, cy, 0, cx, cy, rr); gr.addColorStop(0, 'rgba(214,232,242,0.22)'); gr.addColorStop(1, 'rgba(214,232,242,0)'); x.fillStyle = gr; x.fillRect(0, 0, w, h); } });
     fogTx.wrapS = fogTx.wrapT = THREE.ClampToEdgeWrapping; const fog = [];
     for (let i = 0; i < 18; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fogTx, color: 0xd6e8f2, transparent: true, depthWrite: false, opacity: 0, fog: false })); sp.renderOrder = 3; sp.raycast = () => {}; T.add(sp); fog.push({ sp, a: i / 18 * TAU + r() * 0.3, ph: r(), sp0: 0.028 + r() * 0.02, far: 1.4 + r() * 1.3, rot: (r() - 0.5) * 0.4 }); }
     const lt = new THREE.PointLight(0xd8f4ff, 0.8, 10, 1.4); lt.position.set(0, 3.6, 1.6); T.add(lt); (HM.inLights = HM.inLights || []).push(lt);
     // the braided tether: three crystal strands from under the tree to the Tether Orb; starts as wide as the trunk and feathers down
-    const t = HMP.table, ax = R.AX + 0.36, K0 = V(R.tx, 0.55 + R.yK, R.tz), ctr = [K0.clone(), V(R.tx, 0.14, R.tz + 0.45), V(R.tx + 0.04, 0.1, R.tz + 1.0), V(R.tx + 0.1, 0.07, R.tz + 1.7), V(ax - 0.1, 0.07, R.Z1 - 1.2), V(ax, 0.07, R.Z1 - 0.2), V(ax, 0.07, HM.BZ + 0.05),
+    const t = HMP.table, ax = R.AX + 0.36, TA = SKILL_TREE.tether, K0 = V(R.tx + TA.knot[0], TA.knot[1], R.tz + TA.knot[2]), ctr = [K0.clone(), ...TA.lead.map((q) => V(R.tx + q[0], q[1], R.tz + q[2])), V(R.tx + 0.04, 0.07, R.tz + 1.0), V(R.tx + 0.1, 0.07, R.tz + 1.7), V(ax - 0.1, 0.07, R.Z1 - 1.2), V(ax, 0.07, R.Z1 - 0.2), V(ax, 0.07, HM.BZ + 0.05),
       V(ax - 0.1, 0.07, -2.1), V(-2.55, 0.07, -1.55), V(-1.95, 0.07, -1.05), V(-1.0, 0.07, -0.98), V(-0.2, 0.07, -0.78), V(t.x + 0.2, 0.07, t.z - 0.62), V(t.x + 0.34, 0.07, t.z - 0.34), V(t.x + 0.28, 0.3, t.z - 0.28), V(t.x + 0.39, 0.6, t.z - 0.39), V(t.x + 0.4, 0.71, t.z - 0.4), V(t.x + 0.24, 0.7, t.z - 0.24), V(t.x + 0.16, 0.77, t.z - 0.16), V(t.x + 0.12, 0.84, t.z - 0.12)]; /* (t628u: up the back-right leg, out round the tabletop's rim and in to the cradle, like the main Ledge Tether on the left legs - never through the table) */
     const cc = new THREE.CatmullRomCurve3(ctr, false, 'catmullrom', 0.25), Lc = cc.getLength(), M = Math.ceil(Lc * 24), cp = cc.getSpacedPoints(M), rb = 0.042, rs = 0.032, TP = (d) => lerp(2.6, 1, ss(0.35, 3.0, d)); /* (Dominic / Art fix_v1: starts as wide as the trunk and feathers to the smaller braid by ~3 m) */
     const strands = [[], [], []], trunkPh = [0, 2 * TAU / 3, TAU / 3]; let S0f = V(1, 0, 0), phAcc = 0; for (let k = 0; k <= M; k++) { const T0 = cp[Math.min(M, k + 1)].clone().sub(cp[Math.max(0, k - 1)]).normalize();
@@ -14931,10 +14574,10 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     const BK = ['combat', 'production', 'beasts'];
     for (let i = 0; i < 3; i++) { const m = MAT[BK[i] + 'Tether']; const TS = M * 2, sides = 7, Nvr = sides + 1, geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strands[i]), TS, rs, sides, false), tm = part(braid, geo, m, [0, 0, 0], null, null, { ink: false, shadow: false }); tm.userData.base = mats[i][1].clone(); tm.frustumCulled = false;
       const P = geo.attributes.position, Uv = geo.attributes.uv, idx = [], w = [], aL = new Float32Array(P.count * 2); { const cu = geo.parameters.path, c = V(0, 0, 0), q = V(0, 0, 0); for (let v = 0; v < P.count; v++) { const ring = Math.floor(v / Nvr), side0 = (v % Nvr) === sides ? 0 : (v % Nvr), t = ring / TS; cu.getPointAt(t, c); q.set(P.getX(v), P.getY(v), P.getZ(v)).sub(c); const rad = q.length() * TP(t * Lc) * (1 + 0.16 * (hash01(ring, side0) - 0.5)); q.setLength(Math.max(1e-5, rad)).add(c); P.setXYZ(v, q.x, q.y, q.z); const th = (side0 / sides) * TAU; aL[v * 2] = 0.65 * Math.sin(th); aL[v * 2 + 1] = 0.4 * t * Lc; if (Uv) Uv.setX(v, Uv.getX(v) * Lc / 0.6); } geo.setAttribute('aL', new THREE.BufferAttribute(aL, 2)); geo.computeVertexNormals(); } for (let v = 0; v < P.count; v++) { const ring = Math.floor(v / Nvr), d = ring / TS * Lc; if (d < LD) { idx.push(v); w.push(1 - ss(0, LD, d)); } } DEF.push({ P, base: Float32Array.from(P.array), idx, w }); }
-    for (let k = 1; k < 9; k++) { const q = cc.getPointAt(k / 9); glows.push(glow(braid, q.clone().add(V(0, 0.04, 0)), ['rgba(224,64,46,0.5)', 'rgba(31,120,216,0.5)', 'rgba(240,178,62,0.5)'][k % 3], 0.5)); }
+    for (let k = 1; k < 9; k++) { const q = cc.getPointAt(k / 9); if (q.z < R.Z1) continue; /* (26 Nov: no floating glow orbs round the v4 tree - only the house's stay) */ glows.push(glow(braid, q.clone().add(V(0, 0.04, 0)), ['rgba(224,64,46,0.5)', 'rgba(31,120,216,0.5)', 'rgba(240,178,62,0.5)'][k % 3], 0.5)); }
     // she can't walk through the roots
     HM.obs.push({ x: R.tx, z: R.tz, r: R.obsR }); /* (the roots, the knot and the fog's heart, wherever the tree drifts; the branches are above her head) */
-    HM.sk = { g, T, F, GR, grow, art, gs: -1, walls, glows, mats, braid, light: lt, glow0: glows.map((s) => s.material.opacity), fog, DEF, K0 }; return g; }
+    HM.sk = { g, T, F, art, walls, glows, mats, braid, light: lt, glow0: glows.map((s) => s.material.opacity), fog, DEF, K0 }; return g; }
   // near-wall culling for the Skill Tree room (as the house's): a wall the camera is at or beyond is cut away; the ceiling only while the camera is under it
   function skillRoomCull(cp, nw) { const K = HM.sk; if (!K) return; const R = SKR, W = K.walls, on = HM.mode === 'in'; K.g.visible = on; if (!on) return;
     const vis = { front: cp.z < R.Z1 - nw, back: cp.z > R.Z0 + nw, left: cp.x > R.X0 + nw, right: cp.x < R.X1 - nw };
@@ -14946,21 +14589,9 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
       for (const c of HM.room.children) { if (skip.has(c) || c.isLight || c.isSprite || c.userData.ia) continue; bb.setFromObject(c); if (c !== HM.doorHit && (bb.isEmpty() || bb.max.y < 0.14 || c === HM.table)) continue; let lit = false; c.traverse((q) => { if (q.isLight) lit = true; });
         if (lit) c.traverse((q) => { if (q.isMesh || q.isSprite) HM.cutList.push([q, q.visible]); }); else HM.cutList.push([c, c.visible]); } } /* (lanterns: only their meshes, so the light count never changes; the front door's tap box too, so a tap on the room's floor can't land on it) */
     for (const e of HM.cutList) { if (on) { e[1] = e[0].visible; e[0].visible = false; } else e[0].visible = e[1]; } }
-  const SK_SPIN = TAU / 75; // rad / s
-  // the bob + glow pulse (cheap: a handful of scalars per frame)
-  // the tree grows with spent skill points (t637u; t644u: only the branches - the trunk, roots and tether join are always full size): each branch with the
-  // points in its branch (Production / Tether Beasts have none yet, so stay small and dormant); more crystals open at the tips as a branch fills. Eased.
-  const SK_GROW = { tree0: 0.3, bush1: 1.12, push: 0.25, pushLead: 0.10, ease: 5 }, skEaseOut = (f) => 1 - (1 - f) * (1 - f);
-  function skGrowTarget() { const C = typeof Combat !== 'undefined' ? Combat : null, o = { tree: 0, br: {} }; if (!C) return o; const sv = typeof S !== 'undefined' ? S : null;
-    o.tree = clamp(C.pointsSpent(sv) / (C.LV_MAX || 300), 0, 1); for (const b of ['combat', 'production', 'beasts']) { const mx = C.branchMax ? C.branchMax(b) : 0; o.br[b] = mx ? clamp(C.branchSpent(b, sv) / mx, 0, 1) : 0; } return o; }
-  function skillGrowTick(K, t) { const g = skGrowTarget(), k = K.gs < 0 ? 1 : 1 - Math.exp(-Math.max(0, t - (K.gt || t)) * SK_GROW.ease); K.gt = t;
-    K.gs = 1; K.GR.scale.setScalar(1); /* (t644u, Dominic: the trunk - braided strands, roots and the tether join - is always full size; only the branches grow) */
-    const pts = {}; for (const b in K.grow) { const q = K.grow[b], f = g.br[b] || 0; q.s = q.s < 0 ? f : q.s + (f - q.s) * k; pts[b] = q.s; }
-    if (K.art && K.art.userData.setPoints) K.art.userData.setPoints(pts); }
-
-  function skillRoomTick() { const K = HM.sk; if (!K || !K.g.visible) return; const t = HM.t || 0; skillGrowTick(K, t); const R = SKR, dx = R.drift * (0.62 * Math.sin(t * 0.071 + 1.3) + 0.38 * Math.sin(t * 0.163 + 4.1)), dz = R.drift * (0.62 * Math.sin(t * 0.057 + 2.2) + 0.38 * Math.sin(t * 0.137 + 0.4)), dy = (1 + Math.sin(t * 1.25)) * 0.035; /* (bobs up from its rest height only, so the big tether start never dips into the floor) */
-    /* (t636u: a slow wandering drift, smooth sums of sines, <= SKR.drift from the centre) */ K.F.position.set(dx, 0.55 + dy, dz); K.F.rotation.y = (t * SK_SPIN) % TAU; /* (t634u: one full turn every 75 s, about the axis through the root knot, so the tether never tears) */
-    for (const D of K.DEF) { const A = D.P.array, B = D.base; for (let j = 0; j < D.idx.length; j++) { const v = D.idx[j] * 3, w = D.w[j]; A[v] = B[v] + dx * w; A[v + 1] = B[v + 1] + dy * w; A[v + 2] = B[v + 2] + dz * w; } D.P.needsUpdate = true; }
+  // the glow pulse (cheap: a handful of scalars per frame). (Dominic, 26 Nov: "Swap it in as a static tree") v4 is fixed art: the old per-point growth
+  // (skillGrowTick: branches scaled and crystals opened as points were spent) is gone; spending lives in Combat and the Skill Tree screen, as before
+  function skillRoomTick() { const K = HM.sk; if (!K || !K.g.visible) return; const t = HM.t || 0, dx = 0, dz = 0; /* (26 Nov: v4 is planted - no drift, bob or spin, so the tether's first metres no longer follow a moving knot; K.DEF stays unused) */
     for (const f of K.fog) { const u = (t * f.sp0 + f.ph) % 1, rr = 0.25 + f.far * Math.sqrt(u), a = f.a + u * 0.8; f.sp.position.set(dx * (1 - u) + Math.cos(a) * rr, lerp(0.95, 0.16, ss(0, 0.45, u)) + 0.05 * Math.sin(t * 0.4 + f.a), dz * (1 - u) + Math.sin(a) * rr);
       const sc = lerp(0.7, 2.6, Math.sqrt(u)); f.sp.scale.set(sc * 1.5, sc * 0.75, 1); f.sp.material.opacity = 0.55 * Math.sin(Math.PI * u) ** 0.8; f.sp.material.rotation = f.rot * t; }
     const pu = 0.6 + 0.15 * Math.sin(t * 2.1); for (const sp of K.glows) sp.material.opacity = pu; for (const m of K.braid.children) if (m.userData.base) m.material.color.copy(m.userData.base).multiplyScalar(0.8 + 0.2 * Math.sin(t * 2.1 + m.id)); }
@@ -15193,7 +14824,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     const t = new THREE.CanvasTexture(c); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, depthWrite: false, opacity: 0, fog: false })); s.renderOrder = 40; return s; }
   function iaAdd(par, key, o) { const I = Object.assign({ key, near: 2.1, sc: 1, open: () => {} }, o); I.label = iaLabel(o.text); I.label.position.copy(o.at); I.label.scale.set(1.4 * I.sc, 0.3 * I.sc, 1); par.add(I.label);
     const rr = o.ring.r, ring = new THREE.Mesh(new THREE.RingGeometry(rr * 0.78, rr, 48), new THREE.MeshBasicMaterial({ color: 0x9ff6ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); ring.rotation.x = -Math.PI / 2; ring.position.set(o.ring.x, o.ring.y || 0.012, o.ring.z); ring.renderOrder = 3; par.add(ring); I.ringM = ring;
-    const tap = () => iaGo(I); I.tap = tap; I.label.userData.tap = tap; if (o.obj) o.obj.traverse((m) => { m.userData.tap = tap; }); IA.list.push(I); return I; }
+    const tap = (h) => { I.hit = h && h.object ? h : null; return iaGo(I); }; I.tap = tap; /* (26 Nov: the hit rides along, so the Skill Tree knows which bushel was tapped) */ I.label.userData.tap = tap; if (o.obj) o.obj.traverse((m) => { m.userData.tap = tap; }); IA.list.push(I); return I; }
   function iaScene() { return st.tree ? 'tree' : st.home && HM.mode === 'in' ? 'home' : null; }
   function iaGo(I) { const G = st.gnd; st.lastInput = clk; if (!G || I.scene !== iaScene()) return I.open(), true; const d = Math.hypot(G.x - I.spot.x, G.z - I.spot.z);
     const arrive = () => { st.pg = null; if (I.face !== undefined) G.face = I.face; IA.pending = null; IA.opened = I.key; I.open(); };
@@ -15209,7 +14840,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     iaAdd(R, 'anvil', sm({ text: 'Anvil', obj: HM.anvil, at: V(SMITH.anvil.x, 1.25, SMITH.anvil.z), spot: { x: SMITH.anvil.x + 0.05, z: SMITH.anvil.z + ANVIL_SPOT }, face: Math.PI, ring: { x: SMITH.anvil.x + 0.05, z: SMITH.anvil.z, r: 0.48 }, open: () => (typeof Craft !== 'undefined' ? Craft.open('anvil') : null) }));
     iaAdd(R, 'orb', sm({ text: 'Tether Orb', obj: HM.table, at: V(HMP.table.x, 1.95, HMP.table.z), spot: { x: HMP.table.x, z: HMP.table.z + 0.78 }, face: Math.PI, ring: { x: HMP.table.x, z: HMP.table.z, r: 0.62 }, open: () => tetherOrb() }));
     // t626u: the Skill Tree - tap the tree (or its label) to walk up to it and open the Skill Tree screen
-    if (HM.sk) iaAdd(HM.sk.g, 'stree', sm({ text: 'Skill Tree', obj: HM.sk.T, at: V(SKR.tx, 4.1, SKR.tz), sc: 1.3, near: 2.4, spot: { x: SKR.tx, z: SKR.tz + SKR.obsR + 0.65 }, face: Math.PI, noRing: true, ring: { x: SKR.tx, y: 0.02, z: SKR.tz, r: 0.5 }, open: () => (typeof SkillTree !== 'undefined' ? SkillTree.open() : null) }));
+    if (HM.sk) iaAdd(HM.sk.g, 'stree', sm({ text: 'Skill Tree', obj: HM.sk.T, at: V(SKR.tx, 4.1, SKR.tz), sc: 1.3, near: 2.4, spot: { x: SKR.tx, z: SKR.tz + SKR.obsR + 0.65 }, face: Math.PI, noRing: true, ring: { x: SKR.tx, y: 0.02, z: SKR.tz, r: 0.5 }, open: () => { const B = skBushelHit(IA.list.find((x) => x.key === 'stree').hit); return typeof SkillTree !== 'undefined' ? SkillTree.open(B && B.branch === 'combat' ? 'combat' : undefined) : null; } })); /* (26 Nov: a ruby bushel opens Combat; sapphire / gold - locked branches - and the trunk open the tree overview) */
     const dh = new THREE.Mesh(new THREE.BoxGeometry(HM.dw, HM.dh, 0.12), new THREE.MeshBasicMaterial({ visible: false })); dh.position.set(HM.dx, HM.dh / 2, HM.FZ - 0.08); R.add(dh); HM.doorHit = dh;
     iaAdd(R, 'door', sm({ text: 'Go outside', /* (t644u: no pop-up label - tap the door) */ obj: dh, at: V(HM.dx, HM.dh + 0.35, HM.FZ - 0.15), spot: { x: HM.dx, z: HM.FZ - 0.75 }, face: 0, ring: { x: HM.dx, z: HM.FZ - 0.3, r: 0.45 }, open: () => goOutside() })); }
   function iaTree() { if (IA.tree) return; IA.tree = true; const g = TR.g, sc = 2.6, tr = (o) => Object.assign(o, { scene: 'tree', near: 5.5, sc: 2.8 });
@@ -15271,7 +14902,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     openModal(`<div class="cxp orbp"><div class="row between"><h2>🌐 Travel orb</h2><span class="tag">choose a destination</span></div><div class="dim">The orb carries you anywhere a Ledge Tether has been tied.</div><div class="card cxl">${ORB_DEST.map(([k, e, n, s]) => `<div class="cxr"><span class="cxi" style="--c:#5fd6e8">${e}</span><span class="cxn">${n}<small>${s}</small></span><button class="btn sm ${k === here ? 'ghost' : 'alt'}" data-orb="${k}" ${k === here ? 'disabled' : ''}>${k === here ? 'You are here' : 'Travel'}</button></div>`).join('')}</div><button class="btn ghost" data-orb="close">Close</button></div>`, 'orb');
     document.querySelectorAll('#modalBody [data-orb]').forEach((b) => b.addEventListener('click', () => { const k = b.dataset.orb; if (typeof closeModalQuiet === 'function') closeModalQuiet(); if (k === 'close') return; HM.travel = k; if (typeof setTab === 'function') setTab(k === 'camp' ? 'ledge' : k); })); return true; }
   function homeTap(cx, cy) { cam.updateMatrixWorld(); HM.g.updateMatrixWorld(true); const r = canvas.getBoundingClientRect(), nd = new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); _ray.setFromCamera(nd, cam); const hits = _ray.intersectObject(HM.g, true);
-    for (const h of hits) { let vis = true; for (let q = h.object; q && q !== HM.g; q = q.parent) if (!q.visible) vis = false; if (!vis) continue; let o = h.object; while (o && o !== HM.g) { if (o.userData.tap) return o.userData.tap(), true; if (HM.mode === 'door' && (o.userData.port || o.userData.handle || o === HM.door)) { enterLedge(); return true; } /* the front door just goes in: tether options are in the Tether Orb */ o = o.parent; } let inC = false; for (let q = h.object; q; q = q.parent) if (q === HM.cords) inC = true; if (h.object.visible && !inC) break; }
+    for (const h of hits) { let vis = true; for (let q = h.object; q && q !== HM.g; q = q.parent) if (!q.visible) vis = false; if (!vis) continue; let o = h.object; while (o && o !== HM.g) { if (o.userData.tap) return o.userData.tap(h), true; if (HM.mode === 'door' && (o.userData.port || o.userData.handle || o === HM.door)) { enterLedge(); return true; } /* the front door just goes in: tether options are in the Tether Orb */ o = o.parent; } let inC = false; for (let q = h.object; q; q = q.parent) if (q === HM.cords) inC = true; if (h.object.visible && !inC) break; }
     const o = _ray.ray.origin, d = _ray.ray.direction; if (HM.mode === 'door' && HM.menu) doorMenu(false); if (d.y < -1e-4 && st.gnd && !HM.anim) { const t = -o.y / d.y, q = o.clone().addScaledVector(d, t), B = st.gnd.bnd; navTo(st.gnd, clamp(q.x, B.X0, B.X1), clamp(q.z, B.Z0, B.Z1), () => { st.pg = null; }); pgMark({ x: st.gnd.goal.x, z: st.gnd.goal.z }); st.pg = { home: true }; return true; } return false; }
   function homeScreen(p) { cam.updateMatrixWorld(); const q = p.clone().project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (q.x + 1) / 2 * r.width, y: r.top + (1 - q.y) / 2 * r.height }; }
   /* ---------- inside the Lumen Tree (approved concept: lumen_tree/APPROVED_lumen_tree_inside.jpg): the hollow heart of the colossal tree, the Hollow's

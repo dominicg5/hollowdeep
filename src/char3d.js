@@ -2533,7 +2533,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
   // frame: door in the front wall plane z = HM.FZ, interior x in [-HM.W/2, HM.W/2], z in [HM.BZ, HM.FZ]; exterior ledge shelf in front (z > HM.FZ)
   /* t626u (Dominic): the Skill Tree room behind the Ledge house - the old unopened back door is gone; an open arched walkway (AX centre, AW wide, AH high)
      runs through the back wall and a short corridor into a much larger room (X0..X1, Z0..Z1, RH high) where the lumenite Skill Tree hovers on its dais (tx, tz) */
-  const SKR = { AX: -2.72, AW: 1.0, AH: 2.05, CZ0: -2.94, CZ1: -3.9, X0: -8.0, X1: 3.2, Z0: -12.9, Z1: -4.04, RH: 5.0, tx: -2.5, tz: -8.7, obsR: 0.9, drift: 0.4, yK: -0.45 }; /* (t636u: no dais - the tree hovers over the room's own stone floor; obsR covers its roots + drift; yK = the root knot under the trunk, tree-local) */
+  const SKR = { AX: -2.72, AW: 1.0, AH: 2.05, CZ0: -2.94, CZ1: -3.9, X0: -8.0, X1: 3.2, Z0: -12.9, Z1: -4.04, RH: 5.0, tx: -2.5, tz: -8.7, obsR: 0.9, drift: 0.4, yK: -0.45 }; /* (t636u: no dais; 26 Nov: Art's v4 tree stands planted on the room's stone floor at (tx, tz) - drift / yK are left from the hovering code tree and unused; obsR covers v4's roots, 0.8-0.9 m out at the floor; the tether's anchors are in SKILL_TREE.tether) */
   const HM = { W: 7.2, BZ: -2.8, FZ: 2.8, H: 2.6, dw: 0.92, dh: 1.55, dx: -1.5, pc: 0.86, ring: 0.3, mode: null, open: 0, ports: null, sel: 'c', g: null, ext: null, room: null, obs: [] };
   const PORTS = ['c', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
   function homeState() { if (typeof S === 'undefined' || !S) return { ports: {}, open: 0 }; if (!S.home) S.home = { ports: {}, open: 0, tv: 2 }; return S.home; } // open: how many of the 8 small ports are unlocked
@@ -2953,6 +2953,22 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
      leaves a lumenite clasp under the tree, runs out along the floor, through the walkway, across the house and up the table leg to the Tether Orb.
      Walls and floor are solid to her (homeWalker's inb + an obstacle round the tree's roots); tapping the tree walks her to it and opens the Skill Tree screen.
      iPhone-light: unlit / toon materials, glow sprites, one soft point light. ---------- */
+  // (26 Nov) Art's Skill Tree v4: loaded through the creature loader (sRGB base colour, chalk toon + ink, no tone mapping on the sRGB Character view, as the
+  // playground's monsters), still in its rest pose. Each triangle's bushel comes from its UV cell (SKILL_TREE.cells); the bushels fill HM.skBush / skCrown
+  function skTreeLoad(art) { if (typeof Creatures === 'undefined') return; const D = SKILL_TREE.row; if (!Creatures.get(D.id)) Creatures.def(D.id, D);
+    Creatures.load(D.id).then(() => { const I = Creatures.make(D.id, { screenEnc: CHAR_STAGE.out === 'sRGB' }); if (!I) return; art.add(I.root); art.userData.inst = I; art.updateMatrixWorld(true);
+      let sm = null; I.root.traverse((o) => { if (o.isSkinnedMesh && !o.userData.isInk && !sm) sm = o; o.castShadow = o.isMesh && !o.userData.isInk; }); if (!sm) return; sm.skeleton.update();
+      const C = SKILL_TREE.cells, BU = SKILL_TREE.bushels, Pz = sm.geometry.attributes.position, UV = sm.geometry.attributes.uv, ix = sm.geometry.index.array, tri = new Uint8Array(ix.length / 3).fill(255), w = V(0, 0, 0), toArt = art.matrixWorld.clone().invert();
+      const acc = BU.map(() => ({ n: 0, c: V(0, 0, 0), b: new THREE.Box3() }));
+      for (let t = 0; t < tri.length; t++) { let u = 0, v = 0; for (let q = 0; q < 3; q++) { u += UV.getX(ix[t * 3 + q]); v += UV.getY(ix[t * 3 + q]); } const x = u / 3 * C.W - C.x0, y = v / 3 * C.H - C.y0, st2 = C.cell + C.pad, c = Math.floor(x / st2), r = Math.floor(y / st2);
+        if (x < 0 || y < 0 || c > 2 || r > 2) continue; const k = r * 3 + c; tri[t] = k; const A = acc[k]; A.n++; for (let q = 0; q < 3; q++) { sm.getVertexPosition(ix[t * 3 + q], w).applyMatrix4(sm.matrixWorld).applyMatrix4(toArt); A.c.add(w); A.b.expandByPoint(w); } }
+      art.userData.tri = tri; art.userData.mesh = sm; const n = { combat: 0, production: 0, beasts: 0 };
+      BU.forEach(([id, col, where], k) => { const A = acc[k], br = SKILL_TREE.branch[col]; if (!A.n || !br) return; const B = { id, colour: col, where, branch: br, tris: A.n, c: A.c.multiplyScalar(1 / (3 * A.n)), r: A.b.getSize(V(0, 0, 0)).length() / 2 };
+        HM.skBush[br].push(B); HM.skCrown[br].add(B.c); n[br]++; });
+      for (const k in n) if (n[k]) HM.skCrown[k].multiplyScalar(1 / n[k]); art.userData.nBushels = BU.filter((_, k) => acc[k].n).length; }).catch(() => {}); }
+  // the bushel a tap landed on (the tree's own mesh, by triangle), or null
+  function skBushelHit(h) { const K = HM.sk, a = K && K.art; if (!h || !a || !a.userData.tri || h.object !== a.userData.mesh || h.faceIndex == null) return null; const k = a.userData.tri[h.faceIndex]; if (k === 255) return null;
+    const id = SKILL_TREE.bushels[k][0]; for (const b in HM.skBush) { const B = HM.skBush[b].find((q) => q.id === id); if (B) return B; } return null; }
   function makeSkillRoom() { const g = new THREE.Group(); g.name = 'skillRoom'; const R = SKR, r = prng(626), H = R.RH, W = R.X1 - R.X0, D = R.Z1 - R.Z0, xc = (R.X0 + R.X1) / 2, zc = (R.Z0 + R.Z1) / 2;
     const stM = (seed, rx, ry, base) => { const t = stoneTex(seed, base, 30); t.repeat.set(rx, ry); return toon(0xffffff, t); }, beam = toon(0x5a3820), beamD = toon(0x462b18), walls = {};
     const wallM = stM(91, W / 2.2, H / 2.2, [104, 100, 96]), sideM = stM(92, D / 2.2, H / 2.2, [104, 100, 96]);
@@ -2976,39 +2992,39 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     { const add = (k, m) => { (walls[k + 'X'] = walls[k + 'X'] || []).push(m); }; for (let x = R.X0 + 1.4; x < R.X1 - 0.6; x += 2.4) { if (Math.abs(x - R.AX) > 1.0) add('front', part(g, rbox(0.24, H, 0.2, 0.03), beam, [x, H / 2, R.Z1 - 0.1])); add('back', part(g, rbox(0.24, H, 0.2, 0.03), beam, [x, H / 2, R.Z0 + 0.1])); }
       for (let z = R.Z1 - 1.5; z > R.Z0 + 0.6; z -= 2.4) { add('left', part(g, rbox(0.2, H, 0.24, 0.03), beam, [R.X0 + 0.1, H / 2, z])); add('right', part(g, rbox(0.2, H, 0.24, 0.03), beam, [R.X1 - 0.1, H / 2, z])); }
       add('back', part(g, rbox(W, 0.2, 0.2, 0.03), beamD, [xc, H - 0.1, R.Z0 + 0.1])); add('left', part(g, rbox(0.2, 0.2, D, 0.03), beamD, [R.X0 + 0.1, H - 0.1, zc])); add('right', part(g, rbox(0.2, 0.2, D, 0.03), beamD, [R.X1 - 0.1, H - 0.1, zc])); }
-    // (t635u / t636u: no stone dais and no glow ring - the tree hovers over the room's flagstones in a pool of cold fog)
+    // (t635u / t636u: no stone dais and no glow ring; 26 Nov: the v4 tree stands on the room's flagstones in a pool of cold fog)
     const T = new THREE.Group(); T.position.set(R.tx, 0, R.tz); g.add(T);
-    // (crown_v3, Dominic t486s1972: "Send the fuller tree to dev to drop into the game"; t488u: stagger branches 360°)
-    // Art's createCrystalTree is the 9 crowns, braided limbs and trunk. Our claw roots are built into that same wood mesh
-    // (includeRoots: 'claws') because they hug the base better than Art's stand-in flares. Our tether, fog and room stay.
-    const F = new THREE.Group(); F.position.y = 0.55; T.add(F);
-    const GR = new THREE.Group(); GR.position.y = R.yK; F.add(GR); const GT = new THREE.Group(); GT.position.y = -R.yK; GR.add(GT);
+    // (26 Nov) Art's Lumenite Skill Tree v4 GLB (SKILL_TREE, data.js; loaded by skTreeLoad) stands here in place of the code-built crown_v3 crystal tree.
+    // Our tether, fog and room stay.
+    const F = new THREE.Group(); T.add(F); /* (Dominic, 26 Nov: Art's Skill Tree v4 is planted on the floor - no hover, bob, drift or spin; F stays as the tree's still frame) */
     const crysTx = HM.skTx || (HM.skTx = { c: cv(128, 128, (x, w, h) => { const q = prng(628); x.fillStyle = '#bfefff'; x.fillRect(0, 0, w, h); for (let i = 0; i < 70; i++) { x.fillStyle = q() < 0.5 ? `rgba(255,255,255,${0.15 + q() * 0.3})` : `rgba(120,200,235,${0.1 + q() * 0.25})`; x.fillRect(q() * w, q() * h, 2 + q() * 5, 10 + q() * 40); } }),
       n: cv(4, 4, (x, w, h) => { x.fillStyle = 'rgb(128,128,255)'; x.fillRect(0, 0, w, h); }) });
     crysTx.c.wrapS = crysTx.c.wrapT = THREE.RepeatWrapping;
     const crys = (tint, em) => { const M = new THREE.Matrix3().set(tint[0], 0, 0, 0, tint[1], 0, 0, 0, tint[2]); return swCrys(crysTx, { M, off: V(0, 0, 0), em: new THREE.Color(em) }); };
     const crysTube = (tint, em, op) => { const m = crys(tint, em); m.flatShading = true; m.specular = new THREE.Color(0x262c34); m.shininess = 26; m.opacity = op; m.userData.U.uEm.value.multiplyScalar(1.55); m.userData.U.uGl.value = 1.65; m.customProgramCacheKey = () => 'swordCrysTube'; return m; };
     const glow = (par, p, col, sz) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: radial(col, col.replace(/[\d.]+\)$/, '0)')), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })); sp.position.copy(p); sp.scale.setScalar(sz); sp.renderOrder = 4; par.add(sp); return sp; };
-    const YE = R.yK, hash01 = (ring, side) => { let n = (Math.imul(ring, 374761393) + Math.imul(side, 668265263)) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n >>> 0) % 100000) / 100000; };
+    const hash01 = (ring, side) => { let n = (Math.imul(ring, 374761393) + Math.imul(side, 668265263)) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n >>> 0) % 100000) / 100000; };
     const BR = [
       ['combat', 0xd42a22, 0xb02010, [1.3, 0.30, 0.20], 'rgba(212,42,34,0.8)'],
       ['production', 0x2f86f0, 0x0c3c9c, [0.20, 0.84, 1.25], 'rgba(47,134,240,0.8)'],
       ['beasts', 0xf3b52a, 0xa86400, [1.3, 0.78, 0.26], 'rgba(243,181,42,0.8)']];
-    const glows = [], mats = [], grow = {}; HM.skBranch = {}; HM.skCrown = {}; HM.skBush = {}; const MAT = {};
+    const glows = [], mats = []; HM.skBranch = {}; HM.skCrown = {}; HM.skBush = {}; const MAT = {};
     for (const [k, col, em, tint, rgba] of BR) { const mTether = crysTube(tint, em, 0.92); MAT[k + 'Tether'] = mTether; mats.push([mTether, new THREE.Color(col)]); }
-    const art = CrystalCrown.createCrystalTree({ includeTrunk: true, includeRoots: 'claws', halo: true, glow: true, points: { combat: 0, production: 0, beasts: 0 } });
-    art.name = 'crystalTree'; GT.add(art); CrystalCrown.setBloom(art, true);
-    for (const k of ['combat', 'production', 'beasts']) { const set = art.userData.sets[k], C = V(...art.userData.layout[k].C);
-      HM.skBush[k] = set; HM.skBranch[k] = set; HM.skCrown[k] = C; grow[k] = { s: -1, set, C: C.clone() }; }
-    glow(F, V(0, YE - 0.05, 0), 'rgba(255,240,220,0.45)', 0.75); // soft glow at the trunk / tether seam
-    HM.skRootY = YE;
+    /* (Dominic, 26 Nov: "replace the skill tree with that and remove the floating features") Art's v4 GLB (SKILL_TREE, data.js) in place of Art's code-built
+       crystal tree: the 9 crystal crowns with their halo sprites and glow points, the braided limbs, trunk and claw roots, and the soft glow at the trunk /
+       tether seam are gone. The branches map to v4's bushels (ruby = Combat, sapphire = Production, gold = Tether Beasts): HM.skBush / skBranch[k] = that
+       colour's bushels { id, c, r, tris }, HM.skCrown[k] = their mean centre (tree-local), and a tap on a ruby bushel opens the Combat branch. Static (Dominic: "Swap it in as a static tree"): its Idle clip doesn't move (0 cm), so no mixer */
+    const art = new THREE.Group(); art.name = 'skillTreeV4'; art.scale.setScalar(SKILL_TREE.scale); F.add(art);
+    for (const k of ['combat', 'production', 'beasts']) { HM.skBush[k] = []; HM.skBranch[k] = HM.skBush[k]; HM.skCrown[k] = V(0, 0, 0); }
+    skTreeLoad(art);
+    HM.skRootY = SKILL_TREE.tether.knot[1];
     // cold fog (t635u): dense, low and rolling - sprites rise off the trunk, sink and roll out along the floor, pooling round the base (cheap: ~18 sprites, one texture)
     const fogTx = cv(128, 128, (x, w, h) => { const q = prng(635); for (let i = 0; i < 26; i++) { const cx = 64 + (q() - 0.5) * 60, cy = 64 + (q() - 0.5) * 36, rr = 18 + q() * 30, gr = x.createRadialGradient(cx, cy, 0, cx, cy, rr); gr.addColorStop(0, 'rgba(214,232,242,0.22)'); gr.addColorStop(1, 'rgba(214,232,242,0)'); x.fillStyle = gr; x.fillRect(0, 0, w, h); } });
     fogTx.wrapS = fogTx.wrapT = THREE.ClampToEdgeWrapping; const fog = [];
     for (let i = 0; i < 18; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: fogTx, color: 0xd6e8f2, transparent: true, depthWrite: false, opacity: 0, fog: false })); sp.renderOrder = 3; sp.raycast = () => {}; T.add(sp); fog.push({ sp, a: i / 18 * TAU + r() * 0.3, ph: r(), sp0: 0.028 + r() * 0.02, far: 1.4 + r() * 1.3, rot: (r() - 0.5) * 0.4 }); }
     const lt = new THREE.PointLight(0xd8f4ff, 0.8, 10, 1.4); lt.position.set(0, 3.6, 1.6); T.add(lt); (HM.inLights = HM.inLights || []).push(lt);
     // the braided tether: three crystal strands from under the tree to the Tether Orb; starts as wide as the trunk and feathers down
-    const t = HMP.table, ax = R.AX + 0.36, K0 = V(R.tx, 0.55 + R.yK, R.tz), ctr = [K0.clone(), V(R.tx, 0.14, R.tz + 0.45), V(R.tx + 0.04, 0.1, R.tz + 1.0), V(R.tx + 0.1, 0.07, R.tz + 1.7), V(ax - 0.1, 0.07, R.Z1 - 1.2), V(ax, 0.07, R.Z1 - 0.2), V(ax, 0.07, HM.BZ + 0.05),
+    const t = HMP.table, ax = R.AX + 0.36, TA = SKILL_TREE.tether, K0 = V(R.tx + TA.knot[0], TA.knot[1], R.tz + TA.knot[2]), ctr = [K0.clone(), ...TA.lead.map((q) => V(R.tx + q[0], q[1], R.tz + q[2])), V(R.tx + 0.04, 0.07, R.tz + 1.0), V(R.tx + 0.1, 0.07, R.tz + 1.7), V(ax - 0.1, 0.07, R.Z1 - 1.2), V(ax, 0.07, R.Z1 - 0.2), V(ax, 0.07, HM.BZ + 0.05),
       V(ax - 0.1, 0.07, -2.1), V(-2.55, 0.07, -1.55), V(-1.95, 0.07, -1.05), V(-1.0, 0.07, -0.98), V(-0.2, 0.07, -0.78), V(t.x + 0.2, 0.07, t.z - 0.62), V(t.x + 0.34, 0.07, t.z - 0.34), V(t.x + 0.28, 0.3, t.z - 0.28), V(t.x + 0.39, 0.6, t.z - 0.39), V(t.x + 0.4, 0.71, t.z - 0.4), V(t.x + 0.24, 0.7, t.z - 0.24), V(t.x + 0.16, 0.77, t.z - 0.16), V(t.x + 0.12, 0.84, t.z - 0.12)]; /* (t628u: up the back-right leg, out round the tabletop's rim and in to the cradle, like the main Ledge Tether on the left legs - never through the table) */
     const cc = new THREE.CatmullRomCurve3(ctr, false, 'catmullrom', 0.25), Lc = cc.getLength(), M = Math.ceil(Lc * 24), cp = cc.getSpacedPoints(M), rb = 0.042, rs = 0.032, TP = (d) => lerp(2.6, 1, ss(0.35, 3.0, d)); /* (Dominic / Art fix_v1: starts as wide as the trunk and feathers to the smaller braid by ~3 m) */
     const strands = [[], [], []], trunkPh = [0, 2 * TAU / 3, TAU / 3]; let S0f = V(1, 0, 0), phAcc = 0; for (let k = 0; k <= M; k++) { const T0 = cp[Math.min(M, k + 1)].clone().sub(cp[Math.max(0, k - 1)]).normalize();
@@ -3020,10 +3036,10 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     const BK = ['combat', 'production', 'beasts'];
     for (let i = 0; i < 3; i++) { const m = MAT[BK[i] + 'Tether']; const TS = M * 2, sides = 7, Nvr = sides + 1, geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(strands[i]), TS, rs, sides, false), tm = part(braid, geo, m, [0, 0, 0], null, null, { ink: false, shadow: false }); tm.userData.base = mats[i][1].clone(); tm.frustumCulled = false;
       const P = geo.attributes.position, Uv = geo.attributes.uv, idx = [], w = [], aL = new Float32Array(P.count * 2); { const cu = geo.parameters.path, c = V(0, 0, 0), q = V(0, 0, 0); for (let v = 0; v < P.count; v++) { const ring = Math.floor(v / Nvr), side0 = (v % Nvr) === sides ? 0 : (v % Nvr), t = ring / TS; cu.getPointAt(t, c); q.set(P.getX(v), P.getY(v), P.getZ(v)).sub(c); const rad = q.length() * TP(t * Lc) * (1 + 0.16 * (hash01(ring, side0) - 0.5)); q.setLength(Math.max(1e-5, rad)).add(c); P.setXYZ(v, q.x, q.y, q.z); const th = (side0 / sides) * TAU; aL[v * 2] = 0.65 * Math.sin(th); aL[v * 2 + 1] = 0.4 * t * Lc; if (Uv) Uv.setX(v, Uv.getX(v) * Lc / 0.6); } geo.setAttribute('aL', new THREE.BufferAttribute(aL, 2)); geo.computeVertexNormals(); } for (let v = 0; v < P.count; v++) { const ring = Math.floor(v / Nvr), d = ring / TS * Lc; if (d < LD) { idx.push(v); w.push(1 - ss(0, LD, d)); } } DEF.push({ P, base: Float32Array.from(P.array), idx, w }); }
-    for (let k = 1; k < 9; k++) { const q = cc.getPointAt(k / 9); glows.push(glow(braid, q.clone().add(V(0, 0.04, 0)), ['rgba(224,64,46,0.5)', 'rgba(31,120,216,0.5)', 'rgba(240,178,62,0.5)'][k % 3], 0.5)); }
+    for (let k = 1; k < 9; k++) { const q = cc.getPointAt(k / 9); if (q.z < R.Z1) continue; /* (26 Nov: no floating glow orbs round the v4 tree - only the house's stay) */ glows.push(glow(braid, q.clone().add(V(0, 0.04, 0)), ['rgba(224,64,46,0.5)', 'rgba(31,120,216,0.5)', 'rgba(240,178,62,0.5)'][k % 3], 0.5)); }
     // she can't walk through the roots
     HM.obs.push({ x: R.tx, z: R.tz, r: R.obsR }); /* (the roots, the knot and the fog's heart, wherever the tree drifts; the branches are above her head) */
-    HM.sk = { g, T, F, GR, grow, art, gs: -1, walls, glows, mats, braid, light: lt, glow0: glows.map((s) => s.material.opacity), fog, DEF, K0 }; return g; }
+    HM.sk = { g, T, F, art, walls, glows, mats, braid, light: lt, glow0: glows.map((s) => s.material.opacity), fog, DEF, K0 }; return g; }
   // near-wall culling for the Skill Tree room (as the house's): a wall the camera is at or beyond is cut away; the ceiling only while the camera is under it
   function skillRoomCull(cp, nw) { const K = HM.sk; if (!K) return; const R = SKR, W = K.walls, on = HM.mode === 'in'; K.g.visible = on; if (!on) return;
     const vis = { front: cp.z < R.Z1 - nw, back: cp.z > R.Z0 + nw, left: cp.x > R.X0 + nw, right: cp.x < R.X1 - nw };
@@ -3035,21 +3051,9 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
       for (const c of HM.room.children) { if (skip.has(c) || c.isLight || c.isSprite || c.userData.ia) continue; bb.setFromObject(c); if (c !== HM.doorHit && (bb.isEmpty() || bb.max.y < 0.14 || c === HM.table)) continue; let lit = false; c.traverse((q) => { if (q.isLight) lit = true; });
         if (lit) c.traverse((q) => { if (q.isMesh || q.isSprite) HM.cutList.push([q, q.visible]); }); else HM.cutList.push([c, c.visible]); } } /* (lanterns: only their meshes, so the light count never changes; the front door's tap box too, so a tap on the room's floor can't land on it) */
     for (const e of HM.cutList) { if (on) { e[1] = e[0].visible; e[0].visible = false; } else e[0].visible = e[1]; } }
-  const SK_SPIN = TAU / 75; // rad / s
-  // the bob + glow pulse (cheap: a handful of scalars per frame)
-  // the tree grows with spent skill points (t637u; t644u: only the branches - the trunk, roots and tether join are always full size): each branch with the
-  // points in its branch (Production / Tether Beasts have none yet, so stay small and dormant); more crystals open at the tips as a branch fills. Eased.
-  const SK_GROW = { tree0: 0.3, bush1: 1.12, push: 0.25, pushLead: 0.10, ease: 5 }, skEaseOut = (f) => 1 - (1 - f) * (1 - f);
-  function skGrowTarget() { const C = typeof Combat !== 'undefined' ? Combat : null, o = { tree: 0, br: {} }; if (!C) return o; const sv = typeof S !== 'undefined' ? S : null;
-    o.tree = clamp(C.pointsSpent(sv) / (C.LV_MAX || 300), 0, 1); for (const b of ['combat', 'production', 'beasts']) { const mx = C.branchMax ? C.branchMax(b) : 0; o.br[b] = mx ? clamp(C.branchSpent(b, sv) / mx, 0, 1) : 0; } return o; }
-  function skillGrowTick(K, t) { const g = skGrowTarget(), k = K.gs < 0 ? 1 : 1 - Math.exp(-Math.max(0, t - (K.gt || t)) * SK_GROW.ease); K.gt = t;
-    K.gs = 1; K.GR.scale.setScalar(1); /* (t644u, Dominic: the trunk - braided strands, roots and the tether join - is always full size; only the branches grow) */
-    const pts = {}; for (const b in K.grow) { const q = K.grow[b], f = g.br[b] || 0; q.s = q.s < 0 ? f : q.s + (f - q.s) * k; pts[b] = q.s; }
-    if (K.art && K.art.userData.setPoints) K.art.userData.setPoints(pts); }
-
-  function skillRoomTick() { const K = HM.sk; if (!K || !K.g.visible) return; const t = HM.t || 0; skillGrowTick(K, t); const R = SKR, dx = R.drift * (0.62 * Math.sin(t * 0.071 + 1.3) + 0.38 * Math.sin(t * 0.163 + 4.1)), dz = R.drift * (0.62 * Math.sin(t * 0.057 + 2.2) + 0.38 * Math.sin(t * 0.137 + 0.4)), dy = (1 + Math.sin(t * 1.25)) * 0.035; /* (bobs up from its rest height only, so the big tether start never dips into the floor) */
-    /* (t636u: a slow wandering drift, smooth sums of sines, <= SKR.drift from the centre) */ K.F.position.set(dx, 0.55 + dy, dz); K.F.rotation.y = (t * SK_SPIN) % TAU; /* (t634u: one full turn every 75 s, about the axis through the root knot, so the tether never tears) */
-    for (const D of K.DEF) { const A = D.P.array, B = D.base; for (let j = 0; j < D.idx.length; j++) { const v = D.idx[j] * 3, w = D.w[j]; A[v] = B[v] + dx * w; A[v + 1] = B[v + 1] + dy * w; A[v + 2] = B[v + 2] + dz * w; } D.P.needsUpdate = true; }
+  // the glow pulse (cheap: a handful of scalars per frame). (Dominic, 26 Nov: "Swap it in as a static tree") v4 is fixed art: the old per-point growth
+  // (skillGrowTick: branches scaled and crystals opened as points were spent) is gone; spending lives in Combat and the Skill Tree screen, as before
+  function skillRoomTick() { const K = HM.sk; if (!K || !K.g.visible) return; const t = HM.t || 0, dx = 0, dz = 0; /* (26 Nov: v4 is planted - no drift, bob or spin, so the tether's first metres no longer follow a moving knot; K.DEF stays unused) */
     for (const f of K.fog) { const u = (t * f.sp0 + f.ph) % 1, rr = 0.25 + f.far * Math.sqrt(u), a = f.a + u * 0.8; f.sp.position.set(dx * (1 - u) + Math.cos(a) * rr, lerp(0.95, 0.16, ss(0, 0.45, u)) + 0.05 * Math.sin(t * 0.4 + f.a), dz * (1 - u) + Math.sin(a) * rr);
       const sc = lerp(0.7, 2.6, Math.sqrt(u)); f.sp.scale.set(sc * 1.5, sc * 0.75, 1); f.sp.material.opacity = 0.55 * Math.sin(Math.PI * u) ** 0.8; f.sp.material.rotation = f.rot * t; }
     const pu = 0.6 + 0.15 * Math.sin(t * 2.1); for (const sp of K.glows) sp.material.opacity = pu; for (const m of K.braid.children) if (m.userData.base) m.material.color.copy(m.userData.base).multiplyScalar(0.8 + 0.2 * Math.sin(t * 2.1 + m.id)); }
@@ -3282,7 +3286,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     const t = new THREE.CanvasTexture(c); const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false, depthWrite: false, opacity: 0, fog: false })); s.renderOrder = 40; return s; }
   function iaAdd(par, key, o) { const I = Object.assign({ key, near: 2.1, sc: 1, open: () => {} }, o); I.label = iaLabel(o.text); I.label.position.copy(o.at); I.label.scale.set(1.4 * I.sc, 0.3 * I.sc, 1); par.add(I.label);
     const rr = o.ring.r, ring = new THREE.Mesh(new THREE.RingGeometry(rr * 0.78, rr, 48), new THREE.MeshBasicMaterial({ color: 0x9ff6ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); ring.rotation.x = -Math.PI / 2; ring.position.set(o.ring.x, o.ring.y || 0.012, o.ring.z); ring.renderOrder = 3; par.add(ring); I.ringM = ring;
-    const tap = () => iaGo(I); I.tap = tap; I.label.userData.tap = tap; if (o.obj) o.obj.traverse((m) => { m.userData.tap = tap; }); IA.list.push(I); return I; }
+    const tap = (h) => { I.hit = h && h.object ? h : null; return iaGo(I); }; I.tap = tap; /* (26 Nov: the hit rides along, so the Skill Tree knows which bushel was tapped) */ I.label.userData.tap = tap; if (o.obj) o.obj.traverse((m) => { m.userData.tap = tap; }); IA.list.push(I); return I; }
   function iaScene() { return st.tree ? 'tree' : st.home && HM.mode === 'in' ? 'home' : null; }
   function iaGo(I) { const G = st.gnd; st.lastInput = clk; if (!G || I.scene !== iaScene()) return I.open(), true; const d = Math.hypot(G.x - I.spot.x, G.z - I.spot.z);
     const arrive = () => { st.pg = null; if (I.face !== undefined) G.face = I.face; IA.pending = null; IA.opened = I.key; I.open(); };
@@ -3298,7 +3302,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     iaAdd(R, 'anvil', sm({ text: 'Anvil', obj: HM.anvil, at: V(SMITH.anvil.x, 1.25, SMITH.anvil.z), spot: { x: SMITH.anvil.x + 0.05, z: SMITH.anvil.z + ANVIL_SPOT }, face: Math.PI, ring: { x: SMITH.anvil.x + 0.05, z: SMITH.anvil.z, r: 0.48 }, open: () => (typeof Craft !== 'undefined' ? Craft.open('anvil') : null) }));
     iaAdd(R, 'orb', sm({ text: 'Tether Orb', obj: HM.table, at: V(HMP.table.x, 1.95, HMP.table.z), spot: { x: HMP.table.x, z: HMP.table.z + 0.78 }, face: Math.PI, ring: { x: HMP.table.x, z: HMP.table.z, r: 0.62 }, open: () => tetherOrb() }));
     // t626u: the Skill Tree - tap the tree (or its label) to walk up to it and open the Skill Tree screen
-    if (HM.sk) iaAdd(HM.sk.g, 'stree', sm({ text: 'Skill Tree', obj: HM.sk.T, at: V(SKR.tx, 4.1, SKR.tz), sc: 1.3, near: 2.4, spot: { x: SKR.tx, z: SKR.tz + SKR.obsR + 0.65 }, face: Math.PI, noRing: true, ring: { x: SKR.tx, y: 0.02, z: SKR.tz, r: 0.5 }, open: () => (typeof SkillTree !== 'undefined' ? SkillTree.open() : null) }));
+    if (HM.sk) iaAdd(HM.sk.g, 'stree', sm({ text: 'Skill Tree', obj: HM.sk.T, at: V(SKR.tx, 4.1, SKR.tz), sc: 1.3, near: 2.4, spot: { x: SKR.tx, z: SKR.tz + SKR.obsR + 0.65 }, face: Math.PI, noRing: true, ring: { x: SKR.tx, y: 0.02, z: SKR.tz, r: 0.5 }, open: () => { const B = skBushelHit(IA.list.find((x) => x.key === 'stree').hit); return typeof SkillTree !== 'undefined' ? SkillTree.open(B && B.branch === 'combat' ? 'combat' : undefined) : null; } })); /* (26 Nov: a ruby bushel opens Combat; sapphire / gold - locked branches - and the trunk open the tree overview) */
     const dh = new THREE.Mesh(new THREE.BoxGeometry(HM.dw, HM.dh, 0.12), new THREE.MeshBasicMaterial({ visible: false })); dh.position.set(HM.dx, HM.dh / 2, HM.FZ - 0.08); R.add(dh); HM.doorHit = dh;
     iaAdd(R, 'door', sm({ text: 'Go outside', /* (t644u: no pop-up label - tap the door) */ obj: dh, at: V(HM.dx, HM.dh + 0.35, HM.FZ - 0.15), spot: { x: HM.dx, z: HM.FZ - 0.75 }, face: 0, ring: { x: HM.dx, z: HM.FZ - 0.3, r: 0.45 }, open: () => goOutside() })); }
   function iaTree() { if (IA.tree) return; IA.tree = true; const g = TR.g, sc = 2.6, tr = (o) => Object.assign(o, { scene: 'tree', near: 5.5, sc: 2.8 });
@@ -3360,7 +3364,7 @@ function exploreOn(par, x, z, face, hy) { soloOff(); if (!R && !initGL()) return
     openModal(`<div class="cxp orbp"><div class="row between"><h2>🌐 Travel orb</h2><span class="tag">choose a destination</span></div><div class="dim">The orb carries you anywhere a Ledge Tether has been tied.</div><div class="card cxl">${ORB_DEST.map(([k, e, n, s]) => `<div class="cxr"><span class="cxi" style="--c:#5fd6e8">${e}</span><span class="cxn">${n}<small>${s}</small></span><button class="btn sm ${k === here ? 'ghost' : 'alt'}" data-orb="${k}" ${k === here ? 'disabled' : ''}>${k === here ? 'You are here' : 'Travel'}</button></div>`).join('')}</div><button class="btn ghost" data-orb="close">Close</button></div>`, 'orb');
     document.querySelectorAll('#modalBody [data-orb]').forEach((b) => b.addEventListener('click', () => { const k = b.dataset.orb; if (typeof closeModalQuiet === 'function') closeModalQuiet(); if (k === 'close') return; HM.travel = k; if (typeof setTab === 'function') setTab(k === 'camp' ? 'ledge' : k); })); return true; }
   function homeTap(cx, cy) { cam.updateMatrixWorld(); HM.g.updateMatrixWorld(true); const r = canvas.getBoundingClientRect(), nd = new THREE.Vector2((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height) * 2 + 1); _ray.setFromCamera(nd, cam); const hits = _ray.intersectObject(HM.g, true);
-    for (const h of hits) { let vis = true; for (let q = h.object; q && q !== HM.g; q = q.parent) if (!q.visible) vis = false; if (!vis) continue; let o = h.object; while (o && o !== HM.g) { if (o.userData.tap) return o.userData.tap(), true; if (HM.mode === 'door' && (o.userData.port || o.userData.handle || o === HM.door)) { enterLedge(); return true; } /* the front door just goes in: tether options are in the Tether Orb */ o = o.parent; } let inC = false; for (let q = h.object; q; q = q.parent) if (q === HM.cords) inC = true; if (h.object.visible && !inC) break; }
+    for (const h of hits) { let vis = true; for (let q = h.object; q && q !== HM.g; q = q.parent) if (!q.visible) vis = false; if (!vis) continue; let o = h.object; while (o && o !== HM.g) { if (o.userData.tap) return o.userData.tap(h), true; if (HM.mode === 'door' && (o.userData.port || o.userData.handle || o === HM.door)) { enterLedge(); return true; } /* the front door just goes in: tether options are in the Tether Orb */ o = o.parent; } let inC = false; for (let q = h.object; q; q = q.parent) if (q === HM.cords) inC = true; if (h.object.visible && !inC) break; }
     const o = _ray.ray.origin, d = _ray.ray.direction; if (HM.mode === 'door' && HM.menu) doorMenu(false); if (d.y < -1e-4 && st.gnd && !HM.anim) { const t = -o.y / d.y, q = o.clone().addScaledVector(d, t), B = st.gnd.bnd; navTo(st.gnd, clamp(q.x, B.X0, B.X1), clamp(q.z, B.Z0, B.Z1), () => { st.pg = null; }); pgMark({ x: st.gnd.goal.x, z: st.gnd.goal.z }); st.pg = { home: true }; return true; } return false; }
   function homeScreen(p) { cam.updateMatrixWorld(); const q = p.clone().project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (q.x + 1) / 2 * r.width, y: r.top + (1 - q.y) / 2 * r.height }; }
   /* ---------- inside the Lumen Tree (approved concept: lumen_tree/APPROVED_lumen_tree_inside.jpg): the hollow heart of the colossal tree, the Hollow's
