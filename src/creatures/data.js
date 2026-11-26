@@ -63,6 +63,7 @@ const TIN_GOLEM = {
   model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's build, copied unchanged (tin_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -88,6 +89,7 @@ const COPPER_GOLEM = {
   model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's build, copied unchanged (copper_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -113,6 +115,7 @@ const COAL_GOLEM = {
   model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's build, copied unchanged (coal_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -124,6 +127,7 @@ const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, co
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
 const PLAYGROUND_COMBAT = {
   ATTACK_INTERVAL_S: 3,
+  MOB_START_SLACK_M: 0.25, // (GD-30 t706u) a hunting creature that has stopped beside her starts walking again only once she is this far past its reach (no walk / idle flicker)
   // (GD-30) who stands in the arena: the first row is her default target (the HUD); at = spawn spot (arena metres, she starts at the centre);
   // roam = metres it wanders round its spawn (0 / missing = the whole arena)
   CREATURES: [

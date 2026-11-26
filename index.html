@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='a39546b0';
+<script>window.HD_BUILD='414e42f5';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a39546b0</div>
-<script src="assets/vendor/three.min.js?v=a39546b0"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 414e42f5</div>
+<script src="assets/vendor/three.min.js?v=414e42f5"></script>
 <script>
 'use strict';
 
@@ -10232,6 +10232,7 @@ const TIN_GOLEM = {
   model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's build, copied unchanged (tin_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -10257,6 +10258,7 @@ const COPPER_GOLEM = {
   model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's build, copied unchanged (copper_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -10282,6 +10284,7 @@ const COAL_GOLEM = {
   model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's build, copied unchanged (coal_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -10293,6 +10296,7 @@ const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, co
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
 const PLAYGROUND_COMBAT = {
   ATTACK_INTERVAL_S: 3,
+  MOB_START_SLACK_M: 0.25, // (GD-30 t706u) a hunting creature that has stopped beside her starts walking again only once she is this far past its reach (no walk / idle flicker)
   // (GD-30) who stands in the arena: the first row is her default target (the HUD); at = spawn spot (arena metres, she starts at the centre);
   // roam = metres it wanders round its spawn (0 / missing = the whole arena)
   CREATURES: [
@@ -10480,9 +10484,12 @@ const Creatures = (() => {
       while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) S.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) S.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
       if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
   // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
+  const DT = {}; function dummyTex(r, g, b) { const k = r + ',' + g + ',' + b; if (DT[k]) return DT[k]; const t = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1); t.needsUpdate = true; return (DT[k] = t); }
   function hdMat(D, gm) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
-      : T.makeChalkMaterial({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 });
+      : T.makeChalkMaterial(Object.assign({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 }, D.crackGlow ? { atlasColor: dummyTex(255, 255, 255), atlasNormal: dummyTex(128, 128, 255), atlasBlend: 0, normalAmt: 0, glowColor: ud.hd_glow } : {}));
+    /* (t705u) crackGlow: Art's per-ore crack glow (the _HD_GLOW vertex mask x the material's hd_glow colour) needs his shader's atlas path on; the stone atlas itself is not
+       shipped, so a 1x1 stand-in with atlasBlend 0 / normalAmt 0 leaves the painted stone exactly as is and only turns the glow on */
     m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut) srgbOut(m); return m; }
   // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
   // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
@@ -10498,7 +10505,7 @@ const Creatures = (() => {
     let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
     const mats = [];
     g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
-        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') put('COLOR_0', 'color'); /* (the golems' painted swatches; their _HD_* atlas attributes are not uploaded) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
+        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (D.crackGlow && !/Lumenite/.test(g.materials[p.material].name || '')) { put('_HD_TEX', 'hdTex'); put('_HD_GLOW', 'hdGlow'); } } /* (the golems' painted swatches; their _HD_* atlas attributes are not uploaded) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
         const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material]) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
     // (GD-12: the invisible mushroom) glTF skinning ignores the skinned mesh node's own transform - the joints' world matrices x inverse bind matrices already place
     // every vertex. FBX2glTF puts the 100x / -90 deg X export transform on BOTH the armature and the mesh node, so binding with the mesh's matrixWorld applied it twice:
@@ -10518,9 +10525,13 @@ const Creatures = (() => {
       else { o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
     const h = Math.max(1e-4, bb.max.y - bb.min.y), k = (D.height || 1) / h; model.scale.setScalar(k); model.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k); /* (centred on its root, feet on the ground) */
     const root = new THREE.Group(); root.name = D.id; root.add(model); const mixer = new THREE.AnimationMixer(model); let cur = null;
-    const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); if (cur && cur !== a) cur.fadeOut(0.12); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); cur = a; return a; };
+    // (GD-30 t706u: the golem's feet 'split as if a double animation') one clip at a time: every other running action fades out (not only the last one), and a loop that is
+    // still fading out is taken back from where it is instead of being reset to frame 0 under the other clip (walk / idle flicker restarted Walk every switch)
+    const acts = new Set(); let starts = 0;
+    const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); acts.add(a); for (const o of acts) if (o !== a && o.enabled && o.getEffectiveWeight() > 0) o.fadeOut(0.12); /* (a finished clamped one-shot counts too) */
+      const live = !once && a.isRunning() && a.getEffectiveWeight() > 0.01; if (live) { a.stopFading(); a.setEffectiveWeight(1); } else { a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); starts++; } cur = a; return a; };
     const rest = {}; if (skel) for (const b of skel.bones) rest[b.name] = b.quaternion.clone(); /* (bind / rest pose, before any clip runs) */
-    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips), stripped, rest, bones: skel ? skel.bones : [] }; }
+    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips), stripped, rest, get running() { return [...acts].filter((o) => o.isRunning() && o.getEffectiveWeight() > 0.01).map((o) => o.getClip().name); }, get starts() { return starts; }, bones: skel ? skel.bones : [] }; }
   return { get, load, make, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
 })();
 /* crystalCrown.js — Lumenite skill-tree crown + branch module (Art, ART-16 crown_v3: 9-crown tree, per-colour merged draws)
@@ -12845,7 +12856,7 @@ const CharView = (() => {
   function pgaMob(dt) { const m = PGA.mob, C = pgaC(), G = st.gnd; if (!m || PGA.dead > 0 || !G) return; const p = m.root.position; if (PGA.once > 0 && (PGA.once -= dt) <= 0) PGA.anim = null;
     const q = PGA.ko > 0 ? null : pgaRel(), d = q ? q.d : 1e9; if (q && !PGA.hunt && C.aggro !== 'provoked' && d < C.atkReach + 0.15) PGA.hunt = true; /* (she walked right up to it - only a creature that is not passive-until-provoked: GD-21) */ if (PGA.hunt && (!q || d > (C.leashR || 4))) { PGA.hunt = false; PGA.bite = 0; PGA.atkT = Math.max(PGA.atkT, 0.6); PGA.leashD = q ? +d.toFixed(2) : null; } /* (GD-21: back to passive - she must hit it again) */ /* (GD-19: past the leash it gives up) */ PGA.aggro = PGA.hunt ? 1 : 0; const angry = !!q && PGA.hunt; if (angry && SWG.sh) swDrawFight(); /* (t686u: it fights her - out come the swords) */
     let gx = null, gz = null;
-    if (angry) { PGA.wp = null; if (d > C.atkReach) { const so = C.atkReach * 0.9 + pgaBR(); gx = G.x + q.dx / q.cd * so; gz = G.z + q.dz / q.cd * so; } else if ((PGA.atkT -= dt) <= 0 && PGA.once <= 0) { PGA.atkT = C.atkS; pgaOnce('attack'); PGA.bite = C.atkHitAt; } }
+    if (angry) { PGA.wp = null; if (d > C.atkReach + (PGA.anim === 'walk' ? 0 : ((typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.MOB_START_SLACK_M) || 0))) { /* (t706u: once it has stopped beside her it only sets off again when she is a step past its reach - no walk / idle flicker) */ const so = C.atkReach * 0.9 + pgaBR(); gx = G.x + q.dx / q.cd * so; gz = G.z + q.dz / q.cd * so; } else if ((PGA.atkT -= dt) <= 0 && PGA.once <= 0) { PGA.atkT = C.atkS; pgaOnce('attack'); PGA.bite = C.atkHitAt; } }
     else { PGA.atkT = Math.max(PGA.atkT, 0.6); if (!PGA.wp && (PGA.wt -= dt) <= 0) { for (let i = 0; i < 8; i++) { const a = Math.random() * Math.PI * 2, rr = PGA.roam || PGA.R - 1.2, hx = PGA.roam ? PGA.home[0] : 0, hz = PGA.roam ? PGA.home[1] : 0, r = Math.sqrt(Math.random()) * rr, x = hx + Math.sin(a) * r, z = hz + Math.cos(a) * r; if (Math.hypot(x, z) > PGA.R - 1.2) continue; /* (GD-30: roam = round its own spot) */ if (Math.hypot(x - p.x, z - p.z) > 1 && Math.hypot(x - G.x, z - G.z) > 1.2) { PGA.wp = { x, z }; break; } } PGA.wt = 2 + Math.random() * 3; }
       if (PGA.wp) { gx = PGA.wp.x; gz = PGA.wp.z; if (Math.hypot(gx - p.x, gz - p.z) < 0.08) { PGA.wp = null; gx = null; } } }
     if (PGA.bite > 0 && (PGA.bite -= dt) <= 0) pgaBite();

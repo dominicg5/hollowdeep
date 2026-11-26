@@ -18,9 +18,12 @@ const Creatures = (() => {
       while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) S.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) S.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
       if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
   // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
+  const DT = {}; function dummyTex(r, g, b) { const k = r + ',' + g + ',' + b; if (DT[k]) return DT[k]; const t = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1); t.needsUpdate = true; return (DT[k] = t); }
   function hdMat(D, gm) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
-      : T.makeChalkMaterial({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 });
+      : T.makeChalkMaterial(Object.assign({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 }, D.crackGlow ? { atlasColor: dummyTex(255, 255, 255), atlasNormal: dummyTex(128, 128, 255), atlasBlend: 0, normalAmt: 0, glowColor: ud.hd_glow } : {}));
+    /* (t705u) crackGlow: Art's per-ore crack glow (the _HD_GLOW vertex mask x the material's hd_glow colour) needs his shader's atlas path on; the stone atlas itself is not
+       shipped, so a 1x1 stand-in with atlasBlend 0 / normalAmt 0 leaves the painted stone exactly as is and only turns the glow on */
     m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut) srgbOut(m); return m; }
   // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
   // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
@@ -36,7 +39,7 @@ const Creatures = (() => {
     let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
     const mats = [];
     g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
-        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') put('COLOR_0', 'color'); /* (the golems' painted swatches; their _HD_* atlas attributes are not uploaded) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
+        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (D.crackGlow && !/Lumenite/.test(g.materials[p.material].name || '')) { put('_HD_TEX', 'hdTex'); put('_HD_GLOW', 'hdGlow'); } } /* (the golems' painted swatches; their _HD_* atlas attributes are not uploaded) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
         const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material]) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
     // (GD-12: the invisible mushroom) glTF skinning ignores the skinned mesh node's own transform - the joints' world matrices x inverse bind matrices already place
     // every vertex. FBX2glTF puts the 100x / -90 deg X export transform on BOTH the armature and the mesh node, so binding with the mesh's matrixWorld applied it twice:
@@ -56,8 +59,12 @@ const Creatures = (() => {
       else { o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
     const h = Math.max(1e-4, bb.max.y - bb.min.y), k = (D.height || 1) / h; model.scale.setScalar(k); model.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k); /* (centred on its root, feet on the ground) */
     const root = new THREE.Group(); root.name = D.id; root.add(model); const mixer = new THREE.AnimationMixer(model); let cur = null;
-    const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); if (cur && cur !== a) cur.fadeOut(0.12); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); cur = a; return a; };
+    // (GD-30 t706u: the golem's feet 'split as if a double animation') one clip at a time: every other running action fades out (not only the last one), and a loop that is
+    // still fading out is taken back from where it is instead of being reset to frame 0 under the other clip (walk / idle flicker restarted Walk every switch)
+    const acts = new Set(); let starts = 0;
+    const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); acts.add(a); for (const o of acts) if (o !== a && o.enabled && o.getEffectiveWeight() > 0) o.fadeOut(0.12); /* (a finished clamped one-shot counts too) */
+      const live = !once && a.isRunning() && a.getEffectiveWeight() > 0.01; if (live) { a.stopFading(); a.setEffectiveWeight(1); } else { a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); starts++; } cur = a; return a; };
     const rest = {}; if (skel) for (const b of skel.bones) rest[b.name] = b.quaternion.clone(); /* (bind / rest pose, before any clip runs) */
-    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips), stripped, rest, bones: skel ? skel.bones : [] }; }
+    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips), stripped, rest, get running() { return [...acts].filter((o) => o.isRunning() && o.getEffectiveWeight() > 0.01).map((o) => o.getClip().name); }, get starts() { return starts; }, bones: skel ? skel.bones : [] }; }
   return { get, load, make, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
 })();
