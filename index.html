@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='1d910ed9';
+<script>window.HD_BUILD='912753c6';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 1d910ed9</div>
-<script src="assets/vendor/three.min.js?v=1d910ed9"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 912753c6</div>
+<script src="assets/vendor/three.min.js?v=912753c6"></script>
 <script>
 'use strict';
 
@@ -10325,6 +10325,122 @@ const PLAYGROUND_COMBAT = {
     LIFE_S: 1.1,        // a speck fades out over this
   },
 };
+/* (GD-32, Dominic t548u: 'push the map role out for the golems' / '100m radius around those fields. They can't walk up a slope greater than 30 degrees')
+   Art's overworld golem plan (hd-notes/golem_placement/golem_placement.json, built against main 9987ff2, city seed 20261114): 2 golems per mining field, matching its ore -
+   12 Tin, 12 Copper, 36 Coal - spawned just outside the ore on ground of 20 deg or less, each wandering its field's edge + 100 m, never up more than 30 deg, passive until
+   provoked (the playground's creature rows: src/creatures/data.js). Map units: x / y = world x / z, WS = 6.35 per metre. Runtime: src/creatures/world_golems.js. */
+const WORLD_GOLEMS = {
+  WANDER_M: 100,         // metres past the field's edge (field radius + 100 m from its centre)
+  MAX_SLOPE_DEG: 30,     // a golem never steps onto ground steeper than this
+  SPAWN_SLOPE_DEG: 20,   // Art's spawn rule (his footprint check); the loader re-checks it
+  LOAD_M: 240,           // her distance at which a golem's GLB starts loading (once per ore, lazily)
+  SPAWN_M: 170,          // a golem is built (a clone of its ore's template) and drawn within this distance of her
+  DESPAWN_M: 200,        // ...and released past this (hysteresis); farther golems are only a position
+  ANIM_M: 90,            // its animation mixer and wander / fight AI run only within this
+  MAX_LIVE: 6,           // at most this many built at once (the nearest)
+  WALK_PAUSE_S: [2, 6],  // idle pause between wander legs
+  LEG_M: [6, 22],        // length of one wander leg
+  REACH_M: 1.7, STAND_M: 0.9, ATTACK_INTERVAL_S: 3, STRIKE_AT_S: 0.45, KEEP_REACH_M: 0.6, // her side (the playground's PGA.REACH / STAND, PLAYGROUND_COMBAT.CHASE)
+  REPATH_S: 0.5,         // how often she re-aims at a moving target
+  KO_CALM_S: 4,          // knocked out on the map: every golem calms down and she is back on her feet at full HP after this
+  ORE_KIND: { tin: 'tin_golem', copper: 'copper_golem', coal: 'coal_golem' },
+  // [field id, ore, centre x, centre y, radius] - Art's field table (the game's Explore.oreSpots(), the same seed)
+  FIELDS: [
+    [0, 'coal', 56.2, 4985.1, 502.3],
+    [1, 'tin', -2158.7, -9459.9, 502.3],
+    [2, 'tin', 10296.1, -953.4, 502.3],
+    [3, 'coal', -10167.7, -359.5, 502.3],
+    [4, 'tin', 7904.6, 6766.7, 502.3],
+    [5, 'tin', -7487.3, 6975.3, 502.3],
+    [6, 'coal', -1741.4, -4328.7, 502.3],
+    [7, 'coal', -7840.4, -6410.4, 502.3],
+    [8, 'copper', -4389.7, -70.6, 502.3],
+    [9, 'coal', -2656.3, 9992.7, 502.3],
+    [10, 'coal', 3121.7, 9511.2, 502.3],
+    [11, 'copper', 4871.2, 2224.5, 502.3],
+    [12, 'copper', 3234.1, -9010.5, 502.3],
+    [13, 'copper', -4378.4, -1942, 502.3],
+    [14, 'coal', -5617.5, 802.5, 502.3],
+    [15, 'coal', 9830.6, 3139.4, 502.3],
+    [16, 'copper', -3683.5, 6108.6, 502.3],
+    [17, 'tin', -5768.4, -608.3, 502.3],
+    [18, 'coal', 5900, -1178.1, 235.6],
+    [19, 'coal', -2271.1, 2545.5, 502.3],
+    [20, 'coal', 314.6, -4611.2, 502.3],
+    [21, 'coal', -5095.9, -8111.7, 502.3],
+    [22, 'copper', 3202, 4904.9, 502.3],
+    [23, 'tin', 56.2, 8435.9, 502.3],
+    [24, 'coal', 8177.5, 876.3, 301.4],
+    [25, 'coal', 5753.9, 8580.3, 502.3],
+    [26, 'coal', 5994.7, 4760.4, 502.3],
+    [27, 'coal', 2158.7, 2401.1, 502.3],
+    [28, 'coal', -7037.9, 89.9, 502.3],
+    [29, 'coal', -2816.8, -2349.7, 502.3],
+  ],
+  // [id, field id, x, y, spawn slope deg] - Art's 60 placements (hard fields: 18 only 35% walkable, 24 / 26 not fully opposite - see his notes)
+  SPAWNS: [
+    ['golem_coal_f00_a', 0, 370.1, 5528.9, 1.1],
+    ['golem_coal_f00_b', 0, -199.2, 4411.5, 0.5],
+    ['golem_tin_f01_a', 1, -2702.5, -9146.0, 1.1],
+    ['golem_tin_f01_b', 1, -1538.6, -9558.1, 3.8],
+    ['golem_tin_f02_a', 2, 9736.7, -668.4, 3.6],
+    ['golem_tin_f02_b', 2, 10855.5, -1238.4, 0.8],
+    ['golem_coal_f03_a', 3, -9798.6, 148.5, 2.8],
+    ['golem_coal_f03_b', 3, -10536.8, -867.5, 3.4],
+    ['golem_tin_f04_a', 4, 8348.6, 7210.7, 1.5],
+    ['golem_tin_f04_b', 4, 7460.6, 6322.7, 2.3],
+    ['golem_tin_f05_a', 5, -7520.2, 7602.3, 0.3],
+    ['golem_tin_f05_b', 5, -7454.4, 6348.3, 2.1],
+    ['golem_coal_f06_a', 6, -1155.2, -4103.7, 2.5],
+    ['golem_coal_f06_b', 6, -2365.8, -4394.3, 3.4],
+    ['golem_coal_f07_a', 7, -8125.4, -5851.0, 3.2],
+    ['golem_coal_f07_b', 7, -7313.8, -6752.4, 2.6],
+    ['golem_copper_f08_a', 8, -4784.8, 417.4, 0.5],
+    ['golem_copper_f08_b', 8, -3994.6, -558.6, 0.3],
+    ['golem_coal_f09_a', 9, -2656.3, 10620.6, 0.8],
+    ['golem_coal_f09_b', 9, -2656.3, 9364.8, 1.1],
+    ['golem_coal_f10_a', 10, 3435.6, 10055.0, 3.0],
+    ['golem_coal_f10_b', 10, 2807.8, 8967.4, 1.1],
+    ['golem_copper_f11_a', 11, 5477.7, 2387.0, 10.9],
+    ['golem_copper_f11_b', 11, 4264.7, 2062.0, 10.0],
+    ['golem_copper_f12_a', 12, 3858.5, -8944.9, 6.4],
+    ['golem_copper_f12_b', 12, 2609.7, -9076.1, 3.7],
+    ['golem_copper_f13_a', 13, -4036.4, -1415.4, 0.6],
+    ['golem_copper_f13_b', 13, -4720.4, -2468.6, 8.0],
+    ['golem_coal_f14_a', 14, -5109.5, 1171.6, 4.3],
+    ['golem_coal_f14_b', 14, -5872.9, 228.9, 12.4],
+    ['golem_coal_f15_a', 15, 9257.0, 3394.8, 0.9],
+    ['golem_coal_f15_b', 15, 10404.2, 2884.0, 2.4],
+    ['golem_copper_f16_a', 16, -3968.5, 6668.0, 1.5],
+    ['golem_copper_f16_b', 16, -3716.4, 5481.6, 4.8],
+    ['golem_tin_f17_a', 17, -5194.8, -352.9, 2.0],
+    ['golem_tin_f17_b', 17, -6333.9, -934.8, 6.2],
+    ['golem_coal_f18_a', 18, 6482.6, -988.8, 9.5],
+    ['golem_coal_f18_b', 18, 5652.2, -1358.1, 19.2],
+    ['golem_coal_f19_a', 19, -1651.0, 2643.7, 0.7],
+    ['golem_coal_f19_b', 19, -2891.2, 2447.3, 0.3],
+    ['golem_coal_f20_a', 20, 508.6, -4014.1, 0.5],
+    ['golem_coal_f20_b', 20, 120.6, -5208.3, 7.3],
+    ['golem_coal_f21_a', 21, -4471.5, -8046.1, 5.3],
+    ['golem_coal_f21_b', 21, -5693.0, -7917.7, 3.9],
+    ['golem_copper_f22_a', 22, 3071.5, 5519.1, 16.4],
+    ['golem_copper_f22_b', 22, 3332.5, 4290.7, 2.6],
+    ['golem_tin_f23_a', 23, 425.3, 8943.9, 18.4],
+    ['golem_tin_f23_b', 23, -540.3, 8170.3, 6.5],
+    ['golem_coal_f24_a', 24, 8362.2, 1238.8, 17.9],
+    ['golem_coal_f24_b', 24, 8369.1, 500.3, 19.5],
+    ['golem_coal_f25_a', 25, 5147.4, 8742.8, 3.3],
+    ['golem_coal_f25_b', 25, 6360.4, 8417.8, 1.7],
+    ['golem_coal_f26_a', 26, 6279.7, 5319.8, 2.1],
+    ['golem_coal_f26_b', 26, 6256.9, 4245.7, 18.2],
+    ['golem_coal_f27_a', 27, 1763.6, 2889.1, 0.5],
+    ['golem_coal_f27_b', 27, 2553.8, 1913.1, 0.8],
+    ['golem_coal_f28_a', 28, -6792.7, 640.5, 9.3],
+    ['golem_coal_f28_b', 28, -7525.5, -264.4, 8.0],
+    ['golem_coal_f29_a', 29, -3324.8, -1980.6, 0.4],
+    ['golem_coal_f29_b', 29, -2308.8, -2718.8, 0.8],
+  ],
+};
 /* ===== HDToon: Art's Hollowdeep creature look (creature_pipeline/scripts/hollowdeepToon.js, copied verbatim for three r149; only the ES-module
    import / export lines are dropped so it runs on the game's global THREE). makeChalkMaterial(): painted 3-step toon with chalk grain, cool shadow
    tint, warm rim, lumenite emissive; addInkOutline(): constant-pixel inverted-hull ink that follows the skin. Used by Creatures.make for rows with
@@ -10486,7 +10602,7 @@ const Creatures = (() => {
       while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) S.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) S.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
       if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
   // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
-  function hdMat(D, gm, A, gc) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm), glow = hasGlow(D, A, gc);
+  function hdMat(D, gm, A, gc, O) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm), glow = hasGlow(D, A, gc);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
       : T.makeChalkMaterial(Object.assign({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 }));
     /* (t705u / t542) crackGlow: Art's per-ore glow on the crystals, crack veins and eyes = the golem's hd_glow colour (its Stone material extras) x the _HD_GLOW vertex
@@ -10494,7 +10610,7 @@ const Creatures = (() => {
     if (glow) glowBind(m, gc, D.glowGain ?? 1.6);
     const bc = (gm.pbrMetallicRoughness && gm.pbrMetallicRoughness.baseColorFactor) || [1, 1, 1]; m.color.setRGB(bc[0], bc[1], bc[2]); /* (glTF: vertex paint x baseColorFactor; Art's t539 files use 1) */
     if (lum && D.crystalGain) m.color.multiply(new THREE.Color().setRGB(...D.crystalGain)); /* (t539: Art's per-variant crystal lift, from the data row) */
-    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut) srgbOut(m); return m; }
+    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut && !(O && O.screenEnc)) srgbOut(m); if (O && O.screenEnc) m.toneMapped = false; return m; }
   // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
   // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
   function hasGlow(D, A, gc) { return !!(D.crackGlow && A && A._HD_GLOW != null && gc && Math.max(gc[0], gc[1], gc[2]) > 0); }
@@ -10507,7 +10623,8 @@ const Creatures = (() => {
     m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|srgbOut'; m.userData.srgbOut = true; return m; }
   function mat(D, name) { const L = (D.look || []).find((r) => r.test.test(name)) || { part: 'body', color: 0xcccccc }, m = new THREE.MeshLambertMaterial({ color: L.color });
     if (L.emissive != null) { m.emissive.setHex(L.emissive); m.emissiveIntensity = L.glow == null ? 1 : L.glow; } m.name = D.id + ':' + L.part; return m; }
-  function make(id) { const D = get(id), S = ST[id]; if (!D || !S || !S.gl) return null; const g = S.gl, J = (g.skins && g.skins[0] && g.skins[0].joints) || [];
+  // (GD-32) opt.screenEnc: drawn by a renderer that already encodes sRGB (the 3D map: sRGB + ACES) - no srgbOut of its own, and no tone mapping (Art's viewer has none)
+  function make(id, opt) { const O = opt || {}, D = get(id), S = ST[id]; if (!D || !S || !S.gl) return null; const g = S.gl, J = (g.skins && g.skins[0] && g.skins[0].joints) || [];
     const nodes = g.nodes.map((n, i) => { const o = J.includes(i) ? new THREE.Bone() : new THREE.Object3D(); o.name = n.name || 'n' + i;
       if (n.translation) o.position.fromArray(n.translation); if (n.rotation) o.quaternion.fromArray(n.rotation); if (n.scale) o.scale.fromArray(n.scale); return o; });
     g.nodes.forEach((n, i) => (n.children || []).forEach((c) => nodes[i].add(nodes[c])));
@@ -10516,13 +10633,13 @@ const Creatures = (() => {
     const mats = [], gc = ((g.materials || []).find((q) => q.extras && q.extras.hd_glow) || { extras: {} }).extras.hd_glow; /* (t542: the golem's glow colour, on its Stone material) */
     g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
         put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (hasGlow(D, A, gc)) put('_HD_GLOW', 'hdGlow'); } /* (the golems' painted swatches + Art's _HD_GLOW per-vertex glow, t542) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
-        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A, gc) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
+        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A, gc, O) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
     // (GD-12: the invisible mushroom) glTF skinning ignores the skinned mesh node's own transform - the joints' world matrices x inverse bind matrices already place
     // every vertex. FBX2glTF puts the 100x / -90 deg X export transform on BOTH the armature and the mesh node, so binding with the mesh's matrixWorld applied it twice:
     // a ~60 m mesh around the camera (only shards of it on screen). Identity bind matrix; 'attached' mode cancels the mesh node transform (bindMatrixInverse = its inverse).
     model.updateMatrixWorld(true); if (skel) { model.traverse((o) => { if (o.isSkinnedMesh) o.bind(skel, new THREE.Matrix4()); }); model.updateMatrixWorld(true); }
     if (D.shade === 'hdToon' && typeof HDToon !== 'undefined') { const body = []; model.traverse((o) => { if (o.isMesh && o.material.userData.ink) body.push(o); }); const dpr = (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1;
-      for (const o of body) { const ol = HDToon.addInkOutline(o, o.material.userData.ink); if (D.srgbOut) srgbOut(ol.material); ol.userData.uniformsRes = true; ol.material.userData.uniforms.uRes.value.set((typeof innerWidth !== 'undefined' ? innerWidth : 1080) * dpr, (typeof innerHeight !== 'undefined' ? innerHeight : 1080) * dpr); mats.push(ol.material); } }
+      for (const o of body) { const ol = HDToon.addInkOutline(o, o.material.userData.ink); if (D.srgbOut && !O.screenEnc) srgbOut(ol.material); if (O.screenEnc) ol.material.toneMapped = false; ol.userData.uniformsRes = true; ol.material.userData.uniforms.uRes.value.set((typeof innerWidth !== 'undefined' ? innerWidth : 1080) * dpr, (typeof innerHeight !== 'undefined' ? innerHeight : 1080) * dpr); mats.push(ol.material); } }
     // (GD-30 t704u) D.rigid: bones held at their rest pose (riding their parent) in the listed clips - the golems' head, jaw and crystal shards swung 20-70 deg in Walk / Attack
     const RB = (D.rigid && D.rigid.bones) || [], RC = (D.rigid && D.rigid.clips) || []; let stripped = 0;
     const clips = {}; for (const an of g.animations || []) { const tracks = [], kk = an.name.replace(/^.*\|/, ''), rig0 = RC.includes(kk); for (const ch of an.channels) { const s = an.samplers[ch.sampler], nm = nodes[ch.target.node].name; if (rig0 && RB.includes(nm)) { stripped++; continue; } const t = acc(S, s.input).arr, v = acc(S, s.output).arr;
@@ -10534,15 +10651,23 @@ const Creatures = (() => {
       if (o.isSkinnedMesh) { for (let i = 0; i < P.count; i++) { pv.fromBufferAttribute(P, i); o.boneTransform(i, pv); bb.expandByPoint(pv.applyMatrix4(o.matrixWorld)); } } /* (where the skin really draws it, bones applied) */
       else { o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
     const h = Math.max(1e-4, bb.max.y - bb.min.y), k = (D.height || 1) / h; model.scale.setScalar(k); model.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k); /* (centred on its root, feet on the ground) */
-    const root = new THREE.Group(); root.name = D.id; root.add(model); const mixer = new THREE.AnimationMixer(model); let cur = null;
-    // (GD-30 t706u: the golem's feet 'split as if a double animation') one clip at a time: every other running action fades out (not only the last one), and a loop that is
-    // still fading out is taken back from where it is instead of being reset to frame 0 under the other clip (walk / idle flicker restarted Walk every switch)
-    const acts = new Set(); let starts = 0;
-    const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); acts.add(a); for (const o of acts) if (o !== a && o.enabled && o.getEffectiveWeight() > 0) o.fadeOut(0.12); /* (a finished clamped one-shot counts too) */
-      const live = !once && a.isRunning() && a.getEffectiveWeight() > 0.01; if (live) { a.stopFading(); a.setEffectiveWeight(1); } else { a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); starts++; } cur = a; return a; };
+    const root = new THREE.Group(); root.name = D.id; root.add(model);
     const rest = {}; if (skel) for (const b of skel.bones) rest[b.name] = b.quaternion.clone(); /* (bind / rest pose, before any clip runs) */
-    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips), stripped, rest, get running() { return [...acts].filter((o) => o.isRunning() && o.getEffectiveWeight() > 0.01).map((o) => o.getClip().name); }, get starts() { return starts; }, bones: skel ? skel.bones : [] }; }
-  return { get, load, make, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
+    return player({ id, def: D, root, model, clips, mats, names: Object.keys(clips), stripped, rest, bones: skel ? skel.bones : [] }); }
+  // its mixer + play(): (GD-30 t706u: the golem's feet 'split as if a double animation') one clip at a time: every other running action fades out (not only the last one),
+  // and a loop that is still fading out is taken back from where it is instead of being reset to frame 0 under the other clip (walk / idle flicker restarted Walk every switch)
+  function player(I) { const mixer = new THREE.AnimationMixer(I.model), clips = I.clips, acts = new Set(); let starts = 0;
+    const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); acts.add(a); for (const o of acts) if (o !== a && o.enabled && o.getEffectiveWeight() > 0) o.fadeOut(0.12); /* (a finished clamped one-shot counts too) */
+      const live = !once && a.isRunning() && a.getEffectiveWeight() > 0.01; if (live) { a.stopFading(); a.setEffectiveWeight(1); } else { a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); starts++; } return a; };
+    Object.assign(I, { mixer, play }); Object.defineProperty(I, 'running', { get: () => [...acts].filter((o) => o.isRunning() && o.getEffectiveWeight() > 0.01).map((o) => o.getClip().name) }); Object.defineProperty(I, 'starts', { get: () => starts });
+    play((I.def.clips && I.def.clips.idle) || 'Idle'); return I; }
+  // (GD-32) another instance of a built one: three's SkeletonUtils.clone (examples/jsm/utils/SkeletonUtils.js, r149 - not in our three.min.js), the same geometry and
+  // materials (one GPU copy per ore however many golems), its own bones, skeleton and mixer; the clips are shared
+  function clone(T) { const src = T.model, cp = src.clone(), sL = new Map(), cL = new Map(), walk = (a, b) => { sL.set(b, a); cL.set(a, b); for (let i = 0; i < a.children.length; i++) walk(a.children[i], b.children[i]); }; walk(src, cp);
+    cp.traverse((n) => { if (!n.isSkinnedMesh) return; const sm = sL.get(n), sk = sm.skeleton.clone(); sk.bones = sm.skeleton.bones.map((b) => cL.get(b)); n.bind(sk, sm.bindMatrix.clone()); });
+    const root = new THREE.Group(); root.name = T.id; root.add(cp); const bones = T.bones.map((b) => cL.get(b)), mats = T.mats;
+    return player({ id: T.id, def: T.def, root, model: cp, clips: T.clips, mats, names: T.names, stripped: T.stripped, rest: T.rest, bones, clone: true }); }
+  return { get, load, make, clone, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
 })();
 /* crystalCrown.js — Lumenite skill-tree crown + branch module (Art, ART-16 crown_v3: 9-crown tree, per-colour merged draws)
    three.js r149 (global THREE, same as assets/vendor/three.min.js). No other deps. Classic script:
@@ -16395,6 +16520,93 @@ const Mole = (() => {
     Explore.exit = (...a) => { const r = x0(...a); if (M.g) { M.g.visible = false; M.g.userData.spark.visible = false; } if (M.st === 'toTether' || M.st === 'deposit') { /* left mid-trip: the load still reaches the vault */ deliver(); M.st = M.on ? 'follow' : 'off'; } M.pos = null; return r; };
     Explore.enter = (...a) => { const r = e0(...a); if (r !== false) { M.haul = false; S.mole = Object.assign({ out: true }, S.mole || {}, { on: false, haul: false }); if (!M.on && S.mole.out !== false) { M.on = true; M.st = 'follow'; M.cool = 0.5; } bar(); } return r; }; }
   return { M, SC, tethers, flowCheck, flowFix, setTask, moleHit, bubble, openScreen, start, stop, task, untask, get haul() { return M.haul; }, tick, build, nearestTether, routes, haulN, get on() { return M.on; } };
+})();
+/* ---------- (GD-32, Dominic t548u) the golems on the overworld map: Art's 60 placements (src/creatures/golem_spawns.js WORLD_GOLEMS), the playground's creature rows
+   (src/creatures/data.js: stats, clips, srgb / rigid / glow / walk-slack fixes). iPhone first:
+   - every golem is just a position until she is near; an ore's GLB is loaded once, lazily, the first time one of its golems is within LOAD_M, and built once as a
+     template (Creatures.make, map encoding); each golem near her is a SkeletonUtils-style clone of it (Creatures.clone: shared geometry + materials, own skeleton / mixer)
+   - built within SPAWN_M (the MAX_LIVE nearest), released past DESPAWN_M; mixers and AI run only within ANIM_M; farther ones are not touched at all
+   - wander: legs inside its field's edge + WANDER_M, never onto ground steeper than MAX_SLOPE_DEG (or not walkable); passive until she hits it
+   - the fight is the playground's loop, map-side: tap it -> she runs to striking range, squares up and swings every ATTACK_INTERVAL_S (CharView.swAttack), each swing
+     rolls Combat.rollDamage once at its strike point; hit, it hunts her inside its leash and slams on its timer (Combat.creatureAttack -> Combat.fightHurt); at 0 HP it
+     plays Death, sinks and respawns at its spot after respawnS; the kill gives Combat XP the same way (Combat.addXp(row.xp), save) ---------- */
+const WorldGolems = (() => {
+  const D = () => WORLD_GOLEMS, WS = () => Explore.WS, EXK = 1.18; // (CharView EXK: her body scale on the map - the golems stand at the same scale, so 2.6 m next to her as in the playground)
+  const U = () => WS() * EXK; // one creature metre on the map
+  const W = { n: 0, kills: 0, list: null, fields: {}, tpl: {}, loading: {}, err: {}, F: null, tgt: null, eng: false, swT: 0, strike: 0, ko: 0, rp: 0, nums: [], stats: { live: 0, animated: 0, ai: 0, far: 0, refused: 0, maxSlope: 0, steps: 0, out: 0 } };
+  let seed = 4321; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  function init() { if (W.list) return W.list; const T = D(); for (const f of T.FIELDS) W.fields[f[0]] = { id: f[0], ore: f[1], x: f[2], y: f[3], R: f[4] };
+    W.list = T.SPAWNS.map(([id, fid, x, y, sl]) => { const f = W.fields[fid], kind = T.ORE_KIND[f.ore], C = Creatures.get(kind); return { id, fid, kind, C, sx: x, sy: y, x, y, face: rnd() * 6.283, spawnSlope: sl, wr: f.R + T.WANDER_M * WS(), hp: C ? C.hp : 1, dead: 0, sink: 0, hunt: false, inst: null, anim: null, once: 0, atkT: 0, bite: 0, wp: null, pause: rnd() * 3, d: 1e9 }; });
+    return W.list; }
+  // ground slope in degrees (the map's own height mesh, a 1 m central difference) and whether a golem may stand there
+  function slopeDeg(x, y) { const e = WS(), h = M3.meshH, gx = (h(x + e, y) - h(x - e, y)) / (2 * e), gy = (h(x, y + e) - h(x, y - e)) / (2 * e); return Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
+  function canStand(g, x, y) { if (Math.hypot(x - W.fields[g.fid].x, y - W.fields[g.fid].y) > g.wr) return false; if (slopeDeg(x, y) > D().MAX_SLOPE_DEG) return false; const c = Explore.clsAt(x, y); return c === 1; }
+  function here() { return Explore.on ? Explore.here() : null; }
+  // ---- templates (one per ore) and clones
+  function tplFor(kind) { if (W.tpl[kind]) return W.tpl[kind]; if (!Creatures.ready(kind)) { if (!W.loading[kind]) { W.loading[kind] = true; Creatures.load(kind).catch((e) => { W.err[kind] = String(e); }); } return null; }
+    const T = Creatures.make(kind, { screenEnc: true }); if (!T) return null; T.root.updateMatrixWorld(true); return (W.tpl[kind] = T); }
+  function build(g) { const T = tplFor(g.kind); if (!T) return false; const I = Creatures.clone(T); I.root.scale.setScalar(U()); I.root.traverse((o) => { if (o.isMesh) { o.castShadow = !o.userData.isInk; o.receiveShadow = false; } });
+    const dpr = Math.min((typeof QUALITY !== 'undefined' && QUALITY.dpr) || 2, window.devicePixelRatio || 1); for (const m of T.mats) if (m.userData.uniforms && m.userData.uniforms.uRes) m.userData.uniforms.uRes.value.set(innerWidth * dpr, innerHeight * dpr);
+    g.inst = I; g.anim = null; loop(g, 'idle'); M3.scene.add(I.root); place(g); return true; }
+  function release(g) { if (!g.inst) return; if (g.inst.root.parent) g.inst.root.parent.remove(g.inst.root); g.inst.mixer.stopAllAction(); g.inst = null; if (W.tgt === g) disengage(); }
+  function place(g) { const I = g.inst; if (!I) return; let y = Explore.hAt(g.x, g.y); if (g.dead > 0 && g.sink > 0) y -= g.sink * g.C.height * U(); I.root.position.set(g.x, y, g.y); I.root.rotation.y = g.face; }
+  function loop(g, k) { if (!g.inst || g.anim === k) return; g.inst.play(g.C.clips[k]); g.anim = k; }
+  function once(g, k) { if (!g.inst) return; const a = g.inst.play(g.C.clips[k], true); g.anim = k; g.once = a ? a.getClip().duration : 0.6; }
+  // ---- her fight on the map
+  const me = () => W.F || (W.F = Combat.newFight(Combat.playerStats()));
+  function rel(g) { const h = here(); if (!h) return null; const dx = g.x - h[0], dy = g.y - h[1], cd = Math.hypot(dx, dy) / U(); return { dx, dy, cd, d: cd - (g.C.bodyR || 0) }; } // d: metres from her to its body surface
+  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; hud(); return true; }
+  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; hud(); }
+  function strike(g) { const q = rel(g); if (!q || g.dead > 0 || q.d > D().REACH_M + D().KEEP_REACH_M) return null; const C = g.C, r = Combat.rollDamage(Combat.playerStats(), { def: C.def, swing: ++W.n });
+    g.hp = Math.max(0, g.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); if (r.dmg > 0) Combat.fightDealt(me(), r.dmg); num(g, r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); g.hunt = true;
+    if (g.hp <= 0) { g.dead = C.respawnS || 6; g.sink = 0; g.hunt = false; g.bite = 0; g.once = 0; g.wp = null; if (g.inst) { g.inst.play(C.clips.death, true); g.anim = 'death'; } Combat.fightKill(me()); disengage(); W.kills++;
+      if (C.xp > 0 && Combat.addXp) { Combat.addXp(C.xp); if (typeof save === 'function') save(); num(g, '+' + C.xp + ' Combat XP', 'info'); } }
+    else if (r.dmg > 0) once(g, 'hit'); hud(); return r; }
+  function bite(g) { const q = rel(g); if (!q || W.ko > 0 || g.dead > 0 || q.d > g.C.atkReach + 0.35) return null; const r = Combat.creatureAttack(g.C, Combat.playerStats()); if (r.parried) num(null, 'Parry', 'info'); else if (r.dmg > 0) { const o = Combat.fightHurt(me(), r.dmg); num(null, '-' + Math.round(r.dmg), 'ouch'); if (o.dead) ko(); } else num(null, 'Miss', 'miss'); hud(); return r; }
+  function ko() { W.ko = D().KO_CALM_S; disengage(); for (const g of W.list) { g.hunt = false; g.wp = null; } if (typeof toast === 'function') toast('💫 Knocked out - the golems lose interest. Back on your feet in a moment.'); }
+  // her side each frame: run to striking range (STAND_M off its surface), square up, one swing every ATTACK_INTERVAL_S, the roll at STRIKE_AT_S into it
+  function herTick(dt) { const T = D(), g = W.tgt, G = CharView.st.gnd; if (W.strike > 0) { W.strike -= dt; if (W.strike <= 0) { W.strike = 0; if (g) strike(g); } } if (W.swT > 0) W.swT -= dt; if (!W.eng || !g || !G) return; if (g.dead > 0 || !g.inst) return disengage(); const q = rel(g); if (!q) return;
+    if (q.d > T.REACH_M) { if ((W.rp -= dt) <= 0) { W.rp = T.REPATH_S; const so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()); Explore.goTo(g.x - q.dx / L * so, g.y - q.dy / L * so); } return; }
+    if (G.path || G.goal) { G.path = null; G.goal = null; } G.face = Math.atan2(q.dx, q.dy); /* (her local frame turns like the map's: x -> x, z -> y) */
+    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
+  // ---- one golem's AI (only near her): hunt inside its leash, else wander its field
+  function step(g, tx, ty, sp) { const dx = tx - g.x, dy = ty - g.y, L = Math.hypot(dx, dy); if (L < 1e-6) return true; const s = Math.min(L, sp), nx = g.x + dx / L * s, ny = g.y + dy / L * s;
+    if (!canStand(g, nx, ny)) { W.stats.refused++; return false; } g.x = nx; g.y = ny; g.face = Math.atan2(dx, dy); W.stats.steps++; const sl = slopeDeg(nx, ny); if (sl > W.stats.maxSlope) W.stats.maxSlope = sl; return true; }
+  function ai(g, dt) { const T = D(), C = g.C;
+    if (g.dead > 0) { g.dead -= dt; const t0 = (C.respawnS || 6) - g.dead; if (t0 > (C.deathHitAt || 1) + 0.8) g.sink = Math.min(1, (t0 - (C.deathHitAt || 1) - 0.8) / 1.2) * 0.6; if (g.dead <= 0) { g.dead = 0; g.sink = 0; g.hp = C.hp; g.x = g.sx; g.y = g.sy; g.anim = null; loop(g, 'idle'); } return; }
+    if (g.once > 0) { g.once -= dt; if (g.bite > 0 && (g.bite -= dt) <= 0) { g.bite = 0; bite(g); } if (g.once > 0) return; g.anim = null; }
+    const sp = (C.walkSpd || 0.45) * U() * dt; let walking = false;
+    if (g.hunt && W.ko <= 0) { const q = rel(g); if (!q || q.d > (C.leashR || 5)) { g.hunt = false; } else { const slack = g.anim === 'walk' ? 0 : ((typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.MOB_START_SLACK_M) || 0);
+        if (q.d > C.atkReach + slack) { const h = here(), so = (C.atkReach * 0.9 + (C.bodyR || 0)) * U(), L = q.cd * U(); walking = step(g, h[0] + q.dx / L * so, h[1] + q.dy / L * so, sp); }
+        else { g.face = Math.atan2(-q.dx, -q.dy); if ((g.atkT -= dt) <= 0) { g.atkT = C.atkS; once(g, 'attack'); g.bite = C.atkHitAt; return; } } } }
+    if (!g.hunt) { if (!g.wp) { if ((g.pause -= dt) <= 0) { const P = T.WALK_PAUSE_S, Lg = T.LEG_M; for (let k = 0; k < 8 && !g.wp; k++) { const a = rnd() * 6.283, l = (Lg[0] + rnd() * (Lg[1] - Lg[0])) * WS(), x = g.x + Math.cos(a) * l, y = g.y + Math.sin(a) * l; if (canStand(g, x, y)) g.wp = { x, y }; } g.pause = P[0] + rnd() * (P[1] - P[0]); } }
+      if (g.wp) { if (Math.hypot(g.wp.x - g.x, g.wp.y - g.y) < WS() * 0.3) g.wp = null; else if (!step(g, g.wp.x, g.wp.y, sp)) g.wp = null; /* (refused: steeper than MAX_SLOPE_DEG or not walkable - it stops and picks another leg) */ else walking = true; } }
+    loop(g, walking ? 'walk' : 'idle'); }
+  // ---- per frame (Explore.tick): cheap distance pass over the 60, build / release, then mixers + AI for the near ones only
+  function tick(dt) { if (!Explore.on || typeof M3 === 'undefined' || !M3.scene) return; const L = init(), h = here(); if (!h) return; const T = D(), u = WS(), st = W.stats; dt = Math.min(dt, 0.1);
+    if (W.ko > 0 && (W.ko -= dt) <= 0) { W.ko = 0; W.F = Combat.newFight(Combat.playerStats()); }
+    else if (W.F && !L.some((g) => g.hunt) && W.F.hp < W.F.max) W.F.hp = Math.min(W.F.max, W.F.hp + Combat.REGEN * W.F.max * dt); // (out of the fight: the 2% / s regen)
+    for (const g of L) { g.d = Math.hypot(g.x - h[0], g.y - h[1]) / u; if (g.d < T.LOAD_M) tplFor(g.kind); }
+    const near = L.filter((g) => g.d < T.SPAWN_M).sort((a, b) => a.d - b.d).slice(0, T.MAX_LIVE); let live = 0, animd = 0, aid = 0;
+    for (const g of L) { if (g.inst && (g.d > T.DESPAWN_M || (!near.includes(g) && g.d > T.SPAWN_M))) release(g); if (!g.inst && near.includes(g)) build(g); if (!g.inst) continue; live++;
+      if (g.d < T.ANIM_M) { ai(g, dt); aid++; place(g); g.inst.mixer.update(dt); animd++; } }
+    st.live = live; st.animated = animd; st.ai = aid; st.far = L.length - live; herTick(dt); numsTick(dt); }
+  // ---- tap: the nearest built golem under the tap (base-to-top segment on screen, as Explore's own pick), before anything else on the map
+  function hit(sx, sy) { if (!W.list) return null; let best = null, bd = 1e9; for (const g of W.list) { if (!g.inst || g.dead > 0 || g.d > D().ANIM_M) continue; const a = M3.project(g.x, g.y, 0), b = M3.project(g.x, g.y, g.C.height * U()); if (a[0] < -999 || b[0] < -999) continue;
+      const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)), d = Math.hypot(a[0] + vx * t - sx, a[1] + vy * t - sy), rad = Math.max(18, Math.sqrt(l2) * 0.3); if (d < rad && d / rad < bd) { bd = d / rad; best = g; } } return best; }
+  // ---- HUD + floating numbers (DOM, over the map canvas)
+  function hud() { let el = document.getElementById('golemHud'); const g = W.tgt; if (!g || !W.eng) { if (el) el.style.display = 'none'; return; } if (!el) { el = document.createElement('div'); el.id = 'golemHud'; el.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 56px);transform:translateX(-50%);z-index:60;background:rgba(20,18,14,.78);color:#f3ead8;font:600 13px system-ui,sans-serif;padding:6px 12px;border-radius:10px;pointer-events:none'; document.body.appendChild(el); }
+    const F = me(); el.style.display = ''; el.textContent = `${g.C.icon || ''} ${g.C.name} HP ${g.hp} / ${g.C.hp} · DEF ${g.C.def}   You HP ${Math.round(F.hp)} / ${F.max}`; }
+  function num(g, txt, cls) { const el = document.createElement('div'); el.className = 'golemNum ' + (cls || ''); el.textContent = txt; el.style.cssText = 'position:fixed;z-index:61;pointer-events:none;font:700 15px system-ui,sans-serif;text-shadow:0 1px 2px #000;color:' + (cls === 'miss' ? '#cfcfcf' : cls === 'info' ? '#bfe8ff' : cls === 'ouch' ? '#ff8a7a' : cls === 'crit' ? '#ffd25a' : '#fff');
+    document.body.appendChild(el); W.nums.push({ el, g, t: 0, me: !g }); if (W.nums.length > 12) { const o = W.nums.shift(); o.el.remove(); } }
+  function numsTick(dt) { const cv = M3.renderer && M3.renderer.domElement, r = cv ? cv.getBoundingClientRect() : { left: 0, top: 0 }, h = here();
+    W.nums = W.nums.filter((n) => { n.t += dt; if (n.t > 1.2 || !h) { n.el.remove(); return false; } const x = n.g ? n.g.x : h[0], y = n.g ? n.g.y : h[1], up = (n.g ? n.g.C.height + 0.2 : 2.2) * U(), p = M3.project(x, y, up); n.el.style.left = (r.left + p[0] - 20) + 'px'; n.el.style.top = (r.top + p[1] - 30 * n.t) + 'px'; n.el.style.opacity = String(1 - Math.max(0, n.t - 0.7) / 0.5); return true; }); }
+  function hideAll() { if (!W.list) return; for (const g of W.list) release(g); disengage(); for (const n of W.nums) n.el.remove(); W.nums = []; }
+  if (typeof Explore !== 'undefined') { const t0 = Explore.tick, tp0 = Explore.tap, x0 = Explore.exit;
+    Explore.tick = (dt) => { t0(dt); try { tick(dt); } catch (e) { console.error(e); } };
+    Explore.tap = (sx, sy, ...r) => { if (Explore.on) { const g = hit(sx, sy); if (g) { engage(g); return 'golem'; } if (W.eng) disengage(); /* (tapping elsewhere walks her off: her attacks stop; a hunting golem keeps on inside its leash) */ } return tp0(sx, sy, ...r); };
+    Explore.exit = (...a) => { const r = x0(...a); hideAll(); return r; }; }
+  return { W, init, tick, slopeDeg, canStand, engage, disengage, strike, bite, hit, rel, tplFor, get list() { return init(); }, get stats() { return W.stats; } };
 })();
 /* ---- Mosby, the transportation turtle (Art handoff: creatures/mosby, Dominic-approved). A huge mossy land tortoise, about five elephants of him: the miner stands about
    at his knee. Kind, sleepy, smiling face; a tall domed carapace of carved scute plates (light olive/tan plate edges, growth rings), moss in patches draping over the rim
