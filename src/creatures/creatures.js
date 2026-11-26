@@ -42,7 +42,7 @@ const Creatures = (() => {
     if (glow) glowBind(m, gc, D.glowGain ?? 1.6);
     const bc = (gm.pbrMetallicRoughness && gm.pbrMetallicRoughness.baseColorFactor) || [1, 1, 1]; m.color.setRGB(bc[0], bc[1], bc[2]); /* (glTF: vertex paint x baseColorFactor; Art's t539 files use 1) */
     if (lum && D.crystalGain) m.color.multiply(new THREE.Color().setRGB(...D.crystalGain)); /* (t539: Art's per-variant crystal lift, from the data row) */
-    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut && !(O && O.screenEnc)) srgbOut(m); if (O && O.screenEnc) m.toneMapped = false; return m; }
+    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut && !(O && O.screenEnc)) srgbOut(m); if (O && O.screenEnc) m.toneMapped = false; if (gm.alphaMode === 'BLEND') { m.transparent = true; m.opacity = ud.hd_alpha ?? (bc[3] ?? 1); m.depthWrite = false; m.userData.ink = null; } /* (26 Nov: the Glassback Dragonfly's WingGlass - glTF BLEND, Art's hd_alpha 0.43, double-sided; glass gets no ink hull) */ return m; }
   // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
   // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
   // one per-vertex glow attribute for both uses (crack glow, rim mask)

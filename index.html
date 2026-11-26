@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='c19cbec3';
+<script>window.HD_BUILD='25a79e96';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build c19cbec3</div>
-<script src="assets/vendor/three.min.js?v=c19cbec3"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 25a79e96</div>
+<script src="assets/vendor/three.min.js?v=25a79e96"></script>
 <script>
 'use strict';
 
@@ -10042,7 +10042,7 @@ const CityMap = (() => {
 
 // (Dominic, card t575s2576: 'I would like the countdown respawn not visible') seconds from a creature's death to its respawn - hidden timers: nothing on screen
 // counts them down (no countdown in the playground status / overhead bars / map); each row's respawnS reads this table
-const RESPAWN_S = { lumen_mushroom: 20, tin_golem: 30, copper_golem: 45, coal_golem: 60, stalk_lurker: 30, mossmaw_toad: 30, skytalon_hawk: 30 };
+const RESPAWN_S = { lumen_mushroom: 20, tin_golem: 30, copper_golem: 45, coal_golem: 60, stalk_lurker: 30, mossmaw_toad: 30, skytalon_hawk: 30, glassback_dragonfly: 30, pebblepuff: 30, skyfin: 30, reed_crab: 30, cinder_wisp: 30, stubwing_drake: 30, stonehide_hog: 30 };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // LUMEN MUSHROOM - the Attack Playground's practice target (t653u). (GD-33, Dominic t553u: "that replaces the old Lumen Mushroom") Model: Art's own Mushnub
@@ -10198,6 +10198,39 @@ const SKYTALON_HAWK = Object.assign({}, MONSTER_BASE, {
   // every mixer update (Creatures player). Art's clips peak at 31.6 deg down (Walk), so today the clamp only guards; up-beats are not limited
   boneClamp: [{ bone: 'wing.L', axis: [0, 1, 0], down: 1, downMax: 32 }, { bone: 'wing.R', axis: [0, 1, 0], down: -1, downMax: 32 }], // down = the twist sign that lowers that wingtip
 });
+// (Dominic, 26 Nov: "Those are all approved to go to dev.") Art's next seven, added like the three above: Tin Golem stats (MONSTER_BASE), one each in the playground,
+// not on the map. Art's FULL GLBs (creature_pipeline/production/<name>_i23d/<name>_i23d.glb, as Art asked) with their 2048 PNG maps re-encoded as WebP (alpha kept on
+// the dragonfly's glass); mesh, bones, extras and clips unchanged. keepOrigin: drawn at Art's own scale and origin (1.0, floor at y 0) so the flyers keep their hover
+// height; height = the top of the bind pose. Timings from each hit_timing.json / build report: Attack lands 0.333 s; Death impact 0.7 s (flyers) / 0.767 s.
+// deathRestS: the Death clips lift their lowest point 2-20 cm off the floor as they roll / fall (measured at 30 fps), so deathRestY is eased in over 0.5-0.83 s of Death
+const GLASSBACK_DRAGONFLY = Object.assign({}, MONSTER_BASE, {
+  id: 'glassback_dragonfly', name: 'Glassback Dragonfly', icon: '🪰', model: 'assets/models/creatures/glassback_dragonfly_i23d.glb', keepOrigin: true, // v6: 15,655 tris, 8 bones (a bone per wing), 2 materials (body + translucent double-sided WingGlass, hd_alpha 0.43); hovers 0.90-1.40 m up, 1.51 x 1.18 m; Death falls and its lowest point held 19.8 cm up
+  height: 1.4, bodyR: 0.4, deathHitAt: 0.7, deathRestY: -0.198, deathRestS: [0.5, 0.83],
+});
+const PEBBLEPUFF = Object.assign({}, MONSTER_BASE, {
+  id: 'pebblepuff', name: 'Pebblepuff', icon: '🪨', model: 'assets/models/creatures/pebblepuff_i23d.glb', keepOrigin: true, // face fix: 16,000 tris, 6 bones; 0.40 m tall, 0.40 x 0.36 m; Death held 1.9 cm up
+  height: 0.4, bodyR: 0.18, deathHitAt: 0.767, deathRestY: -0.019, deathRestS: [0.5, 0.83],
+});
+const SKYFIN = Object.assign({}, MONSTER_BASE, {
+  id: 'skyfin', name: 'Skyfin', icon: '🐟', model: 'assets/models/creatures/skyfin_i23d.glb', keepOrigin: true, // 16,000 tris, 6 bones; hovers 0.70-1.23 m up, 1.00 x 0.94 m; Death falls and held 14.3 cm up
+  height: 1.23, bodyR: 0.45, deathHitAt: 0.7, deathRestY: -0.143, deathRestS: [0.5, 0.83],
+});
+const REED_CRAB = Object.assign({}, MONSTER_BASE, {
+  id: 'reed_crab', name: 'Reed Crab', icon: '🦀', model: 'assets/models/creatures/reed_crab_i23d.glb', keepOrigin: true, // 16,000 tris, 8 bones; 0.70 m tall, 1.00 x 0.80 m; Death held 7.0 cm up
+  height: 0.7, bodyR: 0.4, deathHitAt: 0.767, deathRestY: -0.07, deathRestS: [0.5, 0.83],
+});
+const CINDER_WISP = Object.assign({}, MONSTER_BASE, {
+  id: 'cinder_wisp', name: 'Cinder Wisp', icon: '🔥', model: 'assets/models/creatures/cinder_wisp_i23d.glb', keepOrigin: true, // 15,998 tris, 4 bones, its own glow map (emissive); hovers 0.60-1.50 m up, 0.46 x 0.46 m; Death falls and held 13.0 cm up
+  height: 1.5, bodyR: 0.23, deathHitAt: 0.7, deathRestY: -0.131, deathRestS: [0.5, 0.83],
+});
+const STUBWING_DRAKE = Object.assign({}, MONSTER_BASE, {
+  id: 'stubwing_drake', name: 'Stubwing Drake', icon: '🐉', model: 'assets/models/creatures/stubwing_drake_i23d.glb', keepOrigin: true, // 16,000 tris, 10 bones; 0.80 m tall, 0.74 x 1.30 m; Death held 12.1 cm up
+  height: 0.8, bodyR: 0.37, deathHitAt: 0.767, deathRestY: -0.121, deathRestS: [0.5, 0.83],
+});
+const STONEHIDE_HOG = Object.assign({}, MONSTER_BASE, {
+  id: 'stonehide_hog', name: 'Stonehide Hog', icon: '🐗', model: 'assets/models/creatures/stonehide_hog_i23d.glb', keepOrigin: true, // 16,000 tris, 8 bones; 0.93 m tall, 0.76 x 1.40 m; Death held 14.7 cm up
+  height: 0.93, bodyR: 0.38, deathHitAt: 0.767, deathRestY: -0.15, deathRestS: [0.5, 0.83],
+});
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
 // (Dominic, card t573s2565 via Art: 'Monster levels shouldn't exceed what we can kill at whatever level requires iron ore') the cap = the level that unlocks
@@ -10209,7 +10242,7 @@ const MONSTER_LEVELS = {
   FROM: { lumen_mushroom: 1, tin_golem: 10, copper_golem: 25, coal_golem: 40 }, // the t566s2518 placeholders
   LEVEL: { lumen_mushroom: 1, tin_golem: 5, copper_golem: 13, coal_golem: 20 },  // = each row's level
 };
-const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM, stalk_lurker: STALK_LURKER, mossmaw_toad: MOSSMAW_TOAD, skytalon_hawk: SKYTALON_HAWK };
+const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM, stalk_lurker: STALK_LURKER, mossmaw_toad: MOSSMAW_TOAD, skytalon_hawk: SKYTALON_HAWK, glassback_dragonfly: GLASSBACK_DRAGONFLY, pebblepuff: PEBBLEPUFF, skyfin: SKYFIN, reed_crab: REED_CRAB, cinder_wisp: CINDER_WISP, stubwing_drake: STUBWING_DRAKE, stonehide_hog: STONEHIDE_HOG };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 // (Dominic t580u in Art's chat; t736u: "Mosby and Theus will be replaced by these completely and reinstalled with the same motions and noises as before. This
@@ -10417,6 +10450,14 @@ const PLAYGROUND_COMBAT = {
     { id: 'stalk_lurker', at: [3.4, 0, -2.6], roam: 1.4 },  // (26 Nov) Art's new three, one each, for practice (Tin Golem stats)
     { id: 'mossmaw_toad', at: [-3.3, 0, 2.9], roam: 1.4 },
     { id: 'skytalon_hawk', at: [3.3, 0, 2.9], roam: 1.4 },
+    // (26 Nov) the next seven, one each, on a ring 5.4 m out
+    { id: 'glassback_dragonfly', at: [0.0, 0, 5.4], roam: 1.0 },
+    { id: 'pebblepuff', at: [5.4, 0, 0.0], roam: 1.0 },
+    { id: 'skyfin', at: [-5.4, 0, 0.0], roam: 1.0 },
+    { id: 'reed_crab', at: [0.0, 0, -5.4], roam: 1.0 },
+    { id: 'cinder_wisp', at: [2.28, 0, -4.89], roam: 1.0 },
+    { id: 'stubwing_drake', at: [-2.28, 0, -4.89], roam: 1.0 },
+    { id: 'stonehide_hog', at: [2.28, 0, 4.89], roam: 1.0 },
   ],
   // (Dominic t698u) chasing a creature that walks away: once she is back in reach she starts AND finishes a whole attack sequence.
   // COMMIT_SWING: a started swing is never dropped to re-chase (she stays, keeps facing it); KEEP_REACH_M: hysteresis - a committed swing still lands at its
@@ -11345,7 +11386,7 @@ const Creatures = (() => {
     if (glow) glowBind(m, gc, D.glowGain ?? 1.6);
     const bc = (gm.pbrMetallicRoughness && gm.pbrMetallicRoughness.baseColorFactor) || [1, 1, 1]; m.color.setRGB(bc[0], bc[1], bc[2]); /* (glTF: vertex paint x baseColorFactor; Art's t539 files use 1) */
     if (lum && D.crystalGain) m.color.multiply(new THREE.Color().setRGB(...D.crystalGain)); /* (t539: Art's per-variant crystal lift, from the data row) */
-    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut && !(O && O.screenEnc)) srgbOut(m); if (O && O.screenEnc) m.toneMapped = false; return m; }
+    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut && !(O && O.screenEnc)) srgbOut(m); if (O && O.screenEnc) m.toneMapped = false; if (gm.alphaMode === 'BLEND') { m.transparent = true; m.opacity = ud.hd_alpha ?? (bc[3] ?? 1); m.depthWrite = false; m.userData.ink = null; } /* (26 Nov: the Glassback Dragonfly's WingGlass - glTF BLEND, Art's hd_alpha 0.43, double-sided; glass gets no ink hull) */ return m; }
   // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
   // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
   // one per-vertex glow attribute for both uses (crack glow, rim mask)
@@ -13287,7 +13328,7 @@ const CharView = (() => {
     { const A = SWG.at; if (PGA.mob && A && !A.pga && A.t >= Math.min(A.T, (SWINGS[A.v] ? SWINGS[A.v].T : A.T)) * 0.42) { A.pga = true; const r = pgaHit(A.lock && pgaCh().COMMIT_SWING ? pgaCh().KEEP_REACH_M : 0); if (A.lock) { A.lock.str = true; if (r) A.lock.roll++; } } } /* (one strike point per swing animation = one damage roll, on her target) */
     const n = (PGA.mobs || []).length; for (let i = 0; i < n; i++) { pgaUse(i); pgaMobTick(dt); } pgaUse(PGA.tgt); pgaBars(dt); if (typeof CoinDrops !== 'undefined' && G && G.arena) { const got = CoinDrops.tick('pga', dt, G.x, G.z); if (got) pgaNum('+' + got + ' gold', 'info', true); } } /* (GD-30: every creature in the arena lives; then back to her target) */
   function pgaMobTick(dt) { const m = PGA.mob, C = pgaC(); if (!m) return; m.mixer.update(dt); if (PGA.blobMob) { PGA.blobMob.position.x = m.root.position.x; PGA.blobMob.position.z = m.root.position.z; PGA.blobMob.visible = PGA.dead <= 0; }
-    if (PGA.dead > 0) { PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = (u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0) + (C.deathRestY || 0) * ss(C.deathHitAt, C.deathHitAt + 0.15, PGA.sink); m.root.visible = !(u >= 1.2); } /* (26 Nov: deathRestY puts the held Death pose on the floor) */ /* (t575s2576: the longer hidden wait - once sunk it is gone until the respawn, not a stump on the floor) */ /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
+    if (PGA.dead > 0) { PGA.dead -= dt; PGA.sink += dt; if (C.deathHitAt != null) { const u = PGA.sink - C.deathHitAt - 0.8; m.root.position.y = (u > 0 ? -Math.min(1, u / 1.2) * C.height * 0.6 : 0) + (C.deathRestY || 0) * ss(...(C.deathRestS || [C.deathHitAt, C.deathHitAt + 0.15]), PGA.sink); m.root.visible = !(u >= 1.2); } /* (26 Nov: deathRestY puts the held Death pose on the floor) */ /* (t575s2576: the longer hidden wait - once sunk it is gone until the respawn, not a stump on the floor) */ /* (GD-30: it lands at deathHitAt, holds, then sinks into the floor) */
       if (PGA.dead <= 0) { PGA.dead = 0; PGA.sink = 0; m.root.position.y = 0; m.root.visible = true; PGA.hp = C.hp; PGA.anim = null; PGA.aggro = 0; PGA.atkT = 1; m.play(C.clips.idle); PGA.anim = 'idle'; m.root.scale.setScalar(0.01); pgaNum('Respawned', 'info'); pgaHud(); } } /* (t575s2576: no countdown, so nothing to refresh each second while it waits) */
     else { if (m.root.scale.x < 1) m.root.scale.setScalar(Math.min(1, m.root.scale.x + dt * 4)); pgaMob(dt); } }
   function pgaAttack() { if (!rig || !(SWG.R || SWG.L)) return false; pgaOpen(); if (PGA.ko > 0) return false; return swAttack(); }
