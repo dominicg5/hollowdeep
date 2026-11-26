@@ -163,8 +163,52 @@ const NPC_MODELS = {
     shade: 'hdToon',
     clips: { idle: 'Idle', walk: 'Walk', talk: 'Talk', strike: 'Strike' }, // Idle 3.03, Walk 1.37, Talk 2.03, Strike 1.33 s
   },
+  // (t740u) the Mole pet (src/pet_mole.js), Art's mole_pet_i23d_slim.glb (26 Nov gen3: 16,000 tris, 7 bones, 1024 JPEG albedo + emissive headlamp, 920 KB).
+  // Already game size (1.00 scale, feet on y 0): NOT x10. The ore in its satchel is part of the mesh (no separate ore piece).
+  mole_pet: {
+    id: 'mole_pet', name: 'Mole',
+    model: 'assets/models/creatures/mole_pet_i23d.glb',
+    nativeH: 0.78, scaleM: 1, // 0.78 m tall (the old procedural mole's H), footprint about 0.59 x 0.44 m
+    shade: 'hdToon',          // the material's hd_* extras; its _HD_GLOW is all 0 (no rim glow)
+    clips: { idle: 'Idle', walk: 'Walk', deposit: 'Deposit' }, // Idle 2.033 s loop, Walk 1.033 s loop (waddle), Deposit 1.333 s (30 fps)
+    handoffS: 1.3,  // Deposit: hop lands 0.5 s, bow into the satchel from 0.7 s, the ore changes hands at 1.3 s (deliver() / pickUp())
+    walkStride: 2.0,  // metres it covers per Walk cycle: the clip plays at speed x 1.033 / walkStride (the old waddle's cadence: about 1.7 steps/s at its 3.4 m/s trot)
+    walkTsMax: 3,     // fastest Walk playback (catching up at up to 12 m/s): beyond it the paws slide rather than blur
+    walkMin: 0.25,    // m/s below which it stands (Idle)
+  },
 };
 for (const k in NPC_MODELS) NPC_MODELS[k].height = NPC_MODELS[k].nativeH * NPC_MODELS[k].scaleM; // in-game metres tall (Creatures.make scales the model to it)
+
+// (t740u) the player, rebuilt on Art's GLBs (src/char3d.js): the male / female bodies are Art's (old bodies deleted); the old rig's motions drive Art's bones
+// (same names, rest rotations all identity), so walk / run / mine / attack / sword swings / ride / ledge / fidgets are the ones we had. Art's Walk and Run
+// clips take the legs and hips while she moves (phase-locked to the gait, at Art's stride so the planted foot stays put). Lengths are metres in Art's model
+// frame (feet on y 0, +z forward, x her left). The slim files use EXT_texture_webp + KHR_mesh_quantization (read by src/creatures/creatures.js).
+const PLAYER_MODELS = {
+  m: {
+    id: 'player_m', name: 'Player (male)',
+    model: 'assets/models/player/player_male_i23d.glb', // Art's player_male_i23d_slim.glb (26 Nov, 603 KB; 21 bones, root 'body' mesh, webp albedo)
+    height: 1.52, keepOrigin: true, uv: true, // already game size (top 1.520 m, feet at y 0): NOT x10; no recentring (the pose code drives the bones in place)
+    clips: { idle: 'Idle', walk: 'Walk', run: 'Run', mine: 'Mine', attack: 'Attack' }, // Idle 2.4, Walk 1.0, Run 0.66, Mine 1.2 (pick lands 0.636), Attack 0.9 (hit 0.423)
+    hipZ: 0.0726,   // Art's hips sit this far forward of the origin: the model is set back by it so her hips are over the rig root, like the old body's
+    legK: 0.688,    // Art's leg (thigh joint to ankle 0.485 m) / the old rig's (LT + LS 0.705): the old hips' bob / squat is scaled by it
+    gait: { walk: { S: 1.26, ph0: 0.075 }, run: { S: 2.30, ph0: 0.442 } }, // S: metres per gait cycle of Art's clip (planted-foot speed x duration); ph0: clip phase where the left foot plants (the old gait's phase 0)
+    grip: [0, -0.07, 0.041], // hand-local offset from the old palm point (0, -0.045, -0.031) to the middle of Art's closed mitten: tools sit in the fist
+    pack: { W: 0.40, H: 0.405, D: 0.19, y0: 0.045, zb: -0.296 }, // Art's backpack in the chest frame (width, height, depth, centre height, back face): the Tether coil, winch and lantern hang on it
+    headTop: 1.520,  // top of the model (hair / helmet), metres
+  },
+  f: {
+    id: 'player_f', name: 'Player (female)',
+    model: 'assets/models/player/player_female_i23d.glb', // Art's player_female_i23d_slim.glb (26 Nov, 668 KB)
+    height: 1.47, keepOrigin: true, uv: true,
+    clips: { idle: 'Idle', walk: 'Walk', run: 'Run', mine: 'Mine', attack: 'Attack' },
+    hipZ: 0.0369,
+    legK: 0.622,    // 0.417 / 0.67
+    gait: { walk: { S: 1.07, ph0: 0.075 }, run: { S: 1.97, ph0: 0.442 } },
+    grip: [0, -0.035, 0.036],
+    pack: { W: 0.344, H: 0.44, D: 0.17, y0: 0.03, zb: -0.271 },
+    headTop: 1.471,
+  },
+};
 
 // (t736u) Mosby, rebuilt on Art's GLB (src/mosby.js): everything he does is read off the model. Lengths are giant metres in the GLB's own frame (feet on y 0,
 // nose +z, x his left) unless they say otherwise; the small tortoise is the same model at smallK. His body units (Mosby.B: the ride / veins frame) are

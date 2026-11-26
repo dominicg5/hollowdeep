@@ -31,6 +31,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
       const ids = [...document.querySelectorAll('#modalBody [data-mo=item]')].map((e) => e.dataset.id); closeModalQuiet(); Mole.setTask('fetch', [id, tid], 'door'); let g = 0; while (Mole.M.fetch && g < 30 * 120) { T(1); g++; } T(30 * 20); Mole.untask();
       out.fetch = { ids: ids.join(), listed: ids.includes(id) && ids.includes(tid), copperOut: cv0 - Craft.get('vault', id), tetherOut: tv0 - Craft.get('vault', tid), tetherBag: Craft.get('bag', tid) - tb0 };
       const left = Craft.get('vault', tid); if (left) Craft.tetherDraw(() => Craft.add('vault', tid, -left)); const lb = Craft.get('bag', tid) - tb0; if (lb > 0) Craft.add('bag', tid, -lb); }
+    { const I = M.g && M.g.userData.inst; out.glb = { inst: !!I, clips: I ? Object.keys(I.clips).sort().join(',') : '', proc: !!(M.g && M.g.userData.arms), handoff: NPC_MODELS.mole_pet.handoffS }; } /* (t740u) Art's mole GLB */
     Craft.add('bag', id, -4); Explore.exit(); return out; });
   console.log(JSON.stringify(r));
   ok(r.btn, 'no Mole button on the Explore bar any more (tap the Mole instead)');
@@ -44,5 +45,6 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(!r.exit.vis, 'leaving Explore hides it');
   ok(!r.reload.haul && r.reload.saved === false && r.reload.bag === 4 && r.reload.on, 'a save that said hauling does not auto-start it (saved haul = false) ' + JSON.stringify(r.reload));
   ok(r.fetch.listed && r.fetch.copperOut > 0, '(t598u) Fetch from vault lists any vault item and fetches it (copper leaves the vault) ' + JSON.stringify(r.fetch));
+  ok(r.glb.inst && r.glb.clips === 'Deposit,Idle,Walk' && !r.glb.proc && r.glb.handoff === 1.3, '(t740u) the Mole is Art\'s GLB (Idle / Walk / Deposit), the procedural mole gone, hand-off at 1.3 s ' + JSON.stringify(r.glb));
   ok(!errs.length, 'no page errors ' + errs.join(' | ')); await b.close(); console.log(fails ? fails + ' FAIL' : 'ALL PASS'); process.exit(fails ? 1 : 0);
 })();

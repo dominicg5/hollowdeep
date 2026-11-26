@@ -8,18 +8,22 @@
    scale clips, tightly packed buffers. (GD-30) Also Art's golems: several skinned mesh nodes, STEP keys, normalized COLOR_0 vertex paint, and a row with
    shade: 'hdToon' gets Art's chalk toon + ink outline (src/creatures/hd_toon.js) from each GLB material's extras (hd_shade / hd_rim / hd_ink / hd_emis / hd_gloss). ===== */
 const Creatures = (() => {
-  const CT = { 5121: Uint8Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array }, NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 };
+  const CT = { 5120: Int8Array, 5121: Uint8Array, 5122: Int16Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array }, NMAX = { 5120: 127, 5121: 255, 5122: 32767, 5123: 65535 }, NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 };
   const ST = {}; // id -> { gl, bin, p, err }
   const XD = {}; // (t718s2692) extra rows registered at runtime (def) - not creatures of their own: the golems' far LOD stand-ins (WorldGolems), kept out of CREATURE_DATA / ids
   const get = (id) => CREATURE_DATA[id] || XD[id] || null, st = (id) => ST[id] || (ST[id] = { gl: null, bin: null, p: null, err: null });
-  function acc(S, i) { const g = S.gl, a = g.accessors[i], bv = g.bufferViews[a.bufferView], T = CT[a.componentType], n = NC[a.type], off = S.bin.byteOffset + (bv.byteOffset || 0) + (a.byteOffset || 0);
-    return { arr: new T(S.bin.buffer.slice(off, off + a.count * n * T.BYTES_PER_ELEMENT)), n, norm: !!a.normalized }; }
+  // (t740u) also interleaved views (byteStride) and KHR_mesh_quantization's normalized integers (read back to floats: positions, normals, uvs, weights, quantized
+  // keys); a stride is a multiple of the component size (glTF), so the interleaved copy is read element by element
+  function acc(S, i) { const g = S.gl, a = g.accessors[i], bv = g.bufferViews[a.bufferView], T = CT[a.componentType], n = NC[a.type], es = T.BYTES_PER_ELEMENT, st = bv.byteStride || n * es, off = S.bin.byteOffset + (bv.byteOffset || 0) + (a.byteOffset || 0);
+    let arr; if (st === n * es) arr = new T(S.bin.buffer.slice(off, off + a.count * n * es)); else { const src = new T(S.bin.buffer.slice(off, off + (a.count - 1) * st + n * es)), k = st / es; arr = new T(a.count * n); for (let q = 0; q < a.count; q++) for (let c = 0; c < n; c++) arr[q * n + c] = src[q * k + c]; }
+    if (a.normalized && T !== Float32Array) { const mx = NMAX[a.componentType], f = new Float32Array(arr.length); for (let q = 0; q < arr.length; q++) f[q] = Math.max(arr[q] / mx, -1); return { arr: f, n, norm: false }; }
+    return { arr, n, norm: !!a.normalized }; }
   function load(id) { const D = get(id); if (!D) return Promise.reject(new Error('no creature ' + id)); const S = st(id); if (S.p) return S.p;
     S.p = fetch(D.model).then((r) => { if (!r.ok) throw new Error(id + ' ' + r.status); return r.arrayBuffer(); }).then((ab) => { const dv = new DataView(ab); let o = 12;
       while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) S.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) S.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
       if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.tex = texs(S); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
   // (GD-33) the GLB's embedded images as textures (glTF: sRGB colour, no flip), decoded in the background - drawn as soon as each image arrives
-  function texs(S) { const g = S.gl; return (g.textures || []).map((t) => { const im = g.images && g.images[t.source], bv = im && g.bufferViews[im.bufferView]; if (!bv) return null; const T = new THREE.Texture(); T.flipY = false; T.encoding = THREE.sRGBEncoding;
+  function texs(S) { const g = S.gl; return (g.textures || []).map((t) => { const src = t.source != null ? t.source : t.extensions && t.extensions.EXT_texture_webp ? t.extensions.EXT_texture_webp.source : null, im = g.images && g.images[src], /* (t740u: EXT_texture_webp - the browser decodes the WebP) */ bv = im && g.bufferViews[im.bufferView]; if (!bv) return null; const T = new THREE.Texture(); T.flipY = false; T.encoding = THREE.sRGBEncoding;
       const sp = (g.samplers || [])[t.sampler] || {}; if (sp.wrapS) T.wrapS = sp.wrapS; if (sp.wrapT) T.wrapT = sp.wrapT; if (sp.magFilter) T.magFilter = sp.magFilter; if (sp.minFilter) T.minFilter = sp.minFilter;
       const url = URL.createObjectURL(new Blob([new Uint8Array(S.bin.buffer, S.bin.byteOffset + (bv.byteOffset || 0), bv.byteLength)], { type: im.mimeType || 'image/jpeg' })), I = new Image(); I.onload = () => { T.image = I; T.needsUpdate = true; URL.revokeObjectURL(url); }; I.src = url; return T; }); }
   // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
@@ -59,10 +63,15 @@ const Creatures = (() => {
       if (n.translation) o.position.fromArray(n.translation); if (n.rotation) o.quaternion.fromArray(n.rotation); if (n.scale) o.scale.fromArray(n.scale); return o; });
     g.nodes.forEach((n, i) => (n.children || []).forEach((c) => nodes[i].add(nodes[c])));
     const model = new THREE.Group(); model.name = D.id + 'Model'; for (const i of g.scenes[g.scene || 0].nodes) model.add(nodes[i]); model.updateMatrixWorld(true);
-    let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
+    let skel = null, TQ = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]), IB = bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16));
+      /* (t740u) KHR_mesh_quantization on a skinned mesh (glTF-Transform): the positions are stored in the quantized box and its de-quantization is folded into every
+         inverse bind matrix. In the rest pose joint x IBM is that one transform (TQ): it is moved onto the vertices so the mesh is in model metres again (bounds,
+         measures, ink), and taken back out of the IBMs - the skin draws exactly as before */
+      if ((g.extensionsUsed || []).includes('KHR_mesh_quantization')) { const m = bones[0].matrixWorld.clone().multiply(IB[0]); if (Math.abs(m.determinant() - 1) > 1e-4 || m.elements[12] ** 2 + m.elements[13] ** 2 + m.elements[14] ** 2 > 1e-10) { TQ = m; const qi = m.clone().invert(); for (const b of IB) b.multiply(qi); } }
+      skel = new THREE.Skeleton(bones, IB); }
     const mats = [], gc = D.glowColor || ((g.materials || []).find((q) => q.extras && q.extras.hd_glow) || { extras: {} }).extras.hd_glow; /* (Mosby: his row's glowColor - the GLB's hd_glow is black) */ /* (t542: the golem's glow colour, on its Stone material) */
     g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
-        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (hasGlow(D, A, gc) || (((g.materials[p.material] || {}).extras || {}).hd_rimMask && A._HD_GLOW != null)) put('_HD_GLOW', 'hdGlow'); put('TEXCOORD_0', 'uv'); } /* (the golems' painted swatches + Art's _HD_GLOW per-vertex glow, t542) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
+        put('POSITION', 'position'); put('NORMAL', 'normal'); if (TQ && skel) { geo.attributes.position.applyMatrix4(TQ); if (geo.attributes.normal) { geo.attributes.normal.applyNormalMatrix(new THREE.Matrix3().getNormalMatrix(TQ)); /* (applyNormalMatrix renormalises each) */ } } put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (hasGlow(D, A, gc) || (((g.materials[p.material] || {}).extras || {}).hd_rimMask && A._HD_GLOW != null)) put('_HD_GLOW', 'hdGlow'); put('TEXCOORD_0', 'uv'); } else if (D.uv) put('TEXCOORD_0', 'uv'); /* (t740u: a textured row with its own look, e.g. the player) */ /* (the golems' painted swatches + Art's _HD_GLOW per-vertex glow, t542) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
         const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A, gc, O, S.tex) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
     // (GD-12: the invisible mushroom) glTF skinning ignores the skinned mesh node's own transform - the joints' world matrices x inverse bind matrices already place
     // every vertex. FBX2glTF puts the 100x / -90 deg X export transform on BOTH the armature and the mesh node, so binding with the mesh's matrixWorld applied it twice:
@@ -80,10 +89,10 @@ const Creatures = (() => {
     const bb = new THREE.Box3(), pv = new THREE.Vector3(); model.traverse((o) => { if (!o.isMesh || o.userData.isInk) return; const P = o.geometry.attributes.position;
       if (o.isSkinnedMesh) { for (let i = 0; i < P.count; i++) { pv.fromBufferAttribute(P, i); o.boneTransform(i, pv); bb.expandByPoint(pv.applyMatrix4(o.matrixWorld)); } } /* (where the skin really draws it, bones applied) */
       else { o.geometry.computeBoundingBox(); bb.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld)); } });
-    const h = Math.max(1e-4, bb.max.y - bb.min.y), k = (D.height || 1) / h; model.scale.setScalar(k); model.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k); /* (centred on its root, feet on the ground) */
+    const h = Math.max(1e-4, bb.max.y - bb.min.y), k = D.keepOrigin ? 1 : (D.height || 1) / h; model.scale.setScalar(k); if (!D.keepOrigin) model.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k); /* (centred on its root, feet on the ground; t740u keepOrigin: already game size with its feet at its origin - Art's players, whose bones the pose code drives in place) */ const bbM = bb;
     const root = new THREE.Group(); root.name = D.id; root.add(model);
     const rest = {}; if (skel) for (const b of skel.bones) rest[b.name] = b.quaternion.clone(); /* (bind / rest pose, before any clip runs) */
-    return player({ id, def: D, root, model, clips, mats, names: Object.keys(clips), stripped, rest, bones: skel ? skel.bones : [] }); }
+    return player({ id, def: D, root, model, clips, mats, names: Object.keys(clips), stripped, rest, bones: skel ? skel.bones : [], tex: S.tex, box: bbM }); }
   // its mixer + play(): (GD-30 t706u: the golem's feet 'split as if a double animation') one clip at a time: every other running action fades out (not only the last one),
   // and a loop that is still fading out is taken back from where it is instead of being reset to frame 0 under the other clip (walk / idle flicker restarted Walk every switch)
   function player(I) { const mixer = new THREE.AnimationMixer(I.model), clips = I.clips, acts = new Set(); let starts = 0;
