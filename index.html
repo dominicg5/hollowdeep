@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='5ce339db';
+<script>window.HD_BUILD='234acdc7';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 5ce339db</div>
-<script src="assets/vendor/three.min.js?v=5ce339db"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 234acdc7</div>
+<script src="assets/vendor/three.min.js?v=234acdc7"></script>
 <script>
 'use strict';
 
@@ -10200,16 +10200,17 @@ const NPC_MODELS = {
     shade: 'hdToon',
     clips: { idle: 'Idle', walk: 'Walk', talk: 'Talk', strike: 'Strike' }, // Idle 3.03, Walk 1.37, Talk 2.03, Strike 1.33 s
   },
-  // (t740u) the Mole pet (src/pet_mole.js), Art's mole_pet_i23d_slim.glb (26 Nov gen3: 16,000 tris, 7 bones, 1024 JPEG albedo + emissive headlamp, 920 KB).
+  // (t740u) the Mole pet (src/pet_mole.js). (Dominic-approved rig_v2, 26 Nov) Art's arms-out mole, production/arms_out_v1/mole/rig_v2 mole_pet_i23d_slim.glb copied unchanged:
+  // 15,998 tris, the same 7 bones, the shoulder pivot moved into the shoulder joint and the arms re-weighted (forearm + paw all on arm.L / arm.R), clips Idle / Walk / Deposit
   // Already game size (1.00 scale, feet on y 0): NOT x10. The ore in its satchel is part of the mesh (no separate ore piece).
   mole_pet: {
     id: 'mole_pet', name: 'Mole',
     model: 'assets/models/creatures/mole_pet_i23d.glb',
-    nativeH: 0.78, scaleM: 1, // 0.78 m tall (the old procedural mole's H), footprint about 0.59 x 0.44 m
+    nativeH: 0.78, scaleM: 1, // 0.78 m tall (the old procedural mole's H), footprint about 0.83 x 0.44 m (arms out; was 0.58 x 0.44)
     shade: 'hdToon',          // the material's hd_* extras; its _HD_GLOW is all 0 (no rim glow)
     clips: { idle: 'Idle', walk: 'Walk', deposit: 'Deposit' }, // Idle 2.033 s loop, Walk 1.033 s loop (waddle), Deposit 1.333 s (30 fps)
     handoffS: 1.3,  // Deposit: hop lands 0.5 s, bow into the satchel from 0.7 s, the ore changes hands at 1.3 s (deliver() / pickUp())
-    walkStride: 0.08, // (t741u measured off the clip) metres its paws sweep per Walk cycle: the clip plays at speed x 1.033 / walkStride, up to walkTsMax
+    walkStride: 0.07, // (t741u measured off the clip; rig_v2 re-measured 0.070 / 0.074 m, was 0.08) metres its paws sweep per Walk cycle: the clip plays at speed x 1.033 / walkStride, up to walkTsMax
     walkTsMax: 3,     // fastest Walk playback (3 waddles a second; the legs paddle at this rate while it hops)
     hop: { v0: 0.3, len: 0.6, hzMax: 4.5, h: 0.11, hMaxK: 1.8, contact: 0.16, vRef: 3.4, lean: 0.12 }, // (t741u) above v0 m/s it bounds: hops of len m (longer past hzMax a second), h m high (x up to hMaxK for the long catch-up hops), paws down for the contact share of each (x vRef / speed above its 3.4 m/s trot), leaning lean rad forward
     walkMin: 0.25,    // m/s below which it stands (Idle)
