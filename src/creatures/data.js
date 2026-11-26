@@ -140,23 +140,20 @@ const MONSTER_LEVELS = {
 const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM };
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
-// (Dominic t580u in Art's chat) Art's i23d builds of the two big NPCs replace their old bodies: Mosby (the 10x giant tortoise; the small house-carrying tortoises
-// keep the procedural build - the GLB has no deck) and Theus (the four-armed ape smith at the volcanic forge). Not combat creatures: they are NOT in CREATURE_DATA
-// (no fights, levels or drops); src/creatures/npc_models.js registers them with Creatures.def and builds them with the same loader / chalk toon / ink as the golems.
-// Both GLBs are built at 1/10 of their in-game size (Art's README): scaleM 10 = in-game metres per GLB metre. Their old rigs keep running underneath, unseen
-// (Mosby's gait, feet colliders, ride + vein spots; Theus' 27 s forge loop, IK hammer + tongs and the bar), so where they walk, stand and strike is unchanged.
+// (Dominic t580u in Art's chat; t736u: "Mosby and Theus will be replaced by these completely and reinstalled with the same motions and noises as before. This
+// includes the walkable and mineable features of Mosby") Art's i23d builds of the two big NPCs ARE their bodies now - the old procedural tortoise and the baked
+// ape (assets/forge_ape.bin) are gone. Not combat creatures: they are NOT in CREATURE_DATA (no fights, levels or drops); src/creatures/npc_models.js registers
+// them with Creatures.def and builds them with the same loader / chalk toon / ink as the golems. Both GLBs are built at 1/10 of their in-game size (Art's
+// README): scaleM 10 = in-game metres per GLB metre. Mosby's numbers (walk top, ore, feet) are in MOSBY_RIG, Theus' (tools, clips per loop phase) in THEUS_RIG.
 const NPC_MODELS = {
   mosby_giant: {
     id: 'mosby_giant', name: 'Mosby',
     model: 'assets/models/creatures/mosby_i23d.glb', // Art's mosby_i23d_slim.glb (production/mosby_i23d, t577u pointed tail + silver tin; 15,999 tris, 8 bones incl. tail, 1 MB)
     nativeH: 6.486,   // metres tall in the GLB (its bounds: 7.63 wide, 11.04 long) -> 64.9 m tall, 76 m wide, 110 m long in game
-    scaleM: 10,       // (Art's README: 1/10 scale) in-game metres per GLB metre
+    scaleM: 10,       // (Art's README: 1/10 scale) in-game metres per GLB metre. The small house-carrying tortoise is the same GLB at 1/10 of this (MOSBY_RIG.smallK)
     shade: 'hdToon',  // Art's chalk toon + ink outline, look from the material extras (albedo + emissive maps, rim mask)
     crackGlow: true, glowColor: [0.32, 0.86, 1.0], glowGain: 1.6, // _HD_GLOW (Lumen crown + glyphs, 98 verts) on the golems' glow path; the GLB's own hd_glow is black, so the Lumen teal is set here
     clips: { idle: 'Idle', walk: 'Walk', talk: 'Talk' }, // Idle 3.03 s, Walk 2.03 s, Talk 2.03 s (Art's hit_timing.json); Talk while his dialogue is open
-    walkS: 2.033,     // Walk clip length: played once per step cycle of his gait (Mosby.B.cyc), so the clip's steps keep his pace
-    keep: ['mosbyVeins'], // old-rig meshes still drawn on the GLB: the mineable vein rocks (src/mosby_veins.js, on the old dome). The old Lumen crown is hidden: Art's
-                      // crown is in the mesh on his own head (the old one rode the old, longer neck); its tap / mining spot is unchanged
   },
   theus: {
     id: 'theus', name: 'Theus',
@@ -165,12 +162,65 @@ const NPC_MODELS = {
     scaleM: 10,       // (Art's README: 1/10 scale) in-game metres per GLB metre
     shade: 'hdToon',
     clips: { idle: 'Idle', walk: 'Walk', talk: 'Talk', strike: 'Strike' }, // Idle 3.03, Walk 1.37, Talk 2.03, Strike 1.33 s
-    strikeHitS: 0.6,  // the Strike clip's blow lands 0.600 s in (frame 18 @ 30 fps): each of the forge loop's 7 hits starts it 0.6 s early
-    walkPhases: ['turn', 'return'], // forge loop phases (FORGE.phase) he walks in (the turn + stride to the bar, the walk back)
-    tools: [15, 17],  // old-rig bones whose parts stay drawn: 15 the tongs, 17 the hammer (not in Art's mesh; they keep the loop's IK, the bar and the sparks)
   },
 };
 for (const k in NPC_MODELS) NPC_MODELS[k].height = NPC_MODELS[k].nativeH * NPC_MODELS[k].scaleM; // in-game metres tall (Creatures.make scales the model to it)
+
+// (t736u) Mosby, rebuilt on Art's GLB (src/mosby.js): everything he does is read off the model. Lengths are giant metres in the GLB's own frame (feet on y 0,
+// nose +z, x his left) unless they say otherwise; the small tortoise is the same model at smallK. His body units (Mosby.B: the ride / veins frame) are
+// bodyM giant metres each (B.K 1.15 x GK 10), so the numbers below / 11.5 are body units.
+const MOSBY_RIG = {
+  model: 'mosby_giant', bodyM: 11.5, smallK: 0.1,
+  bones: { shell: 'body', head: 'head', feet: ['lf.L', 'lf.R', 'lb.L', 'lb.R'] }, // GLB bones: the shell group (ride / veins frame) follows 'body', the neck + head group 'head'
+  // B (body units) from the GLB bounds: shell half-width 38.1 m, shell length -52.8..31.4 m (centre -10.7 m), rim ~23 m up, belly 8.6 m up at his middle
+  B: { rx: 3.32, rz: 3.66, ry: 3.64, by: 2.0, belly: 0.75 },
+  // the walk top (MosbyRide's walkable region + heights): the top-most surface of the 'body' triangles rasterised in his shell frame (cellM grid), and a smoothed
+  // copy (box blur ~smoothM) for the region's edge - his plates and ore lumps are bumpy, the edge follows the dome. MosbyRide tests the region at 30 deg; Art's
+  // dome is steeper than the old one (65 m tall over 76 m), so the region's edge is put where the smoothed dome reaches walkMaxDeg: domeY is that height scaled
+  // by tan(30) / tan(walkMaxDeg) about the summit (her feet still stand on the real surface: MosbyRide.hy rasterises the same triangles unsmoothed).
+  // 52 deg = the shoulder of the crown, just past the ring of ore plates (measured: at 45 deg the ring is 1-3 m outside, at 55 deg the edge runs down the rim).
+  walkTop: { cellM: 1.0, smoothM: 3.0, walkMaxDeg: 52 },
+  // the mineable ore: Art baked it into the shell (albedo), so the ore IS the mine spot - no separate vein rocks. Found by colour on the rasterised top (copper
+  // orange, coal black, tin silver, Lumen teal) and clustered; [type, x, z, r] in giant metres (r = the patch's radius, capped 5 m: she mines it from its edge,
+  // and it is solid like a rock). The big black boss at his summit is coal she stands ON (solid false, mined in place); the copper and coal on the outer
+  // rim (+-33 m, 31 m up) and the tail are below the walk top and stay decoration.
+  ores: [
+    { type: 'coal', x: 0.4, z: -8.9, r: 2.5, solid: false }, // the summit boss (r 11.5 m patch)
+    { type: 'coal', x: -17.2, z: 13.3, r: 5.0 }, { type: 'coal', x: 16.0, z: 13.9, r: 5.0 },
+    { type: 'coal', x: -26.1, z: -16.0, r: 5.0 }, { type: 'coal', x: 26.0, z: -15.8, r: 5.0 },
+    { type: 'tin', x: -23.5, z: 0.5, r: 3.7 }, { type: 'tin', x: 22.0, z: 0.5, r: 3.7 },
+    { type: 'copper', x: -18.2, z: -31.2, r: 3.9 }, { type: 'copper', x: 19.0, z: -32.1, r: 4.6 }, { type: 'copper', x: 1.6, z: -39.7, r: 3.6 },
+  ],
+  lumen: { x: -0.3, y: 45.4, z: 41.6, r: 3.0 }, // the Lumen Crystal crown baked on top of his head (its glow is the _HD_GLOW teal): the crystal's mine spot, head frame
+  // feet: each leg bone's sole = its vertices within soleBandM of the leg's lowest point (centroid, bind pose); the foot collider sits on it, footR x the
+  // sole's measured radius (~10.5-11.7 m) ; the head collider is the 'head' bone's vertices' centre, headR m
+  soleBandM: 1.0, footRK: 0.85, headR: 12.0,
+  // footfalls: from Art's Walk, sampled once (plantN steps): a foot plants on the first step after its highest lift where the sole is back within plantK of its
+  // swing height above its lowest (measured: the right pair at 0.20 of the clip, the left pair at 0.69). Feet planting within stompMergeS share one stomp sound
+  // (Art's Walk plants front + back of a side together); each still puffs its own dust.
+  plantN: 120, plantK: 0.15, stompMergeS: 0.15,
+  // the pace: unchanged (B.stride / B.cyc body units / s: 5.4 m/s giant, 0.54 m/s small) - his loop timing, meet and the house trips keep their clocks. Art's
+  // Walk keeps its own timing (walkTimeScale 1: one clip, two footfalls, every 2.03 s; the old gait was 4 footfalls per 3.6 s). Art's Walk is an in-place sway
+  // (its planted feet do not sweep back), so no pace is slip-free: say if it should be slower / the clip faster.
+  walkTimeScale: 1,
+  // the small tortoise (her house on his back): the house sits on his summit (houseW body units wide), his colliders [dz, r] body units along his length
+  houseW: 3.25, houseLift: -0.1, smallCols: [[3.7, 1.1], [0.6, 3.3], [-2.4, 3.2]],
+};
+
+// (t736u) Theus, rebuilt on Art's GLB (src/volcanic_forge.js): the 27 s forge loop (where he stands and faces, FORGE.pose) places Art's model; his clips
+// play per loop phase (Art has no dip / lift / lay clips: each maps to the nearest one he has); Strike starts strikeHitS before each of the 7 hits so its
+// blow lands on the hit (the hammer sound, sparks and bar strike stay on the hit times). Art's mesh has no hammer or tongs: the old ones (same sizes,
+// FORGE.L.handle / head / tongs / grip, design metres) are props held in his hands - the hammer at the end of his right upper arm (armU.R), the tongs at
+// the end of his right lower arm (armL.R) - each hand = the arm bone's vertices within handBandM of its lowest point (bind pose)
+const THEUS_RIG = {
+  phaseClip: { dip: 'idle', lift: 'idle', turn: 'walk', lay: 'idle', strike: 'idle', return: 'walk' }, // between strikes: Idle; Talk while his dialogue is open and he is not walking / striking
+  strikeHitS: 0.6, // the Strike clip's blow lands 0.600 s in (frame 18 @ 30 fps)
+  hammer: { bone: 'armU.R' }, tongs: { bone: 'armL.R' }, handBandM: 4.0,
+  // [loop s, design m over the forge ground HB]: where the tongs' jaws hold the bar (the old loop's tongs-hand heights): the tongs are pitched in his fist to
+  // reach it (Art's Idle / Walk keep his lower hands ~20 m up): dipped into the lava through the lip's notch (0-4 s; the bar held level, under the lava's top at 28), lifted and carried high (clear of the cone and
+  // the platform), set down on the platform (10-12 s), lifted off and carried back (23-27 s)
+  jawY: [[0, 40], [1.6, 25], [4, 25], [5.1, 43], [6, 43], [9.3, 43], [10, 43], [11.8, 30], [23, 30], [23.6, 43], [24.3, 40], [27, 40]],
+};
 
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).

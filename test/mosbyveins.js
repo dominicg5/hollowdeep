@@ -1,5 +1,5 @@
-// (Dominic, giant_shell_ores_top_v6) Mosby's shell veins, his head and the Lumen Crystal crown: coal / tin / copper veins on the walkable top of his shell
-// (clear of his glyphs and glints, solid, one mesh) mined with the field's own logic (pickaxe reach, a full backpack); she climbs down his front rim onto his
+// (Dominic, giant_shell_ores_top_v6; t736u) Mosby's shell veins, his head and the Lumen Crystal crown: the coal / tin / copper ore Art baked into his shell
+// (MOSBY_RIG.ores) on the walkable top of his shell mined with the field's own logic (pickaxe reach, a full backpack); she climbs down his front rim onto his
 // head and back up (her own Rappel / Stop / Ascend on the face, the locked climb pace); the Lumen Crystal on his head: 'Unlock Lv 300' below, mined at 300,
 // 1 Lumen Crystal per 60 minutes of her active mining (kept in S.mosbyLumen), none for idle time; all only while he stands still (his walk waits for her).
 // Also: a skill at its level cap shows a full bar, 'Lv 300 · MAX' and its total XP.     SHOT=dir node test/mosbyveins.js -> the three renders
@@ -29,24 +29,22 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     G0.hold = false; G0.s = sF; Mosby.gTick(0.01); G0.hold = true; const m = Mosby.gMeet(G0.at.x + WS * 200, G0.at.y), k = Explore.reach(m[0], m[1]); Explore.enter(k[0], k[1]); for (let i = 0; i < 5; i++) Explore.tick(1 / 30);
     Mosby.talkTap(); const dlg = document.getElementById('mosDlg'); dlg.querySelector('.mdWell').click(); const rb = dlg.querySelector('[data-a=ride]'); if (rb) rb.click(); dlg.querySelector('.mdWell').click(); G0.hold = true; __frame(10); o.on = MosbyRide.on;
     const MV = MosbyVeins, u = MosbyRide.um(), V = MV.veins, cnt = {}; for (const v of V) cnt[v.type] = (cnt[v.type] || 0) + 1; o.cnt = cnt; o.n = V.length;
-    let inside = true, glyph = 1e9, glint = 1e9, sides = 0, sp = 1e9; for (const v of V) { for (let a = 0; a < 6.28; a += 0.5) if (!MosbyRide.clampM(v.x + Math.cos(a) * (v.r + 1), v.z + Math.sin(a) * (v.r + 1))[2]) inside = false; const P = new THREE.Vector3(v.x * u, v.y * u, v.z * u);
-      for (const g of Mosby.GLY) glyph = Math.min(glyph, (P.distanceTo(g.P) - g.R) / u - v.r); for (const [az, s, R] of Mosby.GLINT.spirals) glint = Math.min(glint, (P.distanceTo(Mosby.dome(az, s)) - R) / u - v.r); for (const [az, s] of Mosby.GLINT.dots) glint = Math.min(glint, P.distanceTo(Mosby.dome(az, s)) / u - v.r);
-      if (Math.hypot(v.x, v.z) > Math.min(...MosbyRide.region().rmax) / u) sides++; for (const w of V) if (w !== v) sp = Math.min(sp, Math.hypot(v.x - w.x, v.z - w.z)); }
-    o.inside = inside; o.glyph = +glyph.toFixed(2); o.glint = +glint.toFixed(2); o.sides = sides; o.sp = +sp.toFixed(1);
-    const vm = MV.MV.vmesh, cm = MV.MV.cmesh; o.vm = !!vm && vm.parent === G0.shell && vm.material === Explore.ORE.kit.rockM; o.cm = !!cm && cm.parent === G0.head; o.cmTex = !!(cm && cm.material.map); o.prisms = cm ? Math.round(cm.geometry.attributes.position.count / 108) : 0;
-    let man = 0; G0.g.traverse((x) => { if (/rope|anchor|ring|dish|tether/i.test(x.name || '')) man++; }); o.man = man;
-    let added = 0; for (const x of [vm, cm]) if (x && x.isMesh && !Array.isArray(x.material) && !x.castShadow && x.children.length === 0) added++; o.calls = added; return o; });
+    /* (t736u) the mine spots ARE the ore Art baked into his shell (MOSBY_RIG.ores, found on his albedo): each one has somewhere on the walk top to stand and swing from */
+    const R = MOSBY_RIG; let same = V.length === R.ores.length, stand = 0, sp = 1e9; V.forEach((v, i) => { const q = R.ores[i]; if (!q || q.type !== v.type || Math.abs(q.x - v.x) > 1e-6 || Math.abs(q.z - v.z) > 1e-6) same = false;
+      let ok1 = false; for (let a = 0; a < 6.28 && !ok1; a += 0.2) if (MosbyRide.clampM(v.x + Math.cos(a) * (v.r + 0.65), v.z + Math.sin(a) * (v.r + 0.65))[2]) ok1 = true; if (ok1) stand++;
+      for (const w of V) if (w !== v) sp = Math.min(sp, Math.hypot(v.x - w.x, v.z - w.z)); });
+    o.same = same; o.stand = stand; o.sp = +sp.toFixed(1); o.walk = V.filter((v) => v.solid === false).map((v) => v.type + '@' + v.x + ',' + v.z).join();
+    const cm = MV.MV.cmesh; o.cm = !!cm && cm.parent === G0.head; o.vm = MV.MV.vmesh != null; let mesh = 0; if (cm) cm.traverse((x) => { if (x.isMesh) mesh++; }); o.cmMesh = mesh;
+    let man = 0; G0.g.traverse((x) => { if (/rope|anchor|ring|dish|tether/i.test(x.name || '')) man++; }); o.man = man; o.vg = 0; G0.g.traverse((x) => { if (/mosbyVeins|mosbyCrystal/.test(x.name || '')) o.vg++; }); return o; });
   console.log(JSON.stringify(r1));
-  ok(r1.on && r1.n === 7 && r1.cnt.coal === 3 && r1.cnt.tin === 2 && r1.cnt.copper === 2, `on his shell: 7 veins fused into the top plates (coal ${r1.cnt.coal}, tin ${r1.cnt.tin}, copper ${r1.cnt.copper})`);
-  ok(r1.inside && r1.glyph > 0 && r1.glint > 0 && r1.sp >= 5, `only on the walkable crown with a metre to spare (sides clean), never over a glyph (${r1.glyph} m clear) or a glint swirl / dot (${r1.glint} m clear), ${r1.sp} m apart`);
-  ok(r1.vm && r1.cm && !r1.cmTex && r1.man === 0, 'the veins reuse the field veins\' rock + material (one mesh on his shell); the Lumen crystals are procedural on his head (no texture); no rope / anchor / ring / dish');
-  ok(r1.prisms >= 20, `a fuller Lumen crystal cluster on his head: ${r1.prisms} faceted crystals, made in code (got more crystals)`);
-  ok(r1.calls === 2, `draw calls added: ${r1.calls} (one merged veins mesh, one crystal mesh, single material, no shadow pass)`);
+  ok(r1.on && r1.n === 10 && r1.cnt.coal === 5 && r1.cnt.tin === 2 && r1.cnt.copper === 3 && r1.same, `t736u: on his shell, the ore Art baked in (MOSBY_RIG.ores): ${r1.n} spots (coal ${r1.cnt.coal}, tin ${r1.cnt.tin}, copper ${r1.cnt.copper})`);
+  ok(r1.stand === r1.n && r1.sp >= 5, `every spot has a place on his walk top to stand and swing from (${r1.stand} / ${r1.n}), ${r1.sp} m apart; walked over (not solid): ${r1.walk}`);
+  ok(!r1.vm && r1.vg === 0 && r1.cm && r1.cmMesh === 0 && r1.man === 0, 'no added vein rocks or crystal meshes (the ore and the Lumen crown are Art\'s, baked into his model); the Lumen mine spot is a marker on his head; no rope / anchor / ring / dish');
   if (SHOT && process.env.ALL_SHOTS) { await p.evaluate(() => { const G = CharView.st.gnd; G.x = 0; G.z = 2; G.y = MosbyRide.hy(0, 2); __frame(3); return __aim(MosbyVeins.veins.map((v) => new THREE.Vector3(v.x, v.y, v.z)), 55, 0.95); }); await shot('mosby_shell_top_ores.png'); }
   // ---- a shell vein: reach + full backpack first; tapped while he walks, he stops (his walk waits while she mines); mined with the field's own strikes; solid
   // (Dominic t561u) her feet on his visible surface everywhere she can walk or climb on him: raycast his rendered meshes (shell plates, rim, neck, head) in a grid,
   // over several moments of his walk (bob) with his neck swayed; worst sink before (the old surface lookups) and after
-  const sk = await p.evaluate(() => { const GM = Mosby.GM, MVv = MosbyVeins, P = Explore.EX.par, H = MVv.field(), rc = new THREE.Raycaster(), skip = new Set([MVv.MV.vmesh, MVv.MV.cmesh]), meshes = []; GM.g.traverse((x) => { if (x.isMesh && !x.isInstancedMesh && !skip.has(x) && x.name !== 'herTether') { let v = true; for (let q = x; q && q !== GM.g; q = q.parent) if (!q.visible) v = false; if (v) meshes.push(x); } });
+  const sk = await p.evaluate(() => { const GM = Mosby.GM, MVv = MosbyVeins, P = Explore.EX.par, H = MVv.field(), rc = new THREE.Raycaster(), skip = new Set([MVv.MV.cmesh]), meshes = []; GM.g.traverse((x) => { if (x.isMesh && !x.isInstancedMesh && !skip.has(x) && !x.userData.proxy && !x.userData.isInk && x.name !== 'herTether') /* (t736u) Art's rendered mesh, not the invisible proxies or the ink hull */ { let v = true; for (let q = x; q && q !== GM.g; q = q.parent) if (!q.visible) v = false; if (v) meshes.push(x); } });
     const W = { top: [0, 0, 0, null], route: [0, 0, 0, null], head: [0, 0, 0, null] }, put = (k, b, a, at) => { const w = W[k]; w[2]++; if (b > w[0]) w[0] = b; if (a > w[1]) { w[1] = a; w[3] = at; } };
     const cast = (lp, ld) => { const wp = P.localToWorld(lp.clone()), d = ld.clone().transformDirection(P.matrixWorld); rc.set(wp, d); rc.far = 1e5; const h = rc.intersectObjects(meshes, false)[0]; return h ? P.worldToLocal(h.point.clone()) : null; };
     const g0 = Mosby.gTick, sway = [0, 0.1, -0.1, 0.05]; let k = 0; Mosby.gTick = function () { const r = g0.apply(this, arguments); if (GM.neck) GM.neck.rotation.y = sway[k]; return r; };
@@ -69,7 +67,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
     Mosby.gTick = g0; off = 0; __frame(2);
     /* the same on the ground: off him, mining a field vein spot */ return out; });
   console.log(JSON.stringify(hd));
-  const r2 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, o = {}; const v = MV.veins.find((x) => x.type === 'coal');
+  const r2 = await p.evaluate(() => { const MV = MosbyVeins, G = CharView.st.gnd, GM = Mosby.GM, o = {}; const v = MV.veins.find((x) => x.type === 'coal' && x.solid !== false); /* (t736u) not the summit boss she walks over */
     const pr = Skills.pickReaches; Skills.pickReaches = () => false; o.weak = MV.veinGo(v); Skills.pickReaches = pr; const cf = Craft.fits; Craft.fits = () => false; o.full = MV.veinGo(v); Craft.fits = cf; o.fullT = __lastToast(/Backpack full/);
     GM.hold = false; __frame(20); const s0 = GM.s; __frame(10); o.walking = GM.s !== s0; __toasts.length = 0; o.go = MV.veinGo(v); o.stopT = __lastToast(/Mosby stops/); const s1 = GM.s, b0 = Craft.get('bag', 'ore:coal');
     for (let i = 0; i < 600 && MV.MV.task; i++) __frame(1); for (let i = 0; i < 1500 && Craft.get('bag', 'ore:coal') === b0; i++) __frame(1); o.ore = Craft.get('bag', 'ore:coal') - b0; o.still = GM.s !== s1 && !GM.hold; o.act = CharView.an.act;

@@ -22,9 +22,9 @@ const Theus = (() => {
   function hit(sx, sy) { const M = typeof FORGE !== 'undefined' && FORGE.M; if (!M || !M.built || !M.ape || !M.ape.visible || typeof M3 === 'undefined' || !M3.camera) return false;
     for (let q = M.ape; q; q = q.parent) if (!q.visible) return false;
     const el = M3.renderer && M3.renderer.domElement, w = el ? el.clientWidth : innerWidth, h = el ? el.clientHeight : innerHeight, rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2((sx / w) * 2 - 1, -(sy / h) * 2 + 1), M3.camera);
-    // his skinned body in its current pose (the bounds refreshed per tap: he walks 60 m between the lava and the bar); only the body, not the fur shells
-    if (M.ape.isSkinnedMesh && M.ape.computeBoundingSphere) { M.ape.computeBoundingSphere(); if (M.ape.computeBoundingBox) M.ape.computeBoundingBox(); }
-    const hh = M.glb ? rc.intersectObject(M.glb.root, true).find((q) => q.object.isMesh && !q.object.userData.isInk) : rc.intersectObject(M.ape, false)[0]; if (!hh) return false; /* (t580u: Art's i23d body once it is drawn; the old ape mesh is only the tools then) */
+    // (t736u) Art's body (skinned, bounds refreshed per tap where three has it) and the hammer + tongs in his hands; not the ink outline
+    if (!M.glb) return false; M.ape.traverse((o) => { if (o.isSkinnedMesh && o.computeBoundingSphere) o.computeBoundingSphere(); });
+    const hh = rc.intersectObjects([M.ape, M.hammer, M.tongs].filter(Boolean), true).find((q) => q.object.isMesh && !q.object.userData.isInk); if (!hh) return false;
     const g = M3.unproject && M3.unproject(sx, sy); if (g && M3.meshH) { const gd = M3.camera.position.distanceTo(new THREE.Vector3(g[0], M3.meshH(g[0], g[1]), g[1])); if (hh.distance > gd + (typeof Explore !== 'undefined' ? Explore.WS : 1) * 0.5) return false; } // (behind the ground / platform: not on him)
     return true; }
   // a tap on him: on the anvil top -> talk; elsewhere -> a short hint (no marker, no walk)
