@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='414e42f5';
+<script>window.HD_BUILD='ff745927';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 414e42f5</div>
-<script src="assets/vendor/three.min.js?v=414e42f5"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build ff745927</div>
+<script src="assets/vendor/three.min.js?v=ff745927"></script>
 <script>
 'use strict';
 
@@ -10229,10 +10229,11 @@ const TIN_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.45,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's build, copied unchanged (tin_golem_i23d.glb)
+  model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_* stripped, 0.92 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (tin_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
-  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
+  crystalGain: [1.9, 2.3, 2.7], // (t539, Art: Tin's crystals too dark) linear lift on its crystal paint: median #594b40 -> #787068, Art's lineup value
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup) - on only when the GLB carries the mask (t539 files do not)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -10255,10 +10256,10 @@ const COPPER_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.45,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's build, copied unchanged (copper_golem_i23d.glb)
+  model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_* stripped, 0.92 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (copper_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
-  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup) - on only when the GLB carries the mask (t539 files do not)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -10281,10 +10282,10 @@ const COAL_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.4,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's build, copied unchanged (coal_golem_i23d.glb)
+  model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_* stripped, 0.92 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (coal_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
-  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup)
+  crackGlow: true,  // (t705u) its ore-coloured crack glow (Art's _HD_GLOW mask x material hd_glow; Coal's glow colour is black = none, as in Art's lineup) - on only when the GLB carries the mask (t539 files do not)
   srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
   rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
@@ -10485,11 +10486,14 @@ const Creatures = (() => {
       if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
   // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
   const DT = {}; function dummyTex(r, g, b) { const k = r + ',' + g + ',' + b; if (DT[k]) return DT[k]; const t = new THREE.DataTexture(new Uint8Array([r, g, b, 255]), 1, 1); t.needsUpdate = true; return (DT[k] = t); }
-  function hdMat(D, gm) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm);
+  function hdMat(D, gm, A) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm), glow = !!(D.crackGlow && A && A._HD_GLOW != null);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
-      : T.makeChalkMaterial(Object.assign({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 }, D.crackGlow ? { atlasColor: dummyTex(255, 255, 255), atlasNormal: dummyTex(128, 128, 255), atlasBlend: 0, normalAmt: 0, glowColor: ud.hd_glow } : {}));
+      : T.makeChalkMaterial(Object.assign({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 }, glow ? { atlasColor: dummyTex(255, 255, 255), atlasNormal: dummyTex(128, 128, 255), atlasBlend: 0, normalAmt: 0, glowColor: ud.hd_glow } : {}));
     /* (t705u) crackGlow: Art's per-ore crack glow (the _HD_GLOW vertex mask x the material's hd_glow colour) needs his shader's atlas path on; the stone atlas itself is not
-       shipped, so a 1x1 stand-in with atlasBlend 0 / normalAmt 0 leaves the painted stone exactly as is and only turns the glow on */
+       shipped, so a 1x1 stand-in with atlasBlend 0 / normalAmt 0 leaves the painted stone exactly as is and only turns the glow on. Only when the GLB carries the _HD_GLOW mask
+       (Art's t539 game-fix files strip the _HD_* attributes, so it stays off - no atlas shader cost - until a mask comes back) */
+    const bc = (gm.pbrMetallicRoughness && gm.pbrMetallicRoughness.baseColorFactor) || [1, 1, 1]; m.color.setRGB(bc[0], bc[1], bc[2]); /* (glTF: vertex paint x baseColorFactor; Art's t539 files use 1) */
+    if (lum && D.crystalGain) m.color.multiply(new THREE.Color().setRGB(...D.crystalGain)); /* (t539: Art's per-variant crystal lift, from the data row) */
     m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut) srgbOut(m); return m; }
   // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
   // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
@@ -10505,8 +10509,8 @@ const Creatures = (() => {
     let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
     const mats = [];
     g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
-        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (D.crackGlow && !/Lumenite/.test(g.materials[p.material].name || '')) { put('_HD_TEX', 'hdTex'); put('_HD_GLOW', 'hdGlow'); } } /* (the golems' painted swatches; their _HD_* atlas attributes are not uploaded) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
-        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material]) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
+        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (D.crackGlow && A._HD_GLOW != null && !/Lumenite/.test(g.materials[p.material].name || '')) { put('_HD_TEX', 'hdTex'); put('_HD_GLOW', 'hdGlow'); } } /* (the golems' painted swatches; their _HD_* atlas attributes are not uploaded) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
+        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
     // (GD-12: the invisible mushroom) glTF skinning ignores the skinned mesh node's own transform - the joints' world matrices x inverse bind matrices already place
     // every vertex. FBX2glTF puts the 100x / -90 deg X export transform on BOTH the armature and the mesh node, so binding with the mesh's matrixWorld applied it twice:
     // a ~60 m mesh around the camera (only shards of it on screen). Identity bind matrix; 'attached' mode cancels the mesh node transform (bindMatrixInverse = its inverse).
