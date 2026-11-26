@@ -109,10 +109,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(PV1.flag === 'provoked' && PV1.provoked && !PV1.hunt && PV1.bites === 0 && PV1.min < PV1.reach + 0.15, 'GD-21: once leashed back it resets to passive (beside it for ' + PV1.T + ' game s: no hunt, no bites) ' + JSON.stringify(PV1));
   // Let real damage through and tap again: it dies without any extra presses.
   await p.evaluate(() => { Combat.rollDamage = window.__roll; });
-  const mp2 = await p.evaluate(() => { const m = CharView.pga.mob.position; return [m.x, m.z]; }); await tapAt(mp2[0], mp2[1], 0.4);
-  const k0 = await p.evaluate(() => CharView.pga.kills);
-  await p.waitForFunction((k) => CharView.pga.kills > k, k0, { timeout: 240000 });
-  ok(await p.evaluate(() => !CharView.pga.eng), 'GD-19: auto-attack continues until dead, then releases the lock');
+  const mp2 = await p.evaluate(() => { const m = CharView.pga.mob.position; return [m.x, m.z]; }); const T3 = await tapAt(mp2[0], mp2[1], 0.4);
+  const KS = () => p.evaluate(() => { const g = CharView.pga, G = CharView.st.gnd, r = (v) => +v.toFixed(2); return { tgt: g.tgt, eng: g.eng, ko: g.ko, kills: g.kills, hp: g.hp, me: g.me, her: [r(G.x), r(G.z)], mobs: g.mobs.map((m) => [m.id, r(m.x), r(m.z), m.hp, m.hunt, m.anim]), d: g.rel && r(g.rel.d) }; });
+  const KS0 = await KS(), k0 = KS0.kills; /* (t542 run24: this wait timed out with no state logged - now it logs where everyone was and carries on to the golem checks) */
+  const KD = await p.waitForFunction((k) => CharView.pga.kills > k, k0, { timeout: 240000 }).then(() => true).catch(() => false);
+  ok(KD && await p.evaluate(() => !CharView.pga.eng), 'GD-19: auto-attack continues until dead, then releases the lock ' + (KD ? '' : JSON.stringify({ tap: T3, before: KS0, after: await KS() })));
   // it bites back on a timer: GD-15's roll (parry, then acc / (her Defense + 100), else 0..str)
   await p.waitForFunction(() => CharView.pga.dead === 0, null, { timeout: 30000 }).catch(() => {});
   await passive(); const PV2 = await passiveRes();
