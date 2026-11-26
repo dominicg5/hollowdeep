@@ -1777,7 +1777,7 @@ const CharView = (() => {
      and we will test attacking him there") The Attack Playground: the first Attack Playground press drops a Lumen Mushroom (src/creatures/; its
      placeholder stats are the LUMEN_MUSHROOM row in src/creatures/data.js) on the Character view's floor in front of her (she is not turned) and pulls the camera back; every
      swing that reaches it rolls Combat.rollDamage with her real stats (Combat.playerStats) against its Defense: a damage number pops up, it flinches
-     (HitRecieve), and at 0 HP it plays Death and pops back up after its respawnS. Closing the Character view clears it. */
+     (Hit), and at 0 HP it plays Death and pops back up after its respawnS. Closing the Character view clears it. */
   /* ---------- (GD-12, Dominic t666u) the Attack Playground: an open stone arena she walks around in (tap the ground to run there, like the map); the Lumen Mushroom
      wanders or idles; tap it and she runs up and swings until it drops. It bites back on a timer (Combat.creatureAttack: GD-15 Defense / Parry, its str + placeholder acc);
      her HP shows in the HUD; at 0 she is knocked out and gets back up at the centre with full HP, no penalty. Arena frame = st.gnd's frame (the group turns with st.yaw). */

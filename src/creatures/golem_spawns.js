@@ -6,6 +6,13 @@ const WORLD_GOLEMS = {
   WANDER_M: 100,         // metres past the field's edge (field radius + 100 m from its centre)
   MAX_SLOPE_DEG: 30,     // a golem never steps onto ground steeper than this
   SPAWN_SLOPE_DEG: 20,   // Art's spawn rule (his footprint check); the loader re-checks it
+  // (GD-32 steering b) slope = Art's footprint_slope() (golem_placement/place_golems.py): the height gradient at his heightmap's own spacing (colossus_map grid: 2 x 13200 / 1599 =
+  // 16.51 map units = 2.6 m, central differences like np.gradient), taken as the max over the centre + 8 points on a 2 m ring, and the footprint's height span over its 4 m width
+  SLOPE_GRID_M: 2.6,     // gradient step (Art's grid spacing)
+  FOOTPRINT_R_M: 2.0,    // footprint radius (Art's FOOTPRINT_R_M) - used for both the spawn re-check and every wander step
+  // (GD-32 steering c) fields whose radius comes from the live game (Explore.oreSpots() R, its runtime fitR) instead of the table: Art's colossus_map.json matches the live
+  // MINE_SPOTS centres exactly (all 30 within 0.06 map units) but its offline pass skips the bridge / Lumen-stream / forge-prune shrinks, so 7 (79.1 m) and 24 (cliff, 47.5 m) read big
+  LIVE_R: [7, 24],
   LOAD_M: 240,           // her distance at which a golem's GLB starts loading (once per ore, lazily)
   SPAWN_M: 170,          // a golem is built (a clone of its ore's template) and drawn within this distance of her
   DESPAWN_M: 200,        // ...and released past this (hysteresis); farther golems are only a position

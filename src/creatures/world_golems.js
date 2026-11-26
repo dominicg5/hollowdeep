@@ -12,11 +12,17 @@ const WorldGolems = (() => {
   const U = () => WS() * EXK; // one creature metre on the map
   const W = { n: 0, kills: 0, list: null, fields: {}, tpl: {}, loading: {}, err: {}, F: null, tgt: null, eng: false, swT: 0, strike: 0, ko: 0, rp: 0, nums: [], stats: { live: 0, animated: 0, ai: 0, far: 0, refused: 0, maxSlope: 0, steps: 0, out: 0 } };
   let seed = 4321; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  function init() { if (W.list) return W.list; const T = D(); for (const f of T.FIELDS) W.fields[f[0]] = { id: f[0], ore: f[1], x: f[2], y: f[3], R: f[4] };
+  function init() { if (W.list) { liveR(); return W.list; } const T = D(); for (const f of T.FIELDS) W.fields[f[0]] = { id: f[0], ore: f[1], x: f[2], y: f[3], R: f[4] };
     W.list = T.SPAWNS.map(([id, fid, x, y, sl]) => { const f = W.fields[fid], kind = T.ORE_KIND[f.ore], C = Creatures.get(kind); return { id, fid, kind, C, sx: x, sy: y, x, y, face: rnd() * 6.283, spawnSlope: sl, wr: f.R + T.WANDER_M * WS(), hp: C ? C.hp : 1, dead: 0, sink: 0, hunt: false, inst: null, anim: null, once: 0, atkT: 0, bite: 0, wp: null, pause: rnd() * 3, d: 1e9 }; });
-    return W.list; }
-  // ground slope in degrees (the map's own height mesh, a 1 m central difference) and whether a golem may stand there
-  function slopeDeg(x, y) { const e = WS(), h = M3.meshH, gx = (h(x + e, y) - h(x - e, y)) / (2 * e), gy = (h(x, y + e) - h(x, y - e)) / (2 * e); return Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
+    liveR(); return W.list; }
+  // (steering c) LIVE_R fields take the game's own runtime radius (re-read whenever Explore rebuilds its spots)
+  function liveR() { const sp = typeof Explore !== 'undefined' && Explore.ORE && Explore.ORE.spots; if (!sp || sp === W.spRef || !W.list) return; W.spRef = sp; const T = D();
+    for (const id of T.LIVE_R || []) { const f = W.fields[id], s = sp[id]; if (!f || !s) continue; f.R = s.R; f.live = true; for (const g of W.list) if (g.fid === id) g.wr = f.R + T.WANDER_M * WS(); } }
+  // ground slope in degrees, Art's footprint_slope(): the gradient at his grid spacing (SLOPE_GRID_M) at the centre + 8 points on a FOOTPRINT_R_M ring, max, and the footprint's height span
+  function slope1(x, y) { const e = WS() * D().SLOPE_GRID_M, h = M3.meshH, gx = (h(x + e, y) - h(x - e, y)) / (2 * e), gy = (h(x, y + e) - h(x, y - e)) / (2 * e); return Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
+  function slopeDeg(x, y) { const r = WS() * D().FOOTPRINT_R_M; let mx = slope1(x, y), lo = M3.meshH(x, y), hi = lo;
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, qx = x + r * Math.cos(a), qy = y + r * Math.sin(a), hq = M3.meshH(qx, qy); mx = Math.max(mx, slope1(qx, qy)); lo = Math.min(lo, hq); hi = Math.max(hi, hq); }
+    return Math.max(mx, Math.atan((hi - lo) / (2 * r)) * 180 / Math.PI); }
   function canStand(g, x, y) { if (Math.hypot(x - W.fields[g.fid].x, y - W.fields[g.fid].y) > g.wr) return false; if (slopeDeg(x, y) > D().MAX_SLOPE_DEG) return false; const c = Explore.clsAt(x, y); return c === 1; }
   function here() { return Explore.on ? Explore.here() : null; }
   // ---- templates (one per ore) and clones

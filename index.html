@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='912753c6';
+<script>window.HD_BUILD='d04bf289';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 912753c6</div>
-<script src="assets/vendor/three.min.js?v=912753c6"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build d04bf289</div>
+<script src="assets/vendor/three.min.js?v=d04bf289"></script>
 <script>
 'use strict';
 
@@ -10173,9 +10173,10 @@ const CityMap = (() => {
    Combat.creatureAttack reads str + acc (GD-15 formula); the attack timing / reach / walk fields below drive the playground arena. ===== */
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
-// LUMEN MUSHROOM - the Attack Playground's practice target (t653u). Model: "Mushnub" from Quaternius' Ultimate Monsters (CC0 1.0, see CREDITS.md),
-// shipped alone as assets/models/creatures/mushnub.glb (67 KB, no pack zip). Body, rig and clips untouched; recoloured at load: a glowing lumenite
-// cyan cap (#66d8ff), a cream stem (#eedcbc), its own sleepy side eyes (Art's concept mia/concepts/creatures/mushnub/mushnub_lumen_concept.png).
+// LUMEN MUSHROOM - the Attack Playground's practice target (t653u). (GD-33, Dominic t553u: "that replaces the old Lumen Mushroom") Model: Art's own Mushnub
+// (creature_pipeline/production/mushnub_i23d, image-to-3D build3, gate 3 PASS), the game build mushnub_i23d_slim.glb shipped as assets/models/creatures/mushnub_i23d.glb
+// (600 KB: welded, 7,108 tris, 4 bones, 1024 JPEG albedo + emissive built in, COLOR_0 vertex shading and the _HD_GLOW rim-glow mask kept). Drawn with Art's chalk toon +
+// ink outline from its material extras (hd_srim / hd_sshade / hd_lift / hd_rimE...), like his viewer. Replaces the Quaternius CC0 Mushnub (recoloured at load).
 const LUMEN_MUSHROOM = {
   id: 'lumen_mushroom',
   name: 'Lumen Mushroom',
@@ -10187,7 +10188,8 @@ const LUMEN_MUSHROOM = {
   respawnS: 3,      // seconds after it dies before a fresh one pops back up
   height: 0.8,      // metres tall in the playground
   atkS: 2,          // (GD-12) seconds between bites once it is fighting her
-  atkHitAt: 0.35,   // seconds into the bite clip that the bite lands
+  atkHitAt: 0.333,  // seconds into Attack that the cap-butt lands (GD-33: Art's hit_timing.json, frame 10 @ 30 fps)
+  deathHitAt: 0.767, // (GD-33) Death: it splats on the ground 0.767 s in (frame 23)
   atkReach: 1.1,    // metres: it closes to this and bites; a bite lands if she is still within atkReach + 0.35
   aggro: 'provoked', // (GD-21, Dominic t682u) 'provoked': it leaves her alone - wanders, never bites - until she hits it; then it hunts her (leashR below).
                     // Past the leash it gives up and is passive again (she has to hit it again). 'near' (not used yet): it also turns on her when she walks right up.
@@ -10195,15 +10197,10 @@ const LUMEN_MUSHROOM = {
                     // to wandering. 4 m = its bite reach (1.1 m) + ~3 m, so stepping back a little does not shake it but running off does
   walkSpd: 0.55,    // m/s, wandering and closing in
   icon: '🍄',
-  model: 'assets/models/creatures/mushnub.glb',
-  clips: { idle: 'Idle', hit: 'HitRecieve', death: 'Death', walk: 'Walk', attack: 'Bite_Front' },   // (the pack's own clip names, "CharacterArmature|" stripped)
-  // recolour: the first rule whose test matches a GLB material name wins; part names the material (tag 'lumen_mushroom:<part>')
-  look: [
-    { test: /Secondary/, part: 'cap', color: 0x66d8ff, emissive: 0x2fb8f0, glow: 0.55 },
-    { test: /Main/, part: 'stem', color: 0xeedcbc, emissive: 0x3a3428, glow: 0.25 },
-    { test: /Eye_White/, part: 'eyeWhite', color: 0xeef1f6 },
-    { test: /./, part: 'eyeBlack', color: 0x141518 },
-  ],
+  model: 'assets/models/creatures/mushnub_i23d.glb', // (GD-33) Art's build, copied unchanged (mushnub_i23d_slim.glb)
+  shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), its look from the GLB's own material extras and textures
+  srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the playground renders linear)
+  clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },   // (GD-33) Art's clip names (Idle 2.03 s, Walk 1.03, Attack 1.03, Hit 0.63, Death 1.53)
 };
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -10229,7 +10226,7 @@ const TIN_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.45,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (tin_golem_i23d.glb)
+  model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot; t553 arm fix: the 167/168-vert foot shells reweighted from hand.L/R to foot.L/R), copied unchanged (tin_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
   crystalGain: [1.09, 1.07, 1.03], // (t543, Dominic: tone down Tin's crystals) with its glow on, its crystal median (paint x this + glow) lands on #6b5f55, halfway between Art's lineup #787068 and hero #5f4f42
@@ -10257,7 +10254,7 @@ const COPPER_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.45,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (copper_golem_i23d.glb)
+  model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot; t553 arm fix: the 167/168-vert foot shells reweighted from hand.L/R to foot.L/R), copied unchanged (copper_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
   crackGlow: true,  // (t705u) its ore-coloured crack glow (t542: Art's _HD_GLOW 0..1 per vertex x its hd_glow colour x 1.6, bound without the atlas; Coal's glow colour is black = none, as in Art's lineup)
@@ -10283,7 +10280,7 @@ const COAL_GOLEM = {
   leashR: 5,        // placeholder, not approved
   walkSpd: 0.4,    // m/s - placeholder, not approved
   icon: '🪨',
-  model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot), copied unchanged (coal_golem_i23d.glb)
+  model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's t539 game-fix build (welded, _HD_TEX / _HD_FEAT stripped, _HD_GLOW kept (t542), 0.97 MB; crystals rigid to the chest, no head / jaw spring, shin / foot cut moved to the foot; t553 arm fix: the 167/168-vert foot shells reweighted from hand.L/R to foot.L/R), copied unchanged (coal_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
   crackGlow: true,  // (t705u) its ore-coloured crack glow (t542: Art's _HD_GLOW 0..1 per vertex x its hd_glow colour x 1.6, bound without the atlas; Coal's glow colour is black = none, as in Art's lineup)
@@ -10333,6 +10330,13 @@ const WORLD_GOLEMS = {
   WANDER_M: 100,         // metres past the field's edge (field radius + 100 m from its centre)
   MAX_SLOPE_DEG: 30,     // a golem never steps onto ground steeper than this
   SPAWN_SLOPE_DEG: 20,   // Art's spawn rule (his footprint check); the loader re-checks it
+  // (GD-32 steering b) slope = Art's footprint_slope() (golem_placement/place_golems.py): the height gradient at his heightmap's own spacing (colossus_map grid: 2 x 13200 / 1599 =
+  // 16.51 map units = 2.6 m, central differences like np.gradient), taken as the max over the centre + 8 points on a 2 m ring, and the footprint's height span over its 4 m width
+  SLOPE_GRID_M: 2.6,     // gradient step (Art's grid spacing)
+  FOOTPRINT_R_M: 2.0,    // footprint radius (Art's FOOTPRINT_R_M) - used for both the spawn re-check and every wander step
+  // (GD-32 steering c) fields whose radius comes from the live game (Explore.oreSpots() R, its runtime fitR) instead of the table: Art's colossus_map.json matches the live
+  // MINE_SPOTS centres exactly (all 30 within 0.06 map units) but its offline pass skips the bridge / Lumen-stream / forge-prune shrinks, so 7 (79.1 m) and 24 (cliff, 47.5 m) read big
+  LIVE_R: [7, 24],
   LOAD_M: 240,           // her distance at which a golem's GLB starts loading (once per ore, lazily)
   SPAWN_M: 170,          // a golem is built (a clone of its ore's template) and drawn within this distance of her
   DESPAWN_M: 200,        // ...and released past this (hysteresis); farther golems are only a position
@@ -10444,7 +10448,7 @@ const WORLD_GOLEMS = {
 /* ===== HDToon: Art's Hollowdeep creature look (creature_pipeline/scripts/hollowdeepToon.js, copied verbatim for three r149; only the ES-module
    import / export lines are dropped so it runs on the game's global THREE). makeChalkMaterial(): painted 3-step toon with chalk grain, cool shadow
    tint, warm rim, lumenite emissive; addInkOutline(): constant-pixel inverted-hull ink that follows the skin. Used by Creatures.make for rows with
-   shade: 'hdToon' (the golems). Do not edit here - update Art's file and re-copy. ===== */
+   shade: 'hdToon' (the golems, the Lumen Mushroom; re-copied GD-33 with Art's emissive-rim options rimE / rimE0 / rimE1 / rimMix / rimMask). Do not edit here - update Art's file and re-copy. ===== */
 const HDToon = (() => {
 // Hollowdeep creature look for three r149: chalky painted toon + crack-free ink outline. ES module.
 const NOISE = `
@@ -10461,7 +10465,7 @@ function makeChalkMaterial(o = {}) {
   const m = new THREE.MeshToonMaterial({ vertexColors: o.vertexColors !== false, color: o.color ?? 0xffffff, flatShading: !!o.flat });
   const U = { uAtlasC:{value:o.atlasColor||null}, uGlow:{value:o.glow??1.6}, uGlowC:{value:new THREE.Vector3(...(o.glowColor||[0.027,0.63,0.51]))}, uAtlasN:{value:o.atlasNormal||null}, uNormalAmt:{value:o.normalAmt??0.45}, uAtlasOverride:{value:o.atlasOverride??-1.0}, uTS:{value:o.tileScales||[1,1,1,1,1,1,1,1]}, uHA:{value:o.tileHue||[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]}, uVA:{value:o.tileVal||[0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8]}, uNA:{value:o.tileNormal||[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]}, uLM:{value:o.tileLum||[0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2]}, uABlend:{value:o.atlasBlend??0.6},
     uGrain: { value: o.grain ?? 0.32 }, uTooth: { value: o.tooth ?? 0.22 }, uScale: { value: o.scale ?? 9.0 },
-    uShade: { value: new THREE.Color(o.shade ?? 0x6a6488) }, uRim: { value: new THREE.Color(o.rim ?? 0xffe6b8) }, uRimAmt: { value: o.rimAmt ?? 0.35 },
+    uShade: { value: new THREE.Color(o.shade ?? 0x6a6488) }, uRim: { value: new THREE.Color(o.rim ?? 0xffe6b8) }, uRimAmt: { value: o.rimAmt ?? 0.35 }, uRimE: { value: new THREE.Color(o.rimE ?? 0x000000) }, uRimE0: { value: o.rimE0 ?? 0.15 }, uRimE1: { value: o.rimE1 ?? 0.55 }, uRimMix: { value: o.rimMix ?? 0.0 }, uRimMask: { value: o.rimMask ?? 0.0 },
     uEmis: { value: o.emissive ?? 0.0 }, uLift: { value: o.lift ?? 0.0 }, uStroke: { value: o.stroke ?? 0.0 }, uFacet: { value: o.facet ?? 0.0 },
     uDetail: { value: o.detailMap ?? null }, uDetailS: { value: 1.0 / (o.detailScale ?? 1.0) }, uDetailAmt: { value: o.detailMap ? (o.detailAmt ?? 0.5) : 0.0 } };
   if (o.detailMap) { o.detailMap.wrapS = o.detailMap.wrapT = THREE.RepeatWrapping; m.defines = { ...(m.defines||{}), HD_DETAIL: 1 }; }
@@ -10473,7 +10477,7 @@ function makeChalkMaterial(o = {}) {
       .replace('#include <common>', '#include <common>\nvarying vec3 vObjN;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position; vObjN = normal;\n#ifdef HD_ATLAS\nvHD=hdTex; vGlow=hdGlow;\n#endif');   // bind-pose coords: grain sticks to the body when animated
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vObj; varying vec3 vObjN;\nuniform float uGrain,uTooth,uScale,uRimAmt,uEmis,uLift,uStroke,uFacet,uDetailS,uDetailAmt;\n#ifdef HD_DETAIL\nuniform sampler2D uDetail;\n#endif\nuniform vec3 uShade,uRim;\n${NOISE}
+      .replace('#include <common>', `#include <common>\nvarying vec3 vObj; varying vec3 vObjN;\nuniform float uGrain,uTooth,uScale,uRimAmt,uEmis,uLift,uStroke,uFacet,uDetailS,uDetailAmt;\n#ifdef HD_DETAIL\nuniform sampler2D uDetail;\n#endif\nuniform vec3 uShade,uRim,uRimE; uniform float uRimE0,uRimE1,uRimMix,uRimMask;\n${NOISE}
 #ifdef HD_ATLAS
 varying vec3 vHD; varying float vGlow; uniform float uGlow; uniform vec3 uGlowC; uniform sampler2D uAtlasC,uAtlasN; uniform float uNormalAmt,uAtlasOverride,uABlend; uniform float uTS[8], uHA[8], uVA[8], uNA[8], uLM[8];
 float hdPick(float a[8], float i){ float s=a[0]; for(int k=0;k<8;k++) if(abs(float(k)-i)<0.5) s=a[k]; return s; }
@@ -10537,7 +10541,12 @@ vec3 getGradientIrradiance(vec3 normal, vec3 lightDirection){
       .replace('#include <aomap_fragment>', `#include <aomap_fragment>
   { vec3 V = normalize(vViewPosition); float fr = pow(1.0 - clamp(dot(normal, V), 0.0, 1.0), 3.0);
     reflectedLight.directDiffuse += uRim * smoothstep(0.35,0.6,fr) * uRimAmt * diffuseColor.rgb;
-    reflectedLight.indirectDiffuse += diffuseColor.rgb * uLift; }`)
+    reflectedLight.indirectDiffuse += diffuseColor.rgb * uLift;
+    { float rk = smoothstep(uRimE0, uRimE1, fr) * step(0.0001, uRimE.r + uRimE.g + uRimE.b);
+#ifdef HD_ATLAS
+    if (uRimMask > 0.5) rk *= vGlow;   // optional: per-vertex rim mask in hdGlow (only when uRimMask is set)
+#endif
+    reflectedLight.directDiffuse *= 1.0 - uRimMix * rk; reflectedLight.indirectDiffuse *= 1.0 - uRimMix * rk; totalEmissiveRadiance += uRimE * rk; } }`)   // optional glowing rim (mixes toward uRimE); default black = off
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * uEmis;\n#ifdef HD_ATLAS\n  totalEmissiveRadiance += uGlowC * vGlow * uGlow;   // lumenite crack veins\n#endif`);
   };
   m.customProgramCacheKey = () => 'hdchalk' + (o.detailMap ? 'D' : '') + (o.atlasColor?'A':'');
@@ -10600,11 +10609,19 @@ const Creatures = (() => {
   function load(id) { const D = get(id); if (!D) return Promise.reject(new Error('no creature ' + id)); const S = st(id); if (S.p) return S.p;
     S.p = fetch(D.model).then((r) => { if (!r.ok) throw new Error(id + ' ' + r.status); return r.arrayBuffer(); }).then((ab) => { const dv = new DataView(ab); let o = 12;
       while (o < ab.byteLength) { const len = dv.getUint32(o, true), type = dv.getUint32(o + 4, true); if (type === 0x4e4f534a) S.gl = JSON.parse(new TextDecoder().decode(new Uint8Array(ab, o + 8, len))); else if (type === 0x004e4942) S.bin = new Uint8Array(ab, o + 8, len); o += 8 + len; }
-      if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
+      if (!S.gl || !S.bin) throw new Error(id + ': bad glb'); S.tex = texs(S); S.err = null; return true; }).catch((e) => { S.err = String(e); S.p = null; throw e; }); return S.p; }
+  // (GD-33) the GLB's embedded images as textures (glTF: sRGB colour, no flip), decoded in the background - drawn as soon as each image arrives
+  function texs(S) { const g = S.gl; return (g.textures || []).map((t) => { const im = g.images && g.images[t.source], bv = im && g.bufferViews[im.bufferView]; if (!bv) return null; const T = new THREE.Texture(); T.flipY = false; T.encoding = THREE.sRGBEncoding;
+      const sp = (g.samplers || [])[t.sampler] || {}; if (sp.wrapS) T.wrapS = sp.wrapS; if (sp.wrapT) T.wrapT = sp.wrapT; if (sp.magFilter) T.magFilter = sp.magFilter; if (sp.minFilter) T.minFilter = sp.minFilter;
+      const url = URL.createObjectURL(new Blob([new Uint8Array(S.bin.buffer, S.bin.byteOffset + (bv.byteOffset || 0), bv.byteLength)], { type: im.mimeType || 'image/jpeg' })), I = new Image(); I.onload = () => { T.image = I; T.needsUpdate = true; URL.revokeObjectURL(url); }; I.src = url; return T; }); }
   // (GD-30) Art's look, the same settings as his viewer (creature_pipeline/scripts/viewer.html) minus the stone atlas (not shipped with the GLB): vertex paint carries the colour
-  function hdMat(D, gm, A, gc, O) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm), glow = hasGlow(D, A, gc);
+  function hdMat(D, gm, A, gc, O, TX) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm), glow = hasGlow(D, A, gc);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
-      : T.makeChalkMaterial(Object.assign({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 }));
+      : T.makeChalkMaterial({ grain: ud.hd_grain ?? 0.55, tooth: ud.hd_tooth ?? 0.26, stroke: ud.hd_stroke ?? 0.75, scale: 7, rim: ud.hd_srim, rimAmt: ud.hd_srimAmt, shade: ud.hd_sshade, lift: ud.hd_lift,
+          rimE: ud.hd_rimE, rimE0: ud.hd_rimE0, rimE1: ud.hd_rimE1, rimMix: ud.hd_rimMix, rimMask: ud.hd_rimMask }); /* (GD-33: his viewer's non-crystal mapping of the material extras; the golem Stone carries none, so its defaults are unchanged) */
+    if (!lum) { const pb = gm.pbrMetallicRoughness || {}, tx = (k) => (k && TX && TX[k.index]) || null; if (ud.hd_usemap && tx(pb.baseColorTexture)) m.map = tx(pb.baseColorTexture);
+      if (ud.hd_useemis && tx(gm.emissiveTexture)) { m.emissiveMap = tx(gm.emissiveTexture); m.emissive.set(0xffffff); m.emissiveIntensity = ud.hd_emisK ?? 1; } /* (as his viewer: albedo / emissive maps only when the extras ask) */
+      if (ud.hd_rimMask && A && A._HD_GLOW != null) rimMaskBind(m); } /* (the glowing rim only where Art's _HD_GLOW mask says; his shader reads it only with the stone atlas on) */
     /* (t705u / t542) crackGlow: Art's per-ore glow on the crystals, crack veins and eyes = the golem's hd_glow colour (its Stone material extras) x the _HD_GLOW vertex
        value (0..1) x 1.6, added to the emissive. Art's shader only does this with his stone atlas on (not shipped), so it is bound here on its own (glowBind); Coal's colour is black = none */
     if (glow) glowBind(m, gc, D.glowGain ?? 1.6);
@@ -10613,11 +10630,16 @@ const Creatures = (() => {
     m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut && !(O && O.screenEnc)) srgbOut(m); if (O && O.screenEnc) m.toneMapped = false; return m; }
   // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
   // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
+  // one per-vertex glow attribute for both uses (crack glow, rim mask)
+  function glowDecl(sh) { if (!/varying float vHdGlow/.test(sh.vertexShader)) sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float hdGlow; varying float vHdGlow;').replace('#include <begin_vertex>', '#include <begin_vertex>\n  vHdGlow = hdGlow;');
+    if (!/varying float vHdGlow/.test(sh.fragmentShader)) sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vHdGlow;'); }
+  function rimMaskBind(m) { const prev = m.onBeforeCompile, key = m.customProgramCacheKey; m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); glowDecl(sh);
+      sh.fragmentShader = sh.fragmentShader.replace(/#ifdef HD_ATLAS\s*\n\s*if \(uRimMask > 0\.5\) rk \*= vGlow;[^\n]*\n#endif/, '    if (uRimMask > 0.5) rk *= vHdGlow;'); };
+    m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|rimMask'; m.userData.rimMask = true; return m; }
   function hasGlow(D, A, gc) { return !!(D.crackGlow && A && A._HD_GLOW != null && gc && Math.max(gc[0], gc[1], gc[2]) > 0); }
   function glowBind(m, gc, k) { const prev = m.onBeforeCompile, key = m.customProgramCacheKey, U = { uHdGlowC: { value: new THREE.Vector3(gc[0], gc[1], gc[2]) }, uHdGlowK: { value: k } };
     m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); Object.assign(sh.uniforms, U);
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float hdGlow; varying float vHdGlow;').replace('#include <begin_vertex>', '#include <begin_vertex>\n  vHdGlow = hdGlow;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vHdGlow; uniform vec3 uHdGlowC; uniform float uHdGlowK;').replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += uHdGlowC * vHdGlow * uHdGlowK;'); };
+      glowDecl(sh); sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uHdGlowC; uniform float uHdGlowK;').replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance += uHdGlowC * vHdGlow * uHdGlowK;'); };
     m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|hdGlow'; m.userData.hdGlow = U; return m; }
   function srgbOut(m) { const prev = m.onBeforeCompile, key = m.customProgramCacheKey; m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <encodings_fragment>', '#include <encodings_fragment>\n  gl_FragColor = LinearTosRGB(gl_FragColor);'); };
     m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|srgbOut'; m.userData.srgbOut = true; return m; }
@@ -10632,8 +10654,8 @@ const Creatures = (() => {
     let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
     const mats = [], gc = ((g.materials || []).find((q) => q.extras && q.extras.hd_glow) || { extras: {} }).extras.hd_glow; /* (t542: the golem's glow colour, on its Stone material) */
     g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
-        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (hasGlow(D, A, gc)) put('_HD_GLOW', 'hdGlow'); } /* (the golems' painted swatches + Art's _HD_GLOW per-vertex glow, t542) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
-        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A, gc, O) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
+        put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (hasGlow(D, A, gc) || (((g.materials[p.material] || {}).extras || {}).hd_rimMask && A._HD_GLOW != null)) put('_HD_GLOW', 'hdGlow'); put('TEXCOORD_0', 'uv'); } /* (the golems' painted swatches + Art's _HD_GLOW per-vertex glow, t542) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
+        const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A, gc, O, S.tex) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
     // (GD-12: the invisible mushroom) glTF skinning ignores the skinned mesh node's own transform - the joints' world matrices x inverse bind matrices already place
     // every vertex. FBX2glTF puts the 100x / -90 deg X export transform on BOTH the armature and the mesh node, so binding with the mesh's matrixWorld applied it twice:
     // a ~60 m mesh around the camera (only shards of it on screen). Identity bind matrix; 'attached' mode cancels the mesh node transform (bindMatrixInverse = its inverse).
@@ -12880,7 +12902,7 @@ const CharView = (() => {
      and we will test attacking him there") The Attack Playground: the first Attack Playground press drops a Lumen Mushroom (src/creatures/; its
      placeholder stats are the LUMEN_MUSHROOM row in src/creatures/data.js) on the Character view's floor in front of her (she is not turned) and pulls the camera back; every
      swing that reaches it rolls Combat.rollDamage with her real stats (Combat.playerStats) against its Defense: a damage number pops up, it flinches
-     (HitRecieve), and at 0 HP it plays Death and pops back up after its respawnS. Closing the Character view clears it. */
+     (Hit), and at 0 HP it plays Death and pops back up after its respawnS. Closing the Character view clears it. */
   /* ---------- (GD-12, Dominic t666u) the Attack Playground: an open stone arena she walks around in (tap the ground to run there, like the map); the Lumen Mushroom
      wanders or idles; tap it and she runs up and swings until it drops. It bites back on a timer (Combat.creatureAttack: GD-15 Defense / Parry, its str + placeholder acc);
      her HP shows in the HUD; at 0 she is knocked out and gets back up at the centre with full HP, no penalty. Arena frame = st.gnd's frame (the group turns with st.yaw). */
@@ -16535,11 +16557,17 @@ const WorldGolems = (() => {
   const U = () => WS() * EXK; // one creature metre on the map
   const W = { n: 0, kills: 0, list: null, fields: {}, tpl: {}, loading: {}, err: {}, F: null, tgt: null, eng: false, swT: 0, strike: 0, ko: 0, rp: 0, nums: [], stats: { live: 0, animated: 0, ai: 0, far: 0, refused: 0, maxSlope: 0, steps: 0, out: 0 } };
   let seed = 4321; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  function init() { if (W.list) return W.list; const T = D(); for (const f of T.FIELDS) W.fields[f[0]] = { id: f[0], ore: f[1], x: f[2], y: f[3], R: f[4] };
+  function init() { if (W.list) { liveR(); return W.list; } const T = D(); for (const f of T.FIELDS) W.fields[f[0]] = { id: f[0], ore: f[1], x: f[2], y: f[3], R: f[4] };
     W.list = T.SPAWNS.map(([id, fid, x, y, sl]) => { const f = W.fields[fid], kind = T.ORE_KIND[f.ore], C = Creatures.get(kind); return { id, fid, kind, C, sx: x, sy: y, x, y, face: rnd() * 6.283, spawnSlope: sl, wr: f.R + T.WANDER_M * WS(), hp: C ? C.hp : 1, dead: 0, sink: 0, hunt: false, inst: null, anim: null, once: 0, atkT: 0, bite: 0, wp: null, pause: rnd() * 3, d: 1e9 }; });
-    return W.list; }
-  // ground slope in degrees (the map's own height mesh, a 1 m central difference) and whether a golem may stand there
-  function slopeDeg(x, y) { const e = WS(), h = M3.meshH, gx = (h(x + e, y) - h(x - e, y)) / (2 * e), gy = (h(x, y + e) - h(x, y - e)) / (2 * e); return Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
+    liveR(); return W.list; }
+  // (steering c) LIVE_R fields take the game's own runtime radius (re-read whenever Explore rebuilds its spots)
+  function liveR() { const sp = typeof Explore !== 'undefined' && Explore.ORE && Explore.ORE.spots; if (!sp || sp === W.spRef || !W.list) return; W.spRef = sp; const T = D();
+    for (const id of T.LIVE_R || []) { const f = W.fields[id], s = sp[id]; if (!f || !s) continue; f.R = s.R; f.live = true; for (const g of W.list) if (g.fid === id) g.wr = f.R + T.WANDER_M * WS(); } }
+  // ground slope in degrees, Art's footprint_slope(): the gradient at his grid spacing (SLOPE_GRID_M) at the centre + 8 points on a FOOTPRINT_R_M ring, max, and the footprint's height span
+  function slope1(x, y) { const e = WS() * D().SLOPE_GRID_M, h = M3.meshH, gx = (h(x + e, y) - h(x - e, y)) / (2 * e), gy = (h(x, y + e) - h(x, y - e)) / (2 * e); return Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
+  function slopeDeg(x, y) { const r = WS() * D().FOOTPRINT_R_M; let mx = slope1(x, y), lo = M3.meshH(x, y), hi = lo;
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, qx = x + r * Math.cos(a), qy = y + r * Math.sin(a), hq = M3.meshH(qx, qy); mx = Math.max(mx, slope1(qx, qy)); lo = Math.min(lo, hq); hi = Math.max(hi, hq); }
+    return Math.max(mx, Math.atan((hi - lo) / (2 * r)) * 180 / Math.PI); }
   function canStand(g, x, y) { if (Math.hypot(x - W.fields[g.fid].x, y - W.fields[g.fid].y) > g.wr) return false; if (slopeDeg(x, y) > D().MAX_SLOPE_DEG) return false; const c = Explore.clsAt(x, y); return c === 1; }
   function here() { return Explore.on ? Explore.here() : null; }
   // ---- templates (one per ore) and clones

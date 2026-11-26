@@ -1,7 +1,7 @@
 /* ===== HDToon: Art's Hollowdeep creature look (creature_pipeline/scripts/hollowdeepToon.js, copied verbatim for three r149; only the ES-module
    import / export lines are dropped so it runs on the game's global THREE). makeChalkMaterial(): painted 3-step toon with chalk grain, cool shadow
    tint, warm rim, lumenite emissive; addInkOutline(): constant-pixel inverted-hull ink that follows the skin. Used by Creatures.make for rows with
-   shade: 'hdToon' (the golems). Do not edit here - update Art's file and re-copy. ===== */
+   shade: 'hdToon' (the golems, the Lumen Mushroom; re-copied GD-33 with Art's emissive-rim options rimE / rimE0 / rimE1 / rimMix / rimMask). Do not edit here - update Art's file and re-copy. ===== */
 const HDToon = (() => {
 // Hollowdeep creature look for three r149: chalky painted toon + crack-free ink outline. ES module.
 const NOISE = `
@@ -18,7 +18,7 @@ function makeChalkMaterial(o = {}) {
   const m = new THREE.MeshToonMaterial({ vertexColors: o.vertexColors !== false, color: o.color ?? 0xffffff, flatShading: !!o.flat });
   const U = { uAtlasC:{value:o.atlasColor||null}, uGlow:{value:o.glow??1.6}, uGlowC:{value:new THREE.Vector3(...(o.glowColor||[0.027,0.63,0.51]))}, uAtlasN:{value:o.atlasNormal||null}, uNormalAmt:{value:o.normalAmt??0.45}, uAtlasOverride:{value:o.atlasOverride??-1.0}, uTS:{value:o.tileScales||[1,1,1,1,1,1,1,1]}, uHA:{value:o.tileHue||[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]}, uVA:{value:o.tileVal||[0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8]}, uNA:{value:o.tileNormal||[0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5]}, uLM:{value:o.tileLum||[0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2]}, uABlend:{value:o.atlasBlend??0.6},
     uGrain: { value: o.grain ?? 0.32 }, uTooth: { value: o.tooth ?? 0.22 }, uScale: { value: o.scale ?? 9.0 },
-    uShade: { value: new THREE.Color(o.shade ?? 0x6a6488) }, uRim: { value: new THREE.Color(o.rim ?? 0xffe6b8) }, uRimAmt: { value: o.rimAmt ?? 0.35 },
+    uShade: { value: new THREE.Color(o.shade ?? 0x6a6488) }, uRim: { value: new THREE.Color(o.rim ?? 0xffe6b8) }, uRimAmt: { value: o.rimAmt ?? 0.35 }, uRimE: { value: new THREE.Color(o.rimE ?? 0x000000) }, uRimE0: { value: o.rimE0 ?? 0.15 }, uRimE1: { value: o.rimE1 ?? 0.55 }, uRimMix: { value: o.rimMix ?? 0.0 }, uRimMask: { value: o.rimMask ?? 0.0 },
     uEmis: { value: o.emissive ?? 0.0 }, uLift: { value: o.lift ?? 0.0 }, uStroke: { value: o.stroke ?? 0.0 }, uFacet: { value: o.facet ?? 0.0 },
     uDetail: { value: o.detailMap ?? null }, uDetailS: { value: 1.0 / (o.detailScale ?? 1.0) }, uDetailAmt: { value: o.detailMap ? (o.detailAmt ?? 0.5) : 0.0 } };
   if (o.detailMap) { o.detailMap.wrapS = o.detailMap.wrapT = THREE.RepeatWrapping; m.defines = { ...(m.defines||{}), HD_DETAIL: 1 }; }
@@ -30,7 +30,7 @@ function makeChalkMaterial(o = {}) {
       .replace('#include <common>', '#include <common>\nvarying vec3 vObjN;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvObj = position; vObjN = normal;\n#ifdef HD_ATLAS\nvHD=hdTex; vGlow=hdGlow;\n#endif');   // bind-pose coords: grain sticks to the body when animated
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vObj; varying vec3 vObjN;\nuniform float uGrain,uTooth,uScale,uRimAmt,uEmis,uLift,uStroke,uFacet,uDetailS,uDetailAmt;\n#ifdef HD_DETAIL\nuniform sampler2D uDetail;\n#endif\nuniform vec3 uShade,uRim;\n${NOISE}
+      .replace('#include <common>', `#include <common>\nvarying vec3 vObj; varying vec3 vObjN;\nuniform float uGrain,uTooth,uScale,uRimAmt,uEmis,uLift,uStroke,uFacet,uDetailS,uDetailAmt;\n#ifdef HD_DETAIL\nuniform sampler2D uDetail;\n#endif\nuniform vec3 uShade,uRim,uRimE; uniform float uRimE0,uRimE1,uRimMix,uRimMask;\n${NOISE}
 #ifdef HD_ATLAS
 varying vec3 vHD; varying float vGlow; uniform float uGlow; uniform vec3 uGlowC; uniform sampler2D uAtlasC,uAtlasN; uniform float uNormalAmt,uAtlasOverride,uABlend; uniform float uTS[8], uHA[8], uVA[8], uNA[8], uLM[8];
 float hdPick(float a[8], float i){ float s=a[0]; for(int k=0;k<8;k++) if(abs(float(k)-i)<0.5) s=a[k]; return s; }
@@ -94,7 +94,12 @@ vec3 getGradientIrradiance(vec3 normal, vec3 lightDirection){
       .replace('#include <aomap_fragment>', `#include <aomap_fragment>
   { vec3 V = normalize(vViewPosition); float fr = pow(1.0 - clamp(dot(normal, V), 0.0, 1.0), 3.0);
     reflectedLight.directDiffuse += uRim * smoothstep(0.35,0.6,fr) * uRimAmt * diffuseColor.rgb;
-    reflectedLight.indirectDiffuse += diffuseColor.rgb * uLift; }`)
+    reflectedLight.indirectDiffuse += diffuseColor.rgb * uLift;
+    { float rk = smoothstep(uRimE0, uRimE1, fr) * step(0.0001, uRimE.r + uRimE.g + uRimE.b);
+#ifdef HD_ATLAS
+    if (uRimMask > 0.5) rk *= vGlow;   // optional: per-vertex rim mask in hdGlow (only when uRimMask is set)
+#endif
+    reflectedLight.directDiffuse *= 1.0 - uRimMix * rk; reflectedLight.indirectDiffuse *= 1.0 - uRimMix * rk; totalEmissiveRadiance += uRimE * rk; } }`)   // optional glowing rim (mixes toward uRimE); default black = off
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n  totalEmissiveRadiance += diffuseColor.rgb * uEmis;\n#ifdef HD_ATLAS\n  totalEmissiveRadiance += uGlowC * vGlow * uGlow;   // lumenite crack veins\n#endif`);
   };
   m.customProgramCacheKey = () => 'hdchalk' + (o.detailMap ? 'D' : '') + (o.atlasColor?'A':'');

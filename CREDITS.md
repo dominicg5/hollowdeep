@@ -32,9 +32,9 @@ While a furnace or anvil batch runs, Wren works one loop per item. These motions
 
 | Used for | Asset | License |
 |---|---|---|
-| The Lumen Mushroom practice target in the Character view's Attack Playground (`assets/models/creatures/mushnub.glb`; recoloured at load: lumenite cyan cap #66d8ff, cream stem #eedcbc; clips Idle / HitRecieve / Death) | **Mushnub** from **Ultimate Monsters** by **Quaternius** — https://quaternius.com/packs/ultimatemonsters.html (single model from https://poly.pizza/m/LWKmS30Xxl) | **CC0 1.0** (public domain) — https://creativecommons.org/publicdomain/zero/1.0/ |
+| The Lumen Mushroom practice target in the Character view's Attack Playground (`assets/models/creatures/mushnub_i23d.glb`, GD-33) | Art's own Mushnub: generated from Art's concept views with Tripo3D h3.1 multiview-to-3d (via Fal), then decimated, repainted, rigged and animated by Art (`creature_pipeline/production/mushnub_i23d/`, game build `mushnub_i23d_slim.glb` copied unchanged) | our own |
 
-CC0 needs no attribution; recorded for provenance. Lumen colouring: Art's concept (mushnub_lumen_concept.png).
+(Before GD-33 it was Quaternius' CC0 Mushnub, recoloured at load; that file is no longer shipped.)
 
 ## Combat sound effects (sword swings and hits, `src/sfx.js`)
 
