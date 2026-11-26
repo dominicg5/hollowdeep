@@ -24,7 +24,7 @@ const Theus = (() => {
     const el = M3.renderer && M3.renderer.domElement, w = el ? el.clientWidth : innerWidth, h = el ? el.clientHeight : innerHeight, rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2((sx / w) * 2 - 1, -(sy / h) * 2 + 1), M3.camera);
     // his skinned body in its current pose (the bounds refreshed per tap: he walks 60 m between the lava and the bar); only the body, not the fur shells
     if (M.ape.isSkinnedMesh && M.ape.computeBoundingSphere) { M.ape.computeBoundingSphere(); if (M.ape.computeBoundingBox) M.ape.computeBoundingBox(); }
-    const hh = rc.intersectObject(M.ape, false)[0]; if (!hh) return false;
+    const hh = M.glb ? rc.intersectObject(M.glb.root, true).find((q) => q.object.isMesh && !q.object.userData.isInk) : rc.intersectObject(M.ape, false)[0]; if (!hh) return false; /* (t580u: Art's i23d body once it is drawn; the old ape mesh is only the tools then) */
     const g = M3.unproject && M3.unproject(sx, sy); if (g && M3.meshH) { const gd = M3.camera.position.distanceTo(new THREE.Vector3(g[0], M3.meshH(g[0], g[1]), g[1])); if (hh.distance > gd + (typeof Explore !== 'undefined' ? Explore.WS : 1) * 0.5) return false; } // (behind the ground / platform: not on him)
     return true; }
   // a tap on him: on the anvil top -> talk; elsewhere -> a short hint (no marker, no walk)

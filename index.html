@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='9e015de3';
+<script>window.HD_BUILD='eecd2ab9';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 9e015de3</div>
-<script src="assets/vendor/three.min.js?v=9e015de3"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build eecd2ab9</div>
+<script src="assets/vendor/three.min.js?v=eecd2ab9"></script>
 <script>
 'use strict';
 
@@ -7206,6 +7206,24 @@ const FORGE = (() => {
   function restBar() { if (M.barRest) return M.barRest; setPose(12.0); const j = jawWorld(), flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2); // laid flat along the loop line (world -x), resting on the striking surface
     const top = HB + (L.plat[3] + L.bar[1] / 2) * U, p = new THREE.Vector3(j.p.x, top, LIP[1]).add(new THREE.Vector3(-BXS * U, 0, 0).applyQuaternion(M.ape.getWorldQuaternion(new THREE.Quaternion())).setY(0)); const local = new THREE.Vector3(-BXS, L.plat[3] + L.bar[1] / 2, (LIP[0] - j.p.x) / U - L.S); M.barRest = { p, q: flat, local }; return M.barRest; }
   const lin = (c) => c.map((v) => Math.pow(v, 2.2)), CORE = lin([1, 0xde / 255, 0x48 / 255]);
+  /* (Dominic t580u) Art's i23d Theus (NPC_MODELS.theus, src/creatures/npc_models.js) is drawn in place of the baked ape once its GLB has loaded. The old rig
+     keeps running, unseen, so the 27 s loop (walk to the lava, dip, carry, 7 strikes, walk back), the bar, the sparks and his tap target stay as they were: his
+     body is hidden (only the tongs + hammer parts of its mesh, NPC_MODELS.theus.tools, are still drawn - they are not in Art's mesh) and the GLB stands where
+     the ape stands (metres x WS, feet on the platform, facing his yaw). Clips: Walk in the loop's walking phases; Strike once per hit, started strikeHitS
+     (0.600 s) before it so its blow lands on the hit; Talk while his dialogue is open (when he is not walking or striking); otherwise Idle */
+  function toolsOnly(bones) { const g = M.ape.geometry, si = g.attributes.skinIndex, sw = g.attributes.skinWeight, ix = g.index; if (!si || !sw || !ix || M.ix0) return; M.ix0 = ix;
+    const dom = (v) => { let b = 0, w = -1; for (let k = 0; k < si.itemSize; k++) { const q = sw.getComponent ? sw.getComponent(v, k) : sw.array[v * sw.itemSize + k]; if (q > w) { w = q; b = si.array[v * si.itemSize + k]; } } return b; };
+    const keep = [], A = ix.array; for (let i = 0; i < A.length; i += 3) if (bones.includes(dom(A[i])) && bones.includes(dom(A[i + 1])) && bones.includes(dom(A[i + 2]))) keep.push(A[i], A[i + 1], A[i + 2]);
+    g.setIndex(keep); M.toolTris = keep.length / 3; }
+  function glbSync(T, now) { if (!M.ape || typeof NpcModels === 'undefined' || typeof NPC_MODELS === 'undefined') return; const R = NPC_MODELS.theus;
+    if (!M.glb) { const I = NpcModels.make('theus'); if (!I) return; M.glb = I; I.root.name = 'theusGlb'; I.root.scale.setScalar(WS); M.grp.add(I.root); toolsOnly(R.tools || []); if (M.shells) M.shells.visible = false; M.glbT = now; }
+    const I = M.glb, ape = M.ape, dt = clamp(now - (M.glbT || now), 0, 0.1); M.glbT = now; I.root.position.copy(ape.position); I.root.rotation.copy(ape.rotation); I.root.visible = ape.visible;
+    const ph = phase(T), talk = typeof Theus !== 'undefined' && Theus.ST && !!Theus.ST.step, dur = (I.clips[R.clips.strike] && I.clips[R.clips.strike].duration) || 1.333;
+    let hit = null; if (ph === 'strike') for (const th of hitTimes()) if (T >= th - R.strikeHitS && T < th - R.strikeHitS + dur) hit = th;
+    if ((R.walkPhases || []).includes(ph)) NpcModels.play(I, 'walk');
+    else if (hit != null) { if (M.glbHit !== hit) { M.glbHit = hit; NpcModels.play(I, 'strike', { once: true, restart: true }); M.glbStrikes = (M.glbStrikes || 0) + 1; } }
+    else NpcModels.play(I, talk ? 'talk' : 'idle');
+    I.mixer.update(dt); }
   function anim(t, night) { if (!M.built) return; void t; void night; const now = M.tOv != null ? M.tOv : performance.now() / 1000, T = M.tOv != null ? ((M.tOv % LOOP) + LOOP) % LOOP : ((now - M.t0) % LOOP + LOOP) % LOOP; // (tOv: a test / shot pins the loop time)
     M.T = T; M.phase = phase(T); M.lava.rotation.y = (now * 0.01) % (2 * Math.PI);
     restBar(); const P = setPose(T), bc = barAt(T), gl = clamp(bc.em / 0.9, 0, 1), ce = lin(bc.c), heat = sm(0.4, 1.9, bc.em); // edges = the keyframe colour (#ff6a1a -> #b23a12 -> #4a2416 over the strikes), core -> #ffde48 while hot
@@ -7213,6 +7231,7 @@ const FORGE = (() => {
     const j = jawWorld(), R = M.barRest; if ((P.lay || 0) >= 0.999) { M.bar.position.copy(R.p); M.bar.quaternion.copy(R.q).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), P.roll || 0)); }
     else { const lay = P.lay || 0; M.bar.position.copy(j.p).lerp(R.p, lay); M.bar.quaternion.copy(j.q).slerp(R.q, lay); }
     // the rim light: from the lava, in view space
+    glbSync(T, now); /* (t580u: Art's i23d Theus over the old rig) */
     if (M.rimU && typeof M3 !== 'undefined' && M3.camera) { const c = M3.camera; c.updateMatrixWorld(); const d = M.lava.position.clone().sub(M.ape.position).setY(30 * U).normalize(); M.rimU.uRimDir.value.copy(d.transformDirection(c.matrixWorldInverse)); if (M.shells) { const dd = c.position.distanceTo(M.ape.position.clone().add(new THREE.Vector3(0, 45 * U, 0))) / U, n = Math.round(dd <= 50 ? M.shN : dd >= 95 ? 4 : lerp(M.shN, 4, (dd - 50) / 45)); M.shells.geometry.instanceCount = n; M.shU.uShN.value = n; M.shNow = n; } } /* (pass 7b: shell LOD by camera distance) */
     stepSmoke(now); stepEmbers(now); stepFire(now);
     // sparks: a burst of 30-60 at each hit (more while the bar is hot), arcing down into the valley; embers on the ground
@@ -10349,6 +10368,39 @@ const MONSTER_LEVELS = {
 };
 const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM };
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// (Dominic t580u in Art's chat) Art's i23d builds of the two big NPCs replace their old bodies: Mosby (the 10x giant tortoise; the small house-carrying tortoises
+// keep the procedural build - the GLB has no deck) and Theus (the four-armed ape smith at the volcanic forge). Not combat creatures: they are NOT in CREATURE_DATA
+// (no fights, levels or drops); src/creatures/npc_models.js registers them with Creatures.def and builds them with the same loader / chalk toon / ink as the golems.
+// Both GLBs are built at 1/10 of their in-game size (Art's README): scaleM 10 = in-game metres per GLB metre. Their old rigs keep running underneath, unseen
+// (Mosby's gait, feet colliders, ride + vein spots; Theus' 27 s forge loop, IK hammer + tongs and the bar), so where they walk, stand and strike is unchanged.
+const NPC_MODELS = {
+  mosby_giant: {
+    id: 'mosby_giant', name: 'Mosby',
+    model: 'assets/models/creatures/mosby_i23d.glb', // Art's mosby_i23d_slim.glb (production/mosby_i23d, t577u pointed tail + silver tin; 15,999 tris, 8 bones incl. tail, 1 MB)
+    nativeH: 6.486,   // metres tall in the GLB (its bounds: 7.63 wide, 11.04 long) -> 64.9 m tall, 76 m wide, 110 m long in game
+    scaleM: 10,       // (Art's README: 1/10 scale) in-game metres per GLB metre
+    shade: 'hdToon',  // Art's chalk toon + ink outline, look from the material extras (albedo + emissive maps, rim mask)
+    crackGlow: true, glowColor: [0.32, 0.86, 1.0], glowGain: 1.6, // _HD_GLOW (Lumen crown + glyphs, 98 verts) on the golems' glow path; the GLB's own hd_glow is black, so the Lumen teal is set here
+    clips: { idle: 'Idle', walk: 'Walk', talk: 'Talk' }, // Idle 3.03 s, Walk 2.03 s, Talk 2.03 s (Art's hit_timing.json); Talk while his dialogue is open
+    walkS: 2.033,     // Walk clip length: played once per step cycle of his gait (Mosby.B.cyc), so the clip's steps keep his pace
+    keep: ['mosbyVeins'], // old-rig meshes still drawn on the GLB: the mineable vein rocks (src/mosby_veins.js, on the old dome). The old Lumen crown is hidden: Art's
+                      // crown is in the mesh on his own head (the old one rode the old, longer neck); its tap / mining spot is unchanged
+  },
+  theus: {
+    id: 'theus', name: 'Theus',
+    model: 'assets/models/creatures/theus_i23d.glb', // Art's theus_i23d_slim.glb (production/theus_i23d, t577u colour fixes; 16,000 tris, 10 bones, 1 MB)
+    nativeH: 9.803,   // metres tall in the GLB -> 98 m in game (the old baked ape was 91 m: 70 design m x 1.3)
+    scaleM: 10,       // (Art's README: 1/10 scale) in-game metres per GLB metre
+    shade: 'hdToon',
+    clips: { idle: 'Idle', walk: 'Walk', talk: 'Talk', strike: 'Strike' }, // Idle 3.03, Walk 1.37, Talk 2.03, Strike 1.33 s
+    strikeHitS: 0.6,  // the Strike clip's blow lands 0.600 s in (frame 18 @ 30 fps): each of the forge loop's 7 hits starts it 0.6 s early
+    walkPhases: ['turn', 'return'], // forge loop phases (FORGE.phase) he walks in (the turn + stride to the bar, the walk back)
+    tools: [15, 17],  // old-rig bones whose parts stay drawn: 15 the tongs, 17 the hammer (not in Art's mesh; they keep the loop's IK, the bar and the sparks)
+  },
+};
+for (const k in NPC_MODELS) NPC_MODELS[k].height = NPC_MODELS[k].nativeH * NPC_MODELS[k].scaleM; // in-game metres tall (Creatures.make scales the model to it)
+
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
 // (Dominic t720u / t722u, Art's design approved on card t721s2718) overhead combat health bars, hers and the monster's: drawn by src/creatures/healthbars.js
@@ -11326,7 +11378,7 @@ const Creatures = (() => {
     g.nodes.forEach((n, i) => (n.children || []).forEach((c) => nodes[i].add(nodes[c])));
     const model = new THREE.Group(); model.name = D.id + 'Model'; for (const i of g.scenes[g.scene || 0].nodes) model.add(nodes[i]); model.updateMatrixWorld(true);
     let skel = null; if (g.skins && g.skins[0]) { const sk = g.skins[0], ibm = acc(S, sk.inverseBindMatrices).arr, bones = sk.joints.map((j) => nodes[j]); skel = new THREE.Skeleton(bones, bones.map((_, k) => new THREE.Matrix4().fromArray(ibm, k * 16))); }
-    const mats = [], gc = ((g.materials || []).find((q) => q.extras && q.extras.hd_glow) || { extras: {} }).extras.hd_glow; /* (t542: the golem's glow colour, on its Stone material) */
+    const mats = [], gc = D.glowColor || ((g.materials || []).find((q) => q.extras && q.extras.hd_glow) || { extras: {} }).extras.hd_glow; /* (Mosby: his row's glowColor - the GLB's hd_glow is black) */ /* (t542: the golem's glow colour, on its Stone material) */
     g.nodes.forEach((n, i) => { if (n.mesh == null) return; for (const p of g.meshes[n.mesh].primitives) { const geo = new THREE.BufferGeometry(), A = p.attributes, put = (k, nm) => { if (A[k] == null) return; const a = acc(S, A[k]); geo.setAttribute(nm, new THREE.BufferAttribute(a.arr, a.n, a.norm)); };
         put('POSITION', 'position'); put('NORMAL', 'normal'); put('JOINTS_0', 'skinIndex'); put('WEIGHTS_0', 'skinWeight'); if (D.shade === 'hdToon') { put('COLOR_0', 'color'); if (hasGlow(D, A, gc) || (((g.materials[p.material] || {}).extras || {}).hd_rimMask && A._HD_GLOW != null)) put('_HD_GLOW', 'hdGlow'); put('TEXCOORD_0', 'uv'); } /* (the golems' painted swatches + Art's _HD_GLOW per-vertex glow, t542) */ if (p.indices != null) geo.setIndex(new THREE.BufferAttribute(acc(S, p.indices).arr, 1));
         const m = D.shade === 'hdToon' && typeof HDToon !== 'undefined' ? hdMat(D, g.materials[p.material], A, gc, O, S.tex) : mat(D, g.materials[p.material].name), sm = skel ? new THREE.SkinnedMesh(geo, m) : new THREE.Mesh(geo, m); sm.name = m.name; sm.castShadow = true; sm.frustumCulled = false; nodes[i].add(sm); mats.push(m); } });
@@ -11364,6 +11416,22 @@ const Creatures = (() => {
     const root = new THREE.Group(); root.name = T.id; root.add(cp); const bones = T.bones.map((b) => cL.get(b)), mats = T.mats;
     return player({ id: T.id, def: T.def, root, model: cp, clips: T.clips, mats, names: T.names, stripped: T.stripped, rest: T.rest, bones, clone: true }); }
   return { get, load, make, clone, def: (id, row) => (XD[id] = Object.assign({}, row, { id })), gl: (id) => (ST[id] && ST[id].gl) || null, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
+})();
+/* ===== NpcModels: Art's i23d bodies for the big NPCs (NPC_MODELS in src/creatures/data.js: Mosby the giant, Theus) (Dominic t580u).
+   Each row is registered with Creatures.def (not a combat creature) and built with Creatures.make like the overworld golems (chalk toon + ink, _HD_GLOW glow,
+   drawn by the map renderer: screenEnc). The old rig keeps running underneath, unseen, so placement, colliders, ride, veins and the forge loop are unchanged.
+     NpcModels.make(id)        -> its instance (Creatures.make) once the GLB has loaded, else null (the load starts on the first call)
+     NpcModels.play(I, key, o) -> one clip of the row's clips (idle / walk / talk / strike) at a time; o.once for a one-shot, o.restart to start it over
+     NpcModels.state(id)       -> { loading, ready, err, inst } for tests ===== */
+const NpcModels = (() => {
+  const S = {};
+  function st(id) { if (S[id]) return S[id]; const R = typeof NPC_MODELS !== 'undefined' && NPC_MODELS[id]; const o = S[id] = { id, R, inst: null, err: null, loading: false };
+    if (!R || typeof Creatures === 'undefined') { o.err = 'no model row ' + id; return o; }
+    Creatures.def(id, R); o.loading = true; Creatures.load(id).then(() => { o.loading = false; }).catch((e) => { o.loading = false; o.err = String(e); }); return o; }
+  function make(id) { const o = st(id); if (o.inst || o.err || !Creatures.ready(id)) return o.inst; const I = Creatures.make(id, { screenEnc: true }); if (!I) return null;
+    I.root.traverse((n) => { n.userData.hdGlb = true; if (n.isMesh) { n.castShadow = true; n.receiveShadow = false; } }); I.key = null; o.inst = I; return I; }
+  function play(I, key, opt) { if (!I) return null; const O = opt || {}, nm = I.def.clips && I.def.clips[key]; if (!nm) return null; if (I.key === key && !O.restart) return null; I.key = key; I.act = I.play(nm, !!O.once); return I.act; }
+  return { make, play, state: (id) => { const o = S[id]; return o ? { loading: o.loading, ready: !!o.inst, err: o.err, inst: o.inst } : null; } };
 })();
 /* (Dominic t720u / t722u, Art's design approved on card t721s2718) overhead combat health bars - hers and each monster's in the fight - over the 3D canvas,
    under (t566s2518) Art's nameplate: one centred row, a brass 'Lv N' badge (coloured against her combat level) then the name.
@@ -16140,10 +16208,14 @@ const Explore = (() => {
   // her spot, facing and follow camera, kept for the map's Character view (resumes there after a tab switch)
   function viewSave() { if (!EX.on || typeof CityMap === 'undefined' || !CityMap.mapViewSave) return; const h = here(), G = CharView.st.gnd; if (!h || !G) return; CityMap.mapViewSave({ char: { x: Math.round(h[0]), y: Math.round(h[1]), face: +G.face.toFixed(3), az: +EX.az.toFixed(3), d: +EX.d.toFixed(2), tilt: +EX.tilt.toFixed(3) } }); }
   function here() { const G = CharView.worldGnd !== undefined ? CharView.worldGnd : CharView.st.gnd; /* (t584u: her world spot while the Character tab is open) */ if (G && EX.ride) { const v = toMap(G); return [v.x, v.z]; } return G ? [EX.O.x + G.x * WS, EX.O.y + G.z * WS] : null; }
-  function goTo(x, y, done) { const G = CharView.st.gnd; if (!EX.on || !G || EX.ride) return null; /* aboard Mosby: no ground walks */ const [hx, hy2] = here(), P = plan(hx, hy2, x, y); if (!P) return null; EX.trips++;
-    G.path = P.pts.slice(1).map(([px, py]) => ({ x: (px - EX.O.x) / WS, z: (py - EX.O.y) / WS })); G.pi = 0; G.goal = { x: G.path[G.path.length - 1].x, z: G.path[G.path.length - 1].z, fit: true, done: () => { EX.arrived = (EX.arrived || 0) + 1; if (done) done(); } }; G.gBest = 1e9; G.stall = 0; EX.route = P; markAt(P.goal[0], P.goal[1]); return P; }
+  function goTo(x, y, done, opt) { const G = CharView.st.gnd; if (!EX.on || !G || EX.ride) return null; /* aboard Mosby: no ground walks */ const [hx, hy2] = here(), P = plan(hx, hy2, x, y); if (!P) return null; EX.trips++;
+    G.path = P.pts.slice(1).map(([px, py]) => ({ x: (px - EX.O.x) / WS, z: (py - EX.O.y) / WS })); G.pi = 0; G.goal = { x: G.path[G.path.length - 1].x, z: G.path[G.path.length - 1].z, fit: true, done: () => { EX.arrived = (EX.arrived || 0) + 1; if (done) done(); } }; G.gBest = 1e9; G.stall = 0; EX.route = P; if (opt && opt.noMark) markOff(); else { markAt(P.goal[0], P.goal[1]); EX.markGoal = G.goal; } return P; }
   function markAt(x, y) { if (!EX.mark) { const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: 0xfff1c2, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }); g.add(new THREE.Mesh(new THREE.RingGeometry(2.6, 3.6, 32).rotateX(-Math.PI / 2), m), new THREE.Mesh(new THREE.CircleGeometry(0.9, 16).rotateX(-Math.PI / 2), m)); g.renderOrder = 6; EX.mark = g; }
     M3.scene.add(EX.mark); EX.mark.position.set(x, hAt(x, y) + 0.6, y); EX.mark.visible = true; }
+  // (t733u, Dominic) the white target circle is only there while she is on her way to it: gone when she arrives, when the walk is cancelled or replaced
+  // by a new target, when a fight takes over the walk (combat chases pass noMark) and aboard Mosby. EX.markGoal = the walk it marks (CharView.st.gnd.goal)
+  function markOff() { if (EX.mark) EX.mark.visible = false; EX.markGoal = null; }
+  function markCheck(G) { if (EX.mark && EX.mark.visible && (EX.ride || !G || !G.goal || G.goal !== EX.markGoal || (typeof WorldGolems !== 'undefined' && WorldGolems.W.eng))) markOff(); }
   // tap: the Ledge door or the Lumen Tree door -> walk up, then the existing interaction; anything else -> run there (nearest reachable spot)
   // door hits are strict: the tap must land on the door itself (its projected frame, padded by ~1 m) or right on its glowing ring (within ~1.2 m on the ground);
   // nearby ground taps are just moves. Doors further than ~225 m are ignored.
@@ -16962,7 +17034,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     if (!G.exAdv) G.exAdv = (dX, dY) => { const te = Math.PI / 2 - (G.exLeanS || 0), f = G.face, hz = Math.cos(te) * dY; G.x += Math.sin(f) * hz + Math.cos(f) * dX; G.z += Math.cos(f) * hz - Math.sin(f) * dX; G.y += Math.sin(te) * dY; EX.climbed = (EX.climbed || 0) + 1; EX.climbDist = (EX.climbDist || 0) + Math.hypot(dX, dY); }; // the body moves exactly as it does in its own wall frame, so planted picks and toes stay put
     if (G.exC && dir !== 'stop' && CharView.an.act === 'climb') { if (EX.climbed !== G.exLast) { G.exLast = EX.climbed; G.exIdle = 0; } else if ((G.exIdle = (G.exIdle || 0) + dt) > 2.5) { G.exNew = true; G.exIdle = 0; EX.regrips = (EX.regrips || 0) + 1; } } // a hold deadlock (no reachable next hold): re-grip from where she hangs
     CharView.st.climbDir = dir; }
-  function tick(dt) { if (!EX.on) return; const G = CharView.st.gnd; if (!G) return exit(); if (EX.ride) EX.ride.sync(); const [x, y] = here(), c = EX.ride ? 0 : clsAt(x, y); EX.cls = c; G.spdK = (G.exC ? 0.35 : 1) * (CharView.EXK || 1); /* speed scales with her map body scale */ /* full run speed whenever she is not on the wall (no slow band on climb-class cells near a face) */ climbState(G, c, dt); CharView.st.tool = c === 2 || G.exC ? 'climb' : ORE.mining || EX.pend === 'ore' ? 'pick' : 'none'; EX.climbing = !!G.exC;
+  function tick(dt) { if (!EX.on) return; const G = CharView.st.gnd; if (!G) return exit(); if (EX.ride) EX.ride.sync(); markCheck(G); const [x, y] = here(), c = EX.ride ? 0 : clsAt(x, y); EX.cls = c; G.spdK = (G.exC ? 0.35 : 1) * (CharView.EXK || 1); /* speed scales with her map body scale */ /* full run speed whenever she is not on the wall (no slow band on climb-class cells near a face) */ climbState(G, c, dt); CharView.st.tool = c === 2 || G.exC ? 'climb' : ORE.mining || EX.pend === 'ore' ? 'pick' : 'none'; EX.climbing = !!G.exC;
     CharView.exploreStep(dt); if (EX.ride) EX.ride.keep(G); else { pinGrip(G); unclip(G); slide(G); } const cm = CharView.exploreCam(EX.d, EX.tilt, EX.az), P = toMap(cm.P), L = toMap(cm.L); let gH = -1e9; for (const [ox, oz] of [[0, 0], [5, 0], [-5, 0], [0, 5], [0, -5]]) gH = Math.max(gH, M3.meshH(P.x + ox, P.z + oz) + 4); if (P.y < gH) P.y = gH; // out of the ground by height only - the zoom never changes for geometry
     if (EX.climbing || G.exW > 0.05) camClear(P, L);
     M3.st.camOv = { P, L, D: Math.max(60, EX.d * WS * 3), near: 1.2, far: 30000 };
@@ -16986,7 +17058,7 @@ else if (vSeam.a > 1.5) { vec3 p = vSeam.a > 3.5 ? vOP * vec3(1.1, 0.28, 1.1) : 
     let sb = document.getElementById('exSkillsBtn'); if (!sb && on) { sb = document.createElement('button'); sb.id = 'exSkillsBtn'; sb.innerHTML = '<span>Skills</span>'; sb.setAttribute('aria-label', 'Open skills'); sb.addEventListener('click', () => typeof Skills !== 'undefined' && Skills.screen(!Skills.screenOn())); (document.getElementById('cityWrap') || document.body).appendChild(sb); } if (sb) sb.classList.toggle('on', !!on); if (!on && typeof Skills !== 'undefined' && Skills.screenOn && Skills.screenOn()) Skills.screen(false);
     let bb = document.getElementById('exBagBtn'); if (!bb && on) { bb = document.createElement('button'); bb.id = 'exBagBtn'; bb.innerHTML = '🎒<span>Bag</span>'; bb.setAttribute('aria-label', 'Open the backpack'); bb.addEventListener('click', () => typeof Craft !== 'undefined' && Craft.sheet(!Craft.sheetOn())); (document.getElementById('cityWrap') || document.body).appendChild(bb); } if (bb) bb.classList.toggle('on', !!on); if (!on && typeof Craft !== 'undefined' && Craft.sheetOn && Craft.sheetOn()) Craft.sheet(false);
     const eb = document.querySelector('[data-city=explore]'); if (eb) eb.classList.toggle('on', !!on); if (typeof CityMap !== 'undefined' && CityMap.setView && !CityMap.setView._drillHud) { const sv = CityMap.setView; CityMap.setView = function (m) { const r = sv.apply(this, arguments); drillHud(); return r; }; CityMap.setView._drillHud = true; } drillHud(); if (!on && DRILL.sel) drillPanel(null); }
-  return { DRILL_FUEL, drillStep, mineGive, BAG_FULL, tetherPlan, tetherLength, tetherOK, onBridge, orePrune, drillFix, drillRate, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, drillCaps, drillFlow, drillStrandText, bitPushNeed, drillIsBestOre, longPress, drillNear, drillSetup, drillHud, playHudOk, millHud, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen };
+  return { markOff, get markShown() { return !!(EX.mark && EX.mark.visible); }, DRILL_FUEL, drillStep, mineGive, BAG_FULL, tetherPlan, tetherLength, tetherOK, onBridge, orePrune, drillFix, drillRate, spanOK, drillRouteC, act, addSolid, solidsOff, enterLedgeFromMap, outsideLedge, ledgeFront, bodyInside, tapDoor, doorHit, FD, focalRocks, PATHS, lod, genBridges, syncMapBridges, BASE, GEN, doorSpots, get doors() { return DR; }, WS, C, REG, BRIDGES, NV, EX, build, plan, places, sim, follow, clsAt, hAt, nearest, collide, solidAt, colList, BODY_R, buildWorld, get bridges() { return BR; }, enter, exit, tap, goTo, here, aim, reach, orbit, zoom, tick, get on() { return EX.on; }, ORE, oreSpots, oreStand, oreHit, mineTap, ORE_LOOK, BITS, DRILL, drillState, drillStep, drillDeploy, drillWire, drillPanel, drillRoute, drillCaps, drillFlow, drillStrandText, bitPushNeed, drillIsBestOre, longPress, drillNear, drillSetup, drillHud, playHudOk, millHud, drillUI, drillPlace, drillSwapBit, drillPitch, drillInteract, drillTakeBit, drillNearMe, drillHit, tapDrill, fieldDrills, ORE_MIN, DRILL_ITEM, runSpeed, TETHER_ITEM, tetherOwned, tetherFree, tetherUsed, dropState, dropNeed, dropCreate, dropRemove, dropRoute, tetherList, tetherRoutes, homeMoved, tetherRename, teleportTo, placeName, tetherLen };
 })();
 /* ---------- Explore: the Map screen - a full-screen stylized 2D map drawn from the nav grid / heightfield (toon hypsometric tint + hillshade, cliffs, water,
    crevices, the footpath network, every bridge marked), labelled places and Wren's marker; tap anywhere -> A* travel (snapped to the nearest reachable spot)
@@ -17439,7 +17511,7 @@ const WorldGolems = (() => {
   // ---- her fight on the map
   const me = () => W.F || (W.F = Combat.newFight(Combat.playerStats()));
   function rel(g) { const h = here(); if (!h) return null; const dx = g.x - h[0], dy = g.y - h[1], cd = Math.hypot(dx, dy) / U(); return { dx, dy, cd, d: cd - (g.C.bodyR || 0) }; } // d: metres from her to its body surface
-  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; W.fought = false; if (g.wp) g.wp = null; return true; }
+  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; if (Explore.markOff) Explore.markOff(); /* (t733u: combat replaces the walk's target circle) */ W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; W.fought = false; if (g.wp) g.wp = null; return true; }
   function disengage() { W.eng = false; W.tgt = null; W.strike = 0; W.inR = false; W.aim = null; W.fought = false; }
   function strike(g) { const q = rel(g); if (!q || g.dead > 0 || q.d > D().REACH_M + D().KEEP_REACH_M) return null; const C = g.C, r = Combat.rollDamage(Combat.playerStats(), { def: C.def, swing: ++W.n });
     g.hp = Math.max(0, g.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); if (r.dmg > 0) Combat.fightDealt(me(), r.dmg); num(g, r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); g.hunt = true;
@@ -17459,7 +17531,7 @@ const WorldGolems = (() => {
   // between is open (the nav grid's 2.5 m cell centres put a waypoint beside / behind her on every re-plan - the back-and-forth Dominic saw)
   function chase(g, q, G) { const T = D(), so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()), tx = g.x - q.dx / L * so, ty = g.y - q.dy / L * so, A = W.aim;
     if (A && G.goal && (W.rp > 0 || Math.hypot(A.x - tx, A.y - ty) < T.REPATH_M * WS())) return; if (A && !G.goal && W.rp > 0) return;
-    W.rp = T.REPATH_S; W.aim = { x: tx, y: ty }; W.stats.aims = (W.stats.aims || 0) + 1; const P = Explore.goTo(tx, ty); if (!P || P.snapped || !G.goal) return;
+    W.rp = T.REPATH_S; W.aim = { x: tx, y: ty }; W.stats.aims = (W.stats.aims || 0) + 1; const P = Explore.goTo(tx, ty, null, { noMark: true }); /* (t733u: a fight's chase shows no target circle) */ if (!P || P.snapped || !G.goal) return;
     const h = here(), dl = Math.hypot(tx - h[0], ty - h[1]); if (dl > T.DIRECT_M * WS()) return; const n = Math.ceil(dl / WS()); for (let i = 1; i < n; i++) { const t = i / n; if (Explore.clsAt(h[0] + (tx - h[0]) * t, h[1] + (ty - h[1]) * t) !== 1) return; }
     G.path = [{ x: G.goal.x, z: G.goal.z }]; G.pi = 0; W.stats.direct = (W.stats.direct || 0) + 1; }
   // ---- one golem's AI (only near her): hunt inside its leash, else wander its field
@@ -17891,16 +17963,25 @@ const Mosby = (() => {
   /* (Dominic) no far view at all: no impostor card, no distant rig. He is drawn only inside a close range where the full model looks right, and fades in
      over the last 100 m (opacity on his own cloned materials, opaque again once fully in), so he never pops. The map icons still show where he is. */
   const G_SHOW = 860, G_GONE = 1000; // metres from the camera to his middle: fully drawn inside SHOW, gone beyond GONE (Dominic: ~2x the first 480 m - he reads from far off; mobile cost checked: see PASSLOG pass 25)
-  function gFade(f) { if (!GM.mats) { GM.mats = []; GM.g.traverse((o) => { if (!o.isMesh || !o.material) return; const one = (m) => { const c = m.clone(); GM.mats.push({ m: c, op: m.opacity, tr: m.transparent, dw: m.depthWrite }); return c; }; o.material = Array.isArray(o.material) ? o.material.map(one) : one(o.material); }); }
+  function gFade(f) { if (!GM.mats) { GM.mats = []; GM.g.traverse((o) => { if (!o.isMesh || !o.material) return; if (o.userData.hdGlb) { for (const m of [].concat(o.material)) GM.mats.push({ m, op: m.opacity, tr: m.transparent, dw: m.depthWrite }); return; } /* (the i23d body: its chalk toon shader hooks live on each material - faded in place, never cloned) */ const one = (m) => { const c = m.clone(); GM.mats.push({ m: c, op: m.opacity, tr: m.transparent, dw: m.depthWrite }); return c; }; o.material = Array.isArray(o.material) ? o.material.map(one) : one(o.material); }); }
     const fading = f < 0.999; if (GM.fadeOn === fading && !fading) return; GM.fadeOn = fading; for (const q of GM.mats) { const on = fading || q.tr; if (q.m.transparent !== on) { q.m.transparent = on; q.m.needsUpdate = true; } q.m.opacity = q.op * (fading ? f : 1); } }
   function gLod() { const cam = M3.camera; if (!cam || !GM.g) return; const WS = Explore.WS, s = GM.g.scale.x, c = new THREE.Vector3(GM.g.position.x, GM.g.position.y + s * 3, GM.g.position.z), d = cam.position.distanceTo(c); GM.lodD = d;
     const f = Math.max(0, Math.min(1, (WS * G_GONE - d) / (WS * (G_GONE - G_SHOW)))), sm = f * f * (3 - 2 * f); GM.fade = sm; GM.g.visible = sm > 0.003; if (GM.g.visible) gFade(sm);
     const mob = typeof QUALITY !== 'undefined' && QUALITY.name === 'mobile', near = d < WS * (mob ? 160 : 260); if (near !== GM.detOn) { GM.detOn = near; for (const o of GM.detList || []) o.visible = near; } }
+  /* (Dominic t580u) Art's i23d Mosby (NPC_MODELS.mosby_giant, src/creatures/npc_models.js) is drawn in place of the procedural giant once its GLB has loaded:
+     it rides in GM.g (metres -> his body units: 1 / (B.K x GK)), feet on his ground line, nose +z like the old build. The old rig keeps running, unseen (its meshes
+     hidden, not removed): the gait, feet colliders, dust, ride and vein spots all stay on it; only the rows' keep meshes (vein rocks, Lumen crown) stay drawn.
+     Clips: Walk while he walks (one clip cycle per gait cycle), Talk while his dialogue is open, otherwise Idle */
+  function gGlb(dt, moving) { if (!GM.g || typeof NpcModels === 'undefined' || typeof NPC_MODELS === 'undefined') return; const R = NPC_MODELS.mosby_giant;
+    if (!GM.glb) { const I = NpcModels.make('mosby_giant'); if (!I) return; GM.glb = I; I.root.scale.setScalar(1 / (B.K * GK)); I.root.name = 'mosbyGlb'; GM.g.add(I.root); GM.mats = null; GM.fadeOn = null; }
+    if (GM.body) GM.body.traverse((o) => { if (o.isMesh && !o.userData.hdGlb && o.visible && !(R.keep || []).includes(o.name)) o.visible = false; }); /* (also catches parts added later) */
+    const I = GM.glb, talk = typeof MosbyTalk !== 'undefined' && !!MosbyTalk.step; NpcModels.play(I, talk ? 'talk' : moving ? 'walk' : 'idle');
+    if (I.act) I.act.timeScale = I.key === 'walk' ? R.walkS / B.cyc : 1; I.mixer.update(dt); }
   function gTick(dt) { if (!GM.g) { GM.g = build({ giant: true, st: GM }); GM.g.scale.setScalar(gScale()); GM.s = gClockS(); GM.yaw = gYaw(GM.s); GM.at = { x: 0, y: 0 }; } if (!GM.g.parent) M3.scene.add(GM.g);
     const WS = Explore.WS; GM.t += dt; const moving = !GM.hold; if (moving) GM.s = (GM.s + gSpeed() * dt) % gLoop().L; const p = gAt(GM.s); GM.at.x = p[0]; GM.at.y = p[1];
     let d = gYaw(GM.s) - GM.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); GM.yaw += d * Math.min(1, dt * 0.8); GM.g.rotation.order = 'YXZ'; GM.g.rotation.y = GM.yaw;
     const lp = gLift(GM.s); GM.lift = lp[0]; GM.pitch = (GM.pitch || 0) + (lp[1] - (GM.pitch || 0)) * Math.min(1, dt * 2); GM.g.rotation.x = -GM.pitch; /* YXZ: pitch about his own side axis after the yaw; +z is his nose, so -x lifts it */
-    GM.g.position.set(p[0], M3.meshH(p[0], p[1]) - WS * GSINK + GM.lift, p[1]); const keep = MS; MS = GM; try { stepAnim(dt, moving); dustTick(dt); } finally { MS = keep; } gCols(); gLod(); if (typeof MosbyRide !== 'undefined') MosbyRide.sync(); /* a rider stays pinned to his shell this very frame */ }
+    GM.g.position.set(p[0], M3.meshH(p[0], p[1]) - WS * GSINK + GM.lift, p[1]); const keep = MS; MS = GM; try { stepAnim(dt, moving); dustTick(dt); } finally { MS = keep; } gGlb(dt, moving); gCols(); gLod(); if (typeof MosbyRide !== 'undefined') MosbyRide.sync(); /* a rider stays pinned to his shell this very frame */ }
   // auto-walk to him: a spot just off his flank (the side nearest her), kept fresh as he plods on
   function gMeet(hx, hy) { const s = GM.g ? GM.g.scale.x : gScale(), a = GM.yaw || 0, side = Math.sign((hx - GM.at.x) * Math.cos(a) - (hy - GM.at.y) * Math.sin(a)) || 1, ahead = gSpeed() * 6; const p = gAt((GM.s || 0) + (GM.hold ? 0 : ahead)); return [p[0] + Math.cos(a) * side * s * 5.2, p[1] - Math.sin(a) * side * s * 5.2]; }
   function gNear(hx, hy) { if (!GM.g) return false; const s = GM.g.scale.x; return Math.hypot(hx - GM.at.x, hy - GM.at.y) < s * 7.5; } // in person: within ~85 m of his middle (his flank is ~40 m out)
@@ -18073,7 +18154,7 @@ const Theus = (() => {
     const el = M3.renderer && M3.renderer.domElement, w = el ? el.clientWidth : innerWidth, h = el ? el.clientHeight : innerHeight, rc = new THREE.Raycaster(); rc.setFromCamera(new THREE.Vector2((sx / w) * 2 - 1, -(sy / h) * 2 + 1), M3.camera);
     // his skinned body in its current pose (the bounds refreshed per tap: he walks 60 m between the lava and the bar); only the body, not the fur shells
     if (M.ape.isSkinnedMesh && M.ape.computeBoundingSphere) { M.ape.computeBoundingSphere(); if (M.ape.computeBoundingBox) M.ape.computeBoundingBox(); }
-    const hh = rc.intersectObject(M.ape, false)[0]; if (!hh) return false;
+    const hh = M.glb ? rc.intersectObject(M.glb.root, true).find((q) => q.object.isMesh && !q.object.userData.isInk) : rc.intersectObject(M.ape, false)[0]; if (!hh) return false; /* (t580u: Art's i23d body once it is drawn; the old ape mesh is only the tools then) */
     const g = M3.unproject && M3.unproject(sx, sy); if (g && M3.meshH) { const gd = M3.camera.position.distanceTo(new THREE.Vector3(g[0], M3.meshH(g[0], g[1]), g[1])); if (hh.distance > gd + (typeof Explore !== 'undefined' ? Explore.WS : 1) * 0.5) return false; } // (behind the ground / platform: not on him)
     return true; }
   // a tap on him: on the anvil top -> talk; elsewhere -> a short hint (no marker, no walk)

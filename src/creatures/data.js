@@ -139,6 +139,39 @@ const MONSTER_LEVELS = {
 };
 const CREATURE_DATA = { lumen_mushroom: LUMEN_MUSHROOM, tin_golem: TIN_GOLEM, copper_golem: COPPER_GOLEM, coal_golem: COAL_GOLEM };
 
+// ---------------------------------------------------------------------------------------------------------------------------------------------
+// (Dominic t580u in Art's chat) Art's i23d builds of the two big NPCs replace their old bodies: Mosby (the 10x giant tortoise; the small house-carrying tortoises
+// keep the procedural build - the GLB has no deck) and Theus (the four-armed ape smith at the volcanic forge). Not combat creatures: they are NOT in CREATURE_DATA
+// (no fights, levels or drops); src/creatures/npc_models.js registers them with Creatures.def and builds them with the same loader / chalk toon / ink as the golems.
+// Both GLBs are built at 1/10 of their in-game size (Art's README): scaleM 10 = in-game metres per GLB metre. Their old rigs keep running underneath, unseen
+// (Mosby's gait, feet colliders, ride + vein spots; Theus' 27 s forge loop, IK hammer + tongs and the bar), so where they walk, stand and strike is unchanged.
+const NPC_MODELS = {
+  mosby_giant: {
+    id: 'mosby_giant', name: 'Mosby',
+    model: 'assets/models/creatures/mosby_i23d.glb', // Art's mosby_i23d_slim.glb (production/mosby_i23d, t577u pointed tail + silver tin; 15,999 tris, 8 bones incl. tail, 1 MB)
+    nativeH: 6.486,   // metres tall in the GLB (its bounds: 7.63 wide, 11.04 long) -> 64.9 m tall, 76 m wide, 110 m long in game
+    scaleM: 10,       // (Art's README: 1/10 scale) in-game metres per GLB metre
+    shade: 'hdToon',  // Art's chalk toon + ink outline, look from the material extras (albedo + emissive maps, rim mask)
+    crackGlow: true, glowColor: [0.32, 0.86, 1.0], glowGain: 1.6, // _HD_GLOW (Lumen crown + glyphs, 98 verts) on the golems' glow path; the GLB's own hd_glow is black, so the Lumen teal is set here
+    clips: { idle: 'Idle', walk: 'Walk', talk: 'Talk' }, // Idle 3.03 s, Walk 2.03 s, Talk 2.03 s (Art's hit_timing.json); Talk while his dialogue is open
+    walkS: 2.033,     // Walk clip length: played once per step cycle of his gait (Mosby.B.cyc), so the clip's steps keep his pace
+    keep: ['mosbyVeins'], // old-rig meshes still drawn on the GLB: the mineable vein rocks (src/mosby_veins.js, on the old dome). The old Lumen crown is hidden: Art's
+                      // crown is in the mesh on his own head (the old one rode the old, longer neck); its tap / mining spot is unchanged
+  },
+  theus: {
+    id: 'theus', name: 'Theus',
+    model: 'assets/models/creatures/theus_i23d.glb', // Art's theus_i23d_slim.glb (production/theus_i23d, t577u colour fixes; 16,000 tris, 10 bones, 1 MB)
+    nativeH: 9.803,   // metres tall in the GLB -> 98 m in game (the old baked ape was 91 m: 70 design m x 1.3)
+    scaleM: 10,       // (Art's README: 1/10 scale) in-game metres per GLB metre
+    shade: 'hdToon',
+    clips: { idle: 'Idle', walk: 'Walk', talk: 'Talk', strike: 'Strike' }, // Idle 3.03, Walk 1.37, Talk 2.03, Strike 1.33 s
+    strikeHitS: 0.6,  // the Strike clip's blow lands 0.600 s in (frame 18 @ 30 fps): each of the forge loop's 7 hits starts it 0.6 s early
+    walkPhases: ['turn', 'return'], // forge loop phases (FORGE.phase) he walks in (the turn + stride to the bar, the walk back)
+    tools: [15, 17],  // old-rig bones whose parts stay drawn: 15 the tongs, 17 the hammer (not in Art's mesh; they keep the loop's IK, the bar and the sparks)
+  },
+};
+for (const k in NPC_MODELS) NPC_MODELS[k].height = NPC_MODELS[k].nativeH * NPC_MODELS[k].scaleM; // in-game metres tall (Creatures.make scales the model to it)
+
 // (GD-19) her side of the playground fight. Tap a creature: she runs up, locks on (always facing it) and starts one attack sequence every ATTACK_INTERVAL_S
 // seconds, each the next of her 4 swing styles, each swing rolling the damage once; walking off ends her attacks (the creature's leash is its own row above).
 // (Dominic t720u / t722u, Art's design approved on card t721s2718) overhead combat health bars, hers and the monster's: drawn by src/creatures/healthbars.js

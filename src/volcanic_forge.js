@@ -517,6 +517,24 @@ const FORGE = (() => {
   function restBar() { if (M.barRest) return M.barRest; setPose(12.0); const j = jawWorld(), flat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 2); // laid flat along the loop line (world -x), resting on the striking surface
     const top = HB + (L.plat[3] + L.bar[1] / 2) * U, p = new THREE.Vector3(j.p.x, top, LIP[1]).add(new THREE.Vector3(-BXS * U, 0, 0).applyQuaternion(M.ape.getWorldQuaternion(new THREE.Quaternion())).setY(0)); const local = new THREE.Vector3(-BXS, L.plat[3] + L.bar[1] / 2, (LIP[0] - j.p.x) / U - L.S); M.barRest = { p, q: flat, local }; return M.barRest; }
   const lin = (c) => c.map((v) => Math.pow(v, 2.2)), CORE = lin([1, 0xde / 255, 0x48 / 255]);
+  /* (Dominic t580u) Art's i23d Theus (NPC_MODELS.theus, src/creatures/npc_models.js) is drawn in place of the baked ape once its GLB has loaded. The old rig
+     keeps running, unseen, so the 27 s loop (walk to the lava, dip, carry, 7 strikes, walk back), the bar, the sparks and his tap target stay as they were: his
+     body is hidden (only the tongs + hammer parts of its mesh, NPC_MODELS.theus.tools, are still drawn - they are not in Art's mesh) and the GLB stands where
+     the ape stands (metres x WS, feet on the platform, facing his yaw). Clips: Walk in the loop's walking phases; Strike once per hit, started strikeHitS
+     (0.600 s) before it so its blow lands on the hit; Talk while his dialogue is open (when he is not walking or striking); otherwise Idle */
+  function toolsOnly(bones) { const g = M.ape.geometry, si = g.attributes.skinIndex, sw = g.attributes.skinWeight, ix = g.index; if (!si || !sw || !ix || M.ix0) return; M.ix0 = ix;
+    const dom = (v) => { let b = 0, w = -1; for (let k = 0; k < si.itemSize; k++) { const q = sw.getComponent ? sw.getComponent(v, k) : sw.array[v * sw.itemSize + k]; if (q > w) { w = q; b = si.array[v * si.itemSize + k]; } } return b; };
+    const keep = [], A = ix.array; for (let i = 0; i < A.length; i += 3) if (bones.includes(dom(A[i])) && bones.includes(dom(A[i + 1])) && bones.includes(dom(A[i + 2]))) keep.push(A[i], A[i + 1], A[i + 2]);
+    g.setIndex(keep); M.toolTris = keep.length / 3; }
+  function glbSync(T, now) { if (!M.ape || typeof NpcModels === 'undefined' || typeof NPC_MODELS === 'undefined') return; const R = NPC_MODELS.theus;
+    if (!M.glb) { const I = NpcModels.make('theus'); if (!I) return; M.glb = I; I.root.name = 'theusGlb'; I.root.scale.setScalar(WS); M.grp.add(I.root); toolsOnly(R.tools || []); if (M.shells) M.shells.visible = false; M.glbT = now; }
+    const I = M.glb, ape = M.ape, dt = clamp(now - (M.glbT || now), 0, 0.1); M.glbT = now; I.root.position.copy(ape.position); I.root.rotation.copy(ape.rotation); I.root.visible = ape.visible;
+    const ph = phase(T), talk = typeof Theus !== 'undefined' && Theus.ST && !!Theus.ST.step, dur = (I.clips[R.clips.strike] && I.clips[R.clips.strike].duration) || 1.333;
+    let hit = null; if (ph === 'strike') for (const th of hitTimes()) if (T >= th - R.strikeHitS && T < th - R.strikeHitS + dur) hit = th;
+    if ((R.walkPhases || []).includes(ph)) NpcModels.play(I, 'walk');
+    else if (hit != null) { if (M.glbHit !== hit) { M.glbHit = hit; NpcModels.play(I, 'strike', { once: true, restart: true }); M.glbStrikes = (M.glbStrikes || 0) + 1; } }
+    else NpcModels.play(I, talk ? 'talk' : 'idle');
+    I.mixer.update(dt); }
   function anim(t, night) { if (!M.built) return; void t; void night; const now = M.tOv != null ? M.tOv : performance.now() / 1000, T = M.tOv != null ? ((M.tOv % LOOP) + LOOP) % LOOP : ((now - M.t0) % LOOP + LOOP) % LOOP; // (tOv: a test / shot pins the loop time)
     M.T = T; M.phase = phase(T); M.lava.rotation.y = (now * 0.01) % (2 * Math.PI);
     restBar(); const P = setPose(T), bc = barAt(T), gl = clamp(bc.em / 0.9, 0, 1), ce = lin(bc.c), heat = sm(0.4, 1.9, bc.em); // edges = the keyframe colour (#ff6a1a -> #b23a12 -> #4a2416 over the strikes), core -> #ffde48 while hot
@@ -524,6 +542,7 @@ const FORGE = (() => {
     const j = jawWorld(), R = M.barRest; if ((P.lay || 0) >= 0.999) { M.bar.position.copy(R.p); M.bar.quaternion.copy(R.q).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), P.roll || 0)); }
     else { const lay = P.lay || 0; M.bar.position.copy(j.p).lerp(R.p, lay); M.bar.quaternion.copy(j.q).slerp(R.q, lay); }
     // the rim light: from the lava, in view space
+    glbSync(T, now); /* (t580u: Art's i23d Theus over the old rig) */
     if (M.rimU && typeof M3 !== 'undefined' && M3.camera) { const c = M3.camera; c.updateMatrixWorld(); const d = M.lava.position.clone().sub(M.ape.position).setY(30 * U).normalize(); M.rimU.uRimDir.value.copy(d.transformDirection(c.matrixWorldInverse)); if (M.shells) { const dd = c.position.distanceTo(M.ape.position.clone().add(new THREE.Vector3(0, 45 * U, 0))) / U, n = Math.round(dd <= 50 ? M.shN : dd >= 95 ? 4 : lerp(M.shN, 4, (dd - 50) / 45)); M.shells.geometry.instanceCount = n; M.shU.uShN.value = n; M.shNow = n; } } /* (pass 7b: shell LOD by camera distance) */
     stepSmoke(now); stepEmbers(now); stepFire(now);
     // sparks: a burst of 30-60 at each hit (more while the bar is hot), arcing down into the valley; embers on the ground
