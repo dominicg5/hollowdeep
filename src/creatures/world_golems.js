@@ -110,7 +110,7 @@ const WorldGolems = (() => {
   // ---- her fight on the map
   const me = () => W.F || (W.F = Combat.newFight(Combat.playerStats()));
   function rel(g) { const h = here(); if (!h) return null; const dx = g.x - h[0], dy = g.y - h[1], cd = Math.hypot(dx, dy) / U(); return { dx, dy, cd, d: cd - (g.C.bodyR || 0) }; } // d: metres from her to its body surface
-  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; W.fought = false; if (g.wp) g.wp = null; return true; }
+  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; if (Explore.markOff) Explore.markOff(); /* (t733u: combat replaces the walk's target circle) */ W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; W.fought = false; if (g.wp) g.wp = null; return true; }
   function disengage() { W.eng = false; W.tgt = null; W.strike = 0; W.inR = false; W.aim = null; W.fought = false; }
   function strike(g) { const q = rel(g); if (!q || g.dead > 0 || q.d > D().REACH_M + D().KEEP_REACH_M) return null; const C = g.C, r = Combat.rollDamage(Combat.playerStats(), { def: C.def, swing: ++W.n });
     g.hp = Math.max(0, g.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); if (r.dmg > 0) Combat.fightDealt(me(), r.dmg); num(g, r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); g.hunt = true;
@@ -130,7 +130,7 @@ const WorldGolems = (() => {
   // between is open (the nav grid's 2.5 m cell centres put a waypoint beside / behind her on every re-plan - the back-and-forth Dominic saw)
   function chase(g, q, G) { const T = D(), so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()), tx = g.x - q.dx / L * so, ty = g.y - q.dy / L * so, A = W.aim;
     if (A && G.goal && (W.rp > 0 || Math.hypot(A.x - tx, A.y - ty) < T.REPATH_M * WS())) return; if (A && !G.goal && W.rp > 0) return;
-    W.rp = T.REPATH_S; W.aim = { x: tx, y: ty }; W.stats.aims = (W.stats.aims || 0) + 1; const P = Explore.goTo(tx, ty); if (!P || P.snapped || !G.goal) return;
+    W.rp = T.REPATH_S; W.aim = { x: tx, y: ty }; W.stats.aims = (W.stats.aims || 0) + 1; const P = Explore.goTo(tx, ty, null, { noMark: true }); /* (t733u: a fight's chase shows no target circle) */ if (!P || P.snapped || !G.goal) return;
     const h = here(), dl = Math.hypot(tx - h[0], ty - h[1]); if (dl > T.DIRECT_M * WS()) return; const n = Math.ceil(dl / WS()); for (let i = 1; i < n; i++) { const t = i / n; if (Explore.clsAt(h[0] + (tx - h[0]) * t, h[1] + (ty - h[1]) * t) !== 1) return; }
     G.path = [{ x: G.goal.x, z: G.goal.z }]; G.pi = 0; W.stats.direct = (W.stats.direct || 0) + 1; }
   // ---- one golem's AI (only near her): hunt inside its leash, else wander its field
