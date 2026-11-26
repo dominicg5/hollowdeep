@@ -10,7 +10,8 @@
 const Creatures = (() => {
   const CT = { 5121: Uint8Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array }, NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 };
   const ST = {}; // id -> { gl, bin, p, err }
-  const get = (id) => CREATURE_DATA[id] || null, st = (id) => ST[id] || (ST[id] = { gl: null, bin: null, p: null, err: null });
+  const XD = {}; // (t718s2692) extra rows registered at runtime (def) - not creatures of their own: the golems' far LOD stand-ins (WorldGolems), kept out of CREATURE_DATA / ids
+  const get = (id) => CREATURE_DATA[id] || XD[id] || null, st = (id) => ST[id] || (ST[id] = { gl: null, bin: null, p: null, err: null });
   function acc(S, i) { const g = S.gl, a = g.accessors[i], bv = g.bufferViews[a.bufferView], T = CT[a.componentType], n = NC[a.type], off = S.bin.byteOffset + (bv.byteOffset || 0) + (a.byteOffset || 0);
     return { arr: new T(S.bin.buffer.slice(off, off + a.count * n * T.BYTES_PER_ELEMENT)), n, norm: !!a.normalized }; }
   function load(id) { const D = get(id); if (!D) return Promise.reject(new Error('no creature ' + id)); const S = st(id); if (S.p) return S.p;
@@ -96,5 +97,5 @@ const Creatures = (() => {
     cp.traverse((n) => { if (!n.isSkinnedMesh) return; const sm = sL.get(n), sk = sm.skeleton.clone(); sk.bones = sm.skeleton.bones.map((b) => cL.get(b)); n.bind(sk, sm.bindMatrix.clone()); });
     const root = new THREE.Group(); root.name = T.id; root.add(cp); const bones = T.bones.map((b) => cL.get(b)), mats = T.mats;
     return player({ id: T.id, def: T.def, root, model: cp, clips: T.clips, mats, names: T.names, stripped: T.stripped, rest: T.rest, bones, clone: true }); }
-  return { get, load, make, clone, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
+  return { get, load, make, clone, def: (id, row) => (XD[id] = Object.assign({}, row, { id })), gl: (id) => (ST[id] && ST[id].gl) || null, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
 })();

@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='577f2cbd';
+<script>window.HD_BUILD='51cd3bbb';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 577f2cbd</div>
-<script src="assets/vendor/three.min.js?v=577f2cbd"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 51cd3bbb</div>
+<script src="assets/vendor/three.min.js?v=51cd3bbb"></script>
 <script>
 'use strict';
 
@@ -10373,8 +10373,9 @@ const PLAYGROUND_COMBAT = {
   },
 };
 /* (GD-32, Dominic t548u: 'push the map role out for the golems' / '100m radius around those fields. They can't walk up a slope greater than 30 degrees')
-   Art's overworld golem plan (hd-notes/golem_placement/golem_placement.json, built against main 9987ff2, city seed 20261114): 2 golems per mining field, matching its ore -
-   12 Tin, 12 Copper, 36 Coal - spawned just outside the ore on ground of 20 deg or less, each wandering its field's edge + 100 m, never up more than 30 deg, passive until
+   Art's overworld golem plan (hd-notes/golem_placement/golem_placement_20.json, built against main 9987ff2, city seed 20261114; Dominic t718s2692 'do 20 per area with far
+   stand-ins'): 20 golems per mining field, matching its ore - 120 Tin, 120 Copper, 360 Coal - spread over the field + 100 m (the mine interior too, never on a mineable rock:
+   NODE_CLEAR_M) on ground of 20 deg or less, each wandering its own zone, never up more than 30 deg; the 6 nearest are full golems, the rest Art's LOD stand-ins; passive until
    provoked (the playground's creature rows: src/creatures/data.js). Map units: x / y = world x / z, WS = 6.35 per metre. Runtime: src/creatures/world_golems.js. */
 const WORLD_GOLEMS = {
   WANDER_M: 100,         // metres past the field's edge (field radius + 100 m from its centre)
@@ -10392,6 +10393,25 @@ const WORLD_GOLEMS = {
   DESPAWN_M: 200,        // ...and released past this (hysteresis); farther golems are only a position
   ANIM_M: 90,            // its animation mixer and wander / fight AI run only within this
   MAX_LIVE: 6,           // at most this many built at once (the nearest)
+  KEEP_BIAS_M: 5,        // (t718s2692) a built golem counts this much nearer when picking the MAX_LIVE (no build / release churn between two at the same distance)
+  // (Dominic t718s2692 / Dominic t564u 'not to spawn them on literal mineable rocks') ore-node clearance, checked against the live game's Explore.ORE.nodes (Art's plan was
+  // made offline: 2 of his 600 sit at 7.55 / 7.57 m) - a spawn closer than this is moved to the nearest clear, walkable, <= SPAWN_SLOPE_DEG spot in its own zone
+  NODE_CLEAR_M: 8,       // metres from any ore node centre: spawns, and every wander step (a golem never wanders onto a rock)
+  HUNT_NODE_K: 0.6,      // hunting her it may come closer, only kept off the rock itself: node size x this (the node's own collider, Explore colList) + its bodyR
+  NUDGE_MAX_M: 40,       // search radius for that move (1 m rings, 16 bearings)
+  // (t718s2692) far stand-ins: every golem that is not one of the MAX_LIVE full ones is drawn as Art's unskinned LOD (golem_i23d_lod, 3,410 tris, Idle first key = bind
+  // pose) - one THREE.InstancedMesh per ore = one draw each, the same chalk toon / glow / crystal gain / map encoding as the full golem. Swapped in the same frame a full
+  // golem is built or released (never both, never neither); a dead golem's stand-in is hidden until it respawns
+  FAR_M: 300,            // stand-ins drawn within this distance of her (Art's plan: at most 72 golems within 300 m of any spot, 41 of one ore)
+  FAR_MAX: 40,           // instances per ore (the nearest); its InstancedMesh is allocated at this size
+  LOD_LOAD_M: 360,       // an ore's LOD GLB (85 KB) loads once, lazily, the first time one of its golems is within this (FAR_M + 60 m: loaded before any is in range)
+  FAR_SHADOW: true,      // stand-ins cast shadows like the full golems (the map's sun shadow can reach past SPAWN_M when zoomed out: no shadow pop at the swap)
+  SETTLE_S: 0.3,         // a full golem leaving ANIM_M eases into Idle for this long, then holds Idle's first key - the LOD's pose - so the swap at SPAWN_M shows no pose jump
+  LOD: {                 // per golem kind: Art's LOD file; lumVerts = his Lumenite vertex count, stored first in the merged primitive (lod_build_report.json lumenite_verts_kept)
+    tin_golem: { model: 'assets/models/creatures/tin_golem_lod.glb', lumVerts: 942 },
+    copper_golem: { model: 'assets/models/creatures/copper_golem_lod.glb', lumVerts: 942 },
+    coal_golem: { model: 'assets/models/creatures/coal_golem_lod.glb', lumVerts: 942 },
+  },
   WALK_PAUSE_S: [2, 6],  // idle pause between wander legs
   LEG_M: [6, 22],        // length of one wander leg
   REACH_M: 1.7, STAND_M: 0.9, ATTACK_INTERVAL_S: 3, STRIKE_AT_S: 0.45, KEEP_REACH_M: 0.6, // her side (the playground's PGA.REACH / STAND, PLAYGROUND_COMBAT.CHASE)
@@ -10438,68 +10458,610 @@ const WORLD_GOLEMS = {
     [28, 'coal', -7037.9, 89.9, 502.3],
     [29, 'coal', -2816.8, -2349.7, 502.3],
   ],
-  // [id, field id, x, y, spawn slope deg] - Art's 60 placements (hard fields: 18 only 35% walkable, 24 / 26 not fully opposite - see his notes)
+  // [id, field id, x, y, spawn slope deg] - (Dominic t718s2692 'do 20 per area') Art's 20-per-field plan (hd-notes/golem_placement/golem_placement_20.json, 600 golems:
+  // 120 Tin, 120 Copper, 360 Coal), spread over each whole field + 100 m incl. the mine interior, >= NODE_CLEAR_M from every mineable rock, footprint slope <= 20 deg.
+  // Each golem wanders its own zone: the Voronoi cell of its spawn among its field's 20 (closest-field ownership where two fields' areas overlap) - computed at runtime
   SPAWNS: [
-    ['golem_coal_f00_a', 0, 370.1, 5528.9, 1.1],
-    ['golem_coal_f00_b', 0, -199.2, 4411.5, 0.5],
-    ['golem_tin_f01_a', 1, -2702.5, -9146.0, 1.1],
-    ['golem_tin_f01_b', 1, -1538.6, -9558.1, 3.8],
-    ['golem_tin_f02_a', 2, 9736.7, -668.4, 3.6],
-    ['golem_tin_f02_b', 2, 10855.5, -1238.4, 0.8],
-    ['golem_coal_f03_a', 3, -9798.6, 148.5, 2.8],
-    ['golem_coal_f03_b', 3, -10536.8, -867.5, 3.4],
-    ['golem_tin_f04_a', 4, 8348.6, 7210.7, 1.5],
-    ['golem_tin_f04_b', 4, 7460.6, 6322.7, 2.3],
-    ['golem_tin_f05_a', 5, -7520.2, 7602.3, 0.3],
-    ['golem_tin_f05_b', 5, -7454.4, 6348.3, 2.1],
-    ['golem_coal_f06_a', 6, -1155.2, -4103.7, 2.5],
-    ['golem_coal_f06_b', 6, -2365.8, -4394.3, 3.4],
-    ['golem_coal_f07_a', 7, -8125.4, -5851.0, 3.2],
-    ['golem_coal_f07_b', 7, -7313.8, -6752.4, 2.6],
-    ['golem_copper_f08_a', 8, -4784.8, 417.4, 0.5],
-    ['golem_copper_f08_b', 8, -3994.6, -558.6, 0.3],
-    ['golem_coal_f09_a', 9, -2656.3, 10620.6, 0.8],
-    ['golem_coal_f09_b', 9, -2656.3, 9364.8, 1.1],
-    ['golem_coal_f10_a', 10, 3435.6, 10055.0, 3.0],
-    ['golem_coal_f10_b', 10, 2807.8, 8967.4, 1.1],
-    ['golem_copper_f11_a', 11, 5477.7, 2387.0, 10.9],
-    ['golem_copper_f11_b', 11, 4264.7, 2062.0, 10.0],
-    ['golem_copper_f12_a', 12, 3858.5, -8944.9, 6.4],
-    ['golem_copper_f12_b', 12, 2609.7, -9076.1, 3.7],
-    ['golem_copper_f13_a', 13, -4036.4, -1415.4, 0.6],
-    ['golem_copper_f13_b', 13, -4720.4, -2468.6, 8.0],
-    ['golem_coal_f14_a', 14, -5109.5, 1171.6, 4.3],
-    ['golem_coal_f14_b', 14, -5872.9, 228.9, 12.4],
-    ['golem_coal_f15_a', 15, 9257.0, 3394.8, 0.9],
-    ['golem_coal_f15_b', 15, 10404.2, 2884.0, 2.4],
-    ['golem_copper_f16_a', 16, -3968.5, 6668.0, 1.5],
-    ['golem_copper_f16_b', 16, -3716.4, 5481.6, 4.8],
-    ['golem_tin_f17_a', 17, -5194.8, -352.9, 2.0],
-    ['golem_tin_f17_b', 17, -6333.9, -934.8, 6.2],
-    ['golem_coal_f18_a', 18, 6482.6, -988.8, 9.5],
-    ['golem_coal_f18_b', 18, 5652.2, -1358.1, 19.2],
-    ['golem_coal_f19_a', 19, -1651.0, 2643.7, 0.7],
-    ['golem_coal_f19_b', 19, -2891.2, 2447.3, 0.3],
-    ['golem_coal_f20_a', 20, 508.6, -4014.1, 0.5],
-    ['golem_coal_f20_b', 20, 120.6, -5208.3, 7.3],
-    ['golem_coal_f21_a', 21, -4471.5, -8046.1, 5.3],
-    ['golem_coal_f21_b', 21, -5693.0, -7917.7, 3.9],
-    ['golem_copper_f22_a', 22, 3071.5, 5519.1, 16.4],
-    ['golem_copper_f22_b', 22, 3332.5, 4290.7, 2.6],
-    ['golem_tin_f23_a', 23, 425.3, 8943.9, 18.4],
-    ['golem_tin_f23_b', 23, -540.3, 8170.3, 6.5],
-    ['golem_coal_f24_a', 24, 8362.2, 1238.8, 17.9],
-    ['golem_coal_f24_b', 24, 8369.1, 500.3, 19.5],
-    ['golem_coal_f25_a', 25, 5147.4, 8742.8, 3.3],
-    ['golem_coal_f25_b', 25, 6360.4, 8417.8, 1.7],
-    ['golem_coal_f26_a', 26, 6279.7, 5319.8, 2.1],
-    ['golem_coal_f26_b', 26, 6256.9, 4245.7, 18.2],
-    ['golem_coal_f27_a', 27, 1763.6, 2889.1, 0.5],
-    ['golem_coal_f27_b', 27, 2553.8, 1913.1, 0.8],
-    ['golem_coal_f28_a', 28, -6792.7, 640.5, 9.3],
-    ['golem_coal_f28_b', 28, -7525.5, -264.4, 8.0],
-    ['golem_coal_f29_a', 29, -3324.8, -1980.6, 0.4],
-    ['golem_coal_f29_b', 29, -2308.8, -2718.8, 0.8],
+    ['golem_coal_f00_00', 0, -417.6, 4129.0, 0.4],
+    ['golem_coal_f00_01', 0, -879.4, 5158.9, 4.6],
+    ['golem_coal_f00_02', 0, -129.2, 5363.9, 7.3],
+    ['golem_coal_f00_03', 0, 813.3, 4434.1, 0.9],
+    ['golem_coal_f00_04', 0, 292.1, 5507.8, 4.7],
+    ['golem_coal_f00_05', 0, -536.6, 5291.6, 8.0],
+    ['golem_coal_f00_06', 0, 729.2, 5233.4, 3.1],
+    ['golem_coal_f00_07', 0, 186.2, 4385.6, 0.4],
+    ['golem_coal_f00_08', 0, -516.0, 4831.2, 0.8],
+    ['golem_coal_f00_09', 0, -80.7, 5727.8, 12.7],
+    ['golem_coal_f00_10', 0, -889.1, 4773.5, 1.1],
+    ['golem_coal_f00_11', 0, 1006.6, 4801.9, 0.9],
+    ['golem_coal_f00_12', 0, -713.5, 5553.7, 10.1],
+    ['golem_coal_f00_13', 0, 664.8, 4757.6, 0.5],
+    ['golem_coal_f00_14', 0, 1017.0, 5201.3, 1.1],
+    ['golem_coal_f00_15', 0, 28.1, 4026.4, 0.3],
+    ['golem_coal_f00_16', 0, 141.4, 4783.7, 1.2],
+    ['golem_coal_f00_17', 0, 601.8, 4155.7, 0.3],
+    ['golem_coal_f00_18', 0, -687.7, 4432.1, 0.6],
+    ['golem_coal_f00_19', 0, -205.9, 4399.7, 0.5],
+    ['golem_tin_f01_00', 1, -3122.4, -9150.4, 14.7],
+    ['golem_tin_f01_01', 1, -1880.5, -9155.4, 2.2],
+    ['golem_tin_f01_02', 1, -1184.7, -9546.4, 3.9],
+    ['golem_tin_f01_03', 1, -2215.6, -8752.4, 7.5],
+    ['golem_tin_f01_04', 1, -1359.0, -9007.9, 5.2],
+    ['golem_tin_f01_05', 1, -2550.8, -8940.7, 1.0],
+    ['golem_tin_f01_06', 1, -1438.0, -8768.7, 10.7],
+    ['golem_tin_f01_07', 1, -2827.4, -9134.5, 5.3],
+    ['golem_tin_f01_08', 1, -1506.5, -9604.8, 7.8],
+    ['golem_tin_f01_09', 1, -1564.1, -9296.6, 3.6],
+    ['golem_tin_f01_10', 1, -1736.2, -8929.0, 6.0],
+    ['golem_tin_f01_11', 1, -1676.7, -8614.7, 9.6],
+    ['golem_tin_f01_12', 1, -1200.0, -9235.9, 2.7],
+    ['golem_tin_f01_13', 1, -1906.9, -9518.2, 9.1],
+    ['golem_tin_f01_14', 1, -2789.2, -8741.2, 8.6],
+    ['golem_tin_f01_15', 1, -2609.7, -9326.9, 5.0],
+    ['golem_tin_f01_16', 1, -2286.2, -9203.7, 4.2],
+    ['golem_tin_f01_17', 1, -3007.9, -8919.8, 4.8],
+    ['golem_tin_f01_18', 1, -2498.1, -8713.2, 13.9],
+    ['golem_tin_f01_19', 1, -1969.0, -8738.6, 9.8],
+    ['golem_tin_f02_00', 2, 10278.3, -421.7, 3.4],
+    ['golem_tin_f02_01', 2, 11075.1, -1216.5, 0.8],
+    ['golem_tin_f02_02', 2, 9701.4, -344.2, 5.9],
+    ['golem_tin_f02_03', 2, 10417.8, -11.6, 2.5],
+    ['golem_tin_f02_04', 2, 9404.1, -623.5, 5.3],
+    ['golem_tin_f02_05', 2, 10235.3, -1817.7, 2.7],
+    ['golem_tin_f02_06', 2, 9539.8, -1460.1, 6.7],
+    ['golem_tin_f02_07', 2, 9710.1, -914.8, 6.6],
+    ['golem_tin_f02_08', 2, 9349.6, -1082.6, 15.7],
+    ['golem_tin_f02_09', 2, 10767.0, -203.1, 5.3],
+    ['golem_tin_f02_10', 2, 10906.9, -755.4, 3.7],
+    ['golem_tin_f02_11', 2, 10968.0, -1628.1, 1.2],
+    ['golem_tin_f02_12', 2, 9990.1, -68.8, 3.4],
+    ['golem_tin_f02_13', 2, 11261.5, -852.6, 6.0],
+    ['golem_tin_f02_14', 2, 11087.3, -414.5, 5.4],
+    ['golem_tin_f02_15', 2, 9834.5, -1770.7, 1.0],
+    ['golem_tin_f02_16', 2, 10655.8, -1396.9, 2.8],
+    ['golem_tin_f02_17', 2, 9994.4, -1319.8, 3.5],
+    ['golem_tin_f02_18', 2, 10614.2, -1840.3, 1.6],
+    ['golem_tin_f02_19', 2, 10579.8, -687.6, 1.4],
+    ['golem_coal_f03_00', 3, -10848.2, -833.1, 5.4],
+    ['golem_coal_f03_01', 3, -10908.5, -427.7, 8.1],
+    ['golem_coal_f03_02', 3, -10190.6, 561.7, 4.1],
+    ['golem_coal_f03_03', 3, -10143.3, -457.3, 3.3],
+    ['golem_coal_f03_04', 3, -10863.6, 199.2, 2.1],
+    ['golem_coal_f03_05', 3, -9479.1, -1092.7, 3.1],
+    ['golem_coal_f03_06', 3, -9794.3, 477.2, 0.6],
+    ['golem_coal_f03_07', 3, -9871.0, -1222.6, 9.7],
+    ['golem_coal_f03_08', 3, -9792.6, -657.7, 11.2],
+    ['golem_coal_f03_09', 3, -9363.9, -618.2, 3.9],
+    ['golem_coal_f03_10', 3, -9683.5, 92.1, 7.8],
+    ['golem_coal_f03_11', 3, -10670.3, -1163.3, 2.7],
+    ['golem_coal_f03_12', 3, -10264.6, -1282.2, 5.3],
+    ['golem_coal_f03_13', 3, -10619.1, 498.4, 5.2],
+    ['golem_coal_f03_14', 3, -9392.5, 226.0, 6.1],
+    ['golem_coal_f03_15', 3, -10326.4, -852.0, 4.9],
+    ['golem_coal_f03_16', 3, -10647.2, -230.4, 4.2],
+    ['golem_coal_f03_17', 3, -10393.2, 173.4, 2.8],
+    ['golem_coal_f03_18', 3, -9490.8, -298.7, 1.9],
+    ['golem_coal_f03_19', 3, -11094.2, -86.2, 1.9],
+    ['golem_tin_f04_00', 4, 8363.1, 6770.6, 5.1],
+    ['golem_tin_f04_01', 4, 6933.3, 6951.9, 1.0],
+    ['golem_tin_f04_02', 4, 7461.9, 5859.9, 1.6],
+    ['golem_tin_f04_03', 4, 7488.7, 7320.5, 3.9],
+    ['golem_tin_f04_04', 4, 8781.9, 6498.6, 7.1],
+    ['golem_tin_f04_05', 4, 7513.2, 6412.7, 2.9],
+    ['golem_tin_f04_06', 4, 8610.9, 6134.7, 6.0],
+    ['golem_tin_f04_07', 4, 8680.7, 6887.1, 5.1],
+    ['golem_tin_f04_08', 4, 8252.7, 7278.1, 3.0],
+    ['golem_tin_f04_09', 4, 7735.1, 6876.5, 6.1],
+    ['golem_tin_f04_10', 4, 7180.6, 6158.4, 2.4],
+    ['golem_tin_f04_11', 4, 7911.5, 5884.6, 2.5],
+    ['golem_tin_f04_12', 4, 7328.7, 6924.2, 2.7],
+    ['golem_tin_f04_13', 4, 7850.7, 7371.9, 5.5],
+    ['golem_tin_f04_14', 4, 7045.9, 6528.3, 3.0],
+    ['golem_tin_f04_15', 4, 7097.3, 7320.7, 1.8],
+    ['golem_tin_f04_16', 4, 8231.0, 6325.2, 3.2],
+    ['golem_tin_f04_17', 4, 8675.4, 7235.8, 3.3],
+    ['golem_tin_f04_18', 4, 7518.4, 7677.1, 4.3],
+    ['golem_tin_f04_19', 4, 8277.8, 5891.5, 1.9],
+    ['golem_tin_f05_00', 5, -7589.2, 7940.4, 3.3],
+    ['golem_tin_f05_01', 5, -6870.1, 7384.9, 4.2],
+    ['golem_tin_f05_02', 5, -7921.0, 7600.7, 3.0],
+    ['golem_tin_f05_03', 5, -7643.2, 6575.7, 2.7],
+    ['golem_tin_f05_04', 5, -7212.9, 6088.9, 1.2],
+    ['golem_tin_f05_05', 5, -7238.0, 7931.3, 1.3],
+    ['golem_tin_f05_06', 5, -7931.8, 7181.8, 4.5],
+    ['golem_tin_f05_07', 5, -8141.4, 6304.3, 5.4],
+    ['golem_tin_f05_08', 5, -7367.1, 7035.2, 2.6],
+    ['golem_tin_f05_09', 5, -6553.6, 7228.9, 3.7],
+    ['golem_tin_f05_10', 5, -8196.0, 7441.6, 9.5],
+    ['golem_tin_f05_11', 5, -6904.2, 6975.9, 6.7],
+    ['golem_tin_f05_12', 5, -7201.5, 6497.0, 3.4],
+    ['golem_tin_f05_13', 5, -8411.5, 6631.0, 1.2],
+    ['golem_tin_f05_14', 5, -7844.8, 6080.8, 2.6],
+    ['golem_tin_f05_15', 5, -8053.5, 6665.9, 2.4],
+    ['golem_tin_f05_16', 5, -8333.8, 6999.7, 5.1],
+    ['golem_tin_f05_17', 5, -7441.7, 7672.3, 0.5],
+    ['golem_tin_f05_18', 5, -6780.8, 7677.4, 6.6],
+    ['golem_tin_f05_19', 5, -7528.5, 6264.7, 2.0],
+    ['golem_coal_f06_00', 6, -1559.0, -3797.3, 1.8],
+    ['golem_coal_f06_01', 6, -868.9, -4246.9, 7.0],
+    ['golem_coal_f06_02', 6, -2675.0, -4466.7, 6.2],
+    ['golem_coal_f06_03', 6, -1899.7, -4202.5, 5.4],
+    ['golem_coal_f06_04', 6, -1983.6, -3803.5, 1.5],
+    ['golem_coal_f06_05', 6, -1316.0, -4297.0, 12.9],
+    ['golem_coal_f06_06', 6, -2522.9, -3781.8, 2.4],
+    ['golem_coal_f06_07', 6, -1486.4, -3403.5, 0.3],
+    ['golem_coal_f06_08', 6, -1140.7, -3607.6, 1.4],
+    ['golem_coal_f06_09', 6, -1875.1, -3397.0, 0.2],
+    ['golem_coal_f06_10', 6, -1152.9, -3964.5, 0.7],
+    ['golem_coal_f06_11', 6, -1824.4, -5109.9, 15.7],
+    ['golem_coal_f06_12', 6, -2304.2, -4108.1, 3.5],
+    ['golem_coal_f06_13', 6, -2633.4, -4928.3, 19.8],
+    ['golem_coal_f06_14', 6, -2685.8, -4127.0, 4.7],
+    ['golem_coal_f06_15', 6, -2248.7, -3528.3, 1.6],
+    ['golem_coal_f06_16', 6, -849.1, -3881.4, 1.6],
+    ['golem_coal_f06_17', 6, -998.9, -5109.9, 19.8],
+    ['golem_coal_f06_18', 6, -2356.3, -4546.4, 7.0],
+    ['golem_coal_f06_19', 6, -1725.3, -5341.1, 15.8],
+    ['golem_coal_f07_00', 7, -7619.5, -6463.8, 5.8],
+    ['golem_coal_f07_01', 7, -7122.3, -6813.4, 5.6],
+    ['golem_coal_f07_02', 7, -8149.5, -5796.3, 2.7],
+    ['golem_coal_f07_03', 7, -8535.4, -5719.5, 7.5],
+    ['golem_coal_f07_04', 7, -7183.8, -7106.0, 10.2],
+    ['golem_coal_f07_05', 7, -7112.9, -6532.1, 6.4],
+    ['golem_coal_f07_06', 7, -7901.2, -5661.3, 4.9],
+    ['golem_coal_f07_07', 7, -8420.7, -5897.5, 8.7],
+    ['golem_coal_f07_08', 7, -8049.4, -5526.1, 4.5],
+    ['golem_coal_f07_09', 7, -8139.7, -6039.8, 13.9],
+    ['golem_coal_f07_10', 7, -7392.5, -6467.9, 4.6],
+    ['golem_coal_f07_11', 7, -7664.2, -6058.7, 8.5],
+    ['golem_coal_f07_12', 7, -7328.2, -6778.7, 4.7],
+    ['golem_coal_f07_13', 7, -7550.1, -6681.1, 12.8],
+    ['golem_coal_f07_14', 7, -6898.3, -6719.7, 8.0],
+    ['golem_coal_f07_15', 7, -7999.2, -6232.6, 8.7],
+    ['golem_coal_f07_16', 7, -8248.3, -5616.5, 2.7],
+    ['golem_coal_f07_17', 7, -7316.2, -6287.3, 11.9],
+    ['golem_coal_f07_18', 7, -6974.9, -6989.1, 3.9],
+    ['golem_coal_f07_19', 7, -7793.2, -5836.9, 6.9],
+    ['golem_copper_f08_00', 8, -4092.0, 853.0, 1.0],
+    ['golem_copper_f08_01', 8, -4012.3, -583.6, 0.4],
+    ['golem_copper_f08_02', 8, -4647.7, -206.4, 1.2],
+    ['golem_copper_f08_03', 8, -4387.9, -579.9, 0.8],
+    ['golem_copper_f08_04', 8, -3454.6, -53.4, 0.7],
+    ['golem_copper_f08_05', 8, -4675.4, -830.6, 1.0],
+    ['golem_copper_f08_06', 8, -3850.4, 155.9, 0.6],
+    ['golem_copper_f08_07', 8, -3753.8, -801.6, 0.3],
+    ['golem_copper_f08_08', 8, -5036.6, -17.2, 1.1],
+    ['golem_copper_f08_09', 8, -4251.4, -90.8, 0.4],
+    ['golem_copper_f08_10', 8, -4441.0, 846.6, 1.7],
+    ['golem_copper_f08_11', 8, -4641.5, 555.7, 1.6],
+    ['golem_copper_f08_12', 8, -3518.0, 344.6, 1.6],
+    ['golem_copper_f08_13', 8, -3508.1, -461.1, 0.5],
+    ['golem_copper_f08_14', 8, -3828.6, -277.8, 0.8],
+    ['golem_copper_f08_15', 8, -4214.4, -878.3, 0.6],
+    ['golem_copper_f08_16', 8, -3776.9, 635.3, 1.2],
+    ['golem_copper_f08_17', 8, -4869.4, -458.3, 0.6],
+    ['golem_copper_f08_18', 8, -4165.6, 463.1, 1.0],
+    ['golem_copper_f08_19', 8, -4805.7, 257.8, 1.6],
+    ['golem_coal_f09_00', 9, -3636.1, 9826.4, 2.4],
+    ['golem_coal_f09_01', 9, -3434.1, 10599.7, 0.8],
+    ['golem_coal_f09_02', 9, -3436.8, 9473.7, 2.8],
+    ['golem_coal_f09_03', 9, -2661.8, 10696.8, 4.6],
+    ['golem_coal_f09_04', 9, -2203.2, 10732.8, 5.4],
+    ['golem_coal_f09_05', 9, -2981.0, 9519.0, 3.1],
+    ['golem_coal_f09_06', 9, -2579.4, 9411.1, 1.9],
+    ['golem_coal_f09_07', 9, -3232.8, 10314.0, 1.9],
+    ['golem_coal_f09_08', 9, -1687.5, 10102.9, 3.8],
+    ['golem_coal_f09_09', 9, -1997.3, 9975.5, 4.3],
+    ['golem_coal_f09_10', 9, -3593.4, 10230.7, 1.6],
+    ['golem_coal_f09_11', 9, -3331.7, 9910.2, 2.4],
+    ['golem_coal_f09_12', 9, -1841.1, 10548.3, 1.3],
+    ['golem_coal_f09_13', 9, -2535.9, 9880.0, 2.1],
+    ['golem_coal_f09_14', 9, -3115.5, 10738.0, 6.5],
+    ['golem_coal_f09_15', 9, -2100.4, 10337.6, 1.8],
+    ['golem_coal_f09_16', 9, -2651.7, 10428.8, 1.3],
+    ['golem_coal_f09_17', 9, -2550.1, 9059.1, 12.9],
+    ['golem_coal_f09_18', 9, -3046.2, 9848.4, 1.9],
+    ['golem_coal_f09_19', 9, -2943.9, 10204.0, 2.6],
+    ['golem_coal_f10_00', 10, 3359.8, 9039.4, 12.2],
+    ['golem_coal_f10_01', 10, 2223.5, 9785.7, 3.4],
+    ['golem_coal_f10_02', 10, 2860.4, 9051.3, 2.2],
+    ['golem_coal_f10_03', 10, 2786.8, 10407.8, 4.2],
+    ['golem_coal_f10_04', 10, 4035.3, 9645.1, 3.3],
+    ['golem_coal_f10_05', 10, 2395.8, 8865.1, 3.5],
+    ['golem_coal_f10_06', 10, 2173.2, 9343.3, 8.6],
+    ['golem_coal_f10_07', 10, 3153.2, 8601.2, 7.7],
+    ['golem_coal_f10_08', 10, 2610.4, 9560.9, 4.8],
+    ['golem_coal_f10_09', 10, 3643.7, 10314.9, 4.4],
+    ['golem_coal_f10_10', 10, 3487.8, 9537.1, 1.5],
+    ['golem_coal_f10_11', 10, 3827.7, 8923.6, 4.5],
+    ['golem_coal_f10_12', 10, 3283.2, 10192.2, 4.6],
+    ['golem_coal_f10_13', 10, 3973.9, 9266.7, 2.6],
+    ['golem_coal_f10_14', 10, 3852.5, 9983.5, 2.5],
+    ['golem_coal_f10_15', 10, 2511.4, 9192.5, 3.5],
+    ['golem_coal_f10_16', 10, 2764.9, 8633.6, 1.3],
+    ['golem_coal_f10_17', 10, 2458.1, 10112.6, 0.4],
+    ['golem_coal_f10_18', 10, 2874.1, 10077.1, 2.3],
+    ['golem_coal_f10_19', 10, 3540.8, 8652.6, 13.6],
+    ['golem_copper_f11_00', 11, 5423.6, 2418.8, 13.5],
+    ['golem_copper_f11_01', 11, 3935.7, 2367.4, 1.0],
+    ['golem_copper_f11_02', 11, 4841.6, 1241.5, 9.8],
+    ['golem_copper_f11_03', 11, 4232.6, 2109.2, 9.2],
+    ['golem_copper_f11_04', 11, 4316.7, 2573.0, 12.2],
+    ['golem_copper_f11_05', 11, 5308.1, 1362.1, 5.1],
+    ['golem_copper_f11_06', 11, 4262.7, 2952.3, 4.8],
+    ['golem_copper_f11_07', 11, 4437.3, 1371.4, 11.6],
+    ['golem_copper_f11_08', 11, 4861.5, 1553.7, 7.5],
+    ['golem_copper_f11_09', 11, 5619.9, 3003.6, 17.4],
+    ['golem_copper_f11_10', 11, 5785.9, 2607.9, 8.4],
+    ['golem_copper_f11_11', 11, 4530.8, 3111.5, 4.6],
+    ['golem_copper_f11_12', 11, 4011.1, 2712.1, 2.0],
+    ['golem_copper_f11_13', 11, 4095.3, 1639.4, 1.2],
+    ['golem_copper_f11_14', 11, 5522.7, 1708.8, 17.1],
+    ['golem_copper_f11_15', 11, 3914.8, 1989.1, 1.3],
+    ['golem_copper_f11_16', 11, 4416.9, 1725.5, 19.6],
+    ['golem_copper_f11_17', 11, 4796.2, 2171.1, 17.3],
+    ['golem_copper_f11_18', 11, 5010.9, 2336.2, 18.4],
+    ['golem_copper_f11_19', 11, 4942.2, 3272.0, 6.5],
+    ['golem_copper_f12_00', 12, 2752.9, -8056.2, 2.9],
+    ['golem_copper_f12_01', 12, 4169.6, -8615.4, 12.0],
+    ['golem_copper_f12_02', 12, 2686.8, -9054.6, 5.0],
+    ['golem_copper_f12_03', 12, 2730.4, -9280.4, 11.4],
+    ['golem_copper_f12_04', 12, 3765.5, -8954.1, 5.0],
+    ['golem_copper_f12_05', 12, 2300.4, -8519.4, 13.1],
+    ['golem_copper_f12_06', 12, 2496.1, -9220.2, 8.9],
+    ['golem_copper_f12_07', 12, 3392.9, -9055.9, 6.0],
+    ['golem_copper_f12_08', 12, 2997.4, -9126.2, 14.4],
+    ['golem_copper_f12_09', 12, 3962.5, -8816.1, 9.4],
+    ['golem_copper_f12_10', 12, 3211.3, -9320.1, 18.0],
+    ['golem_copper_f12_11', 12, 2960.1, -8000.9, 6.2],
+    ['golem_copper_f12_12', 12, 2966.2, -9370.8, 13.3],
+    ['golem_copper_f12_13', 12, 4128.7, -8425.6, 13.5],
+    ['golem_copper_f12_14', 12, 3566.0, -8861.4, 16.8],
+    ['golem_copper_f12_15', 12, 2480.0, -8815.3, 10.3],
+    ['golem_copper_f12_16', 12, 3888.8, -9038.7, 11.6],
+    ['golem_copper_f12_17', 12, 2519.9, -8177.0, 12.2],
+    ['golem_copper_f12_18', 12, 2281.6, -9299.5, 10.2],
+    ['golem_copper_f12_19', 12, 2477.9, -9018.2, 10.3],
+    ['golem_copper_f13_00', 13, -4672.4, -2500.2, 14.6],
+    ['golem_copper_f13_01', 13, -3723.2, -2089.7, 0.6],
+    ['golem_copper_f13_02', 13, -3880.1, -1173.4, 0.7],
+    ['golem_copper_f13_03', 13, -3601.1, -1395.1, 1.6],
+    ['golem_copper_f13_04', 13, -4718.0, -1549.3, 8.1],
+    ['golem_copper_f13_05', 13, -4062.4, -1521.2, 0.9],
+    ['golem_copper_f13_06', 13, -4759.4, -1206.5, 4.4],
+    ['golem_copper_f13_07', 13, -4281.1, -2796.2, 13.2],
+    ['golem_copper_f13_08', 13, -3695.3, -1725.4, 1.2],
+    ['golem_copper_f13_09', 13, -3817.5, -2415.7, 3.8],
+    ['golem_copper_f13_10', 13, -3906.2, -2771.1, 15.1],
+    ['golem_copper_f13_11', 13, -5081.5, -1987.5, 16.9],
+    ['golem_copper_f13_12', 13, -4330.8, -1215.2, 0.6],
+    ['golem_copper_f13_13', 13, -4093.3, -2439.4, 11.2],
+    ['golem_copper_f13_14', 13, -5008.7, -2821.7, 12.7],
+    ['golem_copper_f13_15', 13, -4362.3, -1875.2, 3.8],
+    ['golem_copper_f13_16', 13, -3987.2, -1956.5, 0.8],
+    ['golem_copper_f13_17', 13, -5324.6, -1626.3, 18.1],
+    ['golem_copper_f13_18', 13, -5255.4, -2572.0, 12.7],
+    ['golem_copper_f13_19', 13, -4790.3, -1999.6, 15.2],
+    ['golem_coal_f14_00', 14, -5191.1, 242.3, 2.8],
+    ['golem_coal_f14_01', 14, -5009.2, 1161.5, 5.1],
+    ['golem_coal_f14_02', 14, -5019.8, 530.3, 1.0],
+    ['golem_coal_f14_03', 14, -5925.1, 187.4, 14.7],
+    ['golem_coal_f14_04', 14, -6481.9, 1256.6, 17.5],
+    ['golem_coal_f14_05', 14, -4769.3, 1264.1, 8.4],
+    ['golem_coal_f14_06', 14, -4800.5, 937.8, 4.5],
+    ['golem_coal_f14_07', 14, -4867.9, 1546.7, 5.2],
+    ['golem_coal_f14_08', 14, -5192.5, 916.3, 1.7],
+    ['golem_coal_f14_09', 14, -5415.1, 172.3, 2.2],
+    ['golem_coal_f14_10', 14, -4910.9, 758.5, 1.0],
+    ['golem_coal_f14_11', 14, -5826.6, 282.4, 19.2],
+    ['golem_coal_f14_12', 14, -6118.7, 1524.3, 12.7],
+    ['golem_coal_f14_13', 14, -5212.9, 523.4, 0.8],
+    ['golem_coal_f14_14', 14, -6549.6, 1106.2, 17.1],
+    ['golem_coal_f14_15', 14, -6150.1, 388.0, 18.2],
+    ['golem_coal_f14_16', 14, -6298.7, 1114.4, 18.6],
+    ['golem_coal_f14_17', 14, -5857.0, 788.4, 17.5],
+    ['golem_coal_f14_18', 14, -4636.5, 1090.7, 6.7],
+    ['golem_coal_f14_19', 14, -6018.0, 1692.3, 18.8],
+    ['golem_coal_f15_00', 15, 10421.0, 2895.2, 2.1],
+    ['golem_coal_f15_01', 15, 9132.5, 3700.8, 1.5],
+    ['golem_coal_f15_02', 15, 10358.8, 2363.8, 0.7],
+    ['golem_coal_f15_03', 15, 9986.2, 2539.3, 0.9],
+    ['golem_coal_f15_04', 15, 9365.9, 3282.5, 3.8],
+    ['golem_coal_f15_05', 15, 8965.7, 3288.9, 11.2],
+    ['golem_coal_f15_06', 15, 9617.7, 2480.3, 6.3],
+    ['golem_coal_f15_07', 15, 9875.9, 4109.4, 4.4],
+    ['golem_coal_f15_08', 15, 10368.6, 3501.5, 2.2],
+    ['golem_coal_f15_09', 15, 9474.8, 2849.7, 9.8],
+    ['golem_coal_f15_10', 15, 10699.9, 2694.4, 1.0],
+    ['golem_coal_f15_11', 15, 10752.2, 3142.2, 0.5],
+    ['golem_coal_f15_12', 15, 9297.2, 2350.3, 6.2],
+    ['golem_coal_f15_13', 15, 9684.5, 3720.0, 4.4],
+    ['golem_coal_f15_14', 15, 9442.2, 4009.8, 4.2],
+    ['golem_coal_f15_15', 15, 9974.2, 3188.7, 2.8],
+    ['golem_coal_f15_16', 15, 9849.6, 2159.2, 3.1],
+    ['golem_coal_f15_17', 15, 10707.1, 3513.2, 6.0],
+    ['golem_coal_f15_18', 15, 8994.2, 2908.5, 17.9],
+    ['golem_coal_f15_19', 15, 10128.4, 3843.0, 6.3],
+    ['golem_copper_f16_00', 16, -4248.6, 6877.1, 10.6],
+    ['golem_copper_f16_01', 16, -3607.5, 5885.9, 8.1],
+    ['golem_copper_f16_02', 16, -4636.6, 6380.3, 16.4],
+    ['golem_copper_f16_03', 16, -3937.7, 6051.0, 6.9],
+    ['golem_copper_f16_04', 16, -4208.0, 5599.2, 10.3],
+    ['golem_copper_f16_05', 16, -3771.7, 5560.7, 3.5],
+    ['golem_copper_f16_06', 16, -3979.0, 6699.4, 1.3],
+    ['golem_copper_f16_07', 16, -4328.7, 5862.9, 15.0],
+    ['golem_copper_f16_08', 16, -4077.1, 7022.6, 3.4],
+    ['golem_copper_f16_09', 16, -4570.0, 6616.7, 5.1],
+    ['golem_copper_f16_10', 16, -4053.4, 6443.7, 6.2],
+    ['golem_copper_f16_11', 16, -3586.7, 5541.3, 11.0],
+    ['golem_copper_f16_12', 16, -4419.5, 6130.7, 10.0],
+    ['golem_copper_f16_13', 16, -3871.7, 5836.4, 4.4],
+    ['golem_copper_f16_14', 16, -3822.1, 6430.8, 8.2],
+    ['golem_copper_f16_15', 16, -4036.0, 5383.6, 6.2],
+    ['golem_copper_f16_16', 16, -3644.2, 5382.2, 10.6],
+    ['golem_copper_f16_17', 16, -2864.5, 6381.2, 17.5],
+    ['golem_copper_f16_18', 16, -4411.8, 6376.2, 10.6],
+    ['golem_copper_f16_19', 16, -2904.2, 5778.6, 10.8],
+    ['golem_tin_f17_00', 17, -5166.9, -375.5, 1.8],
+    ['golem_tin_f17_01', 17, -5183.2, -851.3, 7.7],
+    ['golem_tin_f17_02', 17, -5520.7, -58.2, 7.2],
+    ['golem_tin_f17_03', 17, -5753.8, -388.0, 11.1],
+    ['golem_tin_f17_04', 17, -5977.3, 36.1, 16.1],
+    ['golem_tin_f17_05', 17, -5328.5, -665.9, 3.8],
+    ['golem_tin_f17_06', 17, -6210.8, -569.9, 15.0],
+    ['golem_tin_f17_07', 17, -5012.2, -1096.7, 16.5],
+    ['golem_tin_f17_08', 17, -5462.0, -373.6, 2.6],
+    ['golem_tin_f17_09', 17, -5823.2, -49.7, 15.5],
+    ['golem_tin_f17_10', 17, -6364.7, -784.2, 16.6],
+    ['golem_tin_f17_11', 17, -6150.1, -850.3, 16.0],
+    ['golem_tin_f17_12', 17, -5293.9, -82.4, 2.7],
+    ['golem_tin_f17_13', 17, -5357.6, -1510.7, 17.8],
+    ['golem_tin_f17_14', 17, -5935.5, -1411.6, 19.8],
+    ['golem_tin_f17_15', 17, -4954.2, -899.7, 4.9],
+    ['golem_tin_f17_16', 17, -5525.3, -750.2, 8.7],
+    ['golem_tin_f17_17', 17, -6040.5, -336.0, 9.8],
+    ['golem_tin_f17_18', 17, -5063.7, -639.6, 1.5],
+    ['golem_tin_f17_19', 17, -5764.9, -1175.0, 14.9],
+    ['golem_coal_f18_00', 18, 6543.7, -972.1, 13.0],
+    ['golem_coal_f18_01', 18, 5342.9, -1464.3, 13.8],
+    ['golem_coal_f18_02', 18, 6582.7, -1126.9, 17.8],
+    ['golem_coal_f18_03', 18, 5153.7, -1338.3, 12.5],
+    ['golem_coal_f18_04', 18, 6649.1, -1294.4, 15.8],
+    ['golem_coal_f18_05', 18, 5115.2, -1212.6, 15.3],
+    ['golem_coal_f18_06', 18, 5521.4, -1214.8, 18.9],
+    ['golem_coal_f18_07', 18, 6128.7, -403.5, 1.7],
+    ['golem_coal_f18_08', 18, 6395.9, -817.3, 14.3],
+    ['golem_coal_f18_09', 18, 6135.9, -1539.0, 15.8],
+    ['golem_coal_f18_10', 18, 5478.7, -817.3, 19.8],
+    ['golem_coal_f18_11', 18, 6683.1, -993.5, 6.0],
+    ['golem_coal_f18_12', 18, 5952.0, -355.0, 3.1],
+    ['golem_coal_f18_13', 18, 5207.3, -1439.0, 14.0],
+    ['golem_coal_f18_14', 18, 5638.3, -1356.6, 19.7],
+    ['golem_coal_f18_15', 18, 6415.8, -1654.8, 15.6],
+    ['golem_coal_f18_16', 18, 5749.7, -1230.0, 15.9],
+    ['golem_coal_f18_17', 18, 6282.2, -437.5, 8.2],
+    ['golem_coal_f18_18', 18, 5441.1, -1534.0, 10.6],
+    ['golem_coal_f18_19', 18, 6422.5, -1849.2, 18.8],
+    ['golem_coal_f19_00', 19, -2567.4, 2980.1, 0.5],
+    ['golem_coal_f19_01', 19, -2428.4, 2436.5, 1.2],
+    ['golem_coal_f19_02', 19, -3059.1, 2120.9, 0.8],
+    ['golem_coal_f19_03', 19, -1551.6, 3215.8, 1.5],
+    ['golem_coal_f19_04', 19, -3116.7, 2901.3, 2.8],
+    ['golem_coal_f19_05', 19, -3234.6, 2495.0, 1.1],
+    ['golem_coal_f19_06', 19, -2216.2, 3221.5, 0.3],
+    ['golem_coal_f19_07', 19, -1681.6, 2719.0, 0.4],
+    ['golem_coal_f19_08', 19, -2443.8, 1610.9, 0.7],
+    ['golem_coal_f19_09', 19, -2501.3, 2072.0, 1.1],
+    ['golem_coal_f19_10', 19, -2850.2, 2545.9, 0.7],
+    ['golem_coal_f19_11', 19, -2590.3, 3427.6, 4.5],
+    ['golem_coal_f19_12', 19, -2865.7, 1781.4, 0.4],
+    ['golem_coal_f19_13', 19, -1406.7, 2929.9, 0.5],
+    ['golem_coal_f19_14', 19, -1856.0, 3421.5, 0.8],
+    ['golem_coal_f19_15', 19, -2920.2, 3233.0, 1.3],
+    ['golem_coal_f19_16', 19, -1856.7, 3050.5, 1.1],
+    ['golem_coal_f19_17', 19, -2259.9, 2888.6, 0.8],
+    ['golem_coal_f19_18', 19, -2221.3, 3540.3, 1.0],
+    ['golem_coal_f19_19', 19, -2055.5, 2451.8, 0.7],
+    ['golem_coal_f20_00', 20, 197.5, -4287.3, 0.7],
+    ['golem_coal_f20_01', 20, 331.8, -3641.9, 0.7],
+    ['golem_coal_f20_02', 20, -215.3, -4205.7, 1.1],
+    ['golem_coal_f20_03', 20, 145.7, -3967.6, 0.2],
+    ['golem_coal_f20_04', 20, 1170.4, -4003.2, 9.1],
+    ['golem_coal_f20_05', 20, 559.4, -5460.3, 11.3],
+    ['golem_coal_f20_06', 20, -483.7, -4012.1, 0.2],
+    ['golem_coal_f20_07', 20, 772.2, -4041.7, 5.7],
+    ['golem_coal_f20_08', 20, 602.6, -4763.2, 5.0],
+    ['golem_coal_f20_09', 20, -216.8, -3860.8, 0.9],
+    ['golem_coal_f20_10', 20, 466.5, -4016.8, 0.4],
+    ['golem_coal_f20_11', 20, -523.0, -4360.8, 6.2],
+    ['golem_coal_f20_12', 20, 659.4, -3708.0, 1.0],
+    ['golem_coal_f20_13', 20, 189.9, -5357.6, 19.5],
+    ['golem_coal_f20_14', 20, 1430.0, -4564.2, 13.7],
+    ['golem_coal_f20_15', 20, -160.4, -4513.8, 11.5],
+    ['golem_coal_f20_16', 20, 173.4, -4862.3, 3.6],
+    ['golem_coal_f20_17', 20, 546.2, -4318.6, 6.2],
+    ['golem_coal_f20_18', 20, -2.5, -3664.6, 0.5],
+    ['golem_coal_f20_19', 20, 668.7, -5209.0, 14.0],
+    ['golem_coal_f21_00', 21, -4675.8, -7277.6, 2.6],
+    ['golem_coal_f21_01', 21, -5794.1, -7836.2, 2.8],
+    ['golem_coal_f21_02', 21, -4449.3, -8035.5, 9.1],
+    ['golem_coal_f21_03', 21, -4168.3, -8541.3, 10.6],
+    ['golem_coal_f21_04', 21, -5026.1, -7138.4, 2.3],
+    ['golem_coal_f21_05', 21, -4109.5, -8214.2, 2.9],
+    ['golem_coal_f21_06', 21, -5670.8, -7345.3, 3.7],
+    ['golem_coal_f21_07', 21, -4404.6, -7591.9, 3.9],
+    ['golem_coal_f21_08', 21, -5536.9, -7665.0, 4.0],
+    ['golem_coal_f21_09', 21, -4916.6, -7494.0, 1.0],
+    ['golem_coal_f21_10', 21, -5400.3, -7164.0, 5.3],
+    ['golem_coal_f21_11', 21, -4779.7, -8098.3, 11.9],
+    ['golem_coal_f21_12', 21, -5909.0, -7543.2, 1.5],
+    ['golem_coal_f21_13', 21, -5522.7, -8164.4, 8.9],
+    ['golem_coal_f21_14', 21, -4646.3, -7715.8, 0.6],
+    ['golem_coal_f21_15', 21, -5261.6, -7451.0, 3.9],
+    ['golem_coal_f21_16', 21, -4382.4, -8357.0, 12.8],
+    ['golem_coal_f21_17', 21, -4166.4, -7908.3, 8.3],
+    ['golem_coal_f21_18', 21, -5276.1, -7956.0, 5.9],
+    ['golem_coal_f21_19', 21, -6078.7, -7836.9, 2.5],
+    ['golem_copper_f22_00', 22, 2937.7, 4479.4, 18.8],
+    ['golem_copper_f22_01', 22, 3512.6, 3966.0, 6.4],
+    ['golem_copper_f22_02', 22, 2231.3, 4702.4, 4.5],
+    ['golem_copper_f22_03', 22, 2249.7, 5088.3, 4.5],
+    ['golem_copper_f22_04', 22, 2511.8, 4859.9, 4.7],
+    ['golem_copper_f22_05', 22, 2410.1, 4420.1, 4.8],
+    ['golem_copper_f22_06', 22, 2827.3, 3965.0, 3.5],
+    ['golem_copper_f22_07', 22, 3312.4, 4220.9, 6.5],
+    ['golem_copper_f22_08', 22, 2996.5, 4184.1, 9.7],
+    ['golem_copper_f22_09', 22, 2910.8, 5838.1, 11.1],
+    ['golem_copper_f22_10', 22, 2759.3, 4676.6, 15.0],
+    ['golem_copper_f22_11', 22, 4020.3, 5222.2, 15.4],
+    ['golem_copper_f22_12', 22, 3469.9, 4867.8, 19.0],
+    ['golem_copper_f22_13', 22, 3211.3, 5093.4, 12.8],
+    ['golem_copper_f22_14', 22, 2600.3, 4186.6, 5.1],
+    ['golem_copper_f22_15', 22, 3125.0, 5709.4, 13.9],
+    ['golem_copper_f22_16', 22, 3436.9, 5591.5, 17.4],
+    ['golem_copper_f22_17', 22, 2600.4, 5588.7, 19.3],
+    ['golem_copper_f22_18', 22, 3066.0, 5526.3, 17.4],
+    ['golem_copper_f22_19', 22, 3177.4, 3908.2, 4.6],
+    ['golem_tin_f23_00', 23, 30.0, 9452.0, 16.3],
+    ['golem_tin_f23_01', 23, -137.5, 9146.9, 15.7],
+    ['golem_tin_f23_02', 23, -437.5, 8709.2, 19.1],
+    ['golem_tin_f23_03', 23, 268.3, 9375.6, 10.9],
+    ['golem_tin_f23_04', 23, -864.5, 8022.4, 15.6],
+    ['golem_tin_f23_05', 23, 893.8, 9122.4, 2.5],
+    ['golem_tin_f23_06', 23, 378.1, 9112.6, 13.5],
+    ['golem_tin_f23_07', 23, -107.3, 7355.3, 13.0],
+    ['golem_tin_f23_08', 23, -1038.0, 8664.4, 13.5],
+    ['golem_tin_f23_09', 23, -421.0, 8197.4, 9.0],
+    ['golem_tin_f23_10', 23, 206.4, 8742.2, 18.3],
+    ['golem_tin_f23_11', 23, 562.7, 8412.9, 16.1],
+    ['golem_tin_f23_12', 23, 602.6, 9336.6, 1.8],
+    ['golem_tin_f23_13', 23, -262.3, 9424.5, 19.1],
+    ['golem_tin_f23_14', 23, -385.5, 9100.2, 13.1],
+    ['golem_tin_f23_15', 23, -652.2, 7652.5, 19.3],
+    ['golem_tin_f23_16', 23, 577.9, 7619.5, 18.5],
+    ['golem_tin_f23_17', 23, -74.8, 8948.8, 14.2],
+    ['golem_tin_f23_18', 23, -1031.9, 8246.9, 16.3],
+    ['golem_tin_f23_19', 23, -89.8, 8255.2, 12.0],
+    ['golem_coal_f24_00', 24, 8801.3, 769.5, 10.2],
+    ['golem_coal_f24_01', 24, 7408.9, 801.4, 2.2],
+    ['golem_coal_f24_02', 24, 7349.1, 997.7, 4.5],
+    ['golem_coal_f24_03', 24, 8587.9, 1248.2, 15.3],
+    ['golem_coal_f24_04', 24, 8510.0, 714.0, 12.1],
+    ['golem_coal_f24_05', 24, 8763.2, 380.4, 2.2],
+    ['golem_coal_f24_06', 24, 8710.9, 202.9, 2.1],
+    ['golem_coal_f24_07', 24, 8483.9, 484.7, 10.0],
+    ['golem_coal_f24_08', 24, 7386.0, 1240.8, 11.6],
+    ['golem_coal_f24_09', 24, 8523.1, 202.6, 8.4],
+    ['golem_coal_f24_10', 24, 8401.2, 1253.5, 9.5],
+    ['golem_coal_f24_11', 24, 8943.1, 541.6, 3.7],
+    ['golem_coal_f24_12', 24, 8477.3, 1663.5, 14.7],
+    ['golem_coal_f24_13', 24, 9040.5, 820.0, 14.7],
+    ['golem_coal_f24_14', 24, 8485.0, 1069.7, 14.6],
+    ['golem_coal_f24_15', 24, 8189.1, 1585.0, 15.7],
+    ['golem_coal_f24_16', 24, 8702.1, 594.6, 4.3],
+    ['golem_coal_f24_17', 24, 7365.6, 637.3, 10.1],
+    ['golem_coal_f24_18', 24, 8611.5, 1363.8, 14.3],
+    ['golem_coal_f24_19', 24, 8727.2, 1213.3, 12.3],
+    ['golem_coal_f25_00', 25, 4855.9, 8362.9, 0.9],
+    ['golem_coal_f25_01', 25, 5664.5, 8036.2, 10.3],
+    ['golem_coal_f25_02', 25, 5015.2, 9171.1, 5.9],
+    ['golem_coal_f25_03', 25, 6585.7, 8154.9, 7.6],
+    ['golem_coal_f25_04', 25, 5770.6, 9360.0, 2.3],
+    ['golem_coal_f25_05', 25, 6190.4, 9041.9, 1.5],
+    ['golem_coal_f25_06', 25, 5501.3, 7678.1, 12.4],
+    ['golem_coal_f25_07', 25, 5065.6, 7994.8, 10.3],
+    ['golem_coal_f25_08', 25, 6244.2, 9377.4, 6.5],
+    ['golem_coal_f25_09', 25, 6590.8, 9011.4, 1.0],
+    ['golem_coal_f25_10', 25, 5361.6, 8902.3, 1.3],
+    ['golem_coal_f25_11', 25, 6319.5, 7795.8, 5.4],
+    ['golem_coal_f25_12', 25, 6435.6, 8573.5, 4.9],
+    ['golem_coal_f25_13', 25, 5372.8, 9423.2, 3.0],
+    ['golem_coal_f25_14', 25, 4877.9, 8766.8, 2.9],
+    ['golem_coal_f25_15', 25, 6743.4, 8580.2, 6.1],
+    ['golem_coal_f25_16', 25, 6153.4, 8133.1, 5.9],
+    ['golem_coal_f25_17', 25, 5918.9, 8709.2, 0.9],
+    ['golem_coal_f25_18', 25, 5918.2, 7668.5, 0.6],
+    ['golem_coal_f25_19', 25, 5323.9, 8355.4, 3.8],
+    ['golem_coal_f26_00', 26, 6480.3, 5397.7, 2.0],
+    ['golem_coal_f26_01', 26, 5737.3, 5687.8, 18.0],
+    ['golem_coal_f26_02', 26, 6322.9, 5213.5, 2.7],
+    ['golem_coal_f26_03', 26, 6972.6, 5052.2, 1.9],
+    ['golem_coal_f26_04', 26, 6681.6, 4572.6, 7.5],
+    ['golem_coal_f26_05', 26, 6405.9, 4443.3, 6.1],
+    ['golem_coal_f26_06', 26, 6521.3, 5005.0, 2.8],
+    ['golem_coal_f26_07', 26, 6987.3, 4689.5, 6.0],
+    ['golem_coal_f26_08', 26, 6741.8, 4859.0, 5.7],
+    ['golem_coal_f26_09', 26, 6777.3, 5428.9, 1.1],
+    ['golem_coal_f26_10', 26, 6507.0, 5652.8, 1.6],
+    ['golem_coal_f26_11', 26, 6407.9, 4669.9, 6.7],
+    ['golem_coal_f26_12', 26, 6053.0, 5736.0, 17.7],
+    ['golem_coal_f26_13', 26, 5041.8, 5287.3, 3.8],
+    ['golem_coal_f26_14', 26, 5836.4, 4746.7, 7.3],
+    ['golem_coal_f26_15', 26, 6266.3, 4977.1, 3.3],
+    ['golem_coal_f26_16', 26, 6185.7, 4403.9, 14.9],
+    ['golem_coal_f26_17', 26, 6727.6, 5189.7, 2.1],
+    ['golem_coal_f26_18', 26, 6744.5, 4010.4, 19.0],
+    ['golem_coal_f26_19', 26, 5479.8, 4575.0, 19.9],
+    ['golem_coal_f27_00', 27, 2307.2, 3338.6, 0.8],
+    ['golem_coal_f27_01', 27, 2229.4, 2956.1, 1.2],
+    ['golem_coal_f27_02', 27, 2909.1, 3014.9, 0.3],
+    ['golem_coal_f27_03', 27, 2796.2, 2140.3, 1.5],
+    ['golem_coal_f27_04', 27, 2774.0, 2630.0, 1.0],
+    ['golem_coal_f27_05', 27, 1966.7, 3317.5, 0.4],
+    ['golem_coal_f27_06', 27, 1816.6, 2924.1, 0.3],
+    ['golem_coal_f27_07', 27, 2802.7, 1707.4, 0.9],
+    ['golem_coal_f27_08', 27, 1370.1, 2962.0, 0.5],
+    ['golem_coal_f27_09', 27, 1247.8, 2633.2, 0.2],
+    ['golem_coal_f27_10', 27, 3106.6, 2348.3, 0.2],
+    ['golem_coal_f27_11', 27, 3057.4, 1970.2, 0.5],
+    ['golem_coal_f27_12', 27, 2481.1, 2039.5, 0.4],
+    ['golem_coal_f27_13', 27, 1624.2, 3220.2, 1.3],
+    ['golem_coal_f27_14', 27, 2554.2, 2906.9, 0.2],
+    ['golem_coal_f27_15', 27, 3096.7, 2705.3, 1.4],
+    ['golem_coal_f27_16', 27, 1579.3, 2663.1, 0.7],
+    ['golem_coal_f27_17', 27, 2091.9, 2522.0, 0.6],
+    ['golem_coal_f27_18', 27, 2637.8, 3254.7, 1.0],
+    ['golem_coal_f27_19', 27, 2581.2, 2398.8, 0.7],
+    ['golem_coal_f28_00', 28, -6922.0, -480.9, 12.1],
+    ['golem_coal_f28_01', 28, -6876.5, 701.7, 18.1],
+    ['golem_coal_f28_02', 28, -6686.1, 971.0, 10.7],
+    ['golem_coal_f28_03', 28, -7490.0, 963.6, 18.7],
+    ['golem_coal_f28_04', 28, -7933.2, 428.6, 15.0],
+    ['golem_coal_f28_05', 28, -7080.0, -117.3, 18.4],
+    ['golem_coal_f28_06', 28, -7636.0, -619.1, 19.4],
+    ['golem_coal_f28_07', 28, -6970.6, -785.9, 13.6],
+    ['golem_coal_f28_08', 28, -7522.6, -235.3, 8.8],
+    ['golem_coal_f28_09', 28, -7992.0, -345.7, 17.7],
+    ['golem_coal_f28_10', 28, -7881.8, 726.9, 6.8],
+    ['golem_coal_f28_11', 28, -6743.2, -78.1, 12.0],
+    ['golem_coal_f28_12', 28, -7355.3, 41.3, 17.5],
+    ['golem_coal_f28_13', 28, -7239.8, 1048.4, 18.5],
+    ['golem_coal_f28_14', 28, -6909.6, 1180.5, 19.3],
+    ['golem_coal_f28_15', 28, -7107.7, -1012.1, 14.0],
+    ['golem_coal_f28_16', 28, -7264.5, 216.7, 17.4],
+    ['golem_coal_f28_17', 28, -7239.8, 652.2, 19.9],
+    ['golem_coal_f28_18', 28, -8114.8, -57.8, 17.0],
+    ['golem_coal_f28_19', 28, -6529.8, 115.6, 19.6],
+    ['golem_coal_f29_00', 29, -2482.4, -3270.8, 0.4],
+    ['golem_coal_f29_01', 29, -2732.5, -2138.1, 1.9],
+    ['golem_coal_f29_02', 29, -3568.3, -2909.4, 1.1],
+    ['golem_coal_f29_03', 29, -1835.7, -2271.9, 12.8],
+    ['golem_coal_f29_04', 29, -3282.7, -3170.0, 0.6],
+    ['golem_coal_f29_05', 29, -2701.9, -3035.6, 1.3],
+    ['golem_coal_f29_06', 29, -3213.0, -2362.6, 1.2],
+    ['golem_coal_f29_07', 29, -3509.2, -2527.5, 0.2],
+    ['golem_coal_f29_08', 29, -2976.5, -1410.5, 0.1],
+    ['golem_coal_f29_09', 29, -2274.5, -1535.5, 15.9],
+    ['golem_coal_f29_10', 29, -1995.9, -2776.7, 1.0],
+    ['golem_coal_f29_11', 29, -3441.6, -2049.4, 0.5],
+    ['golem_coal_f29_12', 29, -3168.9, -1824.6, 0.8],
+    ['golem_coal_f29_13', 29, -2205.7, -2005.6, 18.4],
+    ['golem_coal_f29_14', 29, -2919.1, -3306.2, 1.3],
+    ['golem_coal_f29_15', 29, -2770.3, -1709.5, 0.8],
+    ['golem_coal_f29_16', 29, -3112.2, -2831.5, 0.8],
+    ['golem_coal_f29_17', 29, -3299.5, -1542.9, 1.3],
+    ['golem_coal_f29_18', 29, -2400.2, -2675.1, 0.7],
+    ['golem_coal_f29_19', 29, -2187.9, -3048.6, 1.7],
   ],
 };
 /* ===== HDToon: Art's Hollowdeep creature look (creature_pipeline/scripts/hollowdeepToon.js, copied verbatim for three r149; only the ES-module
@@ -10660,7 +11222,8 @@ return { makeChalkMaterial, addInkOutline, setInkResolution, smoothNormalsByPosi
 const Creatures = (() => {
   const CT = { 5121: Uint8Array, 5123: Uint16Array, 5125: Uint32Array, 5126: Float32Array }, NC = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 };
   const ST = {}; // id -> { gl, bin, p, err }
-  const get = (id) => CREATURE_DATA[id] || null, st = (id) => ST[id] || (ST[id] = { gl: null, bin: null, p: null, err: null });
+  const XD = {}; // (t718s2692) extra rows registered at runtime (def) - not creatures of their own: the golems' far LOD stand-ins (WorldGolems), kept out of CREATURE_DATA / ids
+  const get = (id) => CREATURE_DATA[id] || XD[id] || null, st = (id) => ST[id] || (ST[id] = { gl: null, bin: null, p: null, err: null });
   function acc(S, i) { const g = S.gl, a = g.accessors[i], bv = g.bufferViews[a.bufferView], T = CT[a.componentType], n = NC[a.type], off = S.bin.byteOffset + (bv.byteOffset || 0) + (a.byteOffset || 0);
     return { arr: new T(S.bin.buffer.slice(off, off + a.count * n * T.BYTES_PER_ELEMENT)), n, norm: !!a.normalized }; }
   function load(id) { const D = get(id); if (!D) return Promise.reject(new Error('no creature ' + id)); const S = st(id); if (S.p) return S.p;
@@ -10746,7 +11309,7 @@ const Creatures = (() => {
     cp.traverse((n) => { if (!n.isSkinnedMesh) return; const sm = sL.get(n), sk = sm.skeleton.clone(); sk.bones = sm.skeleton.bones.map((b) => cL.get(b)); n.bind(sk, sm.bindMatrix.clone()); });
     const root = new THREE.Group(); root.name = T.id; root.add(cp); const bones = T.bones.map((b) => cL.get(b)), mats = T.mats;
     return player({ id: T.id, def: T.def, root, model: cp, clips: T.clips, mats, names: T.names, stripped: T.stripped, rest: T.rest, bones, clone: true }); }
-  return { get, load, make, clone, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
+  return { get, load, make, clone, def: (id, row) => (XD[id] = Object.assign({}, row, { id })), gl: (id) => (ST[id] && ST[id].gl) || null, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
 })();
 /* (Dominic t720u / t722u, Art's design approved on card t721s2718) overhead combat health bars - hers and each monster's in the fight - over the 3D canvas,
    under (t566s2518) Art's nameplate: one centred row, a brass 'Lv N' badge (coloured against her combat level) then the name.
@@ -16710,36 +17273,103 @@ const Mole = (() => {
     Explore.enter = (...a) => { const r = e0(...a); if (r !== false) { M.haul = false; S.mole = Object.assign({ out: true }, S.mole || {}, { on: false, haul: false }); if (!M.on && S.mole.out !== false) { M.on = true; M.st = 'follow'; M.cool = 0.5; } bar(); } return r; }; }
   return { M, SC, tethers, flowCheck, flowFix, setTask, moleHit, bubble, openScreen, start, stop, task, untask, get haul() { return M.haul; }, tick, build, nearestTether, routes, haulN, get on() { return M.on; } };
 })();
-/* ---------- (GD-32, Dominic t548u) the golems on the overworld map: Art's 60 placements (src/creatures/golem_spawns.js WORLD_GOLEMS), the playground's creature rows
+/* ---------- (GD-32, Dominic t548u) the golems on the overworld map: Art's 600 placements (t718s2692: 20 per field) (src/creatures/golem_spawns.js WORLD_GOLEMS), the playground's creature rows
    (src/creatures/data.js: stats, clips, srgb / rigid / glow / walk-slack fixes). iPhone first:
    - every golem is just a position until she is near; an ore's GLB is loaded once, lazily, the first time one of its golems is within LOAD_M, and built once as a
      template (Creatures.make, map encoding); each golem near her is a SkeletonUtils-style clone of it (Creatures.clone: shared geometry + materials, own skeleton / mixer)
    - built within SPAWN_M (the MAX_LIVE nearest), released past DESPAWN_M; mixers and AI run only within ANIM_M; farther ones are not touched at all
-   - wander: legs inside its field's edge + WANDER_M, never onto ground steeper than MAX_SLOPE_DEG (or not walkable); passive until she hits it
+   - (t718s2692) every other golem within FAR_M is a far stand-in: Art's LOD, one InstancedMesh per ore (one draw), loaded lazily per ore within LOD_LOAD_M, the same
+     shading as the full golem; swapped in the frame the full one is built / released; hidden while dead (the respawn timer runs for every dead golem, near or far)
+   - spawns: Art's plan, re-checked against the live ore nodes (NODE_CLEAR_M) / walkability / SPAWN_SLOPE_DEG and moved to the nearest good spot in its zone if needed
+   - wander: legs inside its own zone (the Voronoi cell of its spawn among its field's golems, in its field's edge + WANDER_M), never onto ground steeper than MAX_SLOPE_DEG
+     (or not walkable), never within NODE_CLEAR_M of a mineable rock; passive until she hits it
    - the fight is the playground's loop, map-side: tap it -> she runs to striking range, squares up and swings every ATTACK_INTERVAL_S (CharView.swAttack), each swing
      rolls Combat.rollDamage once at its strike point; hit, it hunts her inside its leash and slams on its timer (Combat.creatureAttack -> Combat.fightHurt); at 0 HP it
      plays Death, sinks and respawns at its spot after respawnS; the kill gives Combat XP the same way (Combat.addXp(row.xp), save) ---------- */
 const WorldGolems = (() => {
   const D = () => WORLD_GOLEMS, WS = () => Explore.WS, EXK = 1.18; // (CharView EXK: her body scale on the map - the golems stand at the same scale, so 2.6 m next to her as in the playground)
   const U = () => WS() * EXK; // one creature metre on the map
-  const W = { n: 0, kills: 0, list: null, fields: {}, tpl: {}, loading: {}, err: {}, F: null, tgt: null, eng: false, swT: 0, strike: 0, ko: 0, rp: 0, nums: [], stats: { live: 0, animated: 0, ai: 0, far: 0, refused: 0, maxSlope: 0, steps: 0, out: 0 } };
+  const W = { n: 0, kills: 0, list: null, fields: {}, tpl: {}, loading: {}, err: {}, F: null, tgt: null, eng: false, swT: 0, strike: 0, ko: 0, rp: 0, nums: [], stats: { live: 0, animated: 0, ai: 0, far: 0, refused: 0, maxSlope: 0, steps: 0, out: 0, farDraws: 0, farInst: 0, farTris: 0, nearTris: 0, dup: 0, dupMax: 0, drawsMax: 0, instMax: 0, pops: 0, swaps: 0, nudged: 0, nudgeSlope: 0, nudgeMaxM: 0, unfixed: 0, minNodeM: 0 }, lod: {}, byField: {} };
   let seed = 4321; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   function init() { if (W.list) { liveR(); return W.list; } const T = D(); for (const f of T.FIELDS) W.fields[f[0]] = { id: f[0], ore: f[1], x: f[2], y: f[3], R: f[4] };
-    W.list = T.SPAWNS.map(([id, fid, x, y, sl]) => { const f = W.fields[fid], kind = T.ORE_KIND[f.ore], C = Creatures.get(kind); return { id, fid, kind, C, sx: x, sy: y, x, y, face: rnd() * 6.283, spawnSlope: sl, wr: f.R + T.WANDER_M * WS(), hp: C ? C.hp : 1, dead: 0, sink: 0, hunt: false, inst: null, anim: null, once: 0, atkT: 0, bite: 0, wp: null, pause: rnd() * 3, d: 1e9 }; });
+    W.list = T.SPAWNS.map(([id, fid, x, y, sl]) => { const f = W.fields[fid], kind = T.ORE_KIND[f.ore], C = Creatures.get(kind); return { id, fid, kind, C, ax: x, ay: y, sx: x, sy: y, x, y, face: rnd() * 6.283, spawnSlope: sl, wr: f.R + T.WANDER_M * WS(), hp: C ? C.hp : 1, dead: 0, sink: 0, hunt: false, inst: null, anim: null, once: 0, atkT: 0, bite: 0, wp: null, pause: rnd() * 3, d: 1e9 }; });
+    for (const g of W.list) (W.byField[g.fid] || (W.byField[g.fid] = [])).push(g);
     liveR(); return W.list; }
   // (steering c) LIVE_R fields take the game's own runtime radius (re-read whenever Explore rebuilds its spots)
   function liveR() { const sp = typeof Explore !== 'undefined' && Explore.ORE && Explore.ORE.spots; if (!sp || sp === W.spRef || !W.list) return; W.spRef = sp; const T = D();
     for (const id of T.LIVE_R || []) { const f = W.fields[id], s = sp[id]; if (!f || !s) continue; f.R = s.R; f.live = true; for (const g of W.list) if (g.fid === id) g.wr = f.R + T.WANDER_M * WS(); } }
   // ground slope in degrees, Art's footprint_slope(): the gradient at his grid spacing (SLOPE_GRID_M) at the centre + 8 points on a FOOTPRINT_R_M ring, max, and the footprint's height span
-  function slope1(x, y) { const e = WS() * D().SLOPE_GRID_M, h = M3.meshH, gx = (h(x + e, y) - h(x - e, y)) / (2 * e), gy = (h(x, y + e) - h(x, y - e)) / (2 * e); return Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
-  function slopeDeg(x, y) { const r = WS() * D().FOOTPRINT_R_M; let mx = slope1(x, y), lo = M3.meshH(x, y), hi = lo;
-    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, qx = x + r * Math.cos(a), qy = y + r * Math.sin(a), hq = M3.meshH(qx, qy); mx = Math.max(mx, slope1(qx, qy)); lo = Math.min(lo, hq); hi = Math.max(hi, hq); }
+  // (t718s2692 slope check) the gradient is rise / run in map units on both axes: meshH is in map units and e = SLOPE_GRID_M x WS map units, so a 2.6 m step is
+  // divided by its own 16.51-unit length (per metre, not per grid cell). hf: another height function (M3.heightAt's ground before the mesh) for the comparison only
+  function slope1(x, y, hf) { const e = WS() * D().SLOPE_GRID_M, h = hf || M3.meshH, gx = (h(x + e, y) - h(x - e, y)) / (2 * e), gy = (h(x, y + e) - h(x, y - e)) / (2 * e); return Math.atan(Math.hypot(gx, gy)) * 180 / Math.PI; }
+  function slopeDeg(x, y, hf) { const r = WS() * D().FOOTPRINT_R_M, h = hf || M3.meshH; let mx = slope1(x, y, h), lo = h(x, y), hi = lo;
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4, qx = x + r * Math.cos(a), qy = y + r * Math.sin(a), hq = h(qx, qy); mx = Math.max(mx, slope1(qx, qy, h)); lo = Math.min(lo, hq); hi = Math.max(hi, hq); }
     return Math.max(mx, Math.atan((hi - lo) / (2 * r)) * 180 / Math.PI); }
-  function canStand(g, x, y) { if (Math.hypot(x - W.fields[g.fid].x, y - W.fields[g.fid].y) > g.wr) return false; if (slopeDeg(x, y) > D().MAX_SLOPE_DEG) return false; const c = Explore.clsAt(x, y); return c === 1; }
+  // ---- (t718s2692) the live ore nodes (Explore.ORE.nodes) in 16 m cells, rebuilt whenever Explore rebuilds / prunes them
+  function nodeIdx() { const N = typeof Explore !== 'undefined' && Explore.ORE && Explore.ORE.nodes; if (!N || !N.length) return null; if (W.nd && W.nd.ref === N) return W.nd; const C = 16 * WS(), m = new Map();
+    for (const n of N) { const k = Math.floor(n.x / C) + ',' + Math.floor(n.y / C); (m.get(k) || m.set(k, []).get(k)).push(n); } return (W.nd = { ref: N, C, m, n: N.length }); }
+  function nodesNear(x, y, f) { const I = nodeIdx(); if (!I) return; const i = Math.floor(x / I.C), j = Math.floor(y / I.C); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const L = I.m.get((i + a) + ',' + (j + b)); if (L) for (const n of L) f(n); } }
+  function nodeDist(x, y) { let d = Infinity; nodesNear(x, y, (n) => { const e = Math.hypot(n.x - x, n.y - y); if (e < d) d = e; }); return d; } // map units to the nearest node centre (Infinity past 16 m)
+  function nodeOn(x, y, r) { let on = false; nodesNear(x, y, (n) => { if (Math.hypot(n.x - x, n.y - y) < n.s * D().HUNT_NODE_K + r) on = true; }); return on; }
+  // its own wander zone: the closest field whose edge + WANDER_M covers the point is its field, and the closest of that field's spawns (Art's) is its own
+  function inZone(g, x, y) { let bf = null, bd = Infinity; for (const id in W.fields) { const f = W.fields[id], d = Math.hypot(x - f.x, y - f.y); if (d < bd && d <= f.R + D().WANDER_M * WS()) { bd = d; bf = f; } } if (!bf || bf.id !== g.fid) return false;
+    let bg = null; bd = Infinity; for (const q of W.byField[g.fid]) { const d = Math.hypot(x - q.ax, y - q.ay); if (d < bd) { bd = d; bg = q; } } return bg === g; }
+  // mode 0: a wander target (own zone, NODE_CLEAR_M from every rock); 1: a wander step (out of the zone is fine on the way back, and inside the clearance only if it does
+  // not get closer to the rock: a golem left there by a hunt walks out); 2: hunting her (only off the rock itself)
+  function canStand(g, x, y, mode) { const T = D(), f = W.fields[g.fid]; mode = mode || 0; if (Math.hypot(x - f.x, y - f.y) > g.wr) return false;
+    if (mode === 2) { if (nodeOn(x, y, (g.C.bodyR || 0) * U())) return false; }
+    else { const c = T.NODE_CLEAR_M * WS(), dn = nodeDist(x, y); if (dn < c && (mode === 0 || dn < nodeDist(g.x, g.y) - 1e-6)) return false; if (mode === 0 && !inZone(g, x, y)) return false; }
+    if (slopeDeg(x, y) > T.MAX_SLOPE_DEG) return false; const c = Explore.clsAt(x, y); return c === 1; }
+  // Art's spawns re-checked on the live map (once per node set): NODE_CLEAR_M from every node, walkable, footprint <= SPAWN_SLOPE_DEG, in its own zone - else the nearest
+  // spot that is (1 m rings, 16 bearings, up to NUDGE_MAX_M); a golem standing at its old spawn moves with it
+  function fixSpawns() { const I = nodeIdx(); if (!I || W.fixRef === I || !W.list) return; W.fixRef = I; const T = D(), st = W.stats, c = T.NODE_CLEAR_M * WS(); st.nudged = 0; st.nudgeSlope = 0; st.nudgeMaxM = 0; st.unfixed = 0;
+    const okAt = (g, x, y) => nodeDist(x, y) >= c && inZone(g, x, y) && Explore.clsAt(x, y) === 1 && slopeDeg(x, y) <= T.SPAWN_SLOPE_DEG;
+    for (const g of W.list) { const at = !g.inst && g.x === g.sx && g.y === g.sy; let p = [g.ax, g.ay];
+      if (!okAt(g, g.ax, g.ay)) { const slope = nodeDist(g.ax, g.ay) >= c; let got = null; for (let r = 1; r <= T.NUDGE_MAX_M && !got; r++) for (let k = 0; k < 16 && !got; k++) { const a = k * Math.PI / 8, x = g.ax + Math.cos(a) * r * WS(), y = g.ay + Math.sin(a) * r * WS(); if (okAt(g, x, y)) got = [x, y, r]; }
+        if (got) { p = got; st.nudged++; if (slope) st.nudgeSlope++; st.nudgeMaxM = Math.max(st.nudgeMaxM, got[2]); g.nudged = got[2]; } else { st.unfixed++; g.unfixed = true; } }
+      g.sx = p[0]; g.sy = p[1]; if (at) { g.x = p[0]; g.y = p[1]; } }
+    let mn = Infinity; for (const g of W.list) mn = Math.min(mn, nodeDist(g.sx, g.sy)); st.minNodeM = +(mn / WS()).toFixed(2); }
   function here() { return Explore.on ? Explore.here() : null; }
   // ---- templates (one per ore) and clones
   function tplFor(kind) { if (W.tpl[kind]) return W.tpl[kind]; if (!Creatures.ready(kind)) { if (!W.loading[kind]) { W.loading[kind] = true; Creatures.load(kind).catch((e) => { W.err[kind] = String(e); }); } return null; }
-    const T = Creatures.make(kind, { screenEnc: true }); if (!T) return null; T.root.updateMatrixWorld(true); return (W.tpl[kind] = T); }
+    const T = Creatures.make(kind, { screenEnc: true }); if (!T) return null; T.root.updateMatrixWorld(true); T.tris = 0; T.root.traverse((o) => { if (o.isMesh) T.tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; }); /* (ink hulls included: they draw too) */ return (W.tpl[kind] = T); }
+  // ---- (t718s2692) far stand-ins: per ore, Art's LOD GLB (registered as an extra Creatures row: the golem's own row + the LOD model, no clips) built once into one
+  // InstancedMesh of FAR_MAX. Its material is the full golem's stone chalk toon (Creatures.make: glow bound from _HD_GLOW, map encoding = no srgbOut / tone mapping), with
+  // the Lumenite look per vertex (hdLum: Art's first lumVerts vertices) - the crystal shade / rim / lift / emissive from his extras, crystalGain baked into their paint
+  function lodBind(m, ud) { const prev = m.onBeforeCompile, key = m.customProgramCacheKey, U = { uLShade: { value: new THREE.Color(ud.hd_shade ?? 0x2c6a74) }, uLRim: { value: new THREE.Color(ud.hd_rim ?? 0xeafff8) }, uLRimAmt: { value: 0.7 + (ud.hd_gloss ?? 0) * 0.6 }, uLEmis: { value: ud.hd_emis ?? 0.3 }, uLLift: { value: 0.05 }, uLGrain: { value: 0.1 } };
+    m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); Object.assign(sh.uniforms, U);
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute float hdLum; varying float vHdLum;').replace('#include <begin_vertex>', '#include <begin_vertex>\n  vHdLum = hdLum;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vHdLum; uniform vec3 uLShade, uLRim; uniform float uLRimAmt, uLEmis, uLLift, uLGrain;')
+        .replace('(hdGrain-0.5)*uGrain', '(hdGrain-0.5)*mix(uGrain,uLGrain,vHdLum)').replace('return mix(uShade, vec3(1.0), t);', 'return mix(mix(uShade,uLShade,vHdLum), vec3(1.0), t);')
+        .replace('reflectedLight.directDiffuse += uRim * smoothstep(0.35,0.6,fr) * uRimAmt * diffuseColor.rgb;', 'reflectedLight.directDiffuse += mix(uRim,uLRim,vHdLum) * smoothstep(0.35,0.6,fr) * mix(uRimAmt,uLRimAmt,vHdLum) * diffuseColor.rgb;')
+        .replace('reflectedLight.indirectDiffuse += diffuseColor.rgb * uLift;', 'reflectedLight.indirectDiffuse += diffuseColor.rgb * mix(uLift,uLLift,vHdLum);')
+        .replace('totalEmissiveRadiance += diffuseColor.rgb * uEmis;', 'totalEmissiveRadiance += diffuseColor.rgb * mix(uEmis,uLEmis,vHdLum);'); };
+    m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|lodLum'; m.userData.lodLum = U; return m; }
+  function lodFor(kind) { const L = W.lod[kind] || (W.lod[kind] = { kind, st: 0, im: null, list: [], tris: 0 }); if (L.st === 2 || L.st < 0) return L; const T = D(), cfg = T.LOD && T.LOD[kind], id = kind + '_lod';
+    if (!cfg || !Creatures.get(kind)) { L.st = -1; return L; }
+    if (L.st === 0) { Creatures.def(id, Object.assign({}, Creatures.get(kind), { model: cfg.model, clips: {}, rigid: null })); L.st = 1; Creatures.load(id).catch((e) => { L.st = -1; W.err[id] = String(e); }); return L; }
+    if (!Creatures.ready(id)) return L; const C = Creatures.get(kind), I = Creatures.make(id, { screenEnc: true }); if (!I) { L.st = -1; return L; } I.root.updateMatrixWorld(true);
+    let body = null; I.root.traverse((o) => { if (o.isMesh && !o.userData.isInk && !body) body = o; }); if (!body) { L.st = -1; return L; }
+    const geo = body.geometry, n = geo.attributes.position.count, nl = Math.min(cfg.lumVerts || 0, n), lum = new Float32Array(n); lum.fill(1, 0, nl); geo.setAttribute('hdLum', new THREE.BufferAttribute(lum, 1));
+    const cg = C.crystalGain, ca = geo.attributes.color; if (cg && ca) { const a = ca.array, k = ca.itemSize, q = ca.normalized ? (a instanceof Uint16Array ? 65535 : a instanceof Uint8Array ? 255 : 1) : 1, f = new Float32Array(a.length); /* (float paint: a gain past 1.0 is not clipped, as the full golem's material colour x paint) */
+      for (let i = 0; i < a.length; i++) f[i] = a[i] / q; for (let i = 0; i < nl; i++) for (let c = 0; c < 3; c++) f[i * k + c] *= cg[c]; geo.setAttribute('color', new THREE.BufferAttribute(f, k)); }
+    const gm = ((Creatures.gl(id) || {}).materials || [])[0] || {}, mat = lodBind(body.material, gm.extras || {}); mat.userData.lod = { lumVerts: nl, crystalGain: cg || null };
+    const im = new THREE.InstancedMesh(geo, mat, T.FAR_MAX); im.count = 0; im.visible = false; im.frustumCulled = false; /* (r149: instances are not culled per instance; the whole set is one draw) */ im.castShadow = !!T.FAR_SHADOW; im.receiveShadow = false; im.name = kind + 'FarLOD';
+    im.instanceMatrix.setUsage(THREE.DynamicDrawUsage); Object.assign(L, { st: 2, im, base: body.matrixWorld.clone(), tris: (geo.index ? geo.index.count : n) / 3, verts: n }); return L; }
+  const _m = typeof THREE !== 'undefined' ? new THREE.Matrix4() : null, _q = _m && new THREE.Quaternion(), _v = _m && new THREE.Vector3(), _s = _m && new THREE.Vector3(), _up = _m && new THREE.Vector3(0, 1, 0);
+  // every frame after build / release: each ore's stand-ins = its golems within FAR_M that are not built and not dead (the nearest FAR_MAX); never a built one (dup = 0)
+  function farTick(L) { const T = D(), st = W.stats; for (const k in W.lod) W.lod[k].list.length = 0;
+    for (const g of L) { g.far = false; if (g.inst || g.dead > 0 || g.d >= T.FAR_M) continue; const Lk = W.lod[g.kind]; if (Lk && Lk.st === 2) Lk.list.push(g); }
+    let draws = 0, inst = 0, tris = 0, dup = 0, nt = 0;
+    for (const k in W.lod) { const Lk = W.lod[k]; if (Lk.st !== 2) continue; const im = Lk.im, A = Lk.list; if (im.parent !== M3.scene) M3.scene.add(im); if (A.length > T.FAR_MAX) { A.sort((a, b) => a.d - b.d); A.length = T.FAR_MAX; }
+      for (let i = 0; i < A.length; i++) { const g = A[i]; if (g.fx !== g.x || g.fy !== g.y) { g.fx = g.x; g.fy = g.y; g.fh = Explore.hAt(g.x, g.y); }
+        _m.compose(_v.set(g.x, g.fh, g.y), _q.setFromAxisAngle(_up, g.face), _s.setScalar(U())).multiply(Lk.base); im.setMatrixAt(i, _m); g.far = true; }
+      im.count = A.length; im.visible = A.length > 0; im.instanceMatrix.needsUpdate = true; if (A.length) { draws++; inst += A.length; tris += A.length * Lk.tris; } }
+    // swap check: a golem alive in the swap band whose ore's stand-in is ready is drawn exactly once - full or far - every frame (pops: it vanished / appeared at the swap)
+    for (const g of L) { const sh = g.inst ? 1 : g.far ? 2 : 0; if (g.inst && g.far) dup++; if (g.inst) nt += (W.tpl[g.kind] && W.tpl[g.kind].tris) || 0; const Lk = W.lod[g.kind];
+      const rd = !!(Lk && Lk.st === 2); if (g.shown !== undefined && sh !== g.shown && g.dead <= 0 && !g.wasDead && rd && g.lodWas && g.d < T.DESPAWN_M + 10) { if (!sh || !g.shown) st.pops++; else st.swaps++; }
+      g.shown = sh; g.wasDead = g.dead > 0; g.lodWas = rd; }
+    Object.assign(st, { farDraws: draws, farInst: inst, farTris: tris, nearTris: nt, dup, dupMax: Math.max(st.dupMax, dup), drawsMax: Math.max(st.drawsMax, draws), instMax: Math.max(st.instMax, inst) }); }
   function build(g) { const T = tplFor(g.kind); if (!T) return false; const I = Creatures.clone(T); I.root.scale.setScalar(U()); I.root.traverse((o) => { if (o.isMesh) { o.castShadow = !o.userData.isInk; o.receiveShadow = false; } });
     const dpr = Math.min((typeof QUALITY !== 'undefined' && QUALITY.dpr) || 2, window.devicePixelRatio || 1); for (const m of T.mats) if (m.userData.uniforms && m.userData.uniforms.uRes) m.userData.uniforms.uRes.value.set(innerWidth * dpr, innerHeight * dpr);
     g.inst = I; g.anim = null; loop(g, 'idle'); M3.scene.add(I.root); place(g); return true; }
@@ -16774,28 +17404,35 @@ const WorldGolems = (() => {
     const h = here(), dl = Math.hypot(tx - h[0], ty - h[1]); if (dl > T.DIRECT_M * WS()) return; const n = Math.ceil(dl / WS()); for (let i = 1; i < n; i++) { const t = i / n; if (Explore.clsAt(h[0] + (tx - h[0]) * t, h[1] + (ty - h[1]) * t) !== 1) return; }
     G.path = [{ x: G.goal.x, z: G.goal.z }]; G.pi = 0; W.stats.direct = (W.stats.direct || 0) + 1; }
   // ---- one golem's AI (only near her): hunt inside its leash, else wander its field
-  function step(g, tx, ty, sp) { const dx = tx - g.x, dy = ty - g.y, L = Math.hypot(dx, dy); if (L < 1e-6) return true; const s = Math.min(L, sp), nx = g.x + dx / L * s, ny = g.y + dy / L * s;
-    if (!canStand(g, nx, ny)) { W.stats.refused++; return false; } g.x = nx; g.y = ny; g.face = Math.atan2(dx, dy); W.stats.steps++; const sl = slopeDeg(nx, ny); if (sl > W.stats.maxSlope) W.stats.maxSlope = sl; return true; }
+  function step(g, tx, ty, sp, mode) { const dx = tx - g.x, dy = ty - g.y, L = Math.hypot(dx, dy); if (L < 1e-6) return true; const s = Math.min(L, sp), nx = g.x + dx / L * s, ny = g.y + dy / L * s;
+    if (!canStand(g, nx, ny, mode || 1)) { W.stats.refused++; return false; } g.x = nx; g.y = ny; g.face = Math.atan2(dx, dy); W.stats.steps++; const sl = slopeDeg(nx, ny); if (sl > W.stats.maxSlope) W.stats.maxSlope = sl; return true; }
+  function respawn(g) { g.dead = 0; g.sink = 0; g.hp = g.C.hp; g.x = g.sx; g.y = g.sy; g.hunt = false; g.wp = null; g.anim = null; g.settled = false; loop(g, 'idle'); }
+  // (t718s2692) a built golem past ANIM_M: eased into Idle for SETTLE_S, then held on Idle's first key (= the bind pose = Art's LOD pose) until she comes back
+  function settle(g, dt) { const I = g.inst; loop(g, 'idle'); g.setT = (g.setT || 0) + dt; I.mixer.update(dt); if (g.setT < D().SETTLE_S) return; const a = I.mixer.existingAction(I.clips[g.C.clips.idle]); if (a) a.time = 0; I.mixer.update(0); g.settled = true; g.setT = 0; }
   function ai(g, dt) { const T = D(), C = g.C;
-    if (g.dead > 0) { g.dead -= dt; const t0 = (C.respawnS || 6) - g.dead; if (t0 > (C.deathHitAt || 1) + 0.8) g.sink = Math.min(1, (t0 - (C.deathHitAt || 1) - 0.8) / 1.2) * 0.6; if (g.dead <= 0) { g.dead = 0; g.sink = 0; g.hp = C.hp; g.x = g.sx; g.y = g.sy; g.anim = null; loop(g, 'idle'); } return; }
+    if (g.dead > 0) { g.dead -= dt; const t0 = (C.respawnS || 6) - g.dead; if (t0 > (C.deathHitAt || 1) + 0.8) g.sink = Math.min(1, (t0 - (C.deathHitAt || 1) - 0.8) / 1.2) * 0.6; if (g.dead <= 0) respawn(g); return; }
     if (g.once > 0) { g.once -= dt; if (g.bite > 0 && (g.bite -= dt) <= 0) { g.bite = 0; bite(g); } if (g.once > 0) return; g.anim = null; }
     const sp = (C.walkSpd || 0.45) * U() * dt; let walking = false;
     if (g.hunt && W.ko <= 0) { const q = rel(g); if (!q || q.d > (C.leashR || 5)) { g.hunt = false; } else { const slack = g.anim === 'walk' ? 0 : ((typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.MOB_START_SLACK_M) || 0);
-        if (q.d > C.atkReach + slack) { const h = here(), so = (C.atkReach * 0.9 + (C.bodyR || 0)) * U(), L = q.cd * U(); walking = step(g, h[0] + q.dx / L * so, h[1] + q.dy / L * so, sp); }
+        if (q.d > C.atkReach + slack) { const h = here(), so = (C.atkReach * 0.9 + (C.bodyR || 0)) * U(), L = q.cd * U(); walking = step(g, h[0] + q.dx / L * so, h[1] + q.dy / L * so, sp, 2); }
         else { g.face = Math.atan2(-q.dx, -q.dy); if ((g.atkT -= dt) <= 0) { g.atkT = C.atkS; once(g, 'attack'); g.bite = C.atkHitAt; return; } } } }
     if (!g.hunt && W.eng && W.tgt === g) { g.wp = null; const q = rel(g); if (q) { const fa = Math.atan2(-q.dx, -q.dy), df = Math.atan2(Math.sin(fa - g.face), Math.cos(fa - g.face)); g.face += df * (1 - Math.exp(-dt * T.MOB_TURN_K)); } } /* (t719u) targeted: it holds still and turns to face her - its wander no longer drags her run about */
-    else if (!g.hunt) { if (!g.wp) { if ((g.pause -= dt) <= 0) { const P = T.WALK_PAUSE_S, Lg = T.LEG_M; for (let k = 0; k < 8 && !g.wp; k++) { const a = rnd() * 6.283, l = (Lg[0] + rnd() * (Lg[1] - Lg[0])) * WS(), x = g.x + Math.cos(a) * l, y = g.y + Math.sin(a) * l; if (canStand(g, x, y)) g.wp = { x, y }; } g.pause = P[0] + rnd() * (P[1] - P[0]); } }
+    else if (!g.hunt) { if (!g.wp) { if ((g.pause -= dt) <= 0) { const P = T.WALK_PAUSE_S, Lg = T.LEG_M; for (let k = 0; k < 8 && !g.wp; k++) { const a = rnd() * 6.283, l = (Lg[0] + rnd() * (Lg[1] - Lg[0])) * WS(), x = g.x + Math.cos(a) * l, y = g.y + Math.sin(a) * l; if (canStand(g, x, y, 0)) g.wp = { x, y }; } g.pause = P[0] + rnd() * (P[1] - P[0]); } }
       if (g.wp) { if (Math.hypot(g.wp.x - g.x, g.wp.y - g.y) < WS() * 0.3) g.wp = null; else if (!step(g, g.wp.x, g.wp.y, sp)) g.wp = null; /* (refused: steeper than MAX_SLOPE_DEG or not walkable - it stops and picks another leg) */ else walking = true; } }
     loop(g, walking ? 'walk' : 'idle'); }
-  // ---- per frame (Explore.tick): cheap distance pass over the 60, build / release, then mixers + AI for the near ones only
+  // ---- per frame (Explore.tick): cheap distance pass over the 600, build / release, mixers + AI for the near ones only, then the far stand-ins
   function tick(dt) { if (!Explore.on || typeof M3 === 'undefined' || !M3.scene) return; const L = init(), h = here(); if (!h) return; const T = D(), u = WS(), st = W.stats; dt = Math.min(dt, 0.1);
     if (W.ko > 0 && (W.ko -= dt) <= 0) { W.ko = 0; W.F = Combat.newFight(Combat.playerStats()); }
     else if (W.F && !L.some((g) => g.hunt) && W.F.hp < W.F.max) W.F.hp = Math.min(W.F.max, W.F.hp + Combat.REGEN * W.F.max * dt); // (out of the fight: the 2% / s regen)
-    for (const g of L) { g.d = Math.hypot(g.x - h[0], g.y - h[1]) / u; if (g.d < T.LOAD_M) tplFor(g.kind); }
-    const near = L.filter((g) => g.d < T.SPAWN_M).sort((a, b) => a.d - b.d).slice(0, T.MAX_LIVE); let live = 0, animd = 0, aid = 0;
-    for (const g of L) { if (g.inst && (g.d > T.DESPAWN_M || (!near.includes(g) && g.d > T.SPAWN_M))) release(g); if (!g.inst && near.includes(g)) build(g); if (!g.inst) continue; live++;
-      if (g.d < T.ANIM_M) { ai(g, dt); aid++; place(g); g.inst.mixer.update(dt); animd++; } }
-    st.live = live; st.animated = animd; st.ai = aid; st.far = L.length - live; herTick(dt); numsTick(dt); bars(dt); if (typeof CoinDrops !== 'undefined') { const got = CoinDrops.tick('map', dt, h[0], h[1]); if (got) num(null, '+' + got + ' gold', 'info'); } }
+    fixSpawns(); for (const g of L) { g.d = Math.hypot(g.x - h[0], g.y - h[1]) / u; if (g.d < T.LOAD_M) tplFor(g.kind); if (g.d < T.LOD_LOAD_M) lodFor(g.kind); }
+    // (t718s2692) the full ones: the MAX_LIVE nearest of (built and within DESPAWN_M) + (within SPAWN_M), a built one ranked KEEP_BIAS_M nearer (no swap churn between two
+    // at the same distance); every other built one is released - at most MAX_LIVE ever (with 20 per field, the old 'release only past SPAWN_M' let 11 stay built)
+    const near = L.filter((g) => g.d < (g.inst ? T.DESPAWN_M : T.SPAWN_M)).sort((a, b) => (a.d - (a.inst ? T.KEEP_BIAS_M : 0)) - (b.d - (b.inst ? T.KEEP_BIAS_M : 0))).slice(0, T.MAX_LIVE); let live = 0, animd = 0, aid = 0;
+    for (const g of L) if (g.inst && !near.includes(g)) release(g);
+    for (const g of L) { if (!g.inst && near.includes(g)) build(g); if (!g.inst) continue; live++;
+      if (g.d < T.ANIM_M) { g.settled = false; ai(g, dt); aid++; place(g); g.inst.mixer.update(dt); animd++; } else if (!g.settled && g.dead <= 0) settle(g, dt); }
+    for (const g of L) if (g.dead > 0 && !(g.inst && g.d < T.ANIM_M)) { g.dead -= dt; if (g.dead <= 0) { respawn(g); place(g); } } /* (a dead golem out of AI range still respawns on time: its stand-in comes back) */
+    farTick(L); st.live = live; st.animated = animd; st.ai = aid; st.far = L.length - live; herTick(dt); numsTick(dt); bars(dt); if (typeof CoinDrops !== 'undefined') { const got = CoinDrops.tick('map', dt, h[0], h[1]); if (got) num(null, '+' + got + ' gold', 'info'); } }
   // ---- tap: the nearest built golem under the tap (base-to-top segment on screen, as Explore's own pick), before anything else on the map
   function hit(sx, sy) { if (!W.list) return null; let best = null, bd = 1e9; for (const g of W.list) { if (!g.inst || g.dead > 0 || g.d > D().ANIM_M) continue; const a = M3.project(g.x, g.y, 0), b = M3.project(g.x, g.y, g.C.height * U()); if (a[0] < -999 || b[0] < -999) continue;
       const vx = b[0] - a[0], vy = b[1] - a[1], l2 = vx * vx + vy * vy || 1, t = Math.max(0, Math.min(1, ((sx - a[0]) * vx + (sy - a[1]) * vy) / l2)), d = Math.hypot(a[0] + vx * t - sx, a[1] + vy * t - sy), rad = Math.max(18, Math.sqrt(l2) * 0.3); if (d < rad && d / rad < bd) { bd = d / rad; best = g; } } return best; }
@@ -16810,12 +17447,12 @@ const WorldGolems = (() => {
     document.body.appendChild(el); W.nums.push({ el, g, t: 0, me: !g }); if (W.nums.length > 12) { const o = W.nums.shift(); o.el.remove(); } }
   function numsTick(dt) { const cv = M3.renderer && M3.renderer.domElement, r = cv ? cv.getBoundingClientRect() : { left: 0, top: 0 }, h = here();
     W.nums = W.nums.filter((n) => { n.t += dt; if (n.t > 1.2 || !h) { n.el.remove(); return false; } const x = n.g ? n.g.x : h[0], y = n.g ? n.g.y : h[1], up = (n.g ? n.g.C.height + 0.2 : 2.2) * U(), p = M3.project(x, y, up); n.el.style.left = (r.left + p[0] - 20) + 'px'; n.el.style.top = (r.top + p[1] - 30 * n.t) + 'px'; n.el.style.opacity = String(1 - Math.max(0, n.t - 0.7) / 0.5); return true; }); }
-  function hideAll() { if (typeof HealthBars !== 'undefined') HealthBars.clear('map'); if (typeof CoinDrops !== 'undefined') CoinDrops.clear('map'); if (!W.list) return; for (const g of W.list) release(g); disengage(); for (const n of W.nums) n.el.remove(); W.nums = []; }
+  function hideAll() { if (typeof HealthBars !== 'undefined') HealthBars.clear('map'); if (typeof CoinDrops !== 'undefined') CoinDrops.clear('map'); for (const k in W.lod) { const im = W.lod[k].im; if (im) { im.count = 0; im.visible = false; } } if (!W.list) return; for (const g of W.list) { release(g); g.far = false; g.shown = undefined; } disengage(); for (const n of W.nums) n.el.remove(); W.nums = []; }
   if (typeof Explore !== 'undefined') { const t0 = Explore.tick, tp0 = Explore.tap, x0 = Explore.exit;
     Explore.tick = (dt) => { t0(dt); try { tick(dt); } catch (e) { console.error(e); } };
     Explore.tap = (sx, sy, ...r) => { if (Explore.on) { const g = hit(sx, sy); if (g) { engage(g); return 'golem'; } if (W.eng) disengage(); /* (tapping elsewhere walks her off: her attacks stop; a hunting golem keeps on inside its leash) */ } return tp0(sx, sy, ...r); };
     Explore.exit = (...a) => { const r = x0(...a); hideAll(); return r; }; }
-  return { W, init, tick, slopeDeg, canStand, engage, disengage, strike, bite, hit, rel, tplFor, get list() { return init(); }, get stats() { return W.stats; } };
+  return { W, init, tick, slopeDeg, canStand, nodeDist, inZone, fixSpawns, lodFor, engage, disengage, strike, bite, hit, rel, tplFor, get list() { return init(); }, get stats() { return W.stats; } };
 })();
 /* ---- Mosby, the transportation turtle (Art handoff: creatures/mosby, Dominic-approved). A huge mossy land tortoise, about five elephants of him: the miner stands about
    at his knee. Kind, sleepy, smiling face; a tall domed carapace of carved scute plates (light olive/tan plate edges, growth rings), moss in patches draping over the rim
