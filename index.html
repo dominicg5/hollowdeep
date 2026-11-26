@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='0074ba82';
+<script>window.HD_BUILD='a39546b0';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 0074ba82</div>
-<script src="assets/vendor/three.min.js?v=0074ba82"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build a39546b0</div>
+<script src="assets/vendor/three.min.js?v=a39546b0"></script>
 <script>
 'use strict';
 
@@ -10232,6 +10232,8 @@ const TIN_GOLEM = {
   model: 'assets/models/creatures/tin_golem_i23d.glb', // Art's build, copied unchanged (tin_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
+  rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
 const COPPER_GOLEM = {
   id: 'copper_golem',
@@ -10255,6 +10257,8 @@ const COPPER_GOLEM = {
   model: 'assets/models/creatures/copper_golem_i23d.glb', // Art's build, copied unchanged (copper_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
+  rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
 const COAL_GOLEM = {
   id: 'coal_golem',
@@ -10278,6 +10282,8 @@ const COAL_GOLEM = {
   model: 'assets/models/creatures/coal_golem_i23d.glb', // Art's build, copied unchanged (coal_golem_i23d.glb)
   clips: { idle: 'Idle', hit: 'Hit', death: 'Death', walk: 'Walk', attack: 'Attack' },
   shade: 'hdToon',  // Art's chalk toon + ink outline (src/creatures/hd_toon.js), colours from the GLB's vertex paint and material extras
+  srgbOut: true,    // (t704u) encode its own output to sRGB like Art's viewer (the game renders linear; the vertex paint is linear)
+  rigid: { bones: ['head', 'jaw', 'crys.back', 'crys.sh.L', 'crys.sh.R'], clips: ['Idle', 'Walk', 'Attack', 'Hit'] }, // (t704u) head + shard spikes ride the chest; Death keeps its crumble
 };
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -10477,7 +10483,11 @@ const Creatures = (() => {
   function hdMat(D, gm) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
       : T.makeChalkMaterial({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 });
-    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; return m; }
+    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut) srgbOut(m); return m; }
+  // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
+  // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
+  function srgbOut(m) { const prev = m.onBeforeCompile, key = m.customProgramCacheKey; m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <encodings_fragment>', '#include <encodings_fragment>\n  gl_FragColor = LinearTosRGB(gl_FragColor);'); };
+    m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|srgbOut'; m.userData.srgbOut = true; return m; }
   function mat(D, name) { const L = (D.look || []).find((r) => r.test.test(name)) || { part: 'body', color: 0xcccccc }, m = new THREE.MeshLambertMaterial({ color: L.color });
     if (L.emissive != null) { m.emissive.setHex(L.emissive); m.emissiveIntensity = L.glow == null ? 1 : L.glow; } m.name = D.id + ':' + L.part; return m; }
   function make(id) { const D = get(id), S = ST[id]; if (!D || !S || !S.gl) return null; const g = S.gl, J = (g.skins && g.skins[0] && g.skins[0].joints) || [];
@@ -10495,8 +10505,10 @@ const Creatures = (() => {
     // a ~60 m mesh around the camera (only shards of it on screen). Identity bind matrix; 'attached' mode cancels the mesh node transform (bindMatrixInverse = its inverse).
     model.updateMatrixWorld(true); if (skel) { model.traverse((o) => { if (o.isSkinnedMesh) o.bind(skel, new THREE.Matrix4()); }); model.updateMatrixWorld(true); }
     if (D.shade === 'hdToon' && typeof HDToon !== 'undefined') { const body = []; model.traverse((o) => { if (o.isMesh && o.material.userData.ink) body.push(o); }); const dpr = (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1;
-      for (const o of body) { const ol = HDToon.addInkOutline(o, o.material.userData.ink); ol.userData.uniformsRes = true; ol.material.userData.uniforms.uRes.value.set((typeof innerWidth !== 'undefined' ? innerWidth : 1080) * dpr, (typeof innerHeight !== 'undefined' ? innerHeight : 1080) * dpr); mats.push(ol.material); } }
-    const clips = {}; for (const an of g.animations || []) { const tracks = []; for (const ch of an.channels) { const s = an.samplers[ch.sampler], t = acc(S, s.input).arr, v = acc(S, s.output).arr, nm = nodes[ch.target.node].name;
+      for (const o of body) { const ol = HDToon.addInkOutline(o, o.material.userData.ink); if (D.srgbOut) srgbOut(ol.material); ol.userData.uniformsRes = true; ol.material.userData.uniforms.uRes.value.set((typeof innerWidth !== 'undefined' ? innerWidth : 1080) * dpr, (typeof innerHeight !== 'undefined' ? innerHeight : 1080) * dpr); mats.push(ol.material); } }
+    // (GD-30 t704u) D.rigid: bones held at their rest pose (riding their parent) in the listed clips - the golems' head, jaw and crystal shards swung 20-70 deg in Walk / Attack
+    const RB = (D.rigid && D.rigid.bones) || [], RC = (D.rigid && D.rigid.clips) || []; let stripped = 0;
+    const clips = {}; for (const an of g.animations || []) { const tracks = [], kk = an.name.replace(/^.*\|/, ''), rig0 = RC.includes(kk); for (const ch of an.channels) { const s = an.samplers[ch.sampler], nm = nodes[ch.target.node].name; if (rig0 && RB.includes(nm)) { stripped++; continue; } const t = acc(S, s.input).arr, v = acc(S, s.output).arr;
         const ip = s.interpolation === 'STEP' ? THREE.InterpolateDiscrete : undefined; /* (GD-30: the golem clips hold some keys) */
         if (ch.target.path === 'rotation') tracks.push(new THREE.QuaternionKeyframeTrack(nm + '.quaternion', t, v, ip)); else if (ch.target.path === 'translation') tracks.push(new THREE.VectorKeyframeTrack(nm + '.position', t, v, ip)); else if (ch.target.path === 'scale') tracks.push(new THREE.VectorKeyframeTrack(nm + '.scale', t, v, ip)); }
       const k = an.name.replace(/^.*\|/, ''); clips[k] = new THREE.AnimationClip(k, -1, tracks); }
@@ -10507,7 +10519,8 @@ const Creatures = (() => {
     const h = Math.max(1e-4, bb.max.y - bb.min.y), k = (D.height || 1) / h; model.scale.setScalar(k); model.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k); /* (centred on its root, feet on the ground) */
     const root = new THREE.Group(); root.name = D.id; root.add(model); const mixer = new THREE.AnimationMixer(model); let cur = null;
     const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); if (cur && cur !== a) cur.fadeOut(0.12); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); cur = a; return a; };
-    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips) }; }
+    const rest = {}; if (skel) for (const b of skel.bones) rest[b.name] = b.quaternion.clone(); /* (bind / rest pose, before any clip runs) */
+    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips), stripped, rest, bones: skel ? skel.bones : [] }; }
   return { get, load, make, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
 })();
 /* crystalCrown.js — Lumenite skill-tree crown + branch module (Art, ART-16 crown_v3: 9-crown tree, per-colour merged draws)
@@ -14749,7 +14762,7 @@ function trProfile(y) { const R = TR.R, b = R * (1 + 0.06 * Math.sin(Math.PI * M
   function treeScreen(p) { return homeScreen(p); }
   function treeGo(x, z) { const G = st.gnd; if (!G || !G.tree) return null; navTo(G, x, z, () => { st.pg = null; }); st.pg = { home: true, tree: true }; return G.goal; }
   return { FURN_MOUTH, ANVIL_HIT, get work() { const J = wkJob(); return { on: !!J, kind: J ? J.kind : null, clip: J ? (J.kind === 'anvil' ? 'hammer' : 'reach') : null, u: J ? wkPhase(J) : 0, item: J ? J.done : WK.item, w: WK.w, n: WK.n, hip: WK.hip, imp: WK.imp, hammer: WK.ham ? { inHand: WK.ham.parent === (rig && rig.B.hdR), head: WK.ham.localToWorld(WK.ham.userData.head.clone()).toArray() } : null, pickInHand: !!(rig && rig.built.pick && rig.built.pick.parent === rig.B.hdR), tool: st.tool }; }, wkFrame, CLIMB_LOCK, climbFacFor, climbSpeeds, ONYX_TIER_HEX, LUMEN_TIER_HEX, get renderer() { return R; }, get solo() { return SOLO.on; }, get worldGnd() { return SOLO.on && SOLO.w ? SOLO.w.st.gnd : st.gnd; }, get worldRig() { return SOLO.on && SOLO.w ? SOLO.w.rig : rig; }, pvSet, pvBack, swEquip, swAttack, makeSword, SWINGS, swSheathe, get pga() { const F = PGA.on ? pgaMe() : null, q = pgaRel(); return { on: PGA.on, ready: !!PGA.mob, hp: PGA.hp, max: pgaC().hp, def: pgaC().def, dead: PGA.dead, kills: PGA.kills, log: PGA.log.slice(), n: PGA.n, clips: PGA.mob ? PGA.mob.names : [], mob: PGA.mob ? PGA.mob.root : null,
-    arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, hunt: PGA.hunt, provoked: pgaC().aggro === 'provoked', ash: { on: ASHX.on, t: ASHX.t, u: ASHX.u, cut: ASHX.plane.constant, top: ASHX.top, bot: ASHX.bot, born: ASHX.born, n: ASHX.P ? ASHX.P.length : 0, fx: !!(ASHX.pts && ASHX.pts.parent), mats: ASHX.mats.size, hid: ASHX.hid.length, d: ashD() }, leash: pgaC().leashR, leashD: PGA.leashD, reach: pgaC().atkReach, interval: pgaInt(), clk: PGA.clk, tgt: PGA.tgt, mobs: pgaSync().map((sl) => ({ id: sl.id, ready: !!sl.mob, hp: sl.hp, dead: sl.dead, hunt: sl.hunt, anim: sl.anim, x: sl.mob ? sl.mob.root.position.x : null, z: sl.mob ? sl.mob.root.position.z : null, y: sl.mob ? sl.mob.root.position.y : null, clips: sl.mob ? sl.mob.names : [], root: sl.mob ? sl.mob.root : null })), swings: PGA.sl.map((e) => Object.assign({}, e)), anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
+    arena: PGA.arena, R: PGA.R, me: F ? { hp: F.hp, max: F.max, shield: F.shield } : null, ko: PGA.ko, kos: PGA.kos, eng: PGA.eng, aggro: PGA.aggro, hunt: PGA.hunt, provoked: pgaC().aggro === 'provoked', ash: { on: ASHX.on, t: ASHX.t, u: ASHX.u, cut: ASHX.plane.constant, top: ASHX.top, bot: ASHX.bot, born: ASHX.born, n: ASHX.P ? ASHX.P.length : 0, fx: !!(ASHX.pts && ASHX.pts.parent), mats: ASHX.mats.size, hid: ASHX.hid.length, d: ashD() }, leash: pgaC().leashR, leashD: PGA.leashD, reach: pgaC().atkReach, interval: pgaInt(), clk: PGA.clk, tgt: PGA.tgt, mobs: pgaSync().map((sl) => ({ id: sl.id, ready: !!sl.mob, hp: sl.hp, dead: sl.dead, hunt: sl.hunt, anim: sl.anim, x: sl.mob ? sl.mob.root.position.x : null, z: sl.mob ? sl.mob.root.position.z : null, y: sl.mob ? sl.mob.root.position.y : null, clips: sl.mob ? sl.mob.names : [], root: sl.mob ? sl.mob.root : null, inst: sl.mob || null })), swings: PGA.sl.map((e) => Object.assign({}, e)), anim: PGA.anim, bites: PGA.bites.slice(), rel: q ? { d: q.d, dot: q.dot } : null }; }, pgaOpen, pgaClose, pgaHit, pgaAttack, pgaTap, pgaWalk, pgaHurt, pgaBite,
     pgaScreen(x, z, y) { if (!cam || !canvas || !PGA.arena) return null; const p = V(x, y || 0, z).applyAxisAngle(V(0, 1, 0), st.yaw).project(cam), r = canvas.getBoundingClientRect(); return { x: r.left + (p.x + 1) / 2 * r.width, y: r.top + (1 - p.y) / 2 * r.height }; }, get sw() { const gn = gearNow(); return { R: SWG.R, L: SWG.L, w: SWG.w, ip: SWG.ip, tw: gn.tw, want: gn.tool, toolAct: gn.toolAct, idle: gearNow().swIdle, pose: Object.assign({}, SW_POSE), n: SWG.n, sh: !!SWG.sh, run: !!SWG.run, act: !!SWG.act, eff: swEff(), held: an.eq ? an.eq.held : null, seq: an.eq ? an.eq.seq : null, at: SWG.at ? Object.assign({}, SWG.at) : null }; }, get pv() { return { g: PV.g, t: PV.t }; }, makePickaxe, onyxTint, flowLog, flowRate, EXK, CLIMB_EX, DOOR_LANE, makeLedgeDoor: () => makeDoor(), makeLedgeDoorSet: () => { const g = makeDoorSet(); XD.doors.push(g); syncDoorSet(g); return g; }, mapDoorPanel, syncDoors, mapDoorTick, setMapDoorSurf: (f) => { XD.surf = f; }, setMapDoorDest: (f) => { XD.dest = f; }, get mapDoorEnds() { const o = {}; for (const d of XD.doors) { const dr = d.userData.ports ? d : d.children.find((c) => c.userData && c.userData.ports); if (dr && dr.userData.ends) Object.assign(o, dr.userData.ends); } return o; }, get mapDoorOn() { return XD.on; }, get mapDoorBox() { return XD.box; }, IA, iaGo, orbPicker, tetherOrb, tetherOrbClose, tetherSwap, exploreOn, exploreOff, exploreStep, exploreCam, get rig() { return rig; }, get cam() { return cam; }, camPose, freeCam, CAM_FOLLOW,  trInside, trProfile, trWallR, get TR_DZ() { return TR_DZ; }, homeInside, LP, ledgeTap, ledgeScreen, lpF2W, lpW2F, lpMineSpot, orbStrands, orbRefresh, TR, trHeight, treeMode, treeTap, treeGo, treeScreen, globeWeave, globeRoute, openVault, homeVaultNear, vaultState, SMITH, HMP, mainLinePts, HM, homeMode, setHomeMode, openDoor, enterLedge, doorMenu, twinOf, setStrand, setLine, setHomeStrand, refreshPorts, goOutside, plugPort, unplugPort, unlockPort, homeTap, homeScreen, homeState, setGait, GAIT, navPlan, navTo, pathLen, segClear, wallBase, get FIELD_OBS() { return FIELD_OBS; }, get DMAX() { return DMAX; }, GW, pgGo, pgPick, pgScreen, get pgMarker() { return PGM; }, show, hide, st, LG, ORES, LGRADES, DTIERS, mapDrill, mapDrillTick, makeDrillStand, makeDrillBit, swapDrillBit, setDrillPose, setDrillAngle, drillSockLocal, drillPortWorld, drillPlugLeave, plugLoop, drillAim, drillTipOffset, drillPortUp, countTris, DRILL_ANG, BIT_SPARK, STAND_LOOK, CV_HOOK, PORTS, setOre, setDrillGrade, setLineGrade, setXfer, get ledge() { return LEDGE; }, CLIMB_T: 4 * CL.TS, get rig() { return rig; }, setPick, setTether, setAnim, setTool, setClimb, setClimbDir, tetherAct, CGRADES, makeClimbPick, TGRADES, makeTether, showcase, showcaseTether, showcaseClimb, GRADES, makePickaxe, setYaw: (y) => { st.yaw = y; st.yawV = 0; }, fidget: (k) => { an.fid = k; an.ft = 0; st.fidget = k; an.next = clk + 999; }, advance: (sec, n = 1) => { for (let i = 0; i < n; i++) renderAt(sec); }, sim: (sec, n = 1) => { st.noRender = true; try { for (let i = 0; i < n; i++) renderAt(sec); } finally { st.noRender = false; } } /* tests: step time without drawing (no GPU backlog) */, an };
 })();
 /* ---------- Explore: Wren on the main map at true scale - tap to run / climb there across one connected core world ---------- */

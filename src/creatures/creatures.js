@@ -21,7 +21,11 @@ const Creatures = (() => {
   function hdMat(D, gm) { const nm = gm.name || '', ud = gm.extras || {}, T = HDToon, lum = /Lumenite/.test(nm);
     const m = lum ? T.makeChalkMaterial({ flat: true, grain: 0.1, tooth: 0.06, emissive: ud.hd_emis ?? 0.3, facet: 0.55, shade: ud.hd_shade ?? 0x2c6a74, rim: ud.hd_rim ?? 0xeafff8, rimAmt: 0.7 + (ud.hd_gloss ?? 0) * 0.6, lift: 0.05 })
       : T.makeChalkMaterial({ grain: 0.55, tooth: 0.26, stroke: 0.75, scale: 7 });
-    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; return m; }
+    m.side = gm.doubleSided ? THREE.DoubleSide : THREE.FrontSide; m.name = D.id + ':' + (lum ? 'crystal' : 'stone'); m.userData.ink = lum ? { width: 1.4, color: ud.hd_ink ?? 0x123a3c, worldWidth: 0.012 } : { width: 2.8 }; if (D.srgbOut) srgbOut(m); return m; }
+  // (GD-30 t704u: 'way too dark') Art's viewer renders with outputEncoding = sRGB; the game renders linear. The golems' vertex paint is linear (glTF COLOR_0), so on our
+  // linear output it showed as raw linear values (~3x too dark in the mid-tones). Their materials encode their own output to sRGB, exactly as his viewer's final step does.
+  function srgbOut(m) { const prev = m.onBeforeCompile, key = m.customProgramCacheKey; m.onBeforeCompile = (sh, r) => { if (prev) prev.call(m, sh, r); sh.fragmentShader = sh.fragmentShader.replace('#include <encodings_fragment>', '#include <encodings_fragment>\n  gl_FragColor = LinearTosRGB(gl_FragColor);'); };
+    m.customProgramCacheKey = () => (key ? key.call(m) : '') + '|srgbOut'; m.userData.srgbOut = true; return m; }
   function mat(D, name) { const L = (D.look || []).find((r) => r.test.test(name)) || { part: 'body', color: 0xcccccc }, m = new THREE.MeshLambertMaterial({ color: L.color });
     if (L.emissive != null) { m.emissive.setHex(L.emissive); m.emissiveIntensity = L.glow == null ? 1 : L.glow; } m.name = D.id + ':' + L.part; return m; }
   function make(id) { const D = get(id), S = ST[id]; if (!D || !S || !S.gl) return null; const g = S.gl, J = (g.skins && g.skins[0] && g.skins[0].joints) || [];
@@ -39,8 +43,10 @@ const Creatures = (() => {
     // a ~60 m mesh around the camera (only shards of it on screen). Identity bind matrix; 'attached' mode cancels the mesh node transform (bindMatrixInverse = its inverse).
     model.updateMatrixWorld(true); if (skel) { model.traverse((o) => { if (o.isSkinnedMesh) o.bind(skel, new THREE.Matrix4()); }); model.updateMatrixWorld(true); }
     if (D.shade === 'hdToon' && typeof HDToon !== 'undefined') { const body = []; model.traverse((o) => { if (o.isMesh && o.material.userData.ink) body.push(o); }); const dpr = (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1;
-      for (const o of body) { const ol = HDToon.addInkOutline(o, o.material.userData.ink); ol.userData.uniformsRes = true; ol.material.userData.uniforms.uRes.value.set((typeof innerWidth !== 'undefined' ? innerWidth : 1080) * dpr, (typeof innerHeight !== 'undefined' ? innerHeight : 1080) * dpr); mats.push(ol.material); } }
-    const clips = {}; for (const an of g.animations || []) { const tracks = []; for (const ch of an.channels) { const s = an.samplers[ch.sampler], t = acc(S, s.input).arr, v = acc(S, s.output).arr, nm = nodes[ch.target.node].name;
+      for (const o of body) { const ol = HDToon.addInkOutline(o, o.material.userData.ink); if (D.srgbOut) srgbOut(ol.material); ol.userData.uniformsRes = true; ol.material.userData.uniforms.uRes.value.set((typeof innerWidth !== 'undefined' ? innerWidth : 1080) * dpr, (typeof innerHeight !== 'undefined' ? innerHeight : 1080) * dpr); mats.push(ol.material); } }
+    // (GD-30 t704u) D.rigid: bones held at their rest pose (riding their parent) in the listed clips - the golems' head, jaw and crystal shards swung 20-70 deg in Walk / Attack
+    const RB = (D.rigid && D.rigid.bones) || [], RC = (D.rigid && D.rigid.clips) || []; let stripped = 0;
+    const clips = {}; for (const an of g.animations || []) { const tracks = [], kk = an.name.replace(/^.*\|/, ''), rig0 = RC.includes(kk); for (const ch of an.channels) { const s = an.samplers[ch.sampler], nm = nodes[ch.target.node].name; if (rig0 && RB.includes(nm)) { stripped++; continue; } const t = acc(S, s.input).arr, v = acc(S, s.output).arr;
         const ip = s.interpolation === 'STEP' ? THREE.InterpolateDiscrete : undefined; /* (GD-30: the golem clips hold some keys) */
         if (ch.target.path === 'rotation') tracks.push(new THREE.QuaternionKeyframeTrack(nm + '.quaternion', t, v, ip)); else if (ch.target.path === 'translation') tracks.push(new THREE.VectorKeyframeTrack(nm + '.position', t, v, ip)); else if (ch.target.path === 'scale') tracks.push(new THREE.VectorKeyframeTrack(nm + '.scale', t, v, ip)); }
       const k = an.name.replace(/^.*\|/, ''); clips[k] = new THREE.AnimationClip(k, -1, tracks); }
@@ -51,6 +57,7 @@ const Creatures = (() => {
     const h = Math.max(1e-4, bb.max.y - bb.min.y), k = (D.height || 1) / h; model.scale.setScalar(k); model.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k); /* (centred on its root, feet on the ground) */
     const root = new THREE.Group(); root.name = D.id; root.add(model); const mixer = new THREE.AnimationMixer(model); let cur = null;
     const play = (name, once) => { const c = clips[name]; if (!c) return null; const a = mixer.clipAction(c); if (cur && cur !== a) cur.fadeOut(0.12); a.reset(); a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, once ? 1 : Infinity); a.clampWhenFinished = !!once; a.fadeIn(0.12).play(); cur = a; return a; };
-    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips) }; }
+    const rest = {}; if (skel) for (const b of skel.bones) rest[b.name] = b.quaternion.clone(); /* (bind / rest pose, before any clip runs) */
+    play((D.clips && D.clips.idle) || 'Idle'); return { id, def: D, root, model, mixer, clips, play, mats, names: Object.keys(clips), stripped, rest, bones: skel ? skel.bones : [] }; }
   return { get, load, make, ready: (id) => !!(ST[id] && ST[id].gl), error: (id) => (ST[id] && ST[id].err) || null, get ids() { return Object.keys(CREATURE_DATA); } };
 })();
