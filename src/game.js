@@ -29,10 +29,10 @@ const CONFIG = {
   simStepMinutes: 5,                              // simulation granularity (game minutes)
   awayThresholdRealSec: 45,                       // gap that triggers "While you were away"
 
-  start: { crowns: 250, stone: 150, timber: 150, lumen: 80, moss: 0, iron: 0, coal: 10, steel: 0, amber: 2, obsidian: 0 },
+  start: { stone: 150, timber: 150, lumen: 80, moss: 0, iron: 0, coal: 10, steel: 0, amber: 2, obsidian: 0 },
 
   resources: {   // weight = how heavy it is to haul up the Tether (The Pull)
-    crowns: { icon: '👑', name: 'Crowns',     weight: 0.05 },
+    gold:   { icon: '🪙', name: 'Gold coins', weight: 0.05, coins: true },   // (t578s2590: was 👑 Crowns) the backpack's Gold coins (src/gold.js), never kept in S.res
     stone:  { icon: '🪨', name: 'Stone',      weight: 0.6 },
     timber: { icon: '🪵', name: 'Timber',     weight: 0.5 },
     lumen:  { icon: '🏮', name: 'Lumen',      weight: 0.1 },
@@ -43,7 +43,7 @@ const CONFIG = {
     amber:  { icon: '🟠', name: 'Amber',      weight: 0.1 },
     obsidian: { icon: '🖤', name: 'Obsidian', weight: 0.4 },   // black glass from the lava fields of the far lands
   },
-  refined: ['crowns', 'lumen', 'steel', 'amber', 'obsidian'],   // what "ship refined only" sends
+  refined: ['gold', 'lumen', 'steel', 'amber', 'obsidian'],   // what "ship refined only" sends
 
   storage: { base: 600, growth: 1.5, protectBase: 0.30, protectPerLevel: 0.04 },
 
@@ -54,31 +54,31 @@ const CONFIG = {
 
   // Buildings. cost for target level T = base × growth^(T-2) (T=1 for things that start at 0)
   buildings: {
-    hall:      { name: 'Lantern Hall',    icon: '🏮', max: 10, base: { crowns: 120, stone: 80 }, growth: 1.6, minutes: 20,
-                 desc: 'Heart of the capital. Makes Crowns, Stone and a little Lumen; presses Lanternmoss into Lumen (3:1). Other buildings can be at most Hall level +1.' },
-    storehouse:{ name: 'Storehouse',      icon: '📦', max: 10, base: { crowns: 100, stone: 120 }, growth: 1.55, minutes: 15,
+    hall:      { name: 'Lantern Hall',    icon: '🏮', max: 10, base: { gold: 120, stone: 80 }, growth: 1.6, minutes: 20,
+                 desc: 'Heart of the capital. Makes Gold coins, Stone and a little Lumen; presses Lanternmoss into Lumen (3:1). Other buildings can be at most Hall level +1.' },
+    storehouse:{ name: 'Storehouse',      icon: '📦', max: 10, base: { gold: 100, stone: 120 }, growth: 1.55, minutes: 15,
                  desc: 'Raises storage caps and protects part of your stock from raiders.' },
-    training:  { name: 'Training Grounds',icon: '🗡️', max: 10, base: { crowns: 90, timber: 50 }, growth: 1.55, minutes: 15,
+    training:  { name: 'Training Grounds',icon: '🗡️', max: 10, base: { gold: 90, timber: 50 }, growth: 1.55, minutes: 15,
                  desc: 'Hero power +3 per level, and the hero spars for idle XP while home.' },
-    lift:      { name: 'Tether Lift',     icon: '🧵', max: 6, base: { crowns: 150, stone: 100, timber: 80 }, growth: 1.7, minutes: 30, steelFrom: 3, steelPer: 12,
+    lift:      { name: 'Tether Lift',     icon: '🧵', max: 6, base: { gold: 150, stone: 100, timber: 80 }, growth: 1.7, minutes: 30, steelFrom: 3, steelPer: 12,
                  desc: 'Your Spine. Sets how deep outposts can anchor, how much cargo lifts per hour, and cuts the Pull.' },
-    wall:      { name: 'Guardian Wall',   icon: '🗿', max: 10, base: { crowns: 110, stone: 140 }, growth: 1.55, minutes: 20, steelFrom: 4, steelPer: 8, obsidianFrom: 6, obsidianPer: 4,
+    wall:      { name: 'Guardian Wall',   icon: '🗿', max: 10, base: { gold: 110, stone: 140 }, growth: 1.55, minutes: 20, steelFrom: 4, steelPer: 8, obsidianFrom: 6, obsidianPer: 4,
                  desc: 'Looks like a wall. It is not. Rock golems sleep in its columns and stand up when raiders come.' },
-    kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { crowns: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
+    kennel:    { name: 'Kennel',          icon: '🐾', max: 5, base: { gold: 100, timber: 60 }, growth: 1.7, minutes: 20, amberFrom: 2, amberPer: 3,
                  desc: 'Pet slots (2nd slot at Lv 3) and +10% pet power per level.' },
-    vault:     { name: 'Rim Vault',       icon: '🏦', max: 8, start: 0, base: { crowns: 260, stone: 220 }, growth: 1.6, minutes: 30,
+    vault:     { name: 'Rim Vault',       icon: '🏦', max: 8, start: 0, base: { gold: 260, stone: 220 }, growth: 1.6, minutes: 30,
                  desc: 'Deep stone vaults under your Ledge. +30% storage cap and +3% raid protection per level. (Public Vaults dot Colossus.)' },
-    forge:     { name: 'Rim Forge',       icon: '⚒️', max: 8, start: 0, base: { crowns: 200, stone: 150, timber: 60 }, growth: 1.6, minutes: 25,
+    forge:     { name: 'Rim Forge',       icon: '⚒️', max: 8, start: 0, base: { gold: 200, stone: 150, timber: 60 }, growth: 1.6, minutes: 25,
                  desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel at the Rim. Works, but hauling raw ore up costs a lot of Lumen.' },
   },
   buildTimeGrowth: 1.45,
-  hallPerLevel: { crowns: 14, stone: 8, lumen: 2.5, mossPress: 6 },   // per game hour
+  hallPerLevel: { gold: 14, stone: 8, lumen: 2.5, mossPress: 6 },   // per game hour
   trainingPerLevel: { power: 3, sparXp: 4 },
   lift: { maxReach: 4, capacityPerLevel: 30, pullCutPerLevel: 0.08 },
   wall: { baseGolems: 2, golemEvery: 3, maxGolems: 5, golemPower: 10, golemPowerPerLevel: 7 },
   forgePerLevel: 1.5,
   vault: { capPerLevel: 0.30, protectPerLevel: 0.03 },
-  // Colossus market base prices (Crowns per unit). Buy at price × buyMult, sell at price × sellMult.
+  // Colossus market base prices (gold coins per unit). Buy at price × buyMult, sell at price × sellMult.
   market: { prices: { stone: 1.2, timber: 1.5, lumen: 3, moss: 1, iron: 2, coal: 2, amber: 12, steel: 8, obsidian: 16 }, buyMult: 1.0, sellMult: 0.55, premiumSellMult: 0.85, lot: 20 },
   mapRaid: { lumen: 10, marchMinutes: 30, shieldHours: 6 },                                                 // steel per game hour per level
 
@@ -86,10 +86,10 @@ const CONFIG = {
   // Outposts: burn = Lumen per hour to keep an outpost lit; pull = Pull multiplier of the layer.
   layers: [
     { id: 1, name: 'The Lip', color: '#d9b46a', flavor: 'Sunlit ledges and old gold seams just under the rim.',
-      hours: 1, lumen: 5, rec: 20, risk: 0.05, xp: 30, loot: { crowns: [40, 80], stone: [20, 40], timber: [10, 25] }, pet: 'wisp', egg: 0.12, burn: 0.5, pull: 1.0,
-      veins: [ { id: 'l1gold', name: 'Gold Vein', prod: { crowns: 12 } }, { id: 'l1chalk', name: 'Chalk Ledge', prod: { stone: 10 } } ] },
+      hours: 1, lumen: 5, rec: 20, risk: 0.05, xp: 30, loot: { gold: [40, 80], stone: [20, 40], timber: [10, 25] }, pet: 'wisp', egg: 0.12, burn: 0.5, pull: 1.0,
+      veins: [ { id: 'l1gold', name: 'Gold Vein', prod: { gold: 12 } }, { id: 'l1chalk', name: 'Chalk Ledge', prod: { stone: 10 } } ] },
     { id: 2, name: 'Lanternmoss Terraces', color: '#7fb07a', flavor: 'Glowing moss terraces. The fuel of everything below.',
-      hours: 3, lumen: 10, rec: 45, risk: 0.12, xp: 90, loot: { lumen: [15, 30], moss: [20, 40], crowns: [20, 40] }, pet: 'pup', egg: 0.10, burn: 1, pull: 1.25,
+      hours: 3, lumen: 10, rec: 45, risk: 0.12, xp: 90, loot: { lumen: [15, 30], moss: [20, 40], gold: [20, 40] }, pet: 'pup', egg: 0.10, burn: 1, pull: 1.25,
       veins: [ { id: 'l2moss', name: 'Lanternmoss Bed', prod: { moss: 10 } }, { id: 'l2clay', name: 'Clay Shelf', prod: { stone: 11, moss: 2 } } ] },
     { id: 3, name: 'Rootfall', color: '#c08a4a', flavor: 'A forest growing down the wall. Amber weeps from the roots.',
       hours: 6, lumen: 20, rec: 80, risk: 0.22, xp: 200, loot: { timber: [30, 60], amber: [2, 5], iron: [10, 20], steel: [3, 6] }, pet: 'moth', egg: 0.10, burn: 2, pull: 1.6,
@@ -106,14 +106,14 @@ const CONFIG = {
                desc: 'A workshop on four stilt legs. Balanced all-rounder.' },
     drill:   { name: 'Tetherdrill', icon: '⛏️', mult: 1.3, defense: 15, stockCap: 240, unanchorH: 2, travelHPerLayer: 1, settleH: 1,
                desc: 'Hangs off your Spine. Highest output, fast to move, thin armor.',
-               cost: { crowns: 500, stone: 250, timber: 120, steel: 15 }, needsLift: 2 },
+               cost: { gold: 500, stone: 250, timber: 120, steel: 15 }, needsLift: 2 },
   },
-  moveCost: { crowns: 60, lumenPerLayer: 10 },     // moving deeper costs more Lumen (the Pull)
+  moveCost: { gold: 60, lumenPerLayer: 10 },     // moving deeper costs more Lumen (the Pull)
 
   modules: {
-    still:   { name: 'Lumen Still', icon: '⚗️', cost: { crowns: 120, timber: 40 }, in: { moss: 2 }, out: { lumen: 1 }, perHour: 5,
+    still:   { name: 'Lumen Still', icon: '⚗️', cost: { gold: 120, timber: 40 }, in: { moss: 2 }, out: { lumen: 1 }, perHour: 5,
                desc: 'Presses 2 Lanternmoss → 1 Lumen aboard (capital presses only 3:1).' },
-    smelter: { name: 'Smelter',     icon: '🔥', cost: { crowns: 200, stone: 120, timber: 60 }, in: { iron: 2, coal: 1 }, out: { steel: 1 }, perHour: 3,
+    smelter: { name: 'Smelter',     icon: '🔥', cost: { gold: 200, stone: 120, timber: 60 }, in: { iron: 2, coal: 1 }, out: { steel: 1 }, perHour: 3,
                desc: 'Smelts 2 Iron + 1 Breathcoal → 1 Steel aboard. Pulls inputs from your other outposts on the same layer.' },
   },
 
@@ -125,7 +125,7 @@ const CONFIG = {
     moth:   { name: 'Amber Moth',     icon: '🦋', power: 7, bonus: '+15% expedition loot', loot: 0.15 },
     ferret: { name: 'Bellows Ferret', icon: '🦦', power: 8, bonus: 'Hauler: −20% Pull cost', pullCut: 0.20 },
   },
-  petLevelPower: 0.4, petMax: 10, petUpgrade: { crowns: 60, amber: 2 },
+  petLevelPower: 0.4, petMax: 10, petUpgrade: { gold: 60, amber: 2 },
   kennelPetBoost: 0.10,
 
   raidsEnabled: false,                    // all raiding (incoming AI raids on your capital/outposts, outgoing raids) is off for now
@@ -145,7 +145,8 @@ const CONFIG = {
 };
 
 const HOUR = 3600e3, MIN = 60e3, DAY = 24 * HOUR;
-const RES = Object.keys(CONFIG.resources);
+const RES = Object.keys(CONFIG.resources).filter((k) => !CONFIG.resources[k].coins); // (S.res keys: gold coins live in the backpack, src/gold.js)
+const isCoin = (k) => !!(CONFIG.resources[k] && CONFIG.resources[k].coins), resHave = (k) => (isCoin(k) ? Gold.getGold() : (S.res[k] || 0));
 let S = null;                 // game state
 let ui = { tab: 'city', pressing: false, lastHtml: '', modal: null, collecting: null };
 
@@ -203,11 +204,11 @@ function log(icon, msg) {
 /* ---------------- derived numbers ---------------- */
 function storageCap() { const c = CONFIG.storage; return Math.floor(c.base * Math.pow(c.growth, S.buildings.storehouse - 1) * (1 + CONFIG.vault.capPerLevel * (S.buildings.vault || 0))); }
 function protectedShare() { const c = CONFIG.storage; return clamp(c.protectBase + c.protectPerLevel * (S.buildings.storehouse - 1) + CONFIG.vault.protectPerLevel * (S.buildings.vault || 0), 0, 0.85); }
-function addRes(k, n) { S.res[k] = clamp((S.res[k] || 0) + n, 0, storageCap()); }
-function canAfford(cost) { return Object.keys(cost).every((k) => (S.res[k] || 0) >= cost[k] - 1e-9); }
+function addRes(k, n) { if (isCoin(k)) return Gold.earn(n); S.res[k] = clamp((S.res[k] || 0) + n, 0, storageCap()); }
+function canAfford(cost) { return Object.keys(cost).every((k) => (isCoin(k) ? Gold.canAfford(cost[k]) : resHave(k) >= cost[k] - 1e-9)); }
 // (t591u, Dominic: the vault rule) iron ore, coal and steel live in the Ledge Vault (S.res): no remote cost, sale, raid or building may take them away
 const vaultRes = (k) => k === 'iron' || k === 'coal' || k === 'steel';
-function pay(cost) { if (!canAfford(cost)) return false; if (Object.keys(cost).some((k) => vaultRes(k) && cost[k] > 0)) { toast('🔒 That needs vault stock: take it out at the vault first'); return false; } for (const k in cost) S.res[k] -= cost[k]; return true; }
+function pay(cost) { if (!canAfford(cost)) return false; if (Object.keys(cost).some((k) => vaultRes(k) && cost[k] > 0)) { toast('🔒 That needs vault stock: take it out at the vault first'); return false; } for (const k in cost) { if (isCoin(k)) Gold.spendGold(cost[k]); else S.res[k] -= cost[k]; } return true; }
 function liftReach() { return Math.min(CONFIG.lift.maxReach, S.buildings.lift + 1); }      // deepest layer outposts can anchor
 function expeditionReach() { return Math.min(CONFIG.layers.length, liftReach() + 1); }       // hero can scout one layer deeper
 function liftCapacity() { return CONFIG.lift.capacityPerLevel * S.buildings.lift; }
@@ -433,7 +434,7 @@ function shipNow(uidv) {
   if (Object.keys(r.got).length) toast(`🧵 Lifted ${lootText(r.got)} for ${fmt1(r.cost)} 🏮 Pull`);
   rerender(true);
 }
-function moveCost(toLayer) { return { crowns: CONFIG.moveCost.crowns, lumen: CONFIG.moveCost.lumenPerLayer * toLayer }; }
+function moveCost(toLayer) { return { gold: CONFIG.moveCost.gold, lumen: CONFIG.moveCost.lumenPerLayer * toLayer }; }
 function veinTaken(vid, exceptUid) { return S.outposts.some((o) => o.uid !== exceptUid && (o.vein === vid || (o.move && o.move.toVein === vid))); }
 function moveTime(o, toLayer) { const T = opType(o); return (T.unanchorH + Math.max(1, Math.abs(toLayer - o.layer) * T.travelHPerLayer) + T.settleH) * HOUR; }
 function startMove(uidv, vid) {
@@ -467,7 +468,7 @@ function buildDrill() {
 }
 
 /* ---------------- pets ---------------- */
-function petUpCost(p) { return { crowns: CONFIG.petUpgrade.crowns * p.level, amber: CONFIG.petUpgrade.amber * p.level }; }
+function petUpCost(p) { return { gold: CONFIG.petUpgrade.gold * p.level, amber: CONFIG.petUpgrade.amber * p.level }; }
 function petUp(u) { const p = S.pets.find((x) => x.uid === u); if (!p || p.level >= CONFIG.petMax) return; if (!pay(petUpCost(p))) return toast('Not enough resources'); p.level++; toast(`${CONFIG.pets[p.id].icon} ${CONFIG.pets[p.id].name} is now Lv ${p.level}`); rerender(true); }
 function equipPet(u) {
   const n = petSlots(); const idx = S.slots.indexOf(u);
@@ -486,7 +487,7 @@ function makeRival(i) {
 }
 function rivalLoot(i) {
   const r = S.rivals[i], m = CONFIG.rivals[i].mult, l = Math.pow(r.lootLvl, 1.15);
-  return { crowns: Math.round(110 * l * m), stone: Math.round(70 * l * m), steel: Math.round(3 * l * m), lumen: Math.round(12 * m) };
+  return { gold: Math.round(110 * l * m), stone: Math.round(70 * l * m), steel: Math.round(3 * l * m), lumen: Math.round(12 * m) };
 }
 function starsFor(ratio) { return ratio >= 1.3 ? 3 : ratio >= 1.0 ? 2 : ratio >= 0.75 ? 1 : 0; }
 function startAttack(i) {
@@ -512,7 +513,7 @@ function resolveAttack(i) {
   if (!ui.collecting) showAttackReport(report);
 }
 /* ---- raids on Colossus Ledges (AI players on the map) ---- */
-function mapRaidLoot(level, region) { const L = { crowns: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level };
+function mapRaidLoot(level, region) { const L = { gold: Math.round(45 * Math.pow(level, 1.15)), stone: Math.round(28 * Math.pow(level, 1.1)), steel: Math.round(level * 0.8), lumen: 4 + level };
   if (typeof REGIONS !== 'undefined' && REGIONS[region] && REGIONS[region].key === 'lava') L.obsidian = 2 + Math.round(level * 0.35); return L; }
 function startMapRaid(h) {
   if (!CONFIG.raidsEnabled) return toast('Raids are coming later');
@@ -545,11 +546,11 @@ function resolveMoleFight(t) {
   const win = Math.random() < clamp(attackPower() / t.power, 0.15, 0.95);
   const where = regionName(t.region);
   if (win) {
-    const loot = { crowns: Math.round(60 * S.hero.level), amber: 3 + Math.floor(Math.random() * 4), iron: 20 + Math.floor(Math.random() * 20) }; grantLoot(loot);
+    const loot = { gold: Math.round(60 * S.hero.level), amber: 3 + Math.floor(Math.random() * 4), iron: 20 + Math.floor(Math.random() * 20) }; grantLoot(loot);
     const xp = gainXp(40 * S.hero.level); S.stats.moles = (S.stats.moles || 0) + 1;
     log('🦴', `${CONFIG.hero.name} drove the Rim Mole back into the deep in ${where}! ${lootText(loot)} · +${fmt(xp)} XP. A skull trophy now hangs over your door.`);
   } else {
-    const loot = { crowns: 20 * S.hero.level }; grantLoot(loot); const xp = gainXp(10 * S.hero.level);
+    const loot = { gold: 20 * S.hero.level }; grantLoot(loot); const xp = gainXp(10 * S.hero.level);
     log('🤕', `The Rim Mole in ${where} was too much. ${CONFIG.hero.name} limped home with ${lootText(loot)} · +${fmt(xp)} XP.`);
   }
 }
@@ -580,14 +581,14 @@ function writeJournal(sum) {
 function marketBuy(k, lot, mult) {
   const price = Math.ceil(CONFIG.market.prices[k] * lot * mult);
   if (S.res[k] + lot > storageCap()) return toast('Not enough storage room');
-  if (!pay({ crowns: price })) return toast(`Needs ${price} Crowns`);
-  addRes(k, lot); toast(`🏪 Bought ${lot} ${CONFIG.resources[k].icon} for ${price} 👑`); return true;
+  if (!pay({ gold: price })) return toast(`Needs ${price} gold`);
+  addRes(k, lot); toast(`🏪 Bought ${lot} ${CONFIG.resources[k].icon} for ${price} 🪙`); return true;
 }
 function marketSell(k, lot, mult) {
   if (vaultRes(k)) return toast('🔒 Sell vault stock from the vault');
   if ((S.res[k] || 0) < lot) return toast(`You need ${lot} ${CONFIG.resources[k].name}`);
   const gain = Math.floor(CONFIG.market.prices[k] * lot * mult);
-  S.res[k] -= lot; /* VAULT-OK: vault stock refused above */ addRes('crowns', gain); toast(`🏪 Sold ${lot} ${CONFIG.resources[k].icon} for ${gain} 👑`); return true;
+  S.res[k] -= lot; /* VAULT-OK: vault stock refused above */ addRes('gold', gain); toast(`🏪 Sold ${lot} ${CONFIG.resources[k].icon} for ${gain} 🪙`); return true;
 }
 
 function scheduleNextRaid() { const [a, b] = CONFIG.raids.intervalHours; S.nextRaidAt = S.gameTime + rand(a, b) * HOUR; }
@@ -616,9 +617,9 @@ function aiRaid() {
   const stars = starsFor(atk / def), lost = {}, gained = {};
   if (stars > 0) {
     const share = R.lootPct * stars / 3, prot = protectedShare();
-    for (const k of ['crowns', 'stone', 'lumen', 'timber']) /* (steel is vault stock: never looted) */ { const n = Math.floor(S.res[k] * (1 - prot) * share); if (n > 0) { lost[k] = n; S.res[k] -= n; /* VAULT-OK: no vault stock in this list */ } }
+    for (const k of ['gold', 'stone', 'lumen', 'timber']) /* (steel is vault stock: never looted) */ { const n = Math.floor(resHave(k) * (1 - prot) * share); if (n > 0) { lost[k] = n; if (isCoin(k)) Gold.spendGold(n); else S.res[k] -= n; /* VAULT-OK: no vault stock in this list */ } }
   } else {
-    gained.crowns = Math.round(40 + atk * 1.5); gained.stone = Math.round(atk); grantLoot(gained); S.stats.defended++;
+    gained.gold = Math.round(40 + atk * 1.5); gained.stone = Math.round(atk); grantLoot(gained); S.stats.defended++;
   }
   S.shieldUntil = S.gameTime + R.shieldHours * HOUR;
   const report = { kind: 'defense', who, stars, lost, gained, atk: Math.round(atk), def: Math.round(def), golems: golemCount(), golemPower: golemPower(), heroHome: heroHome(), t: S.gameTime, first };
@@ -632,7 +633,7 @@ function step(dt) {
   const h = dt / HOUR; S.gameTime += dt;
   if (typeof Explore !== 'undefined' && Explore.drillStep) Explore.drillStep(dt); // deployed drills burn coal and mine
   const lv = S.buildings.hall, H = CONFIG.hallPerLevel;
-  addRes('crowns', H.crowns * lv * h); addRes('stone', H.stone * lv * h); addRes('lumen', H.lumen * lv * h);
+  addRes('gold', H.gold * lv * h); addRes('stone', H.stone * lv * h); addRes('lumen', H.lumen * lv * h);
   const press = Math.min(S.res.moss, H.mossPress * lv * h); if (press > 0) { S.res.moss -= press; addRes('lumen', press / 3); }
   if (S.buildings.forge > 0) {
     const n = Math.min(CONFIG.forgePerLevel * S.buildings.forge * h, S.res.iron / 2, S.res.coal);
@@ -658,12 +659,12 @@ function simulate(dtGame) {
 }
 // Runs a chunk of time "while away" and returns a summary
 function simulateAway(dtGame) {
-  const before = Object.assign({}, S.res), lvl = S.hero.level;
+  const before = Object.assign({ gold: Gold.getGold() }, S.res), lvl = S.hero.level;
   const capped = Math.min(dtGame, CONFIG.offlineCapHours * HOUR);
   ui.collecting = [];
   simulate(capped);
   const events = ui.collecting; ui.collecting = null;
-  const delta = {}; for (const k of RES) { const d = (S.res[k] || 0) - (before[k] || 0); if (Math.abs(d) >= 1) delta[k] = d; }
+  const delta = {}; for (const k of RES.concat('gold')) { const d = resHave(k) - (before[k] || 0); if (Math.abs(d) >= 1) delta[k] = d; }
   return { gameMs: capped, cappedFrom: dtGame, delta, events, levels: S.hero.level - lvl };
 }
 

@@ -41,7 +41,7 @@ const REGIONS = [
     blurb: 'Crystal seams break the surface here, humming with Lumen. Miners never need lanterns.',
     ground: [130, 126, 156], roofs: ['#6a5a9a', '#7c6bb0', '#584a82'], wall: '#d9d2e6', styles: [1, 3] },
   { key: 'farms', name: 'Goldenstep Terraces', icon: '🌾', res: ['🌾 Grain', '🍚 Mossrice', '🍯 Honey'], sells: ['timber'], premium: true,
-    blurb: 'Golden fields step down toward the rim, and the windmills never stop. Traders here pay the best Crowns for anything you sell.',
+    blurb: 'Golden fields step down toward the rim, and the windmills never stop. Traders here pay the best gold for anything you sell.',
     ground: [206, 193, 120], roofs: ['#c9a65a', '#b8904a', '#d6b46a'], wall: '#efe2c2', styles: [0] },
   { key: 'badlands', name: 'Cinderreach Badlands', icon: '⛓️', res: ['⛓️ Iron', '⚫ Breathcoal', '🟤 Copper'], sells: ['iron', 'coal'],
     blurb: 'Cracked red earth, slag heaps and smoking chimneys. Iron and Breathcoal for the forges.',

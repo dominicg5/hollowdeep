@@ -48,11 +48,11 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); 
   ok(await p.evaluate(() => !S.hero.task), 'map raid resolves');
   await p.evaluate(() => closeModalQuiet());
   // market & vault cards
-  await p.evaluate(() => { S.res.crowns = 5000; const m = W.markets[7]; CityMap.flyTo(m.x, m.y, 1.2, true); CityMap.handleTap(...CityMap.w2s(m.x, m.y)); });
+  await p.evaluate(() => { Gold.spendGold(Gold.getGold()); Gold.addGold(5000); const m = W.markets[7]; CityMap.flyTo(m.x, m.y, 1.2, true); CityMap.handleTap(...CityMap.w2s(m.x, m.y)); });
   await p.waitForTimeout(300); ok(/Bazaar|Market/.test(await p.textContent('#modalBody')), 'market card opens');
   const before = await p.evaluate(() => S.res.moss);
   const buy = p.locator('#modal [data-act=mbuy]').first(); await buy.click(); await p.waitForTimeout(200);
-  ok(await p.evaluate((b) => Object.values(S.res).length && S.res.crowns < 5000, before), 'market buy spends crowns');
+  ok(await p.evaluate((b) => Object.values(S.res).length && Gold.getGold() < 5000 && !('crowns' in S.res), before), 'market buy spends gold coins (t578s2590: no Crowns)');
   await p.evaluate(() => closeModalQuiet());
   await p.evaluate(() => { const v = W.vaults[0]; CityMap.flyTo(v.x, v.y, 1.2, true); CityMap.handleTap(...CityMap.w2s(v.x, v.y)); }); await p.waitForTimeout(300);
   ok(/Vault/.test(await p.textContent('#modalBody')), 'vault card opens'); await p.evaluate(() => closeModalQuiet());

@@ -20,7 +20,7 @@ const NPCS = [
     lines: ['Every name on the Wall of Lanterns Out went down and did not come up. We light a candle for each, each night.', 'Your Wren\'s name isn\'t here. Let\'s keep it that way. Bring her home.', 'The oldest stone has no name, just a carved lantern. We think it was the first climber who never returned.'] },
   { id: 'kip', name: 'Kip', role: 'Courier', icon: '📯', color: '#c8634c', lines: ['RUMOR', 'RUMOR', 'RUMOR'] },
   { id: 'juniper', name: 'Juniper Fernsby', role: 'Farmer & fair host', icon: '🌾', color: '#6b8f4a',
-    lines: ['Goldenstep feeds the whole Rim. Bring stone or timber to the Bazaar and I\'ll pay you proper Crowns.', 'Harvest Fair\'s the best week of the year. Pie-throwing, mole-racing, and old Maddox dancing.', 'Windmills turn even when there\'s no wind. Nobody asks why. It\'s the Hollow breathing.'] },
+    lines: ['Goldenstep feeds the whole Rim. Bring stone or timber to the Bazaar and I\'ll pay you proper gold.', 'Harvest Fair\'s the best week of the year. Pie-throwing, mole-racing, and old Maddox dancing.', 'Windmills turn even when there\'s no wind. Nobody asks why. It\'s the Hollow breathing.'] },
   { id: 'hennick', name: 'Brass Hennick', role: 'Vault warden', icon: '🏦', color: '#b8964a',
     lines: ['Raiders take what\'s lying around. They can\'t take what\'s under a ton of greystone. Build yourself a Vault: more room, and more of it stays safe.', 'Every Vault on the Rim is cut into the old bedrock. Deepest one goes down a full layer.', 'Coin sleeps best in the dark.'] },
 ];

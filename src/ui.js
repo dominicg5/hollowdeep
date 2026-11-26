@@ -3,7 +3,7 @@
    UI
    ===================================================================== */
 /* painted UI art (assets/ui) */
-const UIA = 'assets/ui/', UI_HAS = new Set('obsidian amber coal crowns iron lumen moss steel stone timber hall storehouse training lift wall kennel vault forge still still2 smelter strider drill golem golem_sleep dummy rival0 rival1 rival2 wisp pup moth ferret wren wren_a wren_b wren_c capital molebg layers'.split(' '));
+const UIA = 'assets/ui/', UI_HAS = new Set('obsidian amber coal iron lumen moss steel stone timber hall storehouse training lift wall kennel vault forge still still2 smelter strider drill golem golem_sleep dummy rival0 rival1 rival2 wisp pup moth ferret wren wren_a wren_b wren_c capital molebg layers'.split(' '));
 function pic(k, cls, alt) { return `<img class="pic ${cls || ''}" src="${UIA}${k}.webp" alt="${alt || ''}" decoding="async" draggable="false">`; }
 function rIco(k) { return UI_HAS.has(k) ? pic(k, 'ri', CONFIG.resources[k].name) : CONFIG.resources[k].icon; }
 function petIco(id, cls) { return UI_HAS.has(id) ? pic(id, cls || 'pi', CONFIG.pets[id].name) : CONFIG.pets[id].icon; }
@@ -13,7 +13,7 @@ function toast(msg) {
   const box = $('#toasts'); box.appendChild(el); while (box.children.length > 3) box.firstChild.remove();
   setTimeout(() => el.remove(), 3200);
 }
-function costHtml(cost) { return Object.keys(cost).map((k) => `<span class="cost ${(S.res[k] || 0) < cost[k] ? 'short' : ''}">${rIco(k)}${fmt(cost[k])}</span>`).join(''); }
+function costHtml(cost) { return Object.keys(cost).map((k) => `<span class="cost ${(typeof resHave === 'function' ? resHave(k) : (S.res[k] || 0)) < cost[k] ? 'short' : ''}">${rIco(k)}${fmt(cost[k])}</span>`).join(''); }
 function pbar(start, end, cls) { const p = clamp((S.gameTime - start) / Math.max(1, end - start), 0, 1) * 100; return `<div class="bar ${cls || ''}"><i data-pstart="${start}" data-pend="${end}" style="width:${p}%"></i></div>`; }
 function countdown(end) { return `<span data-end="${end}">${realLeft(end)}</span>`; }
 
@@ -40,7 +40,7 @@ function capitalScene() {
 function buildingEffect(id, lvl) {
   const H = CONFIG.hallPerLevel;
   switch (id) {
-    case 'hall': return `${H.crowns * lvl}👑 ${H.stone * lvl}🪨 ${fmt1(H.lumen * lvl)}🏮 /h`;
+    case 'hall': return `${H.gold * lvl}🪙 ${H.stone * lvl}🪨 ${fmt1(H.lumen * lvl)}🏮 /h`;
     case 'storehouse': { const c = CONFIG.storage; return `cap ${fmt(c.base * Math.pow(c.growth, lvl - 1))} · protects ${Math.round(clamp(c.protectBase + c.protectPerLevel * (lvl - 1), 0, .8) * 100)}%`; }
     case 'training': return `+${CONFIG.trainingPerLevel.power * (lvl - 1)} power · spar ${CONFIG.trainingPerLevel.sparXp * lvl} XP/h`;
     case 'lift': return `reach layer ${Math.min(CONFIG.lift.maxReach, lvl + 1)} · ${CONFIG.lift.capacityPerLevel * lvl} wt/h · Pull −${Math.round(CONFIG.lift.pullCutPerLevel * (lvl - 1) * 100)}%`;

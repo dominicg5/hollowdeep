@@ -521,15 +521,15 @@ const CityMap = (() => {
   function marketCard(m) {
     const R = REGIONS[m.region], spike = marketSpike(m.idx), mult = spike ? CITY.spikeMult : 1, P = CONFIG.market, lot = P.lot;
     const sellMult = (R.premium ? P.premiumSellMult : P.sellMult);
-    const buys = R.sells.map((k) => { const n = k === 'amber' ? 5 : lot, price = Math.ceil(P.prices[k] * n * P.buyMult * mult * (k === R.sells[0] ? 1 : 1.1)); return `<button class="btn alt sm" data-act="mbuy" data-id="${k}" data-n="${n}" data-m="${(price / (P.prices[k] * n)).toFixed(3)}">Buy ${n} ${rIco(k)} · ${price} 👑</button>`; }).join('');
-    const sells = Object.keys(P.prices).filter((k) => k !== 'crowns').map((k) => { const n = k === 'amber' || k === 'steel' ? 5 : lot; const m2 = sellMult * (R.sells.includes(k) && spike ? CITY.spikeMult : 1) * (R.sells.includes(k) ? 0.8 : 1); const gain = Math.floor(P.prices[k] * n * m2);
-      return `<button class="btn ghost sm" data-act="msell" data-id="${k}" data-n="${n}" data-m="${m2.toFixed(3)}" ${(S.res[k] || 0) < n ? 'disabled' : ''}>Sell ${n} ${rIco(k)} → ${gain} 👑</button>`; }).join('');
+    const buys = R.sells.map((k) => { const n = k === 'amber' ? 5 : lot, price = Math.ceil(P.prices[k] * n * P.buyMult * mult * (k === R.sells[0] ? 1 : 1.1)); return `<button class="btn alt sm" data-act="mbuy" data-id="${k}" data-n="${n}" data-m="${(price / (P.prices[k] * n)).toFixed(3)}">Buy ${n} ${rIco(k)} · ${price} 🪙</button>`; }).join('');
+    const sells = Object.keys(P.prices).filter((k) => !(CONFIG.resources[k] || {}).coins).map((k) => { const n = k === 'amber' || k === 'steel' ? 5 : lot; const m2 = sellMult * (R.sells.includes(k) && spike ? CITY.spikeMult : 1) * (R.sells.includes(k) ? 0.8 : 1); const gain = Math.floor(P.prices[k] * n * m2);
+      return `<button class="btn ghost sm" data-act="msell" data-id="${k}" data-n="${n}" data-m="${m2.toFixed(3)}" ${(S.res[k] || 0) < n ? 'disabled' : ''}>Sell ${n} ${rIco(k)} → ${gain} 🪙</button>`; }).join('');
     openModal(`<h2>🏪 ${m.name}</h2><div class="small">${isDiscovered(m.region) ? `${R.icon} ${R.name} · stalls: ${R.res.join(' · ')}` : '❔ A bazaar in unexplored lands'}</div>
-      ${spike ? `<div class="tag bad" style="margin-top:6px">📈 Price spike! ${CONFIG.resources[R.sells[0]].name} costs ×${CITY.spikeMult}, and the square is packed.</div>` : `<div class="dim" style="margin-top:6px">Normal trading day.${R.premium ? ' Goldenstep traders pay premium Crowns for everything you sell.' : ''}</div>`}
+      ${spike ? `<div class="tag bad" style="margin-top:6px">📈 Price spike! ${CONFIG.resources[R.sells[0]].name} costs ×${CITY.spikeMult}, and the square is packed.</div>` : `<div class="dim" style="margin-top:6px">Normal trading day.${R.premium ? ' Goldenstep traders pay premium gold for everything you sell.' : ''}</div>`}
       ${festival() === 'harvest' && R.key === 'farms' ? '<div class="tag good" style="margin-top:4px">🌾 Harvest Fair! Extra stalls and crowds.</div>' : ''}
       <div class="small" style="margin-top:8px"><b>Buy local goods</b></div>${btnRow(buys)}
       <div class="small" style="margin-top:8px"><b>Sell to the bazaar</b></div>${btnRow(sells)}
-      <div class="dim" style="margin-top:8px">You have 👑 ${fmt(S.res.crowns)} · storage cap ${fmt(storageCap())}. Caravans deliver instantly (prototype).</div>
+      <div class="dim" style="margin-top:8px">You have 🪙 ${fmt(Gold.getGold())} gold coins · storage cap ${fmt(storageCap())}. Caravans deliver instantly (prototype).</div>
       ${btnRow('<button class="btn ghost" data-act="close">Close</button>')}`, 'city');
     marketCard.last = m;
   }
@@ -570,7 +570,7 @@ const CityMap = (() => {
     const P = molePower(), ch = clamp(attackPower() / P, 0.15, 0.95);
     openModal(`<h2>⚠️ A Rim Mole surfaced!</h2><div class="scene paint molescene">${pic('molebg', 'bg')}${pic('wren_b', 'fighter')}</div><p class="small">A house-sized mole has burst out of a fissure in <b>${REGIONS[m.region].name}</b>. Half the street has come out to watch. It digs back down in ${countdown(m.end)}.</p>
       <div class="wrapgap"><span class="tag bad">Mole power ${P}</span><span class="tag">You ${Math.round(attackPower())}</span><span class="tag">~${Math.round(ch * 100)}% to win</span></div>
-      <div class="dim" style="margin-top:6px">Win: Crowns, Amber, Iron, a skull trophy for your ${CITY.homeTerm} and big XP. Lose: Wren limps home with a little loot.</div>
+      <div class="dim" style="margin-top:6px">Win: gold coins, Amber, Iron, a skull trophy for your ${CITY.homeTerm} and big XP. Lose: Wren limps home with a little loot.</div>
       ${btnRow(`<button class="btn red" data-act="molefight" data-id="${m.k}" ${!heroHome() ? 'disabled' : ''}>⚔️ Join the fight</button><button class="btn ghost" data-act="close">Close</button>`)}`, 'city');
   }
   function journalModal() {

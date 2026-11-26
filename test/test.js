@@ -96,7 +96,7 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   await page.screenshot({ path: 'shot-attack.png' });
 
   console.log('Save / load / offline');
-  const before = await page.evaluate(() => { HD.save(); return { gt: HD.S.gameTime, crowns: HD.S.res.crowns, lvl: HD.S.hero.level }; });
+  const before = await page.evaluate(() => { HD.save(); return { gt: HD.S.gameTime, gold: Gold.getGold(), lvl: HD.S.hero.level }; });
   // pretend we left 10 real minutes ago
   await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('hollowdeep.save.v1')); s.lastReal -= 10 * 60e3; /* an old save with a pending raid must be cleaned up */ s.pendingReveal = { kind: 'defense', who: 'x', stars: 1, lost: {}, gained: {}, atk: 1, def: 1, golems: 1, golemPower: 1, t: 0 }; s.nextRaidAt = 0; s.hero.task = { type: 'raid', rival: 0, start: 0, end: 1 }; localStorage.setItem('hollowdeep.save.v1', JSON.stringify(s)); window.onbeforeunload = null; });
   // prevent pagehide save from overwriting: override save
@@ -107,7 +107,7 @@ const assert = (c, m) => { if (!c) { throw new Error('ASSERT: ' + m); } console.
   await page.close({ runBeforeUnload: false });
   await page2.addInitScript((r) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('hollowdeep.save.v1', r); sessionStorage.setItem('seeded', '1'); } }, raw);
   await page2.goto(URL); await page2.waitForTimeout(600);
-  const after = await page2.evaluate(() => ({ gt: HD.S.gameTime, crowns: HD.S.res.crowns, lvl: HD.S.hero.level }));
+  const after = await page2.evaluate(() => ({ gt: HD.S.gameTime, gold: Gold.getGold(), lvl: HD.S.hero.level }));
   assert(after.gt >= before.gt + 9.9 * 3600e3, `offline time simulated: +${((after.gt - before.gt) / 3600e3).toFixed(2)} game h`);
   assert(!(await page2.isVisible('#modal:not(.hidden)')) && !(await page2.isVisible('text=While you were away')) && !(await page2.$('#resbar')), 'no while-you-were-away popup and no resource bar on return (idle time still ran)');
   assert(await page2.evaluate(() => !HD.S.pendingReveal && !HD.S.lastRaid && !(HD.S.hero.task && HD.S.hero.task.type === 'raid') && HD.S.nextRaidAt > 1e14), 'old save with pending raid cleared on load');
