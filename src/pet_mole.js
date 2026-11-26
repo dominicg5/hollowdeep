@@ -50,8 +50,12 @@ const Mole = (() => {
     if (M.st === 'deposit') { M.dig += dt; const sp = g.userData.spark; sp.visible = M.dig > 0.35 && M.dig < 1.25; sp.position.set(M.pos[0], Explore.hAt(M.pos[0], M.pos[1]) + w * 0.35, M.pos[1]); sp.scale.setScalar(w * (0.5 + 0.5 * Math.sin(M.dig * 12) ** 2)); if (M.dig > MR().handoffS) { sp.visible = false; if (M.mode === 'fetch') { pickUp(); M.mode = null; M.st = 'return'; M.retT = 0; M.path = null; M.replan = 0; } else { deliver(); M.st = 'follow'; M.cool = 1.5; M.path = null; } } }
     // pose (t740u): Art's clips. Walk while it moves (played at its speed: metres per cycle MR().walkStride, up to walkTsMax x), Idle at rest; at the tether
     // Deposit once from M.dig 0 (its hop, bow and hand-off are in the clip: the hand-off frame, MR().handoffS, is where deliver() / pickUp() run above)
-    const R0 = MR(), gy = Explore.hAt(M.pos[0], M.pos[1]); g.scale.setScalar(w); g.position.set(M.pos[0], gy, M.pos[1]); g.rotation.set(0, M.face, 0);
-    const I = attach(g); if (I) { const v = moving ? spd / w : 0; if (M.st === 'deposit') { if (M.dig - dt <= 0 || I.key !== 'deposit') { NpcModels.play(I, 'deposit', { once: true, restart: true }); } if (I.act) I.act.timeScale = 1; }
+    // (t741u) Art's Walk only carries it walkStride per cycle (a short waddle), far below its trot: past hop.v0 it bounds instead - hops of hop.len
+    // (longer once the rate reaches hop.hzMax), paws off the ground but for the hop.contact share of each, so they never skate along the ground
+    const R0 = MR(), HP = R0.hop, gy = Explore.hAt(M.pos[0], M.pos[1]), v = moving ? spd / w : 0, hk = M.st !== 'deposit' && v > HP.v0 ? 1 : 0; M.hk = (M.hk || 0) + (hk - (M.hk || 0)) * Math.min(1, dt * 10);
+    let hy = 0; if (M.hk > 0.01) { const hz = Math.min(HP.hzMax, Math.max(v, HP.v0) / HP.len), L = Math.max(v, HP.v0) / hz; M.hop = ((M.hop || 0) + dt * hz) % 1; const u = M.hop / (1 - HP.contact * Math.min(1, HP.vRef / Math.max(v, 1e-3))); /* (the faster, the briefer each touch-down: the slide on it stays about the same) */ hy = u < 1 ? HP.h * Math.min(HP.hMaxK, L / HP.len) * Math.sin(Math.PI * u) * M.hk : 0; } else M.hop = 0;
+    g.scale.setScalar(w); g.position.set(M.pos[0], gy + hy * w, M.pos[1]); g.rotation.set(HP.lean * M.hk, M.face, 0);
+    const I = attach(g); if (I) { if (M.st === 'deposit') { if (M.dig - dt <= 0 || I.key !== 'deposit') { NpcModels.play(I, 'deposit', { once: true, restart: true }); } if (I.act) I.act.timeScale = 1; }
       else if (v > R0.walkMin) { NpcModels.play(I, 'walk'); if (I.act) I.act.timeScale = Math.min(R0.walkTsMax, v * I.clips[R0.clips.walk].duration / R0.walkStride); }
       else { NpcModels.play(I, 'idle'); if (I.act) I.act.timeScale = 1; }
       I.mixer.update(dt); }

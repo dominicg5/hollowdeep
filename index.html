@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='15d80cc3';
+<script>window.HD_BUILD='e2ddd73d';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 15d80cc3</div>
-<script src="assets/vendor/three.min.js?v=15d80cc3"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build e2ddd73d</div>
+<script src="assets/vendor/three.min.js?v=e2ddd73d"></script>
 <script>
 'use strict';
 
@@ -6916,7 +6916,7 @@ const FORGE = (() => {
     mk([0, 0, 0], 1); mk([0, 0, 0], 1); mk([0, 0, 0], 1); mk([0, -BP.shin, 0], 4); mk([0, -BP.shin, 0], 6); if (BK) { const Z = new THREE.Vector3(0, 0, 1); B[7].quaternion.setFromAxisAngle(Z, BK.apA); B[9].quaternion.setFromAxisAngle(Z, -BK.apA); B[11].quaternion.setFromAxisAngle(Z, BK.apB); B[13].quaternion.setFromAxisAngle(Z, -BK.apB); } return B; } // 18 / 19: the feet; (baked: the arms bind abducted, as baked)
   // the motion source: the old rig's 20 bones in their bind pose (arms hanging), no mesh; the old setPose poses them
   function ghost() { if (M.gh) return M.gh; if (typeof THEUS_RIG !== 'undefined' && THEUS_RIG.bodyPlan) { const { sho, ...bp } = THEUS_RIG.bodyPlan; Object.assign(BP, bp); if (sho != null) SHO = sho; if (THEUS_RIG.strikeAlong != null) M.sz = THEUS_RIG.strikeAlong; } /* (t738u: the old body plan fitted to Art's skeleton, so the old IK reaches where his arms and legs reach) */ const gh = new THREE.Group(); gh.name = 'theusMotion'; gh.visible = false; gh.scale.setScalar(U); const B = bones(null); gh.add(B[0]); M.grp.add(gh); gh.updateMatrixWorld(true); gh.skeleton = new THREE.Skeleton(B); M.gh = gh; M.B = B; return gh; }
-  const V3 = () => new THREE.Vector3(), DOWN = () => new THREE.Vector3(0, -1, 0), ZAX = () => new THREE.Vector3(0, 0, 1);
+  const DOWN = () => new THREE.Vector3(0, -1, 0), ZAX = () => new THREE.Vector3(0, 0, 1);
   function ik2(S, T, L1, L2, pole, mx) { const d = T.clone().sub(S); let dist = d.length(); const dn = d.clone().normalize(); dist = clamp(dist, Math.abs(L1 - L2) + 0.01, (L1 + L2) * (mx || 0.96)); /* (never a locked limb) */
     const a = (L1 * L1 + dist * dist - L2 * L2) / (2 * dist), h = Math.sqrt(Math.max(0, L1 * L1 - a * a)), p = pole.clone().sub(dn.clone().multiplyScalar(pole.dot(dn))); if (p.lengthSq() < 1e-6) p.set(0, 0, 1); p.normalize();
     return [S.clone().add(dn.clone().multiplyScalar(a)).add(p.multiplyScalar(h)), S.clone().add(dn.clone().multiplyScalar(dist))]; }
@@ -7006,7 +7006,7 @@ const FORGE = (() => {
       B[17].quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xC, yC, dC)); B[17].position.copy(Gc).addScaledVector(dC, -GR * Lh); M.reachGap = 0; /* the fist is on the wrist in every frame: the hammer hangs off the hand */
       M.armDbg = { elbow: 180 - E.clone().sub(S).angleTo(Wa.clone().sub(E)) / DEG, wrist: eC.clone().negate().angleTo(dC) / DEG };
       const a = { h: Gc.clone().addScaledVector(dC, -GR * Lh).applyMatrix4(chM2), d: dC.clone().transformDirection(chM2) };
-      const tt = ((t % LOOP) + LOOP) % LOOP, jaw = hm.clone().addScaledVector(td, L.tongs - 3), bar = v3(barC.x - 1.5, barC.y, barC.z + 15), hh = a.h.clone().addScaledVector(a.d, L.handle), sh2 = strikeBody(tt);
+      const tt = ((t % LOOP) + LOOP) % LOOP, jaw = hm.clone().addScaledVector(td, L.tongs - 3), bar = v3(barC.x - 1.5, barC.y, barC.z + 15), hh = a.h.clone().addScaledVector(a.d, L.handle);
       let look = P.settle ? bar.clone().add(v3(0, -4, -4)) : tt >= 11.5 && tt < 23.2 ? /* (settle: the head drops to look at the bar) */ (M.swing && M.swing.x > -0.2 && M.swing.x < 0.05 ? bar.clone().lerp(hh, 0.3 * (1 - sm(-0.2, 0, M.swing.x))) : bar.clone().lerp(hh, 0.08)) : /* (pass 6: his gaze follows the hammer down to the bar) */ P.walk != null ? v3(0, 70, 60) : jaw.clone().add(v3(0, 16, 8)); /* (pass 7b: chin up over the carry, clear of the tong fists) */ const hp = v3(BP.head[0], BP.torso - 1, BP.head[2]), dir = toC(look).sub(hp).normalize();
       const q = new THREE.Quaternion().setFromUnitVectors(ZAX(), dir), rest = new THREE.Quaternion().setFromAxisAngle(v3(1, 0, 0), 0.12); head.quaternion.copy(rest.slerp(q, 0.8)); if (M.swing) { const x = M.swing.x, w = sm(-0.75, -0.45, x) * (1 - sm(-0.15, 0.05, x)), w2 = Math.max(w, 0.6 * sm(-0.2, -0.05, x) * (1 - sm(0.3, 0.6, x))); /* (pass 7b: the head stays turned a little left through the impact and rebound, the jaw clear of the right shoulder) */ if (w2 > 0) { head.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(v3(0, 1, 0), 13 * DEG * w2)).multiply(new THREE.Quaternion().setFromAxisAngle(v3(1, 0, 0), 7 * DEG * w)); } } } // his gaze (pass 7: at the top of the swing the head turns ~13 deg to his left and tilts down toward the bar, away from the rising shoulder)
     ape.updateMatrixWorld(true); return P; }
@@ -7074,7 +7074,7 @@ const FORGE = (() => {
     const geo = (() => { const parts = [], tr = new THREE.CylinderGeometry(0.62, 0.9, 1, 9, 4, false); { const p = tr.attributes.position; for (let k = 0; k < p.count; k++) { const y = p.getY(k), a = Math.atan2(p.getZ(k), p.getX(k)); if (y > 0.45) p.setY(k, y + 0.42 * Math.abs(Math.sin(a * 2.5 + 0.6)) * (0.6 + 0.8 * hsh(Math.round(Math.cos(a) * 40), Math.round(Math.sin(a) * 40))) - 0.2); /* a jagged broken top */ const w = 1 + 0.12 * Math.sin(a * 3 + y * 5); p.setX(k, p.getX(k) * w); p.setZ(k, p.getZ(k) * w); } } tr.translate(0, 0.5, 0); parts.push(tr);
       for (const [a, s] of [[0.3, 1], [2.5, 0.8], [4.4, 0.9]]) { const f = new THREE.ConeGeometry(0.36 * s, 1.1 * s, 5, 1, false); f.translate(0, 0.55 * s, 0); f.rotateZ(-1.15); f.rotateY(a); f.translate(Math.cos(a) * 0.55, 0.02, -Math.sin(a) * 0.55); parts.push(f); } // root flares
       const b = new THREE.CylinderGeometry(0.1, 0.17, 0.55, 5); b.translate(0, 0.27, 0); b.rotateZ(-0.95); b.translate(0.55, 0.62, 0.1); parts.push(b); // a branch stub
-      let P = [], N = 0; for (const g of parts) { const q = g.index ? g.toNonIndexed() : g; P = P.concat(Array.from(q.attributes.position.array)); N++; } const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); out.computeVertexNormals(); return out; })();
+      let P = []; for (const g of parts) { const q = g.index ? g.toNonIndexed() : g; P = P.concat(Array.from(q.attributes.position.array)); } const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); out.computeVertexNormals(); return out; })();
     const mat = new THREE.MeshLambertMaterial({ color: 0xffffff }), own = (M.burn || []).filter((b) => b.own), im = { setMatrixAt: (n, m) => { const p = geo.attributes.position; for (let k = 0; k < p.count; k++) { const v = new THREE.Vector3(p.getX(k), p.getY(k), p.getZ(k)).applyMatrix4(m); SP.push(v.x, v.y, v.z); } SN.push(p.count); }, setColorAt: (n, c) => { for (let k = 0; k < SN[SN.length - 1]; k++) SC.push(c.r, c.g, c.b); } }, SP = [], SC = [], SN = [], m4 = new THREE.Matrix4(), c0 = new THREE.Color(0x1c1814).convertSRGBToLinear(), c1 = new THREE.Color(0x2a221b).convertSRGBToLinear(); M.stumpTips = []; // (#1c1814..#2a221b as linear: raw hexes read pale grey)
     P.forEach(([X, Y, i], n) => { const [x, z] = wld(X, Y), h = 6.3 * (0.5 + hsh(i, 5.5)) * U, r = 1.5 * (1.1 + 0.9 * hsh(i, 6.6)) * U, /* (pass 5: stumps 1.5x) */ y = gH(x, z) - 0.3 * U, ln = hsh(i, 2.2) < 0.35 ? 0.22 + 0.2 * hsh(i, 8.8) : 0.06 * (hsh(i, 8.8) - 0.5); m4.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(ln, hsh(i, 4.4) * 6.28, 0, 'YXZ')), new THREE.Vector3(r, h, r)); /* heights 0.5-1.5x, a third leaning */
       im.setMatrixAt(n, m4); im.setColorAt(n, c0.clone().lerp(c1, hsh(i, 9.9))); if (hsh(i, 1.9) < 0.3) M.stumpTips.push(new THREE.Vector3(x, y + h, z)); });
@@ -10209,8 +10209,9 @@ const NPC_MODELS = {
     shade: 'hdToon',          // the material's hd_* extras; its _HD_GLOW is all 0 (no rim glow)
     clips: { idle: 'Idle', walk: 'Walk', deposit: 'Deposit' }, // Idle 2.033 s loop, Walk 1.033 s loop (waddle), Deposit 1.333 s (30 fps)
     handoffS: 1.3,  // Deposit: hop lands 0.5 s, bow into the satchel from 0.7 s, the ore changes hands at 1.3 s (deliver() / pickUp())
-    walkStride: 2.0,  // metres it covers per Walk cycle: the clip plays at speed x 1.033 / walkStride (the old waddle's cadence: about 1.7 steps/s at its 3.4 m/s trot)
-    walkTsMax: 3,     // fastest Walk playback (catching up at up to 12 m/s): beyond it the paws slide rather than blur
+    walkStride: 0.08, // (t741u measured off the clip) metres its paws sweep per Walk cycle: the clip plays at speed x 1.033 / walkStride, up to walkTsMax
+    walkTsMax: 3,     // fastest Walk playback (3 waddles a second; the legs paddle at this rate while it hops)
+    hop: { v0: 0.3, len: 0.6, hzMax: 4.5, h: 0.11, hMaxK: 1.8, contact: 0.16, vRef: 3.4, lean: 0.12 }, // (t741u) above v0 m/s it bounds: hops of len m (longer past hzMax a second), h m high (x up to hMaxK for the long catch-up hops), paws down for the contact share of each (x vRef / speed above its 3.4 m/s trot), leaning lean rad forward
     walkMin: 0.25,    // m/s below which it stands (Idle)
   },
 };
@@ -10230,8 +10231,11 @@ const PLAYER_MODELS = {
     legK: 0.688,    // Art's leg (thigh joint to ankle 0.485 m) / the old rig's (LT + LS 0.705): the old hips' bob / squat is scaled by it
     gait: { walk: { S: 1.26, ph0: 0.075 }, run: { S: 2.30, ph0: 0.442 } }, // S: metres per gait cycle of Art's clip (planted-foot speed x duration); ph0: clip phase where the left foot plants (the old gait's phase 0)
     grip: [0, -0.07, 0.041], // hand-local offset from the old palm point (0, -0.045, -0.031) to the middle of Art's closed mitten: tools sit in the fist
-    pack: { W: 0.40, H: 0.405, D: 0.19, y0: 0.045, zb: -0.296 }, // Art's backpack in the chest frame (width, height, depth, centre height, back face): the Tether coil, winch and lantern hang on it
+    pack: { W: 0.42, H: 0.40, D: 0.19, y0: 0.05, zb: -0.30 }, // Art's backpack in the chest frame (width, height, depth, centre height, back face; t741u re-measured off his mesh): the Tether coil, winch and lantern hang on it
+    backZ: -0.325,  // (t741u) chest-frame z of the sheaths and the stowed pick's back slot: on the back face of his pack (part of the mesh: nothing fits between)
     headTop: 1.520,  // top of the model (hair / helmet), metres
+    reachM: 0.06,    // (t741u) how far a shoulder may give toward a hand target past Art's arm reach (the arms are solved onto the old rig's palm points)
+    footDH: 0.25,    // (t741u) most a foot is lifted / lowered onto sloped ground (and the hips drop for the downhill foot)
   },
   f: {
     id: 'player_f', name: 'Player (female)',
@@ -10242,8 +10246,11 @@ const PLAYER_MODELS = {
     legK: 0.622,    // 0.417 / 0.67
     gait: { walk: { S: 1.07, ph0: 0.075 }, run: { S: 1.97, ph0: 0.442 } },
     grip: [0, -0.035, 0.036],
-    pack: { W: 0.344, H: 0.44, D: 0.17, y0: 0.03, zb: -0.271 },
+    pack: { W: 0.36, H: 0.30, D: 0.17, y0: -0.075, zb: -0.27 }, // (her pack sits lower and smaller: y -0.22..0.08 in the chest frame)
+    backZ: -0.295,
     headTop: 1.471,
+    reachM: 0.08,    // (her arms are the shorter: 0.48 m shoulder to fist vs the old rig's 0.515)
+    footDH: 0.25,
   },
 };
 
@@ -12679,7 +12686,7 @@ const CharView = (() => {
     const head = new THREE.Group(); head.position.set(0, 0.122, 0.012); B.head.add(head); B.headC = head; // head centre (camera, fidget and IK targets)
     for (const [s, k] of [[-1, 'R'], [1, 'L']]) { const hd = B['hd' + k], kn = bone('knuckles' + k, hd, 0, -0.064, 0), tp = bone('tips' + k, kn, 0, -0.026, 0), th = bone('thumb' + k, hd, s * -0.031, -0.024, -0.01); th.rotation.set(0.3, 0, s * 0.6); B['kn' + k] = kn; B['tp' + k] = tp; B['thumb' + k] = th; } /* the finger joints the grip code curls (Art's mittens have none: they carry nothing) */
     // ---- gear on Art's backpack (his model has the pack itself, PM.pack in the chest frame): the Tether coil, the ascender winch and the lantern's light
-    { const pk = new THREE.Group(); B.chest.add(pk); built.pack = pk;
+    { const pk = new THREE.Group(); pk.userData.fixed = true; B.chest.add(pk); built.pack = pk;
       const { W, H, D, y0, zb } = PM.pack, zc = zb + D / 2;
       { // the Tether coil hangs from a strap on the right side of the pack (where the side pocket was), coil plane flat against the pack side
         const pv = bone('ropePivot', pk, -(W / 2 + 0.052), y0 + H * 0.16, zc - 0.035); part(pk, rbox(0.024, 0.05, 0.022, 0.003), M.belt, [-(W / 2 + 0.018), y0 + H * 0.16, zc - 0.035], null, null, { ink: false }); part(pk, rbox(0.014, 0.014, 0.014, 0.003), M.brass, [-(W / 2 + 0.034), y0 + H * 0.16 - 0.02, zc - 0.035], null, null, { ink: false });
@@ -12710,7 +12717,7 @@ const CharView = (() => {
     // ---- pickaxe: a logical mount on the chest (what the fidgets move) + the swappable visual pick parented to the right hand ----
     { const mt = new THREE.Object3D(); mt.name = 'pickMount'; B.chest.add(mt); built.mount = mt; built.pick = makePickaxe(S && S.pickGrade); B.hdR.add(built.pick); }
     // the back slot: a leather keeper on the pack's front edge that the stowed pick handle slides through (between the pack and the back)
-    { const lp = SLOT_O.clone().addScaledVector(SLOT_D, 0.08), lm = toon(P.belt), lg = part(B.chest, new THREE.TorusGeometry(0.024, 0.005, 6, 18), lm, [lp.x, lp.y, lp.z]); lg.quaternion.setFromUnitVectors(V(0, 0, 1), SLOT_D); lg.scale.set(1, 1.3, 1); }
+    { const lp = slotO(PM).addScaledVector(SLOT_D, clamp((PM.pack.y0 - PM.pack.H / 2 + 0.03 - SLOT_O.y) / SLOT_D.y, 0.08, 0.5)), /* (t741u) the keeper on the bottom edge of Art's pack, where the handle passes it (not floating behind her hips) */ lm = toon(P.belt), lg = part(B.chest, new THREE.TorusGeometry(0.024, 0.005, 6, 18), lm, [lp.x, lp.y, lp.z]); lg.quaternion.setFromUnitVectors(V(0, 0, 1), SLOT_D); lg.scale.set(1, 1.3, 1); }
     // belt hooks for the climbing picks (their picks hook over these), and the picks themselves
     for (const s of [-1, 1]) { const hp = HOLSTER(s); part(B.hips, rbox(0.02, 0.05, 0.034, 0.006), toon(P.belt), [hp.x - s * 0.006, hp.y + 0.006, hp.z], [0, 0, s * 0.08]); part(B.hips, rbox(0.012, 0.012, 0.012, 0.003), toon(P.brass), [hp.x + s * 0.006, hp.y + 0.028, hp.z], null, null, { ink: false }); }
     built.climb = { R: makeClimbPick(S && S.climbGrade), L: makeClimbPick(S && S.climbGrade) }; B.hdR.add(built.climb.R); B.hdL.add(built.climb.L);
@@ -12768,7 +12775,7 @@ const CharView = (() => {
     const mt = c.built.mount; { // per the sheets: he carries it short over the right shoulder; she rests it across the back of her neck
       const F = c.sex === 'f', d = (F ? V(0.1, 0.6, -0.8) : V(0.14, 0.58, -0.8)).normalize(), bl = V(-1, 0.8, 0).addScaledVector(d, -V(-1, 0.8, 0).dot(d)).normalize(), x = V(0, 0, 0).crossVectors(d, bl); _m.makeBasis(bl, d, x.negate()); mt.quaternion.setFromRotationMatrix(_m); mt.position.copy(F ? V(-0.195, 0.07, 0.12) : V(-0.21, 0.075, 0.12)); c.gripAt = 0.08; }
     { const key = (o, d, x, h) => { d = d.normalize(); x = x.addScaledVector(d, -x.dot(d)).normalize(); return { o, q: new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, d, x.clone().cross(d))), h }; };
-      const xs = V(-1, -0.55, 0).normalize(), Sk = key(SLOT_O.clone(), SLOT_D.clone(), xs.clone(), 0.56); c.pk = { S: Sk, A: { o: SLOT_O.clone().addScaledVector(SLOT_D, 0.24), q: Sk.q.clone(), h: 0.56 }, O: key(V(-0.27, -0.12, 0.05), V(-0.12, 1, 0.12), V(0, 0.1, 1), 0.48) }; c.pk.B = { o: c.pk.A.o.clone().add(V(-0.12, 0.02, 0.02)), q: c.pk.A.q.clone().slerp(c.pk.O.q, 0.5), h: 0.52 }; }
+      const xs = V(-1, -0.55, 0).normalize(), Sk = key(slotO(c.pm), SLOT_D.clone(), xs.clone(), 0.56); c.pk = { S: Sk, A: { o: slotO(c.pm).addScaledVector(SLOT_D, 0.24), q: Sk.q.clone(), h: 0.56 }, O: key(V(-0.27, -0.12, 0.05), V(-0.12, 1, 0.12), V(0, 0.1, 1), 0.48) }; c.pk.B = { o: c.pk.A.o.clone().add(V(-0.12, 0.02, 0.02)), q: c.pk.A.q.clone().slerp(c.pk.O.q, 0.5), h: 0.52 }; }
     if (!WALLG) { WALLG = makeWall(); scene.add(WALLG); } c.wall = WALLG;
     c.pickRest = { p: mt.position.clone(), q: mt.quaternion.clone() }; c.restQ = {}; for (const k in B) if (B[k] && B[k].isObject3D) c.restQ[k] = B[k].quaternion.clone(); }
   // run arm swing (s = +1 left, -1 right), driven from the shoulder: the upper arm pitches forward/back opposite the legs, the elbow stays bent ~80-100 deg
@@ -12785,7 +12792,7 @@ const CharView = (() => {
     const th = lerp(thW, thR, k), fl = lerp(flW, flR, k), cr = lerp(crW, crR, k);
     const d1 = V(s * lerp(0.2, 0.12, k), -Math.cos(th), Math.sin(th)).normalize(), a2 = th + fl, dl = V(s * lerp(0.07, 0.03, k) - s * lerp(0.2, 0.26, k) * cr, -Math.cos(a2), Math.sin(a2)).normalize(), wl = d1.multiplyScalar(0.245).addScaledVector(dl, 0.215);
     return { wr: sh.clone().add(wl.applyQuaternion(RQ)), pole: V(s * 0.4, -0.15, -1).applyQuaternion(RQ), dl, d2: dl.clone().applyQuaternion(RQ) }; }
-  const PALM = V(0, -0.045, -0.031), SLOT_O = V(0.03, -0.4, -0.123), SLOT_D = V(-0.55, 1, 0).normalize(), HOLSTER = (s) => V(s * 0.174, 0.035, -0.06);
+  const PALM = V(0, -0.045, -0.031), SLOT_O = V(0.03, -0.4, -0.123), SLOT_D = V(-0.55, 1, 0).normalize(), HOLSTER = (s) => V(s * 0.174, 0.035, -0.06), slotO = (pm) => SLOT_O.clone().setZ(pm ? pm.backZ : SLOT_O.z); // (t741u) the stowed pick's back slot sits on the back of Art's pack
   const _qRW = new THREE.Quaternion(), _qRWi = new THREE.Quaternion(); // (scratch: her root's world turn, reused every frame)
   function solveLimbs(c, f) { const { B } = c, root = c.root; if (!c.hol) c.hol = { R: { ax: 0, az: 0, vx: 0, vz: 0 }, L: { ax: 0, az: 0, vx: 0, vz: 0 } }; root.updateMatrixWorld(true); const RW = root.getWorldQuaternion(_qRW); /* (her root's WORLD turn: on Mosby her group carries his heading, so the local quaternion pointed knees, feet and the pick the wrong way) */ c._clr = !!((f.mine && f.mine.w > 0.01) || (f.climb && f.climb.w > 0.01) || (f.eq && f.eq.seq));
     // legs: feet planted on their ankle targets, knees forward
@@ -13196,7 +13203,8 @@ const CharView = (() => {
   function artLoad(sex) { if (typeof Creatures === 'undefined' || typeof PLAYER_MODELS === 'undefined' || !PLAYER_MODELS[sex]) return false; const id = artId(sex); if (!Creatures.get(id)) Creatures.def(id, PLAYER_MODELS[sex]); if (Creatures.ready(id)) return true; if (!Creatures.error(id)) Creatures.load(id).catch(() => {}); return false; }
   function artBody(c) { if (c.art || c.artErr) return c.art || null; if (!artLoad(c.sex)) { if (typeof Creatures !== 'undefined' && Creatures.error(artId(c.sex))) c.artErr = true; return null; }
     const PM = c.pm, I = Creatures.make(artId(c.sex)); if (!I) return null; I.mixer.stopAllAction();
-    const mat = toon(0, (I.tex && I.tex[0]) || null, { side: THREE.DoubleSide }), sk = []; I.root.traverse((o) => { if (o.isSkinnedMesh) sk.push(o); });
+    const tx = (I.tex && I.tex[0]) || null; if (tx) { tx.encoding = THREE.LinearEncoding; if (tx.image) tx.needsUpdate = true; } /* (t741u) read raw like every other char3d texture (its stage renders Linear): the sRGB decode drew Art's colours far too dark */
+    const mat = toon(0, tx, { side: THREE.DoubleSide }), sk = []; I.root.traverse((o) => { if (o.isSkinnedMesh) sk.push(o); });
     for (const m of sk) { m.material = mat; m.castShadow = true; m.receiveShadow = false; m.frustumCulled = false; m.userData.artBody = true;
       const ol = new THREE.SkinnedMesh(m.geometry, INK_S); ol.position.copy(m.position); ol.quaternion.copy(m.quaternion); ol.scale.copy(m.scale); ol.bind(m.skeleton, m.bindMatrix); ol.frustumCulled = false; ol.castShadow = false; ol.userData.isInk = true; m.parent.add(ol); } /* the ink hull, as the old body had */
     const AB = {}; for (const b of I.bones) AB[b.name] = b; const A = {}, rest = {}, gh = {}; for (const k in ART_B) { A[k] = AB[ART_B[k]]; if (!A[k]) { c.artErr = true; return null; } rest[k] = A[k].position.clone(); gh[k] = { p: new THREE.Vector3(), q: new THREE.Quaternion(), oq: new THREE.Quaternion(), op: new THREE.Vector3() }; }
@@ -13204,13 +13212,37 @@ const CharView = (() => {
     const act = (k) => { const a = I.mixer.clipAction(I.clips[PM.clips[k]]); a.setLoop(THREE.LoopRepeat, Infinity); a.enabled = false; return a; };
     Object.assign(c, { art: I, artB: A, artRest: rest, artGh: gh, artWalk: act('walk'), artRun: act('run'), artGrip: new THREE.Vector3().fromArray(PM.grip), ghost: false, barHead: A.head /* her health bar: Art's head bone (top and head width measured off his mesh) */ }); return I; }
   function ghostIn(c) { if (!c.ghost) return; const B = c.B, G = c.artGh; for (const k in ART_B) { B[k].position.copy(G[k].p); B[k].quaternion.copy(G[k].q); } c.ghost = false; }
-  function artPose(c, f) { const I = artBody(c); if (!I) return; const B = c.B, A = c.artB, G = c.artGh, PM = c.pm, R0 = c.artRest;
+  // world-space two-bone IK on Art's bones: a (upper) > b (mid) > e (end); end origin to T, the mid joint toward the pole point; the end keeps world turn qe
+  const _ik = { A: V(0, 0, 0), M: V(0, 0, 0), d: V(0, 0, 0), p: V(0, 0, 0), c: V(0, 0, 0), q: new THREE.Quaternion(), q2: new THREE.Quaternion() };
+  function artAim(bn, from, to) { const K = _ik; bn.getWorldPosition(K.c); const ch = bn.children.find((o) => o.isBone) || null; if (!ch) return; ch.getWorldPosition(K.p); K.p.sub(K.c).normalize(); K.d.copy(to).sub(from).normalize(); if (K.p.lengthSq() < 1e-8 || K.d.lengthSq() < 1e-8) return;
+    K.q.setFromUnitVectors(K.p, K.d); bn.getWorldQuaternion(K.q2); K.q2.premultiply(K.q); bn.parent.getWorldQuaternion(K.q).invert(); bn.quaternion.copy(K.q.multiply(K.q2)); bn.updateMatrixWorld(true); }
+  function artIK(a, b, e, T, pole, qe) { const K = _ik, L1 = b.position.length(), L2 = e.position.length(); a.getWorldPosition(K.A); const D = K.d.copy(T).sub(K.A), dl = clamp(D.length(), Math.abs(L1 - L2) + 1e-3, (L1 + L2) * 0.9995); D.normalize();
+    const ca = clamp((L1 * L1 + dl * dl - L2 * L2) / (2 * L1 * dl), -1, 1), P = K.p.copy(pole).sub(K.A); P.addScaledVector(D, -P.dot(D)); if (P.lengthSq() < 1e-8) P.set(0, 0, 1).addScaledVector(D, -D.z); P.normalize();
+    const M = K.M.copy(K.A).addScaledVector(D, ca * L1).addScaledVector(P, Math.sqrt(Math.max(0, 1 - ca * ca)) * L1), Tc = _av.copy(K.A).addScaledVector(D, dl), Mc = M.clone();
+    artAim(a, K.A.clone(), Mc); b.getWorldPosition(K.c); artAim(b, K.c.clone(), Tc.clone()); if (qe) { b.getWorldQuaternion(K.q).invert(); e.quaternion.copy(K.q.multiply(qe)); e.updateMatrixWorld(true); } }
+  const _ap = { P: { R: V(0, 0, 0), L: V(0, 0, 0) }, E: { R: V(0, 0, 0), L: V(0, 0, 0) }, Q: { R: new THREE.Quaternion(), L: new THREE.Quaternion() }, g: V(0, 0, 0), W: V(0, 0, 0), f: V(0, 0, 0), k: V(0, 0, 0), t: V(0, 0, 0), qf: new THREE.Quaternion() };
+  function artPose(c, f) { const I = artBody(c); c.B.hips.visible = !!I || !!c.artErr; /* (t741u) no floating gear before Art's body is on (all of it hangs under the hips); if the GLB fails the gear still shows */ if (!I) return; const B = c.B, A = c.artB, G = c.artGh, PM = c.pm, R0 = c.artRest;
+    c.root.updateMatrixWorld(true); for (const k of ['R', 'L']) { B['hd' + k].localToWorld(_ap.P[k].copy(PALM)); B['fa' + k].getWorldPosition(_ap.E[k]); B['hd' + k].getWorldQuaternion(_ap.Q[k]); } /* the old rig's hands, before Art's body takes the pose */
     for (const k in ART_B) { const g = G[k]; g.oq.copy(B[k].quaternion); if (k === 'hips') { const h = B.hips.position; g.op.set(R0.hips.x + h.x * PM.legK, R0.hips.y + (h.y - c.HY) * PM.legK, R0.hips.z + h.z * PM.legK); } else g.op.copy(R0[k]); }
     const r = f.run, w = r ? clamp(r.w, 0, 1) : 0;
     if (w > 0.001) { const k = clamp(r.k ?? 1, 0, 1); for (const [a, g, wt] of [[c.artWalk, PM.gait.walk, 1 - k], [c.artRun, PM.gait.run, k]]) { a.enabled = true; if (!a.isRunning()) a.play(); a.setEffectiveWeight(wt); a.time = ((((r.ph || 0) + g.ph0) % 1) + 1) % 1 * a.getClip().duration; }
       I.mixer.update(0); for (const kk in ART_LEG) { const g = G[kk], a = A[kk]; g.oq.slerp(a.quaternion, w); g.op.lerp(a.position, w); } }
     else if (c.artWalk.enabled || c.artRun.enabled) { c.artWalk.stop(); c.artRun.stop(); c.artWalk.enabled = c.artRun.enabled = false; }
     for (const k in ART_B) { const a = A[k], g = G[k]; a.quaternion.copy(g.oq); a.position.copy(g.op); }
+    I.root.updateMatrixWorld(true);
+    // arms (t741u): Art's arms are a little shorter / set lower than the old rig's, so copying the turns alone left two-handed grips, wall holds and the
+    // face scratch short of their targets. Each arm is solved onto the old rig's palm point in the world (its elbow toward the old elbow, the hand at the old
+    // hand's world turn): Art's fist lands where the old hand was and the tool in it follows. Past his reach the shoulder gives up to PM.reachM toward it.
+    for (const k of ['R', 'L']) { const ua = A['ua' + k], fa = A['fa' + k], hd = A['hd' + k], Pk = _ap.P[k]; _ap.g.copy(c.artGrip).add(PALM).applyQuaternion(_ap.Q[k]); const W = _ap.W.copy(Pk).sub(_ap.g);
+      ua.getWorldPosition(_ap.t); const L = fa.position.length() + hd.position.length(), dd = W.distanceTo(_ap.t), over = dd - L * 0.998;
+      if (over > 0) { const sh = A['sh' + k]; _ap.f.copy(W).sub(_ap.t).normalize().multiplyScalar(Math.min(over, PM.reachM)); sh.getWorldQuaternion(_ap.qf).invert(); ua.position.copy(R0['ua' + k]).add(_ap.f.applyQuaternion(_ap.qf)); ua.updateMatrixWorld(true); }
+      artIK(ua, fa, hd, W, _ap.E[k], _ap.Q[k]); }
+    // feet on the ground (t741u): on a walkable slope Art's feet (his clip's while running, the rig's at rest) are lifted / lowered onto the ground under each
+    // foot (st.gnd.hy), the hips dropping for the downhill foot; not while climbing, riding or in a scene without a height field
+    { const Gd = st.gnd, ride = typeof Explore !== 'undefined' && Explore.EX && Explore.EX.ride; if (Gd && typeof Gd.hy === 'function' && !Gd.exC && !ride && !(f.climb && f.climb.w > 0.01) && c.root.parent) {
+      const par = c.root.parent, y0 = c.root.position.y, dh = {}; for (const k of ['R', 'L']) { A['ft' + k].getWorldPosition(_ap.f); par.worldToLocal(_ap.f); const h = Gd.hy(_ap.f.x, _ap.f.z); dh[k] = Number.isFinite(h) ? clamp(h - y0, -PM.footDH, PM.footDH) : 0; }
+      const drop = Math.min(0, dh.R, dh.L); if (Math.abs(dh.R) > 0.004 || Math.abs(dh.L) > 0.004) { const tg = {}; for (const k of ['R', 'L']) { tg[k] = A['ft' + k].getWorldPosition(V(0, 0, 0)); tg[k].y += dh[k]; } A.hips.position.y += drop; I.root.updateMatrixWorld(true);
+        for (const k of ['R', 'L']) { const th = A['th' + k], sn = A['sn' + k], ft = A['ft' + k]; ft.getWorldQuaternion(_ap.qf); sn.getWorldPosition(_ap.k); _ap.k.add(V(0, 0, 0.3).applyQuaternion(c.root.getWorldQuaternion(_ap.qf.clone()))); ft.getWorldQuaternion(_ap.qf); artIK(th, sn, ft, tg[k], _ap.k, _ap.qf.clone()); } } } }
     // the rig follows Art's body (positions in its parents' frames: Art's root sits at (0, 0, -hipZ) under the rig root, identity otherwise)
     for (const k in ART_B) { const b = B[k], a = A[k], g = G[k]; g.p.copy(b.position); g.q.copy(b.quaternion); b.quaternion.copy(a.quaternion); b.position.copy(a.position); if (k === 'hips') b.position.add(I.root.position); }
     for (const k of ['hdR', 'hdL']) B[k].position.add(_av.copy(c.artGrip).applyQuaternion(A[k].quaternion)); /* the tools' palm point lands in the fist */
@@ -13691,14 +13723,14 @@ const CharView = (() => {
   // (t607u) each equipped sword gets its sheath on her back; sheathed (SWG.sh) it rides in it, hilt up over the left shoulder; drawn, the sheath stays (empty)
   function swHolster() { if (!rig) return; const b = rig.built; b.sheaths = b.sheaths || { R: null, L: null }; holsterPack(b);
     for (const k of ['R', 'L']) { const sw = b.swords && b.swords[k]; let sh = b.sheaths[k]; if (sh && (!sw || sh.userData.sig !== sw.userData.sig)) { if (sh.parent) sh.parent.remove(sh); dropObj(sh); sh = b.sheaths[k] = null; }
-      if (sw && !sh) { sh = sw.userData.grade === 'stick' ? Object.assign(new THREE.Group(), { name: 'stickRest' }) : makeSheath(sw, k === 'R'); if (sh.name === 'stickRest') sh.userData = { fx: [], flip: false }; /* (t649u, Dominic: no scabbard for the Stick sword - the bare stick rests on her back at the same spot, an empty mount; other grades keep theirs) */ sh.userData.sig = sw.userData.sig; const A = SHEATH_AT[k]; sh.position.set(...A.p); sh.rotation.set(A.rx, 0, A.rz); rig.B.chest.add(sh); b.sheaths[k] = sh; }
+      if (sw && !sh) { sh = sw.userData.grade === 'stick' ? Object.assign(new THREE.Group(), { name: 'stickRest' }) : makeSheath(sw, k === 'R'); if (sh.name === 'stickRest') sh.userData = { fx: [], flip: false }; /* (t649u, Dominic: no scabbard for the Stick sword - the bare stick rests on her back at the same spot, an empty mount; other grades keep theirs) */ sh.userData.sig = sw.userData.sig; const A = SHEATH_AT[k]; sh.position.set(A.p[0], A.p[1], rig.pm ? rig.pm.backZ : A.p[2]); /* (t741u) on the back face of Art's pack (it is part of his mesh: nothing fits between) */ sh.rotation.set(A.rx, 0, A.rz); rig.B.chest.add(sh); b.sheaths[k] = sh; }
       if (!sw) continue; const hf = sw.userData.hiltFx || []; sw.traverse((o) => { if ((o.isPoints || o === sw.userData.glow || o === sw.userData.ribbons) && !hf.includes(o)) o.visible = !swEff(); }); /* (blade flames / glow / sparks stay in the scabbard; the hilt's own effects - the Onyx torch tongues (t616u), crystal / gem / rune glows (meshes) - keep going) */ for (const m of swBladeParts(sw)) m.visible = !swEff() || sh.name === 'stickRest'; /* (t650u, Dominic: sheathed, nothing past the hilt shows - the blade meshes hide so none pokes out of the scabbard; the guard, grip, pommel and its effects stay; the Stick has no scabbard, so it shows whole) */ if (swEff()) { if (sw.parent !== sh) sh.add(sw); sw.position.set(0, sw.userData.y0, 0); sw.quaternion.setFromEuler(new THREE.Euler(Math.PI, sh.userData.flip ? Math.PI : 0, 0)); sw.visible = true; }
       else if (sw.parent !== rig.B['hd' + k]) { rig.B['hd' + k].add(sw); sw.position.copy(sw.userData.hp[0]); sw.quaternion.copy(sw.userData.hp[1]); sw.visible = false; } } }
   // the blade's meshes (t650u): every mesh lying wholly above the guard top (y0, the blade's root) in the sword's own frame - blade, edge, fuller and blade-borne fx
   function swBladeParts(sw) { const u = sw.userData; if (u.bladeM) return u.bladeM; const L = []; sw.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(sw.matrixWorld).invert(), bx = new THREE.Box3();
     sw.traverse((m) => { if (!m.isMesh || (u.hiltFx || []).includes(m)) return; if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); bx.copy(m.geometry.boundingBox).applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld)); if (bx.min.y >= (u.y0 || 0) - 0.004) L.push(m); });
     return (u.bladeM = L); }
-  function holsterPack(b) { const pk = b.pack; if (!pk) return; if (pk.userData.z0 == null) pk.userData.z0 = pk.position.z; pk.position.z = pk.userData.z0 - (b.swords && (b.swords.R || b.swords.L) ? PACK_PUSH : 0); }
+  function holsterPack(b) { const pk = b.pack; if (!pk || pk.userData.fixed) return; /* (t741u: Art's pack is his mesh - the gear on it stays put) */ if (pk.userData.z0 == null) pk.userData.z0 = pk.position.z; pk.position.z = pk.userData.z0 - (b.swords && (b.swords.R || b.swords.L) ? PACK_PUSH : 0); }
   // (t686u) she fights: sheathed swords come out (a creature tapped / attacked, or a provoked one turning on her). Attack draws them too (swAttack).
   function swDrawFight() { if (!rig || !(SWG.R || SWG.L) || !SWG.sh) return false; SWG.sh = false; swSaveSh(); swHolster(); pvDraw(); return true; }
   function swSheathe(on) { if (!SOLO.on || !rig || !(SWG.R || SWG.L)) return; SWG.sh = !!on; swSaveSh(); if (on) { SWG.at = null; SWG.q = 0; } swHolster(); pvDraw(); }
@@ -16898,8 +16930,12 @@ const Mole = (() => {
     if (M.st === 'deposit') { M.dig += dt; const sp = g.userData.spark; sp.visible = M.dig > 0.35 && M.dig < 1.25; sp.position.set(M.pos[0], Explore.hAt(M.pos[0], M.pos[1]) + w * 0.35, M.pos[1]); sp.scale.setScalar(w * (0.5 + 0.5 * Math.sin(M.dig * 12) ** 2)); if (M.dig > MR().handoffS) { sp.visible = false; if (M.mode === 'fetch') { pickUp(); M.mode = null; M.st = 'return'; M.retT = 0; M.path = null; M.replan = 0; } else { deliver(); M.st = 'follow'; M.cool = 1.5; M.path = null; } } }
     // pose (t740u): Art's clips. Walk while it moves (played at its speed: metres per cycle MR().walkStride, up to walkTsMax x), Idle at rest; at the tether
     // Deposit once from M.dig 0 (its hop, bow and hand-off are in the clip: the hand-off frame, MR().handoffS, is where deliver() / pickUp() run above)
-    const R0 = MR(), gy = Explore.hAt(M.pos[0], M.pos[1]); g.scale.setScalar(w); g.position.set(M.pos[0], gy, M.pos[1]); g.rotation.set(0, M.face, 0);
-    const I = attach(g); if (I) { const v = moving ? spd / w : 0; if (M.st === 'deposit') { if (M.dig - dt <= 0 || I.key !== 'deposit') { NpcModels.play(I, 'deposit', { once: true, restart: true }); } if (I.act) I.act.timeScale = 1; }
+    // (t741u) Art's Walk only carries it walkStride per cycle (a short waddle), far below its trot: past hop.v0 it bounds instead - hops of hop.len
+    // (longer once the rate reaches hop.hzMax), paws off the ground but for the hop.contact share of each, so they never skate along the ground
+    const R0 = MR(), HP = R0.hop, gy = Explore.hAt(M.pos[0], M.pos[1]), v = moving ? spd / w : 0, hk = M.st !== 'deposit' && v > HP.v0 ? 1 : 0; M.hk = (M.hk || 0) + (hk - (M.hk || 0)) * Math.min(1, dt * 10);
+    let hy = 0; if (M.hk > 0.01) { const hz = Math.min(HP.hzMax, Math.max(v, HP.v0) / HP.len), L = Math.max(v, HP.v0) / hz; M.hop = ((M.hop || 0) + dt * hz) % 1; const u = M.hop / (1 - HP.contact * Math.min(1, HP.vRef / Math.max(v, 1e-3))); /* (the faster, the briefer each touch-down: the slide on it stays about the same) */ hy = u < 1 ? HP.h * Math.min(HP.hMaxK, L / HP.len) * Math.sin(Math.PI * u) * M.hk : 0; } else M.hop = 0;
+    g.scale.setScalar(w); g.position.set(M.pos[0], gy + hy * w, M.pos[1]); g.rotation.set(HP.lean * M.hk, M.face, 0);
+    const I = attach(g); if (I) { if (M.st === 'deposit') { if (M.dig - dt <= 0 || I.key !== 'deposit') { NpcModels.play(I, 'deposit', { once: true, restart: true }); } if (I.act) I.act.timeScale = 1; }
       else if (v > R0.walkMin) { NpcModels.play(I, 'walk'); if (I.act) I.act.timeScale = Math.min(R0.walkTsMax, v * I.clips[R0.clips.walk].duration / R0.walkStride); }
       else { NpcModels.play(I, 'idle'); if (I.act) I.act.timeScale = 1; }
       I.mixer.update(dt); }

@@ -172,8 +172,9 @@ const NPC_MODELS = {
     shade: 'hdToon',          // the material's hd_* extras; its _HD_GLOW is all 0 (no rim glow)
     clips: { idle: 'Idle', walk: 'Walk', deposit: 'Deposit' }, // Idle 2.033 s loop, Walk 1.033 s loop (waddle), Deposit 1.333 s (30 fps)
     handoffS: 1.3,  // Deposit: hop lands 0.5 s, bow into the satchel from 0.7 s, the ore changes hands at 1.3 s (deliver() / pickUp())
-    walkStride: 2.0,  // metres it covers per Walk cycle: the clip plays at speed x 1.033 / walkStride (the old waddle's cadence: about 1.7 steps/s at its 3.4 m/s trot)
-    walkTsMax: 3,     // fastest Walk playback (catching up at up to 12 m/s): beyond it the paws slide rather than blur
+    walkStride: 0.08, // (t741u measured off the clip) metres its paws sweep per Walk cycle: the clip plays at speed x 1.033 / walkStride, up to walkTsMax
+    walkTsMax: 3,     // fastest Walk playback (3 waddles a second; the legs paddle at this rate while it hops)
+    hop: { v0: 0.3, len: 0.6, hzMax: 4.5, h: 0.11, hMaxK: 1.8, contact: 0.16, vRef: 3.4, lean: 0.12 }, // (t741u) above v0 m/s it bounds: hops of len m (longer past hzMax a second), h m high (x up to hMaxK for the long catch-up hops), paws down for the contact share of each (x vRef / speed above its 3.4 m/s trot), leaning lean rad forward
     walkMin: 0.25,    // m/s below which it stands (Idle)
   },
 };
@@ -193,8 +194,11 @@ const PLAYER_MODELS = {
     legK: 0.688,    // Art's leg (thigh joint to ankle 0.485 m) / the old rig's (LT + LS 0.705): the old hips' bob / squat is scaled by it
     gait: { walk: { S: 1.26, ph0: 0.075 }, run: { S: 2.30, ph0: 0.442 } }, // S: metres per gait cycle of Art's clip (planted-foot speed x duration); ph0: clip phase where the left foot plants (the old gait's phase 0)
     grip: [0, -0.07, 0.041], // hand-local offset from the old palm point (0, -0.045, -0.031) to the middle of Art's closed mitten: tools sit in the fist
-    pack: { W: 0.40, H: 0.405, D: 0.19, y0: 0.045, zb: -0.296 }, // Art's backpack in the chest frame (width, height, depth, centre height, back face): the Tether coil, winch and lantern hang on it
+    pack: { W: 0.42, H: 0.40, D: 0.19, y0: 0.05, zb: -0.30 }, // Art's backpack in the chest frame (width, height, depth, centre height, back face; t741u re-measured off his mesh): the Tether coil, winch and lantern hang on it
+    backZ: -0.325,  // (t741u) chest-frame z of the sheaths and the stowed pick's back slot: on the back face of his pack (part of the mesh: nothing fits between)
     headTop: 1.520,  // top of the model (hair / helmet), metres
+    reachM: 0.06,    // (t741u) how far a shoulder may give toward a hand target past Art's arm reach (the arms are solved onto the old rig's palm points)
+    footDH: 0.25,    // (t741u) most a foot is lifted / lowered onto sloped ground (and the hips drop for the downhill foot)
   },
   f: {
     id: 'player_f', name: 'Player (female)',
@@ -205,8 +209,11 @@ const PLAYER_MODELS = {
     legK: 0.622,    // 0.417 / 0.67
     gait: { walk: { S: 1.07, ph0: 0.075 }, run: { S: 1.97, ph0: 0.442 } },
     grip: [0, -0.035, 0.036],
-    pack: { W: 0.344, H: 0.44, D: 0.17, y0: 0.03, zb: -0.271 },
+    pack: { W: 0.36, H: 0.30, D: 0.17, y0: -0.075, zb: -0.27 }, // (her pack sits lower and smaller: y -0.22..0.08 in the chest frame)
+    backZ: -0.295,
     headTop: 1.471,
+    reachM: 0.08,    // (her arms are the shorter: 0.48 m shoulder to fist vs the old rig's 0.515)
+    footDH: 0.25,
   },
 };
 
