@@ -38,8 +38,8 @@ const WorldGolems = (() => {
   // ---- her fight on the map
   const me = () => W.F || (W.F = Combat.newFight(Combat.playerStats()));
   function rel(g) { const h = here(); if (!h) return null; const dx = g.x - h[0], dy = g.y - h[1], cd = Math.hypot(dx, dy) / U(); return { dx, dy, cd, d: cd - (g.C.bodyR || 0) }; } // d: metres from her to its body surface
-  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; hud(); return true; }
-  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; hud(); }
+  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; if (g.wp) g.wp = null; hud(); return true; }
+  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; W.inR = false; W.aim = null; hud(); }
   function strike(g) { const q = rel(g); if (!q || g.dead > 0 || q.d > D().REACH_M + D().KEEP_REACH_M) return null; const C = g.C, r = Combat.rollDamage(Combat.playerStats(), { def: C.def, swing: ++W.n });
     g.hp = Math.max(0, g.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); if (r.dmg > 0) Combat.fightDealt(me(), r.dmg); num(g, r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); g.hunt = true;
     if (g.hp <= 0) { g.dead = C.respawnS || 6; g.sink = 0; g.hunt = false; g.bite = 0; g.once = 0; g.wp = null; if (g.inst) { g.inst.play(C.clips.death, true); g.anim = 'death'; } Combat.fightKill(me()); disengage(); W.kills++;
@@ -49,9 +49,18 @@ const WorldGolems = (() => {
   function ko() { W.ko = D().KO_CALM_S; disengage(); for (const g of W.list) { g.hunt = false; g.wp = null; } if (typeof toast === 'function') toast('💫 Knocked out - the golems lose interest. Back on your feet in a moment.'); }
   // her side each frame: run to striking range (STAND_M off its surface), square up, one swing every ATTACK_INTERVAL_S, the roll at STRIKE_AT_S into it
   function herTick(dt) { const T = D(), g = W.tgt, G = CharView.st.gnd; if (W.strike > 0) { W.strike -= dt; if (W.strike <= 0) { W.strike = 0; if (g) strike(g); } } if (W.swT > 0) W.swT -= dt; if (!W.eng || !g || !G) return; if (g.dead > 0 || !g.inst) return disengage(); const q = rel(g); if (!q) return;
-    if (q.d > T.REACH_M) { if ((W.rp -= dt) <= 0) { W.rp = T.REPATH_S; const so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()); Explore.goTo(g.x - q.dx / L * so, g.y - q.dy / L * so); } return; }
-    if (G.path || G.goal) { G.path = null; G.goal = null; } G.face = Math.atan2(q.dx, q.dy); /* (her local frame turns like the map's: x -> x, z -> y) */
-    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
+    // (t719u) hysteresis: chasing, she stops at STAND_M + STOP_SLACK_M; stopped (or mid-strike), she only sets off again past REACH_M + CHASE_SLACK_M
+    W.rp -= dt; if (!W.strike && q.d > (W.inR ? T.REACH_M + T.CHASE_SLACK_M : T.STAND_M + T.STOP_SLACK_M)) { W.inR = false; chase(g, q, G); return; }
+    if (!W.inR) { W.inR = true; W.aim = null; if (G.path || G.goal) { G.path = null; G.goal = null; } W.stats.holds = (W.stats.holds || 0) + 1; }
+    const fa = Math.atan2(q.dx, q.dy), df = Math.atan2(Math.sin(fa - G.face), Math.cos(fa - G.face)); G.face += df * (1 - Math.exp(-dt * T.TURN_K)); /* (her local frame turns like the map's: x -> x, z -> y; her facing is set here only) */
+    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15 && Math.abs(df) < 0.45) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
+  // (t719u) aim her run at its stand-off spot: re-aimed at most every REPATH_S and only once that spot has moved REPATH_M; a short straight run when the ground
+  // between is open (the nav grid's 2.5 m cell centres put a waypoint beside / behind her on every re-plan - the back-and-forth Dominic saw)
+  function chase(g, q, G) { const T = D(), so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()), tx = g.x - q.dx / L * so, ty = g.y - q.dy / L * so, A = W.aim;
+    if (A && G.goal && (W.rp > 0 || Math.hypot(A.x - tx, A.y - ty) < T.REPATH_M * WS())) return; if (A && !G.goal && W.rp > 0) return;
+    W.rp = T.REPATH_S; W.aim = { x: tx, y: ty }; W.stats.aims = (W.stats.aims || 0) + 1; const P = Explore.goTo(tx, ty); if (!P || P.snapped || !G.goal) return;
+    const h = here(), dl = Math.hypot(tx - h[0], ty - h[1]); if (dl > T.DIRECT_M * WS()) return; const n = Math.ceil(dl / WS()); for (let i = 1; i < n; i++) { const t = i / n; if (Explore.clsAt(h[0] + (tx - h[0]) * t, h[1] + (ty - h[1]) * t) !== 1) return; }
+    G.path = [{ x: G.goal.x, z: G.goal.z }]; G.pi = 0; W.stats.direct = (W.stats.direct || 0) + 1; }
   // ---- one golem's AI (only near her): hunt inside its leash, else wander its field
   function step(g, tx, ty, sp) { const dx = tx - g.x, dy = ty - g.y, L = Math.hypot(dx, dy); if (L < 1e-6) return true; const s = Math.min(L, sp), nx = g.x + dx / L * s, ny = g.y + dy / L * s;
     if (!canStand(g, nx, ny)) { W.stats.refused++; return false; } g.x = nx; g.y = ny; g.face = Math.atan2(dx, dy); W.stats.steps++; const sl = slopeDeg(nx, ny); if (sl > W.stats.maxSlope) W.stats.maxSlope = sl; return true; }
@@ -62,7 +71,8 @@ const WorldGolems = (() => {
     if (g.hunt && W.ko <= 0) { const q = rel(g); if (!q || q.d > (C.leashR || 5)) { g.hunt = false; } else { const slack = g.anim === 'walk' ? 0 : ((typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.MOB_START_SLACK_M) || 0);
         if (q.d > C.atkReach + slack) { const h = here(), so = (C.atkReach * 0.9 + (C.bodyR || 0)) * U(), L = q.cd * U(); walking = step(g, h[0] + q.dx / L * so, h[1] + q.dy / L * so, sp); }
         else { g.face = Math.atan2(-q.dx, -q.dy); if ((g.atkT -= dt) <= 0) { g.atkT = C.atkS; once(g, 'attack'); g.bite = C.atkHitAt; return; } } } }
-    if (!g.hunt) { if (!g.wp) { if ((g.pause -= dt) <= 0) { const P = T.WALK_PAUSE_S, Lg = T.LEG_M; for (let k = 0; k < 8 && !g.wp; k++) { const a = rnd() * 6.283, l = (Lg[0] + rnd() * (Lg[1] - Lg[0])) * WS(), x = g.x + Math.cos(a) * l, y = g.y + Math.sin(a) * l; if (canStand(g, x, y)) g.wp = { x, y }; } g.pause = P[0] + rnd() * (P[1] - P[0]); } }
+    if (!g.hunt && W.eng && W.tgt === g) { g.wp = null; const q = rel(g); if (q) { const fa = Math.atan2(-q.dx, -q.dy), df = Math.atan2(Math.sin(fa - g.face), Math.cos(fa - g.face)); g.face += df * (1 - Math.exp(-dt * T.MOB_TURN_K)); } } /* (t719u) targeted: it holds still and turns to face her - its wander no longer drags her run about */
+    else if (!g.hunt) { if (!g.wp) { if ((g.pause -= dt) <= 0) { const P = T.WALK_PAUSE_S, Lg = T.LEG_M; for (let k = 0; k < 8 && !g.wp; k++) { const a = rnd() * 6.283, l = (Lg[0] + rnd() * (Lg[1] - Lg[0])) * WS(), x = g.x + Math.cos(a) * l, y = g.y + Math.sin(a) * l; if (canStand(g, x, y)) g.wp = { x, y }; } g.pause = P[0] + rnd() * (P[1] - P[0]); } }
       if (g.wp) { if (Math.hypot(g.wp.x - g.x, g.wp.y - g.y) < WS() * 0.3) g.wp = null; else if (!step(g, g.wp.x, g.wp.y, sp)) g.wp = null; /* (refused: steeper than MAX_SLOPE_DEG or not walkable - it stops and picks another leg) */ else walking = true; } }
     loop(g, walking ? 'walk' : 'idle'); }
   // ---- per frame (Explore.tick): cheap distance pass over the 60, build / release, then mixers + AI for the near ones only

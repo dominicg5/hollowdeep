@@ -951,7 +951,7 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
 </div>
 <div id="modal" class="hidden"><div class="sheet" id="modalBody"></div></div>
 <div id="toasts"></div>
-<script>window.HD_BUILD='d04bf289';
+<script>window.HD_BUILD='7efd86d7';
 /* Version check (t421u): runs BEFORE the game boots. The page can come from a stale cache (GitHub Pages sends max-age=600); the old check fetched the whole
    2.3 MB index.html in the background and called location.replace() once the game had already booted, so phones booted twice back to back and iOS Safari
    killed the tab on the second boot. Now: fetch the tiny version.json first, hold the game's init (HD_GATE) until it answers or 2.5 s pass, and only
@@ -973,8 +973,8 @@ html:has(#millProgress.on) :is(#exBagBtn,#exMapBtn,#exSkillsBtn){display:none!im
     u.onclick = function () { mark(b); window.hdReloadTo(url(b)); }; document.body.appendChild(u); }); }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) later(); }); window.addEventListener('pageshow', function (e) { if (e.persisted) later(); });
 })();</script>
-<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build d04bf289</div>
-<script src="assets/vendor/three.min.js?v=d04bf289"></script>
+<div id="hdBuild" style="position:fixed;left:4px;bottom:2px;font:10px system-ui,sans-serif;color:rgba(255,255,255,.45);pointer-events:none;z-index:99999">build 7efd86d7</div>
+<script src="assets/vendor/three.min.js?v=7efd86d7"></script>
 <script>
 'use strict';
 
@@ -10307,7 +10307,9 @@ const PLAYGROUND_COMBAT = {
   // strike point up to REACH + this (she starts at STAND + 0.3, the plain reach is 1.7 m); SLOW_TARGET: the creature's walk speed while her swing is on it
   // (it flinches); RETRY_UNLANDED: a sequence that ended without its roll does not cost her the 3 s wait; KEEP_DRAWN: the chase run (locked on, it is a fight) does not sheathe her swords;
   // HOLD_IN_REACH: once caught up she holds position until it is past the full 1.7 m reach (she does not re-chase each few cm while her run winds down).
-  CHASE: { COMMIT_SWING: true, KEEP_REACH_M: 0.6, SLOW_TARGET: 0.3, RETRY_UNLANDED: true, KEEP_DRAWN: true, HOLD_IN_REACH: true },
+  // (Dominic t719u: 'indecisive movement back and forth') REPATH_M: she re-aims her run only once its stand-off spot has moved this far (was 0.35 m in code), REPATH_S: and at most
+  // this often; HOLD_TARGET: the creature she has targeted stops wandering and faces her until it hunts her (its wander no longer drags her run about)
+  CHASE: { COMMIT_SWING: true, KEEP_REACH_M: 0.6, SLOW_TARGET: 0.3, RETRY_UNLANDED: true, KEEP_DRAWN: true, HOLD_IN_REACH: true, REPATH_M: 0.5, REPATH_S: 0.25, HOLD_TARGET: true },
   // (GD-22, Dominic t684u) at 0 HP she crumbles to ash, then the respawn plays: her colours go ash grey, a cut sweeps from the top of her head to her feet
   // (everything above it gone) while ash and embers drift up off the cut; once she is gone the arena waits a beat, then she respawns at the centre.
   // Cheap for iPhone: one clipping plane on her own materials and one small particle cloud - no full-screen pass, no extra render target.
@@ -10345,7 +10347,14 @@ const WORLD_GOLEMS = {
   WALK_PAUSE_S: [2, 6],  // idle pause between wander legs
   LEG_M: [6, 22],        // length of one wander leg
   REACH_M: 1.7, STAND_M: 0.9, ATTACK_INTERVAL_S: 3, STRIKE_AT_S: 0.45, KEEP_REACH_M: 0.6, // her side (the playground's PGA.REACH / STAND, PLAYGROUND_COMBAT.CHASE)
-  REPATH_S: 0.5,         // how often she re-aims at a moving target
+  REPATH_S: 0.5,         // (t719u) at most this often she re-aims at a moving target...
+  // (Dominic t719u: 'indecisive movement back and forth' walking up to a targeted golem) her approach, decisive:
+  REPATH_M: 0.5,         // ...and only once her stand-off spot has moved more than this (metres) since the last aim
+  STOP_SLACK_M: 0.3,     // she stops chasing at STAND_M + this off its surface (the playground's STAND + 0.3)...
+  CHASE_SLACK_M: 0.3,    // ...and, once stopped, sets off again only when it is past REACH_M + this (hysteresis: no walk / stop flicker on one threshold)
+  DIRECT_M: 15,          // a stand-off spot this close with open walkable ground in a straight line: she runs straight at it (no nav-grid route through 2.5 m cell centres)
+  TURN_K: 10,            // stopped beside it, her facing eases onto it at this rate (1 / s), set only by herTick
+  MOB_TURN_K: 6,         // a targeted golem that is not hunting her stops wandering and eases round to face her at this rate
   KO_CALM_S: 4,          // knocked out on the map: every golem calms down and she is back on her feet at full HP after this
   ORE_KIND: { tin: 'tin_golem', copper: 'copper_golem', coal: 'coal_golem' },
   // [field id, ore, centre x, centre y, radius] - Art's field table (the game's Explore.oreSpots(), the same seed)
@@ -12908,7 +12917,7 @@ const CharView = (() => {
      her HP shows in the HUD; at 0 she is knocked out and gets back up at the centre with full HP, no penalty. Arena frame = st.gnd's frame (the group turns with st.yaw). */
   const PGA = { id: 'lumen_mushroom', on: false, mob: null, hp: 0, dead: 0, n: 0, log: [], kills: 0, dist0: null, tilt0: null, hud: null, AT: [0.38, 0, 0.95], REACH: 1.7, STAND: 0.9, R: 7,
     arena: null, gnd0: null, F: null, ko: 0, kos: 0, eng: false, aggro: 0, atkT: 0, bite: 0, once: 0, anim: null, wp: null, wt: 1.5, bites: [], calm: 0, mark: null, hunt: false, swT: 0, clk: 0, sl: [], leashD: null };
-  const pgaCh = () => Object.assign({ COMMIT_SWING: true, KEEP_REACH_M: 0.6, SLOW_TARGET: 0.3, RETRY_UNLANDED: true, KEEP_DRAWN: true, HOLD_IN_REACH: true }, (typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.CHASE) || {}); // (t698u) chase-then-attack rules (src/creatures/data.js)
+  const pgaCh = () => Object.assign({ COMMIT_SWING: true, KEEP_REACH_M: 0.6, SLOW_TARGET: 0.3, RETRY_UNLANDED: true, KEEP_DRAWN: true, HOLD_IN_REACH: true, REPATH_M: 0.5, REPATH_S: 0.25, HOLD_TARGET: true }, (typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.CHASE) || {}); // (t698u) chase-then-attack rules (src/creatures/data.js)
   const pgaInt = () => (typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.ATTACK_INTERVAL_S) || 3; // (GD-19) seconds between her locked-on attack sequences (src/creatures/data.js)
   // (GD-30) several creatures share the arena (PLAYGROUND_COMBAT.CREATURES: the mushroom + Art's Tin Golem). Each has its own slot; the per-creature code below
   // works on "the loaded one" (PGA.mob / hp / hunt ...), so pgaUse(i) swaps slot i's fields in. PGA.tgt = the one she is fighting (HUD, her swings, CharView.pga).
@@ -13011,7 +13020,7 @@ const CharView = (() => {
   function pgaChase(dt) { const G = st.gnd, q = pgaRel(); if (PGA.swT > 0) PGA.swT -= dt; if (!PGA.eng || !q || PGA.dead > 0 || PGA.ko > 0) { if (PGA.dead > 0 || PGA.ko > 0) PGA.eng = false; PGA.cur = null; PGA.inR = false; return; } const mp = PGA.mob.root.position, CH = pgaCh();
     if (PGA.cur && SWG.at !== PGA.cur.sw) { const e = PGA.cur.e; if (!e.roll && CH.RETRY_UNLANDED) PGA.swT = 0; PGA.cur = null; } /* (t698u: a sequence that never rolled - cancelled - is retried as soon as she is in reach) */
     const commit = !!(SWG.at && SWG.at.lock && CH.COMMIT_SWING); /* (t698u: committed - finish it here, facing it; no re-chase mid-wind-up) */
-    if (!commit && q.d > (SWG.at || (PGA.inR && CH.HOLD_IN_REACH) ? PGA.REACH : PGA.STAND + 0.3)) { PGA.chased = true; PGA.inR = false; const so = PGA.STAND + pgaBR(), tx = mp.x - q.dx / q.cd * so, tz = mp.z - q.dz / q.cd * so; if (!G.goal || Math.hypot(G.goal.x - tx, G.goal.z - tz) > 0.35) navTo(G, tx, tz, null); return; } /* (mid-swing it may shuffle a little: she stays put while it is still in reach) */
+    if (!commit && q.d > (SWG.at || (PGA.inR && CH.HOLD_IN_REACH) ? PGA.REACH : PGA.STAND + 0.3)) { PGA.chased = true; PGA.inR = false; const so = PGA.STAND + pgaBR(), tx = mp.x - q.dx / q.cd * so, tz = mp.z - q.dz / q.cd * so; PGA.rpT = (PGA.rpT || 0) - dt; if (!G.goal || (Math.hypot(G.goal.x - tx, G.goal.z - tz) > CH.REPATH_M && PGA.rpT <= 0)) { navTo(G, tx, tz, null); PGA.rpT = CH.REPATH_S; } return; } /* (t719u: re-aimed only once its spot has moved REPATH_M, at most every REPATH_S) */ /* (mid-swing it may shuffle a little: she stays put while it is still in reach) */
     PGA.inR = true; /* (t698u hysteresis: caught up at STAND + 0.3, she holds and swings until it is past the full reach, instead of re-chasing every few cm while her run winds down) */
     if (G.goal) { G.goal = null; G.path = null; } const fa = Math.atan2(q.dx, q.dz), df = Math.atan2(Math.sin(fa - G.face), Math.cos(fa - G.face)); G.face += df * (1 - Math.exp(-dt * 10));
     if (PGA.swT <= 0 && Math.abs(df) < 0.45 && !SWG.at && !SWG.run && G.mv < 0.15 && (SWG.R || SWG.L) && swAttack()) { PGA.swT = pgaInt(); if (SWG.at) { const e = { t: +PGA.clk.toFixed(3), v: SWG.at.v, roll: 0, d0: +q.d.toFixed(2), chased: !!PGA.chased }; PGA.chased = false; SWG.at.lock = e; PGA.cur = { sw: SWG.at, e }; PGA.sl.push(e); if (PGA.sl.length > 60) PGA.sl.shift(); } } }
@@ -13020,11 +13029,12 @@ const CharView = (() => {
     const q = PGA.ko > 0 ? null : pgaRel(), d = q ? q.d : 1e9; if (q && !PGA.hunt && C.aggro !== 'provoked' && d < C.atkReach + 0.15) PGA.hunt = true; /* (she walked right up to it - only a creature that is not passive-until-provoked: GD-21) */ if (PGA.hunt && (!q || d > (C.leashR || 4))) { PGA.hunt = false; PGA.bite = 0; PGA.atkT = Math.max(PGA.atkT, 0.6); PGA.leashD = q ? +d.toFixed(2) : null; } /* (GD-21: back to passive - she must hit it again) */ /* (GD-19: past the leash it gives up) */ PGA.aggro = PGA.hunt ? 1 : 0; const angry = !!q && PGA.hunt; if (angry && SWG.sh) swDrawFight(); /* (t686u: it fights her - out come the swords) */
     let gx = null, gz = null;
     if (angry) { PGA.wp = null; if (d > C.atkReach + (PGA.anim === 'walk' ? 0 : ((typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.MOB_START_SLACK_M) || 0))) { /* (t706u: once it has stopped beside her it only sets off again when she is a step past its reach - no walk / idle flicker) */ const so = C.atkReach * 0.9 + pgaBR(); gx = G.x + q.dx / q.cd * so; gz = G.z + q.dz / q.cd * so; } else if ((PGA.atkT -= dt) <= 0 && PGA.once <= 0) { PGA.atkT = C.atkS; pgaOnce('attack'); PGA.bite = C.atkHitAt; } }
+    else if (q && PGA.eng && PGA.si === PGA.tgt && pgaCh().HOLD_TARGET) { PGA.wp = null; PGA.atkT = Math.max(PGA.atkT, 0.6); } /* (t719u) her target, not yet hunting her: it stops wandering and turns to face her (below) */
     else { PGA.atkT = Math.max(PGA.atkT, 0.6); if (!PGA.wp && (PGA.wt -= dt) <= 0) { for (let i = 0; i < 8; i++) { const a = Math.random() * Math.PI * 2, rr = PGA.roam || PGA.R - 1.2, hx = PGA.roam ? PGA.home[0] : 0, hz = PGA.roam ? PGA.home[1] : 0, r = Math.sqrt(Math.random()) * rr, x = hx + Math.sin(a) * r, z = hz + Math.cos(a) * r; if (Math.hypot(x, z) > PGA.R - 1.2) continue; /* (GD-30: roam = round its own spot) */ if (Math.hypot(x - p.x, z - p.z) > 1 && Math.hypot(x - G.x, z - G.z) > 1.2) { PGA.wp = { x, z }; break; } } PGA.wt = 2 + Math.random() * 3; }
       if (PGA.wp) { gx = PGA.wp.x; gz = PGA.wp.z; if (Math.hypot(gx - p.x, gz - p.z) < 0.08) { PGA.wp = null; gx = null; } } }
     if (PGA.bite > 0 && (PGA.bite -= dt) <= 0) pgaBite();
     let face = null; if (gx !== null && PGA.once <= 0) { const ex = gx - p.x, ez = gz - p.z, L = Math.hypot(ex, ez), s = Math.min(L, (C.walkSpd || 0.5) * (PGA.eng && PGA.si === PGA.tgt && SWG.at && SWG.at.lock ? pgaCh().SLOW_TARGET : 1) * dt); /* (t698u: it flinches under her swing) */ p.x += ex / L * s; p.z += ez / L * s; face = Math.atan2(ex, ez); pgaLoop('walk'); }
-    else { if (angry) face = Math.atan2(-q.dx, -q.dz); if (PGA.once <= 0) pgaLoop('idle'); }
+    else { if (angry || (q && PGA.eng && PGA.si === PGA.tgt && pgaCh().HOLD_TARGET)) face = Math.atan2(-q.dx, -q.dz); if (PGA.once <= 0) pgaLoop('idle'); }
     if (face !== null) { const df = Math.atan2(Math.sin(face - m.root.rotation.y), Math.cos(face - m.root.rotation.y)); m.root.rotation.y += df * (1 - Math.exp(-dt * 6)); }
     { const L = Math.hypot(p.x, p.z), RM = PGA.R - 0.5; if (L > RM) { p.x *= RM / L; p.z *= RM / L; } if (q) { const ex = p.x - G.x, ez = p.z - G.z, L2 = Math.hypot(ex, ez); const K = 0.55 + pgaBR(); if (L2 < K && L2 > 1e-4) { p.x = G.x + ex / L2 * K; p.z = G.z + ez / L2 * K; } }
       for (const o of PGA.mobs || []) { if (o.id === PGA.id || !o.mob || o.dead > 0) continue; const op = o.mob.root.position, ex = p.x - op.x, ez = p.z - op.z, L3 = Math.hypot(ex, ez), K = pgaBR() + (Creatures.get(o.id).bodyR || 0) + 0.4; if (L3 < K && L3 > 1e-4) { p.x = op.x + ex / L3 * K; p.z = op.z + ez / L3 * K; } } } } /* (GD-30: creatures do not walk through each other) */
@@ -16583,8 +16593,8 @@ const WorldGolems = (() => {
   // ---- her fight on the map
   const me = () => W.F || (W.F = Combat.newFight(Combat.playerStats()));
   function rel(g) { const h = here(); if (!h) return null; const dx = g.x - h[0], dy = g.y - h[1], cd = Math.hypot(dx, dy) / U(); return { dx, dy, cd, d: cd - (g.C.bodyR || 0) }; } // d: metres from her to its body surface
-  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; hud(); return true; }
-  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; hud(); }
+  function engage(g) { if (!g || g.dead > 0 || W.ko > 0) return false; W.tgt = g; W.eng = true; W.rp = 0; W.inR = false; W.aim = null; if (g.wp) g.wp = null; hud(); return true; }
+  function disengage() { W.eng = false; W.tgt = null; W.strike = 0; W.inR = false; W.aim = null; hud(); }
   function strike(g) { const q = rel(g); if (!q || g.dead > 0 || q.d > D().REACH_M + D().KEEP_REACH_M) return null; const C = g.C, r = Combat.rollDamage(Combat.playerStats(), { def: C.def, swing: ++W.n });
     g.hp = Math.max(0, g.hp - r.dmg); if ((r.hit || r.dmg > 0) && typeof Sfx !== 'undefined') Sfx.hit({ crit: !!r.heavy }); if (r.dmg > 0) Combat.fightDealt(me(), r.dmg); num(g, r.hit ? '-' + r.dmg : r.dmg ? '-' + r.dmg + ' graze' : 'Miss', r.hit ? (r.heavy ? 'crit' : '') : 'miss'); g.hunt = true;
     if (g.hp <= 0) { g.dead = C.respawnS || 6; g.sink = 0; g.hunt = false; g.bite = 0; g.once = 0; g.wp = null; if (g.inst) { g.inst.play(C.clips.death, true); g.anim = 'death'; } Combat.fightKill(me()); disengage(); W.kills++;
@@ -16594,9 +16604,18 @@ const WorldGolems = (() => {
   function ko() { W.ko = D().KO_CALM_S; disengage(); for (const g of W.list) { g.hunt = false; g.wp = null; } if (typeof toast === 'function') toast('💫 Knocked out - the golems lose interest. Back on your feet in a moment.'); }
   // her side each frame: run to striking range (STAND_M off its surface), square up, one swing every ATTACK_INTERVAL_S, the roll at STRIKE_AT_S into it
   function herTick(dt) { const T = D(), g = W.tgt, G = CharView.st.gnd; if (W.strike > 0) { W.strike -= dt; if (W.strike <= 0) { W.strike = 0; if (g) strike(g); } } if (W.swT > 0) W.swT -= dt; if (!W.eng || !g || !G) return; if (g.dead > 0 || !g.inst) return disengage(); const q = rel(g); if (!q) return;
-    if (q.d > T.REACH_M) { if ((W.rp -= dt) <= 0) { W.rp = T.REPATH_S; const so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()); Explore.goTo(g.x - q.dx / L * so, g.y - q.dy / L * so); } return; }
-    if (G.path || G.goal) { G.path = null; G.goal = null; } G.face = Math.atan2(q.dx, q.dy); /* (her local frame turns like the map's: x -> x, z -> y) */
-    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
+    // (t719u) hysteresis: chasing, she stops at STAND_M + STOP_SLACK_M; stopped (or mid-strike), she only sets off again past REACH_M + CHASE_SLACK_M
+    W.rp -= dt; if (!W.strike && q.d > (W.inR ? T.REACH_M + T.CHASE_SLACK_M : T.STAND_M + T.STOP_SLACK_M)) { W.inR = false; chase(g, q, G); return; }
+    if (!W.inR) { W.inR = true; W.aim = null; if (G.path || G.goal) { G.path = null; G.goal = null; } W.stats.holds = (W.stats.holds || 0) + 1; }
+    const fa = Math.atan2(q.dx, q.dy), df = Math.atan2(Math.sin(fa - G.face), Math.cos(fa - G.face)); G.face += df * (1 - Math.exp(-dt * T.TURN_K)); /* (her local frame turns like the map's: x -> x, z -> y; her facing is set here only) */
+    if (W.swT <= 0 && !W.strike && (G.mv || 0) < 0.15 && Math.abs(df) < 0.45) { if (CharView.swAttack && CharView.swAttack()) { W.swT = T.ATTACK_INTERVAL_S; W.strike = T.STRIKE_AT_S; } else { W.swT = T.ATTACK_INTERVAL_S; num(null, 'No sword', 'info'); } } }
+  // (t719u) aim her run at its stand-off spot: re-aimed at most every REPATH_S and only once that spot has moved REPATH_M; a short straight run when the ground
+  // between is open (the nav grid's 2.5 m cell centres put a waypoint beside / behind her on every re-plan - the back-and-forth Dominic saw)
+  function chase(g, q, G) { const T = D(), so = (T.STAND_M + (g.C.bodyR || 0)) * U(), L = Math.max(1e-6, q.cd * U()), tx = g.x - q.dx / L * so, ty = g.y - q.dy / L * so, A = W.aim;
+    if (A && G.goal && (W.rp > 0 || Math.hypot(A.x - tx, A.y - ty) < T.REPATH_M * WS())) return; if (A && !G.goal && W.rp > 0) return;
+    W.rp = T.REPATH_S; W.aim = { x: tx, y: ty }; W.stats.aims = (W.stats.aims || 0) + 1; const P = Explore.goTo(tx, ty); if (!P || P.snapped || !G.goal) return;
+    const h = here(), dl = Math.hypot(tx - h[0], ty - h[1]); if (dl > T.DIRECT_M * WS()) return; const n = Math.ceil(dl / WS()); for (let i = 1; i < n; i++) { const t = i / n; if (Explore.clsAt(h[0] + (tx - h[0]) * t, h[1] + (ty - h[1]) * t) !== 1) return; }
+    G.path = [{ x: G.goal.x, z: G.goal.z }]; G.pi = 0; W.stats.direct = (W.stats.direct || 0) + 1; }
   // ---- one golem's AI (only near her): hunt inside its leash, else wander its field
   function step(g, tx, ty, sp) { const dx = tx - g.x, dy = ty - g.y, L = Math.hypot(dx, dy); if (L < 1e-6) return true; const s = Math.min(L, sp), nx = g.x + dx / L * s, ny = g.y + dy / L * s;
     if (!canStand(g, nx, ny)) { W.stats.refused++; return false; } g.x = nx; g.y = ny; g.face = Math.atan2(dx, dy); W.stats.steps++; const sl = slopeDeg(nx, ny); if (sl > W.stats.maxSlope) W.stats.maxSlope = sl; return true; }
@@ -16607,7 +16626,8 @@ const WorldGolems = (() => {
     if (g.hunt && W.ko <= 0) { const q = rel(g); if (!q || q.d > (C.leashR || 5)) { g.hunt = false; } else { const slack = g.anim === 'walk' ? 0 : ((typeof PLAYGROUND_COMBAT !== 'undefined' && PLAYGROUND_COMBAT.MOB_START_SLACK_M) || 0);
         if (q.d > C.atkReach + slack) { const h = here(), so = (C.atkReach * 0.9 + (C.bodyR || 0)) * U(), L = q.cd * U(); walking = step(g, h[0] + q.dx / L * so, h[1] + q.dy / L * so, sp); }
         else { g.face = Math.atan2(-q.dx, -q.dy); if ((g.atkT -= dt) <= 0) { g.atkT = C.atkS; once(g, 'attack'); g.bite = C.atkHitAt; return; } } } }
-    if (!g.hunt) { if (!g.wp) { if ((g.pause -= dt) <= 0) { const P = T.WALK_PAUSE_S, Lg = T.LEG_M; for (let k = 0; k < 8 && !g.wp; k++) { const a = rnd() * 6.283, l = (Lg[0] + rnd() * (Lg[1] - Lg[0])) * WS(), x = g.x + Math.cos(a) * l, y = g.y + Math.sin(a) * l; if (canStand(g, x, y)) g.wp = { x, y }; } g.pause = P[0] + rnd() * (P[1] - P[0]); } }
+    if (!g.hunt && W.eng && W.tgt === g) { g.wp = null; const q = rel(g); if (q) { const fa = Math.atan2(-q.dx, -q.dy), df = Math.atan2(Math.sin(fa - g.face), Math.cos(fa - g.face)); g.face += df * (1 - Math.exp(-dt * T.MOB_TURN_K)); } } /* (t719u) targeted: it holds still and turns to face her - its wander no longer drags her run about */
+    else if (!g.hunt) { if (!g.wp) { if ((g.pause -= dt) <= 0) { const P = T.WALK_PAUSE_S, Lg = T.LEG_M; for (let k = 0; k < 8 && !g.wp; k++) { const a = rnd() * 6.283, l = (Lg[0] + rnd() * (Lg[1] - Lg[0])) * WS(), x = g.x + Math.cos(a) * l, y = g.y + Math.sin(a) * l; if (canStand(g, x, y)) g.wp = { x, y }; } g.pause = P[0] + rnd() * (P[1] - P[0]); } }
       if (g.wp) { if (Math.hypot(g.wp.x - g.x, g.wp.y - g.y) < WS() * 0.3) g.wp = null; else if (!step(g, g.wp.x, g.wp.y, sp)) g.wp = null; /* (refused: steeper than MAX_SLOPE_DEG or not walkable - it stops and picks another leg) */ else walking = true; } }
     loop(g, walking ? 'walk' : 'idle'); }
   // ---- per frame (Explore.tick): cheap distance pass over the 60, build / release, then mixers + AI for the near ones only

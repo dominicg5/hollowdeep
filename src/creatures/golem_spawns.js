@@ -21,7 +21,14 @@ const WORLD_GOLEMS = {
   WALK_PAUSE_S: [2, 6],  // idle pause between wander legs
   LEG_M: [6, 22],        // length of one wander leg
   REACH_M: 1.7, STAND_M: 0.9, ATTACK_INTERVAL_S: 3, STRIKE_AT_S: 0.45, KEEP_REACH_M: 0.6, // her side (the playground's PGA.REACH / STAND, PLAYGROUND_COMBAT.CHASE)
-  REPATH_S: 0.5,         // how often she re-aims at a moving target
+  REPATH_S: 0.5,         // (t719u) at most this often she re-aims at a moving target...
+  // (Dominic t719u: 'indecisive movement back and forth' walking up to a targeted golem) her approach, decisive:
+  REPATH_M: 0.5,         // ...and only once her stand-off spot has moved more than this (metres) since the last aim
+  STOP_SLACK_M: 0.3,     // she stops chasing at STAND_M + this off its surface (the playground's STAND + 0.3)...
+  CHASE_SLACK_M: 0.3,    // ...and, once stopped, sets off again only when it is past REACH_M + this (hysteresis: no walk / stop flicker on one threshold)
+  DIRECT_M: 15,          // a stand-off spot this close with open walkable ground in a straight line: she runs straight at it (no nav-grid route through 2.5 m cell centres)
+  TURN_K: 10,            // stopped beside it, her facing eases onto it at this rate (1 / s), set only by herTick
+  MOB_TURN_K: 6,         // a targeted golem that is not hunting her stops wandering and eases round to face her at this rate
   KO_CALM_S: 4,          // knocked out on the map: every golem calms down and she is back on her feet at full HP after this
   ORE_KIND: { tin: 'tin_golem', copper: 'copper_golem', coal: 'coal_golem' },
   // [field id, ore, centre x, centre y, radius] - Art's field table (the game's Explore.oreSpots(), the same seed)
